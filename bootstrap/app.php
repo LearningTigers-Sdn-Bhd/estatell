@@ -17,6 +17,8 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);
 
+        $middleware->redirectUsersTo(fn (Request $request): string => $request->user()?->is_admin ? route('admin.dashboard') : route('dashboard'));
+
         $middleware->web(append: [
             HandleAppearance::class,
             HandleInertiaRequests::class,

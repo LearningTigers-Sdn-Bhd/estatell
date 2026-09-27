@@ -33,16 +33,16 @@ Fortify authenticates one guard (`fortify.guard = web`). A separate `admins` tab
    └─ staff ─────► /p/{code}/dashboard   (or onboarding)
 ```
 
-Custom `LoginResponse` and `TwoFactorLoginResponse` choose the destination.
+Custom `LoginResponse` and `TwoFactorLoginResponse` (`app/Http/Responses`) choose the destination. A stored intended URL wins. A signed-in admin who opens a guest page (for example `/login`) is sent to `/admin`.
 
 ## Access
 
-| Item         | Rule                                                                                     |
-| ------------ | ---------------------------------------------------------------------------------------- |
-| Gate         | `admin`: `is_admin` (and not deactivated, once `deactivated_at` exists)                  |
-| Admin routes | `/admin`, middleware `auth` + `can:admin`                                                |
-| Horizon      | `viewHorizon` uses the `admin` gate                                                      |
-| Permissions  | No Spatie roles for admins. Every admin can do every admin action. Add roles when needed |
+| Item         | Rule                                                                                                                |
+| ------------ | ------------------------------------------------------------------------------------------------------------------- |
+| Gate         | `admin`: `is_admin` (and not deactivated, once `deactivated_at` exists). Others get `404`, so `/admin` stays hidden |
+| Admin routes | `/admin`, middleware `auth` + `can:admin`                                                                           |
+| Horizon      | `viewHorizon` uses the `admin` gate                                                                                 |
+| Permissions  | No Spatie roles for admins. Every admin can do every admin action. Add roles when needed                            |
 
 ## Two-factor for admins
 
