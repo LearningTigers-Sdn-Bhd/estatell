@@ -197,6 +197,8 @@ Coolify keeps these custom commands when it regenerates the proxy config.
 
 Modules are numbered in build order. Each folder in `docs/` holds one module. Each file holds one feature.
 
+The build plan, as one commit per item, is in [checklist.md](checklist.md).
+
 | #   | Module                             | Summary                                                            |
 | --- | ---------------------------------- | ------------------------------------------------------------------ |
 | 01  | [Platform](01-platform/)           | Platform admins, platform settings, feature flags                  |
