@@ -35,7 +35,7 @@ enum PropertyStatus: string
             self::Onboarding => [self::PendingApproval, self::Live, self::Suspended],
             self::PendingApproval => [self::Onboarding, self::Live, self::Suspended],
             self::Live => [self::Suspended],
-            self::Suspended => [self::Onboarding, self::Live],
+            self::Suspended => [self::Onboarding, self::PendingApproval, self::Live],
         }, true);
     }
 

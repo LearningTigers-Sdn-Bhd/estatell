@@ -34,6 +34,7 @@ use Laravel\Pennant\Contracts\FeatureScopeSerializeable;
  * @property Carbon|null $onboarding_started_at
  * @property Carbon|null $went_live_at
  * @property Carbon|null $suspended_at
+ * @property PropertyStatus|null $suspended_from_status
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
@@ -41,7 +42,7 @@ use Laravel\Pennant\Contracts\FeatureScopeSerializeable;
     'name', 'type', 'status',
     'address_line1', 'address_line2', 'city', 'state_code', 'postal_code', 'country_code',
     'contact_email', 'contact_phone', 'registration_number', 'tin',
-    'onboarding_started_at', 'went_live_at', 'suspended_at',
+    'onboarding_started_at', 'went_live_at', 'suspended_at', 'suspended_from_status',
 ])]
 class Property extends Model implements FeatureScopeSerializeable
 {
@@ -62,6 +63,7 @@ class Property extends Model implements FeatureScopeSerializeable
             'onboarding_started_at' => 'datetime',
             'went_live_at' => 'datetime',
             'suspended_at' => 'datetime',
+            'suspended_from_status' => PropertyStatus::class,
         ];
     }
 

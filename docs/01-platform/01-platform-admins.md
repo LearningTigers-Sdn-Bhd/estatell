@@ -67,7 +67,7 @@ Custom `LoginResponse` and `TwoFactorLoginResponse` (`app/Http/Responses`) choos
 - Edit [Platform settings](02-platform-settings.md).
 - Change the channel dorm strategy (see [Dorm strategies](../21-channels/03-dorm-strategies.md)).
 - View a property as its owner or staff (see [Impersonation](04-impersonation.md)).
-- Suspend a property.
+- Suspend and reactivate a property. Each transition is logged with the admin and the old and new statuses.
 
 ## Rules
 

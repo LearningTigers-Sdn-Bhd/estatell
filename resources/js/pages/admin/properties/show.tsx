@@ -1,5 +1,6 @@
-import { Head, router } from '@inertiajs/react';
+import { Form, Head, router } from '@inertiajs/react';
 import { Info, ToggleRight, Users } from 'lucide-react';
+import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { DateText } from '@/components/pms/date-text';
 import { DetailLayout } from '@/components/pms/detail-layout';
@@ -8,6 +9,17 @@ import { PageHeader } from '@/components/pms/page-header';
 import { StatusBadge } from '@/components/pms/status-badge';
 import { Badge } from '@/components/ui/badge';
 import {
+    AlertDialog,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import { Button } from '@/components/ui/button';
+import {
     Field,
     FieldContent,
     FieldDescription,
@@ -15,6 +27,7 @@ import {
     FieldLabel,
 } from '@/components/ui/field';
 import { Switch } from '@/components/ui/switch';
+import { Spinner } from '@/components/ui/spinner';
 import {
     Table,
     TableBody,
@@ -27,8 +40,10 @@ import { dashboard } from '@/routes/admin';
 import {
     features as featuresTab,
     index,
+    reactivate,
     show,
     staff as staffTab,
+    suspend,
 } from '@/routes/admin/properties';
 import { update as updateFeature } from '@/routes/admin/properties/features';
 
@@ -209,6 +224,8 @@ export default function PropertyShow({
     staff?: StaffMember[];
     features?: PropertyFeature[];
 }) {
+    const [suspendOpen, setSuspendOpen] = useState(false);
+
     return (
         <>
             <Head title={property.name} />
@@ -218,6 +235,74 @@ export default function PropertyShow({
                     title={property.name}
                     back={{ href: index(), label: 'Properties' }}
                     badge={<StatusBadge status={property.status} />}
+                    actions={
+                        property.status.value === 'suspended' ? (
+                            <Form
+                                {...reactivate.form(property.code)}
+                                options={{ preserveScroll: true }}
+                            >
+                                {({ processing }) => (
+                                    <Button
+                                        type="submit"
+                                        disabled={processing}
+                                        focusableWhenDisabled
+                                    >
+                                        {processing && (
+                                            <Spinner data-icon="inline-start" />
+                                        )}
+                                        Reactivate property
+                                    </Button>
+                                )}
+                            </Form>
+                        ) : (
+                            <AlertDialog
+                                open={suspendOpen}
+                                onOpenChange={setSuspendOpen}
+                            >
+                                <AlertDialogTrigger
+                                    render={<Button variant="destructive" />}
+                                >
+                                    Suspend property
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                        <AlertDialogTitle>
+                                            Suspend {property.name}?
+                                        </AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                            Staff will see a suspension notice
+                                            and cannot use property pages until
+                                            this property is reactivated.
+                                        </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <Form
+                                        {...suspend.form(property.code)}
+                                        options={{ preserveScroll: true }}
+                                        onSuccess={() => setSuspendOpen(false)}
+                                    >
+                                        {({ processing }) => (
+                                            <AlertDialogFooter>
+                                                <AlertDialogCancel>
+                                                    Cancel
+                                                </AlertDialogCancel>
+                                                <Button
+                                                    type="submit"
+                                                    variant="destructive"
+                                                    disabled={processing}
+                                                    focusableWhenDisabled
+                                                >
+                                                    {processing && (
+                                                        <Spinner data-icon="inline-start" />
+                                                    )}
+                                                    Suspend property
+                                                </Button>
+                                            </AlertDialogFooter>
+                                        )}
+                                    </Form>
+                                </AlertDialogContent>
+                            </AlertDialog>
+                        )
+                    }
                 />
 
                 <DetailLayout

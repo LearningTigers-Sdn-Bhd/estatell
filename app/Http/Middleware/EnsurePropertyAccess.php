@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Enums\PropertyStatus;
 use App\Models\Property;
 use Closure;
 use Illuminate\Auth\AuthenticationException;
@@ -34,6 +35,14 @@ class EnsurePropertyAccess
 
         setPermissionsTeamId($property->id);
         URL::defaults(['property' => $property->code]);
+
+        if ($property->status === PropertyStatus::Suspended && ! $request->routeIs('property.suspended')) {
+            return redirect()->route('property.suspended', ['property' => $property->code]);
+        }
+
+        if ($property->status !== PropertyStatus::Suspended && $request->routeIs('property.suspended')) {
+            return redirect()->route('dashboard', ['property' => $property->code]);
+        }
 
         return $next($request);
     }

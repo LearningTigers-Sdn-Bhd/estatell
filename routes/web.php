@@ -9,6 +9,7 @@ Route::inertia('/', 'welcome')->name('home');
 Route::get('dashboard', HomeRedirectController::class)->middleware('auth')->name('home.redirect');
 
 Route::prefix('p/{property:code}')->whereNumber('property')->middleware([EnsurePropertyAccess::class, 'verified'])->group(function () {
+    Route::inertia('suspended', 'property/suspended')->name('property.suspended');
     Route::inertia('dashboard', 'dashboard')->name('dashboard');
 });
 

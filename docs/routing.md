@@ -39,6 +39,7 @@ URL shape, route groups, names and middleware for estatell. Wayfinder generates 
 | Public and auth    | `/`, Fortify routes                                          | `home`, Fortify names | –                                                            | `web.php`          |
 | Onboarding         | `/p/{code}/onboarding`                                       | `onboarding.`         | property.access, verified                                    | `onboarding.php`   |
 | Dashboard          | `/p/{code}/dashboard`                                        | `dashboard`           | + live (from module 17)                                      | `web.php`          |
+| Suspension notice  | `/p/{code}/suspended`                                        | `property.suspended`  | property.access, verified                                    | `web.php`          |
 | Front desk         | `/p/{code}/front-desk`                                       | `front-desk.`         | + live                                                       | `front-desk.php`   |
 | Reservations       | `/p/{code}/reservations`                                     | `reservations.`       | + live                                                       | `reservations.php` |
 | Guests             | `/p/{code}/guests`                                           | `guests.`             | + live                                                       | `guests.php`       |
@@ -59,6 +60,7 @@ After login, staff are redirected to `/p/{their code}/dashboard` (or onboarding 
 
 - Fortify's `home` is `/dashboard` (`home.redirect`, `HomeRedirectController`). It sends admins to `/admin` and staff to their property dashboard, so register, email verification, password reset and 2FA all land in the right place.
 - `live` is not applied yet. It is added with the onboarding wizard (module 17), so new owners are not sent to a page that does not exist.
+- `EnsurePropertyAccess` redirects suspended staff to the suspension notice after checking property ownership. The notice redirects to the dashboard when the property is active again. Account routes stay available.
 - Shared prop `property` (`PropertySummaryData`: code, name, status): the property in the URL, or the staff user's own property on pages without one (account pages). Null for admins outside `/p`.
 
 ## Examples

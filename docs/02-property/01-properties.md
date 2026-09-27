@@ -10,7 +10,7 @@ A property is the tenant. Every domain record belongs to exactly one property. w
 properties    id, code (bigint, unique), name, type (PropertyType, nullable), status (PropertyStatus),
               address_line1, address_line2, city, state_code, postal_code, country_code (char 2, nullable),
               contact_email, contact_phone, registration_number, tin,
-              onboarding_started_at, went_live_at, suspended_at, timestamps
+              onboarding_started_at, went_live_at, suspended_at, suspended_from_status, timestamps
 ```
 
 - `type` and `country_code` are empty after self sign-up. The Basics wizard step fills them (see [Wizard steps](../17-onboarding/02-wizard-steps.md)).
@@ -35,7 +35,9 @@ properties    id, code (bigint, unique), name, type (PropertyType, nullable), st
 | Onboarding      | PendingApproval, Live, Suspended       |
 | PendingApproval | Onboarding (rejected), Live, Suspended |
 | Live            | Suspended                              |
-| Suspended       | Onboarding, Live                       |
+| Suspended       | Onboarding, PendingApproval, Live      |
+
+The admin suspension action stores the current status in `suspended_from_status` and sets `suspended_at`. Reactivation restores that status and clears both fields. Existing suspended records are backfilled to Live when `went_live_at` exists, or Onboarding otherwise.
 
 ## Rules
 
@@ -43,6 +45,7 @@ properties    id, code (bigint, unique), name, type (PropertyType, nullable), st
 - The current property is resolved from the `{property:code}` route parameter by `EnsurePropertyAccess`, and must match `$user->property` (or an active impersonation session).
 - `PropertyType` drives defaults (see [Seed property defaults](03-seed-property-defaults.md)).
 - Operational routes require `Live` (see `EnsurePropertyIsLive` in [Wizard steps](../17-onboarding/02-wizard-steps.md)).
+- Suspended staff are redirected from property routes to `/p/{code}/suspended`, a read-only notice. Personal account routes remain available. After reactivation, the notice route redirects to the dashboard.
 
 ## Lessons from wastays
 

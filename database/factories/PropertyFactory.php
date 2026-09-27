@@ -49,6 +49,7 @@ class PropertyFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'status' => PropertyStatus::Suspended,
+            'suspended_from_status' => PropertyStatus::Onboarding,
             'suspended_at' => now(),
         ]);
     }
