@@ -5,6 +5,7 @@ use App\Enums\MediaDisk;
 use App\Models\PlatformSetting;
 use App\Models\User;
 use App\Services\Platform\PlatformSettings;
+use Illuminate\Support\Facades\Cache;
 use Inertia\Testing\AssertableInertia as Assert;
 use Spatie\Activitylog\Models\Activity;
 
@@ -115,4 +116,18 @@ test('R2 can be chosen once its keys are set', function () {
         ->assertSessionHasNoErrors();
 
     expect(app(PlatformSettings::class)->current()->media_disk)->toBe(MediaDisk::R2);
+});
+
+test('settings are read back from a serializing cache store', function () {
+    config(['cache.default' => 'file']);
+    Cache::forget(PlatformSettings::CACHE_KEY);
+
+    app(PlatformSettings::class)->current();
+    $settings = app(PlatformSettings::class)->current();
+
+    expect($settings)->toBeInstanceOf(PlatformSetting::class)
+        ->and($settings->media_disk)->toBe(MediaDisk::Local)
+        ->and($settings->exists)->toBeTrue();
+
+    Cache::forget(PlatformSettings::CACHE_KEY);
 });

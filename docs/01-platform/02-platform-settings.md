@@ -17,7 +17,7 @@ platform_settings    id (always 1), require_go_live_approval (bool, default fals
 
 ## Services and Actions
 
-- `PlatformSettings` service: cached read of the single row (cache key `platform_settings`).
+- `PlatformSettings` service: cached read of the single row (cache key `platform_settings`). The cache holds raw column values, not the model, because `cache.serializable_classes` is false.
 - `UpdatePlatformSettings` Action: admin only. Logs changed columns (old and new) to the activity log. Saving without changes writes no entry. Clears the cache.
 - The migration inserts row 1. CHECK constraints keep `id = 1` and valid enum values.
 
