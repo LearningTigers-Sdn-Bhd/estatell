@@ -53,9 +53,9 @@ Custom `LoginResponse` and `TwoFactorLoginResponse` (`app/Http/Responses`) choos
 | Staff                                              | Optional, as Fortify provides                                                         |
 
 - Locked admin actions: impersonate, platform settings, feature flags, create or suspend a property, dorm strategy.
-- Middleware `admin.2fa` guards the locked routes and returns `403` with the toast "Two-factor required for this action". The UI hides the same buttons.
-- An admin without 2FA sees a banner: "Set up two-factor to use admin actions" with **Set up**.
-- Passkeys: enable Fortify `Features::passkeys()`. A confirmed passkey counts as 2FA. Staff may use passkeys too.
+- Middleware `admin.2fa` (`RequireAdminTwoFactor`) guards the locked routes. It redirects back with the error toast "Two-factor required for this action." and returns `403` to JSON requests. The UI hides the same buttons.
+- An admin without 2FA sees a banner on every app-layout page: "Set up two-factor to use admin actions" with **Set up** (goes to account security). Shared Inertia prop `adminNeedsTwoFactor`.
+- Passkeys (not built yet): enable Fortify `Features::passkeys()`. A confirmed passkey will count as 2FA. Until then, 2FA means `two_factor_confirmed_at` is set. Staff may use passkeys too.
 - Config: `config('estatell.admin_require_two_factor')`.
 
 ## Capabilities
