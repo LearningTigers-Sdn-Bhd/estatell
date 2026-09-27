@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Models\Property;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
@@ -34,6 +35,7 @@ class UserFactory extends Factory
             'two_factor_recovery_codes' => null,
             'two_factor_confirmed_at' => null,
             'is_admin' => false,
+            'property_id' => Property::factory(),
         ];
     }
 
@@ -66,6 +68,7 @@ class UserFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'is_admin' => true,
+            'property_id' => null,
         ]);
     }
 }

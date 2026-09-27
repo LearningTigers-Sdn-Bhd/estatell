@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Property;
 use App\Models\User;
 use Illuminate\Support\Facades\Gate;
 
@@ -15,7 +16,7 @@ test('only admins can view horizon', function () {
 });
 
 test('is_admin cannot be mass assigned', function () {
-    $user = User::create([
+    $user = Property::factory()->create()->users()->create([
         'name' => 'Aisha',
         'email' => 'aisha@example.com',
         'password' => 'password',

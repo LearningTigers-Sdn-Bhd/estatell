@@ -2,6 +2,7 @@
 
 namespace App\Actions\Fortify;
 
+use App\Actions\Onboarding\RegisterPropertyOwner;
 use App\Concerns\PasswordValidationRules;
 use App\Concerns\ProfileValidationRules;
 use App\Models\User;
@@ -12,22 +13,21 @@ class CreateNewUser implements CreatesNewUsers
 {
     use PasswordValidationRules, ProfileValidationRules;
 
+    public function __construct(private RegisterPropertyOwner $registerPropertyOwner) {}
+
     /**
-     * Validate and create a newly registered user.
+     * Validate and create a newly registered property owner with their property.
      *
      * @param  array<string, string>  $input
      */
     public function create(array $input): User
     {
-        Validator::make($input, [
+        $validated = Validator::make($input, [
             ...$this->profileRules(),
             'password' => $this->passwordRules(),
+            'property_name' => ['required', 'string', 'max:255'],
         ])->validate();
 
-        return User::create([
-            'name' => $input['name'],
-            'email' => $input['email'],
-            'password' => $input['password'],
-        ]);
+        return ($this->registerPropertyOwner)($validated);
     }
 }

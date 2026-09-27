@@ -7,6 +7,7 @@ use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Carbon;
@@ -14,6 +15,7 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
 
 /**
  * @property int $id
+ * @property int|null $property_id
  * @property string $name
  * @property string $email
  * @property Carbon|null $email_verified_at
@@ -46,5 +48,15 @@ class User extends Authenticatable implements MustVerifyEmail
             'is_admin' => 'boolean',
             'two_factor_confirmed_at' => 'datetime',
         ];
+    }
+
+    /**
+     * The property a staff user belongs to. Null for platform admins.
+     *
+     * @return BelongsTo<Property, $this>
+     */
+    public function property(): BelongsTo
+    {
+        return $this->belongsTo(Property::class);
     }
 }

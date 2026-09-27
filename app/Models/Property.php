@@ -1,0 +1,73 @@
+<?php
+
+namespace App\Models;
+
+use App\Enums\PropertyStatus;
+use App\Enums\PropertyType;
+use Database\Factories\PropertyFactory;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
+
+/**
+ * The tenant. `code` comes from the property_code_seq sequence and never changes.
+ *
+ * @property int $id
+ * @property int $code
+ * @property string $name
+ * @property PropertyType|null $type
+ * @property PropertyStatus $status
+ * @property string|null $address_line1
+ * @property string|null $address_line2
+ * @property string|null $city
+ * @property string|null $state_code
+ * @property string|null $postal_code
+ * @property string|null $country_code
+ * @property string|null $contact_email
+ * @property string|null $contact_phone
+ * @property string|null $registration_number
+ * @property string|null $tin
+ * @property Carbon|null $onboarding_started_at
+ * @property Carbon|null $went_live_at
+ * @property Carbon|null $suspended_at
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ */
+#[Fillable([
+    'name', 'type', 'status',
+    'address_line1', 'address_line2', 'city', 'state_code', 'postal_code', 'country_code',
+    'contact_email', 'contact_phone', 'registration_number', 'tin',
+    'onboarding_started_at', 'went_live_at', 'suspended_at',
+])]
+class Property extends Model
+{
+    /** @use HasFactory<PropertyFactory> */
+    use HasFactory;
+
+    /**
+     * Get the attributes that should be cast.
+     *
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'code' => 'integer',
+            'type' => PropertyType::class,
+            'status' => PropertyStatus::class,
+            'onboarding_started_at' => 'datetime',
+            'went_live_at' => 'datetime',
+            'suspended_at' => 'datetime',
+        ];
+    }
+
+    /**
+     * @return HasMany<User, $this>
+     */
+    public function users(): HasMany
+    {
+        return $this->hasMany(User::class);
+    }
+}

@@ -19,6 +19,8 @@ mediaDisk: App.Enums.MediaDisk,
 namespace Enums {
 export type DormStrategy = 'bed_as_unit' | 'native_dorm';
 export type MediaDisk = 'local' | 'r2';
+export type PropertyStatus = 'onboarding' | 'pending_approval' | 'live' | 'suspended';
+export type PropertyType = 'hotel' | 'hostel' | 'resort' | 'serviced_apartment' | 'homestay';
 }
 }
 declare namespace Illuminate {

@@ -18,7 +18,7 @@ CHECK ((is_admin AND property_id IS NULL) OR (NOT is_admin AND property_id IS NO
 - `is_admin` is not fillable. Only `AdminSeeder` (reads `ADMIN_SEED_EMAIL` and `ADMIN_SEED_PASSWORD`) or a console command sets it. Fortify registration cannot.
 - Admins never belong to a property permission team.
 - Emails are unique across all users. An admin who also owns a property needs a second email.
-- Built so far: `is_admin`. `property_id` and the CHECK come with the `properties` table, because registration creates users without a property until then.
+- Built: `is_admin`, `property_id` (restrict on delete) and the CHECK `users_property_or_admin_check`. Registration creates the property and the owner together (see [Account creation](../17-onboarding/01-account-creation.md)).
 
 ## Why one table
 

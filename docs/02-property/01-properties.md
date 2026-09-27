@@ -7,16 +7,19 @@ A property is the tenant. Every domain record belongs to exactly one property. w
 ## Data model
 
 ```
-properties    id, code (bigint, unique), name, type (PropertyType), status (PropertyStatus),
-              address_line1, address_line2, city, state_code, postal_code, country_code,
+properties    id, code (bigint, unique), name, type (PropertyType, nullable), status (PropertyStatus),
+              address_line1, address_line2, city, state_code, postal_code, country_code (char 2, nullable),
               contact_email, contact_phone, registration_number, tin,
               onboarding_started_at, went_live_at, suspended_at, timestamps
 ```
 
+- `type` and `country_code` are empty after self sign-up. The Basics wizard step fills them (see [Wizard steps](../17-onboarding/02-wizard-steps.md)).
+- CHECK constraints keep `type` and `status` to enum values.
+
 ## Property code
 
-- `code` is the public identifier: a plain number, issued in order from a Postgres sequence starting at **10101**.
-- Immutable after creation.
+- `code` is the public identifier: a plain number, issued in order from the Postgres sequence `property_code_seq` starting at **10101** (column default).
+- Immutable after creation. It is not fillable, so application code cannot set or change it.
 - Used in every staff URL: `app.example.com/p/10142/...` (see [Routing](../routing.md)).
 - Easy to say on the phone. Admin ⌘K searches by code, name or city.
 - Not a secret. Access is always checked by `EnsurePropertyAccess`; a code that does not belong to the user returns `404`.
@@ -26,6 +29,13 @@ properties    id, code (bigint, unique), name, type (PropertyType), status (Prop
 
 - `PropertyType`: Hotel, Hostel, Resort, ServicedApartment, Homestay.
 - `PropertyStatus`: Onboarding, PendingApproval, Live, Suspended.
+
+| From            | Can move to                            |
+| --------------- | -------------------------------------- |
+| Onboarding      | PendingApproval, Live, Suspended       |
+| PendingApproval | Onboarding (rejected), Live, Suspended |
+| Live            | Suspended                              |
+| Suspended       | Onboarding, Live                       |
 
 ## Rules
 

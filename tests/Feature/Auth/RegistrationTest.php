@@ -19,10 +19,24 @@ test('new users can register', function () {
         'email' => 'test@example.com',
         'password' => 'password',
         'password_confirmation' => 'password',
+        'property_name' => 'Seaview Guesthouse',
     ]);
 
     $this->assertAuthenticated();
     $response->assertRedirect(route('dashboard', absolute: false));
+
+    expect(User::query()->where('email', 'test@example.com')->sole()->property->name)->toBe('Seaview Guesthouse');
+});
+
+test('registration needs a property name', function () {
+    $this->post(route('register.store'), [
+        'name' => 'Test User',
+        'email' => 'test@example.com',
+        'password' => 'password',
+        'password_confirmation' => 'password',
+    ])->assertSessionHasErrors('property_name');
+
+    $this->assertGuest();
 });
 
 test('registration cannot create an admin', function () {
@@ -31,6 +45,7 @@ test('registration cannot create an admin', function () {
         'email' => 'test@example.com',
         'password' => 'password',
         'password_confirmation' => 'password',
+        'property_name' => 'Seaview Guesthouse',
         'is_admin' => true,
     ]);
 
