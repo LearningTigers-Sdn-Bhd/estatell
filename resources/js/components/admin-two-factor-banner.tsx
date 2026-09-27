@@ -1,7 +1,7 @@
 import { Link, usePage } from '@inertiajs/react';
 import { ShieldAlert } from 'lucide-react';
-import { Alert, AlertAction, AlertTitle } from '@/components/ui/alert';
 import { buttonVariants } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import { edit } from '@/routes/account/security';
 
 /**
@@ -16,21 +16,24 @@ export function AdminTwoFactorBanner() {
 
     return (
         <div className="px-4 pt-4">
-            <Alert className="border-warning/50 bg-warning/10">
-                <ShieldAlert className="text-warning" />
-                <AlertTitle>Set up two-factor to use admin actions</AlertTitle>
-                <AlertAction>
-                    <Link
-                        href={edit()}
-                        className={buttonVariants({
-                            size: 'sm',
-                            variant: 'outline',
-                        })}
-                    >
-                        Set up
-                    </Link>
-                </AlertAction>
-            </Alert>
+            <div
+                role="status"
+                className="flex items-center gap-3 rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-sm"
+            >
+                <ShieldAlert className="size-4 shrink-0 text-warning" />
+                <p className="flex-1 font-medium">
+                    Set up two-factor to use admin actions
+                </p>
+                <Link
+                    href={edit()}
+                    className={cn(
+                        buttonVariants({ size: 'sm' }),
+                        'bg-warning text-warning-foreground hover:bg-warning/80',
+                    )}
+                >
+                    Set up
+                </Link>
+            </div>
         </div>
     );
 }
