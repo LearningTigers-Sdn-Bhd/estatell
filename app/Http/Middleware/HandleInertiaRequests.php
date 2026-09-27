@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Navigation\AdminNavigation;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -42,6 +43,7 @@ class HandleInertiaRequests extends Middleware
                 'user' => $request->user(),
             ],
             'adminNeedsTwoFactor' => RequireAdminTwoFactor::isMissingFor($request->user()),
+            'adminNavigation' => fn () => $request->routeIs('admin.*') ? app(AdminNavigation::class)->items() : null,
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];
     }

@@ -70,6 +70,7 @@ After login, staff are redirected to `/p/{their code}/dashboard` (or onboarding 
 | `GET /p/10142/settings/room-types`                               | `settings.room-types.index`           | `pages/settings/room-types/index.tsx`           |
 | `GET /p/10142/onboarding/rooms`                                  | `onboarding.rooms`                    | Onboarding step (reuses the settings form)      |
 | `GET /admin`                                                     | `admin.dashboard`                     | `pages/admin/dashboard.tsx`                     |
+| `GET /admin/settings`                                            | `admin.settings.edit`                 | `pages/admin/settings/edit.tsx`                 |
 | `GET /admin/properties/10142`                                    | `admin.properties.show`               | `pages/admin/properties/show.tsx`               |
 | `GET /admin/properties/10142/view-as`                            | `admin.properties.view-as`            | `pages/admin/properties/view-as.tsx`            |
 | `GET /g/cards/5821?expires=…&signature=…`                        | `guest.cards.show`                    | `pages/guest/cards/show.tsx`                    |

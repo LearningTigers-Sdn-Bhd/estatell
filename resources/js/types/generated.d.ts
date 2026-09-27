@@ -1,3 +1,26 @@
+declare namespace App {
+namespace Data {
+namespace Navigation {
+export type NavItemData = {
+title: string,
+href: string,
+icon: string,
+external: boolean,
+};
+}
+namespace Platform {
+export type PlatformSettingsData = {
+requireGoLiveApproval: boolean,
+defaultDormStrategy: App.Enums.DormStrategy,
+mediaDisk: App.Enums.MediaDisk,
+};
+}
+}
+namespace Enums {
+export type DormStrategy = 'bed_as_unit' | 'native_dorm';
+export type MediaDisk = 'local' | 'r2';
+}
+}
 declare namespace Illuminate {
 export type CursorPaginator<TKey, TValue> = {
 data: TKey extends string ? Record<TKey, TValue> : TValue[],

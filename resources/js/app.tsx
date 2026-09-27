@@ -2,6 +2,7 @@ import { createInertiaApp } from '@inertiajs/react';
 import { FlashToaster } from '@/components/flash-toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { initializeTheme } from '@/hooks/use-appearance';
+import AdminLayout from '@/layouts/admin-layout';
 import AppLayout from '@/layouts/app-layout';
 import AuthLayout from '@/layouts/auth-layout';
 import AccountLayout from '@/layouts/account/layout';
@@ -16,6 +17,8 @@ void createInertiaApp({
                 return null;
             case name.startsWith('auth/'):
                 return AuthLayout;
+            case name.startsWith('admin/'):
+                return AdminLayout;
             case name.startsWith('account/'):
                 return [AppLayout, AccountLayout];
             default:
