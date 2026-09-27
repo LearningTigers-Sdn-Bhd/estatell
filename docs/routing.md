@@ -14,8 +14,9 @@ URL shape, route groups, names and middleware for estatell. Wayfinder generates 
 
 - `properties.code`: bigint, unique, immutable, issued from a Postgres sequence starting at **10101**. See [Properties](02-property/01-properties.md).
 - Easy to say on the phone and to search in admin ⌘K.
-- The route group is `Route::prefix('p/{property:code}')->whereNumber('property')`.
-- `EnsurePropertyAccess` sets `URL::defaults(['property' => $property->code])`, so server code never passes the code by hand. Wayfinder route functions need the same default on the frontend; confirm the Wayfinder mechanism when the first property route is built.
+- The route group is `Route::prefix('p/{property:code}')->whereNumber('property')->middleware([EnsurePropertyAccess::class, 'verified'])`. Use the class, not the `property.access` alias: `wayfinder:generate` only reads `URL::defaults` from middleware it can resolve, and aliases are not resolved in the console.
+- `AppServiceProvider` binds `{property}` by code explicitly (`Route::bind`), because `Route::inertia` routes have no typed parameter for implicit binding. `EnsurePropertyAccess` runs after `SubstituteBindings` (middleware priority).
+- `EnsurePropertyAccess` sets `URL::defaults(['property' => $property->code])`, so server code never passes the code by hand. Wayfinder then makes `property` optional in the generated functions. `AppLayout` calls Wayfinder's `setUrlDefaults({ property })` from the shared `property` prop during render, so the sidebar and pages call `dashboard()` without the code. Code that runs outside a render (module-level constants, layout callbacks) passes the code explicitly.
 - A code that does not match the user's property returns `404` (never `403`).
 
 ## Middleware
@@ -37,7 +38,7 @@ URL shape, route groups, names and middleware for estatell. Wayfinder generates 
 | ------------------ | ------------------------------------------------------------ | --------------------- | ------------------------------------------------------------ | ------------------ |
 | Public and auth    | `/`, Fortify routes                                          | `home`, Fortify names | –                                                            | `web.php`          |
 | Onboarding         | `/p/{code}/onboarding`                                       | `onboarding.`         | property.access, verified                                    | `onboarding.php`   |
-| Dashboard          | `/p/{code}/dashboard`                                        | `dashboard`           | + live                                                       | `web.php`          |
+| Dashboard          | `/p/{code}/dashboard`                                        | `dashboard`           | + live (from module 17)                                      | `web.php`          |
 | Front desk         | `/p/{code}/front-desk`                                       | `front-desk.`         | + live                                                       | `front-desk.php`   |
 | Reservations       | `/p/{code}/reservations`                                     | `reservations.`       | + live                                                       | `reservations.php` |
 | Guests             | `/p/{code}/guests`                                           | `guests.`             | + live                                                       | `guests.php`       |
@@ -55,6 +56,10 @@ URL shape, route groups, names and middleware for estatell. Wayfinder generates 
 | Webhooks           | `/webhooks`                                                  | `webhooks.`           | no CSRF, provider signature check                            | `webhooks.php`     |
 
 After login, staff are redirected to `/p/{their code}/dashboard` (or onboarding if not live).
+
+- Fortify's `home` is `/dashboard` (`home.redirect`, `HomeRedirectController`). It sends admins to `/admin` and staff to their property dashboard, so register, email verification, password reset and 2FA all land in the right place.
+- `live` is not applied yet. It is added with the onboarding wizard (module 17), so new owners are not sent to a page that does not exist.
+- Shared prop `property` (`PropertySummaryData`: code, name, status): the property in the URL, or the staff user's own property on pages without one (account pages). Null for admins outside `/p`.
 
 ## Examples
 

@@ -149,7 +149,7 @@ Otherwise the dashboard is used (with the blocked-page warning for case 4).
 
 `EnsurePropertyAccess` (alias `property.access`) replaces plain `auth` on the staff route group `p/{property:code}`. See [Routing](../routing.md).
 
-In order:
+In order (steps 2 and 3 are built with impersonation; until then admins get `404` on `/p/{code}` routes):
 
 1. Allow a web-guard user whose `property_id` matches the code.
 2. Allow an active impersonation session for this property.

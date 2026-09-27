@@ -1,10 +1,14 @@
 <?php
 
+use App\Http\Controllers\HomeRedirectController;
+use App\Http\Middleware\EnsurePropertyAccess;
 use Illuminate\Support\Facades\Route;
 
 Route::inertia('/', 'welcome')->name('home');
 
-Route::middleware(['auth', 'verified'])->group(function () {
+Route::get('dashboard', HomeRedirectController::class)->middleware('auth')->name('home.redirect');
+
+Route::prefix('p/{property:code}')->whereNumber('property')->middleware([EnsurePropertyAccess::class, 'verified'])->group(function () {
     Route::inertia('dashboard', 'dashboard')->name('dashboard');
 });
 

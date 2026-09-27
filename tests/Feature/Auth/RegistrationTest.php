@@ -23,7 +23,7 @@ test('new users can register', function () {
     ]);
 
     $this->assertAuthenticated();
-    $response->assertRedirect(route('dashboard', absolute: false));
+    $response->assertRedirect(route('home.redirect', absolute: false));
 
     expect(User::query()->where('email', 'test@example.com')->sole()->property->name)->toBe('Seaview Guesthouse');
 });

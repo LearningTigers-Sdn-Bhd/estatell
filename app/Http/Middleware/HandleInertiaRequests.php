@@ -2,6 +2,8 @@
 
 namespace App\Http\Middleware;
 
+use App\Data\Property\PropertySummaryData;
+use App\Models\Property;
 use App\Navigation\AdminNavigation;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
@@ -43,8 +45,23 @@ class HandleInertiaRequests extends Middleware
                 'user' => $request->user(),
             ],
             'adminNeedsTwoFactor' => RequireAdminTwoFactor::isMissingFor($request->user()),
+            'property' => fn () => $this->currentProperty($request),
             'adminNavigation' => fn () => $request->routeIs('admin.*') ? app(AdminNavigation::class)->items() : null,
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];
+    }
+
+    /**
+     * The property in the URL, or the signed-in staff user's own property on pages without one.
+     */
+    private function currentProperty(Request $request): ?PropertySummaryData
+    {
+        $property = $request->route('property');
+
+        if (! $property instanceof Property) {
+            $property = $request->user()?->property;
+        }
+
+        return $property instanceof Property ? PropertySummaryData::fromModel($property) : null;
     }
 }

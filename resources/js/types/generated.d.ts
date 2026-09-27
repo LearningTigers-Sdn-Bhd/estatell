@@ -15,6 +15,13 @@ defaultDormStrategy: App.Enums.DormStrategy,
 mediaDisk: App.Enums.MediaDisk,
 };
 }
+namespace Property {
+export type PropertySummaryData = {
+code: number,
+name: string,
+status: App.Enums.PropertyStatus,
+};
+}
 }
 namespace Enums {
 export type DormStrategy = 'bed_as_unit' | 'native_dorm';

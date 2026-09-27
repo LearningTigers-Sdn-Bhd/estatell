@@ -17,8 +17,8 @@ test('admin pages share the admin navigation', function () {
         );
 });
 
-test('staff pages do not share the admin navigation', function () {
+test('non-admin pages do not share the admin navigation', function () {
     $this->actingAs(User::factory()->admin()->create())
-        ->get(route('dashboard'))
+        ->get(route('account.profile.edit'))
         ->assertInertia(fn (Assert $page) => $page->where('adminNavigation', null));
 });

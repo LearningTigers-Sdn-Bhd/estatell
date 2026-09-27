@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Models\Property;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Auth\Access\Response;
@@ -9,6 +10,7 @@ use Illuminate\Http\Middleware\TrustProxies;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 
@@ -30,6 +32,16 @@ class AppServiceProvider extends ServiceProvider
         $this->configureDefaults();
         $this->configureTrustedProxies();
         $this->configureGates();
+        $this->configureRouteBindings();
+    }
+
+    /**
+     * Bind `{property}` by its public code on every route, including `Route::inertia` routes that
+     * have no typed controller parameter for implicit binding.
+     */
+    protected function configureRouteBindings(): void
+    {
+        Route::bind('property', fn (string $code): Property => Property::query()->where('code', $code)->firstOrFail());
     }
 
     /**

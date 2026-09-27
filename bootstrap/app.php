@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\EnsurePropertyAccess;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\RequireAdminTwoFactor;
@@ -8,6 +9,7 @@ use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Middleware\SubstituteBindings;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -18,11 +20,14 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);
 
-        $middleware->redirectUsersTo(fn (Request $request): string => $request->user()?->is_admin ? route('admin.dashboard') : route('dashboard'));
+        $middleware->redirectUsersTo(fn (Request $request): string => $request->user()?->is_admin ? route('admin.dashboard') : route('home.redirect'));
 
         $middleware->alias([
             'admin.2fa' => RequireAdminTwoFactor::class,
+            'property.access' => EnsurePropertyAccess::class,
         ]);
+
+        $middleware->appendToPriorityList(SubstituteBindings::class, EnsurePropertyAccess::class);
 
         $middleware->web(append: [
             HandleAppearance::class,

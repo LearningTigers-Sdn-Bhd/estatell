@@ -26,11 +26,13 @@ export default function Dashboard() {
     );
 }
 
-Dashboard.layout = {
+Dashboard.layout = (props: {
+    property: App.Data.Property.PropertySummaryData;
+}) => ({
     breadcrumbs: [
         {
             title: 'Dashboard',
-            href: dashboard(),
+            href: dashboard(props.property.code),
         },
     ],
-};
+});

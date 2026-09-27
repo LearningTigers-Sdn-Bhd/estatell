@@ -41,7 +41,7 @@ test('admin actions stay open when the setting is off', function () {
 
 test('the banner prop is shared only with admins who still need two-factor', function (Closure $user, bool $needsTwoFactor) {
     $this->actingAs($user())
-        ->get(route('dashboard'))
+        ->get(route('account.profile.edit'))
         ->assertInertia(fn (Assert $page) => $page->where('adminNeedsTwoFactor', $needsTwoFactor));
 })->with([
     'admin without two-factor' => [fn () => User::factory()->admin()->create(), true],
