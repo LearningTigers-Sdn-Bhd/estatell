@@ -6,10 +6,12 @@ One place for platform admins to find any property and see its details. Later ad
 
 ## Pages
 
-| Page | URL                            | Name                     | Archetype |
-| ---- | ------------------------------ | ------------------------ | --------- |
-| List | `GET /admin/properties`        | `admin.properties.index` | Index     |
-| Show | `GET /admin/properties/{code}` | `admin.properties.show`  | Detail    |
+| Page         | URL                                     | Name                        | Archetype |
+| ------------ | --------------------------------------- | --------------------------- | --------- |
+| List         | `GET /admin/properties`                 | `admin.properties.index`    | Index     |
+| Show         | `GET /admin/properties/{code}`          | `admin.properties.show`     | Detail    |
+| Staff tab    | `GET /admin/properties/{code}/staff`    | `admin.properties.staff`    | Detail    |
+| Features tab | `GET /admin/properties/{code}/features` | `admin.properties.features` | Detail    |
 
 - Middleware: `auth`, `can:admin`. Both pages are read-only, so no `admin.2fa`.
 - `{property}` binds by code (see [Routing](../routing.md#property-code)).
@@ -28,6 +30,7 @@ One place for platform admins to find any property and see its details. Later ad
 ## Show
 
 - Header: name, status badge, back link to the list.
+- Each tab has its own URL, so a refresh keeps the open tab and a link can point at one tab. All tabs render `pages/admin/properties/show.tsx` with a `tab` prop, and the server sends only the open tab's data (`staff` or `features`). The summary and `staffCount` come on every tab.
 - Tabs: **Overview** (address, contact, registration and TIN), **Staff** (name, email, verified, created) and **Features** (see [Feature flags](03-feature-flags.md#admin-ui)).
 - Summary card: code, status, type, created, live since, suspended (when set).
 - `AdminPropertyData` holds the page data, with `AdminPropertyStaffData` rows.

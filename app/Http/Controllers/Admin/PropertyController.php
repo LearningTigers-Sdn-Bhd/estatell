@@ -4,11 +4,13 @@ namespace App\Http\Controllers\Admin;
 
 use App\Data\Platform\AdminPropertyData;
 use App\Data\Platform\AdminPropertyRowData;
+use App\Data\Platform\AdminPropertyStaffData;
 use App\Data\Platform\PropertyFeatureData;
 use App\Enums\PropertyStatus;
 use App\Enums\PropertyType;
 use App\Http\Controllers\Controller;
 use App\Models\Property;
+use App\Models\User;
 use App\Services\Platform\PropertyDirectory;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -36,15 +38,49 @@ class PropertyController extends Controller
     }
 
     /**
-     * Show one property with its staff.
+     * Property page, Overview tab.
      */
     public function show(Property $property): Response
     {
-        $property->load(['users' => fn ($query) => $query->orderBy('name')]);
+        return $this->renderTab($property, 'overview');
+    }
+
+    /**
+     * Property page, Staff tab.
+     */
+    public function staff(Property $property): Response
+    {
+        return $this->renderTab($property, 'staff', [
+            'staff' => $property->users()->orderBy('name')->get()
+                ->map(fn (User $user): AdminPropertyStaffData => AdminPropertyStaffData::fromModel($user))
+                ->all(),
+        ]);
+    }
+
+    /**
+     * Property page, Features tab.
+     */
+    public function features(Property $property): Response
+    {
+        return $this->renderTab($property, 'features', [
+            'features' => PropertyFeatureData::forProperty($property),
+        ]);
+    }
+
+    /**
+     * Each tab has its own URL, so the open tab survives a refresh. Only the open tab's data is sent.
+     *
+     * @param  'overview'|'staff'|'features'  $tab
+     * @param  array<string, mixed>  $tabProps
+     */
+    private function renderTab(Property $property, string $tab, array $tabProps = []): Response
+    {
+        $property->loadCount('users');
 
         return Inertia::render('admin/properties/show', [
             'property' => AdminPropertyData::fromModel($property),
-            'features' => PropertyFeatureData::forProperty($property),
+            'tab' => $tab,
+            ...$tabProps,
         ]);
     }
 }

@@ -4,14 +4,10 @@ namespace App\Data\Platform;
 
 use App\Data\Shared\BadgeData;
 use App\Models\Property;
-use App\Models\User;
 use Spatie\LaravelData\Data;
 
 class AdminPropertyData extends Data
 {
-    /**
-     * @param  list<AdminPropertyStaffData>  $staff
-     */
     public function __construct(
         public int $code,
         public string $name,
@@ -30,11 +26,11 @@ class AdminPropertyData extends Data
         public string $createdAt,
         public ?string $wentLiveAt,
         public ?string $suspendedAt,
-        public array $staff,
+        public int $staffCount,
     ) {}
 
     /**
-     * Expects `users` to be loaded.
+     * Expects `users_count` from `loadCount('users')`.
      */
     public static function fromModel(Property $property): self
     {
@@ -56,7 +52,7 @@ class AdminPropertyData extends Data
             createdAt: $property->created_at->toDateString(),
             wentLiveAt: $property->went_live_at?->toDateString(),
             suspendedAt: $property->suspended_at?->toDateString(),
-            staff: $property->users->map(fn (User $user): AdminPropertyStaffData => AdminPropertyStaffData::fromModel($user))->values()->all(),
+            staffCount: (int) $property->getAttribute('users_count'),
         );
     }
 }

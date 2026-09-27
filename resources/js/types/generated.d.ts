@@ -27,7 +27,7 @@ tin: string | null,
 createdAt: string,
 wentLiveAt: string | null,
 suspendedAt: string | null,
-staff: App.Data.Platform.AdminPropertyStaffData[],
+staffCount: number,
 };
 export type AdminPropertyRowData = {
 code: number,

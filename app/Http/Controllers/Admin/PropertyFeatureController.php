@@ -26,6 +26,6 @@ class PropertyFeatureController extends Controller
             'message' => $active ? __(':feature turned on.', ['feature' => $feature->label()]) : __(':feature turned off.', ['feature' => $feature->label()]),
         ]);
 
-        return back(fallback: route('admin.properties.show', $property));
+        return back(fallback: route('admin.properties.features', $property));
     }
 }

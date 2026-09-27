@@ -50,8 +50,10 @@ test('the property page lists features with their state for that property only',
     Feature::for(Property::factory()->create())->activate(ChannelManager::class);
 
     $this->actingAs(User::factory()->admin()->create())
-        ->get(route('admin.properties.show', $property->code))
+        ->get(route('admin.properties.features', $property->code))
         ->assertInertia(fn (Assert $page) => $page
+            ->where('tab', 'features')
+            ->missing('staff')
             ->has('features', count(PlatformFeature::cases()))
             ->where('features.0', [
                 'feature' => 'channel-manager',

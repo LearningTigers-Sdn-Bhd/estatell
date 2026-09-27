@@ -20,3 +20,4 @@ Rules:
 - Forms are never embedded inline in tables, boards or dashboards.
 - Deferred props always show a `Skeleton` while loading.
 - Avoid nested cards and duplicated headings.
+- Detail tabs are links with their own URL (`/…/{id}`, `/…/{id}/staff`), not client-only state. A refresh keeps the tab, and the server sends only the open tab's data. `DetailLayout` renders the tab triggers as `Link`s. Every tab has an icon before its label and the same minimum width (`min-w-28`).

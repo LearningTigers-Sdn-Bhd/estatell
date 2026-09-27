@@ -12,11 +12,14 @@ beforeEach(function () {
     $this->admin = User::factory()->admin()->create();
 });
 
-test('staff get a 404 on the admin property pages', function () {
+test('staff get a 404 on the admin property pages', function (string $route) {
     $staff = User::factory()->create();
 
-    $this->actingAs($staff)->get(route('admin.properties.index'))->assertNotFound();
-    $this->actingAs($staff)->get(route('admin.properties.show', $staff->property->code))->assertNotFound();
+    $this->actingAs($staff)->get(route($route, $staff->property->code))->assertNotFound();
+})->with(['admin.properties.show', 'admin.properties.staff', 'admin.properties.features']);
+
+test('staff get a 404 on the admin property list', function () {
+    $this->actingAs(User::factory()->create())->get(route('admin.properties.index'))->assertNotFound();
 });
 
 test('guests are sent to login from the admin property list', function () {
@@ -130,23 +133,41 @@ test('the list runs a fixed number of queries', function () {
     expect($propertyQueries)->toHaveCount(2);
 });
 
-test('admins see a property with its staff', function () {
+test('the overview tab sends the property without tab data', function () {
     $property = Property::factory()->create(['city' => 'Sandakan', 'contact_email' => 'hello@example.com']);
-    User::factory()->for($property)->create(['name' => 'Bella']);
-    User::factory()->for($property)->unverified()->create(['name' => 'Aina']);
+    User::factory()->for($property)->count(2)->create();
 
     $this->actingAs($this->admin)
         ->get(route('admin.properties.show', $property->code))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('admin/properties/show')
+            ->where('tab', 'overview')
             ->where('property.code', $property->code)
             ->where('property.city', 'Sandakan')
             ->where('property.contactEmail', 'hello@example.com')
             ->where('property.status.label', 'Onboarding')
-            ->has('property.staff', 2)
-            ->where('property.staff.0.name', 'Aina')
-            ->where('property.staff.0.verified', false)
+            ->where('property.staffCount', 2)
+            ->missing('staff')
+            ->missing('features')
+        );
+});
+
+test('the staff tab has its own URL and lists staff by name', function () {
+    $property = Property::factory()->create();
+    User::factory()->for($property)->create(['name' => 'Bella']);
+    User::factory()->for($property)->unverified()->create(['name' => 'Aina']);
+
+    $this->actingAs($this->admin)
+        ->get(route('admin.properties.staff', $property->code))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('admin/properties/show')
+            ->where('tab', 'staff')
+            ->has('staff', 2)
+            ->where('staff.0.name', 'Aina')
+            ->where('staff.0.verified', false)
+            ->missing('features')
         );
 });
 

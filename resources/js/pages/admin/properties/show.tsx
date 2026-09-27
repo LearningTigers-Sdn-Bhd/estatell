@@ -1,5 +1,5 @@
 import { Head, router } from '@inertiajs/react';
-import { Users } from 'lucide-react';
+import { Info, ToggleRight, Users } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { DateText } from '@/components/pms/date-text';
 import { DetailLayout } from '@/components/pms/detail-layout';
@@ -24,11 +24,18 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { dashboard } from '@/routes/admin';
-import { index, show } from '@/routes/admin/properties';
+import {
+    features as featuresTab,
+    index,
+    show,
+    staff as staffTab,
+} from '@/routes/admin/properties';
 import { update as updateFeature } from '@/routes/admin/properties/features';
 
 type Property = App.Data.Platform.AdminPropertyData;
 type PropertyFeature = App.Data.Platform.PropertyFeatureData;
+type StaffMember = App.Data.Platform.AdminPropertyStaffData;
+type Tab = 'overview' | 'staff' | 'features';
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
     return (
@@ -102,7 +109,7 @@ function Overview({ property }: { property: Property }) {
     );
 }
 
-function Staff({ staff }: { staff: Property['staff'] }) {
+function Staff({ staff }: { staff: StaffMember[] }) {
     if (staff.length === 0) {
         return <EmptyState icon={Users} title="No staff yet" />;
     }
@@ -193,10 +200,14 @@ function Features({
 
 export default function PropertyShow({
     property,
-    features,
+    tab,
+    staff = [],
+    features = [],
 }: {
     property: Property;
-    features: PropertyFeature[];
+    tab: Tab;
+    staff?: StaffMember[];
+    features?: PropertyFeature[];
 }) {
     return (
         <>
@@ -210,26 +221,25 @@ export default function PropertyShow({
                 />
 
                 <DetailLayout
+                    activeTab={tab}
                     tabs={[
                         {
                             value: 'overview',
                             label: 'Overview',
-                            content: <Overview property={property} />,
+                            icon: Info,
+                            href: show(property.code),
                         },
                         {
                             value: 'staff',
-                            label: `Staff (${property.staff.length})`,
-                            content: <Staff staff={property.staff} />,
+                            label: `Staff (${property.staffCount})`,
+                            icon: Users,
+                            href: staffTab(property.code),
                         },
                         {
                             value: 'features',
                             label: 'Features',
-                            content: (
-                                <Features
-                                    code={property.code}
-                                    features={features}
-                                />
-                            ),
+                            icon: ToggleRight,
+                            href: featuresTab(property.code),
                         },
                     ]}
                     summary={
@@ -258,7 +268,13 @@ export default function PropertyShow({
                             )}
                         </dl>
                     }
-                />
+                >
+                    {tab === 'overview' && <Overview property={property} />}
+                    {tab === 'staff' && <Staff staff={staff} />}
+                    {tab === 'features' && (
+                        <Features code={property.code} features={features} />
+                    )}
+                </DetailLayout>
             </div>
         </>
     );
