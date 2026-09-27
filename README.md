@@ -56,19 +56,13 @@ It is a focused rebuild of the PMS core of wastays, with a normalized database, 
     composer run setup
     ```
 
-4. Optional: create a platform admin. Set `ADMIN_SEED_EMAIL` and `ADMIN_SEED_PASSWORD` (8+ characters) in `.env`, then seed. Running it again is safe:
-
-    ```bash
-    php artisan db:seed
-    ```
-
-5. Start the app:
+4. Start the app:
 
     ```bash
     composer run dev
     ```
 
-6. Check that the tests pass:
+5. Check that the tests pass:
 
     ```bash
     php artisan test --compact
