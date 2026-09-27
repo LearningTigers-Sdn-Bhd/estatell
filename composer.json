@@ -63,6 +63,7 @@
             "@php artisan key:generate",
             "@php -r \"preg_match('/^CIPHERSWEET_KEY=\\\\S+/m', file_get_contents('.env')) || passthru('php artisan ciphersweet:generate-key --no-interaction');\"",
             "@php artisan migrate --force",
+            "@php artisan typescript:transform",
             "@php artisan db:create-test",
             "npm install",
             "@php artisan boost:update --no-discover --no-interaction --ansi",

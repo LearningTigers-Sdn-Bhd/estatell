@@ -49,6 +49,7 @@ export default defineConfig({
             'resources/js/actions/**',
             'resources/js/components/ui/*',
             'resources/js/routes/**',
+            'resources/js/types/generated.d.ts',
             'resources/js/wayfinder/**',
         ],
         options: {
@@ -77,6 +78,8 @@ export default defineConfig({
             'composer.json',
             'opencode.json',
             'resources/js/components/ui/*',
+            'resources/js/types/generated.d.ts',
+            'resources/js/types/typescript-transformer-manifest.json',
             'resources/views/mail/*',
         ],
         sortTailwindcss: {
