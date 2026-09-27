@@ -60,6 +60,7 @@ Custom `LoginResponse` and `TwoFactorLoginResponse` (`app/Http/Responses`) choos
 
 ## Capabilities
 
+- Find and view any property (see [Admin properties](05-admin-properties.md)).
 - Create a property and invite its owner (see [Account creation](../17-onboarding/01-account-creation.md)).
 - View the onboarding board (see [Engagement and admin board](../17-onboarding/04-engagement-and-admin-board.md)).
 - Toggle features per property (see [Feature flags](03-feature-flags.md)).

@@ -19,13 +19,13 @@ enum PropertyStatus: string
         };
     }
 
-    public function tone(): string
+    public function tone(): Tone
     {
         return match ($this) {
-            self::Onboarding => 'info',
-            self::PendingApproval => 'warning',
-            self::Live => 'success',
-            self::Suspended => 'danger',
+            self::Onboarding => Tone::Info,
+            self::PendingApproval => Tone::Warning,
+            self::Live => Tone::Success,
+            self::Suspended => Tone::Danger,
         };
     }
 

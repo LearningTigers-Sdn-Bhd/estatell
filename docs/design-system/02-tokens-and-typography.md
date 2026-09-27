@@ -9,7 +9,7 @@ Part of the [design system](../design-system.md). Short contract: [DESIGN.md](..
     - Success badges use a soft (tinted) style. The success color must be clearly different from the emerald primary, so a status never looks like a primary button.
 - **Enums drive status colors.** Every PMS enum has:
     - `label()`: the display text.
-    - `tone()`: `neutral`, `info`, `success`, `warning` or `danger`.
+    - `tone()`: a `Tone` enum case: `neutral`, `info`, `success`, `warning` or `danger`. Data classes send statuses as `BadgeData` (value, label, tone) for `StatusBadge`.
     - `options()`: `list<array{value: string, label: string}>` for pickers.
 
     They are exported to TypeScript with `spatie/laravel-typescript-transformer`. `StatusBadge` and `EnumSelect` use them.

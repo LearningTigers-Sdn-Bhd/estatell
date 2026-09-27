@@ -1,5 +1,5 @@
 import { Link, usePage } from '@inertiajs/react';
-import { Activity, LayoutGrid, Settings } from 'lucide-react';
+import { Activity, Building2, LayoutGrid, Settings } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavFooter } from '@/components/nav-footer';
@@ -19,6 +19,7 @@ import type { NavItem } from '@/types';
 
 const icons: Record<string, LucideIcon> = {
     'layout-grid': LayoutGrid,
+    building: Building2,
     settings: Settings,
     activity: Activity,
 };

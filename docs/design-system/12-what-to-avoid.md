@@ -27,7 +27,7 @@ Part of the [design system](../design-system.md). Short contract: [DESIGN.md](..
 | 2. Migrate starter kit files: `asChild` → `render`, Sonner → `toast` (`FlashToaster` shows server flash toasts), Geist loaded from Bunny in `vite.config.ts`                                                                                                            | Done    |
 | 3. Add components: `field`, `input-group`, `textarea`, `switch`, `radio-group`, `tabs`, `table`, `popover`, `combobox`, `command`, `calendar`, `empty`, `alert-dialog`, `pagination`, `scroll-area`, `progress`, `kbd`, `hover-card`, `toast`, `drawer`. `chart` later. | Done    |
 | 4. Add status tokens to `app.css`                                                                                                                                                                                                                                       | Done    |
-| 5. Build `pms/` components as pages need them                                                                                                                                                                                                                           | Ongoing |
+| 5. Build `pms/` components as pages need them. Built so far (first used by admin properties): `PageHeader`, `StatusBadge`, `EmptyState`, `EnumSelect`, `FilterBar`, `DataTable` (server mode), `DetailLayout`, `DateText`                                               | Ongoing |
 
 Notes:
 
