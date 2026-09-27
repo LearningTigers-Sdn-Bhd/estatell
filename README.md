@@ -50,7 +50,7 @@ It is a focused rebuild of the PMS core of wastays, with a normalized database, 
     DB_PASSWORD=
     ```
 
-3. Run setup. It installs dependencies, generates the app key, creates and migrates the dev database, creates the test database and builds the frontend:
+3. Run setup. It installs dependencies, generates the app key and the CipherSweet key (only when empty), migrates the dev database, generates TypeScript types, creates the test database and builds the frontend:
 
     ```bash
     composer run setup

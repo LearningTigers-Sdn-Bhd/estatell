@@ -125,28 +125,39 @@ jsonb is allowed only for:
 
 ## Approved dependencies
 
+Installed versions. All are in `composer.json` and `package.json`.
+
 Composer:
 
-- `laravel/pennant`
-- `laravel/horizon`
-- `spatie/laravel-permission`
-- `spatie/laravel-data`, `spatie/laravel-typescript-transformer`
-- `spatie/laravel-ciphersweet`
-- `barryvdh/laravel-dompdf`
-- `propaganistas/laravel-phone`
-- `spatie/period`
-- `brick/money`
-- `spatie/laravel-medialibrary`
-- `spatie/laravel-query-builder`
-- `spatie/laravel-activitylog`
+| Package                                 | Version | Setup                                                                                                                            |
+| --------------------------------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `laravel/pennant`                       | 1.26    | Database store (`features` table)                                                                                                |
+| `laravel/horizon`                       | 5.50    | See [Deployment](#deployment)                                                                                                    |
+| `spatie/laravel-permission`             | 8.3     | Teams mode: `teams => true`, `team_foreign_key => property_id` in `config/permission.php`                                        |
+| `spatie/laravel-data`                   | 4.23    | Default config                                                                                                                   |
+| `spatie/laravel-typescript-transformer` | 3.3     | `TypeScriptTransformerServiceProvider` writes `resources/js/types/generated.d.ts`                                                |
+| `spatie/laravel-ciphersweet`            | 1.9     | `CIPHERSWEET_KEY` env, `blind_indexes` table                                                                                     |
+| `barryvdh/laravel-dompdf`               | 3.1     | None                                                                                                                             |
+| `propaganistas/laravel-phone`           | 6.0     | None                                                                                                                             |
+| `spatie/period`                         | 2.4     | None                                                                                                                             |
+| `brick/money`                           | 0.15    | None                                                                                                                             |
+| `spatie/laravel-medialibrary`           | 11.23   | `media` table. Default disk is the private `local` disk. See [Media storage](01-platform/02-platform-settings.md#media-storage). |
+| `league/flysystem-aws-s3-v3`            | 3.35    | Needed by the `r2` disk (s3 driver)                                                                                              |
+| `spatie/laravel-query-builder`          | 7.3     | None                                                                                                                             |
+| `spatie/laravel-activitylog`            | 5.1     | `activity_log` table                                                                                                             |
 
 npm:
 
-- `@tanstack/react-table`, `@tanstack/react-virtual`
-- `date-fns`, `@date-fns/tz`
-- `signature_pad`
-- `canvas-confetti`
-- shadcn `calendar`, `popover`, `command`, `table` (pull in `react-day-picker`, `cmdk`)
+| Package                                          | Version   | Note                                                                  |
+| ------------------------------------------------ | --------- | --------------------------------------------------------------------- |
+| `@tanstack/react-table`                          | 9.2       | v9 API: `useTable` + `tableFeatures`. shadcn examples use v8.         |
+| `@tanstack/react-virtual`                        | 3.14      | `pms/grid` engine                                                     |
+| `date-fns`, `@date-fns/tz`                       | 4.4 / 1.5 | Property time zone                                                    |
+| `signature_pad`                                  | 5.1       | Registration signing                                                  |
+| `canvas-confetti`                                | 1.9       | Go-live                                                               |
+| shadcn `calendar`, `popover`, `command`, `table` | CLI       | Pull in `react-day-picker` and `cmdk`. Added with the Base UI switch. |
+
+TypeScript types are generated with `php artisan typescript:transform`. `composer run setup` and `composer run dev` run it. The generated file is committed.
 
 Not needed: `spatie/laravel-model-states` (native enums), `lorisleiva/laravel-actions` and `internachi/modular` (native tools and namespaces).
 
@@ -159,6 +170,15 @@ Deployed with Coolify (Docker Compose build pack): `compose.yaml` builds the `Do
 | `web`       | FrankenPHP on `:8080`   | Runs migrations on start (`AUTORUN_ENABLED=true`).                    |
 | `horizon`   | `artisan horizon`       | Queue workers. Dashboard at `/horizon`.                               |
 | `scheduler` | `artisan schedule:work` | Runs `horizon:snapshot` every five minutes and future scheduled jobs. |
+
+Environment variables that need care:
+
+| Variable                                                               | Note                                                                                                            |
+| ---------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `CIPHERSWEET_KEY`                                                      | Encrypts ID numbers. Generate once with `php artisan ciphersweet:generate-key --show`. Never change or lose it. |
+| `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, `R2_ENDPOINT` | Optional. Without all four, media can only be stored on the server.                                             |
+
+The `media` volume holds `storage/app/private` (media stored on "This server"). It is shared by all three services. Back it up.
 
 Traffic: Cloudflare → Coolify proxy (Traefik) → `web`. `TRUSTED_PROXIES` (see `config/trustedproxy.php`) sets which hops Laravel trusts for the client IP. Production uses `*` because only Traefik can reach the app. `PRIVATE_SUBNETS,CLOUDFLARE` is the tighter option.
 

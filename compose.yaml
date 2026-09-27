@@ -25,7 +25,15 @@ x-app: &app
         QUEUE_CONNECTION: redis
         CACHE_STORE: redis
         SESSION_DRIVER: redis
+        CIPHERSWEET_KEY: ${CIPHERSWEET_KEY}
+        R2_ACCESS_KEY_ID: ${R2_ACCESS_KEY_ID:-}
+        R2_SECRET_ACCESS_KEY: ${R2_SECRET_ACCESS_KEY:-}
+        R2_BUCKET: ${R2_BUCKET:-}
+        R2_ENDPOINT: ${R2_ENDPOINT:-}
         AUTORUN_ENABLED: 'false'
+    volumes:
+        # Media stored on "This server" (ID scans, signatures, photos). Shared by all services.
+        - media:/var/www/html/storage/app/private
 
 services:
     web:
@@ -49,3 +57,6 @@ services:
         healthcheck:
             test: ['CMD', 'healthcheck-schedule']
             start_period: 10s
+
+volumes:
+    media:
