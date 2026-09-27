@@ -6,12 +6,57 @@ Platform admins run estatell itself. They create properties for owners, watch on
 
 ## Data model
 
+Admins are rows in `users` with `is_admin = true`. There is no `admins` table and no `admin` guard.
+
 ```
-admins    id, name, email, password, two_factor columns, last_login_at, timestamps
+users    id, property_id (nullable), is_admin (bool, default false), name, email, password, two_factor columns, timestamps
+
+CHECK ((is_admin AND property_id IS NULL) OR (NOT is_admin AND property_id IS NOT NULL))
 ```
 
-- A separate `admins` table and a separate `admin` auth guard.
-- Admins never appear in `users` and never belong to a property permission team.
+- An admin never has a property. A staff user always has one.
+- `is_admin` is not fillable. Only `AdminSeeder` (reads `ADMIN_SEED_EMAIL` and `ADMIN_SEED_PASSWORD`) or a console command sets it. Fortify registration cannot.
+- Admins never belong to a property permission team.
+- Emails are unique across all users. An admin who also owns a property needs a second email.
+- Built so far: `is_admin`. `property_id` and the CHECK come with the `properties` table, because registration creates users without a property until then.
+
+## Why one table
+
+Fortify authenticates one guard (`fortify.guard = web`). A separate `admins` table needs a second guard, and then a second login, 2FA challenge, password reset broker, password confirmation and rate limits, all written by hand. One table gets all of these from Fortify. Impersonation works by a session swap (see [Impersonation](04-impersonation.md)).
+
+## Sign-in
+
+```
+/login (Fortify, one page)
+   │
+   ├─ is_admin ──► /admin
+   └─ staff ─────► /p/{code}/dashboard   (or onboarding)
+```
+
+Custom `LoginResponse` and `TwoFactorLoginResponse` choose the destination.
+
+## Access
+
+| Item         | Rule                                                                                     |
+| ------------ | ---------------------------------------------------------------------------------------- |
+| Gate         | `admin`: `is_admin` (and not deactivated, once `deactivated_at` exists)                  |
+| Admin routes | `/admin`, middleware `auth` + `can:admin`                                                |
+| Horizon      | `viewHorizon` uses the `admin` gate                                                      |
+| Permissions  | No Spatie roles for admins. Every admin can do every admin action. Add roles when needed |
+
+## Two-factor for admins
+
+| Where                                              | Rule                                                                                  |
+| -------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| Local and testing                                  | Not required                                                                          |
+| Production (`ADMIN_REQUIRE_2FA=true`, the default) | Admins can sign in and view `/admin` without 2FA. Admin actions stay locked until set |
+| Staff                                              | Optional, as Fortify provides                                                         |
+
+- Locked admin actions: impersonate, platform settings, feature flags, create or suspend a property, dorm strategy.
+- Middleware `admin.2fa` guards the locked routes and returns `403` with the toast "Two-factor required for this action". The UI hides the same buttons.
+- An admin without 2FA sees a banner: "Set up two-factor to use admin actions" with **Set up**.
+- Passkeys: enable Fortify `Features::passkeys()`. A confirmed passkey counts as 2FA. Staff may use passkeys too.
+- Config: `config('estatell.admin_require_two_factor')`.
 
 ## Capabilities
 
@@ -25,5 +70,5 @@ admins    id, name, email, password, two_factor columns, last_login_at, timestam
 
 ## Rules
 
-- Admin routes live under their own prefix and middleware group (`auth:admin`).
+- Admin routes live under `/admin` with `auth` + `can:admin`.
 - Every admin write is recorded in the activity log with the admin as causer.

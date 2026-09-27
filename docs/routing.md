@@ -27,7 +27,8 @@ URL shape, route groups, names and middleware for estatell. Wayfinder generates 
 | `live`                | `EnsurePropertyIsLive`: redirects to onboarding until the property is Live                                                                                                                                                                       | Operational modules                |
 | `block.impersonation` | `BlockDuringImpersonation`                                                                                                                                                                                                                       | Blocked routes (see Impersonation) |
 | `features:…`          | Pennant `EnsureFeaturesAreActive`                                                                                                                                                                                                                | Channels                           |
-| `auth:admin`          | Platform admin guard                                                                                                                                                                                                                             | `/admin`                           |
+| `can:admin`           | Platform admin gate (`users.is_admin`), used with `auth`                                                                                                                                                                                         | `/admin`                           |
+| `admin.2fa`           | `RequireAdminTwoFactor`: admin actions need confirmed 2FA when `ADMIN_REQUIRE_2FA` is true. See [Platform admins](01-platform/01-platform-admins.md#two-factor-for-admins)                                                                       | Locked admin actions               |
 | `signed`              | Temporary signed URLs                                                                                                                                                                                                                            | Guest-facing links                 |
 
 ## Route groups
@@ -49,7 +50,7 @@ URL shape, route groups, names and middleware for estatell. Wayfinder generates 
 | Property settings  | `/p/{code}/settings`                                         | `settings.`           | property.access (open before go-live)                        | `settings.php`     |
 | Account (user)     | `/account` (`profile`, `security`, `password`, `appearance`) | `account.`            | auth (+ verified for security, password, appearance, delete) | `account.php`      |
 | Impersonation stop | `/impersonation/stop`                                        | `impersonation.stop`  | web session                                                  | `web.php`          |
-| Platform admin     | `/admin`                                                     | `admin.`              | auth:admin                                                   | `admin.php`        |
+| Platform admin     | `/admin`                                                     | `admin.`              | auth, can:admin                                              | `admin.php`        |
 | Guest-facing       | `/g`                                                         | `guest.`              | signed                                                       | `guest.php`        |
 | Webhooks           | `/webhooks`                                                  | `webhooks.`           | no CSRF, provider signature check                            | `webhooks.php`     |
 

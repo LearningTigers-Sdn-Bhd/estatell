@@ -12,6 +12,7 @@ staff_invitations    id, property_id, email, role_id, token, expires_at, accepte
 ```
 
 - A user belongs to one property (`users.property_id`).
+- `users.property_id` is nullable only for platform admins (`is_admin`). A CHECK enforces: admin without property, staff with property. See [Platform admins](../01-platform/01-platform-admins.md).
 - The owner is created by Fortify registration or by an admin invite (see [Account creation](../17-onboarding/01-account-creation.md)).
 
 ## Actions

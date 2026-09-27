@@ -2,10 +2,12 @@
 
 namespace App\Providers;
 
+use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Middleware\TrustProxies;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 
@@ -26,6 +28,7 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->configureDefaults();
         $this->configureTrustedProxies();
+        $this->configureGates();
     }
 
     /**
@@ -48,6 +51,14 @@ class AppServiceProvider extends ServiceProvider
                 ->uncompromised()
             : null,
         );
+    }
+
+    /**
+     * Define the platform admin gate. Admins are users with is_admin set (see docs/01-platform/01-platform-admins.md).
+     */
+    protected function configureGates(): void
+    {
+        Gate::define('admin', fn (User $user): bool => $user->is_admin);
     }
 
     /**

@@ -20,4 +20,5 @@ Two ways to create a property. Both end in the same place: an owner in the onboa
 ## Rules
 
 - `properties.onboarding_started_at` is set on creation.
-- Platform admins use the separate `admins` guard (see [Platform admins](../01-platform/01-platform-admins.md)).
+- `RegisterPropertyOwner` creates the property and the owner in one transaction, so the `users` CHECK (staff always have a property) holds.
+- Platform admins are `users` with `is_admin` and never register here (see [Platform admins](../01-platform/01-platform-admins.md)).

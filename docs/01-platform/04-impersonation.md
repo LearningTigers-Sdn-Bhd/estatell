@@ -76,7 +76,7 @@ While impersonating, every page shows a banner that cannot be dismissed:
 | Impersonating **another** property              | View-as page reads "Switch to Pulau Inn (10142)? This ends your session with KL Backpackers (10150)." Confirming stops the old session and starts the new one (two logged events). |
 | Requested page is blocked during support access | Warning "This page isn't available during support access", with **Open dashboard instead**                                                                                         |
 | Owner disabled support access                   | "Owner has disabled support access". Start button disabled.                                                                                                                        |
-| Admin lacks `admin.impersonate`                 | "You don't have permission to view properties as their owner"                                                                                                                      |
+| Admin has no confirmed 2FA (when required)      | "Set up two-factor to view properties as their owner". Start button disabled                                                                                                       |
 | Code does not exist                             | "Property 10142 not found" (admins only)                                                                                                                                           |
 | Non-GET request without a staff session         | `403`. Writes are never replayed after confirming.                                                                                                                                 |
 | Link opened after the 30-minute session ended   | View-as page again. New session, new log entry.                                                                                                                                    |
@@ -85,16 +85,16 @@ While impersonating, every page shows a banner that cannot be dismissed:
 
 ## Guardrails
 
-| Guardrail       | Rule                                                                                             |
-| --------------- | ------------------------------------------------------------------------------------------------ |
-| Consent         | `property_settings.allow_support_access`, default true. The owner can switch it off in Settings. |
-| Reason          | Required (chip). Stored in the log.                                                              |
-| Time limit      | 30 minutes, then the session ends automatically and returns to the admin page.                   |
-| Permission      | Only admins with `admin.impersonate` see [View as] and can start a session.                      |
-| Scope           | Only staff users of one property. Never another admin. One property per session.                 |
-| Blocked actions | See below. Hidden in the UI and denied on the server.                                            |
-| Audit           | Every write records the admin as the real causer and the impersonated user.                      |
-| Notification    | Owner receives `SupportAccessUsed`: who, when, reason, duration.                                 |
+| Guardrail       | Rule                                                                                               |
+| --------------- | -------------------------------------------------------------------------------------------------- |
+| Consent         | `property_settings.allow_support_access`, default true. The owner can switch it off in Settings.   |
+| Reason          | Required (chip). Stored in the log.                                                                |
+| Time limit      | 30 minutes, then the session ends automatically and returns to the admin page.                     |
+| Permission      | Only admins (`admin` gate) with confirmed 2FA (`admin.2fa`) see [View as] and can start a session. |
+| Scope           | Only staff users of one property. Never another admin. One property per session.                   |
+| Blocked actions | See below. Hidden in the UI and denied on the server.                                              |
+| Audit           | Every write records the admin as the real causer and the impersonated user.                        |
+| Notification    | Owner receives `SupportAccessUsed`: who, when, reason, duration.                                   |
 
 ### Blocked during impersonation
 
@@ -113,6 +113,26 @@ The `BlockDuringImpersonation` middleware denies these routes, and the UI hides 
 Denied requests show a toast: "Not available during support access".
 
 Everything else is allowed, including fixing setup (rooms, rates, taxes, terms), which is the main reason to impersonate.
+
+## One guard
+
+Admins and staff share the `web` guard (see [Platform admins](01-platform-admins.md#why-one-table)). Impersonation swaps the signed-in user in the same session:
+
+```
+Start:  session['impersonation'] = {admin_id, user_id, property_id, reason, started_at, return_url}
+        Auth::login($staff)
+Stop:   Auth::login($admin); forget the session key; log impersonation.ended
+```
+
+| Concern                          | Handling                                                                                                 |
+| -------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| Admin routes while impersonating | The gate checks `Impersonation::admin() ?? auth()->user()`, so the view-as and switch flow still works   |
+| Target                           | Must have `is_admin = false` and `property_id` equal to the property                                     |
+| Audit                            | `CauserResolver::resolveUsing` returns the real admin, with `impersonated_user_id` in the log properties |
+| Staff 2FA                        | Skipped during impersonation (intended). Confirm-password routes are blocked                             |
+| Logout while impersonating       | Ends the whole session and logs `impersonation.ended`                                                    |
+| Session ID                       | `Auth::login` regenerates the ID and keeps the session data                                              |
+| Remember-me cookie               | Stays the admin's. An expired session returns as the admin, never as the staff user                      |
 
 ## `to` validation
 
@@ -133,7 +153,7 @@ In order:
 
 1. Allow a web-guard user whose `property_id` matches the code.
 2. Allow an active impersonation session for this property.
-3. For a **GET** by an authenticated **admin**: redirect to `admin.properties.view-as` with `to` = requested path and query.
+3. For a **GET** by an authenticated user with `is_admin`: redirect to `admin.properties.view-as` with `to` = requested path and query.
 4. Otherwise: behave like `auth` (redirect to login) for guests, or `404` for a staff user using another property's code.
 
 Then set, from the resolved property:
@@ -145,8 +165,8 @@ Then set, from the resolved property:
 ## Services and Actions
 
 - `Impersonation` service: reads the session (admin id, user id, property id, reason, started at, return URL) and answers `isActive()`, `forProperty()`, `remainingMinutes()`.
-- `StartImpersonation`: checks permission and consent, logs in on the web guard as the chosen user (the admin stays signed in on the `admin` guard), stores the session, logs `impersonation.started`, notifies the owner, redirects to `to`.
-- `StopImpersonation`: logs out of the web guard only, logs `impersonation.ended` with duration, redirects to the stored return URL.
+- `StartImpersonation`: checks the gate, 2FA and consent, stores the session, calls `Auth::login($staff)` on the web guard, logs `impersonation.started`, notifies the owner, redirects to `to`.
+- `StopImpersonation`: calls `Auth::login($admin)` with the stored admin id, forgets the session key, logs `impersonation.ended` with duration, redirects to the stored return URL.
 - `EndExpiredImpersonation`: runs from the middleware when the 30 minutes have passed.
 
 ## Routes
@@ -162,7 +182,7 @@ Then set, from the resolved property:
 - `property_settings.allow_support_access` (bool, default true).
 - No new table. Sessions are recorded in the activity log with events `impersonation.started` and `impersonation.ended` (admin, user, property, reason, note, duration).
 - Notification type `SupportAccessUsed` (see [Notification types](../04-notifications/01-notification-types.md)).
-- Admin permission `admin.impersonate` (admin guard, not team-scoped).
+- No admin permission. The `admin` gate and `admin.2fa` middleware decide who can start.
 
 ## UI
 
