@@ -148,14 +148,16 @@ Composer:
 
 npm:
 
-| Package                                          | Version   | Note                                                                  |
-| ------------------------------------------------ | --------- | --------------------------------------------------------------------- |
-| `@tanstack/react-table`                          | 9.2       | v9 API: `useTable` + `tableFeatures`. shadcn examples use v8.         |
-| `@tanstack/react-virtual`                        | 3.14      | `pms/grid` engine                                                     |
-| `date-fns`, `@date-fns/tz`                       | 4.4 / 1.5 | Property time zone                                                    |
-| `signature_pad`                                  | 5.1       | Registration signing                                                  |
-| `canvas-confetti`                                | 1.9       | Go-live                                                               |
-| shadcn `calendar`, `popover`, `command`, `table` | CLI       | Pull in `react-day-picker` and `cmdk`. Added with the Base UI switch. |
+| Package                    | Version    | Note                                                                        |
+| -------------------------- | ---------- | --------------------------------------------------------------------------- |
+| `@tanstack/react-table`    | 9.2        | v9 API: `useTable` + `tableFeatures`. shadcn examples use v8.               |
+| `@tanstack/react-virtual`  | 3.14       | `pms/grid` engine                                                           |
+| `date-fns`, `@date-fns/tz` | 4.4 / 1.5  | Property time zone                                                          |
+| `signature_pad`            | 5.1        | Registration signing                                                        |
+| `canvas-confetti`          | 1.9        | Go-live                                                                     |
+| `@base-ui/react`           | 1.8        | Base UI primitives for shadcn                                               |
+| `cn`, `shadcn`             | 0.4 / 4.21 | `cn` is used by shadcn components. `shadcn` provides `shadcn/tailwind.css`. |
+| `react-day-picker`, `cmdk` | 10.0 / 1.1 | Added by shadcn `calendar` and `command`                                    |
 
 TypeScript types are generated with `php artisan typescript:transform`. `composer run setup` and `composer run dev` run it. The generated file is committed.
 

@@ -21,10 +21,15 @@ Part of the [design system](../design-system.md). Short contract: [DESIGN.md](..
 
 ## Setup status
 
-| Step                                                                                                                                                                                                                                                                                                 | Status  |
-| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
-| 1. Dry-run, then re-init with preset `b3ZzDdiJy4` on Base UI                                                                                                                                                                                                                                         | Pending |
-| 2. Migrate starter kit files: `asChild` → `render`, Sonner → `toast`, add Geist font                                                                                                                                                                                                                 | Pending |
-| 3. Add components: `field`, `input-group`, `textarea`, `switch`, `radio-group`, `tabs`, `table`, `popover`, `combobox`, `command`, `calendar`, `empty`, `alert-dialog`, `pagination`, `scroll-area`, `progress`, `kbd`, `hover-card`, `toast`, and `drawer` if available for Base UI. `chart` later. | Pending |
-| 4. Add status tokens to `app.css`                                                                                                                                                                                                                                                                    | Pending |
-| 5. Build `pms/` components as pages need them                                                                                                                                                                                                                                                        | Ongoing |
+| Step                                                                                                                                                                                                                                                                    | Status  |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
+| 1. Re-init with preset `b3ZzDdiJy4` on Base UI (`components.json` style `base-nova`)                                                                                                                                                                                    | Done    |
+| 2. Migrate starter kit files: `asChild` → `render`, Sonner → `toast` (`FlashToaster` shows server flash toasts), Geist loaded from Bunny in `vite.config.ts`                                                                                                            | Done    |
+| 3. Add components: `field`, `input-group`, `textarea`, `switch`, `radio-group`, `tabs`, `table`, `popover`, `combobox`, `command`, `calendar`, `empty`, `alert-dialog`, `pagination`, `scroll-area`, `progress`, `kbd`, `hover-card`, `toast`, `drawer`. `chart` later. | Done    |
+| 4. Add status tokens to `app.css`                                                                                                                                                                                                                                       | Done    |
+| 5. Build `pms/` components as pages need them                                                                                                                                                                                                                           | Ongoing |
+
+Notes:
+
+- shadcn components import `cn` from the `cn` package. Starter kit code still uses `cn` from `@/lib/utils`.
+- The `shadcn` npm package is a dependency because `app.css` imports `shadcn/tailwind.css`.
