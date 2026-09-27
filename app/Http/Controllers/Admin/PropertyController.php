@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Data\Platform\AdminPropertyData;
 use App\Data\Platform\AdminPropertyRowData;
+use App\Data\Platform\PropertyFeatureData;
 use App\Enums\PropertyStatus;
 use App\Enums\PropertyType;
 use App\Http\Controllers\Controller;
@@ -43,6 +44,7 @@ class PropertyController extends Controller
 
         return Inertia::render('admin/properties/show', [
             'property' => AdminPropertyData::fromModel($property),
+            'features' => PropertyFeatureData::forProperty($property),
         ]);
     }
 }

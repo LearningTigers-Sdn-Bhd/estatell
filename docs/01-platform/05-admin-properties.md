@@ -28,7 +28,7 @@ One place for platform admins to find any property and see its details. Later ad
 ## Show
 
 - Header: name, status badge, back link to the list.
-- Tabs: **Overview** (address, contact, registration and TIN) and **Staff** (name, email, verified, created).
+- Tabs: **Overview** (address, contact, registration and TIN), **Staff** (name, email, verified, created) and **Features** (see [Feature flags](03-feature-flags.md#admin-ui)).
 - Summary card: code, status, type, created, live since, suspended (when set).
 - `AdminPropertyData` holds the page data, with `AdminPropertyStaffData` rows.
 - There is no owner role until [Staff](../03-staff/). The list shows a staff count instead.
@@ -37,7 +37,6 @@ One place for platform admins to find any property and see its details. Later ad
 
 | Addition                            | Where                                                                                                     |
 | ----------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| Features tab                        | [Feature flags](03-feature-flags.md)                                                                      |
 | Suspend and reactivate              | Show page actions, behind `admin.2fa`                                                                     |
 | Create property button              | [Account creation](../17-onboarding/01-account-creation.md)                                               |
 | View as                             | [Impersonation](04-impersonation.md)                                                                      |

@@ -1,4 +1,4 @@
-import { Head } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
 import { Users } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { DateText } from '@/components/pms/date-text';
@@ -7,6 +7,14 @@ import { EmptyState } from '@/components/pms/empty-state';
 import { PageHeader } from '@/components/pms/page-header';
 import { StatusBadge } from '@/components/pms/status-badge';
 import { Badge } from '@/components/ui/badge';
+import {
+    Field,
+    FieldContent,
+    FieldDescription,
+    FieldGroup,
+    FieldLabel,
+} from '@/components/ui/field';
+import { Switch } from '@/components/ui/switch';
 import {
     Table,
     TableBody,
@@ -17,8 +25,10 @@ import {
 } from '@/components/ui/table';
 import { dashboard } from '@/routes/admin';
 import { index, show } from '@/routes/admin/properties';
+import { update as updateFeature } from '@/routes/admin/properties/features';
 
 type Property = App.Data.Platform.AdminPropertyData;
+type PropertyFeature = App.Data.Platform.PropertyFeatureData;
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
     return (
@@ -137,7 +147,57 @@ function Staff({ staff }: { staff: Property['staff'] }) {
     );
 }
 
-export default function PropertyShow({ property }: { property: Property }) {
+function Features({
+    code,
+    features,
+}: {
+    code: number;
+    features: PropertyFeature[];
+}) {
+    const toggle = (feature: PropertyFeature['feature'], active: boolean) => {
+        router
+            .optimistic<{ features: PropertyFeature[] }>((props) => ({
+                features: props.features.map((item) =>
+                    item.feature === feature ? { ...item, active } : item,
+                ),
+            }))
+            .put(
+                updateFeature.url({ property: code, feature }),
+                { active },
+                { preserveScroll: true },
+            );
+    };
+
+    return (
+        <FieldGroup className="max-w-3/4">
+            {features.map((item) => (
+                <Field key={item.feature} orientation="horizontal">
+                    <FieldContent>
+                        <FieldLabel htmlFor={`feature-${item.feature}`}>
+                            {item.label}
+                        </FieldLabel>
+                        <FieldDescription>{item.description}</FieldDescription>
+                    </FieldContent>
+                    <Switch
+                        id={`feature-${item.feature}`}
+                        checked={item.active}
+                        onCheckedChange={(active) =>
+                            toggle(item.feature, active)
+                        }
+                    />
+                </Field>
+            ))}
+        </FieldGroup>
+    );
+}
+
+export default function PropertyShow({
+    property,
+    features,
+}: {
+    property: Property;
+    features: PropertyFeature[];
+}) {
     return (
         <>
             <Head title={property.name} />
@@ -160,6 +220,16 @@ export default function PropertyShow({ property }: { property: Property }) {
                             value: 'staff',
                             label: `Staff (${property.staff.length})`,
                             content: <Staff staff={property.staff} />,
+                        },
+                        {
+                            value: 'features',
+                            label: 'Features',
+                            content: (
+                                <Features
+                                    code={property.code}
+                                    features={features}
+                                />
+                            ),
                         },
                     ]}
                     summary={

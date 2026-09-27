@@ -50,6 +50,12 @@ requireGoLiveApproval: boolean,
 defaultDormStrategy: App.Enums.DormStrategy,
 mediaDisk: App.Enums.MediaDisk,
 };
+export type PropertyFeatureData = {
+feature: App.Enums.PlatformFeature,
+label: string,
+description: string,
+active: boolean,
+};
 }
 namespace Property {
 export type PropertySummaryData = {
@@ -69,6 +75,7 @@ tone: App.Enums.Tone,
 namespace Enums {
 export type DormStrategy = 'bed_as_unit' | 'native_dorm';
 export type MediaDisk = 'local' | 'r2';
+export type PlatformFeature = 'channel-manager';
 export type PropertyStatus = 'onboarding' | 'pending_approval' | 'live' | 'suspended';
 export type PropertyType = 'hotel' | 'hostel' | 'resort' | 'serviced_apartment' | 'homestay';
 export type Tone = 'neutral' | 'info' | 'success' | 'warning' | 'danger';

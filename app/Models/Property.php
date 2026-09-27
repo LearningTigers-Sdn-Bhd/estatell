@@ -10,6 +10,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
+use Laravel\Pennant\Concerns\HasFeatures;
+use Laravel\Pennant\Contracts\FeatureScopeSerializeable;
 
 /**
  * The tenant. `code` comes from the property_code_seq sequence and never changes.
@@ -41,10 +43,10 @@ use Illuminate\Support\Carbon;
     'contact_email', 'contact_phone', 'registration_number', 'tin',
     'onboarding_started_at', 'went_live_at', 'suspended_at',
 ])]
-class Property extends Model
+class Property extends Model implements FeatureScopeSerializeable
 {
     /** @use HasFactory<PropertyFactory> */
-    use HasFactory;
+    use HasFactory, HasFeatures;
 
     /**
      * Get the attributes that should be cast.
@@ -69,5 +71,13 @@ class Property extends Model
     public function users(): HasMany
     {
         return $this->hasMany(User::class);
+    }
+
+    /**
+     * Stored Pennant scope, stable across class renames. Feature classes still receive the model.
+     */
+    public function featureScopeSerialize(): string
+    {
+        return "property:{$this->id}";
     }
 }

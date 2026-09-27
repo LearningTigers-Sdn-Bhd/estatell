@@ -10,12 +10,21 @@ Turn optional capabilities on or off per property, without code changes. The fir
 
 ## Design
 
-- The `Property` model uses the `HasFeatures` trait.
-- `Feature::resolveScopeUsing()` returns the current property, so every check is per property by default.
-- Features are class-based, one class per feature, for example `App\Features\ChannelManager`.
-- A feature's `resolve()` returns the default (off). Later it can resolve from a plan or tier.
-- Routes use `EnsureFeaturesAreActive::using(ChannelManager::class)`.
-- `EnsureFeaturesAreActive::whenInactive()` redirects to an upsell page instead of a 400 response.
+- The `Property` model uses the `HasFeatures` trait and implements `FeatureScopeSerializeable`, so the stored scope is `property:{id}` instead of the class name. Feature classes still receive the `Property` model.
+- `Feature::resolveScopeUsing()` (in `AppServiceProvider`) returns the `{property}` in the URL, or the signed-in staff user's own property. Admins outside a property have no scope. So every check is per property by default.
+- `Feature::discover()` registers every class in `app/Features`.
+- Features are class-based, one class per feature, for example `App\Features\ChannelManager`, with a `#[Name]` (`channel-manager`) so a class rename keeps the stored rows.
+- A feature's `resolve(Property)` returns the default (off). Later it can resolve from a plan or tier.
+- `PlatformFeature` enum lists the features admins manage: `label()`, `description()`, `featureClass()`.
+- Routes use `EnsureFeaturesAreActive::using(ChannelManager::class)` (from the Channels module).
+- `EnsureFeaturesAreActive::whenInactive()` redirects to an upsell page instead of a 400 response (from the Channels module).
+
+## Admin UI
+
+- **Features** tab on the admin property page (see [Admin properties](05-admin-properties.md)): one `Switch` per `PlatformFeature`, with an optimistic update that rolls back on failure.
+- `PUT /admin/properties/{code}/features/{feature}` (`admin.properties.features.update`), middleware `auth`, `can:admin`, `admin.2fa`. `{feature}` binds to `PlatformFeature`, so an unknown feature is `404`. Body: `active` (bool).
+- `SetPropertyFeature` Action activates or deactivates and logs `feature.activated` or `feature.deactivated` (subject: property, causer: admin, property `feature`). Setting the same value again does nothing.
+- The tab does not show who changed a flag last. The activity log has it; an Activity tab can show it later.
 
 ## Rules
 

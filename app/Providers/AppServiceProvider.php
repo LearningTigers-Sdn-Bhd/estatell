@@ -7,12 +7,14 @@ use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Auth\Access\Response;
 use Illuminate\Http\Middleware\TrustProxies;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
+use Laravel\Pennant\Feature;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -33,6 +35,22 @@ class AppServiceProvider extends ServiceProvider
         $this->configureTrustedProxies();
         $this->configureGates();
         $this->configureRouteBindings();
+        $this->configureFeatures();
+    }
+
+    /**
+     * Features are checked per property: the `{property}` in the URL, or the signed-in staff user's own
+     * property. Admins outside a property have no scope. See docs/01-platform/03-feature-flags.md.
+     */
+    protected function configureFeatures(): void
+    {
+        Feature::discover();
+
+        Feature::resolveScopeUsing(function (): ?Property {
+            $property = request()->route('property');
+
+            return $property instanceof Property ? $property : Auth::user()?->property;
+        });
     }
 
     /**
