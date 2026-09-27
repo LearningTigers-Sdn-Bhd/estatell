@@ -46,7 +46,7 @@ class HandleInertiaRequests extends Middleware
             ],
             'adminNeedsTwoFactor' => RequireAdminTwoFactor::isMissingFor($request->user()),
             'property' => fn () => $this->currentProperty($request),
-            'adminNavigation' => fn () => $request->routeIs('admin.*') ? app(AdminNavigation::class)->items() : null,
+            'adminNavigation' => fn () => $request->user()?->is_admin ? app(AdminNavigation::class)->items() : null,
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];
     }

@@ -17,8 +17,20 @@ test('admin pages share the admin navigation', function () {
         );
 });
 
-test('non-admin pages do not share the admin navigation', function () {
+test('admins get the admin navigation on their account pages', function () {
     $this->actingAs(User::factory()->admin()->create())
         ->get(route('account.profile.edit'))
+        ->assertInertia(fn (Assert $page) => $page->has('adminNavigation', 4));
+});
+
+test('staff never get the admin navigation', function () {
+    $staff = User::factory()->create();
+
+    $this->actingAs($staff)
+        ->get(route('account.profile.edit'))
+        ->assertInertia(fn (Assert $page) => $page->where('adminNavigation', null));
+
+    $this->actingAs($staff)
+        ->get(route('dashboard', $staff->property->code))
         ->assertInertia(fn (Assert $page) => $page->where('adminNavigation', null));
 });

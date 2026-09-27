@@ -111,7 +111,7 @@ Front desk staff must always know which business date they are posting to. After
 - `HandleInertiaRequests` shares `navigation` (contexts and items already filtered by permission and features) and `businessDate`.
 - The frontend only renders: `AppSidebar` + `ContextSwitcher` + `BusinessDateIndicator`. No navigation lists in React.
 - Labels are plain words. Section names match the table above.
-- Admin pages use `layouts/admin-layout.tsx` with `AdminSidebar`. Its items come from `App\Navigation\AdminNavigation`, shared as `adminNavigation` on `admin.*` routes only (null elsewhere). Items marked `external` (Horizon) open in a new tab. The admin two-factor banner lives in this layout.
+- Admin pages use `layouts/admin-layout.tsx` with `AdminSidebar`. Its items come from `App\Navigation\AdminNavigation`, shared as `adminNavigation` with admins only (null for staff). Account pages use the admin layout when this prop is present, so admins keep their sidebar there. Items marked `external` (Horizon) open in a new tab. The admin two-factor banner lives in this layout.
 
 ## Other shell parts
 
