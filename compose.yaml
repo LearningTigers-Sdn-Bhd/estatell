@@ -1,0 +1,51 @@
+x-app: &app
+    build:
+        context: .
+        dockerfile: Dockerfile
+        args:
+            VITE_APP_NAME: ${APP_NAME:-estatell}
+    image: estatell-app:latest
+    restart: unless-stopped
+    environment: &app-env
+        APP_NAME: ${APP_NAME:-estatell}
+        APP_ENV: ${APP_ENV:-production}
+        APP_DEBUG: ${APP_DEBUG:-false}
+        APP_KEY: ${APP_KEY}
+        APP_URL: ${APP_URL}
+        TRUSTED_PROXIES: ${TRUSTED_PROXIES:-*}
+        DB_CONNECTION: ${DB_CONNECTION:-pgsql}
+        DB_HOST: ${DB_HOST}
+        DB_PORT: ${DB_PORT:-5432}
+        DB_DATABASE: ${DB_DATABASE:-estatell}
+        DB_USERNAME: ${DB_USERNAME:-estatell}
+        DB_PASSWORD: ${DB_PASSWORD}
+        REDIS_HOST: ${REDIS_HOST}
+        REDIS_PORT: ${REDIS_PORT:-6379}
+        REDIS_PASSWORD: ${REDIS_PASSWORD:-null}
+        QUEUE_CONNECTION: redis
+        CACHE_STORE: redis
+        SESSION_DRIVER: redis
+        AUTORUN_ENABLED: 'false'
+
+services:
+    web:
+        <<: *app
+        environment:
+            <<: *app-env
+            AUTORUN_ENABLED: 'true'
+
+    horizon:
+        <<: *app
+        command: ['php', '/var/www/html/artisan', 'horizon']
+        stop_signal: SIGTERM
+        healthcheck:
+            test: ['CMD', 'healthcheck-horizon']
+            start_period: 10s
+
+    scheduler:
+        <<: *app
+        command: ['php', '/var/www/html/artisan', 'schedule:work']
+        stop_signal: SIGTERM
+        healthcheck:
+            test: ['CMD', 'healthcheck-schedule']
+            start_period: 10s

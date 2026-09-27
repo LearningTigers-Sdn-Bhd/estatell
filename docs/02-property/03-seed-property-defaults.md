@@ -1,0 +1,26 @@
+# Seed property defaults
+
+## Purpose
+
+A new property should work immediately. `SeedPropertyDefaults` creates sensible defaults so the owner confirms instead of building from scratch.
+
+## Action
+
+`SeedPropertyDefaults(Property $property, PropertyType $type, string $countryCode)` runs once when the property is created.
+
+## What it seeds
+
+| Area              | Seeded data                                                           | Source                     |
+| ----------------- | --------------------------------------------------------------------- | -------------------------- |
+| Roles             | Owner, Manager, FrontDesk, Housekeeping, Accounts                     | `DefaultRoleEnum`          |
+| Meal periods      | Breakfast, Lunch, Dinner                                              | `DefaultMealPeriod`        |
+| Transaction codes | ROOM, NO_SHOW, LATE_CHECKOUT, SST, TOURISM_TAX, CASH, CARD and others | System code list           |
+| Taxes             | Country tax presets, disabled until confirmed                         | Country preset             |
+| Payment methods   | Cash, Card, Bank transfer, e-wallet                                   | Country preset             |
+| Settings          | Currency, time zone, locale, check-in and check-out times             | Country and type           |
+| Terms             | Default terms document, version 1, English and Bahasa Malaysia        | `TermsPreset` for the type |
+
+## Rules
+
+- Idempotent: running it twice creates nothing new.
+- System transaction codes are marked `is_system` and cannot be deleted.

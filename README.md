@@ -1,0 +1,154 @@
+# estatell
+
+estatell is a property management system (PMS) for small and budget accommodation in Malaysia and Southeast Asia: hotels, hostels, resorts, serviced apartments and homestays.
+
+It is a focused rebuild of the PMS core of wastays, with a normalized database, minimal jsonb, simple forms, clear modules and no god objects. Read [docs/overview.md](docs/overview.md) for the background, the tech stack decisions and what to avoid.
+
+## Features
+
+- Guided onboarding wizard (about 15 minutes to go live)
+- Staff, roles and permissions per property
+- Room types, rooms, beds (dorms) and room groups
+- Per-room, per-guest, per-bed and package pricing
+- Reservations for single rooms, groups and dorm beds
+- Guest CRM, identity documents and registration cards with versioned terms
+- Folios, payments, taxes, discounts and city ledger (accounts receivable)
+- Front desk, housekeeping status and an unattended night audit
+- Optional Channex channel manager (Agoda, Booking.com, Hostelworld) behind a feature flag
+
+## Tech stack
+
+- PHP 8.4, Laravel 13, Fortify, Pennant, Wayfinder
+- Inertia 3, React 19, TypeScript
+- Tailwind CSS 4, shadcn/ui (Nova style, Base UI)
+- PostgreSQL (target database)
+- Pest, Larastan, Pint
+- Vite+ (`vp`)
+
+## Requirements
+
+- PHP 8.4
+- Composer
+- Node.js and npm
+- PostgreSQL 16 or later
+- Redis (cache, sessions and queues)
+
+## Onboarding
+
+1. Start PostgreSQL and Redis locally (for example with DBngin or Homebrew).
+2. Copy the env file and set your database login:
+
+    ```bash
+    cp .env.example .env
+    ```
+
+    ```dotenv
+    DB_HOST=127.0.0.1
+    DB_PORT=5432
+    DB_DATABASE=db_estatell_dev
+    DB_USERNAME=postgres
+    DB_PASSWORD=
+    ```
+
+3. Run setup. It installs dependencies, generates the app key, creates and migrates the dev database, creates the test database and builds the frontend:
+
+    ```bash
+    composer run setup
+    ```
+
+4. Start the app:
+
+    ```bash
+    composer run dev
+    ```
+
+5. Check that the tests pass:
+
+    ```bash
+    php artisan test --compact
+    ```
+
+### Databases
+
+| Database                  | Used for                      | Created by                   |
+| ------------------------- | ----------------------------- | ---------------------------- |
+| `DB_DATABASE` from `.env` | Local app                     | `php artisan migrate`        |
+| `db_estatell_test`        | Tests (set in `phpunit.xml`)  | `php artisan db:create-test` |
+| `db_estatell_test_test_N` | `php artisan test --parallel` | Laravel, automatically       |
+
+You never migrate the test database yourself. `RefreshDatabase` rebuilds its schema on each test run. Never point `phpunit.xml` at your dev database, because tests wipe it.
+
+## Common commands
+
+| Task                     | Command                                                    |
+| ------------------------ | ---------------------------------------------------------- |
+| Run tests                | `php artisan test --compact`                               |
+| Run one test file        | `php artisan test --compact tests/Feature/ExampleTest.php` |
+| Format PHP               | `vendor/bin/pint --dirty`                                  |
+| Static analysis          | `composer run types:check`                                 |
+| Frontend lint and format | `npm run check`                                            |
+| TypeScript check         | `npm run types:check`                                      |
+| Full CI check            | `composer run ci:check`                                    |
+| Build frontend           | `npm run build`                                            |
+
+## Project structure
+
+Target layout. Folders are created as each module is built.
+
+```
+app/
+├── Actions/        One invokable class per verb, grouped by module (writes)
+├── Services/       Stateless reads and calculations, grouped by module
+├── Enums/          Backed enums: status, rules, defaults
+├── Features/       Pennant feature classes
+├── Http/           Thin controllers, Form Requests, middleware
+├── Models/         Relations, casts and scopes only
+└── Notifications/  PropertyNotification subclasses
+docs/               Architecture overview and one file per module feature
+resources/js/       Inertia pages, components, layouts (React + TypeScript)
+resources/terms/    Registration terms presets (Markdown)
+```
+
+## Architecture rules
+
+- Actions write. Services read and calculate. Enums hold rules. Models hold no business logic.
+- Strategy classes replace mode branches.
+- Every query is scoped by `property_id`.
+- The folio ledger is immutable and postings are idempotent.
+- Modules talk through Actions, Services and events. Pest architecture tests enforce boundaries.
+- jsonb only for raw provider payloads, audit diffs and issued-document snapshots.
+
+Full details: [docs/overview.md](docs/overview.md).
+
+## UI
+
+- Short contract: [DESIGN.md](DESIGN.md). Read it before any UI work.
+- Full reference: [docs/design-system.md](docs/design-system.md) (an index of 12 short parts).
+
+## Routing
+
+Staff URLs include the property code, for example `/p/10142/front-desk/stay-view`. See [docs/routing.md](docs/routing.md).
+
+- shadcn/ui Nova style on Base UI, preset `b3ZzDdiJy4`.
+
+## Documentation
+
+Module docs live in `docs/{NN-module}/{NN-feature}.md`, numbered in build order.
+
+| #   | Module                                  | #   | Module                                |
+| --- | --------------------------------------- | --- | ------------------------------------- |
+| 01  | [Platform](docs/01-platform/)           | 12  | [Reservations](docs/12-reservations/) |
+| 02  | [Property](docs/02-property/)           | 13  | [Folio](docs/13-folio/)               |
+| 03  | [Staff](docs/03-staff/)                 | 14  | [Payments](docs/14-payments/)         |
+| 04  | [Notifications](docs/04-notifications/) | 15  | [City ledger](docs/15-city-ledger/)   |
+| 05  | [Rooms](docs/05-rooms/)                 | 16  | [Registration](docs/16-registration/) |
+| 06  | [Catalogues](docs/06-catalogues/)       | 17  | [Onboarding](docs/17-onboarding/)     |
+| 07  | [Meals](docs/07-meals/)                 | 18  | [Front desk](docs/18-front-desk/)     |
+| 08  | [Rates](docs/08-rates/)                 | 19  | [Housekeeping](docs/19-housekeeping/) |
+| 09  | [Packages](docs/09-packages/)           | 20  | [Night audit](docs/20-night-audit/)   |
+| 10  | [Availability](docs/10-availability/)   | 21  | [Channels](docs/21-channels/)         |
+| 11  | [Guests](docs/11-guests/)               | 22  | [Reports](docs/22-reports/)           |
+
+## Status
+
+Planning complete. The application is currently the Laravel React starter kit. Build order follows the module numbers, starting with the switch to PostgreSQL.

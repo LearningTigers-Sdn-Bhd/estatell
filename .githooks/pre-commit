@@ -1,0 +1,28 @@
+#!/bin/sh
+# Check staged files with the project's formatters and linters.
+
+staged=$(git diff --cached --name-only --diff-filter=ACMR)
+[ -z "$staged" ] && exit 0
+
+php_files=$(printf '%s\n' "$staged" | grep -E '\.php$')
+if [ -n "$php_files" ]; then
+    # shellcheck disable=SC2086
+    vendor/bin/pint --test --format agent $php_files || {
+        echo "pre-commit: Pint found style issues. Run: vendor/bin/pint --dirty --format agent" >&2
+        exit 1
+    }
+fi
+
+if printf '%s\n' "$staged" | grep -Eq '\.(ts|tsx|js|jsx|css|json|md)$'; then
+    npm run check --silent || {
+        echo "pre-commit: vp check failed. Run: npm run check:fix" >&2
+        exit 1
+    }
+fi
+
+if printf '%s\n' "$staged" | grep -Eq '\.(ts|tsx)$'; then
+    npx tsc --noEmit || {
+        echo "pre-commit: TypeScript errors found." >&2
+        exit 1
+    }
+fi

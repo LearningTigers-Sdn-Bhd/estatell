@@ -1,0 +1,9 @@
+---
+paths:
+  - 'app/Enums/**'
+---
+
+# Enums
+
+## Backed enums with label, tone and options
+Use string-backed enums (`php artisan make:enum --string`) with TitleCase cases. Provide `label()`, `options()` (list of value/label for pickers) and `tone()` (neutral, info, success, warning, danger) when shown in the UI, and `canTransitionTo()` for statuses. Enums are exported to TypeScript; the frontend never hard-codes enum labels. No free-string statuses anywhere.
