@@ -51,6 +51,7 @@
             "@php artisan migrate --force",
             "@php artisan db:create-test",
             "npm install",
+            "@php artisan boost:update --no-discover --no-interaction --ansi",
             "npm run build"
         ],
         "dev": [
