@@ -1,6 +1,7 @@
 import {
     Select,
     SelectContent,
+    SelectGroup,
     SelectItem,
     SelectTrigger,
     SelectValue,
@@ -51,11 +52,13 @@ export function EnumSelect({
                 <SelectValue />
             </SelectTrigger>
             <SelectContent>
-                {items.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                    </SelectItem>
-                ))}
+                <SelectGroup>
+                    {items.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                        </SelectItem>
+                    ))}
+                </SelectGroup>
             </SelectContent>
         </Select>
     );

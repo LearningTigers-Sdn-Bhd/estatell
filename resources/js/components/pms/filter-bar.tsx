@@ -40,7 +40,7 @@ export function FilterBar({
 
     return (
         <div className="flex flex-wrap items-center gap-2">
-            <InputGroup className="w-full sm:w-72">
+            <InputGroup className="w-full sm:w-auto sm:flex-1">
                 <InputGroupAddon>
                     <Search />
                 </InputGroupAddon>
