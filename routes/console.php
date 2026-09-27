@@ -11,13 +11,6 @@ Artisan::command('inspire', function () {
 
 Artisan::command('db:create-test', function () {
     $phpunit = simplexml_load_file(base_path('phpunit.xml'));
-
-    if ($phpunit === false) {
-        $this->error('Could not read phpunit.xml');
-
-        return 1;
-    }
-
     $database = (string) ($phpunit->xpath('//env[@name="DB_DATABASE"]')[0]['value'] ?? '');
 
     if (! preg_match('/^[a-z0-9_]+$/', $database)) {
