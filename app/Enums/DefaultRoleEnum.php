@@ -11,7 +11,7 @@ enum DefaultRoleEnum: string
     case Manager = 'manager';
     case FrontDesk = 'front_desk';
     case Housekeeping = 'housekeeping';
-    case Accounts = 'accounts';
+    case Finance = 'finance';
 
     public function label(): string
     {
@@ -20,7 +20,7 @@ enum DefaultRoleEnum: string
             self::Manager => __('Manager'),
             self::FrontDesk => __('Front desk'),
             self::Housekeeping => __('Housekeeping'),
-            self::Accounts => __('Accounts'),
+            self::Finance => __('Finance'),
         };
     }
 
@@ -32,7 +32,7 @@ enum DefaultRoleEnum: string
         return match ($this) {
             self::Owner => PermissionEnum::cases(),
             self::Manager => [PermissionEnum::SettingsManage, PermissionEnum::StaffView, PermissionEnum::StaffManage],
-            self::FrontDesk, self::Housekeeping, self::Accounts => [],
+            self::FrontDesk, self::Housekeeping, self::Finance => [],
         };
     }
 

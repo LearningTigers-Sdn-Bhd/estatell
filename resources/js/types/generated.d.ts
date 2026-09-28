@@ -175,7 +175,7 @@ deactivatedAt: string | null,
 }
 namespace Enums {
 export type Currency = 'MYR';
-export type DefaultRoleEnum = 'owner' | 'manager' | 'front_desk' | 'housekeeping' | 'accounts';
+export type DefaultRoleEnum = 'owner' | 'manager' | 'front_desk' | 'housekeeping' | 'finance';
 export type DormStrategy = 'bed_as_unit' | 'native_dorm';
 export type Locale = 'en' | 'ms';
 export type MediaDisk = 'local' | 'r2';

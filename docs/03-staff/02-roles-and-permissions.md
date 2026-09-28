@@ -26,16 +26,16 @@ roles    spatie columns + property_id (NOT NULL, FK) + default_role (nullable)
 ## Enums
 
 - `PermissionEnum`: every permission name. Permissions are added **per module**: each module adds its own cases and their default-role mapping in its own commit.
-- `DefaultRoleEnum`: Owner, Manager, FrontDesk, Housekeeping, Accounts. `permissions()` returns each role's defaults. Owner returns every case.
+- `DefaultRoleEnum`: Owner, Manager, FrontDesk, Housekeeping, Finance. Finance is for the bookkeeper (folios, payments, city ledger, reports); it was called Accounts until renamed to match the Finance sidebar context. `permissions()` returns each role's defaults. Owner returns every case.
 
 ## Default permissions
 
-| Permission        | Guards                                       | Owner | Manager | Front desk, Housekeeping, Accounts |
-| ----------------- | -------------------------------------------- | ----- | ------- | ---------------------------------- |
-| `settings.manage` | Property settings pages                      | ✓     | ✓       | –                                  |
-| `staff.view`      | Staff list                                   | ✓     | ✓       | –                                  |
-| `staff.manage`    | Invite, deactivate, reactivate, assign roles | ✓     | ✓       | –                                  |
-| `roles.manage`    | Create roles, edit role permissions          | ✓     | –       | –                                  |
+| Permission        | Guards                                       | Owner | Manager | Front desk, Housekeeping, Finance |
+| ----------------- | -------------------------------------------- | ----- | ------- | --------------------------------- |
+| `settings.manage` | Property settings pages                      | ✓     | ✓       | –                                 |
+| `staff.view`      | Staff list                                   | ✓     | ✓       | –                                 |
+| `staff.manage`    | Invite, deactivate, reactivate, assign roles | ✓     | ✓       | –                                 |
+| `roles.manage`    | Create roles, edit role permissions          | ✓     | –       | –                                 |
 
 Later modules add rows here. Their module docs list their permissions.
 

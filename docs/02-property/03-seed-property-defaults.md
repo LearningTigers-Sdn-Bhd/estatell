@@ -25,7 +25,7 @@ Roles are the exception: `SeedDefaultRoles` runs when the property is created, b
 
 | Area              | Seeded data                                                           | Source                     |
 | ----------------- | --------------------------------------------------------------------- | -------------------------- |
-| Roles             | Owner, Manager, FrontDesk, Housekeeping, Accounts (already seeded)    | `DefaultRoleEnum`          |
+| Roles             | Owner, Manager, FrontDesk, Housekeeping, Finance (already seeded)     | `DefaultRoleEnum`          |
 | Meal periods      | Breakfast, Lunch, Dinner                                              | `DefaultMealPeriod`        |
 | Transaction codes | ROOM, NO_SHOW, LATE_CHECKOUT, SST, TOURISM_TAX, CASH, CARD and others | System code list           |
 | Taxes             | Country tax presets, disabled until confirmed                         | Country preset             |
