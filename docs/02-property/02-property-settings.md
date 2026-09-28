@@ -19,7 +19,7 @@ property_settings    property_id (unique), currency, time_zone, default_locale,
 ```
 
 - A 1:1 table with typed columns. New settings are new columns.
-- The first Basics save creates the row. The defaults live in the migration only. Repeating Basics does not replace edited settings.
+- The first Basics save calls `SeedPropertyDefaults`, which creates the row from the Malaysia preset. The migration defaults stay aligned as a database fallback. Repeating Basics does not replace edited settings.
 - Current property staff can edit the page. Finer permissions arrive with the roles module.
 
 ## Enums

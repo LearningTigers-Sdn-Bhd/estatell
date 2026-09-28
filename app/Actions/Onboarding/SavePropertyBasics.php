@@ -2,13 +2,16 @@
 
 namespace App\Actions\Onboarding;
 
+use App\Actions\Property\SeedPropertyDefaults;
 use App\Models\Property;
 use Illuminate\Support\Facades\DB;
 
 class SavePropertyBasics
 {
+    public function __construct(private SeedPropertyDefaults $seedPropertyDefaults) {}
+
     /**
-     * Saves the property identity and creates its settings row once. Setting defaults live in the migration.
+     * Save the property identity and seed its defaults once its type and country are known.
      *
      * @param  array<string, mixed>  $attributes  Validated Basics fields.
      */
@@ -17,7 +20,8 @@ class SavePropertyBasics
         DB::transaction(function () use ($property, $attributes): void {
             $property->fill([...$attributes, 'country_code' => 'MY']);
             $property->save();
-            $property->settings()->firstOrCreate();
+
+            ($this->seedPropertyDefaults)($property, $property->type, $property->country_code);
         });
     }
 }
