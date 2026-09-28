@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Carbon;
 use Laravel\Pennant\Concerns\HasFeatures;
@@ -114,6 +115,14 @@ class Property extends Model implements FeatureScopeSerializeable
     public function rooms(): HasMany
     {
         return $this->hasMany(Room::class);
+    }
+
+    /**
+     * @return HasManyThrough<Bed, Room, $this>
+     */
+    public function beds(): HasManyThrough
+    {
+        return $this->hasManyThrough(Bed::class, Room::class);
     }
 
     /** @return HasMany<PropertyNotificationSetting, $this> */

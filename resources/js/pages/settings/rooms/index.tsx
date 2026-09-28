@@ -2,6 +2,7 @@ import { Head, router, useForm } from '@inertiajs/react';
 import {
     ArrowDown,
     ArrowUp,
+    BedDouble,
     DoorOpen,
     FolderPlus,
     Plus,
@@ -11,6 +12,10 @@ import { useState } from 'react';
 import { EmptyState } from '@/components/pms/empty-state';
 import { EnumSelect } from '@/components/pms/enum-select';
 import { PageHeader } from '@/components/pms/page-header';
+import {
+    BedsSheet,
+    GenerateAllBedsSheet,
+} from '@/components/pms/rooms/beds-sheet';
 import { GenerateRoomsSheet } from '@/components/pms/rooms/generate-rooms-sheet';
 import {
     AlertDialog,
@@ -66,12 +71,16 @@ import {
 type Room = App.Data.Rooms.RoomData;
 type RoomGroup = App.Data.Rooms.RoomGroupData;
 type RoomType = App.Data.Rooms.RoomTypeData;
+type Bed = App.Data.Rooms.BedData;
 
 type Props = {
     rooms: Room[];
     roomGroups: RoomGroup[];
     roomTypes: RoomType[];
+    beds: Bed[];
+    bedPrefixes: Record<number, string>;
     generateLimit: number;
+    bedLimit: number;
 };
 
 /**
@@ -298,11 +307,17 @@ function ConfirmAction({
 function RoomTable({
     rooms,
     typeName,
+    sellsBeds,
+    bedCount,
     onEdit,
+    onBeds,
 }: {
     rooms: Room[];
     typeName: (id: number) => string;
+    sellsBeds: (id: number) => boolean;
+    bedCount: (roomId: number) => number;
     onEdit: (room: Room) => void;
+    onBeds: (room: Room) => void;
 }) {
     return (
         <div className="overflow-auto rounded-lg border">
@@ -311,6 +326,7 @@ function RoomTable({
                     <TableRow>
                         <TableHead>Room</TableHead>
                         <TableHead>Room type</TableHead>
+                        <TableHead>Beds</TableHead>
                         <TableHead>
                             <span className="sr-only">Actions</span>
                         </TableHead>
@@ -324,7 +340,21 @@ function RoomTable({
                             </TableCell>
                             <TableCell>{typeName(room.roomTypeId)}</TableCell>
                             <TableCell>
+                                {sellsBeds(room.roomTypeId)
+                                    ? bedCount(room.id)
+                                    : '—'}
+                            </TableCell>
+                            <TableCell>
                                 <div className="flex justify-end gap-1">
+                                    {sellsBeds(room.roomTypeId) && (
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => onBeds(room)}
+                                        >
+                                            Beds
+                                        </Button>
+                                    )}
                                     <Button
                                         variant="ghost"
                                         size="sm"
@@ -353,7 +383,10 @@ export default function RoomsIndex({
     rooms,
     roomGroups,
     roomTypes,
+    beds,
+    bedPrefixes,
     generateLimit,
+    bedLimit,
 }: Props) {
     // `undefined` = closed, `null` = creating, a value = editing.
     const [editingRoom, setEditingRoom] = useState<Room | null | undefined>(
@@ -363,13 +396,24 @@ export default function RoomsIndex({
         RoomGroup | null | undefined
     >(undefined);
     const [generating, setGenerating] = useState(false);
+    const [generatingBeds, setGeneratingBeds] = useState(false);
+    const [bedsRoom, setBedsRoom] = useState<Room | null>(null);
     const [typeFilter, setTypeFilter] = useState('');
     // '' = all groups, 'none' = ungrouped rooms, otherwise a group id.
     const [groupFilter, setGroupFilter] = useState('');
+    // 'active' (default), 'archived', or '' for both.
+    const [statusFilter, setStatusFilter] = useState('active');
 
     const activeTypes = roomTypes.filter((type) => !type.archived);
     const typeName = (id: number) =>
         roomTypes.find((type) => type.id === id)?.name ?? '';
+    const sellsBeds = (id: number) =>
+        roomTypes.find((type) => type.id === id)?.sellUnit === 'bed';
+    const bedCount = (roomId: number) =>
+        beds.filter((bed) => bed.roomId === roomId && !bed.archived).length;
+    const hasDormRooms = rooms.some(
+        (room) => !room.archived && sellsBeds(room.roomTypeId),
+    );
     const typeOptions = activeTypes.map((type) => ({
         value: String(type.id),
         label: type.name,
@@ -379,21 +423,30 @@ export default function RoomsIndex({
         label: group.name,
     }));
 
+    const statusOptions = [
+        { value: 'active', label: 'Active' },
+        { value: 'archived', label: 'Archived' },
+    ];
     const groupFilterOptions = [
         ...groupOptions,
         { value: 'none', label: 'Ungrouped' },
     ];
 
+    const matchesFilters = (room: Room) =>
+        (typeFilter === '' || String(room.roomTypeId) === typeFilter) &&
+        (groupFilter === '' ||
+            (groupFilter === 'none'
+                ? room.roomGroupId === null
+                : String(room.roomGroupId) === groupFilter));
+    const showActive = statusFilter !== 'archived';
+    const showArchived = statusFilter !== 'active';
+
     const activeRooms = rooms.filter(
-        (room) =>
-            !room.archived &&
-            (typeFilter === '' || String(room.roomTypeId) === typeFilter) &&
-            (groupFilter === '' ||
-                (groupFilter === 'none'
-                    ? room.roomGroupId === null
-                    : String(room.roomGroupId) === groupFilter)),
+        (room) => !room.archived && matchesFilters(room),
     );
-    const archivedRooms = rooms.filter((room) => room.archived);
+    const archivedRooms = rooms.filter(
+        (room) => room.archived && matchesFilters(room),
+    );
     const ungrouped = activeRooms.filter((room) => room.roomGroupId === null);
 
     const move = (from: number, to: number) => {
@@ -431,6 +484,15 @@ export default function RoomsIndex({
                                 <Wand2 data-icon="inline-start" />
                                 Generate rooms
                             </Button>
+                            {hasDormRooms && (
+                                <Button
+                                    variant="outline"
+                                    onClick={() => setGeneratingBeds(true)}
+                                >
+                                    <BedDouble data-icon="inline-start" />
+                                    Add beds
+                                </Button>
+                            )}
                             <Button
                                 disabled={noTypes}
                                 onClick={() => setEditingRoom(null)}
@@ -464,6 +526,14 @@ export default function RoomsIndex({
                     <>
                         <div className="flex flex-wrap justify-end gap-2">
                             <EnumSelect
+                                aria-label="Filter by status"
+                                className="w-40"
+                                options={statusOptions}
+                                allLabel="All statuses"
+                                value={statusFilter}
+                                onValueChange={setStatusFilter}
+                            />
+                            <EnumSelect
                                 aria-label="Filter by room group"
                                 className="w-48"
                                 options={groupFilterOptions}
@@ -481,112 +551,127 @@ export default function RoomsIndex({
                             />
                         </div>
 
-                        {roomGroups.map((group, position) => {
-                            if (
-                                groupFilter !== '' &&
-                                groupFilter !== String(group.id)
-                            ) {
-                                return null;
-                            }
+                        {showActive &&
+                            roomGroups.map((group, position) => {
+                                if (
+                                    groupFilter !== '' &&
+                                    groupFilter !== String(group.id)
+                                ) {
+                                    return null;
+                                }
 
-                            const groupRooms = activeRooms.filter(
-                                (room) => room.roomGroupId === group.id,
-                            );
+                                const groupRooms = activeRooms.filter(
+                                    (room) => room.roomGroupId === group.id,
+                                );
 
-                            return (
-                                <section
-                                    key={group.id}
-                                    className="flex flex-col gap-2"
-                                >
-                                    <div className="flex flex-wrap items-center justify-between gap-2">
+                                return (
+                                    <section
+                                        key={group.id}
+                                        className="flex flex-col gap-2"
+                                    >
+                                        <div className="flex flex-wrap items-center justify-between gap-2">
+                                            <h2 className="font-heading text-sm font-medium">
+                                                {group.name}{' '}
+                                                <span className="font-normal text-muted-foreground">
+                                                    · {groupRooms.length}
+                                                </span>
+                                            </h2>
+                                            <div className="flex gap-1">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon-sm"
+                                                    aria-label={`Move ${group.name} up`}
+                                                    disabled={position === 0}
+                                                    onClick={() =>
+                                                        move(
+                                                            position,
+                                                            position - 1,
+                                                        )
+                                                    }
+                                                >
+                                                    <ArrowUp />
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon-sm"
+                                                    aria-label={`Move ${group.name} down`}
+                                                    disabled={
+                                                        position ===
+                                                        roomGroups.length - 1
+                                                    }
+                                                    onClick={() =>
+                                                        move(
+                                                            position,
+                                                            position + 1,
+                                                        )
+                                                    }
+                                                >
+                                                    <ArrowDown />
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() =>
+                                                        setEditingGroup(group)
+                                                    }
+                                                >
+                                                    Rename
+                                                </Button>
+                                                <ConfirmAction
+                                                    label="Delete"
+                                                    title={`Delete ${group.name}?`}
+                                                    description="Only a group without active rooms can be deleted."
+                                                    method="delete"
+                                                    url={destroy.url({
+                                                        roomGroup: group.id,
+                                                    })}
+                                                />
+                                            </div>
+                                        </div>
+                                        {groupRooms.length === 0 ? (
+                                            <p className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
+                                                No rooms in this group.
+                                            </p>
+                                        ) : (
+                                            <RoomTable
+                                                rooms={groupRooms}
+                                                typeName={typeName}
+                                                sellsBeds={sellsBeds}
+                                                bedCount={bedCount}
+                                                onEdit={setEditingRoom}
+                                                onBeds={setBedsRoom}
+                                            />
+                                        )}
+                                    </section>
+                                );
+                            })}
+
+                        {showActive &&
+                            (ungrouped.length > 0 ||
+                                roomGroups.length === 0) && (
+                                <section className="flex flex-col gap-2">
+                                    {roomGroups.length > 0 && (
                                         <h2 className="font-heading text-sm font-medium">
-                                            {group.name}{' '}
+                                            Ungrouped{' '}
                                             <span className="font-normal text-muted-foreground">
-                                                · {groupRooms.length}
+                                                · {ungrouped.length}
                                             </span>
                                         </h2>
-                                        <div className="flex gap-1">
-                                            <Button
-                                                variant="ghost"
-                                                size="icon-sm"
-                                                aria-label={`Move ${group.name} up`}
-                                                disabled={position === 0}
-                                                onClick={() =>
-                                                    move(position, position - 1)
-                                                }
-                                            >
-                                                <ArrowUp />
-                                            </Button>
-                                            <Button
-                                                variant="ghost"
-                                                size="icon-sm"
-                                                aria-label={`Move ${group.name} down`}
-                                                disabled={
-                                                    position ===
-                                                    roomGroups.length - 1
-                                                }
-                                                onClick={() =>
-                                                    move(position, position + 1)
-                                                }
-                                            >
-                                                <ArrowDown />
-                                            </Button>
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                onClick={() =>
-                                                    setEditingGroup(group)
-                                                }
-                                            >
-                                                Rename
-                                            </Button>
-                                            <ConfirmAction
-                                                label="Delete"
-                                                title={`Delete ${group.name}?`}
-                                                description="Only a group without active rooms can be deleted."
-                                                method="delete"
-                                                url={destroy.url({
-                                                    roomGroup: group.id,
-                                                })}
-                                            />
-                                        </div>
-                                    </div>
-                                    {groupRooms.length === 0 ? (
-                                        <p className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
-                                            No rooms in this group.
-                                        </p>
-                                    ) : (
-                                        <RoomTable
-                                            rooms={groupRooms}
-                                            typeName={typeName}
-                                            onEdit={setEditingRoom}
-                                        />
                                     )}
+                                    <RoomTable
+                                        rooms={ungrouped}
+                                        typeName={typeName}
+                                        sellsBeds={sellsBeds}
+                                        bedCount={bedCount}
+                                        onEdit={setEditingRoom}
+                                        onBeds={setBedsRoom}
+                                    />
                                 </section>
-                            );
-                        })}
-
-                        {(ungrouped.length > 0 || roomGroups.length === 0) && (
-                            <section className="flex flex-col gap-2">
-                                {roomGroups.length > 0 && (
-                                    <h2 className="font-heading text-sm font-medium">
-                                        Ungrouped{' '}
-                                        <span className="font-normal text-muted-foreground">
-                                            · {ungrouped.length}
-                                        </span>
-                                    </h2>
-                                )}
-                                <RoomTable
-                                    rooms={ungrouped}
-                                    typeName={typeName}
-                                    onEdit={setEditingRoom}
-                                />
-                            </section>
-                        )}
+                            )}
                     </>
                 )}
 
-                {archivedRooms.length > 0 && (
+                {showArchived && archivedRooms.length > 0 && (
                     <section className="flex flex-col gap-2">
                         <h2 className="font-heading text-sm font-medium">
                             Archived
@@ -684,6 +769,20 @@ export default function RoomsIndex({
                     )}
                 </DialogContent>
             </Dialog>
+
+            <BedsSheet
+                room={bedsRoom}
+                beds={beds}
+                prefixes={bedPrefixes}
+                limit={bedLimit}
+                onClose={() => setBedsRoom(null)}
+            />
+
+            <GenerateAllBedsSheet
+                open={generatingBeds}
+                onOpenChange={setGeneratingBeds}
+                limit={bedLimit}
+            />
 
             <GenerateRoomsSheet
                 open={generating}

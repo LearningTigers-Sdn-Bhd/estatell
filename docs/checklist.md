@@ -51,6 +51,9 @@ Legend: **Needs** lists items that must be done first.
 | `a168d56` | feat(platform): show the owner on admin property pages                |
 | `e010ed4` | feat(property): seed property defaults from type and country          |
 | `e920679` | feat(notifications): add notification types and channels              |
+| `25f0145` | feat(notifications): add property and user notification preferences   |
+| `6d787fe` | feat(rooms): add room types                                           |
+| `ac1db1c` | feat(rooms): add rooms, room groups and number generator              |
 
 Smaller fixes and reverts are in `git log`.
 
@@ -95,7 +98,7 @@ Smaller fixes and reverts are in `git log`.
 
 - [x] `feat(rooms): add room types` — Docs: [Room types](05-rooms/01-room-types.md).
 - [x] `feat(rooms): add rooms, room groups and number generator` — `GenerateRooms`. Docs: [Rooms and groups](05-rooms/02-rooms-and-groups.md).
-- [ ] `feat(rooms): add beds for dorm room types` — Docs: [Beds](05-rooms/03-beds.md).
+- [x] `feat(rooms): add beds for dorm room types` — Docs: [Beds](05-rooms/03-beds.md).
 - [ ] `feat(rooms): add room blocks and room statuses` — Docs: [Room blocks and statuses](05-rooms/04-room-blocks-and-statuses.md).
 
 ### 06 Catalogues

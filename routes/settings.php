@@ -3,6 +3,7 @@
 use App\Enums\PermissionEnum;
 use App\Http\Controllers\Property\NotificationSettingController;
 use App\Http\Controllers\Property\PropertySettingsController;
+use App\Http\Controllers\Rooms\BedController;
 use App\Http\Controllers\Rooms\RoomController;
 use App\Http\Controllers\Rooms\RoomGroupController;
 use App\Http\Controllers\Rooms\RoomTypeController;
@@ -48,9 +49,14 @@ Route::prefix('settings')->name('settings.')->group(function () {
             Route::post('/', [RoomController::class, 'store'])->name('store');
             Route::post('generate/preview', [RoomController::class, 'preview'])->name('generate.preview');
             Route::post('generate', [RoomController::class, 'generate'])->name('generate');
+            Route::post('beds/generate', [BedController::class, 'generate'])->name('beds.generate');
             Route::put('{room}', [RoomController::class, 'update'])->name('update');
             Route::post('{room}/archive', [RoomController::class, 'archive'])->name('archive');
             Route::post('{room}/restore', [RoomController::class, 'restore'])->name('restore');
+            Route::post('{room}/beds', [BedController::class, 'store'])->name('beds.store');
+            Route::put('{room}/beds/{bed}', [BedController::class, 'update'])->name('beds.update');
+            Route::post('{room}/beds/{bed}/archive', [BedController::class, 'archive'])->name('beds.archive');
+            Route::post('{room}/beds/{bed}/restore', [BedController::class, 'restore'])->name('beds.restore');
         });
     });
 

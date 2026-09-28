@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Rooms;
 
+use App\Enums\SellUnit;
 use App\Models\Property;
 use App\Models\Room;
 use App\Models\RoomGroup;
@@ -67,6 +68,17 @@ class RoomRequest extends FormRequest
 
                     if (! $valid) {
                         $fail(__('Choose an active room type.'));
+
+                        return;
+                    }
+
+                    $losesBeds = $current instanceof Room
+                        && ! $keepsType
+                        && $current->beds()->exists()
+                        && RoomType::query()->whereKey($value)->where('sell_unit', SellUnit::Room->value)->exists();
+
+                    if ($losesBeds) {
+                        $fail(__('This room has beds. Choose a room type that sells beds.'));
                     }
                 },
             ],
