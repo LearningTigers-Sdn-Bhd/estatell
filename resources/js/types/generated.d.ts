@@ -1,11 +1,28 @@
 declare namespace App {
 namespace Data {
 namespace Navigation {
+export type NavContextData = {
+key: App.Enums.NavigationContext,
+label: string,
+icon: string,
+shortcut: string,
+href: string,
+groups: App.Data.Navigation.NavGroupData[],
+};
+export type NavGroupData = {
+label: string,
+items: App.Data.Navigation.NavItemData[],
+};
 export type NavItemData = {
 title: string,
 href: string,
 icon: string,
 external: boolean,
+active: boolean,
+};
+export type StaffNavigationData = {
+active: App.Enums.NavigationContext | null,
+contexts: App.Data.Navigation.NavContextData[],
 };
 }
 namespace Platform {
@@ -107,6 +124,7 @@ export type DormStrategy = 'bed_as_unit' | 'native_dorm';
 export type Locale = 'en' | 'ms';
 export type MediaDisk = 'local' | 'r2';
 export type MissedArrivalPolicy = 'mark_no_show' | 'keep_as_late_arrival';
+export type NavigationContext = 'front-desk' | 'finance' | 'reports' | 'settings';
 export type NoShowCharge = 'first_night' | 'full_stay' | 'none';
 export type OverdueDeparturePolicy = 'extend_one_night' | 'block';
 export type PlatformFeature = 'channel-manager';

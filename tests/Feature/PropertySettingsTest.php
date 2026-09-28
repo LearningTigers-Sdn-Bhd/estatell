@@ -45,7 +45,7 @@ test('new owners see setup and saving basics creates defaults', function () {
     $this->actingAs($owner)->get(route('settings.edit', $property->code))
         ->assertInertia(fn (Assert $page) => $page->component('settings/edit')
             ->where('settings', null)
-            ->where('settingsNavigation.0.href', '/p/'.$property->code.'/settings'));
+            ->where('navigation.contexts.1.href', '/p/'.$property->code.'/settings'));
 
     $this->put(route('onboarding.basics.update', $property->code), basicsInput())
         ->assertRedirect(route('settings.edit', $property->code))

@@ -39,6 +39,8 @@ Legend: **Needs** lists items that must be done first.
 | `252aab9` | feat(platform): add per-property feature flags with admin switches    |
 | `4f53837` | feat(platform): give property tabs their own URLs and icons           |
 | `e28f620` | fix(ui): pad select menus and let the filter search fill the row      |
+| `6383380` | feat(platform): suspend and reactivate properties from admin          |
+| `ef4ab1e` | feat(property): add property settings                                 |
 
 Smaller fixes and reverts are in `git log`.
 
@@ -52,7 +54,7 @@ Smaller fixes and reverts are in `git log`.
 
 ### App shell (staff)
 
-- [ ] `feat(ui): build staff sidebar contexts from PHP navigation` — `app/Navigation/*Navigation`, context switcher, remove starter kit links. Needs: property settings. Docs: [App shell](design-system/09-app-shell.md).
+- [x] `feat(ui): build staff sidebar contexts from PHP navigation` — `app/Navigation/*Navigation`, context switcher, remove starter kit links. Needs: property settings. Docs: [App shell](design-system/09-app-shell.md).
 
 ### 03 Staff
 

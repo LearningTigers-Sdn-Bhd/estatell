@@ -13,6 +13,7 @@ test('admin pages share the admin navigation', function () {
                 'href' => '/admin/properties',
                 'icon' => 'building',
                 'external' => false,
+                'active' => false,
             ])
         );
 });

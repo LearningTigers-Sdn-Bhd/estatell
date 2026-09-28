@@ -2,10 +2,12 @@
 
 namespace App\Http\Middleware;
 
+use App\Data\Navigation\StaffNavigationData;
 use App\Data\Property\PropertySummaryData;
+use App\Enums\PropertyStatus;
 use App\Models\Property;
 use App\Navigation\AdminNavigation;
-use App\Navigation\SettingsNavigation;
+use App\Navigation\StaffNavigation;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -48,11 +50,34 @@ class HandleInertiaRequests extends Middleware
             'adminNeedsTwoFactor' => RequireAdminTwoFactor::isMissingFor($request->user()),
             'property' => fn () => $this->currentProperty($request),
             'adminNavigation' => fn () => $request->user()?->is_admin ? app(AdminNavigation::class)->items() : null,
-            'settingsNavigation' => fn () => $request->user() !== null && ! $request->user()->is_admin && $request->route('property') instanceof Property
-                ? app(SettingsNavigation::class)->items($request->route('property'))
-                : null,
+            'navigation' => fn () => $this->staffNavigation($request),
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];
+    }
+
+    /**
+     * The staff sidebar for the property in the URL, or for the staff user's own property on pages without one.
+     * Null for admins and for suspended properties.
+     */
+    private function staffNavigation(Request $request): ?StaffNavigationData
+    {
+        $user = $request->user();
+
+        if ($user === null || $user->is_admin) {
+            return null;
+        }
+
+        $property = $request->route('property');
+
+        if (! $property instanceof Property) {
+            $property = $user->property;
+        }
+
+        if (! $property instanceof Property || $property->status === PropertyStatus::Suspended) {
+            return null;
+        }
+
+        return app(StaffNavigation::class)->build($property, $request->route()?->getName());
     }
 
     /**

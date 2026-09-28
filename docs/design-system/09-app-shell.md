@@ -107,9 +107,24 @@ Front desk staff must always know which business date they are posting to. After
 
 ## Navigation code
 
-- Navigation is defined once in PHP: `app/Navigation/`, one class per context (`FrontDeskNavigation`, `FinanceNavigation`, `ReportsNavigation`, `SettingsNavigation`) built from route names and `PermissionEnum`.
-- `HandleInertiaRequests` shares `navigation` (contexts and items already filtered by permission and features) and `businessDate`.
+- Navigation is defined once in PHP: `app/Navigation/`, one class per context (`FrontDeskNavigation`, `FinanceNavigation`, `ReportsNavigation`, `SettingsNavigation`) built from route names and `PermissionEnum`. Each class returns `NavGroupData` groups of `NavItemData` items.
+- `StaffNavigation` combines the classes, drops empty groups and contexts, and marks the active context. The `NavigationContext` enum holds each context's label, icon, shortcut key and route name patterns.
+- The server sets `active` on each item with `routeIs`, so an item stays active on its sub-pages (for example Details on every settings tab).
+- `HandleInertiaRequests` shares `navigation` (`StaffNavigationData`: `active` and `contexts`, already filtered by permission and features) and `businessDate`. `navigation` is null for admins and for suspended properties. On account pages staff get their own property's navigation with `active` null, and the sidebar shows the first context.
 - The frontend only renders: `AppSidebar` + `ContextSwitcher` + `BusinessDateIndicator`. No navigation lists in React.
+- The last page per context is stored in `localStorage` under `estatell.last-page.{userId}.{context}`. It is used only when it starts with the same `/p/{code}/`.
+
+### Build status
+
+| Part                       | Status                                                                                             |
+| -------------------------- | -------------------------------------------------------------------------------------------------- |
+| r1, r2, r3, r5             | Built.                                                                                             |
+| Front desk, Settings       | Built with the items that have routes (Dashboard; Details). Each module adds its items.            |
+| Finance, Reports           | No navigation classes yet. They come with their modules and stay hidden until then.                |
+| Permission filtering       | Comes with [Roles and permissions](../03-staff/02-roles-and-permissions.md), in `StaffNavigation`. |
+| r4 `BusinessDateIndicator` | Comes with [Business dates](../20-night-audit/01-business-dates.md).                               |
+| ⌘K palette                 | Not built.                                                                                         |
+
 - Labels are plain words. Section names match the table above.
 - Admin pages use `layouts/admin-layout.tsx` with `AdminSidebar`. Its items come from `App\Navigation\AdminNavigation`, shared as `adminNavigation` with admins only (null for staff). Account pages use the admin layout when this prop is present, so admins keep their sidebar there. Items marked `external` (Horizon) open in a new tab. The admin two-factor banner lives in this layout.
 
