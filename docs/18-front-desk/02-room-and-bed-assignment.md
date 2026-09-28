@@ -15,3 +15,4 @@ Put units into physical rooms or beds, per night.
 - Assignment is per night on `unit_nights`.
 - A room or bed cannot be assigned twice on the same night. A Postgres exclusion or unique constraint enforces this.
 - An in-house unit without a room or bed is a hard blocker for the night audit.
+- `MoveUnit` to another room type is allowed only when that room type is linked to the unit's rate plan (`rate_plan_room_types`).

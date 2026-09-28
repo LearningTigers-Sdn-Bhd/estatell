@@ -10,7 +10,7 @@ Interface `StayPricing`: returns one amount breakdown per night (base, extra, su
 
 | Strategy          | Source                                         | Formula                                                                                                                                                     |
 | ----------------- | ---------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `PerRoomPricing`  | `rates`, `rate_occupancy_prices`               | Occupancy price if set, else room price + extra adult and child charges                                                                                     |
+| `PerRoomPricing`  | `rates`, `rate_occupancy_prices`               | Occupancy price if set, else room price + extra charges above `base_occupancy`                                                                              |
 | `PerGuestPricing` | `rates`, `rate_occupancy_prices`, child prices | Occupancy price for the adults if set, else adult rate x adults. Plus each child by age group. Plus the single supplement when there is no occupancy price. |
 | `PerBedPricing`   | `rates`                                        | Bed rate                                                                                                                                                    |
 | `PackagePricing`  | `package_prices`                               | Stay price by arrival date, split across nights                                                                                                             |

@@ -10,6 +10,8 @@ channel_rate_plan_mappings    id, channel_connection_id, rate_plan_id, room_type
                               unique (channel_connection_id, rate_plan_id, room_type_id)
 ```
 
+A rate plan mapping exists only for a plan and room type pair linked in `rate_plan_room_types` (see [Rate plans](../08-rates/01-rate-plans.md)).
+
 ## Sell mode mapping
 
 | estatell                         | Channex                                                                                                |

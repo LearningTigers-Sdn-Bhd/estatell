@@ -15,6 +15,7 @@ property_settings    property_id (unique), currency, time_zone, default_locale,
                      registration_card_scope, card_required_for_check_in,
                      id_document_retention_days, security_deposit_amount,
                      allow_support_access (bool, default true),
+                     weekend_nights (WeekendNights, default FriSat),
                      timestamps
 ```
 
@@ -30,6 +31,11 @@ property_settings    property_id (unique), currency, time_zone, default_locale,
 - `OverdueDeparturePolicy`: ExtendOneNight, Block.
 - `NoShowCharge`: FirstNight, FullStay, None.
 - `RegistrationCardScope`: PrimaryOnly, EveryAdult.
+- `WeekendNights`: FriSat ("Friday + Saturday"), SatSun ("Saturday + Sunday").
+
+## Weekend nights
+
+`weekend_nights` is edited on the Operations tab. It is only the preselected choice in the [pricing form](../08-rates/02-daily-rates-and-restrictions.md#pricing-form). Changing it does not change existing rates. It is an enum, not a weekday array.
 
 ## Support access
 
@@ -41,4 +47,4 @@ property_settings    property_id (unique), currency, time_zone, default_locale,
 - Currency and time zone are fixed once the property has gone live (`went_live_at` is set). The page shows them disabled, and the request drops them (`SettingsLock`).
 - All business dates and schedules use `time_zone`.
 - The Settings page has four tabs, each with its own URL: General, Operations, Registration card and Support access. Each tab saves separately. Before Basics is complete, it links to `/p/{code}/onboarding/basics`.
-- Initial values are MYR, `Asia/Kuala_Lumpur`, English, 15:00 check-in, 11:00 check-out, 02:00 audit, no automatic audit or room assignment, no no-show charge, blocked overdue departures, primary-only registration cards, no card requirement, zero deposit and support access on. ID retention is unset until document capture exists.
+- Initial values are MYR, `Asia/Kuala_Lumpur`, English, 15:00 check-in, 11:00 check-out, 02:00 audit, no automatic audit or room assignment, no no-show charge, blocked overdue departures, primary-only registration cards, no card requirement, zero deposit, Friday + Saturday weekend nights and support access on. ID retention is unset until document capture exists.

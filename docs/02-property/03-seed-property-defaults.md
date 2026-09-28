@@ -25,18 +25,20 @@ Roles are the exception during self sign-up: `SeedDefaultRoles` runs when the pr
 
 ## Planned defaults
 
-| Area              | Seeded data                                                           | Source                         |
-| ----------------- | --------------------------------------------------------------------- | ------------------------------ |
-| Roles             | Owner, Manager, FrontDesk, Housekeeping, Finance (already seeded)     | `DefaultRoleEnum`              |
-| Meal periods      | Breakfast, Lunch, Dinner                                              | `DefaultMealPeriod`            |
-| Transaction codes | ROOM, NO_SHOW, LATE_CHECKOUT, SST, TOURISM_TAX, CASH, CARD and others | System code list               |
-| Taxes             | Country tax presets, disabled until confirmed                         | Country preset                 |
-| Payment methods   | Cash, Card, Bank transfer, e-wallet                                   | Country preset                 |
-| Settings          | Currency, time zone, locale, check-in and check-out times (built)     | Country and type               |
-| Age groups        | Infant 0–3, Child 4–11 (adults from 12)                               | [Age groups](04-age-groups.md) |
-| Terms             | Default terms document, version 1, English and Bahasa Malaysia        | `TermsPreset` for the type     |
+| Area              | Seeded data                                                                                   | Source                         |
+| ----------------- | --------------------------------------------------------------------------------------------- | ------------------------------ |
+| Roles             | Owner, Manager, FrontDesk, Housekeeping, Finance (already seeded)                             | `DefaultRoleEnum`              |
+| Meal periods      | Breakfast, Lunch, Dinner                                                                      | `DefaultMealPeriod`            |
+| Transaction codes | ROOM, NO_SHOW, LATE_CHECKOUT, SST, TOURISM_TAX, CASH, CARD and others                         | System code list               |
+| Taxes             | Country tax presets, disabled until confirmed                                                 | Country preset                 |
+| Payment methods   | Cash, Card, Bank transfer, e-wallet                                                           | Country preset                 |
+| Settings          | Currency, time zone, locale, check-in and check-out times (built), weekend nights FriSat      | Country and type               |
+| Rate plan         | "Basic Rate", an ordinary plan with no prices yet. PerRoom, or PerBed for a dorm-only hostel. | Property type                  |
+| Age groups        | Infant 0–3, Child 4–11 (adults from 12)                                                       | [Age groups](04-age-groups.md) |
+| Terms             | Default terms document, version 1, English and Bahasa Malaysia                                | `TermsPreset` for the type     |
 
 ## Rules
 
 - Idempotent: running it twice creates nothing new.
 - System transaction codes are marked `is_system` and cannot be deleted.
+- "Basic Rate" has no special flag. It can be renamed and archived within the [rate plan guards](../08-rates/01-rate-plans.md#guards). Room types created later are linked to it when the sell unit fits.

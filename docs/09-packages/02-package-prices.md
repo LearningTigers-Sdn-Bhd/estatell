@@ -23,6 +23,7 @@ Package prices depend on the arrival date. A Friday arrival should cost one pric
 ## Rules
 
 - Applies to plans with `is_package = true` and `fixed_nights` set.
+- Rows exist only for a plan and room type pair linked in `rate_plan_room_types`. A Package plan can link Room and Bed room types.
 - The booking form locks departure = arrival + `fixed_nights`.
 - `rate_plan_arrival_weekdays` optionally limits arrival days.
 - Stop-sell and closed-to-arrival still come from `rates`.
@@ -42,4 +43,4 @@ Island Escape 3D2N, arrival 1-30 Jun: RM600 per adult. 2 adults + 1 child aged 8
 
 ## UI
 
-Package plans show a "price per stay by arrival period" grid instead of the nightly calendar.
+Package plans show a "price per stay by arrival period" grid instead of the nightly calendar. It replaces the pricing form on the rate plan's Pricing tab. "Follow another plan" is not offered.

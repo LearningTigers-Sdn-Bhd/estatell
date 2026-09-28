@@ -17,15 +17,15 @@ The first release has only the Basics page. It uses the current staff layout; th
 
 ## Steps
 
-| Step                        | Required | Content                                                                                                          |
-| --------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------- |
-| Basics (2 min)              | Yes      | Property type cards, name, address. Country sets currency, time zone, locale, tax presets.                       |
-| Rooms (4 min)               | Yes      | Suggested room types, `GenerateRooms` number patterns, beds for dorms.                                           |
-| Prices (3 min)              | Yes      | Base price per room type, optional weekend price. `SetBasePrices` creates a Standard plan and 365 days of rates. |
-| Payments and taxes (2 min)  | Yes      | Toggle preset payment methods and taxes, enter tax registration numbers.                                         |
-| Check-in essentials (2 min) | Yes      | Check-in and check-out times, ID requirement, terms preset preview.                                              |
-| Team                        | Optional | Invite staff and choose roles.                                                                                   |
-| Test drive                  | Optional | Guided practice booking: create, check in, post a charge, check out. Coach marks use shadcn `popover`.           |
+| Step                        | Required | Content                                                                                                                                                |
+| --------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Basics (2 min)              | Yes      | Property type cards, name, address. Country sets currency, time zone, locale, tax presets.                                                             |
+| Rooms (4 min)               | Yes      | Suggested room types, `GenerateRooms` number patterns, beds for dorms.                                                                                 |
+| Prices (3 min)              | Yes      | The Simple pricing form for "Basic Rate": weekday and weekend price per room type. `SetBasePrices` fills 365 days of rates. It does not create a plan. |
+| Payments and taxes (2 min)  | Yes      | Toggle preset payment methods and taxes, enter tax registration numbers.                                                                               |
+| Check-in essentials (2 min) | Yes      | Check-in and check-out times, ID requirement, terms preset preview.                                                                                    |
+| Team                        | Optional | Invite staff and choose roles.                                                                                                                         |
+| Test drive                  | Optional | Guided practice booking: create, check in, post a charge, check out. Coach marks use shadcn `popover`.                                                 |
 
 Steps can be done in any order after Basics. Prices depends on Rooms.
 
