@@ -47,6 +47,7 @@ Legend: **Needs** lists items that must be done first.
 | `ccc3e9c` | feat(staff): invite staff and accept invitations                      |
 | `aa552df` | feat(staff): deactivate and reactivate staff                          |
 | `3c1bee4` | feat(staff): manage roles and assign them to staff                    |
+| `be237ae` | feat(staff): show roles as one permission matrix                      |
 
 Smaller fixes and reverts are in `git log`.
 
@@ -70,7 +71,7 @@ Smaller fixes and reverts are in `git log`.
 - [x] `feat(staff): deactivate and reactivate staff` — `DeactivateStaff`, `ReactivateStaff`.
 - [x] `feat(staff): manage roles and assign them to staff` — `CreateRole`, `UpdateRolePermissions`, `AssignStaffRole`.
 - [x] `feat(staff): show roles as one permission matrix` — wastays-style grid: permissions as rows, roles as columns, one save. Replaces the per-role page. Docs: [Roles and permissions](03-staff/02-roles-and-permissions.md).
-- [ ] `feat(platform): show the owner on admin property pages` — replace the staff count column. Needs: owner role.
+- [x] `feat(platform): show the owner on admin property pages` — replace the staff count column. Needs: owner role.
 
 ### 02 Property (seeding) and 17 Onboarding (admin create)
 

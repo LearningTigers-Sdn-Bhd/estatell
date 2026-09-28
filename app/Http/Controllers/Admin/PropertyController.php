@@ -12,6 +12,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Property;
 use App\Models\User;
 use App\Services\Platform\PropertyDirectory;
+use App\Services\Staff\PropertyOwners;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -50,8 +51,11 @@ class PropertyController extends Controller
      */
     public function staff(Property $property): Response
     {
+        // Admin routes have no permission team; set it so each user's roles load for this property.
+        setPermissionsTeamId($property->id);
+
         return $this->renderTab($property, 'staff', [
-            'staff' => $property->users()->orderBy('name')->get()
+            'staff' => $property->users()->with('roles')->orderBy('name')->get()
                 ->map(fn (User $user): AdminPropertyStaffData => AdminPropertyStaffData::fromModel($user))
                 ->all(),
         ]);
@@ -78,7 +82,7 @@ class PropertyController extends Controller
         $property->loadCount('users');
 
         return Inertia::render('admin/properties/show', [
-            'property' => AdminPropertyData::fromModel($property),
+            'property' => AdminPropertyData::fromModel($property, app(PropertyOwners::class)->firstFor($property)),
             'tab' => $tab,
             ...$tabProps,
         ]);

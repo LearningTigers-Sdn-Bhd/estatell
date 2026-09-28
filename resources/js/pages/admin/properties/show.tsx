@@ -136,6 +136,7 @@ function Staff({ staff }: { staff: StaffMember[] }) {
                     <TableRow>
                         <TableHead>Name</TableHead>
                         <TableHead>Email</TableHead>
+                        <TableHead>Role</TableHead>
                         <TableHead>Email verified</TableHead>
                         <TableHead>Created</TableHead>
                     </TableRow>
@@ -144,9 +145,23 @@ function Staff({ staff }: { staff: StaffMember[] }) {
                     {staff.map((user) => (
                         <TableRow key={user.id}>
                             <TableCell className="font-medium">
-                                {user.name}
+                                <span className="flex items-center gap-2">
+                                    {user.name}
+                                    {user.deactivated && (
+                                        <Badge variant="outline">
+                                            Deactivated
+                                        </Badge>
+                                    )}
+                                </span>
                             </TableCell>
                             <TableCell>{user.email}</TableCell>
+                            <TableCell>
+                                {user.role ?? (
+                                    <span className="text-muted-foreground">
+                                        No role
+                                    </span>
+                                )}
+                            </TableCell>
                             <TableCell>
                                 <Badge
                                     variant={
@@ -333,6 +348,20 @@ export default function PropertyShow({
                                 <span className="tabular-nums">
                                     {property.code}
                                 </span>
+                            </SummaryRow>
+                            <SummaryRow label="Owner">
+                                {property.ownerName ? (
+                                    <span className="flex flex-col">
+                                        <span>{property.ownerName}</span>
+                                        <span className="text-xs text-muted-foreground">
+                                            {property.ownerEmail}
+                                        </span>
+                                    </span>
+                                ) : (
+                                    <span className="text-muted-foreground">
+                                        No owner
+                                    </span>
+                                )}
                             </SummaryRow>
                             <SummaryRow label="Status">
                                 <StatusBadge status={property.status} />

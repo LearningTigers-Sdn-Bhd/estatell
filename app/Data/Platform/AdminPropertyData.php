@@ -4,6 +4,7 @@ namespace App\Data\Platform;
 
 use App\Data\Shared\BadgeData;
 use App\Models\Property;
+use App\Models\User;
 use Spatie\LaravelData\Data;
 
 class AdminPropertyData extends Data
@@ -27,12 +28,14 @@ class AdminPropertyData extends Data
         public ?string $wentLiveAt,
         public ?string $suspendedAt,
         public int $staffCount,
+        public ?string $ownerName,
+        public ?string $ownerEmail,
     ) {}
 
     /**
      * Expects `users_count` from `loadCount('users')`.
      */
-    public static function fromModel(Property $property): self
+    public static function fromModel(Property $property, ?User $owner): self
     {
         return new self(
             code: $property->code,
@@ -53,6 +56,8 @@ class AdminPropertyData extends Data
             wentLiveAt: $property->went_live_at?->toDateString(),
             suspendedAt: $property->suspended_at?->toDateString(),
             staffCount: (int) $property->getAttribute('users_count'),
+            ownerName: $owner?->name,
+            ownerEmail: $owner?->email,
         );
     }
 }

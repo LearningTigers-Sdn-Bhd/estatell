@@ -3,6 +3,7 @@
 namespace App\Services\Platform;
 
 use App\Models\Property;
+use App\Services\Staff\PropertyOwners;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -15,6 +16,8 @@ use Spatie\QueryBuilder\QueryBuilder;
 class PropertyDirectory
 {
     public const int PER_PAGE = 25;
+
+    public function __construct(private PropertyOwners $propertyOwners) {}
 
     /**
      * @return LengthAwarePaginator<int, Property>
@@ -29,7 +32,8 @@ class PropertyDirectory
             )
             ->allowedSorts('code', 'name', 'created_at')
             ->defaultSort('-code')
-            ->withCount('users')
+            ->select('properties.*')
+            ->tap(fn (Builder $query) => $this->propertyOwners->addOwnerColumns($query))
             ->paginate(self::PER_PAGE)
             ->withQueryString();
     }

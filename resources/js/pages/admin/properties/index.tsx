@@ -50,10 +50,20 @@ const columns = [
         enableSorting: false,
         cell: (info) => info.getValue() ?? '—',
     }),
-    column.accessor('staffCount', {
-        header: 'Staff',
+    column.accessor('ownerName', {
+        header: 'Owner',
         enableSorting: false,
-        cell: (info) => <span className="tabular-nums">{info.getValue()}</span>,
+        cell: (info) =>
+            info.getValue() ? (
+                <span className="flex min-w-0 flex-col">
+                    <span className="truncate">{info.getValue()}</span>
+                    <span className="truncate text-xs text-muted-foreground">
+                        {info.row.original.ownerEmail}
+                    </span>
+                </span>
+            ) : (
+                <span className="text-muted-foreground">No owner</span>
+            ),
     }),
     column.accessor('createdAt', {
         id: 'created_at',

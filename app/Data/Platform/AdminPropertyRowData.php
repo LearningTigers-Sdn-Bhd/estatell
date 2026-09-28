@@ -14,12 +14,13 @@ class AdminPropertyRowData extends Data
         public BadgeData $status,
         public ?string $type,
         public ?string $city,
-        public int $staffCount,
+        public ?string $ownerName,
+        public ?string $ownerEmail,
         public string $createdAt,
     ) {}
 
     /**
-     * Expects `users_count` from `withCount('users')`.
+     * Expects `owner_name` and `owner_email` from `PropertyOwners::addOwnerColumns()`.
      */
     public static function fromModel(Property $property): self
     {
@@ -29,7 +30,8 @@ class AdminPropertyRowData extends Data
             status: BadgeData::fromStatus($property->status),
             type: $property->type?->label(),
             city: $property->city,
-            staffCount: (int) $property->getAttribute('users_count'),
+            ownerName: $property->getAttribute('owner_name'),
+            ownerEmail: $property->getAttribute('owner_email'),
             createdAt: $property->created_at->toDateString(),
         );
     }

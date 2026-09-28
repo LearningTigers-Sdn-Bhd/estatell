@@ -45,6 +45,8 @@ createdAt: string,
 wentLiveAt: string | null,
 suspendedAt: string | null,
 staffCount: number,
+ownerName: string | null,
+ownerEmail: string | null,
 };
 export type AdminPropertyRowData = {
 code: number,
@@ -52,14 +54,17 @@ name: string,
 status: App.Data.Shared.BadgeData,
 type: string | null,
 city: string | null,
-staffCount: number,
+ownerName: string | null,
+ownerEmail: string | null,
 createdAt: string,
 };
 export type AdminPropertyStaffData = {
 id: number,
 name: string,
 email: string,
+role: string | null,
 verified: boolean,
+deactivated: boolean,
 createdAt: string,
 };
 export type PlatformSettingsData = {
@@ -127,6 +132,13 @@ export type PermissionOptionData = {
 value: string,
 label: string,
 group: string,
+};
+export type RoleData = {
+id: number,
+name: string,
+isDefault: boolean,
+isLocked: boolean,
+permissions: string[],
 };
 export type RoleOptionData = {
 value: string,

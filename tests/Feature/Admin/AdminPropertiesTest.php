@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\DefaultRoleEnum;
 use App\Enums\PropertyStatus;
 use App\Enums\PropertyType;
 use App\Models\Property;
@@ -26,10 +27,12 @@ test('guests are sent to login from the admin property list', function () {
     $this->get(route('admin.properties.index'))->assertRedirect(route('login'));
 });
 
-test('admins see properties newest code first with staff counts', function () {
+test('admins see properties newest code first with their owner', function () {
     $older = Property::factory()->create();
     $newer = Property::factory()->live()->create(['type' => PropertyType::Homestay]);
-    User::factory()->count(2)->for($newer)->create();
+    User::factory()->for($newer)->owner()->deactivated()->create(['name' => 'Former owner']);
+    User::factory()->for($newer)->withRole(DefaultRoleEnum::Owner)->create(['name' => 'Aina', 'email' => 'aina@example.com']);
+    User::factory()->for($newer)->withRole(DefaultRoleEnum::FrontDesk)->create();
 
     $this->actingAs($this->admin)
         ->get(route('admin.properties.index'))
@@ -40,8 +43,10 @@ test('admins see properties newest code first with staff counts', function () {
             ->where('properties.data.0.code', $newer->code)
             ->where('properties.data.0.status', ['value' => 'live', 'label' => 'Live', 'tone' => 'success'])
             ->where('properties.data.0.type', 'Homestay')
-            ->where('properties.data.0.staffCount', 2)
+            ->where('properties.data.0.ownerName', 'Aina')
+            ->where('properties.data.0.ownerEmail', 'aina@example.com')
             ->where('properties.data.1.code', $older->code)
+            ->where('properties.data.1.ownerName', null)
             ->where('properties.meta.total', 2)
         );
 });
@@ -135,7 +140,8 @@ test('the list runs a fixed number of queries', function () {
 
 test('the overview tab sends the property without tab data', function () {
     $property = Property::factory()->create(['city' => 'Sandakan', 'contact_email' => 'hello@example.com']);
-    User::factory()->for($property)->count(2)->create();
+    User::factory()->for($property)->owner()->create(['name' => 'Aina']);
+    User::factory()->for($property)->create();
 
     $this->actingAs($this->admin)
         ->get(route('admin.properties.show', $property->code))
@@ -148,6 +154,7 @@ test('the overview tab sends the property without tab data', function () {
             ->where('property.contactEmail', 'hello@example.com')
             ->where('property.status.label', 'Onboarding')
             ->where('property.staffCount', 2)
+            ->where('property.ownerName', 'Aina')
             ->missing('staff')
             ->missing('features')
         );
@@ -155,7 +162,7 @@ test('the overview tab sends the property without tab data', function () {
 
 test('the staff tab has its own URL and lists staff by name', function () {
     $property = Property::factory()->create();
-    User::factory()->for($property)->create(['name' => 'Bella']);
+    User::factory()->for($property)->owner()->deactivated()->create(['name' => 'Bella']);
     User::factory()->for($property)->unverified()->create(['name' => 'Aina']);
 
     $this->actingAs($this->admin)
@@ -167,6 +174,9 @@ test('the staff tab has its own URL and lists staff by name', function () {
             ->has('staff', 2)
             ->where('staff.0.name', 'Aina')
             ->where('staff.0.verified', false)
+            ->where('staff.0.role', null)
+            ->where('staff.1.role', 'Owner')
+            ->where('staff.1.deactivated', true)
             ->missing('features')
         );
 });
