@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Staff;
 use App\Actions\Staff\CreateRole;
 use App\Actions\Staff\UpdateRolePermissions;
 use App\Data\Staff\PermissionOptionData;
-use App\Data\Staff\RoleData;
 use App\Data\Staff\RoleRowData;
 use App\Enums\PermissionEnum;
 use App\Http\Controllers\Controller;
@@ -19,15 +18,20 @@ use Inertia\Response;
 
 class RoleController extends Controller
 {
+    /**
+     * The roles grid: permissions as rows, roles as columns.
+     */
     public function index(Property $property): Response
     {
         return Inertia::render('settings/roles/index', [
             'roles' => $property->roles()
-                ->withCount(['users' => fn ($query) => $query->whereNull('deactivated_at'), 'permissions'])
+                ->withCount(['users' => fn ($query) => $query->whereNull('deactivated_at')])
+                ->with('permissions')
                 ->orderByRaw('default_role IS NULL')
                 ->orderBy('id')
                 ->get()
                 ->map(fn (Role $role): RoleRowData => RoleRowData::fromModel($role)),
+            'permissions' => array_map(fn (PermissionEnum $permission): PermissionOptionData => PermissionOptionData::fromEnum($permission), PermissionEnum::cases()),
         ]);
     }
 
@@ -35,25 +39,19 @@ class RoleController extends Controller
     {
         $role = $createRole($property, $request->user(), $request->validated('name'));
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => __('Role :name created. Choose its permissions.', ['name' => $role->name])]);
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Role :name created. Tick its permissions and save.', ['name' => $role->name])]);
 
-        return to_route('settings.roles.edit', [$property, $role]);
+        return to_route('settings.roles.index', $property);
     }
 
-    public function edit(Property $property, Role $role): Response
+    public function update(UpdateRolePermissionsRequest $request, Property $property, UpdateRolePermissions $updateRolePermissions): RedirectResponse
     {
-        return Inertia::render('settings/roles/edit', [
-            'role' => RoleData::fromModel($role),
-            'permissions' => array_map(fn (PermissionEnum $permission): PermissionOptionData => PermissionOptionData::fromEnum($permission), PermissionEnum::cases()),
-        ]);
-    }
+        $changed = $updateRolePermissions($request->user(), $property, $request->permissionsByRoleId());
 
-    public function update(UpdateRolePermissionsRequest $request, Property $property, Role $role, UpdateRolePermissions $updateRolePermissions): RedirectResponse
-    {
-        Inertia::flash('toast', $updateRolePermissions($request->user(), $role, $request->permissions())
-            ? ['type' => 'success', 'message' => __('Permissions for :name saved.', ['name' => $role->name])]
-            : ['type' => 'error', 'message' => __('The Owner role always has every permission.')]);
+        Inertia::flash('toast', $changed > 0
+            ? ['type' => 'success', 'message' => trans_choice('Permissions saved for :count role.|Permissions saved for :count roles.', $changed)]
+            : ['type' => 'info', 'message' => __('No permissions changed.')]);
 
-        return back(fallback: route('settings.roles.edit', [$property, $role]));
+        return to_route('settings.roles.index', $property);
     }
 }

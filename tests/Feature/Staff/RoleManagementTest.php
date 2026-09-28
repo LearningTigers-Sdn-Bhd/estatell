@@ -23,7 +23,7 @@ function currentRoleNames(User $user): array
     return $user->refresh()->roles->pluck('name')->all();
 }
 
-test('owners see the roles with active staff and permission counts', function () {
+test('owners see every role as a column with its permissions', function () {
     $owner = User::factory()->owner()->create();
     User::factory()->for($owner->property)->withRole(DefaultRoleEnum::Manager)->deactivated()->create();
 
@@ -31,26 +31,38 @@ test('owners see the roles with active staff and permission counts', function ()
         ->get(route('settings.roles.index', $owner->property->code))
         ->assertInertia(fn (Assert $page) => $page->component('settings/roles/index')
             ->has('roles', 5)
-            ->where('roles.0', ['id' => roleOf($owner->property, DefaultRoleEnum::Owner)->id, 'name' => 'Owner', 'isDefault' => true, 'isLocked' => true, 'staffCount' => 1, 'permissionCount' => 4])
+            ->where('roles.0', [
+                'id' => roleOf($owner->property, DefaultRoleEnum::Owner)->id,
+                'name' => 'Owner',
+                'isDefault' => true,
+                'isLocked' => true,
+                'staffCount' => 1,
+                'permissions' => ['roles.manage', 'settings.manage', 'staff.manage', 'staff.view'],
+            ])
             ->where('roles.1.name', 'Manager')
             ->where('roles.1.staffCount', 0)
-            ->where('roles.1.permissionCount', 3));
+            ->where('roles.1.permissions', ['settings.manage', 'staff.manage', 'staff.view'])
+            ->has('permissions', 4)
+            ->where('permissions.0', ['value' => 'settings.manage', 'label' => 'Manage property settings', 'group' => 'Property']));
 });
 
 test('managing roles needs roles.manage', function () {
     $manager = User::factory()->withRole(DefaultRoleEnum::Manager)->create();
+    $code = $manager->property->code;
 
-    $this->actingAs($manager)->get(route('settings.roles.index', $manager->property->code))->assertForbidden();
-    $this->post(route('settings.roles.store', $manager->property->code), ['name' => 'Night audit'])->assertForbidden();
+    $this->actingAs($manager)->get(route('settings.roles.index', $code))->assertForbidden();
+    $this->post(route('settings.roles.store', $code), ['name' => 'Night audit'])->assertForbidden();
+    $this->put(route('settings.roles.update', $code), ['roles' => []])->assertForbidden();
 });
 
-test('owners create a custom role and land on its page', function () {
+test('owners create a custom role that appears as a new column', function () {
     $owner = User::factory()->owner()->create();
     $property = $owner->property;
 
     $this->actingAs($owner)
         ->post(route('settings.roles.store', $property->code), ['name' => ' Night manager '])
-        ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Role Night manager created. Choose its permissions.']);
+        ->assertRedirect(route('settings.roles.index', $property->code))
+        ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Role Night manager created. Tick its permissions and save.']);
 
     $role = Role::query()->where('property_id', $property->id)->where('name', 'Night manager')->sole();
 
@@ -61,51 +73,58 @@ test('owners create a custom role and land on its page', function () {
     $this->post(route('settings.roles.store', $property->code), ['name' => 'Manager'])->assertSessionHasErrors('name');
 });
 
-test('saving permissions replaces them and gives the role holders access', function () {
+test('saving the grid updates only changed roles and gives the role holders access', function () {
     $owner = User::factory()->owner()->create();
     $property = $owner->property;
     $role = Role::query()->create(['property_id' => $property->id, 'name' => 'Night manager']);
+    $manager = roleOf($property, DefaultRoleEnum::Manager);
     $nightManager = User::factory()->for($property)->create();
     setPermissionsTeamId($property->id);
     $nightManager->assignRole($role);
 
     $this->actingAs($owner)
-        ->put(route('settings.roles.update', [$property->code, $role->id]), ['permissions' => ['staff.view']])
-        ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Permissions for Night manager saved.']);
+        ->put(route('settings.roles.update', $property->code), ['roles' => [
+            $role->id => ['staff.view'],
+            $manager->id => ['settings.manage', 'staff.manage', 'staff.view'],
+            roleOf($property, DefaultRoleEnum::FrontDesk)->id => [],
+        ]])
+        ->assertRedirect(route('settings.roles.index', $property->code))
+        ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Permissions saved for 1 role.']);
 
     expect($role->permissions()->pluck('name')->all())->toBe(['staff.view'])
         ->and(Activity::query()->sole()->properties->all())->toMatchArray(['old' => [], 'new' => ['staff.view']]);
 
     $this->actingAs($nightManager)->get(route('settings.staff.index', $property->code))->assertOk();
 
-    $this->actingAs($owner)->put(route('settings.roles.update', [$property->code, $role->id]), []);
+    $this->actingAs($owner)
+        ->put(route('settings.roles.update', $property->code), ['roles' => [$role->id => [], $manager->id => []]])
+        ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Permissions saved for 2 roles.']);
 
-    expect($role->permissions()->count())->toBe(0);
+    expect($role->permissions()->count())->toBe(0)
+        ->and($manager->permissions()->count())->toBe(0);
+
+    $this->put(route('settings.roles.update', $property->code), ['roles' => [$role->id => []]])
+        ->assertInertiaFlash('toast', ['type' => 'info', 'message' => 'No permissions changed.']);
 });
 
-test('the owner role is locked and unknown permissions are rejected', function () {
+test('the owner column is skipped, and unknown permissions or other properties\' roles are rejected', function () {
     $owner = User::factory()->owner()->create();
     $property = $owner->property;
     $ownerRole = roleOf($property, DefaultRoleEnum::Owner);
-
-    $this->actingAs($owner)
-        ->put(route('settings.roles.update', [$property->code, $ownerRole->id]), ['permissions' => []])
-        ->assertInertiaFlash('toast', ['type' => 'error', 'message' => 'The Owner role always has every permission.']);
-    $this->put(route('settings.roles.update', [$property->code, roleOf($property, DefaultRoleEnum::Manager)->id]), ['permissions' => ['folio.void']])
-        ->assertSessionHasErrors('permissions.0');
-
-    expect($ownerRole->permissions()->count())->toBe(4)
-        ->and(Activity::query()->count())->toBe(0);
-});
-
-test('another property\'s role returns 404', function () {
-    $owner = User::factory()->owner()->create();
     $other = Property::factory()->create();
     app(SeedDefaultRoles::class)($other);
+    $update = route('settings.roles.update', $property->code);
 
-    $this->actingAs($owner)
-        ->get(route('settings.roles.edit', [$owner->property->code, roleOf($other, DefaultRoleEnum::Manager)->id]))
-        ->assertNotFound();
+    $this->actingAs($owner)->put($update, ['roles' => [$ownerRole->id => []]])
+        ->assertInertiaFlash('toast', ['type' => 'info', 'message' => 'No permissions changed.']);
+    $this->put($update, ['roles' => [roleOf($property, DefaultRoleEnum::Manager)->id => ['folio.void']]])
+        ->assertSessionHasErrors('roles.'.roleOf($property, DefaultRoleEnum::Manager)->id.'.0');
+    $this->put($update, ['roles' => [roleOf($other, DefaultRoleEnum::Manager)->id => []]])
+        ->assertSessionHasErrors('roles');
+
+    expect($ownerRole->permissions()->count())->toBe(4)
+        ->and(roleOf($other, DefaultRoleEnum::Manager)->permissions()->count())->toBe(3)
+        ->and(Activity::query()->count())->toBe(0);
 });
 
 test('owners change a staff member\'s role', function () {

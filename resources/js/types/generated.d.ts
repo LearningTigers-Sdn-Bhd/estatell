@@ -128,13 +128,6 @@ value: string,
 label: string,
 group: string,
 };
-export type RoleData = {
-id: number,
-name: string,
-isDefault: boolean,
-isLocked: boolean,
-permissions: string[],
-};
 export type RoleOptionData = {
 value: string,
 label: string,
@@ -145,7 +138,7 @@ name: string,
 isDefault: boolean,
 isLocked: boolean,
 staffCount: number,
-permissionCount: number,
+permissions: string[],
 };
 export type StaffInvitationData = {
 id: number,

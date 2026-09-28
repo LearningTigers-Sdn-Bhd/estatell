@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Staff;
 
 use App\Enums\PermissionEnum;
+use App\Models\Property;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -18,29 +19,29 @@ class UpdateRolePermissionsRequest extends FormRequest
     }
 
     /**
-     * Unticking every box sends no field at all, so a missing list means no permissions.
-     */
-    protected function prepareForValidation(): void
-    {
-        $this->merge(['permissions' => $this->input('permissions', [])]);
-    }
-
-    /**
+     * `roles` maps each role id of this property to its ticked permission names.
+     *
      * @return array<string, ValidationRule|array<mixed>|string>
      */
     public function rules(): array
     {
+        /** @var Property $property */
+        $property = $this->route('property');
+
         return [
-            'permissions' => ['present', 'array'],
-            'permissions.*' => ['string', Rule::enum(PermissionEnum::class)],
+            'roles' => ['required', Rule::array($property->roles()->pluck('id')->all())],
+            'roles.*' => ['present', 'array'],
+            'roles.*.*' => ['string', Rule::enum(PermissionEnum::class)],
         ];
     }
 
     /**
-     * @return list<PermissionEnum>
+     * @return array<int, list<PermissionEnum>>
      */
-    public function permissions(): array
+    public function permissionsByRoleId(): array
     {
-        return array_map(fn (string $value): PermissionEnum => PermissionEnum::from($value), array_values($this->validated('permissions')));
+        return collect($this->validated('roles'))
+            ->map(fn (array $names): array => array_map(fn (string $name): PermissionEnum => PermissionEnum::from($name), array_values($names)))
+            ->all();
     }
 }

@@ -4,6 +4,7 @@ namespace App\Actions\Staff;
 
 use App\Enums\DefaultRoleEnum;
 use App\Enums\PermissionEnum;
+use App\Models\Property;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -15,35 +16,56 @@ class UpdateRolePermissions
     public function __construct(private PermissionRegistrar $permissionRegistrar) {}
 
     /**
-     * Replace a role's permissions. Returns false for the Owner role, which always holds every permission.
+     * Save the roles page grid: replace each listed role's permissions in one transaction.
      *
-     * @param  list<PermissionEnum>  $permissions
+     * The Owner role is skipped because it always holds every permission. Roles left out keep their permissions.
+     * Only roles whose permissions changed are written and logged. Returns how many roles changed.
+     *
+     * @param  array<int, list<PermissionEnum>>  $permissionsByRoleId
      */
-    public function __invoke(User $actor, Role $role, array $permissions): bool
+    public function __invoke(User $actor, Property $property, array $permissionsByRoleId): int
     {
-        if ($role->default_role === DefaultRoleEnum::Owner) {
-            return false;
-        }
+        $changed = DB::transaction(function () use ($actor, $property, $permissionsByRoleId): int {
+            $permissionIds = Permission::query()->pluck('id', 'name');
+            $roles = Role::query()
+                ->where('property_id', $property->id)
+                ->whereKey(array_keys($permissionsByRoleId))
+                ->with('permissions')
+                ->lockForUpdate()
+                ->get();
 
-        $names = array_values(array_unique(array_map(fn (PermissionEnum $permission): string => $permission->value, $permissions)));
+            $changed = 0;
 
-        DB::transaction(function () use ($actor, $role, $names): void {
-            $before = $role->permissions()->orderBy('name')->pluck('name')->all();
+            foreach ($roles as $role) {
+                if ($role->default_role === DefaultRoleEnum::Owner) {
+                    continue;
+                }
 
-            $role->permissions()->sync(Permission::query()->whereIn('name', $names)->pluck('id')->all());
+                $before = $role->permissions->pluck('name')->sort()->values()->all();
+                $after = collect($permissionsByRoleId[$role->id])->map(fn (PermissionEnum $permission): string => $permission->value)->unique()->sort()->values()->all();
 
-            sort($names);
+                if ($before === $after) {
+                    continue;
+                }
 
-            activity()
-                ->performedOn($role)
-                ->causedBy($actor)
-                ->event('role.permissions-updated')
-                ->withProperties(['property_id' => $role->property_id, 'old' => $before, 'new' => $names])
-                ->log('Role permissions updated');
+                $role->permissions()->sync($permissionIds->only($after)->values()->all());
+                $changed++;
+
+                activity()
+                    ->performedOn($role)
+                    ->causedBy($actor)
+                    ->event('role.permissions-updated')
+                    ->withProperties(['property_id' => $property->id, 'old' => $before, 'new' => $after])
+                    ->log('Role permissions updated');
+            }
+
+            return $changed;
         });
 
-        $this->permissionRegistrar->forgetCachedPermissions();
+        if ($changed > 0) {
+            $this->permissionRegistrar->forgetCachedPermissions();
+        }
 
-        return true;
+        return $changed;
     }
 }

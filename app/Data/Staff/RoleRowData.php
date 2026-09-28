@@ -6,19 +6,25 @@ use App\Enums\DefaultRoleEnum;
 use App\Models\Role;
 use Spatie\LaravelData\Data;
 
+/**
+ * One column of the roles grid.
+ */
 class RoleRowData extends Data
 {
+    /**
+     * @param  list<string>  $permissions
+     */
     public function __construct(
         public int $id,
         public string $name,
         public bool $isDefault,
         public bool $isLocked,
         public int $staffCount,
-        public int $permissionCount,
+        public array $permissions,
     ) {}
 
     /**
-     * Expects `users_count` and `permissions_count` loaded.
+     * Expects `users_count` and `permissions` loaded.
      */
     public static function fromModel(Role $role): self
     {
@@ -28,7 +34,7 @@ class RoleRowData extends Data
             isDefault: $role->default_role !== null,
             isLocked: $role->default_role === DefaultRoleEnum::Owner,
             staffCount: (int) $role->getAttribute('users_count'),
-            permissionCount: (int) $role->getAttribute('permissions_count'),
+            permissions: $role->permissions->pluck('name')->sort()->values()->all(),
         );
     }
 }

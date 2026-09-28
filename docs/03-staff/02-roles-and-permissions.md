@@ -59,24 +59,37 @@ Later modules add rows here. Their module docs list their permissions.
 - `SeedDefaultRoles`
 - `AssignOwnerRole`: gives a user their property's Owner role. It sets and restores the permission team, so it also works outside `/p` routes (registration, migrations).
 - `CreateRole`: a custom role with no permissions. The name is unique in the property (60 characters at most). Logs `role.created`.
-- `UpdateRolePermissions`: replaces a role's permissions and clears the permission cache. Returns `false` for the Owner role. Logs `role.permissions-updated` with old and new lists.
+- `UpdateRolePermissions`: saves the roles grid. It takes each listed role's ticked permissions, updates them in one transaction and clears the permission cache. It skips the Owner role and leaves unlisted roles alone. Only roles that changed are written, each logged as `role.permissions-updated` with old and new lists. Returns the number of changed roles.
 - `AssignStaffRole`: gives a staff user one role, replacing the old one. Returns `false` for yourself, for an Owner when the actor is not an Owner, or when it would leave no active Owner. Logs `staff.role-assigned`. The request only accepts roles from `AssignableRoles` (Owner only for Owners, and only this property's roles).
 
 ## Pages and routes
 
-| Page or action    | Route                                                                 | Permission     |
-| ----------------- | --------------------------------------------------------------------- | -------------- |
-| Roles list        | `GET /p/{code}/settings/roles` (`settings.roles.index`)               | `roles.manage` |
-| New role          | `POST /p/{code}/settings/roles` (Dialog: name), then the role page    | `roles.manage` |
-| Role page         | `GET /p/{code}/settings/roles/{role}` (`settings.roles.edit`)         | `roles.manage` |
-| Save permissions  | `PUT /p/{code}/settings/roles/{role}`                                 | `roles.manage` |
-| Change staff role | `PUT /p/{code}/settings/staff/{user}/role` (Dialog on the Staff page) | `staff.manage` |
+| Page or action    | Route                                                                                                | Permission     |
+| ----------------- | ---------------------------------------------------------------------------------------------------- | -------------- |
+| Roles grid        | `GET /p/{code}/settings/roles` (`settings.roles.index`)                                              | `roles.manage` |
+| New role          | `POST /p/{code}/settings/roles` (Dialog: name), back to the grid                                     | `roles.manage` |
+| Save the grid     | `PUT /p/{code}/settings/roles` (`settings.roles.update`), body `roles: {role_id: [permission, ...]}` | `roles.manage` |
+| Change staff role | `PUT /p/{code}/settings/staff/{user}/role` (Dialog on the Staff page)                                | `staff.manage` |
 
-- The roles list shows default roles first, then custom roles, with active staff and permission counts. The Owner role shows "All".
-- The role page lists permissions as checkboxes grouped by `PermissionEnum::group()`. The Owner role is shown read-only.
-- Role routes use scoped bindings, so another property's role returns 404.
+The roles page is one grid, as in wastays: permissions are rows and roles are columns.
+
+```
+[🔍 Search permissions]                       [New role] [Discard] [Save permissions]
+Permission                 │ 🔒 Owner │ Manager │ Front desk │ … │ Night manager
+Property                   │          │         │            │   │
+  Manage property settings │   ☑      │   ☑     │    ☐       │   │   ☐
+Team                       │          │         │            │   │
+  View staff               │   ☑      │   ☑     │    ☐       │   │   ☑
+```
+
+- Columns: default roles first, then custom roles. Each header shows the active staff count and "Custom" for custom roles.
+- Rows sit under group sub-header rows from `PermissionEnum::group()`.
+- Checkboxes are always live. Save and Discard turn on once something changes, and one save covers every role. The Owner column is ticked and disabled.
+- The search box filters rows in the browser, with no request. When nothing matches, one row says so.
+- The header row and the permission column stay in place while scrolling.
+- The request accepts only this property's role ids as keys, so another property's role fails validation.
 - The sidebar shows Roles under **Team** for users with `roles.manage`.
-- Not built yet: renaming and deleting custom roles.
+- Not built yet: renaming and deleting custom roles (a column menu, as in wastays).
 
 ## Permission list
 

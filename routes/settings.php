@@ -37,10 +37,9 @@ Route::prefix('settings')->name('settings.')->group(function () {
         });
     });
 
-    Route::prefix('roles')->name('roles.')->middleware('can:'.PermissionEnum::RolesManage->value)->scopeBindings()->group(function () {
+    Route::prefix('roles')->name('roles.')->middleware('can:'.PermissionEnum::RolesManage->value)->group(function () {
         Route::get('/', [RoleController::class, 'index'])->name('index');
         Route::post('/', [RoleController::class, 'store'])->name('store');
-        Route::get('{role}', [RoleController::class, 'edit'])->name('edit');
-        Route::put('{role}', [RoleController::class, 'update'])->name('update');
+        Route::put('/', [RoleController::class, 'update'])->name('update');
     });
 });
