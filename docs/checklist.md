@@ -87,7 +87,7 @@ Smaller fixes and reverts are in `git log`.
 
 ### 04 Notifications
 
-- [ ] `feat(notifications): add notification types and channels` — Docs: [Notification types](04-notifications/01-notification-types.md).
+- [x] `feat(notifications): add notification types and channels` — Docs: [Notification types](04-notifications/01-notification-types.md).
 - [ ] `feat(notifications): add property and user notification preferences` — Docs: [Notification preferences](04-notifications/02-notification-preferences.md).
 
 ### 05 Rooms
