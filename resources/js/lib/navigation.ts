@@ -1,5 +1,6 @@
 import {
     Activity,
+    Bed,
     Bell,
     Building2,
     ChartColumn,
@@ -17,6 +18,7 @@ import type { NavItem } from '@/types';
 const icons: Record<string, LucideIcon> = {
     'layout-grid': LayoutGrid,
     building: Building2,
+    bed: Bed,
     settings: Settings,
     activity: Activity,
     bell: Bell,

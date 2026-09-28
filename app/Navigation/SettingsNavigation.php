@@ -28,6 +28,14 @@ class SettingsNavigation
                     active: request()->routeIs('settings.edit', 'settings.operations', 'settings.registration', 'settings.support'),
                 ) : null,
             ]))),
+            new NavGroupData(label: __('Rooms'), items: array_values(array_filter([
+                $user->can(PermissionEnum::RoomsView->value) ? new NavItemData(
+                    title: __('Room types'),
+                    href: route('settings.room-types.index', ['property' => $property->code], absolute: false),
+                    icon: 'bed',
+                    active: request()->routeIs('settings.room-types.*'),
+                ) : null,
+            ]))),
             new NavGroupData(label: __('Team'), items: array_values(array_filter([
                 $user->can(PermissionEnum::StaffView->value) ? new NavItemData(
                     title: __('Staff'),

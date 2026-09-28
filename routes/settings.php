@@ -3,6 +3,7 @@
 use App\Enums\PermissionEnum;
 use App\Http\Controllers\Property\NotificationSettingController;
 use App\Http\Controllers\Property\PropertySettingsController;
+use App\Http\Controllers\Rooms\RoomTypeController;
 use App\Http\Controllers\Staff\RoleController;
 use App\Http\Controllers\Staff\StaffController;
 use App\Http\Controllers\Staff\StaffInvitationController;
@@ -24,6 +25,18 @@ Route::prefix('settings')->name('settings.')->group(function () {
         Route::put('{section}', [PropertySettingsController::class, 'update'])
             ->whereIn('section', ['general', 'operations', 'registration', 'support'])
             ->name('update');
+    });
+
+    Route::prefix('room-types')->name('room-types.')->group(function () {
+        Route::get('/', [RoomTypeController::class, 'index'])->middleware('can:'.PermissionEnum::RoomsView->value)->name('index');
+
+        Route::middleware('can:'.PermissionEnum::RoomsManage->value)->scopeBindings()->group(function () {
+            Route::post('/', [RoomTypeController::class, 'store'])->name('store');
+            Route::put('order', [RoomTypeController::class, 'reorder'])->name('reorder');
+            Route::put('{roomType}', [RoomTypeController::class, 'update'])->name('update');
+            Route::post('{roomType}/archive', [RoomTypeController::class, 'archive'])->name('archive');
+            Route::post('{roomType}/restore', [RoomTypeController::class, 'restore'])->name('restore');
+        });
     });
 
     Route::prefix('staff')->name('staff.')->group(function () {

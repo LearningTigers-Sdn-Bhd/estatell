@@ -23,14 +23,22 @@ room_types    id, property_id, name, description, sell_unit (SellUnit),
 - A Bed room type has rooms with [beds](03-beds.md). Inventory is counted in beds.
 - `base_occupancy` is "Guests included": the number of guests a PerRoom price covers. It lives only on the room type, because a villa and a standard room differ.
 - A room type sells many rate plans through `rate_plan_room_types`. A Bed room type links only PerBed and Package plans (see [Rate plans](../08-rates/01-rate-plans.md)).
-- A new room type is linked to "Basic Rate" when the sell unit fits. It must keep at least one active linked plan.
+- A new room type is linked to "Basic Rate" when the sell unit fits. It must keep at least one active linked plan. Not built yet: `rate_plan_room_types` arrives with the [rate plans](../08-rates/01-rate-plans.md) item, which adds the link and this guard.
 - A room type has no base price. Prices live only in [daily rates](../08-rates/02-daily-rates-and-restrictions.md).
 - `terms_document_id` selects the registration terms for guests in this room type. Null means the property default (see [Terms resolution](../16-registration/03-terms-resolution-and-locales.md)).
-- Photos use media library. No `photo_order` array columns.
+- Photos use media library. No `photo_order` array columns. The `photos` collection is registered on the model; the upload UI is not built yet.
+- Names are unique per property among active room types, ignoring case. An archived room type frees its name.
+- `terms_document_id` has no foreign key yet. The registration item adds it with `terms_documents`.
+- Archive hides a room type without deleting it. Restore puts it at the end of the list, and is refused when an active room type has the same name. The guard against future reservations arrives with reservations.
+- `sell_unit` stays editable for now. The lock once rooms exist arrives with the rooms item.
+
+## Permissions
+
+`rooms.view` opens the list. `rooms.manage` creates, edits, reorders, archives and restores. The Manager default role has both.
 
 ## UI
 
-The Rooms screen lists room types with sell unit, guests included, capacity and inventory. "N rate plans" opens the Rates calendar filtered to that room type. It has no price fields.
+Settings > Room types (`settings.room-types.index`) lists active room types with sell unit, guests included and capacity, with archived ones below. A right-side Sheet creates and edits. Up and down buttons reorder. Inventory and the "N rate plans" link are added with the rooms and rate plans items. It has no price fields.
 
 ## Lessons from wastays
 

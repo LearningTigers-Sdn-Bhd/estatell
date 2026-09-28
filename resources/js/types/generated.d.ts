@@ -138,6 +138,20 @@ name: string,
 status: App.Enums.PropertyStatus,
 };
 }
+namespace Rooms {
+export type RoomTypeData = {
+id: number,
+name: string,
+description: string | null,
+sellUnit: App.Enums.SellUnit,
+maxAdults: number,
+maxChildren: number,
+baseOccupancy: number,
+smokingAllowed: boolean,
+petsAllowed: boolean,
+archived: boolean,
+};
+}
 namespace Shared {
 export type BadgeData = {
 value: string,
@@ -202,11 +216,12 @@ export type NotificationChannel = 'mail' | 'database';
 export type NotificationType = 'night_audit_completed' | 'night_audit_exceptions' | 'night_audit_failed' | 'registration_card_link' | 'onboarding_reminder' | 'dorm_strategy_changed' | 'support_access_used';
 export type OverdueDeparturePolicy = 'extend_one_night' | 'block';
 export type OwnerSetupMethod = 'email_link' | 'initial_password';
-export type PermissionEnum = 'settings.manage' | 'staff.view' | 'staff.manage' | 'roles.manage' | 'notification.manage';
+export type PermissionEnum = 'settings.manage' | 'staff.view' | 'staff.manage' | 'roles.manage' | 'rooms.view' | 'rooms.manage' | 'notification.manage';
 export type PlatformFeature = 'channel-manager';
 export type PropertyStatus = 'onboarding' | 'pending_approval' | 'live' | 'suspended';
 export type PropertyType = 'hotel' | 'hostel' | 'resort' | 'serviced_apartment' | 'homestay';
 export type RegistrationCardScope = 'primary_only' | 'every_adult';
+export type SellUnit = 'room' | 'bed';
 export type Tone = 'neutral' | 'info' | 'success' | 'warning' | 'danger';
 }
 }
