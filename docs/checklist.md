@@ -44,6 +44,7 @@ Legend: **Needs** lists items that must be done first.
 | `750ee76` | feat(ui): build staff sidebar contexts from PHP navigation            |
 | `7574bec` | feat(staff): add default roles and permission enum                    |
 | `d6f3393` | feat(staff): make the registering owner the Owner role                |
+| `ccc3e9c` | feat(staff): invite staff and accept invitations                      |
 
 Smaller fixes and reverts are in `git log`.
 
@@ -64,7 +65,7 @@ Smaller fixes and reverts are in `git log`.
 - [x] `feat(staff): add default roles and permission enum` — `PermissionEnum`, `DefaultRoleEnum`, `SyncPermissions`, `SeedDefaultRoles`, teams per property. Docs: [Roles and permissions](03-staff/02-roles-and-permissions.md).
 - [x] `feat(staff): make the registering owner the Owner role` — seed roles at property creation, assign Owner, guard settings pages with `settings.manage`. Needs: default roles. Docs: [Account creation](17-onboarding/01-account-creation.md).
 - [x] `feat(staff): invite staff and accept invitations` — `InviteStaff`, `ResendStaffInvitation`, `RevokeStaffInvitation`, `AcceptStaffInvitation`. Docs: [Staff and invitations](03-staff/01-staff-and-invitations.md).
-- [ ] `feat(staff): deactivate and reactivate staff` — `DeactivateStaff`, `ReactivateStaff`.
+- [x] `feat(staff): deactivate and reactivate staff` — `DeactivateStaff`, `ReactivateStaff`.
 - [ ] `feat(staff): manage roles and assign them to staff` — `CreateRole`, `UpdateRolePermissions`, `AssignStaffRole`.
 - [ ] `feat(platform): show the owner on admin property pages` — replace the staff count column. Needs: owner role.
 

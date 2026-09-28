@@ -14,6 +14,7 @@ class StaffMemberData extends Data
         public ?string $role,
         public bool $isYou,
         public string $joinedAt,
+        public ?string $deactivatedAt,
     ) {}
 
     /**
@@ -28,6 +29,7 @@ class StaffMemberData extends Data
             role: $user->roles->first()?->name,
             isYou: $user->is($viewer),
             joinedAt: $user->created_at->toDateString(),
+            deactivatedAt: $user->deactivated_at?->toDateString(),
         );
     }
 }

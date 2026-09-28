@@ -143,6 +143,7 @@ email: string,
 role: string | null,
 isYou: boolean,
 joinedAt: string,
+deactivatedAt: string | null,
 };
 }
 }

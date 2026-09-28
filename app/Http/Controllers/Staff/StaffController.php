@@ -25,7 +25,20 @@ class StaffController extends Controller
         $viewer = $request->user();
 
         return $this->renderTab($request, $property, $assignableRoles, 'active', [
-            'staff' => $property->users()->with('roles')->orderBy('name')->get()
+            'staff' => $property->users()->whereNull('deactivated_at')->with('roles')->orderBy('name')->get()
+                ->map(fn (User $user): StaffMemberData => StaffMemberData::fromModel($user, $viewer)),
+        ]);
+    }
+
+    /**
+     * Staff page, Deactivated tab.
+     */
+    public function deactivated(Request $request, Property $property, AssignableRoles $assignableRoles): Response
+    {
+        $viewer = $request->user();
+
+        return $this->renderTab($request, $property, $assignableRoles, 'deactivated', [
+            'staff' => $property->users()->whereNotNull('deactivated_at')->with('roles')->latest('deactivated_at')->get()
                 ->map(fn (User $user): StaffMemberData => StaffMemberData::fromModel($user, $viewer)),
         ]);
     }
@@ -44,7 +57,7 @@ class StaffController extends Controller
     /**
      * Each tab has its own URL. Counts and the invite form's roles come on every tab; rows only for the open tab.
      *
-     * @param  'active'|'invited'  $tab
+     * @param  'active'|'invited'|'deactivated'  $tab
      * @param  array<string, mixed>  $tabProps
      */
     private function renderTab(Request $request, Property $property, AssignableRoles $assignableRoles, string $tab, array $tabProps): Response
@@ -54,8 +67,9 @@ class StaffController extends Controller
         return Inertia::render('settings/staff/index', [
             'tab' => $tab,
             'counts' => [
-                'active' => $property->users()->count(),
+                'active' => $property->users()->whereNull('deactivated_at')->count(),
                 'invited' => $property->staffInvitations()->open()->count(),
+                'deactivated' => $property->users()->whereNotNull('deactivated_at')->count(),
             ],
             'canManage' => $canManage,
             'roles' => $canManage

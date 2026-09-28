@@ -1,5 +1,5 @@
 import { Form, Head } from '@inertiajs/react';
-import { Mail, UserPlus, Users } from 'lucide-react';
+import { Mail, UserMinus, UserPlus, Users } from 'lucide-react';
 import { useState } from 'react';
 import { DateText } from '@/components/pms/date-text';
 import { EmptyState } from '@/components/pms/empty-state';
@@ -44,13 +44,19 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import { index, invited } from '@/routes/settings/staff';
+import {
+    deactivate,
+    deactivated,
+    index,
+    invited,
+    reactivate,
+} from '@/routes/settings/staff';
 import { destroy, resend, store } from '@/routes/settings/staff/invitations';
 
 type StaffMember = App.Data.Staff.StaffMemberData;
 type Invitation = App.Data.Staff.StaffInvitationData;
 type RoleOption = App.Data.Staff.RoleOptionData;
-type Tab = 'active' | 'invited';
+type Tab = 'active' | 'invited' | 'deactivated';
 
 function InviteStaffDialog({ roles }: { roles: RoleOption[] }) {
     const [open, setOpen] = useState(false);
@@ -130,7 +136,58 @@ function InviteStaffDialog({ roles }: { roles: RoleOption[] }) {
     );
 }
 
-function ActiveStaff({ staff }: { staff: StaffMember[] }) {
+function DeactivateStaff({ member }: { member: StaffMember }) {
+    const [open, setOpen] = useState(false);
+
+    return (
+        <AlertDialog open={open} onOpenChange={setOpen}>
+            <AlertDialogTrigger render={<Button variant="ghost" size="sm" />}>
+                Deactivate
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>
+                        Deactivate {member.name}?
+                    </AlertDialogTitle>
+                    <AlertDialogDescription>
+                        They are signed out and cannot sign in until you
+                        reactivate them. Their role and history stay.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <Form
+                    {...deactivate.form({ user: member.id })}
+                    options={{ preserveScroll: true }}
+                    onSuccess={() => setOpen(false)}
+                >
+                    {({ processing }) => (
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <Button
+                                type="submit"
+                                variant="destructive"
+                                disabled={processing}
+                                focusableWhenDisabled
+                            >
+                                {processing && (
+                                    <Spinner data-icon="inline-start" />
+                                )}
+                                Deactivate
+                            </Button>
+                        </AlertDialogFooter>
+                    )}
+                </Form>
+            </AlertDialogContent>
+        </AlertDialog>
+    );
+}
+
+function ActiveStaff({
+    staff,
+    canManage,
+}: {
+    staff: StaffMember[];
+    canManage: boolean;
+}) {
     return (
         <div className="overflow-hidden rounded-lg border">
             <Table>
@@ -140,6 +197,11 @@ function ActiveStaff({ staff }: { staff: StaffMember[] }) {
                         <TableHead>Email</TableHead>
                         <TableHead>Role</TableHead>
                         <TableHead>Joined</TableHead>
+                        {canManage && (
+                            <TableHead>
+                                <span className="sr-only">Actions</span>
+                            </TableHead>
+                        )}
                     </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -164,6 +226,88 @@ function ActiveStaff({ staff }: { staff: StaffMember[] }) {
                             <TableCell>
                                 <DateText date={member.joinedAt} />
                             </TableCell>
+                            {canManage && (
+                                <TableCell>
+                                    <div className="flex justify-end">
+                                        {!member.isYou && (
+                                            <DeactivateStaff member={member} />
+                                        )}
+                                    </div>
+                                </TableCell>
+                            )}
+                        </TableRow>
+                    ))}
+                </TableBody>
+            </Table>
+        </div>
+    );
+}
+
+function DeactivatedStaff({
+    staff,
+    canManage,
+}: {
+    staff: StaffMember[];
+    canManage: boolean;
+}) {
+    if (staff.length === 0) {
+        return <EmptyState icon={UserMinus} title="No deactivated staff" />;
+    }
+
+    return (
+        <div className="overflow-hidden rounded-lg border">
+            <Table>
+                <TableHeader>
+                    <TableRow>
+                        <TableHead>Name</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead>Role</TableHead>
+                        <TableHead>Deactivated</TableHead>
+                        {canManage && (
+                            <TableHead>
+                                <span className="sr-only">Actions</span>
+                            </TableHead>
+                        )}
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {staff.map((member) => (
+                        <TableRow key={member.id}>
+                            <TableCell className="font-medium">
+                                {member.name}
+                            </TableCell>
+                            <TableCell>{member.email}</TableCell>
+                            <TableCell>{member.role ?? '—'}</TableCell>
+                            <TableCell>
+                                <DateText date={member.deactivatedAt} />
+                            </TableCell>
+                            {canManage && (
+                                <TableCell>
+                                    <div className="flex justify-end">
+                                        <Form
+                                            {...reactivate.form({
+                                                user: member.id,
+                                            })}
+                                            options={{ preserveScroll: true }}
+                                        >
+                                            {({ processing }) => (
+                                                <Button
+                                                    type="submit"
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    disabled={processing}
+                                                    focusableWhenDisabled
+                                                >
+                                                    {processing && (
+                                                        <Spinner data-icon="inline-start" />
+                                                    )}
+                                                    Reactivate
+                                                </Button>
+                                            )}
+                                        </Form>
+                                    </div>
+                                </TableCell>
+                            )}
                         </TableRow>
                     ))}
                 </TableBody>
@@ -310,7 +454,7 @@ export default function StaffIndex({
     invitations = [],
 }: {
     tab: Tab;
-    counts: { active: number; invited: number };
+    counts: { active: number; invited: number; deactivated: number };
     canManage: boolean;
     roles: RoleOption[];
     staff?: StaffMember[];
@@ -343,9 +487,20 @@ export default function StaffIndex({
                             icon: Mail,
                             href: invited(),
                         },
+                        {
+                            value: 'deactivated',
+                            label: `Deactivated (${counts.deactivated})`,
+                            icon: UserMinus,
+                            href: deactivated(),
+                        },
                     ]}
                 >
-                    {tab === 'active' && <ActiveStaff staff={staff} />}
+                    {tab === 'active' && (
+                        <ActiveStaff staff={staff} canManage={canManage} />
+                    )}
+                    {tab === 'deactivated' && (
+                        <DeactivatedStaff staff={staff} canManage={canManage} />
+                    )}
                     {tab === 'invited' && (
                         <Invitations
                             invitations={invitations}

@@ -7,7 +7,7 @@ A property has many staff users. Staff join only by invitation.
 ## Data model
 
 ```
-users                id, property_id, name, email, password, deactivated_at, two_factor columns, timestamps
+users                id, property_id, name, email, password, is_admin, deactivated_at, two_factor columns, timestamps
 staff_invitations    id, property_id, email, role_id, token_hash, expires_at, last_sent_at,
                      accepted_at, revoked_at, invited_by, timestamps
                      UNIQUE (property_id, email) WHERE accepted_at IS NULL AND revoked_at IS NULL
@@ -29,8 +29,10 @@ staff_invitations    id, property_id, email, role_id, token_hash, expires_at, la
 | `ResendStaffInvitation` | New token and a new 7-day expiry, so the old link stops working. Logs `staff.invitation-resent`                      |
 | `RevokeStaffInvitation` | Sets `revoked_at`, which frees the email for a new invitation. Logs `staff.invitation-revoked`                       |
 | `AcceptStaffInvitation` | Creates the user (email verified), assigns the invited role, closes the invitation. Logs `staff.invitation-accepted` |
-| `DeactivateStaff`       | Planned                                                                                                              |
-| `ReactivateStaff`       | Planned                                                                                                              |
+| `DeactivateStaff`       | Sets `deactivated_at` and a new `remember_token`. Logs `staff.deactivated`                                           |
+| `ReactivateStaff`       | Clears `deactivated_at`; the user keeps their role. Logs `staff.reactivated`                                         |
+
+Deactivate returns `false` for yourself, an already deactivated user, an Owner when the actor is not an Owner, or the last active Owner. Reactivate returns `false` for an active user, or an Owner when the actor is not an Owner.
 
 Resend and revoke return `false` for a closed invitation; the controller shows an error toast. Accept returns `false` for a closed or expired invitation, or when the email got an account after the invitation was sent.
 
@@ -38,15 +40,18 @@ The email is `App\Notifications\StaffInvitationNotification`, queued after commi
 
 ## Pages and routes
 
-| Page or action     | Route                                                                      | Permission     |
-| ------------------ | -------------------------------------------------------------------------- | -------------- |
-| Staff, Active tab  | `GET /p/{code}/settings/staff` (`settings.staff.index`)                    | `staff.view`   |
-| Staff, Invited tab | `GET /p/{code}/settings/staff/invited` (`settings.staff.invited`)          | `staff.view`   |
-| Invite             | `POST .../staff/invitations` (Dialog: email, role)                         | `staff.manage` |
-| Resend             | `POST .../staff/invitations/{id}/resend`                                   | `staff.manage` |
-| Revoke             | `DELETE .../staff/invitations/{id}` (AlertDialog)                          | `staff.manage` |
-| Accept page        | `GET /invitations/{token}` (`invitations.show`), guest only, auth layout   | Token          |
-| Accept             | `POST /invitations/{token}` (`invitations.accept`), throttled 6 per minute | Token          |
+| Page or action         | Route                                                                      | Permission     |
+| ---------------------- | -------------------------------------------------------------------------- | -------------- |
+| Staff, Active tab      | `GET /p/{code}/settings/staff` (`settings.staff.index`)                    | `staff.view`   |
+| Staff, Deactivated tab | `GET /p/{code}/settings/staff/deactivated` (`settings.staff.deactivated`)  | `staff.view`   |
+| Deactivate             | `POST .../staff/{user}/deactivate` (AlertDialog)                           | `staff.manage` |
+| Reactivate             | `POST .../staff/{user}/reactivate`                                         | `staff.manage` |
+| Staff, Invited tab     | `GET /p/{code}/settings/staff/invited` (`settings.staff.invited`)          | `staff.view`   |
+| Invite                 | `POST .../staff/invitations` (Dialog: email, role)                         | `staff.manage` |
+| Resend                 | `POST .../staff/invitations/{id}/resend`                                   | `staff.manage` |
+| Revoke                 | `DELETE .../staff/invitations/{id}` (AlertDialog)                          | `staff.manage` |
+| Accept page            | `GET /invitations/{token}` (`invitations.show`), guest only, auth layout   | Token          |
+| Accept                 | `POST /invitations/{token}` (`invitations.accept`), throttled 6 per minute | Token          |
 
 - Invitation routes use scoped bindings, so another property's invitation returns 404.
 - The Invited tab lists open invitations, with expired ones marked. The sidebar shows Staff under **Team** for users with `staff.view`.
@@ -54,7 +59,9 @@ The email is `App\Notifications\StaffInvitationNotification`, queued after commi
 
 ## Rules
 
-- Deactivated users cannot log in.
+- Deactivated users cannot log in: `Fortify::authenticateUsing` refuses them with a clear message after a correct password.
+- A signed-in user who gets deactivated is signed out on their next request by `LogoutDeactivatedUsers`, appended to the `web` group. It covers account pages too, not only `/p` routes. Sessions live in Redis, so they are not deleted directly.
+- A CHECK keeps platform admins from being deactivated.
 - A property always keeps at least one active Owner.
 - Emails are stored lower case. An email with an account (in any property) or an open invitation in this property cannot be invited.
 - Only Owners can invite someone as Owner (`AssignableRoles`). The role must belong to the property.

@@ -106,7 +106,7 @@ test('the staff page lists staff with roles and only open invitations', function
         ->get(route('settings.staff.index', $property->code))
         ->assertInertia(fn (Assert $page) => $page->component('settings/staff/index')
             ->where('tab', 'active')
-            ->where('counts', ['active' => 2, 'invited' => 1])
+            ->where('counts', ['active' => 2, 'invited' => 1, 'deactivated' => 0])
             ->where('canManage', true)
             ->has('roles', 5)
             ->where('staff.0.name', 'Aina')

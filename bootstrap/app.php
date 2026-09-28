@@ -3,6 +3,7 @@
 use App\Http\Middleware\EnsurePropertyAccess;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
+use App\Http\Middleware\LogoutDeactivatedUsers;
 use App\Http\Middleware\RequireAdminTwoFactor;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -30,6 +31,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->appendToPriorityList(SubstituteBindings::class, EnsurePropertyAccess::class);
 
         $middleware->web(append: [
+            LogoutDeactivatedUsers::class,
             HandleAppearance::class,
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,
