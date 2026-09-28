@@ -2,8 +2,10 @@
 
 use App\Enums\PermissionEnum;
 use App\Http\Controllers\Property\PropertySettingsController;
+use App\Http\Controllers\Staff\RoleController;
 use App\Http\Controllers\Staff\StaffController;
 use App\Http\Controllers\Staff\StaffInvitationController;
+use App\Http\Controllers\Staff\StaffRoleController;
 use App\Http\Controllers\Staff\StaffStatusController;
 use Illuminate\Support\Facades\Route;
 
@@ -31,6 +33,14 @@ Route::prefix('settings')->name('settings.')->group(function () {
             Route::delete('invitations/{staffInvitation}', [StaffInvitationController::class, 'destroy'])->name('invitations.destroy');
             Route::post('{user}/deactivate', [StaffStatusController::class, 'deactivate'])->name('deactivate');
             Route::post('{user}/reactivate', [StaffStatusController::class, 'reactivate'])->name('reactivate');
+            Route::put('{user}/role', [StaffRoleController::class, 'update'])->name('role.update');
         });
+    });
+
+    Route::prefix('roles')->name('roles.')->middleware('can:'.PermissionEnum::RolesManage->value)->scopeBindings()->group(function () {
+        Route::get('/', [RoleController::class, 'index'])->name('index');
+        Route::post('/', [RoleController::class, 'store'])->name('store');
+        Route::get('{role}', [RoleController::class, 'edit'])->name('edit');
+        Route::put('{role}', [RoleController::class, 'update'])->name('update');
     });
 });

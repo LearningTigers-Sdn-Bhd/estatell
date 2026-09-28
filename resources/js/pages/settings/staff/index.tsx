@@ -52,6 +52,7 @@ import {
     reactivate,
 } from '@/routes/settings/staff';
 import { destroy, resend, store } from '@/routes/settings/staff/invitations';
+import { update as roleUpdate } from '@/routes/settings/staff/role';
 
 type StaffMember = App.Data.Staff.StaffMemberData;
 type Invitation = App.Data.Staff.StaffInvitationData;
@@ -181,11 +182,84 @@ function DeactivateStaff({ member }: { member: StaffMember }) {
     );
 }
 
+function ChangeRoleDialog({
+    member,
+    roles,
+}: {
+    member: StaffMember;
+    roles: RoleOption[];
+}) {
+    const [open, setOpen] = useState(false);
+
+    return (
+        <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger render={<Button variant="ghost" size="sm" />}>
+                Change role
+            </DialogTrigger>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Change the role of {member.name}</DialogTitle>
+                    <DialogDescription>
+                        The new role replaces the old one straight away.
+                    </DialogDescription>
+                </DialogHeader>
+                <Form
+                    {...roleUpdate.form({ user: member.id })}
+                    options={{ preserveScroll: true }}
+                    onSuccess={() => setOpen(false)}
+                    className="flex flex-col gap-4"
+                >
+                    {({ processing, errors }) => (
+                        <>
+                            <Field>
+                                <FieldLabel htmlFor={`role-${member.id}`}>
+                                    Role
+                                </FieldLabel>
+                                <EnumSelect
+                                    id={`role-${member.id}`}
+                                    name="role_id"
+                                    options={roles}
+                                    defaultValue={
+                                        member.roleId === null
+                                            ? undefined
+                                            : String(member.roleId)
+                                    }
+                                    aria-invalid={!!errors.role_id}
+                                />
+                                <FieldError>{errors.role_id}</FieldError>
+                            </Field>
+                            <DialogFooter>
+                                <DialogClose
+                                    render={<Button variant="outline" />}
+                                >
+                                    Cancel
+                                </DialogClose>
+                                <Button
+                                    type="submit"
+                                    disabled={processing}
+                                    focusableWhenDisabled
+                                >
+                                    {processing && (
+                                        <Spinner data-icon="inline-start" />
+                                    )}
+                                    Save role
+                                </Button>
+                            </DialogFooter>
+                        </>
+                    )}
+                </Form>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
 function ActiveStaff({
     staff,
+    roles,
     canManage,
 }: {
     staff: StaffMember[];
+    roles: RoleOption[];
     canManage: boolean;
 }) {
     return (
@@ -228,11 +302,15 @@ function ActiveStaff({
                             </TableCell>
                             {canManage && (
                                 <TableCell>
-                                    <div className="flex justify-end">
-                                        {!member.isYou && (
+                                    {!member.isYou && (
+                                        <div className="flex justify-end gap-1">
+                                            <ChangeRoleDialog
+                                                member={member}
+                                                roles={roles}
+                                            />
                                             <DeactivateStaff member={member} />
-                                        )}
-                                    </div>
+                                        </div>
+                                    )}
                                 </TableCell>
                             )}
                         </TableRow>
@@ -496,7 +574,11 @@ export default function StaffIndex({
                     ]}
                 >
                     {tab === 'active' && (
-                        <ActiveStaff staff={staff} canManage={canManage} />
+                        <ActiveStaff
+                            staff={staff}
+                            roles={roles}
+                            canManage={canManage}
+                        />
                     )}
                     {tab === 'deactivated' && (
                         <DeactivatedStaff staff={staff} canManage={canManage} />

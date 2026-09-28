@@ -35,6 +35,12 @@ class SettingsNavigation
                     icon: 'users',
                     active: request()->routeIs('settings.staff.*'),
                 ) : null,
+                $user->can(PermissionEnum::RolesManage->value) ? new NavItemData(
+                    title: __('Roles'),
+                    href: route('settings.roles.index', ['property' => $property->code], absolute: false),
+                    icon: 'shield',
+                    active: request()->routeIs('settings.roles.*'),
+                ) : null,
             ]))),
         ];
     }

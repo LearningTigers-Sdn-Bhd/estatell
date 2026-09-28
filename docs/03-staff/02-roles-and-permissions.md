@@ -58,9 +58,25 @@ Later modules add rows here. Their module docs list their permissions.
 - `SyncPermissions`
 - `SeedDefaultRoles`
 - `AssignOwnerRole`: gives a user their property's Owner role. It sets and restores the permission team, so it also works outside `/p` routes (registration, migrations).
-- `AssignStaffRole`
-- `CreateRole`
-- `UpdateRolePermissions`
+- `CreateRole`: a custom role with no permissions. The name is unique in the property (60 characters at most). Logs `role.created`.
+- `UpdateRolePermissions`: replaces a role's permissions and clears the permission cache. Returns `false` for the Owner role. Logs `role.permissions-updated` with old and new lists.
+- `AssignStaffRole`: gives a staff user one role, replacing the old one. Returns `false` for yourself, for an Owner when the actor is not an Owner, or when it would leave no active Owner. Logs `staff.role-assigned`. The request only accepts roles from `AssignableRoles` (Owner only for Owners, and only this property's roles).
+
+## Pages and routes
+
+| Page or action    | Route                                                                 | Permission     |
+| ----------------- | --------------------------------------------------------------------- | -------------- |
+| Roles list        | `GET /p/{code}/settings/roles` (`settings.roles.index`)               | `roles.manage` |
+| New role          | `POST /p/{code}/settings/roles` (Dialog: name), then the role page    | `roles.manage` |
+| Role page         | `GET /p/{code}/settings/roles/{role}` (`settings.roles.edit`)         | `roles.manage` |
+| Save permissions  | `PUT /p/{code}/settings/roles/{role}`                                 | `roles.manage` |
+| Change staff role | `PUT /p/{code}/settings/staff/{user}/role` (Dialog on the Staff page) | `staff.manage` |
+
+- The roles list shows default roles first, then custom roles, with active staff and permission counts. The Owner role shows "All".
+- The role page lists permissions as checkboxes grouped by `PermissionEnum::group()`. The Owner role is shown read-only.
+- Role routes use scoped bindings, so another property's role returns 404.
+- The sidebar shows Roles under **Team** for users with `roles.manage`.
+- Not built yet: renaming and deleting custom roles.
 
 ## Permission list
 

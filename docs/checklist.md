@@ -45,6 +45,7 @@ Legend: **Needs** lists items that must be done first.
 | `7574bec` | feat(staff): add default roles and permission enum                    |
 | `d6f3393` | feat(staff): make the registering owner the Owner role                |
 | `ccc3e9c` | feat(staff): invite staff and accept invitations                      |
+| `aa552df` | feat(staff): deactivate and reactivate staff                          |
 
 Smaller fixes and reverts are in `git log`.
 
@@ -66,7 +67,7 @@ Smaller fixes and reverts are in `git log`.
 - [x] `feat(staff): make the registering owner the Owner role` — seed roles at property creation, assign Owner, guard settings pages with `settings.manage`. Needs: default roles. Docs: [Account creation](17-onboarding/01-account-creation.md).
 - [x] `feat(staff): invite staff and accept invitations` — `InviteStaff`, `ResendStaffInvitation`, `RevokeStaffInvitation`, `AcceptStaffInvitation`. Docs: [Staff and invitations](03-staff/01-staff-and-invitations.md).
 - [x] `feat(staff): deactivate and reactivate staff` — `DeactivateStaff`, `ReactivateStaff`.
-- [ ] `feat(staff): manage roles and assign them to staff` — `CreateRole`, `UpdateRolePermissions`, `AssignStaffRole`.
+- [x] `feat(staff): manage roles and assign them to staff` — `CreateRole`, `UpdateRolePermissions`, `AssignStaffRole`.
 - [ ] `feat(platform): show the owner on admin property pages` — replace the staff count column. Needs: owner role.
 
 ### 02 Property (seeding) and 17 Onboarding (admin create)

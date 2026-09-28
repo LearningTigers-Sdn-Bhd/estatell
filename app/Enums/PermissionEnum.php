@@ -24,6 +24,17 @@ enum PermissionEnum: string
     }
 
     /**
+     * The heading the permission sits under on the role page.
+     */
+    public function group(): string
+    {
+        return match ($this) {
+            self::SettingsManage => __('Property'),
+            self::StaffView, self::StaffManage, self::RolesManage => __('Team'),
+        };
+    }
+
+    /**
      * @return list<array{value: string, label: string}>
      */
     public static function options(): array

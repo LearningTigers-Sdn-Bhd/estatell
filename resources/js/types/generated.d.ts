@@ -123,9 +123,29 @@ email: string,
 propertyName: string,
 role: string,
 };
+export type PermissionOptionData = {
+value: string,
+label: string,
+group: string,
+};
+export type RoleData = {
+id: number,
+name: string,
+isDefault: boolean,
+isLocked: boolean,
+permissions: string[],
+};
 export type RoleOptionData = {
 value: string,
 label: string,
+};
+export type RoleRowData = {
+id: number,
+name: string,
+isDefault: boolean,
+isLocked: boolean,
+staffCount: number,
+permissionCount: number,
 };
 export type StaffInvitationData = {
 id: number,
@@ -140,6 +160,7 @@ export type StaffMemberData = {
 id: number,
 name: string,
 email: string,
+roleId: number | null,
 role: string | null,
 isYou: boolean,
 joinedAt: string,

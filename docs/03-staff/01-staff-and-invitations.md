@@ -40,18 +40,19 @@ The email is `App\Notifications\StaffInvitationNotification`, queued after commi
 
 ## Pages and routes
 
-| Page or action         | Route                                                                      | Permission     |
-| ---------------------- | -------------------------------------------------------------------------- | -------------- |
-| Staff, Active tab      | `GET /p/{code}/settings/staff` (`settings.staff.index`)                    | `staff.view`   |
-| Staff, Deactivated tab | `GET /p/{code}/settings/staff/deactivated` (`settings.staff.deactivated`)  | `staff.view`   |
-| Deactivate             | `POST .../staff/{user}/deactivate` (AlertDialog)                           | `staff.manage` |
-| Reactivate             | `POST .../staff/{user}/reactivate`                                         | `staff.manage` |
-| Staff, Invited tab     | `GET /p/{code}/settings/staff/invited` (`settings.staff.invited`)          | `staff.view`   |
-| Invite                 | `POST .../staff/invitations` (Dialog: email, role)                         | `staff.manage` |
-| Resend                 | `POST .../staff/invitations/{id}/resend`                                   | `staff.manage` |
-| Revoke                 | `DELETE .../staff/invitations/{id}` (AlertDialog)                          | `staff.manage` |
-| Accept page            | `GET /invitations/{token}` (`invitations.show`), guest only, auth layout   | Token          |
-| Accept                 | `POST /invitations/{token}` (`invitations.accept`), throttled 6 per minute | Token          |
+| Page or action         | Route                                                                                          | Permission     |
+| ---------------------- | ---------------------------------------------------------------------------------------------- | -------------- |
+| Staff, Active tab      | `GET /p/{code}/settings/staff` (`settings.staff.index`)                                        | `staff.view`   |
+| Staff, Deactivated tab | `GET /p/{code}/settings/staff/deactivated` (`settings.staff.deactivated`)                      | `staff.view`   |
+| Deactivate             | `POST .../staff/{user}/deactivate` (AlertDialog)                                               | `staff.manage` |
+| Reactivate             | `POST .../staff/{user}/reactivate`                                                             | `staff.manage` |
+| Change role            | `PUT .../staff/{user}/role` (Dialog). See [Roles and permissions](02-roles-and-permissions.md) | `staff.manage` |
+| Staff, Invited tab     | `GET /p/{code}/settings/staff/invited` (`settings.staff.invited`)                              | `staff.view`   |
+| Invite                 | `POST .../staff/invitations` (Dialog: email, role)                                             | `staff.manage` |
+| Resend                 | `POST .../staff/invitations/{id}/resend`                                                       | `staff.manage` |
+| Revoke                 | `DELETE .../staff/invitations/{id}` (AlertDialog)                                              | `staff.manage` |
+| Accept page            | `GET /invitations/{token}` (`invitations.show`), guest only, auth layout                       | Token          |
+| Accept                 | `POST /invitations/{token}` (`invitations.accept`), throttled 6 per minute                     | Token          |
 
 - Invitation routes use scoped bindings, so another property's invitation returns 404.
 - The Invited tab lists open invitations, with expired ones marked. The sidebar shows Staff under **Team** for users with `staff.view`.
