@@ -18,6 +18,7 @@ URL shape, route groups, names and middleware for estatell. Wayfinder generates 
 - `AppServiceProvider` binds `{property}` by code explicitly (`Route::bind`), because `Route::inertia` routes have no typed parameter for implicit binding. `EnsurePropertyAccess` runs after `SubstituteBindings` (middleware priority).
 - `EnsurePropertyAccess` sets `URL::defaults(['property' => $property->code])`, so server code never passes the code by hand. Wayfinder then makes `property` optional in the generated functions. `AppLayout` calls Wayfinder's `setUrlDefaults({ property })` from the shared `property` prop during render, so the sidebar and pages call `dashboard()` without the code. Code that runs outside a render (module-level constants, layout callbacks) passes the code explicitly.
 - A code that does not match the user's property returns `404` (never `403`).
+- Agent users (`users.company_id` set) get `404` on every `/p/{code}` route.
 
 ## Middleware
 
@@ -31,6 +32,7 @@ URL shape, route groups, names and middleware for estatell. Wayfinder generates 
 | `features:…`          | Pennant `EnsureFeaturesAreActive`                                                                                                                                                                                                                | Channels                           |
 | `can:admin`           | Platform admin gate (`users.is_admin`), used with `auth`                                                                                                                                                                                         | `/admin`                           |
 | `admin.2fa`           | `RequireAdminTwoFactor`: admin actions need confirmed 2FA when `ADMIN_REQUIRE_2FA` is true. See [Platform admins](01-platform/01-platform-admins.md#two-factor-for-admins)                                                                       | Locked admin actions               |
+| `agent`               | `EnsureAgentAccess`: the user has `company_id`, the company has `portal_enabled`, and the property is Live. Sets the property from the company.                                                                                                  | `/agent`                           |
 | `signed`              | Temporary signed URLs                                                                                                                                                                                                                            | Guest-facing links                 |
 
 ## Route groups
@@ -54,12 +56,13 @@ URL shape, route groups, names and middleware for estatell. Wayfinder generates 
 | Account (user)     | `/account` (`profile`, `security`, `password`, `appearance`, `notifications`) | `account.`            | auth (+ verified for security, password, appearance, notifications and profile deletion) | `account.php`      |
 | Impersonation stop | `/impersonation/stop`                                                         | `impersonation.stop`  | web session                                                                              | `web.php`          |
 | Platform admin     | `/admin`                                                                      | `admin.`              | auth, can:admin                                                                          | `admin.php`        |
+| Agent portal       | `/agent`                                                                      | `agent.`              | auth, verified, agent                                                                    | `agent.php`        |
 | Guest-facing       | `/g`                                                                          | `guest.`              | signed                                                                                   | `guest.php`        |
 | Webhooks           | `/webhooks`                                                                   | `webhooks.`           | no CSRF, provider signature check                                                        | `webhooks.php`     |
 
 After login, an Owner of a non-live property is redirected to `/p/{their code}/onboarding/basics`. Other staff and live Owners go to the property dashboard.
 
-- Fortify's `home` is `/dashboard` (`home.redirect`, `HomeRedirectController`). It sends admins to `/admin`, non-live Owners to Basics, and other staff to their property dashboard.
+- Fortify's `home` is `/dashboard` (`home.redirect`, `HomeRedirectController`). It sends admins to `/admin`, agents to `/agent`, non-live Owners to Basics, and other staff to their property dashboard.
 - `live` is not applied yet. It is added with the onboarding wizard (module 17), so new owners are not sent to a page that does not exist.
 - The first Basics route is `/p/{code}/onboarding/basics` (`onboarding.basics.edit` and `.update`). Settings tabs have their own GET routes: `/p/{code}/settings` (`settings.edit`, General), `/settings/operations`, `/settings/registration` and `/settings/support`. Each section saves with `PUT /p/{code}/settings/{section}` (`settings.update`) and redirects to its tab. The Settings page links to Basics until the settings row exists.
 - Property notification settings use `GET /p/{code}/settings/notifications` and `PUT /p/{code}/settings/notifications/{type}/{channel}` (`settings.notifications.index` and `.update`). Both require `notification.manage`.

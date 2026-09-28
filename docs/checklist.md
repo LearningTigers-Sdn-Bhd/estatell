@@ -113,10 +113,12 @@ Smaller fixes and reverts are in `git log`.
 
 ### 08 Rates
 
-- [ ] `feat(rates): add rate plans` — Docs: [Rate plans](08-rates/01-rate-plans.md).
+- [ ] `feat(property): add age groups` — seeded Infant 0–3, Child 4–11. Docs: [Age groups](02-property/04-age-groups.md).
+- [ ] `feat(rates): add rate plans` — with child prices. Docs: [Rate plans](08-rates/01-rate-plans.md).
 - [ ] `feat(rates): add daily rates and restrictions` — Docs: [Daily rates and restrictions](08-rates/02-daily-rates-and-restrictions.md).
 - [ ] `feat(rates): add pricing strategies and rate quotes` — `RateQuoteService`. Docs: [Pricing strategies](08-rates/03-pricing-strategies.md).
 - [ ] `feat(rates): add derived rate plans` — Docs: [Derived rate plans](08-rates/04-derived-rate-plans.md).
+- [ ] `feat(rates): add long-stay discounts` — Docs: [Rate plans](08-rates/01-rate-plans.md#long-stay-discounts).
 - [ ] `feat(rates): add the rate calendar grid` — first use of the `pms/grid` engine. Docs: [Data loading and grids](design-system/08-data-loading-and-grids.md).
 
 ### 09 Packages and 10 Availability
@@ -199,6 +201,10 @@ Needs the Channex staging checks in [Staging verification](21-channels/06-stagin
 ### 22 Reports
 
 - [ ] `feat(reports): add core reports` — Docs: [Core reports](22-reports/01-core-reports.md).
+
+### 23 Agent portal
+
+- [ ] `feat(agent-portal): let agents book and view their stays` — scope to be revised first. Docs: [Agent portal](23-agent-portal/01-agent-portal.md).
 
 ### Deferred items to pick up along the way
 

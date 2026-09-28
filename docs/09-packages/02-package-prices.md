@@ -17,7 +17,7 @@ Package prices depend on the arrival date. A Friday arrival should cost one pric
 
 ## Meaning of `amount`
 
-- PerGuest-style package: price per adult per stay. Children use the plan's age bands.
+- PerGuest-style package: price per adult per stay. Children use the plan's child prices.
 - PerRoom-style package: price per room per stay, plus extra guest charges per stay.
 
 ## Rules

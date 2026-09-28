@@ -7,11 +7,15 @@ A property has many staff users. Staff join only by invitation.
 ## Data model
 
 ```
-users                id, property_id, name, email, password, is_admin, deactivated_at, two_factor columns, timestamps
-staff_invitations    id, property_id, email, role_id, token_hash, expires_at, last_sent_at,
+users                id, property_id, company_id (nullable), name, email, password, is_admin, deactivated_at,
+                     two_factor columns, timestamps
+                     CHECK company_id IS NULL OR is_admin = false
+staff_invitations    id, property_id, email, role_id (nullable), company_id (nullable),
+                     token_hash, expires_at, last_sent_at,
                      accepted_at, revoked_at, invited_by, timestamps
                      UNIQUE (property_id, email) WHERE accepted_at IS NULL AND revoked_at IS NULL
                      CHECK email = lower(email); CHECK accepted_at and revoked_at are not both set
+                     CHECK exactly one of role_id, company_id is set
 ```
 
 - `token_hash` is the SHA-256 of the token. The plain token lives only in the emailed link.
@@ -19,6 +23,7 @@ staff_invitations    id, property_id, email, role_id, token_hash, expires_at, la
 
 - A user belongs to one property (`users.property_id`).
 - `users.property_id` is nullable only for platform admins (`is_admin`). A CHECK enforces: admin without property, staff with property. See [Platform admins](../01-platform/01-platform-admins.md).
+- `users.company_id` marks an agent user (module 23). Agents have no staff role and cannot open `/p/{code}` routes. An invitation with `company_id` creates an agent. See [Agent portal](../23-agent-portal/01-agent-portal.md).
 - The owner is created by Fortify registration or by an admin invite (see [Account creation](../17-onboarding/01-account-creation.md)).
 
 ## Actions

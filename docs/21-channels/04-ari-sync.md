@@ -24,6 +24,7 @@ channel_ari_changes    id, channel_connection_id, room_type_id, rate_plan_id (nu
 ## Rules
 
 - No local copy of sent rates. Values are always calculated at send time.
+- Long-stay discounts are never sent. Channels get the undiscounted nightly price (see [Rate plans](../08-rates/01-rate-plans.md#long-stay-discounts)).
 
 ## Lessons from wastays
 

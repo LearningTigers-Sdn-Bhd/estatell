@@ -25,15 +25,16 @@ Roles are the exception during self sign-up: `SeedDefaultRoles` runs when the pr
 
 ## Planned defaults
 
-| Area              | Seeded data                                                           | Source                     |
-| ----------------- | --------------------------------------------------------------------- | -------------------------- |
-| Roles             | Owner, Manager, FrontDesk, Housekeeping, Finance (already seeded)     | `DefaultRoleEnum`          |
-| Meal periods      | Breakfast, Lunch, Dinner                                              | `DefaultMealPeriod`        |
-| Transaction codes | ROOM, NO_SHOW, LATE_CHECKOUT, SST, TOURISM_TAX, CASH, CARD and others | System code list           |
-| Taxes             | Country tax presets, disabled until confirmed                         | Country preset             |
-| Payment methods   | Cash, Card, Bank transfer, e-wallet                                   | Country preset             |
-| Settings          | Currency, time zone, locale, check-in and check-out times (built)     | Country and type           |
-| Terms             | Default terms document, version 1, English and Bahasa Malaysia        | `TermsPreset` for the type |
+| Area              | Seeded data                                                           | Source                         |
+| ----------------- | --------------------------------------------------------------------- | ------------------------------ |
+| Roles             | Owner, Manager, FrontDesk, Housekeeping, Finance (already seeded)     | `DefaultRoleEnum`              |
+| Meal periods      | Breakfast, Lunch, Dinner                                              | `DefaultMealPeriod`            |
+| Transaction codes | ROOM, NO_SHOW, LATE_CHECKOUT, SST, TOURISM_TAX, CASH, CARD and others | System code list               |
+| Taxes             | Country tax presets, disabled until confirmed                         | Country preset                 |
+| Payment methods   | Cash, Card, Bank transfer, e-wallet                                   | Country preset                 |
+| Settings          | Currency, time zone, locale, check-in and check-out times (built)     | Country and type               |
+| Age groups        | Infant 0–3, Child 4–11 (adults from 12)                               | [Age groups](04-age-groups.md) |
+| Terms             | Default terms document, version 1, English and Bahasa Malaysia        | `TermsPreset` for the type     |
 
 ## Rules
 
