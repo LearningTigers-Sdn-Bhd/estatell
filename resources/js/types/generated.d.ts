@@ -120,6 +120,7 @@ tone: App.Enums.Tone,
 }
 namespace Enums {
 export type Currency = 'MYR';
+export type DefaultRoleEnum = 'owner' | 'manager' | 'front_desk' | 'housekeeping' | 'accounts';
 export type DormStrategy = 'bed_as_unit' | 'native_dorm';
 export type Locale = 'en' | 'ms';
 export type MediaDisk = 'local' | 'r2';
@@ -127,6 +128,7 @@ export type MissedArrivalPolicy = 'mark_no_show' | 'keep_as_late_arrival';
 export type NavigationContext = 'front-desk' | 'finance' | 'reports' | 'settings';
 export type NoShowCharge = 'first_night' | 'full_stay' | 'none';
 export type OverdueDeparturePolicy = 'extend_one_night' | 'block';
+export type PermissionEnum = 'settings.manage' | 'staff.view' | 'staff.manage' | 'roles.manage';
 export type PlatformFeature = 'channel-manager';
 export type PropertyStatus = 'onboarding' | 'pending_approval' | 'live' | 'suspended';
 export type PropertyType = 'hotel' | 'hostel' | 'resort' | 'serviced_apartment' | 'homestay';
