@@ -2,6 +2,8 @@
 
 use App\Enums\PermissionEnum;
 use App\Http\Controllers\Property\PropertySettingsController;
+use App\Http\Controllers\Staff\StaffController;
+use App\Http\Controllers\Staff\StaffInvitationController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('settings')->name('settings.')->group(function () {
@@ -13,5 +15,18 @@ Route::prefix('settings')->name('settings.')->group(function () {
         Route::put('{section}', [PropertySettingsController::class, 'update'])
             ->whereIn('section', ['general', 'operations', 'registration', 'support'])
             ->name('update');
+    });
+
+    Route::prefix('staff')->name('staff.')->group(function () {
+        Route::middleware('can:'.PermissionEnum::StaffView->value)->group(function () {
+            Route::get('/', [StaffController::class, 'index'])->name('index');
+            Route::get('invited', [StaffController::class, 'invited'])->name('invited');
+        });
+
+        Route::middleware('can:'.PermissionEnum::StaffManage->value)->scopeBindings()->group(function () {
+            Route::post('invitations', [StaffInvitationController::class, 'store'])->name('invitations.store');
+            Route::post('invitations/{staffInvitation}/resend', [StaffInvitationController::class, 'resend'])->name('invitations.resend');
+            Route::delete('invitations/{staffInvitation}', [StaffInvitationController::class, 'destroy'])->name('invitations.destroy');
+        });
     });
 });

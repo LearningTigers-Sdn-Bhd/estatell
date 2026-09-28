@@ -28,6 +28,14 @@ class SettingsNavigation
                     active: request()->routeIs('settings.edit', 'settings.operations', 'settings.registration', 'settings.support'),
                 ) : null,
             ]))),
+            new NavGroupData(label: __('Team'), items: array_values(array_filter([
+                $user->can(PermissionEnum::StaffView->value) ? new NavItemData(
+                    title: __('Staff'),
+                    href: route('settings.staff.index', ['property' => $property->code], absolute: false),
+                    icon: 'users',
+                    active: request()->routeIs('settings.staff.*'),
+                ) : null,
+            ]))),
         ];
     }
 }

@@ -117,6 +117,34 @@ label: string,
 tone: App.Enums.Tone,
 };
 }
+namespace Staff {
+export type InvitationPreviewData = {
+email: string,
+propertyName: string,
+role: string,
+};
+export type RoleOptionData = {
+value: string,
+label: string,
+};
+export type StaffInvitationData = {
+id: number,
+email: string,
+role: string,
+invitedBy: string | null,
+lastSentAt: string,
+expiresAt: string,
+expired: boolean,
+};
+export type StaffMemberData = {
+id: number,
+name: string,
+email: string,
+role: string | null,
+isYou: boolean,
+joinedAt: string,
+};
+}
 }
 namespace Enums {
 export type Currency = 'MYR';

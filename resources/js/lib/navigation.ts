@@ -5,6 +5,7 @@ import {
     ConciergeBell,
     LayoutGrid,
     Settings,
+    Users,
     Wallet,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
@@ -19,6 +20,7 @@ const icons: Record<string, LucideIcon> = {
     'concierge-bell': ConciergeBell,
     wallet: Wallet,
     'chart-column': ChartColumn,
+    users: Users,
 };
 
 export function navIcon(name: string): LucideIcon | undefined {

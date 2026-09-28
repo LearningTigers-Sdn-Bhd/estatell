@@ -8,8 +8,14 @@ A property has many staff users. Staff join only by invitation.
 
 ```
 users                id, property_id, name, email, password, deactivated_at, two_factor columns, timestamps
-staff_invitations    id, property_id, email, role_id, token, expires_at, accepted_at, invited_by, timestamps
+staff_invitations    id, property_id, email, role_id, token_hash, expires_at, last_sent_at,
+                     accepted_at, revoked_at, invited_by, timestamps
+                     UNIQUE (property_id, email) WHERE accepted_at IS NULL AND revoked_at IS NULL
+                     CHECK email = lower(email); CHECK accepted_at and revoked_at are not both set
 ```
+
+- `token_hash` is the SHA-256 of the token. The plain token lives only in the emailed link.
+- An invitation is **open** while it is neither accepted nor revoked (`StaffInvitation::open()`). An open invitation can be expired; resending opens it again.
 
 - A user belongs to one property (`users.property_id`).
 - `users.property_id` is nullable only for platform admins (`is_admin`). A CHECK enforces: admin without property, staff with property. See [Platform admins](../01-platform/01-platform-admins.md).
@@ -17,15 +23,41 @@ staff_invitations    id, property_id, email, role_id, token, expires_at, accepte
 
 ## Actions
 
-- `InviteStaff`
-- `AcceptStaffInvitation`
-- `DeactivateStaff`
-- `ReactivateStaff`
+| Action                  | Does                                                                                                                 |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `InviteStaff`           | Creates the invitation (valid 7 days, `InviteStaff::VALID_DAYS`), emails the link, logs `staff.invited`              |
+| `ResendStaffInvitation` | New token and a new 7-day expiry, so the old link stops working. Logs `staff.invitation-resent`                      |
+| `RevokeStaffInvitation` | Sets `revoked_at`, which frees the email for a new invitation. Logs `staff.invitation-revoked`                       |
+| `AcceptStaffInvitation` | Creates the user (email verified), assigns the invited role, closes the invitation. Logs `staff.invitation-accepted` |
+| `DeactivateStaff`       | Planned                                                                                                              |
+| `ReactivateStaff`       | Planned                                                                                                              |
+
+Resend and revoke return `false` for a closed invitation; the controller shows an error toast. Accept returns `false` for a closed or expired invitation, or when the email got an account after the invitation was sent.
+
+The email is `App\Notifications\StaffInvitationNotification`, queued after commit and sent on demand to the invited address.
+
+## Pages and routes
+
+| Page or action     | Route                                                                      | Permission     |
+| ------------------ | -------------------------------------------------------------------------- | -------------- |
+| Staff, Active tab  | `GET /p/{code}/settings/staff` (`settings.staff.index`)                    | `staff.view`   |
+| Staff, Invited tab | `GET /p/{code}/settings/staff/invited` (`settings.staff.invited`)          | `staff.view`   |
+| Invite             | `POST .../staff/invitations` (Dialog: email, role)                         | `staff.manage` |
+| Resend             | `POST .../staff/invitations/{id}/resend`                                   | `staff.manage` |
+| Revoke             | `DELETE .../staff/invitations/{id}` (AlertDialog)                          | `staff.manage` |
+| Accept page        | `GET /invitations/{token}` (`invitations.show`), guest only, auth layout   | Token          |
+| Accept             | `POST /invitations/{token}` (`invitations.accept`), throttled 6 per minute | Token          |
+
+- Invitation routes use scoped bindings, so another property's invitation returns 404.
+- The Invited tab lists open invitations, with expired ones marked. The sidebar shows Staff under **Team** for users with `staff.view`.
+- Unknown, expired, revoked and accepted links show one notice page. It does not say which, so a link reveals nothing.
 
 ## Rules
 
 - Deactivated users cannot log in.
 - A property always keeps at least one active Owner.
+- Emails are stored lower case. An email with an account (in any property) or an open invitation in this property cannot be invited.
+- Only Owners can invite someone as Owner (`AssignableRoles`). The role must belong to the property.
 - Invitations expire. Accepting an expired invitation fails with a clear message.
 
 ## Future
