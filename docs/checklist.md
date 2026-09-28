@@ -48,6 +48,7 @@ Legend: **Needs** lists items that must be done first.
 | `aa552df` | feat(staff): deactivate and reactivate staff                          |
 | `3c1bee4` | feat(staff): manage roles and assign them to staff                    |
 | `be237ae` | feat(staff): show roles as one permission matrix                      |
+| `a168d56` | feat(platform): show the owner on admin property pages                |
 
 Smaller fixes and reverts are in `git log`.
 

@@ -84,7 +84,7 @@ Team                       │          │         │            │   │
 
 - Columns: default roles first, then custom roles. Each header shows the active staff count and "Custom" for custom roles.
 - Rows sit under group sub-header rows from `PermissionEnum::group()`.
-- Checkboxes are always live. Save and Discard turn on once something changes, and one save covers every role. The Owner column is ticked and disabled.
+- Checkboxes are always live. Save and Discard appear only once something changes, and one save covers every role. The Owner column is ticked and disabled.
 - The search box filters rows in the browser, with no request. When nothing matches, one row says so.
 - The header row and the permission column stay in place while scrolling.
 - The request accepts only this property's role ids as keys, so another property's role fails validation.

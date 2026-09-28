@@ -169,25 +169,27 @@ function PermissionMatrix({
                         onChange={(event) => setQuery(event.target.value)}
                     />
                 </InputGroup>
-                <div className="flex gap-2">
-                    <Button
-                        variant="outline"
-                        disabled={!form.isDirty || form.processing}
-                        onClick={() => form.reset()}
-                    >
-                        Discard
-                    </Button>
-                    <Button
-                        disabled={!form.isDirty || form.processing}
-                        focusableWhenDisabled
-                        onClick={save}
-                    >
-                        {form.processing && (
-                            <Spinner data-icon="inline-start" />
-                        )}
-                        Save permissions
-                    </Button>
-                </div>
+                {form.isDirty && (
+                    <div className="flex gap-2">
+                        <Button
+                            variant="outline"
+                            disabled={form.processing}
+                            onClick={() => form.reset()}
+                        >
+                            Discard
+                        </Button>
+                        <Button
+                            disabled={form.processing}
+                            focusableWhenDisabled
+                            onClick={save}
+                        >
+                            {form.processing && (
+                                <Spinner data-icon="inline-start" />
+                            )}
+                            Save permissions
+                        </Button>
+                    </div>
+                )}
             </div>
 
             <div className="max-h-dvh overflow-auto rounded-lg border">
@@ -227,7 +229,7 @@ function PermissionMatrix({
                     <TableBody>
                         {groups.map(([group, items]) => (
                             <Fragment key={group}>
-                                <TableRow className="bg-muted/50 hover:bg-muted/50">
+                                <TableRow className="bg-muted hover:bg-muted">
                                     <TableCell className="sticky left-0 bg-muted text-xs font-medium text-muted-foreground">
                                         {group}
                                     </TableCell>
