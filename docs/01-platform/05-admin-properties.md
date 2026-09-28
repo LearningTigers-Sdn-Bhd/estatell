@@ -9,11 +9,12 @@ One place for platform admins to find any property and see its details. Admin ac
 | Page         | URL                                     | Name                        | Archetype |
 | ------------ | --------------------------------------- | --------------------------- | --------- |
 | List         | `GET /admin/properties`                 | `admin.properties.index`    | Index     |
+| Create       | `POST /admin/properties`                | `admin.properties.store`    | Action    |
 | Show         | `GET /admin/properties/{code}`          | `admin.properties.show`     | Detail    |
 | Staff tab    | `GET /admin/properties/{code}/staff`    | `admin.properties.staff`    | Detail    |
 | Features tab | `GET /admin/properties/{code}/features` | `admin.properties.features` | Detail    |
 
-- Read routes use `auth` and `can:admin`. Suspend and reactivate routes also use `admin.2fa`.
+- Read routes use `auth` and `can:admin`. Create, send setup email, suspend and reactivate routes also use `admin.2fa`.
 - `{property}` binds by code (see [Routing](../routing.md#property-code)).
 - The admin sidebar has a **Properties** item.
 
@@ -26,22 +27,23 @@ One place for platform admins to find any property and see its details. Admin ac
 - Unknown filters or sorts return `400`.
 - The owner is the first active user with the property's Owner role (the first deactivated one when none is active). `PropertyOwners` (a Staff service) adds `owner_name` and `owner_email` as subqueries, so the list runs a fixed number of queries.
 - `PropertyDirectory` service builds the query. `AdminPropertyRowData` is one row.
+- **Create property** opens a Sheet. The admin enters the property name and type, owner name and email, then chooses a seven-day emailed setup link or an initial password. With an initial password, the admin can also mark the email as verified after confirming that the owner controls the address. The action creates an Onboarding property in Malaysia, seeds its defaults and assigns the Owner role. Success opens the new property detail page.
 
 ## Show
 
 - Header: name, status badge, back link to the list.
 - Each tab has its own URL, so a refresh keeps the open tab and a link can point at one tab. All tabs render `pages/admin/properties/show.tsx` with a `tab` prop, and the server sends only the open tab's data (`staff` or `features`). The summary, `staffCount` and the owner come on every tab.
-- Tabs: **Overview** (address, contact, registration and TIN), **Staff** (name with a Deactivated badge, email, role, verified, created) and **Features** (see [Feature flags](03-feature-flags.md#admin-ui)).
+- Tabs: **Overview** (address, contact, registration and TIN), **Staff** (name with a Deactivated badge, email, role, verified, created and setup-email action) and **Features** (see [Feature flags](03-feature-flags.md#admin-ui)).
 - Summary card: code, owner, status, type, created, live since, suspended (when set).
 - Admins with confirmed two-factor can suspend an active property or reactivate a suspended one from this page. Suspension asks for confirmation. Reactivation restores the status from before suspension.
 - `AdminPropertyData` holds the page data, with `AdminPropertyStaffData` rows.
 - The Staff tab sets the permission team to the property so each user's role loads. Admin routes have no team otherwise.
+- An unverified Owner row shows **Send setup email**. It sends a fresh seven-day link and records the admin action.
 
 ## Later
 
 | Addition                            | Where                                                                                                     |
 | ----------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| Create property button              | [Account creation](../17-onboarding/01-account-creation.md)                                               |
 | View as                             | [Impersonation](04-impersonation.md)                                                                      |
 | Onboarding board                    | A status filter view, see [Engagement and admin board](../17-onboarding/04-engagement-and-admin-board.md) |
 | Admin ⌘K search by code, name, city | Command palette                                                                                           |

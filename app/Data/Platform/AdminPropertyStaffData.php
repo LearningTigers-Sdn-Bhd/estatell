@@ -2,6 +2,7 @@
 
 namespace App\Data\Platform;
 
+use App\Enums\DefaultRoleEnum;
 use App\Models\User;
 use Spatie\LaravelData\Data;
 
@@ -14,6 +15,7 @@ class AdminPropertyStaffData extends Data
         public ?string $role,
         public bool $verified,
         public bool $deactivated,
+        public bool $canSendSetupLink,
         public string $createdAt,
     ) {}
 
@@ -29,6 +31,8 @@ class AdminPropertyStaffData extends Data
             role: $user->roles->first()?->name,
             verified: $user->email_verified_at !== null,
             deactivated: $user->deactivated_at !== null,
+            canSendSetupLink: $user->email_verified_at === null
+                && $user->roles->first()?->default_role === DefaultRoleEnum::Owner,
             createdAt: $user->created_at->toDateString(),
         );
     }

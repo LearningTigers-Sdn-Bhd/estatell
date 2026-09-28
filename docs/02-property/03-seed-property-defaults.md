@@ -14,10 +14,10 @@ A new property should work immediately. `SeedPropertyDefaults` creates sensible 
 
 The action runs as soon as the property has a type and a country:
 
-| Path          | When it runs                                                             |
-| ------------- | ------------------------------------------------------------------------ |
-| Self sign-up  | The first time the Basics wizard step is saved                           |
-| Admin creates | In `CreatePropertyForOwner`, because the admin enters the type (planned) |
+| Path          | When it runs                                                   |
+| ------------- | -------------------------------------------------------------- |
+| Self sign-up  | The first time the Basics wizard step is saved                 |
+| Admin creates | In `CreatePropertyForOwner`, because the admin enters the type |
 
 Self sign-up asks only for the property name, so sign-up stays short.
 

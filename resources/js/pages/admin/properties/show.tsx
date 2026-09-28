@@ -1,4 +1,5 @@
 import { Form, Head, router } from '@inertiajs/react';
+import OwnerSetupLinkController from '@/actions/App/Http/Controllers/Admin/OwnerSetupLinkController';
 import { Info, ToggleRight, Users } from 'lucide-react';
 import { useState } from 'react';
 import type { ReactNode } from 'react';
@@ -124,7 +125,7 @@ function Overview({ property }: { property: Property }) {
     );
 }
 
-function Staff({ staff }: { staff: StaffMember[] }) {
+function Staff({ code, staff }: { code: number; staff: StaffMember[] }) {
     if (staff.length === 0) {
         return <EmptyState icon={Users} title="No staff yet" />;
     }
@@ -139,6 +140,7 @@ function Staff({ staff }: { staff: StaffMember[] }) {
                         <TableHead>Role</TableHead>
                         <TableHead>Email verified</TableHead>
                         <TableHead>Created</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -175,6 +177,29 @@ function Staff({ staff }: { staff: StaffMember[] }) {
                             </TableCell>
                             <TableCell className="tabular-nums">
                                 <DateText date={user.createdAt} />
+                            </TableCell>
+                            <TableCell className="text-right">
+                                {user.canSendSetupLink && (
+                                    <Form
+                                        {...OwnerSetupLinkController.form(code)}
+                                        options={{ preserveScroll: true }}
+                                    >
+                                        {({ processing }) => (
+                                            <Button
+                                                type="submit"
+                                                size="sm"
+                                                variant="outline"
+                                                disabled={processing}
+                                                focusableWhenDisabled
+                                            >
+                                                {processing && (
+                                                    <Spinner data-icon="inline-start" />
+                                                )}
+                                                Send setup email
+                                            </Button>
+                                        )}
+                                    </Form>
+                                )}
                             </TableCell>
                         </TableRow>
                     ))}
@@ -384,7 +409,9 @@ export default function PropertyShow({
                     }
                 >
                     {tab === 'overview' && <Overview property={property} />}
-                    {tab === 'staff' && <Staff staff={staff} />}
+                    {tab === 'staff' && (
+                        <Staff code={property.code} staff={staff} />
+                    )}
                     {tab === 'features' && (
                         <Features code={property.code} features={features} />
                     )}

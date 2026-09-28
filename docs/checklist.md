@@ -49,6 +49,7 @@ Legend: **Needs** lists items that must be done first.
 | `3c1bee4` | feat(staff): manage roles and assign them to staff                    |
 | `be237ae` | feat(staff): show roles as one permission matrix                      |
 | `a168d56` | feat(platform): show the owner on admin property pages                |
+| `e010ed4` | feat(property): seed property defaults from type and country          |
 
 Smaller fixes and reverts are in `git log`.
 
@@ -77,7 +78,7 @@ Smaller fixes and reverts are in `git log`.
 ### 02 Property (seeding) and 17 Onboarding (admin create)
 
 - [x] `feat(property): seed property defaults from type and country` — `SeedPropertyDefaults`, first with roles and settings. Later modules add their defaults. Docs: [Seed property defaults](02-property/03-seed-property-defaults.md).
-- [ ] `feat(onboarding): let admins create a property for an owner` — `CreatePropertyForOwner`, signed "Set your password" link. Needs: seeding, owner role. Docs: [Account creation](17-onboarding/01-account-creation.md).
+- [x] `feat(onboarding): let admins create a property for an owner` — `CreatePropertyForOwner`, signed "Set your password" link. Needs: seeding, owner role. Docs: [Account creation](17-onboarding/01-account-creation.md).
 
 ### 01 Platform (impersonation)
 

@@ -2,18 +2,23 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Actions\Onboarding\CreatePropertyForOwner;
 use App\Data\Platform\AdminPropertyData;
 use App\Data\Platform\AdminPropertyRowData;
 use App\Data\Platform\AdminPropertyStaffData;
 use App\Data\Platform\PropertyFeatureData;
+use App\Enums\OwnerSetupMethod;
 use App\Enums\PropertyStatus;
 use App\Enums\PropertyType;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\CreatePropertyForOwnerRequest;
 use App\Models\Property;
 use App\Models\User;
 use App\Services\Platform\PropertyDirectory;
 use App\Services\Staff\PropertyOwners;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rules\Password;
 use Inertia\Inertia;
 use Inertia\Response;
 use Spatie\LaravelData\PaginatedDataCollection;
@@ -35,7 +40,21 @@ class PropertyController extends Controller
             'sort' => $request->string('sort', '-code')->toString(),
             'statuses' => PropertyStatus::options(),
             'types' => PropertyType::options(),
+            'setupMethods' => OwnerSetupMethod::options(),
+            'passwordRules' => Password::defaults()->toPasswordRulesString(),
         ]);
+    }
+
+    /**
+     * Create an onboarding property and its owner.
+     */
+    public function store(CreatePropertyForOwnerRequest $request, CreatePropertyForOwner $createPropertyForOwner): RedirectResponse
+    {
+        $property = $createPropertyForOwner($request->user(), $request->validated());
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Property and owner created.')]);
+
+        return to_route('admin.properties.show', $property->code);
     }
 
     /**

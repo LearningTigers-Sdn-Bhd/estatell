@@ -175,10 +175,26 @@ test('the staff tab has its own URL and lists staff by name', function () {
             ->where('staff.0.name', 'Aina')
             ->where('staff.0.verified', false)
             ->where('staff.0.role', null)
+            ->where('staff.0.canSendSetupLink', false)
             ->where('staff.1.role', 'Owner')
             ->where('staff.1.deactivated', true)
+            ->where('staff.1.canSendSetupLink', false)
             ->missing('features')
         );
+});
+
+test('the staff tab offers setup email only for an unverified owner', function () {
+    $property = Property::factory()->create();
+    User::factory()->for($property)->unverified()->owner()->create(['name' => 'Aina']);
+    User::factory()->for($property)->unverified()->create(['name' => 'Bella']);
+
+    $this->actingAs($this->admin)
+        ->get(route('admin.properties.staff', $property->code))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('staff.0.name', 'Aina')
+            ->where('staff.0.canSendSetupLink', true)
+            ->where('staff.1.name', 'Bella')
+            ->where('staff.1.canSendSetupLink', false));
 });
 
 test('an unknown property code is a 404 for admins', function () {

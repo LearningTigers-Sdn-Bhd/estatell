@@ -25,6 +25,13 @@ active: App.Enums.NavigationContext | null,
 contexts: App.Data.Navigation.NavContextData[],
 };
 }
+namespace Onboarding {
+export type OwnerSetupData = {
+name: string,
+email: string,
+propertyName: string,
+};
+}
 namespace Platform {
 export type AdminPropertyData = {
 code: number,
@@ -65,6 +72,7 @@ email: string,
 role: string | null,
 verified: boolean,
 deactivated: boolean,
+canSendSetupLink: boolean,
 createdAt: string,
 };
 export type PlatformSettingsData = {
@@ -133,13 +141,6 @@ value: string,
 label: string,
 group: string,
 };
-export type RoleData = {
-id: number,
-name: string,
-isDefault: boolean,
-isLocked: boolean,
-permissions: string[],
-};
 export type RoleOptionData = {
 value: string,
 label: string,
@@ -183,6 +184,7 @@ export type MissedArrivalPolicy = 'mark_no_show' | 'keep_as_late_arrival';
 export type NavigationContext = 'front-desk' | 'finance' | 'reports' | 'settings';
 export type NoShowCharge = 'first_night' | 'full_stay' | 'none';
 export type OverdueDeparturePolicy = 'extend_one_night' | 'block';
+export type OwnerSetupMethod = 'email_link' | 'initial_password';
 export type PermissionEnum = 'settings.manage' | 'staff.view' | 'staff.manage' | 'roles.manage';
 export type PlatformFeature = 'channel-manager';
 export type PropertyStatus = 'onboarding' | 'pending_approval' | 'live' | 'suspended';

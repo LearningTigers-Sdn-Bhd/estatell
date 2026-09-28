@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\PropertyStatus;
 use App\Models\Property;
 use App\Models\User;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -67,6 +68,25 @@ test('the home redirect sends staff to their property and admins to admin', func
     $this->actingAs(User::factory()->admin()->create())
         ->get(route('home.redirect'))
         ->assertRedirect(route('admin.dashboard'));
+});
+
+test('the home redirect sends onboarding owners to Basics while other staff and live owners keep the dashboard', function () {
+    $owner = User::factory()->owner()->create();
+    $staff = User::factory()->for($owner->property)->create();
+    $liveOwner = User::factory()->owner()->create();
+    $liveOwner->property->update(['status' => PropertyStatus::Live, 'went_live_at' => now()]);
+
+    $this->actingAs($owner)
+        ->get(route('home.redirect'))
+        ->assertRedirect(route('onboarding.basics.edit', $owner->property->code));
+
+    $this->actingAs($staff)
+        ->get(route('home.redirect'))
+        ->assertRedirect(route('dashboard', $staff->property->code));
+
+    $this->actingAs($liveOwner)
+        ->get(route('home.redirect'))
+        ->assertRedirect(route('dashboard', $liveOwner->property->code));
 });
 
 test('pages without a property in the URL share the staff user\'s property', function () {

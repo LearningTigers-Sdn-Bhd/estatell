@@ -57,9 +57,9 @@ URL shape, route groups, names and middleware for estatell. Wayfinder generates 
 | Guest-facing       | `/g`                                                         | `guest.`              | signed                                                       | `guest.php`        |
 | Webhooks           | `/webhooks`                                                  | `webhooks.`           | no CSRF, provider signature check                            | `webhooks.php`     |
 
-After login, staff are redirected to `/p/{their code}/dashboard` (or onboarding if not live).
+After login, an Owner of a non-live property is redirected to `/p/{their code}/onboarding/basics`. Other staff and live Owners go to the property dashboard.
 
-- Fortify's `home` is `/dashboard` (`home.redirect`, `HomeRedirectController`). It sends admins to `/admin` and staff to their property dashboard, so register, email verification, password reset and 2FA all land in the right place.
+- Fortify's `home` is `/dashboard` (`home.redirect`, `HomeRedirectController`). It sends admins to `/admin`, non-live Owners to Basics, and other staff to their property dashboard.
 - `live` is not applied yet. It is added with the onboarding wizard (module 17), so new owners are not sent to a page that does not exist.
 - The first Basics route is `/p/{code}/onboarding/basics` (`onboarding.basics.edit` and `.update`). Settings tabs have their own GET routes: `/p/{code}/settings` (`settings.edit`, General), `/settings/operations`, `/settings/registration` and `/settings/support`. Each section saves with `PUT /p/{code}/settings/{section}` (`settings.update`) and redirects to its tab. The Settings page links to Basics until the settings row exists.
 - `EnsurePropertyAccess` redirects suspended staff to the suspension notice after checking property ownership. The notice redirects to the dashboard when the property is active again. Account routes stay available.
@@ -81,9 +81,13 @@ After login, staff are redirected to `/p/{their code}/dashboard` (or onboarding 
 | `GET /admin`                                                     | `admin.dashboard`                     | `pages/admin/dashboard.tsx`                     |
 | `GET /admin/settings`                                            | `admin.settings.edit`                 | `pages/admin/settings/edit.tsx`                 |
 | `GET /admin/properties`                                          | `admin.properties.index`              | `pages/admin/properties/index.tsx`              |
+| `POST /admin/properties`                                         | `admin.properties.store`              | –                                               |
 | `GET /admin/properties/10142`                                    | `admin.properties.show`               | `pages/admin/properties/show.tsx`               |
+| `POST /admin/properties/10142/owner/setup-link`                  | `admin.properties.owner.setup-link`   | –                                               |
 | `GET /admin/properties/10142/view-as`                            | `admin.properties.view-as`            | `pages/admin/properties/view-as.tsx`            |
 | `GET /g/cards/5821?expires=…&signature=…`                        | `guest.cards.show`                    | `pages/guest/cards/show.tsx`                    |
+| `GET /g/owners/82/setup?expires=…&signature=…`                   | `guest.owner-setup.show`              | `pages/auth/owner-setup.tsx`                    |
+| `POST /g/owners/82/setup?expires=…&signature=…`                  | `guest.owner-setup.store`             | –                                               |
 | `POST /webhooks/channex`                                         | `webhooks.channex`                    | –                                               |
 
 Frontend import example:
@@ -99,6 +103,7 @@ import { stayView } from '@/routes/front-desk';
 - **Exception:** the rate calendar is used daily, so it lives at `/p/{code}/rates/calendar` (`rates.calendar`).
 - Onboarding steps render the same settings forms in the wizard layout.
 - Guest links outside `/p`: staff invitations at `/invitations/{token}` (`invitations.*`, `routes/staff.php`, guest only). See [Staff and invitations](03-staff/01-staff-and-invitations.md).
+- Owner setup uses signed guest GET and POST routes under `/g/owners/{user}/setup`. Both are guest-only. The POST is throttled, and the GET supplies the exact signed POST URL because the browser must not reconstruct its signature. Links expire after seven days.
 - Each settings page group carries its own `can:` permission middleware (property details: `settings.manage`; staff: `staff.view`, invitations: `staff.manage`), because staff and roles pages under `settings.*` need other permissions. Staff without it get 403.
 
 ## Account vs settings (decided)
