@@ -85,16 +85,16 @@ While impersonating, every page shows a banner that cannot be dismissed:
 
 ## Guardrails
 
-| Guardrail       | Rule                                                                                               |
-| --------------- | -------------------------------------------------------------------------------------------------- |
-| Consent         | `property_settings.allow_support_access`, default true. The owner can switch it off in Settings.   |
-| Reason          | Required (chip). Stored in the log.                                                                |
-| Time limit      | 30 minutes, then the session ends automatically and returns to the admin page.                     |
-| Permission      | Only admins (`admin` gate) with confirmed 2FA (`admin.2fa`) see [View as] and can start a session. |
-| Scope           | Only staff users of one property. Never another admin. One property per session.                   |
-| Blocked actions | See below. Hidden in the UI and denied on the server.                                              |
-| Audit           | Every write records the admin as the real causer and the impersonated user.                        |
-| Notification    | Owner receives `SupportAccessUsed`: who, when, reason, duration.                                   |
+| Guardrail       | Rule                                                                                                                                                                  |
+| --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Consent         | `property_settings.allow_support_access`, default true. The owner can switch it off in Settings. Until the roles module exists, any staff member of the property can. |
+| Reason          | Required (chip). Stored in the log.                                                                                                                                   |
+| Time limit      | 30 minutes, then the session ends automatically and returns to the admin page.                                                                                        |
+| Permission      | Only admins (`admin` gate) with confirmed 2FA (`admin.2fa`) see [View as] and can start a session.                                                                    |
+| Scope           | Only staff users of one property. Never another admin. One property per session.                                                                                      |
+| Blocked actions | See below. Hidden in the UI and denied on the server.                                                                                                                 |
+| Audit           | Every write records the admin as the real causer and the impersonated user.                                                                                           |
+| Notification    | Owner receives `SupportAccessUsed`: who, when, reason, duration.                                                                                                      |
 
 ### Blocked during impersonation
 

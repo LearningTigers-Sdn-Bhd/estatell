@@ -11,6 +11,9 @@ Route::get('dashboard', HomeRedirectController::class)->middleware('auth')->name
 Route::prefix('p/{property:code}')->whereNumber('property')->middleware([EnsurePropertyAccess::class, 'verified'])->group(function () {
     Route::inertia('suspended', 'property/suspended')->name('property.suspended');
     Route::inertia('dashboard', 'dashboard')->name('dashboard');
+
+    require __DIR__.'/onboarding.php';
+    require __DIR__.'/settings.php';
 });
 
 require __DIR__.'/account.php';

@@ -60,6 +60,7 @@ After login, staff are redirected to `/p/{their code}/dashboard` (or onboarding 
 
 - Fortify's `home` is `/dashboard` (`home.redirect`, `HomeRedirectController`). It sends admins to `/admin` and staff to their property dashboard, so register, email verification, password reset and 2FA all land in the right place.
 - `live` is not applied yet. It is added with the onboarding wizard (module 17), so new owners are not sent to a page that does not exist.
+- The first Basics route is `/p/{code}/onboarding/basics` (`onboarding.basics.edit` and `.update`). Settings tabs have their own GET routes: `/p/{code}/settings` (`settings.edit`, General), `/settings/operations`, `/settings/registration` and `/settings/support`. Each section saves with `PUT /p/{code}/settings/{section}` (`settings.update`) and redirects to its tab. The Settings page links to Basics until the settings row exists.
 - `EnsurePropertyAccess` redirects suspended staff to the suspension notice after checking property ownership. The notice redirects to the dashboard when the property is active again. Account routes stay available.
 - Shared prop `property` (`PropertySummaryData`: code, name, status): the property in the URL, or the staff user's own property on pages without one (account pages). Null for admins outside `/p`.
 

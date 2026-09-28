@@ -58,6 +58,35 @@ active: boolean,
 };
 }
 namespace Property {
+export type PropertyBasicsData = {
+name: string,
+type: App.Enums.PropertyType | null,
+addressLine1: string | null,
+addressLine2: string | null,
+city: string | null,
+stateCode: string | null,
+postalCode: string | null,
+};
+export type PropertySettingsData = {
+currency: App.Enums.Currency,
+timeZone: string,
+defaultLocale: App.Enums.Locale,
+checkInTime: string,
+checkOutTime: string,
+arrivalGraceMinutes: number,
+autoAssignRooms: boolean,
+auditTime: string,
+autoAuditEnabled: boolean,
+missedArrivalPolicy: App.Enums.MissedArrivalPolicy,
+overdueDeparturePolicy: App.Enums.OverdueDeparturePolicy,
+noShowCharge: App.Enums.NoShowCharge,
+registrationCardScope: App.Enums.RegistrationCardScope,
+cardRequiredForCheckIn: boolean,
+idDocumentRetentionDays: number | null,
+securityDepositAmount: string,
+allowSupportAccess: boolean,
+currencyAndTimeZoneLocked: boolean,
+};
 export type PropertySummaryData = {
 code: number,
 name: string,
@@ -73,11 +102,17 @@ tone: App.Enums.Tone,
 }
 }
 namespace Enums {
+export type Currency = 'MYR';
 export type DormStrategy = 'bed_as_unit' | 'native_dorm';
+export type Locale = 'en' | 'ms';
 export type MediaDisk = 'local' | 'r2';
+export type MissedArrivalPolicy = 'mark_no_show' | 'keep_as_late_arrival';
+export type NoShowCharge = 'first_night' | 'full_stay' | 'none';
+export type OverdueDeparturePolicy = 'extend_one_night' | 'block';
 export type PlatformFeature = 'channel-manager';
 export type PropertyStatus = 'onboarding' | 'pending_approval' | 'live' | 'suspended';
 export type PropertyType = 'hotel' | 'hostel' | 'resort' | 'serviced_apartment' | 'homestay';
+export type RegistrationCardScope = 'primary_only' | 'every_adult';
 export type Tone = 'neutral' | 'info' | 'success' | 'warning' | 'danger';
 }
 }

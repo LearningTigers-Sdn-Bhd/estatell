@@ -47,8 +47,8 @@ Smaller fixes and reverts are in `git log`.
 ### 01 Platform and 02 Property
 
 - [x] `feat(platform): suspend and reactivate properties from admin` — actions on the admin property page, behind `admin.2fa`, logged. Suspended staff see a suspension notice. Docs: [Platform admins](01-platform/01-platform-admins.md), [Admin properties](01-platform/05-admin-properties.md).
-- [ ] `feat(property): add property settings` — one row per property: currency, time zone, locale, check-in and check-out times, policies. Docs: [Property settings](02-property/02-property-settings.md).
-- [ ] `feat(property): add property details settings page` — `/p/{code}/settings/property`, Settings archetype. Needs: property settings. Docs: [Routing](routing.md).
+- [x] `feat(property): add property settings` — one row per property: currency, time zone, locale, check-in and check-out times, policies. Docs: [Property settings](02-property/02-property-settings.md).
+- [x] `feat(property): add property details settings page` — `/p/{code}/settings`, Settings archetype. Needs: property settings. Docs: [Routing](routing.md).
 
 ### App shell (staff)
 

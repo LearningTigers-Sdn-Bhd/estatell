@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use App\Data\Property\PropertySummaryData;
 use App\Models\Property;
 use App\Navigation\AdminNavigation;
+use App\Navigation\SettingsNavigation;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -47,6 +48,9 @@ class HandleInertiaRequests extends Middleware
             'adminNeedsTwoFactor' => RequireAdminTwoFactor::isMissingFor($request->user()),
             'property' => fn () => $this->currentProperty($request),
             'adminNavigation' => fn () => $request->user()?->is_admin ? app(AdminNavigation::class)->items() : null,
+            'settingsNavigation' => fn () => $request->user() !== null && ! $request->user()->is_admin && $request->route('property') instanceof Property
+                ? app(SettingsNavigation::class)->items($request->route('property'))
+                : null,
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];
     }

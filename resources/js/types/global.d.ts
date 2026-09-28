@@ -14,6 +14,7 @@ declare module '@inertiajs/core' {
             adminNeedsTwoFactor: boolean;
             property: App.Data.Property.PropertySummaryData | null;
             adminNavigation: App.Data.Navigation.NavItemData[] | null;
+            settingsNavigation: App.Data.Navigation.NavItemData[] | null;
             sidebarOpen: boolean;
             [key: string]: unknown;
         };

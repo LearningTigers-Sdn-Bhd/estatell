@@ -4,9 +4,13 @@
 
 A new property should work immediately. `SeedPropertyDefaults` creates sensible defaults so the owner confirms instead of building from scratch.
 
-## Action
+## Current first slice
 
-`SeedPropertyDefaults(Property $property, PropertyType $type, string $countryCode)` runs once, as soon as the property has a type and a country:
+`SavePropertyBasics` saves type, name and address, fixes country to Malaysia, and creates only the property settings row in the same transaction. A repeated Basics save keeps any edited settings.
+
+## Planned full action
+
+`SeedPropertyDefaults(Property $property, PropertyType $type, string $countryCode)` will run once, as soon as the property has a type and a country:
 
 | Path          | When it runs                                                   |
 | ------------- | -------------------------------------------------------------- |
@@ -15,7 +19,7 @@ A new property should work immediately. `SeedPropertyDefaults` creates sensible 
 
 Self sign-up asks only for the property name, so sign-up stays short.
 
-## What it seeds
+## Planned defaults
 
 | Area              | Seeded data                                                           | Source                     |
 | ----------------- | --------------------------------------------------------------------- | -------------------------- |

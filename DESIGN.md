@@ -40,6 +40,8 @@ Imports: `pages` → `pms/{feature}`, `pms/`, `ui/`. `pms/{feature}` → `pms/`,
 
 Every page uses one archetype: **Index, Detail, Form, Settings, Wizard, Board, Grid calendar**. The shell owns page width and padding. Forms are never inline in tables or dashboards.
 
+Page tabs (Detail and Settings) are links, never client-only state. Each tab has its own route and controller method (`/…/{id}`, `/…/{id}/staff`; `/settings`, `/settings/operations`). A refresh keeps the open tab, and the server sends only that tab's data. Render them with `TabLinks` (inside `DetailLayout` on Detail pages). Every tab has an icon before its label.
+
 The sidebar has four contexts: **Front desk, Finance, Reports, Settings** (Account is in the user menu). It always shows the business date and the system date. Navigation is defined in PHP (`app/Navigation/`), never as lists in React.
 
 ## 5. Form containers
@@ -78,4 +80,5 @@ Always a full page for repeating rows, uploads, multiple steps, needing a URL, o
 - [ ] No `asChild`, no `sonner`, no `Button render={<a />}` for navigation.
 - [ ] Form container matches the field count rules.
 - [ ] No requests for filtering or sorting loaded data.
+- [ ] Page tabs are `TabLinks` with their own routes, not client-only state.
 - [ ] Checked on the real page in light and dark mode, keyboard only.

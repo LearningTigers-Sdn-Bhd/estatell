@@ -13,6 +13,7 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
+import { toNavItem } from '@/lib/navigation';
 import { dashboard } from '@/routes';
 import { redirect as homeRedirect } from '@/routes/home';
 import type { NavItem } from '@/types';
@@ -31,7 +32,7 @@ const footerNavItems: NavItem[] = [
 ];
 
 export function AppSidebar() {
-    const { property } = usePage().props;
+    const { property, settingsNavigation } = usePage().props;
     const home = property ? dashboard() : homeRedirect();
     const mainNavItems: NavItem[] = [
         {
@@ -40,6 +41,7 @@ export function AppSidebar() {
             icon: LayoutGrid,
         },
     ];
+    const settingsItems = (settingsNavigation ?? []).map(toNavItem);
 
     return (
         <Sidebar collapsible="icon" variant="inset">
@@ -57,7 +59,10 @@ export function AppSidebar() {
             </SidebarHeader>
 
             <SidebarContent>
-                <NavMain items={mainNavItems} />
+                <NavMain items={mainNavItems} label="Overview" />
+                {settingsItems.length > 0 && (
+                    <NavMain items={settingsItems} label="Property" />
+                )}
             </SidebarContent>
 
             <SidebarFooter>

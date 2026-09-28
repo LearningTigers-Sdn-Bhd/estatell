@@ -20,4 +20,4 @@ Rules:
 - Forms are never embedded inline in tables, boards or dashboards.
 - Deferred props always show a `Skeleton` while loading.
 - Avoid nested cards and duplicated headings.
-- Detail tabs are links with their own URL (`/…/{id}`, `/…/{id}/staff`), not client-only state. A refresh keeps the tab, and the server sends only the open tab's data. `DetailLayout` renders the tab triggers as `Link`s. Every tab has an icon before its label and the same minimum width (`min-w-28`).
+- Detail and Settings tabs are links with their own URL (`/…/{id}`, `/…/{id}/staff`; `/settings`, `/settings/operations`), not client-only state. Each tab has its own named route and controller method, and the methods share one private `renderTab()`. A refresh keeps the tab, and the server sends only the open tab's data. `TabLinks` renders the triggers as `Link`s (`DetailLayout` uses it). Every tab has an icon before its label and the same minimum width (`min-w-28`). Example: `Admin\PropertyController`, `Property\PropertySettingsController`.

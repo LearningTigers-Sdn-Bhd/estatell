@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Carbon;
 use Laravel\Pennant\Concerns\HasFeatures;
 use Laravel\Pennant\Contracts\FeatureScopeSerializeable;
@@ -73,6 +74,12 @@ class Property extends Model implements FeatureScopeSerializeable
     public function users(): HasMany
     {
         return $this->hasMany(User::class);
+    }
+
+    /** @return HasOne<PropertySetting, $this> */
+    public function settings(): HasOne
+    {
+        return $this->hasOne(PropertySetting::class);
     }
 
     /**

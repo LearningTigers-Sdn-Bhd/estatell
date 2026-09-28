@@ -1,6 +1,4 @@
 import { Link, usePage } from '@inertiajs/react';
-import { Activity, Building2, LayoutGrid, Settings } from 'lucide-react';
-import type { LucideIcon } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
@@ -14,19 +12,8 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
+import { toNavItem } from '@/lib/navigation';
 import { dashboard } from '@/routes/admin';
-import type { NavItem } from '@/types';
-
-const icons: Record<string, LucideIcon> = {
-    'layout-grid': LayoutGrid,
-    building: Building2,
-    settings: Settings,
-    activity: Activity,
-};
-
-function toNavItem(item: App.Data.Navigation.NavItemData): NavItem {
-    return { title: item.title, href: item.href, icon: icons[item.icon] };
-}
 
 /**
  * Sidebar for platform admin pages. Items come from `App\Navigation\AdminNavigation`.

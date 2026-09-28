@@ -19,9 +19,13 @@ property_settings    property_id (unique), currency, time_zone, default_locale,
 ```
 
 - A 1:1 table with typed columns. New settings are new columns.
+- The first Basics save creates the row. The defaults live in the migration only. Repeating Basics does not replace edited settings.
+- Current property staff can edit the page. Finer permissions arrive with the roles module.
 
 ## Enums
 
+- `Currency`: Myr. More currencies arrive with other countries.
+- `Locale`: English, Malay.
 - `MissedArrivalPolicy`: MarkNoShow, KeepAsLateArrival.
 - `OverdueDeparturePolicy`: ExtendOneNight, Block.
 - `NoShowCharge`: FirstNight, FullStay, None.
@@ -34,4 +38,7 @@ property_settings    property_id (unique), currency, time_zone, default_locale,
 ## Rules
 
 - A property has one currency. Money columns elsewhere do not store currency.
+- Currency and time zone are fixed once the property has gone live (`went_live_at` is set). The page shows them disabled, and the request drops them (`SettingsLock`).
 - All business dates and schedules use `time_zone`.
+- The Settings page has four tabs, each with its own URL: General, Operations, Registration card and Support access. Each tab saves separately. Before Basics is complete, it links to `/p/{code}/onboarding/basics`.
+- Initial values are MYR, `Asia/Kuala_Lumpur`, English, 15:00 check-in, 11:00 check-out, 02:00 audit, no automatic audit or room assignment, no no-show charge, blocked overdue departures, primary-only registration cards, no card requirement, zero deposit and support access on. ID retention is unset until document capture exists.
