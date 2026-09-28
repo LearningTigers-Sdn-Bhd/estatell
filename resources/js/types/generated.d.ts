@@ -139,6 +139,22 @@ status: App.Enums.PropertyStatus,
 };
 }
 namespace Rooms {
+export type GeneratedRoomData = {
+number: string,
+group: string | null,
+taken: boolean,
+};
+export type RoomData = {
+id: number,
+number: string,
+roomTypeId: number,
+roomGroupId: number | null,
+archived: boolean,
+};
+export type RoomGroupData = {
+id: number,
+name: string,
+};
 export type RoomTypeData = {
 id: number,
 name: string,

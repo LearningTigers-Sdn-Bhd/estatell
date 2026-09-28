@@ -94,7 +94,7 @@ Smaller fixes and reverts are in `git log`.
 ### 05 Rooms
 
 - [x] `feat(rooms): add room types` — Docs: [Room types](05-rooms/01-room-types.md).
-- [ ] `feat(rooms): add rooms, room groups and number generator` — `GenerateRooms`. Docs: [Rooms and groups](05-rooms/02-rooms-and-groups.md).
+- [x] `feat(rooms): add rooms, room groups and number generator` — `GenerateRooms`. Docs: [Rooms and groups](05-rooms/02-rooms-and-groups.md).
 - [ ] `feat(rooms): add beds for dorm room types` — Docs: [Beds](05-rooms/03-beds.md).
 - [ ] `feat(rooms): add room blocks and room statuses` — Docs: [Room blocks and statuses](05-rooms/04-room-blocks-and-statuses.md).
 

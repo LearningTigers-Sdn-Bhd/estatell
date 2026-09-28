@@ -3,6 +3,8 @@
 use App\Enums\PermissionEnum;
 use App\Http\Controllers\Property\NotificationSettingController;
 use App\Http\Controllers\Property\PropertySettingsController;
+use App\Http\Controllers\Rooms\RoomController;
+use App\Http\Controllers\Rooms\RoomGroupController;
 use App\Http\Controllers\Rooms\RoomTypeController;
 use App\Http\Controllers\Staff\RoleController;
 use App\Http\Controllers\Staff\StaffController;
@@ -37,6 +39,26 @@ Route::prefix('settings')->name('settings.')->group(function () {
             Route::post('{roomType}/archive', [RoomTypeController::class, 'archive'])->name('archive');
             Route::post('{roomType}/restore', [RoomTypeController::class, 'restore'])->name('restore');
         });
+    });
+
+    Route::prefix('rooms')->name('rooms.')->group(function () {
+        Route::get('/', [RoomController::class, 'index'])->middleware('can:'.PermissionEnum::RoomsView->value)->name('index');
+
+        Route::middleware('can:'.PermissionEnum::RoomsManage->value)->scopeBindings()->group(function () {
+            Route::post('/', [RoomController::class, 'store'])->name('store');
+            Route::post('generate/preview', [RoomController::class, 'preview'])->name('generate.preview');
+            Route::post('generate', [RoomController::class, 'generate'])->name('generate');
+            Route::put('{room}', [RoomController::class, 'update'])->name('update');
+            Route::post('{room}/archive', [RoomController::class, 'archive'])->name('archive');
+            Route::post('{room}/restore', [RoomController::class, 'restore'])->name('restore');
+        });
+    });
+
+    Route::prefix('room-groups')->name('room-groups.')->middleware('can:'.PermissionEnum::RoomsManage->value)->scopeBindings()->group(function () {
+        Route::post('/', [RoomGroupController::class, 'store'])->name('store');
+        Route::put('order', [RoomGroupController::class, 'reorder'])->name('reorder');
+        Route::put('{roomGroup}', [RoomGroupController::class, 'update'])->name('update');
+        Route::delete('{roomGroup}', [RoomGroupController::class, 'destroy'])->name('destroy');
     });
 
     Route::prefix('staff')->name('staff.')->group(function () {

@@ -30,7 +30,7 @@ room_types    id, property_id, name, description, sell_unit (SellUnit),
 - Names are unique per property among active room types, ignoring case. An archived room type frees its name.
 - `terms_document_id` has no foreign key yet. The registration item adds it with `terms_documents`.
 - Archive hides a room type without deleting it. Restore puts it at the end of the list, and is refused when an active room type has the same name. The guard against future reservations arrives with reservations.
-- `sell_unit` stays editable for now. The lock once rooms exist arrives with the rooms item.
+- `sell_unit` is locked once the room type has any room (see [Rooms](02-rooms-and-groups.md)).
 
 ## Permissions
 

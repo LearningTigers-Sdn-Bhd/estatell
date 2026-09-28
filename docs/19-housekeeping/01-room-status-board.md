@@ -10,7 +10,7 @@ Uses `room_statuses` (see [Room blocks and statuses](../05-rooms/04-room-blocks-
 
 ## Features
 
-- Board grouped by room group and floor.
+- Board grouped by room group (a group is a floor, wing or block).
 - Status changes: Dirty > Clean > Inspected, and OutOfService.
 - Priority flag and note, do-not-disturb for today, assignee.
 - Filters: arrivals today, departures today, stayovers.

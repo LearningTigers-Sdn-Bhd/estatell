@@ -35,6 +35,12 @@ class SettingsNavigation
                     icon: 'bed',
                     active: request()->routeIs('settings.room-types.*'),
                 ) : null,
+                $user->can(PermissionEnum::RoomsView->value) ? new NavItemData(
+                    title: __('Rooms'),
+                    href: route('settings.rooms.index', ['property' => $property->code], absolute: false),
+                    icon: 'door-open',
+                    active: request()->routeIs('settings.rooms.*', 'settings.room-groups.*'),
+                ) : null,
             ]))),
             new NavGroupData(label: __('Team'), items: array_values(array_filter([
                 $user->can(PermissionEnum::StaffView->value) ? new NavItemData(

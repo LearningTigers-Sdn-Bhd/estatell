@@ -1,0 +1,701 @@
+import { Head, router, useForm } from '@inertiajs/react';
+import {
+    ArrowDown,
+    ArrowUp,
+    DoorOpen,
+    FolderPlus,
+    Plus,
+    Wand2,
+} from 'lucide-react';
+import { useState } from 'react';
+import { EmptyState } from '@/components/pms/empty-state';
+import { EnumSelect } from '@/components/pms/enum-select';
+import { PageHeader } from '@/components/pms/page-header';
+import { GenerateRoomsSheet } from '@/components/pms/rooms/generate-rooms-sheet';
+import {
+    AlertDialog,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import {
+    Dialog,
+    DialogClose,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
+import {
+    Field,
+    FieldError,
+    FieldGroup,
+    FieldLabel,
+} from '@/components/ui/field';
+import { Input } from '@/components/ui/input';
+import { Spinner } from '@/components/ui/spinner';
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from '@/components/ui/table';
+import {
+    archive,
+    index,
+    restore,
+    store,
+    update,
+} from '@/routes/settings/rooms';
+import {
+    destroy,
+    reorder,
+    store as storeGroup,
+    update as updateGroup,
+} from '@/routes/settings/room-groups';
+
+type Room = App.Data.Rooms.RoomData;
+type RoomGroup = App.Data.Rooms.RoomGroupData;
+type RoomType = App.Data.Rooms.RoomTypeData;
+
+type Props = {
+    rooms: Room[];
+    roomGroups: RoomGroup[];
+    roomTypes: RoomType[];
+    generateLimit: number;
+};
+
+/**
+ * Create or edit a room. Remounted (by key) for each room, so its state starts from that row.
+ */
+function RoomFormDialog({
+    room,
+    roomTypes,
+    roomGroups,
+    onClose,
+}: {
+    room: Room | null;
+    roomTypes: RoomType[];
+    roomGroups: RoomGroup[];
+    onClose: () => void;
+}) {
+    const form = useForm({
+        number: room?.number ?? '',
+        room_type_id: room ? String(room.roomTypeId) : '',
+        room_group_id: room?.roomGroupId ? String(room.roomGroupId) : '',
+    });
+
+    // A new room needs an active room type. An existing room may keep its archived one.
+    const typeOptions = roomTypes
+        .filter((type) => !type.archived || type.id === room?.roomTypeId)
+        .map((type) => ({ value: String(type.id), label: type.name }));
+    const groupOptions = roomGroups.map((group) => ({
+        value: String(group.id),
+        label: group.name,
+    }));
+
+    const submit = (event: React.FormEvent) => {
+        event.preventDefault();
+
+        const options = { preserveScroll: true, onSuccess: onClose };
+
+        if (room) {
+            form.put(update.url({ room: room.id }), options);
+        } else {
+            form.post(store.url(), options);
+        }
+    };
+
+    return (
+        <form onSubmit={submit} className="flex flex-col gap-4">
+            <FieldGroup>
+                <Field>
+                    <FieldLabel htmlFor="room-number">Room number</FieldLabel>
+                    <Input
+                        id="room-number"
+                        maxLength={30}
+                        value={form.data.number}
+                        onChange={(event) =>
+                            form.setData('number', event.target.value)
+                        }
+                        aria-invalid={!!form.errors.number}
+                        autoFocus
+                    />
+                    <FieldError>{form.errors.number}</FieldError>
+                </Field>
+                <Field>
+                    <FieldLabel htmlFor="room-type">Room type</FieldLabel>
+                    <EnumSelect
+                        id="room-type"
+                        options={typeOptions}
+                        value={form.data.room_type_id}
+                        onValueChange={(value) =>
+                            form.setData('room_type_id', value)
+                        }
+                        aria-invalid={!!form.errors.room_type_id}
+                    />
+                    <FieldError>{form.errors.room_type_id}</FieldError>
+                </Field>
+                <Field>
+                    <FieldLabel htmlFor="room-group">Room group</FieldLabel>
+                    <EnumSelect
+                        id="room-group"
+                        options={groupOptions}
+                        allLabel="No group"
+                        value={form.data.room_group_id}
+                        onValueChange={(value) =>
+                            form.setData('room_group_id', value)
+                        }
+                        aria-invalid={!!form.errors.room_group_id}
+                    />
+                    <FieldError>{form.errors.room_group_id}</FieldError>
+                </Field>
+            </FieldGroup>
+            <DialogFooter>
+                <DialogClose render={<Button variant="outline" />}>
+                    Cancel
+                </DialogClose>
+                <Button
+                    type="submit"
+                    disabled={form.processing}
+                    focusableWhenDisabled
+                >
+                    {form.processing && <Spinner data-icon="inline-start" />}
+                    {room ? 'Save changes' : 'Create room'}
+                </Button>
+            </DialogFooter>
+        </form>
+    );
+}
+
+/**
+ * Create or rename a room group. Remounted (by key) for each group.
+ */
+function RoomGroupFormDialog({
+    group,
+    onClose,
+}: {
+    group: RoomGroup | null;
+    onClose: () => void;
+}) {
+    const form = useForm({ name: group?.name ?? '' });
+
+    const submit = (event: React.FormEvent) => {
+        event.preventDefault();
+
+        const options = { preserveScroll: true, onSuccess: onClose };
+
+        if (group) {
+            form.put(updateGroup.url({ roomGroup: group.id }), options);
+        } else {
+            form.post(storeGroup.url(), options);
+        }
+    };
+
+    return (
+        <form onSubmit={submit} className="flex flex-col gap-4">
+            <FieldGroup>
+                <Field>
+                    <FieldLabel htmlFor="room-group-name">Name</FieldLabel>
+                    <Input
+                        id="room-group-name"
+                        maxLength={100}
+                        value={form.data.name}
+                        onChange={(event) =>
+                            form.setData('name', event.target.value)
+                        }
+                        aria-invalid={!!form.errors.name}
+                        autoFocus
+                    />
+                    <FieldError>{form.errors.name}</FieldError>
+                </Field>
+            </FieldGroup>
+            <DialogFooter>
+                <DialogClose render={<Button variant="outline" />}>
+                    Cancel
+                </DialogClose>
+                <Button
+                    type="submit"
+                    disabled={form.processing}
+                    focusableWhenDisabled
+                >
+                    {form.processing && <Spinner data-icon="inline-start" />}
+                    {group ? 'Save changes' : 'Create group'}
+                </Button>
+            </DialogFooter>
+        </form>
+    );
+}
+
+/**
+ * Confirms a destructive room or group action, then posts (or deletes) to the given URL.
+ */
+function ConfirmAction({
+    label,
+    title,
+    description,
+    method,
+    url,
+}: {
+    label: string;
+    title: string;
+    description: string;
+    method: 'post' | 'delete';
+    url: string;
+}) {
+    const [open, setOpen] = useState(false);
+    const [processing, setProcessing] = useState(false);
+
+    return (
+        <AlertDialog open={open} onOpenChange={setOpen}>
+            <AlertDialogTrigger render={<Button variant="ghost" size="sm" />}>
+                {label}
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>{title}</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        {description}
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <Button
+                        variant="destructive"
+                        disabled={processing}
+                        focusableWhenDisabled
+                        onClick={() =>
+                            router[method](
+                                url,
+                                {},
+                                {
+                                    preserveScroll: true,
+                                    onStart: () => setProcessing(true),
+                                    onFinish: () => setProcessing(false),
+                                    onSuccess: () => setOpen(false),
+                                },
+                            )
+                        }
+                    >
+                        {processing && <Spinner data-icon="inline-start" />}
+                        {label}
+                    </Button>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+    );
+}
+
+function RoomTable({
+    rooms,
+    typeName,
+    onEdit,
+}: {
+    rooms: Room[];
+    typeName: (id: number) => string;
+    onEdit: (room: Room) => void;
+}) {
+    return (
+        <div className="overflow-auto rounded-lg border">
+            <Table>
+                <TableHeader>
+                    <TableRow>
+                        <TableHead>Room</TableHead>
+                        <TableHead>Room type</TableHead>
+                        <TableHead>
+                            <span className="sr-only">Actions</span>
+                        </TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {rooms.map((room) => (
+                        <TableRow key={room.id}>
+                            <TableCell className="font-medium">
+                                {room.number}
+                            </TableCell>
+                            <TableCell>{typeName(room.roomTypeId)}</TableCell>
+                            <TableCell>
+                                <div className="flex justify-end gap-1">
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => onEdit(room)}
+                                    >
+                                        Edit
+                                    </Button>
+                                    <ConfirmAction
+                                        label="Archive"
+                                        title={`Archive room ${room.number}?`}
+                                        description="It leaves the active list and cannot be used for new work. You can restore it later."
+                                        method="post"
+                                        url={archive.url({ room: room.id })}
+                                    />
+                                </div>
+                            </TableCell>
+                        </TableRow>
+                    ))}
+                </TableBody>
+            </Table>
+        </div>
+    );
+}
+
+export default function RoomsIndex({
+    rooms,
+    roomGroups,
+    roomTypes,
+    generateLimit,
+}: Props) {
+    // `undefined` = closed, `null` = creating, a value = editing.
+    const [editingRoom, setEditingRoom] = useState<Room | null | undefined>(
+        undefined,
+    );
+    const [editingGroup, setEditingGroup] = useState<
+        RoomGroup | null | undefined
+    >(undefined);
+    const [generating, setGenerating] = useState(false);
+    const [typeFilter, setTypeFilter] = useState('');
+    // '' = all groups, 'none' = ungrouped rooms, otherwise a group id.
+    const [groupFilter, setGroupFilter] = useState('');
+
+    const activeTypes = roomTypes.filter((type) => !type.archived);
+    const typeName = (id: number) =>
+        roomTypes.find((type) => type.id === id)?.name ?? '';
+    const typeOptions = activeTypes.map((type) => ({
+        value: String(type.id),
+        label: type.name,
+    }));
+    const groupOptions = roomGroups.map((group) => ({
+        value: String(group.id),
+        label: group.name,
+    }));
+
+    const groupFilterOptions = [
+        ...groupOptions,
+        { value: 'none', label: 'Ungrouped' },
+    ];
+
+    const activeRooms = rooms.filter(
+        (room) =>
+            !room.archived &&
+            (typeFilter === '' || String(room.roomTypeId) === typeFilter) &&
+            (groupFilter === '' ||
+                (groupFilter === 'none'
+                    ? room.roomGroupId === null
+                    : String(room.roomGroupId) === groupFilter)),
+    );
+    const archivedRooms = rooms.filter((room) => room.archived);
+    const ungrouped = activeRooms.filter((room) => room.roomGroupId === null);
+
+    const move = (from: number, to: number) => {
+        const order = roomGroups.map((group) => group.id);
+        order.splice(to, 0, ...order.splice(from, 1));
+
+        router.put(reorder.url(), { order }, { preserveScroll: true });
+    };
+
+    const noTypes = activeTypes.length === 0;
+    const noRooms = rooms.filter((room) => !room.archived).length === 0;
+
+    return (
+        <>
+            <Head title="Rooms" />
+
+            <div className="flex flex-1 flex-col gap-6 p-4">
+                <PageHeader
+                    title="Rooms"
+                    description="The rooms you sell, grouped by floor, wing or block."
+                    actions={
+                        <div className="flex flex-wrap gap-2">
+                            <Button
+                                variant="outline"
+                                onClick={() => setEditingGroup(null)}
+                            >
+                                <FolderPlus data-icon="inline-start" />
+                                New group
+                            </Button>
+                            <Button
+                                variant="outline"
+                                disabled={noTypes}
+                                onClick={() => setGenerating(true)}
+                            >
+                                <Wand2 data-icon="inline-start" />
+                                Generate rooms
+                            </Button>
+                            <Button
+                                disabled={noTypes}
+                                onClick={() => setEditingRoom(null)}
+                            >
+                                <Plus data-icon="inline-start" />
+                                New room
+                            </Button>
+                        </div>
+                    }
+                />
+
+                {noTypes ? (
+                    <EmptyState
+                        icon={DoorOpen}
+                        title="Add a room type first"
+                        description="Every room belongs to a room type. Create one in Room types, then come back."
+                    />
+                ) : noRooms && roomGroups.length === 0 ? (
+                    <EmptyState
+                        icon={DoorOpen}
+                        title="No rooms yet"
+                        description="Generate many rooms at once, or add them one by one."
+                        action={
+                            <Button onClick={() => setGenerating(true)}>
+                                <Wand2 data-icon="inline-start" />
+                                Generate rooms
+                            </Button>
+                        }
+                    />
+                ) : (
+                    <>
+                        <div className="flex flex-wrap justify-end gap-2">
+                            <EnumSelect
+                                aria-label="Filter by room group"
+                                className="w-48"
+                                options={groupFilterOptions}
+                                allLabel="All groups"
+                                value={groupFilter}
+                                onValueChange={setGroupFilter}
+                            />
+                            <EnumSelect
+                                aria-label="Filter by room type"
+                                className="w-48"
+                                options={typeOptions}
+                                allLabel="All room types"
+                                value={typeFilter}
+                                onValueChange={setTypeFilter}
+                            />
+                        </div>
+
+                        {roomGroups.map((group, position) => {
+                            if (
+                                groupFilter !== '' &&
+                                groupFilter !== String(group.id)
+                            ) {
+                                return null;
+                            }
+
+                            const groupRooms = activeRooms.filter(
+                                (room) => room.roomGroupId === group.id,
+                            );
+
+                            return (
+                                <section
+                                    key={group.id}
+                                    className="flex flex-col gap-2"
+                                >
+                                    <div className="flex flex-wrap items-center justify-between gap-2">
+                                        <h2 className="font-heading text-sm font-medium">
+                                            {group.name}{' '}
+                                            <span className="font-normal text-muted-foreground">
+                                                · {groupRooms.length}
+                                            </span>
+                                        </h2>
+                                        <div className="flex gap-1">
+                                            <Button
+                                                variant="ghost"
+                                                size="icon-sm"
+                                                aria-label={`Move ${group.name} up`}
+                                                disabled={position === 0}
+                                                onClick={() =>
+                                                    move(position, position - 1)
+                                                }
+                                            >
+                                                <ArrowUp />
+                                            </Button>
+                                            <Button
+                                                variant="ghost"
+                                                size="icon-sm"
+                                                aria-label={`Move ${group.name} down`}
+                                                disabled={
+                                                    position ===
+                                                    roomGroups.length - 1
+                                                }
+                                                onClick={() =>
+                                                    move(position, position + 1)
+                                                }
+                                            >
+                                                <ArrowDown />
+                                            </Button>
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() =>
+                                                    setEditingGroup(group)
+                                                }
+                                            >
+                                                Rename
+                                            </Button>
+                                            <ConfirmAction
+                                                label="Delete"
+                                                title={`Delete ${group.name}?`}
+                                                description="Only a group without active rooms can be deleted."
+                                                method="delete"
+                                                url={destroy.url({
+                                                    roomGroup: group.id,
+                                                })}
+                                            />
+                                        </div>
+                                    </div>
+                                    {groupRooms.length === 0 ? (
+                                        <p className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
+                                            No rooms in this group.
+                                        </p>
+                                    ) : (
+                                        <RoomTable
+                                            rooms={groupRooms}
+                                            typeName={typeName}
+                                            onEdit={setEditingRoom}
+                                        />
+                                    )}
+                                </section>
+                            );
+                        })}
+
+                        {(ungrouped.length > 0 || roomGroups.length === 0) && (
+                            <section className="flex flex-col gap-2">
+                                {roomGroups.length > 0 && (
+                                    <h2 className="font-heading text-sm font-medium">
+                                        Ungrouped{' '}
+                                        <span className="font-normal text-muted-foreground">
+                                            · {ungrouped.length}
+                                        </span>
+                                    </h2>
+                                )}
+                                <RoomTable
+                                    rooms={ungrouped}
+                                    typeName={typeName}
+                                    onEdit={setEditingRoom}
+                                />
+                            </section>
+                        )}
+                    </>
+                )}
+
+                {archivedRooms.length > 0 && (
+                    <section className="flex flex-col gap-2">
+                        <h2 className="font-heading text-sm font-medium">
+                            Archived
+                        </h2>
+                        <div className="overflow-auto rounded-lg border">
+                            <Table>
+                                <TableBody>
+                                    {archivedRooms.map((room) => (
+                                        <TableRow key={room.id}>
+                                            <TableCell className="font-medium">
+                                                {room.number}{' '}
+                                                <Badge variant="secondary">
+                                                    Archived
+                                                </Badge>
+                                            </TableCell>
+                                            <TableCell>
+                                                {typeName(room.roomTypeId)}
+                                            </TableCell>
+                                            <TableCell className="text-right">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() =>
+                                                        router.post(
+                                                            restore.url({
+                                                                room: room.id,
+                                                            }),
+                                                            {},
+                                                            {
+                                                                preserveScroll: true,
+                                                            },
+                                                        )
+                                                    }
+                                                >
+                                                    Restore
+                                                </Button>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </div>
+                    </section>
+                )}
+            </div>
+
+            <Dialog
+                open={editingRoom !== undefined}
+                onOpenChange={(open) => !open && setEditingRoom(undefined)}
+            >
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>
+                            {editingRoom
+                                ? `Edit room ${editingRoom.number}`
+                                : 'New room'}
+                        </DialogTitle>
+                        <DialogDescription>
+                            The number is the label your team uses for the room.
+                        </DialogDescription>
+                    </DialogHeader>
+                    {editingRoom !== undefined && (
+                        <RoomFormDialog
+                            key={editingRoom?.id ?? 'new'}
+                            room={editingRoom}
+                            roomTypes={roomTypes}
+                            roomGroups={roomGroups}
+                            onClose={() => setEditingRoom(undefined)}
+                        />
+                    )}
+                </DialogContent>
+            </Dialog>
+
+            <Dialog
+                open={editingGroup !== undefined}
+                onOpenChange={(open) => !open && setEditingGroup(undefined)}
+            >
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>
+                            {editingGroup
+                                ? `Rename ${editingGroup.name}`
+                                : 'New room group'}
+                        </DialogTitle>
+                        <DialogDescription>
+                            A group can be a floor, a wing or a block.
+                        </DialogDescription>
+                    </DialogHeader>
+                    {editingGroup !== undefined && (
+                        <RoomGroupFormDialog
+                            key={editingGroup?.id ?? 'new'}
+                            group={editingGroup}
+                            onClose={() => setEditingGroup(undefined)}
+                        />
+                    )}
+                </DialogContent>
+            </Dialog>
+
+            <GenerateRoomsSheet
+                open={generating}
+                onOpenChange={setGenerating}
+                roomTypes={typeOptions}
+                roomGroups={groupOptions}
+                limit={generateLimit}
+            />
+        </>
+    );
+}
+
+RoomsIndex.layout = {
+    breadcrumbs: [{ title: 'Rooms', href: index() }],
+};

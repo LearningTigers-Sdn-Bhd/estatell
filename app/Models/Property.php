@@ -100,6 +100,22 @@ class Property extends Model implements FeatureScopeSerializeable
         return $this->hasMany(RoomType::class);
     }
 
+    /**
+     * @return HasMany<RoomGroup, $this>
+     */
+    public function roomGroups(): HasMany
+    {
+        return $this->hasMany(RoomGroup::class);
+    }
+
+    /**
+     * @return HasMany<Room, $this>
+     */
+    public function rooms(): HasMany
+    {
+        return $this->hasMany(Room::class);
+    }
+
     /** @return HasMany<PropertyNotificationSetting, $this> */
     public function notificationSettings(): HasMany
     {

@@ -56,7 +56,14 @@ class RoomTypeRequest extends FormRequest
                 },
             ],
             'description' => ['nullable', 'string', 'max:2000'],
-            'sell_unit' => ['required', Rule::enum(SellUnit::class)],
+            'sell_unit' => [
+                'required', Rule::enum(SellUnit::class),
+                function (string $attribute, mixed $value, Closure $fail) use ($current): void {
+                    if ($current instanceof RoomType && $current->sell_unit->value !== $value && $current->rooms()->exists()) {
+                        $fail(__('Sold by cannot change while this room type has rooms.'));
+                    }
+                },
+            ],
             'max_adults' => ['required', 'integer', 'min:1', 'max:50'],
             'max_children' => ['required', 'integer', 'min:0', 'max:50'],
             'base_occupancy' => ['required', 'integer', 'min:1'],
