@@ -57,6 +57,7 @@ Later modules add rows here. Their module docs list their permissions.
 
 - `SyncPermissions`
 - `SeedDefaultRoles`
+- `AssignOwnerRole`: gives a user their property's Owner role. It sets and restores the permission team, so it also works outside `/p` routes (registration, migrations).
 - `AssignStaffRole`
 - `CreateRole`
 - `UpdateRolePermissions`

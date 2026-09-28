@@ -7,6 +7,7 @@ use App\Data\Navigation\NavGroupData;
 use App\Data\Navigation\StaffNavigationData;
 use App\Enums\NavigationContext;
 use App\Models\Property;
+use App\Models\User;
 
 /**
  * Builds the staff sidebar from one navigation class per context.
@@ -19,13 +20,13 @@ class StaffNavigation
         private SettingsNavigation $settings,
     ) {}
 
-    public function build(Property $property, ?string $routeName): StaffNavigationData
+    public function build(Property $property, User $user, ?string $routeName): StaffNavigationData
     {
         $contexts = [];
 
         foreach (NavigationContext::cases() as $context) {
             $groups = array_values(array_filter(
-                $this->groupsFor($context, $property),
+                $this->groupsFor($context, $property, $user),
                 fn (NavGroupData $group): bool => $group->items !== [],
             ));
 
@@ -48,15 +49,15 @@ class StaffNavigation
 
     /**
      * Finance and Reports get their navigation classes with their modules.
-     * Permission filtering comes with docs/03-staff/02-roles-and-permissions.md.
+     * Each context class leaves out the items the user has no permission for.
      *
      * @return list<NavGroupData>
      */
-    private function groupsFor(NavigationContext $context, Property $property): array
+    private function groupsFor(NavigationContext $context, Property $property, User $user): array
     {
         return match ($context) {
             NavigationContext::FrontDesk => $this->frontDesk->groups($property),
-            NavigationContext::Settings => $this->settings->groups($property),
+            NavigationContext::Settings => $this->settings->groups($property, $user),
             NavigationContext::Finance, NavigationContext::Reports => [],
         };
     }

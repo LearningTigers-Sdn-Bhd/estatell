@@ -97,6 +97,7 @@ import { stayView } from '@/routes/front-desk';
 - **Daily operations** live under module prefixes: front desk, reservations, guests, housekeeping, night audit, finance (folios, payments, city ledger), reports, channels.
 - **Exception:** the rate calendar is used daily, so it lives at `/p/{code}/rates/calendar` (`rates.calendar`).
 - Onboarding steps render the same settings forms in the wizard layout.
+- Each settings page group carries its own `can:` permission middleware (property details: `settings.manage`), because staff and roles pages under `settings.*` need other permissions. Staff without it get 403.
 
 ## Account vs settings (decided)
 

@@ -2,7 +2,10 @@
 
 namespace Database\Factories;
 
+use App\Actions\Staff\SeedDefaultRoles;
+use App\Enums\DefaultRoleEnum;
 use App\Models\Property;
+use App\Models\Role;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
@@ -70,5 +73,30 @@ class UserFactory extends Factory
             'is_admin' => true,
             'property_id' => null,
         ]);
+    }
+
+    /**
+     * Seed the property's default roles and give the user the Owner role.
+     */
+    public function owner(): static
+    {
+        return $this->withRole(DefaultRoleEnum::Owner);
+    }
+
+    /**
+     * Seed the property's default roles and give the user one of them.
+     */
+    public function withRole(DefaultRoleEnum $defaultRole): static
+    {
+        return $this->afterCreating(function (User $user) use ($defaultRole): void {
+            app(SeedDefaultRoles::class)($user->property);
+
+            $previousTeamId = getPermissionsTeamId();
+            setPermissionsTeamId($user->property_id);
+
+            $user->assignRole(Role::query()->where('property_id', $user->property_id)->where('default_role', $defaultRole)->firstOrFail());
+
+            setPermissionsTeamId($previousTeamId);
+        });
     }
 }

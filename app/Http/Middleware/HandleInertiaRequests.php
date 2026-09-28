@@ -77,7 +77,12 @@ class HandleInertiaRequests extends Middleware
             return null;
         }
 
-        return app(StaffNavigation::class)->build($property, $request->route()?->getName());
+        // Pages outside /p (account pages) have no permission team yet; staff belong to one property, so use it.
+        if (getPermissionsTeamId() === null) {
+            setPermissionsTeamId($property->id);
+        }
+
+        return app(StaffNavigation::class)->build($property, $user, $request->route()?->getName());
     }
 
     /**

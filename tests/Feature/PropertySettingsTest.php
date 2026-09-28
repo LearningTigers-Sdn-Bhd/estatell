@@ -73,7 +73,7 @@ test('new owners see setup and saving basics creates defaults', function () {
 });
 
 test('saving basics again preserves edited settings', function () {
-    $staff = User::factory()->create();
+    $staff = User::factory()->owner()->create();
     $property = $staff->property;
     $settings = PropertySetting::factory()->for($property)->create(['default_locale' => 'ms']);
 
@@ -86,7 +86,7 @@ test('saving basics again preserves edited settings', function () {
 });
 
 test('settings sections save independently', function () {
-    $staff = User::factory()->create();
+    $staff = User::factory()->owner()->create();
     $property = $staff->property;
     $settings = PropertySetting::factory()->for($property)->create();
 
@@ -119,7 +119,7 @@ test('settings sections save independently', function () {
 });
 
 test('each settings tab has its own url and sends only its options', function () {
-    $staff = User::factory()->create();
+    $staff = User::factory()->owner()->create();
     $property = $staff->property;
     PropertySetting::factory()->for($property)->create();
 
@@ -137,7 +137,7 @@ test('each settings tab has its own url and sends only its options', function ()
 });
 
 test('invalid values and missing setup cannot update settings', function () {
-    $staff = User::factory()->create();
+    $staff = User::factory()->owner()->create();
     $property = $staff->property;
 
     $this->actingAs($staff)->put(route('settings.update', [$property->code, 'support']), [])->assertNotFound();
@@ -157,7 +157,7 @@ test('invalid values and missing setup cannot update settings', function () {
 });
 
 test('staff cannot read or update another property', function () {
-    $staff = User::factory()->create();
+    $staff = User::factory()->owner()->create();
     $other = User::factory()->create()->property;
     PropertySetting::factory()->for($other)->create();
 
@@ -171,7 +171,7 @@ test('staff cannot read or update another property', function () {
 
 test('currency and time zone are fixed after the property goes live', function () {
     $property = Property::factory()->live()->create();
-    $staff = User::factory()->for($property)->create();
+    $staff = User::factory()->for($property)->owner()->create();
     $settings = PropertySetting::factory()->for($property)->create();
 
     $this->actingAs($staff)->get(route('settings.edit', $property->code))

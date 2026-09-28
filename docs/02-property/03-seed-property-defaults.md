@@ -19,11 +19,13 @@ A new property should work immediately. `SeedPropertyDefaults` creates sensible 
 
 Self sign-up asks only for the property name, so sign-up stays short.
 
+Roles are the exception: `SeedDefaultRoles` runs when the property is created, because the owner needs the Owner role from the first login. It is idempotent, so `SeedPropertyDefaults` can call it again safely.
+
 ## Planned defaults
 
 | Area              | Seeded data                                                           | Source                     |
 | ----------------- | --------------------------------------------------------------------- | -------------------------- |
-| Roles             | Owner, Manager, FrontDesk, Housekeeping, Accounts                     | `DefaultRoleEnum`          |
+| Roles             | Owner, Manager, FrontDesk, Housekeeping, Accounts (already seeded)    | `DefaultRoleEnum`          |
 | Meal periods      | Breakfast, Lunch, Dinner                                              | `DefaultMealPeriod`        |
 | Transaction codes | ROOM, NO_SHOW, LATE_CHECKOUT, SST, TOURISM_TAX, CASH, CARD and others | System code list           |
 | Taxes             | Country tax presets, disabled until confirmed                         | Country preset             |

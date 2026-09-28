@@ -20,5 +20,6 @@ Two ways to create a property. Both end in the same place: an owner in the onboa
 ## Rules
 
 - `properties.onboarding_started_at` is set on creation.
-- `RegisterPropertyOwner` creates the property and the owner in one transaction at registration, so the `users` CHECK (staff always have a property) holds. `type` and `country_code` stay empty until the Basics step. The `verified` middleware keeps unverified owners out of the wizard.
+- `RegisterPropertyOwner` creates the property and the owner in one transaction at registration, so the `users` CHECK (staff always have a property) holds. In the same transaction it seeds the default roles (`SeedDefaultRoles`) and gives the owner the Owner role (`AssignOwnerRole`), so the owner has every permission from the first login. `type` and `country_code` stay empty until the Basics step. The `verified` middleware keeps unverified owners out of the wizard.
+- Properties created before roles existed were backfilled by a migration: default roles seeded, and each property's first user made the Owner.
 - Platform admins are `users` with `is_admin` and never register here (see [Platform admins](../01-platform/01-platform-admins.md)).

@@ -5,7 +5,7 @@ use App\Models\User;
 use Inertia\Testing\AssertableInertia as Assert;
 
 test('staff get front desk and settings contexts with the active context from the route', function () {
-    $staff = User::factory()->create();
+    $staff = User::factory()->owner()->create();
     $code = $staff->property->code;
 
     $this->actingAs($staff)
@@ -22,7 +22,7 @@ test('staff get front desk and settings contexts with the active context from th
 });
 
 test('the details item stays active on every settings tab', function (string $routeName) {
-    $staff = User::factory()->create();
+    $staff = User::factory()->owner()->create();
 
     $this->actingAs($staff)
         ->get(route($routeName, $staff->property->code))

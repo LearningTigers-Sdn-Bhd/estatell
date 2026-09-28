@@ -76,6 +76,14 @@ class Property extends Model implements FeatureScopeSerializeable
         return $this->hasMany(User::class);
     }
 
+    /**
+     * @return HasMany<Role, $this>
+     */
+    public function roles(): HasMany
+    {
+        return $this->hasMany(Role::class);
+    }
+
     /** @return HasOne<PropertySetting, $this> */
     public function settings(): HasOne
     {
