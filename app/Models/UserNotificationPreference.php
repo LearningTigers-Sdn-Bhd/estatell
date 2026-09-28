@@ -1,0 +1,34 @@
+<?php
+
+namespace App\Models;
+
+use App\Enums\NotificationChannel;
+use App\Enums\NotificationType;
+use Database\Factories\UserNotificationPreferenceFactory;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+
+#[Fillable(['type', 'channel', 'enabled'])]
+class UserNotificationPreference extends Model
+{
+    /** @use HasFactory<UserNotificationPreferenceFactory> */
+    use HasFactory;
+
+    /** @return array<string, string> */
+    protected function casts(): array
+    {
+        return [
+            'type' => NotificationType::class,
+            'channel' => NotificationChannel::class,
+            'enabled' => 'boolean',
+        ];
+    }
+
+    /** @return BelongsTo<User, $this> */
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+}

@@ -12,6 +12,7 @@ enum PermissionEnum: string
     case StaffView = 'staff.view';
     case StaffManage = 'staff.manage';
     case RolesManage = 'roles.manage';
+    case NotificationManage = 'notification.manage';
 
     public function label(): string
     {
@@ -20,6 +21,7 @@ enum PermissionEnum: string
             self::StaffView => __('View staff'),
             self::StaffManage => __('Manage staff'),
             self::RolesManage => __('Manage roles'),
+            self::NotificationManage => __('Manage notification settings'),
         };
     }
 
@@ -31,6 +33,7 @@ enum PermissionEnum: string
         return match ($this) {
             self::SettingsManage => __('Property'),
             self::StaffView, self::StaffManage, self::RolesManage => __('Team'),
+            self::NotificationManage => __('System'),
         };
     }
 

@@ -1,16 +1,16 @@
-import { Link } from '@inertiajs/react';
+import { Link, usePage } from '@inertiajs/react';
 import type { PropsWithChildren } from 'react';
-import Heading from '@/components/heading';
 import { buttonVariants } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { useCurrentUrl } from '@/hooks/use-current-url';
 import { cn, toUrl } from '@/lib/utils';
 import { edit as editAppearance } from '@/routes/account/appearance';
+import { edit as editNotifications } from '@/routes/account/notifications';
 import { edit } from '@/routes/account/profile';
 import { edit as editSecurity } from '@/routes/account/security';
 import type { NavItem } from '@/types';
 
-const sidebarNavItems: NavItem[] = [
+const baseSidebarNavItems: NavItem[] = [
     {
         title: 'Profile',
         href: edit(),
@@ -30,20 +30,23 @@ const sidebarNavItems: NavItem[] = [
 
 export default function AccountLayout({ children }: PropsWithChildren) {
     const { isCurrentOrParentUrl } = useCurrentUrl();
+    const { property } = usePage().props;
+    const sidebarNavItems = property
+        ? [
+              ...baseSidebarNavItems,
+              {
+                  title: 'Notifications',
+                  href: editNotifications(),
+                  icon: null,
+              },
+          ]
+        : baseSidebarNavItems;
 
     return (
         <div className="px-4 py-6">
-            <Heading
-                title="Account"
-                description="Manage your profile, security and appearance"
-            />
-
-            <div className="flex flex-col lg:flex-row lg:space-x-12">
+            <div className="flex flex-col gap-6 lg:flex-row lg:gap-12">
                 <aside className="w-full max-w-xl lg:w-48">
-                    <nav
-                        className="flex flex-col space-y-1 space-x-0"
-                        aria-label="Account"
-                    >
+                    <nav className="flex flex-col gap-1" aria-label="Account">
                         {sidebarNavItems.map((item, index) => (
                             <Link
                                 key={`${toUrl(item.href)}-${index}`}
@@ -68,10 +71,10 @@ export default function AccountLayout({ children }: PropsWithChildren) {
                     </nav>
                 </aside>
 
-                <Separator className="my-6 lg:hidden" />
+                <Separator className="lg:hidden" />
 
                 <div className="flex-1 md:max-w-2xl">
-                    <section className="max-w-xl space-y-12">
+                    <section className="flex max-w-xl flex-col gap-12">
                         {children}
                     </section>
                 </div>

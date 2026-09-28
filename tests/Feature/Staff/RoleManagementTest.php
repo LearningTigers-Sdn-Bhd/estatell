@@ -37,12 +37,12 @@ test('owners see every role as a column with its permissions', function () {
                 'isDefault' => true,
                 'isLocked' => true,
                 'staffCount' => 1,
-                'permissions' => ['roles.manage', 'settings.manage', 'staff.manage', 'staff.view'],
+                'permissions' => ['notification.manage', 'roles.manage', 'settings.manage', 'staff.manage', 'staff.view'],
             ])
             ->where('roles.1.name', 'Manager')
             ->where('roles.1.staffCount', 0)
             ->where('roles.1.permissions', ['settings.manage', 'staff.manage', 'staff.view'])
-            ->has('permissions', 4)
+            ->has('permissions', 5)
             ->where('permissions.0', ['value' => 'settings.manage', 'label' => 'Manage property settings', 'group' => 'Property']));
 });
 
@@ -122,7 +122,7 @@ test('the owner column is skipped, and unknown permissions or other properties\'
     $this->put($update, ['roles' => [roleOf($other, DefaultRoleEnum::Manager)->id => []]])
         ->assertSessionHasErrors('roles');
 
-    expect($ownerRole->permissions()->count())->toBe(4)
+    expect($ownerRole->permissions()->count())->toBe(5)
         ->and(roleOf($other, DefaultRoleEnum::Manager)->permissions()->count())->toBe(3)
         ->and(Activity::query()->count())->toBe(0);
 });

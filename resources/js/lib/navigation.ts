@@ -1,5 +1,6 @@
 import {
     Activity,
+    Bell,
     Building2,
     ChartColumn,
     ConciergeBell,
@@ -18,6 +19,7 @@ const icons: Record<string, LucideIcon> = {
     building: Building2,
     settings: Settings,
     activity: Activity,
+    bell: Bell,
     'concierge-bell': ConciergeBell,
     wallet: Wallet,
     'chart-column': ChartColumn,

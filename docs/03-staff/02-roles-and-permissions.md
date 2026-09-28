@@ -30,12 +30,13 @@ roles    spatie columns + property_id (NOT NULL, FK) + default_role (nullable)
 
 ## Default permissions
 
-| Permission        | Guards                                       | Owner | Manager | Front desk, Housekeeping, Finance |
-| ----------------- | -------------------------------------------- | ----- | ------- | --------------------------------- |
-| `settings.manage` | Property settings pages                      | ✓     | ✓       | –                                 |
-| `staff.view`      | Staff list                                   | ✓     | ✓       | –                                 |
-| `staff.manage`    | Invite, deactivate, reactivate, assign roles | ✓     | ✓       | –                                 |
-| `roles.manage`    | Create roles, edit role permissions          | ✓     | –       | –                                 |
+| Permission            | Guards                                       | Owner | Manager | Front desk, Housekeeping, Finance |
+| --------------------- | -------------------------------------------- | ----- | ------- | --------------------------------- |
+| `settings.manage`     | Property settings pages                      | ✓     | ✓       | –                                 |
+| `staff.view`          | Staff list                                   | ✓     | ✓       | –                                 |
+| `staff.manage`        | Invite, deactivate, reactivate, assign roles | ✓     | ✓       | –                                 |
+| `roles.manage`        | Create roles, edit role permissions          | ✓     | –       | –                                 |
+| `notification.manage` | Property notification settings               | ✓     | –       | –                                 |
 
 Later modules add rows here. Their module docs list their permissions.
 

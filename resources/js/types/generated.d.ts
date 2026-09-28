@@ -25,6 +25,21 @@ active: App.Enums.NavigationContext | null,
 contexts: App.Data.Navigation.NavContextData[],
 };
 }
+namespace Notifications {
+export type NotificationChannelPreferenceData = {
+channel: App.Enums.NotificationChannel,
+label: string,
+supported: boolean,
+enabled: boolean,
+editable: boolean,
+disabledReason: string | null,
+};
+export type NotificationPreferenceData = {
+type: App.Enums.NotificationType,
+label: string,
+channels: App.Data.Notifications.NotificationChannelPreferenceData[],
+};
+}
 namespace Onboarding {
 export type OwnerSetupData = {
 name: string,
@@ -187,7 +202,7 @@ export type NotificationChannel = 'mail' | 'database';
 export type NotificationType = 'night_audit_completed' | 'night_audit_exceptions' | 'night_audit_failed' | 'registration_card_link' | 'onboarding_reminder' | 'dorm_strategy_changed' | 'support_access_used';
 export type OverdueDeparturePolicy = 'extend_one_night' | 'block';
 export type OwnerSetupMethod = 'email_link' | 'initial_password';
-export type PermissionEnum = 'settings.manage' | 'staff.view' | 'staff.manage' | 'roles.manage';
+export type PermissionEnum = 'settings.manage' | 'staff.view' | 'staff.manage' | 'roles.manage' | 'notification.manage';
 export type PlatformFeature = 'channel-manager';
 export type PropertyStatus = 'onboarding' | 'pending_approval' | 'live' | 'suspended';
 export type PropertyType = 'hotel' | 'hostel' | 'resort' | 'serviced_apartment' | 'homestay';

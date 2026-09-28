@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\PermissionEnum;
+use App\Http\Controllers\Property\NotificationSettingController;
 use App\Http\Controllers\Property\PropertySettingsController;
 use App\Http\Controllers\Staff\RoleController;
 use App\Http\Controllers\Staff\StaffController;
@@ -10,6 +11,11 @@ use App\Http\Controllers\Staff\StaffStatusController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('settings')->name('settings.')->group(function () {
+    Route::prefix('notifications')->name('notifications.')->middleware('can:'.PermissionEnum::NotificationManage->value)->group(function () {
+        Route::get('/', [NotificationSettingController::class, 'index'])->name('index');
+        Route::put('{type}/{channel}', [NotificationSettingController::class, 'update'])->name('update');
+    });
+
     Route::middleware('can:'.PermissionEnum::SettingsManage->value)->group(function () {
         Route::get('/', [PropertySettingsController::class, 'edit'])->name('edit');
         Route::get('operations', [PropertySettingsController::class, 'operations'])->name('operations');

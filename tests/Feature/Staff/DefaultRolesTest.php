@@ -32,7 +32,7 @@ test('seeding creates the default roles with their default permissions', functio
     app(SeedDefaultRoles::class)($property);
 
     expect(Role::query()->where('property_id', $property->id)->count())->toBe(5)
-        ->and(roleNames(defaultRole($property, DefaultRoleEnum::Owner)))->toEqualCanonicalizing(['roles.manage', 'settings.manage', 'staff.manage', 'staff.view'])
+        ->and(roleNames(defaultRole($property, DefaultRoleEnum::Owner)))->toEqualCanonicalizing(['notification.manage', 'roles.manage', 'settings.manage', 'staff.manage', 'staff.view'])
         ->and(roleNames(defaultRole($property, DefaultRoleEnum::Manager)))->toEqualCanonicalizing(['settings.manage', 'staff.manage', 'staff.view'])
         ->and(roleNames(defaultRole($property, DefaultRoleEnum::FrontDesk)))->toBe([])
         ->and(defaultRole($property, DefaultRoleEnum::FrontDesk)->name)->toBe('Front desk');

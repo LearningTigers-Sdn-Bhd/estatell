@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Account\NotificationPreferenceController;
 use App\Http\Controllers\Account\ProfileController;
 use App\Http\Controllers\Account\SecurityController;
 use Illuminate\Auth\Middleware\RequirePassword;
@@ -15,6 +16,9 @@ Route::middleware(['auth'])->prefix('account')->name('account.')->group(function
 });
 
 Route::middleware(['auth', 'verified'])->prefix('account')->name('account.')->group(function () {
+    Route::get('notifications', [NotificationPreferenceController::class, 'edit'])->name('notifications.edit');
+    Route::put('notifications/{type}/{channel}', [NotificationPreferenceController::class, 'update'])->name('notifications.update');
+
     Route::delete('profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
     Route::get('security', [SecurityController::class, 'edit'])

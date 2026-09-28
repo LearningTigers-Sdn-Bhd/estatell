@@ -42,6 +42,14 @@ class SettingsNavigation
                     active: request()->routeIs('settings.roles.*'),
                 ) : null,
             ]))),
+            new NavGroupData(label: __('System'), items: array_values(array_filter([
+                $user->can(PermissionEnum::NotificationManage->value) ? new NavItemData(
+                    title: __('Notifications'),
+                    href: route('settings.notifications.index', ['property' => $property->code], absolute: false),
+                    icon: 'bell',
+                    active: request()->routeIs('settings.notifications.*'),
+                ) : null,
+            ]))),
         ];
     }
 }

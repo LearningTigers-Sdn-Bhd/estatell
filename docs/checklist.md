@@ -50,6 +50,7 @@ Legend: **Needs** lists items that must be done first.
 | `be237ae` | feat(staff): show roles as one permission matrix                      |
 | `a168d56` | feat(platform): show the owner on admin property pages                |
 | `e010ed4` | feat(property): seed property defaults from type and country          |
+| `e920679` | feat(notifications): add notification types and channels              |
 
 Smaller fixes and reverts are in `git log`.
 
@@ -88,7 +89,7 @@ Smaller fixes and reverts are in `git log`.
 ### 04 Notifications
 
 - [x] `feat(notifications): add notification types and channels` — Docs: [Notification types](04-notifications/01-notification-types.md).
-- [ ] `feat(notifications): add property and user notification preferences` — Docs: [Notification preferences](04-notifications/02-notification-preferences.md).
+- [x] `feat(notifications): add property and user notification preferences` — Docs: [Notification preferences](04-notifications/02-notification-preferences.md).
 
 ### 05 Rooms
 

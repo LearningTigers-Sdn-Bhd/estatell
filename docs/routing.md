@@ -35,33 +35,35 @@ URL shape, route groups, names and middleware for estatell. Wayfinder generates 
 
 ## Route groups
 
-| Group              | URL prefix                                                   | Name prefix           | Middleware                                                   | Route file         |
-| ------------------ | ------------------------------------------------------------ | --------------------- | ------------------------------------------------------------ | ------------------ |
-| Public and auth    | `/`, Fortify routes                                          | `home`, Fortify names | –                                                            | `web.php`          |
-| Onboarding         | `/p/{code}/onboarding`                                       | `onboarding.`         | property.access, verified                                    | `onboarding.php`   |
-| Dashboard          | `/p/{code}/dashboard`                                        | `dashboard`           | + live (from module 17)                                      | `web.php`          |
-| Suspension notice  | `/p/{code}/suspended`                                        | `property.suspended`  | property.access, verified                                    | `web.php`          |
-| Front desk         | `/p/{code}/front-desk`                                       | `front-desk.`         | + live                                                       | `front-desk.php`   |
-| Reservations       | `/p/{code}/reservations`                                     | `reservations.`       | + live                                                       | `reservations.php` |
-| Guests             | `/p/{code}/guests`                                           | `guests.`             | + live                                                       | `guests.php`       |
-| Rates              | `/p/{code}/rates`                                            | `rates.`              | property.access (open before go-live)                        | `rates.php`        |
-| Finance            | `/p/{code}/finance` (folios, payments, `city-ledger/…`)      | `finance.`            | + live                                                       | `finance.php`      |
-| Housekeeping       | `/p/{code}/housekeeping`                                     | `housekeeping.`       | + live                                                       | `housekeeping.php` |
-| Night audit        | `/p/{code}/night-audit`                                      | `night-audit.`        | + live                                                       | `night-audit.php`  |
-| Reports            | `/p/{code}/reports`                                          | `reports.`            | + live                                                       | `reports.php`      |
-| Channels           | `/p/{code}/channels`                                         | `channels.`           | + live, features:ChannelManager                              | `channels.php`     |
-| Property settings  | `/p/{code}/settings`                                         | `settings.`           | property.access (open before go-live)                        | `settings.php`     |
-| Account (user)     | `/account` (`profile`, `security`, `password`, `appearance`) | `account.`            | auth (+ verified for security, password, appearance, delete) | `account.php`      |
-| Impersonation stop | `/impersonation/stop`                                        | `impersonation.stop`  | web session                                                  | `web.php`          |
-| Platform admin     | `/admin`                                                     | `admin.`              | auth, can:admin                                              | `admin.php`        |
-| Guest-facing       | `/g`                                                         | `guest.`              | signed                                                       | `guest.php`        |
-| Webhooks           | `/webhooks`                                                  | `webhooks.`           | no CSRF, provider signature check                            | `webhooks.php`     |
+| Group              | URL prefix                                                                    | Name prefix           | Middleware                                                                               | Route file         |
+| ------------------ | ----------------------------------------------------------------------------- | --------------------- | ---------------------------------------------------------------------------------------- | ------------------ |
+| Public and auth    | `/`, Fortify routes                                                           | `home`, Fortify names | –                                                                                        | `web.php`          |
+| Onboarding         | `/p/{code}/onboarding`                                                        | `onboarding.`         | property.access, verified                                                                | `onboarding.php`   |
+| Dashboard          | `/p/{code}/dashboard`                                                         | `dashboard`           | + live (from module 17)                                                                  | `web.php`          |
+| Suspension notice  | `/p/{code}/suspended`                                                         | `property.suspended`  | property.access, verified                                                                | `web.php`          |
+| Front desk         | `/p/{code}/front-desk`                                                        | `front-desk.`         | + live                                                                                   | `front-desk.php`   |
+| Reservations       | `/p/{code}/reservations`                                                      | `reservations.`       | + live                                                                                   | `reservations.php` |
+| Guests             | `/p/{code}/guests`                                                            | `guests.`             | + live                                                                                   | `guests.php`       |
+| Rates              | `/p/{code}/rates`                                                             | `rates.`              | property.access (open before go-live)                                                    | `rates.php`        |
+| Finance            | `/p/{code}/finance` (folios, payments, `city-ledger/…`)                       | `finance.`            | + live                                                                                   | `finance.php`      |
+| Housekeeping       | `/p/{code}/housekeeping`                                                      | `housekeeping.`       | + live                                                                                   | `housekeeping.php` |
+| Night audit        | `/p/{code}/night-audit`                                                       | `night-audit.`        | + live                                                                                   | `night-audit.php`  |
+| Reports            | `/p/{code}/reports`                                                           | `reports.`            | + live                                                                                   | `reports.php`      |
+| Channels           | `/p/{code}/channels`                                                          | `channels.`           | + live, features:ChannelManager                                                          | `channels.php`     |
+| Property settings  | `/p/{code}/settings`                                                          | `settings.`           | property.access (open before go-live), then page permission                              | `settings.php`     |
+| Account (user)     | `/account` (`profile`, `security`, `password`, `appearance`, `notifications`) | `account.`            | auth (+ verified for security, password, appearance, notifications and profile deletion) | `account.php`      |
+| Impersonation stop | `/impersonation/stop`                                                         | `impersonation.stop`  | web session                                                                              | `web.php`          |
+| Platform admin     | `/admin`                                                                      | `admin.`              | auth, can:admin                                                                          | `admin.php`        |
+| Guest-facing       | `/g`                                                                          | `guest.`              | signed                                                                                   | `guest.php`        |
+| Webhooks           | `/webhooks`                                                                   | `webhooks.`           | no CSRF, provider signature check                                                        | `webhooks.php`     |
 
 After login, an Owner of a non-live property is redirected to `/p/{their code}/onboarding/basics`. Other staff and live Owners go to the property dashboard.
 
 - Fortify's `home` is `/dashboard` (`home.redirect`, `HomeRedirectController`). It sends admins to `/admin`, non-live Owners to Basics, and other staff to their property dashboard.
 - `live` is not applied yet. It is added with the onboarding wizard (module 17), so new owners are not sent to a page that does not exist.
 - The first Basics route is `/p/{code}/onboarding/basics` (`onboarding.basics.edit` and `.update`). Settings tabs have their own GET routes: `/p/{code}/settings` (`settings.edit`, General), `/settings/operations`, `/settings/registration` and `/settings/support`. Each section saves with `PUT /p/{code}/settings/{section}` (`settings.update`) and redirects to its tab. The Settings page links to Basics until the settings row exists.
+- Property notification settings use `GET /p/{code}/settings/notifications` and `PUT /p/{code}/settings/notifications/{type}/{channel}` (`settings.notifications.index` and `.update`). Both require `notification.manage`.
+- Personal notification preferences use `GET /account/notifications` and `PUT /account/notifications/{type}/{channel}` (`account.notifications.edit` and `.update`). Both require verified property staff; platform admins receive 404.
 - `EnsurePropertyAccess` redirects suspended staff to the suspension notice after checking property ownership. The notice redirects to the dashboard when the property is active again. Account routes stay available.
 - Shared prop `property` (`PropertySummaryData`: code, name, status): the property in the URL, or the staff user's own property on pages without one (account pages). Null for admins outside `/p`.
 
@@ -108,7 +110,7 @@ import { stayView } from '@/routes/front-desk';
 
 ## Account vs settings (decided)
 
-- **Account** is about the signed-in person, has no property code, and lives in the user menu: `/account/profile`, `/account/security`, `/account/appearance` (names `account.profile.edit`, `account.profile.update`, `account.profile.destroy`, `account.security.edit`, `account.password.update`, `account.appearance.edit`). Code: `App\Http\Controllers\Account`, `pages/account/*`, `layouts/account/layout.tsx`, `routes/account.php`.
+- **Account** is about the signed-in person, has no property code, and lives in the user menu: `/account/profile`, `/account/security`, `/account/appearance`, `/account/notifications` (names under `account.*`). Code: `App\Http\Controllers\Account`, `pages/account/*`, `layouts/account/layout.tsx`, `routes/account.php`.
 - **Settings** always means the property, under `/p/{code}/settings`, and appears in the sidebar.
 
 ## Sidebar contexts (decided)
