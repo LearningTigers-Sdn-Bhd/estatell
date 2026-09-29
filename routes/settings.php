@@ -2,6 +2,7 @@
 
 use App\Enums\PermissionEnum;
 use App\Http\Controllers\Catalogues\ChargeItemController;
+use App\Http\Controllers\Catalogues\DiscountController;
 use App\Http\Controllers\Catalogues\PaymentMethodController;
 use App\Http\Controllers\Catalogues\RoomRevenueController;
 use App\Http\Controllers\Catalogues\TaxController;
@@ -95,6 +96,13 @@ Route::prefix('settings')->name('settings.')->group(function () {
         Route::post('/', [PaymentMethodController::class, 'store'])->name('store');
         Route::put('order', [PaymentMethodController::class, 'reorder'])->name('reorder');
         Route::put('{paymentMethod}', [PaymentMethodController::class, 'update'])->name('update');
+    });
+
+    Route::prefix('discounts')->name('discounts.')->middleware('can:'.PermissionEnum::SettingsManage->value)->scopeBindings()->group(function () {
+        Route::get('/', [DiscountController::class, 'index'])->name('index');
+        Route::post('/', [DiscountController::class, 'store'])->name('store');
+        Route::put('order', [DiscountController::class, 'reorder'])->name('reorder');
+        Route::put('{discount}', [DiscountController::class, 'update'])->name('update');
     });
 
     Route::prefix('staff')->name('staff.')->group(function () {

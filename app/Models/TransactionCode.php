@@ -59,6 +59,12 @@ class TransactionCode extends Model
         return $this->hasOne(ChargeItem::class);
     }
 
+    /** @return HasOne<Discount, $this> */
+    public function discount(): HasOne
+    {
+        return $this->hasOne(Discount::class);
+    }
+
     /** @return HasOne<Tax, $this> */
     public function postingTax(): HasOne
     {

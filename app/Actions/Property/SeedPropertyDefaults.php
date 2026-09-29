@@ -3,6 +3,7 @@
 namespace App\Actions\Property;
 
 use App\Actions\Catalogues\SeedChargeItems;
+use App\Actions\Catalogues\SeedDiscounts;
 use App\Actions\Catalogues\SeedPaymentMethods;
 use App\Actions\Catalogues\SeedTaxes;
 use App\Actions\Catalogues\SeedTransactionCodes;
@@ -26,6 +27,7 @@ class SeedPropertyDefaults
         private SeedChargeItems $seedChargeItems,
         private SeedPaymentMethods $seedPaymentMethods,
         private SeedTaxes $seedTaxes,
+        private SeedDiscounts $seedDiscounts,
     ) {}
 
     /**
@@ -42,6 +44,7 @@ class SeedPropertyDefaults
             ($this->seedChargeItems)($property, $countryCode);
             ($this->seedPaymentMethods)($property, $countryCode);
             ($this->seedTaxes)($property, $countryCode);
+            ($this->seedDiscounts)($property, $countryCode);
         });
     }
 

@@ -13,7 +13,7 @@ Create a booking in as few fields as possible.
     - Package plans: departure is locked, the stay total is shown.
 3. Optional: company, add-ons, discount.
 4. Guest: search, or quick-add with name and phone. `GuestMatcher` suggests existing guests.
-5. Price: auto-quoted by `RateQuoteService`, with an optional override (logged) or discount.
+5. Price: auto-quoted by `RateQuoteService`, with an optional override (logged) or a RoomOnly discount from the [catalogue](../06-catalogues/05-discounts.md).
     - A restriction that fails (stop-sell, closed to arrival or departure, min or max stay) shows a warning. Staff with `rates.override-restrictions` can continue after entering a reason (see [Daily rates and restrictions](../08-rates/02-daily-rates-and-restrictions.md)).
 
 ## Check-in step

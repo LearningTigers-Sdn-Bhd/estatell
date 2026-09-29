@@ -67,6 +67,12 @@ class SettingsNavigation
                     icon: 'bed',
                     active: request()->routeIs('settings.room-revenue.*'),
                 ) : null,
+                $user->can(PermissionEnum::SettingsManage->value) ? new NavItemData(
+                    title: __('Discounts'),
+                    href: route('settings.discounts.index', ['property' => $property->code], absolute: false),
+                    icon: 'percent',
+                    active: request()->routeIs('settings.discounts.*'),
+                ) : null,
             ]))),
             new NavGroupData(label: __('Team'), items: array_values(array_filter([
                 $user->can(PermissionEnum::StaffView->value) ? new NavItemData(

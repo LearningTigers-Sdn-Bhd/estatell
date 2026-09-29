@@ -23,6 +23,24 @@ isInclusive: boolean,
 foreignGuestsOnly: boolean,
 enabled: boolean,
 };
+export type DiscountChargeData = {
+id: number,
+code: string,
+name: string,
+active: boolean,
+};
+export type DiscountData = {
+id: number,
+name: string,
+code: string,
+isStarter: boolean,
+type: App.Enums.DiscountType,
+value: string | null,
+allowOverride: boolean,
+scope: App.Enums.DiscountScope,
+active: boolean,
+transactionCodeIds: number[],
+};
 export type PaymentMethodData = {
 id: number,
 name: string,
@@ -302,6 +320,8 @@ namespace Enums {
 export type ChargingUnit = 'per_item' | 'per_night' | 'per_stay' | 'per_guest_night' | 'per_guest';
 export type Currency = 'MYR';
 export type DefaultRoleEnum = 'owner' | 'manager' | 'front_desk' | 'housekeeping' | 'finance';
+export type DiscountScope = 'room_only' | 'all_charges' | 'selected';
+export type DiscountType = 'percent' | 'fixed' | 'open';
 export type DormStrategy = 'bed_as_unit' | 'native_dorm';
 export type Locale = 'en' | 'ms';
 export type MediaDisk = 'local' | 'r2';

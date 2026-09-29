@@ -108,7 +108,7 @@ Smaller fixes and reverts are in `git log`.
 - [x] `feat(catalogues): add taxes and tax calculator` — Docs: [Taxes](06-catalogues/03-taxes.md).
 - [x] `feat(catalogues): add payment methods` — Docs: [Payment methods](06-catalogues/04-payment-methods.md).
 - [x] `feat(catalogues): add room revenue taxes` — Docs: [Room revenue](06-catalogues/06-room-revenue.md).
-- [ ] `feat(catalogues): add discounts` — Docs: [Discounts](06-catalogues/05-discounts.md).
+- [x] `feat(catalogues): add discounts` — Docs: [Discounts](06-catalogues/05-discounts.md).
 
 ### 07 Meals
 
