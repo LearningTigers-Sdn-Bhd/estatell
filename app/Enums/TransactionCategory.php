@@ -1,0 +1,56 @@
+<?php
+
+namespace App\Enums;
+
+enum TransactionCategory: string
+{
+    case Room = 'room';
+    case FoodAndBeverage = 'food_and_beverage';
+    case Laundry = 'laundry';
+    case Minibar = 'minibar';
+    case Fee = 'fee';
+    case Tax = 'tax';
+    case Discount = 'discount';
+    case Cash = 'cash';
+    case Card = 'card';
+    case BankTransfer = 'bank_transfer';
+    case EWallet = 'e_wallet';
+    case OtaCollected = 'ota_collected';
+    case DirectBill = 'direct_bill';
+    case Deposit = 'deposit';
+    case Refund = 'refund';
+    case Adjustment = 'adjustment';
+    case Other = 'other';
+
+    public function label(): string
+    {
+        return match ($this) {
+            self::Room => __('Room'),
+            self::FoodAndBeverage => __('Food and beverage'),
+            self::Laundry => __('Laundry'),
+            self::Minibar => __('Minibar'),
+            self::Fee => __('Fee'),
+            self::Tax => __('Tax'),
+            self::Discount => __('Discount'),
+            self::Cash => __('Cash'),
+            self::Card => __('Card'),
+            self::BankTransfer => __('Bank transfer'),
+            self::EWallet => __('E-wallet'),
+            self::OtaCollected => __('OTA collected'),
+            self::DirectBill => __('City ledger'),
+            self::Deposit => __('Deposit'),
+            self::Refund => __('Refund'),
+            self::Adjustment => __('Adjustment'),
+            self::Other => __('Other'),
+        };
+    }
+
+    /** @return list<array{value: string, label: string}> */
+    public static function options(): array
+    {
+        return array_map(
+            fn (self $category): array => ['value' => $category->value, 'label' => $category->label()],
+            self::cases(),
+        );
+    }
+}

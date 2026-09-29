@@ -2,6 +2,7 @@
 
 namespace App\Actions\Property;
 
+use App\Actions\Catalogues\SeedTransactionCodes;
 use App\Actions\Staff\SeedDefaultRoles;
 use App\Enums\Currency;
 use App\Enums\Locale;
@@ -16,7 +17,10 @@ use InvalidArgumentException;
 
 class SeedPropertyDefaults
 {
-    public function __construct(private SeedDefaultRoles $seedDefaultRoles) {}
+    public function __construct(
+        private SeedDefaultRoles $seedDefaultRoles,
+        private SeedTransactionCodes $seedTransactionCodes,
+    ) {}
 
     /**
      * Seed the defaults that are available for a property's type and country.
@@ -25,9 +29,10 @@ class SeedPropertyDefaults
     {
         $settings = $this->settingsFor($type, $countryCode);
 
-        DB::transaction(function () use ($property, $settings): void {
+        DB::transaction(function () use ($property, $settings, $countryCode): void {
             ($this->seedDefaultRoles)($property);
             $property->settings()->firstOrCreate([], $settings);
+            ($this->seedTransactionCodes)($property, $countryCode);
         });
     }
 

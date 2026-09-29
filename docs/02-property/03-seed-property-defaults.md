@@ -6,7 +6,7 @@ A new property should work immediately. `SeedPropertyDefaults` creates sensible 
 
 ## Built first slice
 
-`SeedPropertyDefaults(Property $property, PropertyType $type, string $countryCode)` creates the default roles and property settings. Malaysia is the only supported country. Every property type currently shares the same Malaysia settings preset.
+`SeedPropertyDefaults(Property $property, PropertyType $type, string $countryCode)` creates the default roles, property settings and [transaction codes](../06-catalogues/01-transaction-codes.md). Malaysia is the only supported country. Every property type currently shares the same Malaysia preset.
 
 `SavePropertyBasics` saves type, name and address, fixes country to Malaysia, and calls `SeedPropertyDefaults` in the same transaction. The action is idempotent. A repeated Basics save keeps edited settings, roles and permissions.
 
@@ -29,7 +29,7 @@ Roles are the exception during self sign-up: `SeedDefaultRoles` runs when the pr
 | ----------------- | --------------------------------------------------------------------------------------------- | ------------------------------ |
 | Roles             | Owner, Manager, FrontDesk, Housekeeping, Finance (already seeded)                             | `DefaultRoleEnum`              |
 | Meal periods      | Breakfast, Lunch, Dinner                                                                      | `DefaultMealPeriod`            |
-| Transaction codes | ROOM, NO_SHOW, LATE_CHECKOUT, SST, TOURISM_TAX, CASH, CARD and others                         | System code list               |
+| Transaction codes | The complete Malaysia system-code catalogue (already seeded)                                  | `SystemTransactionCode`        |
 | Taxes             | Country tax presets, disabled until confirmed                                                 | Country preset                 |
 | Payment methods   | Cash, Card, Bank transfer, e-wallet                                                           | Country preset                 |
 | Settings          | Currency, time zone, locale, check-in and check-out times (built), weekend nights FriSat      | Country and type               |
@@ -40,5 +40,5 @@ Roles are the exception during self sign-up: `SeedDefaultRoles` runs when the pr
 ## Rules
 
 - Idempotent: running it twice creates nothing new.
-- System transaction codes are marked `is_system` and cannot be deleted.
+- System transaction codes are marked `is_system`, have stable system keys and have no deletion path. Repeated seeding preserves property changes.
 - "Basic Rate" has no special flag. It can be renamed and archived within the [rate plan guards](../08-rates/01-rate-plans.md#guards). Room types created later are linked to it when the sell unit fits.

@@ -10,8 +10,10 @@ use App\Enums\OverdueDeparturePolicy;
 use App\Enums\PermissionEnum;
 use App\Enums\PropertyType;
 use App\Enums\RegistrationCardScope;
+use App\Enums\SystemTransactionCode;
 use App\Models\Property;
 use App\Models\Role;
+use App\Models\TransactionCode;
 
 test('each property type receives the Malaysia defaults', function (PropertyType $type) {
     $property = Property::factory()->create(['type' => $type, 'country_code' => 'MY']);
@@ -22,6 +24,7 @@ test('each property type receives the Malaysia defaults', function (PropertyType
 
     expect($property->roles()->count())->toBe(5)
         ->and($property->settings()->count())->toBe(1)
+        ->and($property->transactionCodes()->count())->toBe(count(SystemTransactionCode::cases()))
         ->and($settings->currency)->toBe(Currency::Myr)
         ->and($settings->time_zone)->toBe('Asia/Kuala_Lumpur')
         ->and($settings->default_locale)->toBe(Locale::English)
@@ -52,14 +55,18 @@ test('seeding again preserves edited settings and roles', function () {
         ->where('default_role', DefaultRoleEnum::Manager)
         ->firstOrFail();
     $manager->revokePermissionTo(PermissionEnum::SettingsManage->value);
+    $roomCode = TransactionCode::query()->where('property_id', $property->id)->where('system_key', SystemTransactionCode::RoomRevenue)->firstOrFail();
+    $roomCode->update(['name' => 'Accommodation']);
 
     $seedPropertyDefaults($property, $property->type, $property->country_code);
 
     expect($property->roles()->count())->toBe(5)
         ->and($property->settings()->count())->toBe(1)
+        ->and($property->transactionCodes()->count())->toBe(count(SystemTransactionCode::cases()))
         ->and($property->settings()->firstOrFail()->id)->toBe($settings->id)
         ->and($settings->refresh()->default_locale)->toBe(Locale::Malay)
-        ->and($manager->permissions()->pluck('name')->all())->not->toContain(PermissionEnum::SettingsManage->value);
+        ->and($manager->permissions()->pluck('name')->all())->not->toContain(PermissionEnum::SettingsManage->value)
+        ->and($roomCode->refresh()->name)->toBe('Accommodation');
 });
 
 test('unsupported countries create no defaults', function () {
@@ -69,5 +76,6 @@ test('unsupported countries create no defaults', function () {
         ->toThrow(InvalidArgumentException::class);
 
     expect($property->roles()->count())->toBe(0)
-        ->and($property->settings()->count())->toBe(0);
+        ->and($property->settings()->count())->toBe(0)
+        ->and($property->transactionCodes()->count())->toBe(0);
 });
