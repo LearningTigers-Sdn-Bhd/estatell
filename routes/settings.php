@@ -2,6 +2,7 @@
 
 use App\Enums\PermissionEnum;
 use App\Http\Controllers\Catalogues\ChargeItemController;
+use App\Http\Controllers\Catalogues\TaxController;
 use App\Http\Controllers\Property\NotificationSettingController;
 use App\Http\Controllers\Property\PropertySettingsController;
 use App\Http\Controllers\Rooms\BedController;
@@ -73,6 +74,12 @@ Route::prefix('settings')->name('settings.')->group(function () {
         Route::post('/', [ChargeItemController::class, 'store'])->name('store');
         Route::put('order', [ChargeItemController::class, 'reorder'])->name('reorder');
         Route::put('{chargeItem}', [ChargeItemController::class, 'update'])->name('update');
+    });
+
+    Route::prefix('taxes')->name('taxes.')->middleware('can:'.PermissionEnum::SettingsManage->value)->scopeBindings()->group(function () {
+        Route::get('/', [TaxController::class, 'index'])->name('index');
+        Route::post('/', [TaxController::class, 'store'])->name('store');
+        Route::put('{tax}', [TaxController::class, 'update'])->name('update');
     });
 
     Route::prefix('staff')->name('staff.')->group(function () {

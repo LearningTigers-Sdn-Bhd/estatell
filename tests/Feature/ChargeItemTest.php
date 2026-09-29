@@ -252,8 +252,8 @@ test('the settings sidebar lists charge items only with settings permission', fu
         ->get(route('settings.charge-items.index', $owner->property->code))
         ->assertInertia(fn (Assert $page) => $page
             ->where('navigation.contexts.1.groups.2.label', 'Billing setup')
-            ->where('navigation.contexts.1.groups.2.items.0.title', 'Charge items')
-            ->where('navigation.contexts.1.groups.2.items.0.active', true));
+            ->where('navigation.contexts.1.groups.2.items.1.title', 'Charge items')
+            ->where('navigation.contexts.1.groups.2.items.1.active', true));
 
     $this->actingAs($frontDesk)
         ->get(route('dashboard', $frontDesk->property->code))

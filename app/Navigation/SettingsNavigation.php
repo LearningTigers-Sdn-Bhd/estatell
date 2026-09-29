@@ -44,6 +44,12 @@ class SettingsNavigation
             ]))),
             new NavGroupData(label: __('Billing setup'), items: array_values(array_filter([
                 $user->can(PermissionEnum::SettingsManage->value) ? new NavItemData(
+                    title: __('Taxes'),
+                    href: route('settings.taxes.index', ['property' => $property->code], absolute: false),
+                    icon: 'landmark',
+                    active: request()->routeIs('settings.taxes.*'),
+                ) : null,
+                $user->can(PermissionEnum::SettingsManage->value) ? new NavItemData(
                     title: __('Charge items'),
                     href: route('settings.charge-items.index', ['property' => $property->code], absolute: false),
                     icon: 'wallet',

@@ -10,7 +10,9 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Carbon;
 
 /**
@@ -56,6 +58,18 @@ class TransactionCode extends Model
     public function chargeItems(): HasMany
     {
         return $this->hasMany(ChargeItem::class);
+    }
+
+    /** @return HasOne<Tax, $this> */
+    public function postingTax(): HasOne
+    {
+        return $this->hasOne(Tax::class);
+    }
+
+    /** @return BelongsToMany<Tax, $this> */
+    public function applicableTaxes(): BelongsToMany
+    {
+        return $this->belongsToMany(Tax::class, 'tax_transaction_code');
     }
 
     /** @param Builder<TransactionCode> $query */

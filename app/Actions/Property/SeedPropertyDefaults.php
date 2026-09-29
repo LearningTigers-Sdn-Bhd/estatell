@@ -2,6 +2,7 @@
 
 namespace App\Actions\Property;
 
+use App\Actions\Catalogues\SeedTaxes;
 use App\Actions\Catalogues\SeedTransactionCodes;
 use App\Actions\Staff\SeedDefaultRoles;
 use App\Enums\Currency;
@@ -20,6 +21,7 @@ class SeedPropertyDefaults
     public function __construct(
         private SeedDefaultRoles $seedDefaultRoles,
         private SeedTransactionCodes $seedTransactionCodes,
+        private SeedTaxes $seedTaxes,
     ) {}
 
     /**
@@ -33,6 +35,7 @@ class SeedPropertyDefaults
             ($this->seedDefaultRoles)($property);
             $property->settings()->firstOrCreate([], $settings);
             ($this->seedTransactionCodes)($property, $countryCode);
+            ($this->seedTaxes)($property, $countryCode);
         });
     }
 

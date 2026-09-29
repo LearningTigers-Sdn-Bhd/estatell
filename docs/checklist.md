@@ -105,7 +105,7 @@ Smaller fixes and reverts are in `git log`.
 
 - [x] `feat(catalogues): add transaction codes` — Docs: [Transaction codes](06-catalogues/01-transaction-codes.md).
 - [x] `feat(catalogues): add charge items` — Docs: [Charge items](06-catalogues/02-charge-items.md).
-- [ ] `feat(catalogues): add taxes and tax calculator` — Docs: [Taxes](06-catalogues/03-taxes.md).
+- [x] `feat(catalogues): add taxes and tax calculator` — Docs: [Taxes](06-catalogues/03-taxes.md).
 - [ ] `feat(catalogues): add payment methods` — Docs: [Payment methods](06-catalogues/04-payment-methods.md).
 - [ ] `feat(catalogues): add discounts` — Docs: [Discounts](06-catalogues/05-discounts.md).
 
