@@ -13,7 +13,7 @@ Get a property from sign-up to its first booking in about 15 minutes, without co
 5. Only five steps are required.
 6. Later operating steps render the **same form component** used in settings, inside a wizard layout (Inertia 3 `useLayoutProps`). Basics has its own property identity form.
 
-The first release has only the Basics page. It uses the current staff layout; the full wizard layout and shared step forms arrive with the remaining steps. Basics currently accepts Malaysia only and seeds property settings. It does not create roles, taxes, payment methods or terms yet.
+The first release has only the Basics page. It uses the current staff layout; the full wizard layout and shared step forms arrive with the remaining steps. Basics currently accepts Malaysia only and seeds roles, property settings, transaction codes, taxes and payment methods. It does not create terms yet.
 
 ## Steps
 

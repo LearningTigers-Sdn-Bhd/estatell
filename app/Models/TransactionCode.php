@@ -66,6 +66,12 @@ class TransactionCode extends Model
         return $this->hasOne(Tax::class);
     }
 
+    /** @return HasOne<PaymentMethod, $this> */
+    public function paymentMethod(): HasOne
+    {
+        return $this->hasOne(PaymentMethod::class);
+    }
+
     /** @return BelongsToMany<Tax, $this> */
     public function applicableTaxes(): BelongsToMany
     {

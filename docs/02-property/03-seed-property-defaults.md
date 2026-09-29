@@ -6,7 +6,7 @@ A new property should work immediately. `SeedPropertyDefaults` creates sensible 
 
 ## Built first slice
 
-`SeedPropertyDefaults(Property $property, PropertyType $type, string $countryCode)` creates the default roles, property settings, [transaction codes](../06-catalogues/01-transaction-codes.md) and [taxes](../06-catalogues/03-taxes.md). Malaysia is the only supported country. Every property type currently shares the same Malaysia preset.
+`SeedPropertyDefaults(Property $property, PropertyType $type, string $countryCode)` creates the default roles, property settings, [transaction codes](../06-catalogues/01-transaction-codes.md), [payment methods](../06-catalogues/04-payment-methods.md) and [taxes](../06-catalogues/03-taxes.md). Malaysia is the only supported country. Every property type currently shares the same Malaysia preset.
 
 `SavePropertyBasics` saves type, name and address, fixes country to Malaysia, and calls `SeedPropertyDefaults` in the same transaction. The action is idempotent. A repeated Basics save keeps edited settings, roles and permissions.
 
@@ -31,7 +31,7 @@ Roles are the exception during self sign-up: `SeedDefaultRoles` runs when the pr
 | Meal periods      | Breakfast, Lunch, Dinner                                                                      | `DefaultMealPeriod`            |
 | Transaction codes | The complete Malaysia system-code catalogue (already seeded)                                  | `SystemTransactionCode`        |
 | Taxes             | 8% SST and RM10 Tourism tax on room revenue, disabled until confirmed                         | `SeedTaxes`                    |
-| Payment methods   | Cash, Card, Bank transfer, e-wallet                                                           | Country preset                 |
+| Payment methods   | Six system methods; Cash, Card, Bank transfer and E-wallet start active                       | `SeedPaymentMethods`           |
 | Settings          | Currency, time zone, locale, check-in and check-out times (built), weekend nights FriSat      | Country and type               |
 | Rate plan         | "Basic Rate", an ordinary plan with no prices yet. PerRoom, or PerBed for a dorm-only hostel. | Property type                  |
 | Age groups        | Infant 0–3, Child 4–11 (adults from 12)                                                       | [Age groups](04-age-groups.md) |
@@ -42,4 +42,5 @@ Roles are the exception during self sign-up: `SeedDefaultRoles` runs when the pr
 - Idempotent: running it twice creates nothing new.
 - System transaction codes are marked `is_system`, have stable system keys and have no deletion path. Repeated seeding preserves property changes.
 - Tax presets own the SST and Tourism tax posting codes. Repeated seeding preserves tax rates, names, applicability and enabled state.
+- Payment-method presets wrap the six payment transaction codes. Repeated seeding preserves names, surcharges, reference requirements, availability and order.
 - "Basic Rate" has no special flag. It can be renamed and archived within the [rate plan guards](../08-rates/01-rate-plans.md#guards). Room types created later are linked to it when the sell unit fits.

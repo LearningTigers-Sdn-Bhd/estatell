@@ -17,6 +17,24 @@ id: number,
 label: string,
 active: boolean,
 };
+export type PaymentMethodData = {
+id: number,
+name: string,
+type: App.Enums.PaymentMethodType,
+typeLabel: string,
+transactionCode: string,
+surchargeType: App.Enums.SurchargeType,
+surchargeValue: string | null,
+surchargeChargeItemId: number | null,
+surchargeChargeItem: string | null,
+requiresReference: boolean,
+active: boolean,
+};
+export type SurchargeChargeItemData = {
+id: number,
+label: string,
+active: boolean,
+};
 export type TaxData = {
 id: number,
 name: string,
@@ -275,12 +293,14 @@ export type NotificationChannel = 'mail' | 'database';
 export type NotificationType = 'night_audit_completed' | 'night_audit_exceptions' | 'night_audit_failed' | 'registration_card_link' | 'onboarding_reminder' | 'dorm_strategy_changed' | 'support_access_used';
 export type OverdueDeparturePolicy = 'extend_one_night' | 'block';
 export type OwnerSetupMethod = 'email_link' | 'initial_password';
+export type PaymentMethodType = 'cash' | 'card' | 'bank_transfer' | 'e_wallet' | 'ota_collected' | 'direct_bill';
 export type PermissionEnum = 'settings.manage' | 'staff.view' | 'staff.manage' | 'roles.manage' | 'rooms.view' | 'rooms.manage' | 'notification.manage';
 export type PlatformFeature = 'channel-manager';
 export type PropertyStatus = 'onboarding' | 'pending_approval' | 'live' | 'suspended';
 export type PropertyType = 'hotel' | 'hostel' | 'resort' | 'serviced_apartment' | 'homestay';
 export type RegistrationCardScope = 'primary_only' | 'every_adult';
 export type SellUnit = 'room' | 'bed';
+export type SurchargeType = 'none' | 'fixed' | 'percent';
 export type SystemTransactionCode = 'room_revenue' | 'no_show_revenue' | 'cancellation_revenue' | 'late_checkout_revenue' | 'early_departure_revenue' | 'food_and_beverage_revenue' | 'laundry_revenue' | 'minibar_revenue' | 'fee_revenue' | 'sst_tax' | 'tourism_tax' | 'cash_payment' | 'card_payment' | 'bank_transfer_payment' | 'ewallet_payment' | 'ota_collected_payment' | 'direct_bill_payment' | 'security_deposit' | 'refund' | 'adjustment' | 'discount';
 export type TaxRateType = 'percent' | 'flat';
 export type Tone = 'neutral' | 'info' | 'success' | 'warning' | 'danger';

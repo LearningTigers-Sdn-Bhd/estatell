@@ -119,6 +119,12 @@ class Property extends Model implements FeatureScopeSerializeable
         return $this->hasMany(Tax::class);
     }
 
+    /** @return HasMany<PaymentMethod, $this> */
+    public function paymentMethods(): HasMany
+    {
+        return $this->hasMany(PaymentMethod::class);
+    }
+
     /**
      * @return HasMany<RoomGroup, $this>
      */

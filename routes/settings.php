@@ -2,6 +2,7 @@
 
 use App\Enums\PermissionEnum;
 use App\Http\Controllers\Catalogues\ChargeItemController;
+use App\Http\Controllers\Catalogues\PaymentMethodController;
 use App\Http\Controllers\Catalogues\TaxController;
 use App\Http\Controllers\Property\NotificationSettingController;
 use App\Http\Controllers\Property\PropertySettingsController;
@@ -80,6 +81,12 @@ Route::prefix('settings')->name('settings.')->group(function () {
         Route::get('/', [TaxController::class, 'index'])->name('index');
         Route::post('/', [TaxController::class, 'store'])->name('store');
         Route::put('{tax}', [TaxController::class, 'update'])->name('update');
+    });
+
+    Route::prefix('payment-methods')->name('payment-methods.')->middleware('can:'.PermissionEnum::SettingsManage->value)->scopeBindings()->group(function () {
+        Route::get('/', [PaymentMethodController::class, 'index'])->name('index');
+        Route::put('order', [PaymentMethodController::class, 'reorder'])->name('reorder');
+        Route::put('{paymentMethod}', [PaymentMethodController::class, 'update'])->name('update');
     });
 
     Route::prefix('staff')->name('staff.')->group(function () {

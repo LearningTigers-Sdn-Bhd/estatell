@@ -7,6 +7,7 @@ use App\Enums\Locale;
 use App\Enums\MissedArrivalPolicy;
 use App\Enums\NoShowCharge;
 use App\Enums\OverdueDeparturePolicy;
+use App\Enums\PaymentMethodType;
 use App\Enums\PermissionEnum;
 use App\Enums\PropertyType;
 use App\Enums\RegistrationCardScope;
@@ -25,6 +26,8 @@ test('each property type receives the Malaysia defaults', function (PropertyType
     expect($property->roles()->count())->toBe(5)
         ->and($property->settings()->count())->toBe(1)
         ->and($property->transactionCodes()->count())->toBe(count(SystemTransactionCode::cases()))
+        ->and($property->paymentMethods()->count())->toBe(6)
+        ->and($property->paymentMethods()->where('active', true)->count())->toBe(4)
         ->and($settings->currency)->toBe(Currency::Myr)
         ->and($settings->time_zone)->toBe('Asia/Kuala_Lumpur')
         ->and($settings->default_locale)->toBe(Locale::English)
@@ -57,16 +60,21 @@ test('seeding again preserves edited settings and roles', function () {
     $manager->revokePermissionTo(PermissionEnum::SettingsManage->value);
     $roomCode = TransactionCode::query()->where('property_id', $property->id)->where('system_key', SystemTransactionCode::RoomRevenue)->firstOrFail();
     $roomCode->update(['name' => 'Accommodation']);
+    $card = $property->paymentMethods()->where('type', PaymentMethodType::Card)->firstOrFail();
+    $card->update(['name' => 'Front desk terminal', 'requires_reference' => false]);
 
     $seedPropertyDefaults($property, $property->type, $property->country_code);
 
     expect($property->roles()->count())->toBe(5)
         ->and($property->settings()->count())->toBe(1)
         ->and($property->transactionCodes()->count())->toBe(count(SystemTransactionCode::cases()))
+        ->and($property->paymentMethods()->count())->toBe(6)
         ->and($property->settings()->firstOrFail()->id)->toBe($settings->id)
         ->and($settings->refresh()->default_locale)->toBe(Locale::Malay)
         ->and($manager->permissions()->pluck('name')->all())->not->toContain(PermissionEnum::SettingsManage->value)
-        ->and($roomCode->refresh()->name)->toBe('Accommodation');
+        ->and($roomCode->refresh()->name)->toBe('Accommodation')
+        ->and($card->refresh()->name)->toBe('Front desk terminal')
+        ->and($card->requires_reference)->toBeFalse();
 });
 
 test('unsupported countries create no defaults', function () {
@@ -77,5 +85,6 @@ test('unsupported countries create no defaults', function () {
 
     expect($property->roles()->count())->toBe(0)
         ->and($property->settings()->count())->toBe(0)
-        ->and($property->transactionCodes()->count())->toBe(0);
+        ->and($property->transactionCodes()->count())->toBe(0)
+        ->and($property->paymentMethods()->count())->toBe(0);
 });

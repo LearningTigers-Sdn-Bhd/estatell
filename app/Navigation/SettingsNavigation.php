@@ -55,6 +55,12 @@ class SettingsNavigation
                     icon: 'wallet',
                     active: request()->routeIs('settings.charge-items.*'),
                 ) : null,
+                $user->can(PermissionEnum::SettingsManage->value) ? new NavItemData(
+                    title: __('Payment methods'),
+                    href: route('settings.payment-methods.index', ['property' => $property->code], absolute: false),
+                    icon: 'credit-card',
+                    active: request()->routeIs('settings.payment-methods.*'),
+                ) : null,
             ]))),
             new NavGroupData(label: __('Team'), items: array_values(array_filter([
                 $user->can(PermissionEnum::StaffView->value) ? new NavItemData(

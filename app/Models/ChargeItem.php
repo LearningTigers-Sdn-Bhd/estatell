@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
 
 /**
@@ -58,6 +59,12 @@ class ChargeItem extends Model
     public function transactionCode(): BelongsTo
     {
         return $this->belongsTo(TransactionCode::class);
+    }
+
+    /** @return HasMany<PaymentMethod, $this> */
+    public function surchargePaymentMethods(): HasMany
+    {
+        return $this->hasMany(PaymentMethod::class, 'surcharge_charge_item_id');
     }
 
     /** @param Builder<ChargeItem> $query */
