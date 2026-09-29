@@ -1,5 +1,23 @@
 declare namespace App {
 namespace Data {
+namespace Catalogues {
+export type ChargeItemData = {
+id: number,
+transactionCodeId: number,
+transactionCode: string,
+name: string,
+description: string | null,
+defaultAmount: string,
+chargingUnit: App.Enums.ChargingUnit,
+allowOverride: boolean,
+active: boolean,
+};
+export type ChargeTransactionCodeData = {
+id: number,
+label: string,
+active: boolean,
+};
+}
 namespace Navigation {
 export type NavContextData = {
 key: App.Enums.NavigationContext,
@@ -226,6 +244,7 @@ deactivatedAt: string | null,
 }
 }
 namespace Enums {
+export type ChargingUnit = 'per_item' | 'per_night' | 'per_stay' | 'per_guest_night' | 'per_guest';
 export type Currency = 'MYR';
 export type DefaultRoleEnum = 'owner' | 'manager' | 'front_desk' | 'housekeeping' | 'finance';
 export type DormStrategy = 'bed_as_unit' | 'native_dorm';

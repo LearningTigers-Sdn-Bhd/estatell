@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\PermissionEnum;
+use App\Http\Controllers\Catalogues\ChargeItemController;
 use App\Http\Controllers\Property\NotificationSettingController;
 use App\Http\Controllers\Property\PropertySettingsController;
 use App\Http\Controllers\Rooms\BedController;
@@ -65,6 +66,13 @@ Route::prefix('settings')->name('settings.')->group(function () {
         Route::put('order', [RoomGroupController::class, 'reorder'])->name('reorder');
         Route::put('{roomGroup}', [RoomGroupController::class, 'update'])->name('update');
         Route::delete('{roomGroup}', [RoomGroupController::class, 'destroy'])->name('destroy');
+    });
+
+    Route::prefix('charge-items')->name('charge-items.')->middleware('can:'.PermissionEnum::SettingsManage->value)->scopeBindings()->group(function () {
+        Route::get('/', [ChargeItemController::class, 'index'])->name('index');
+        Route::post('/', [ChargeItemController::class, 'store'])->name('store');
+        Route::put('order', [ChargeItemController::class, 'reorder'])->name('reorder');
+        Route::put('{chargeItem}', [ChargeItemController::class, 'update'])->name('update');
     });
 
     Route::prefix('staff')->name('staff.')->group(function () {

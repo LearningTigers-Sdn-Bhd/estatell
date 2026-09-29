@@ -42,6 +42,14 @@ class SettingsNavigation
                     active: request()->routeIs('settings.rooms.*', 'settings.room-groups.*'),
                 ) : null,
             ]))),
+            new NavGroupData(label: __('Billing setup'), items: array_values(array_filter([
+                $user->can(PermissionEnum::SettingsManage->value) ? new NavItemData(
+                    title: __('Charge items'),
+                    href: route('settings.charge-items.index', ['property' => $property->code], absolute: false),
+                    icon: 'wallet',
+                    active: request()->routeIs('settings.charge-items.*'),
+                ) : null,
+            ]))),
             new NavGroupData(label: __('Team'), items: array_values(array_filter([
                 $user->can(PermissionEnum::StaffView->value) ? new NavItemData(
                     title: __('Staff'),
