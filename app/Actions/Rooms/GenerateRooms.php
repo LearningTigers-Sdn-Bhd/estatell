@@ -5,6 +5,7 @@ namespace App\Actions\Rooms;
 use App\Models\Property;
 use App\Models\Room;
 use App\Models\RoomGroup;
+use App\Models\RoomStatus;
 use App\Models\RoomType;
 use App\Models\User;
 use App\Services\Rooms\RoomNumberAvailability;
@@ -49,6 +50,10 @@ class GenerateRooms
                 ]);
                 $room->property_id = $property->id;
                 $room->save();
+
+                $status = new RoomStatus;
+                $status->property_id = $property->id;
+                $room->status()->save($status);
             }
 
             activity()

@@ -56,7 +56,7 @@ class StaffNavigation
     private function groupsFor(NavigationContext $context, Property $property, User $user): array
     {
         return match ($context) {
-            NavigationContext::FrontDesk => $this->frontDesk->groups($property),
+            NavigationContext::FrontDesk => $this->frontDesk->groups($property, $user),
             NavigationContext::Settings => $this->settings->groups($property, $user),
             NavigationContext::Finance, NavigationContext::Reports => [],
         };

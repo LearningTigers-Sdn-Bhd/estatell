@@ -43,7 +43,7 @@ URL shape, route groups, names and middleware for estatell. Wayfinder generates 
 | Onboarding         | `/p/{code}/onboarding`                                                        | `onboarding.`         | property.access, verified                                                                | `onboarding.php`   |
 | Dashboard          | `/p/{code}/dashboard`                                                         | `dashboard`           | + live (from module 17)                                                                  | `web.php`          |
 | Suspension notice  | `/p/{code}/suspended`                                                         | `property.suspended`  | property.access, verified                                                                | `web.php`          |
-| Front desk         | `/p/{code}/front-desk`                                                        | `front-desk.`         | + live                                                                                   | `front-desk.php`   |
+| Front desk         | `/p/{code}/front-desk`                                                        | `front-desk.`         | + live (from module 17)                                                                  | `front-desk.php`   |
 | Reservations       | `/p/{code}/reservations`                                                      | `reservations.`       | + live                                                                                   | `reservations.php` |
 | Guests             | `/p/{code}/guests`                                                            | `guests.`             | + live                                                                                   | `guests.php`       |
 | Rates              | `/p/{code}/rates`                                                             | `rates.`              | property.access (open before go-live)                                                    | `rates.php`        |
@@ -76,6 +76,8 @@ After login, an Owner of a non-live property is redirected to `/p/{their code}/o
 | ---------------------------------------------------------------- | ------------------------------------- | ----------------------------------------------- |
 | `GET /p/10142/front-desk/stay-view`                              | `front-desk.stay-view`                | `pages/front-desk/stay-view.tsx`                |
 | `GET /p/10142/front-desk/stay-view/version`                      | `front-desk.stay-view.version`        | – (JSON)                                        |
+| `GET /p/10142/front-desk/room-blocks`                            | `front-desk.room-blocks.index`        | `pages/front-desk/room-blocks/index.tsx`        |
+| `POST /p/10142/front-desk/room-blocks/{roomBlock}/end`           | `front-desk.room-blocks.end`          | – (Action)                                      |
 | `GET /p/10142/reservations/create`                               | `reservations.create`                 | `pages/reservations/create.tsx`                 |
 | `POST /p/10142/reservations/{reservation}/units/{unit}/check-in` | `reservations.units.check-in`         | – (Action)                                      |
 | `GET /p/10142/finance/folios/{folio}`                            | `finance.folios.show`                 | `pages/finance/folios/show.tsx`                 |

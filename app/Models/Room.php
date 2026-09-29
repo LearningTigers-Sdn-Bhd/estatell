@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Carbon;
 
 /**
@@ -70,6 +71,22 @@ class Room extends Model
     public function beds(): HasMany
     {
         return $this->hasMany(Bed::class);
+    }
+
+    /**
+     * @return HasOne<RoomStatus, $this>
+     */
+    public function status(): HasOne
+    {
+        return $this->hasOne(RoomStatus::class);
+    }
+
+    /**
+     * @return HasMany<RoomBlock, $this>
+     */
+    public function blocks(): HasMany
+    {
+        return $this->hasMany(RoomBlock::class);
     }
 
     /**

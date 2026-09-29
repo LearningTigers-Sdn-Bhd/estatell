@@ -16,44 +16,53 @@ Legend: **Needs** lists items that must be done first.
 
 ## Done
 
-| Commit    | Subject                                                               |
-| --------- | --------------------------------------------------------------------- |
-| `974ef88` | feat(init): initializes the docs and repo configuration               |
-| `ec4f3db` | chore(ai): commit Boost guidelines and agent MCP config               |
-| `7e9d13e` | ci(tests): add Postgres and Redis services                            |
-| `56c821b` | feat(deps): add approved Composer packages and R2 disk                |
-| `f2766ea` | feat(types): generate TypeScript types from enums and data classes    |
-| `1be62c7` | feat(deps): add table, virtual, date, signature and confetti packages |
-| `661ae06` | docs(setup): record package versions, media storage and deploy env    |
-| `f6d3751` | feat(ui): switch shadcn to Base UI with preset b3ZzDdiJy4             |
-| `91dfcde` | feat(auth): lower production minimum password length to 8             |
-| `d87fde1` | feat(platform): add users.is_admin, admin gate and admin seeder       |
-| `eb22aec` | feat(platform): redirect admins to /admin after login                 |
-| `66a6b8d` | feat(platform): add admin.2fa middleware and two-factor banner        |
-| `03993d1` | feat(platform): add admin layout and platform settings                |
-| `9133cd9` | feat(property): add properties and link staff users to a property     |
-| `0eb10a4` | fix(platform): cache platform settings as raw attributes              |
-| `25d0639` | feat(property): add property routes and access middleware             |
-| `8167eb1` | feat(platform): add admin property list and detail pages              |
-| `52a336f` | fix(platform): keep the admin sidebar on account pages                |
-| `252aab9` | feat(platform): add per-property feature flags with admin switches    |
-| `4f53837` | feat(platform): give property tabs their own URLs and icons           |
-| `e28f620` | fix(ui): pad select menus and let the filter search fill the row      |
-| `6383380` | feat(platform): suspend and reactivate properties from admin          |
-| `ef4ab1e` | feat(property): add property settings                                 |
-| `750ee76` | feat(ui): build staff sidebar contexts from PHP navigation            |
-| `7574bec` | feat(staff): add default roles and permission enum                    |
-| `d6f3393` | feat(staff): make the registering owner the Owner role                |
-| `ccc3e9c` | feat(staff): invite staff and accept invitations                      |
-| `aa552df` | feat(staff): deactivate and reactivate staff                          |
-| `3c1bee4` | feat(staff): manage roles and assign them to staff                    |
-| `be237ae` | feat(staff): show roles as one permission matrix                      |
-| `a168d56` | feat(platform): show the owner on admin property pages                |
-| `e010ed4` | feat(property): seed property defaults from type and country          |
-| `e920679` | feat(notifications): add notification types and channels              |
-| `25f0145` | feat(notifications): add property and user notification preferences   |
-| `6d787fe` | feat(rooms): add room types                                           |
-| `ac1db1c` | feat(rooms): add rooms, room groups and number generator              |
+| Commit    | Subject                                                                |
+| --------- | ---------------------------------------------------------------------- |
+| `974ef88` | feat(init): initializes the docs and repo configuration                |
+| `ec4f3db` | chore(ai): commit Boost guidelines and agent MCP config                |
+| `7e9d13e` | ci(tests): add Postgres and Redis services                             |
+| `56c821b` | feat(deps): add approved Composer packages and R2 disk                 |
+| `f2766ea` | feat(types): generate TypeScript types from enums and data classes     |
+| `1be62c7` | feat(deps): add table, virtual, date, signature and confetti packages  |
+| `661ae06` | docs(setup): record package versions, media storage and deploy env     |
+| `f6d3751` | feat(ui): switch shadcn to Base UI with preset b3ZzDdiJy4              |
+| `91dfcde` | feat(auth): lower production minimum password length to 8              |
+| `d87fde1` | feat(platform): add users.is_admin, admin gate and admin seeder        |
+| `eb22aec` | feat(platform): redirect admins to /admin after login                  |
+| `66a6b8d` | feat(platform): add admin.2fa middleware and two-factor banner         |
+| `03993d1` | feat(platform): add admin layout and platform settings                 |
+| `9133cd9` | feat(property): add properties and link staff users to a property      |
+| `0eb10a4` | fix(platform): cache platform settings as raw attributes               |
+| `25d0639` | feat(property): add property routes and access middleware              |
+| `8167eb1` | feat(platform): add admin property list and detail pages               |
+| `52a336f` | fix(platform): keep the admin sidebar on account pages                 |
+| `252aab9` | feat(platform): add per-property feature flags with admin switches     |
+| `4f53837` | feat(platform): give property tabs their own URLs and icons            |
+| `e28f620` | fix(ui): pad select menus and let the filter search fill the row       |
+| `6383380` | feat(platform): suspend and reactivate properties from admin           |
+| `ef4ab1e` | feat(property): add property settings                                  |
+| `750ee76` | feat(ui): build staff sidebar contexts from PHP navigation             |
+| `7574bec` | feat(staff): add default roles and permission enum                     |
+| `d6f3393` | feat(staff): make the registering owner the Owner role                 |
+| `ccc3e9c` | feat(staff): invite staff and accept invitations                       |
+| `aa552df` | feat(staff): deactivate and reactivate staff                           |
+| `3c1bee4` | feat(staff): manage roles and assign them to staff                     |
+| `be237ae` | feat(staff): show roles as one permission matrix                       |
+| `a168d56` | feat(platform): show the owner on admin property pages                 |
+| `e010ed4` | feat(property): seed property defaults from type and country           |
+| `836b8a8` | feat(onboarding): let admins create a property for an owner            |
+| `e920679` | feat(notifications): add notification types and channels               |
+| `25f0145` | feat(notifications): add property and user notification preferences    |
+| `6d787fe` | feat(rooms): add room types                                            |
+| `ac1db1c` | feat(rooms): add rooms, room groups and number generator               |
+| `3cb75b7` | feat(rooms): add beds for dorm room types                              |
+| `c10cb2c` | feat(catalogues): add transaction codes                                |
+| `0d586aa` | feat(catalogues): add charge items                                     |
+| `7e015a9` | feat(catalogues): add quick charge item availability toggle            |
+| `96ac9d4` | feat(catalogues): add taxes and tax calculator                         |
+| `5f6e17a` | feat(catalogues): add payment methods                                  |
+| `cc78e80` | feat(catalogues): own codes per charge item and add room revenue taxes |
+| `fda168b` | feat(catalogues): add discounts                                        |
 
 Smaller fixes and reverts are in `git log`.
 
@@ -99,7 +108,7 @@ Smaller fixes and reverts are in `git log`.
 - [x] `feat(rooms): add room types` — Docs: [Room types](05-rooms/01-room-types.md).
 - [x] `feat(rooms): add rooms, room groups and number generator` — `GenerateRooms`. Docs: [Rooms and groups](05-rooms/02-rooms-and-groups.md).
 - [x] `feat(rooms): add beds for dorm room types` — Docs: [Beds](05-rooms/03-beds.md).
-- [ ] `feat(rooms): add room blocks and room statuses` — Docs: [Room blocks and statuses](05-rooms/04-room-blocks-and-statuses.md).
+- [x] `feat(rooms): add room blocks and room statuses` — Docs: [Room blocks and statuses](05-rooms/04-room-blocks-and-statuses.md).
 
 ### 06 Catalogues
 

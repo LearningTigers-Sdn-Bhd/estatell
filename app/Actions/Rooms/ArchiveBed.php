@@ -4,12 +4,16 @@ namespace App\Actions\Rooms;
 
 use App\Models\Bed;
 use App\Models\User;
+use App\Services\Property\PropertyToday;
 use Illuminate\Support\Facades\DB;
 
 class ArchiveBed
 {
+    public function __construct(private PropertyToday $today) {}
+
     /**
      * Hide a bed from new work. Existing records keep pointing at it.
+     * Its current and upcoming blocks end, so availability never subtracts them.
      *
      * Returns false when it is already archived.
      */
@@ -23,6 +27,8 @@ class ArchiveBed
             }
 
             $bed->forceFill(['archived_at' => now()])->save();
+
+            $bed->blocks()->open()->whereDate('ends_on', '>=', $this->today->date($bed->room->property)->toDateString())->update(['completed_at' => now()]);
 
             activity()
                 ->performedOn($bed)

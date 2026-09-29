@@ -1,5 +1,6 @@
 import {
     Activity,
+    Ban,
     Bed,
     Bell,
     Building2,
@@ -32,6 +33,7 @@ const icons: Record<string, LucideIcon> = {
     'credit-card': CreditCard,
     landmark: Landmark,
     percent: Percent,
+    ban: Ban,
     'chart-column': ChartColumn,
     users: Users,
     shield: Shield,

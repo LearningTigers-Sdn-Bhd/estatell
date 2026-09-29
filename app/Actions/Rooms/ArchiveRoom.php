@@ -4,12 +4,16 @@ namespace App\Actions\Rooms;
 
 use App\Models\Room;
 use App\Models\User;
+use App\Services\Property\PropertyToday;
 use Illuminate\Support\Facades\DB;
 
 class ArchiveRoom
 {
+    public function __construct(private PropertyToday $today) {}
+
     /**
      * Hide a room from new work. Existing records keep pointing at it.
+     * Its current and upcoming blocks end, so availability never subtracts them.
      *
      * Returns false when it is already archived.
      */
@@ -23,6 +27,8 @@ class ArchiveRoom
             }
 
             $room->forceFill(['archived_at' => now()])->save();
+
+            $room->blocks()->open()->whereDate('ends_on', '>=', $this->today->date($room->property)->toDateString())->update(['completed_at' => now()]);
 
             activity()
                 ->performedOn($room)

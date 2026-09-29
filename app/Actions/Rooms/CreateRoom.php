@@ -4,6 +4,7 @@ namespace App\Actions\Rooms;
 
 use App\Models\Property;
 use App\Models\Room;
+use App\Models\RoomStatus;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 
@@ -23,6 +24,10 @@ class CreateRoom
             $room->property_id = $property->id;
             $room->position = ((int) $property->rooms()->max('position')) + 1;
             $room->save();
+
+            $status = new RoomStatus;
+            $status->property_id = $property->id;
+            $room->status()->save($status);
 
             activity()
                 ->performedOn($room)

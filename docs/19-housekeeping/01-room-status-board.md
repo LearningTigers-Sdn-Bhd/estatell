@@ -11,7 +11,8 @@ Uses `room_statuses` (see [Room blocks and statuses](../05-rooms/04-room-blocks-
 ## Features
 
 - Board grouped by room group (a group is a floor, wing or block).
-- Status changes: Dirty > Clean > Inspected, and OutOfService.
+- Status changes: Dirty > Clean > Inspected (`HousekeepingStatus`). Any room can become Dirty.
+- Out of service is shown from an open room block, not stored as a status.
 - Priority flag and note, do-not-disturb for today, assignee.
 - Filters: arrivals today, departures today, stayovers.
 

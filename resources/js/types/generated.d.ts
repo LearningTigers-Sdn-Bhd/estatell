@@ -241,6 +241,28 @@ number: string,
 group: string | null,
 taken: boolean,
 };
+export type RoomBlockData = {
+id: number,
+roomId: number,
+roomNumber: string,
+roomTypeName: string,
+roomGroupId: number | null,
+bedId: number | null,
+bedLabel: string | null,
+reason: App.Enums.RoomBlockReason,
+startsOn: string,
+endsOn: string,
+notes: string | null,
+completedOn: string | null,
+};
+export type RoomBlockRoomData = {
+id: number,
+number: string,
+roomTypeName: string,
+roomGroupId: number | null,
+sellsBeds: boolean,
+beds: App.Data.Rooms.BedData[],
+};
 export type RoomData = {
 id: number,
 number: string,
@@ -323,6 +345,7 @@ export type DefaultRoleEnum = 'owner' | 'manager' | 'front_desk' | 'housekeeping
 export type DiscountScope = 'room_only' | 'all_charges' | 'selected';
 export type DiscountType = 'percent' | 'fixed' | 'open';
 export type DormStrategy = 'bed_as_unit' | 'native_dorm';
+export type HousekeepingStatus = 'clean' | 'dirty' | 'inspected';
 export type Locale = 'en' | 'ms';
 export type MediaDisk = 'local' | 'r2';
 export type MissedArrivalPolicy = 'mark_no_show' | 'keep_as_late_arrival';
@@ -333,11 +356,12 @@ export type NotificationType = 'night_audit_completed' | 'night_audit_exceptions
 export type OverdueDeparturePolicy = 'extend_one_night' | 'block';
 export type OwnerSetupMethod = 'email_link' | 'initial_password';
 export type PaymentMethodType = 'cash' | 'card' | 'bank_transfer' | 'e_wallet' | 'ota_collected' | 'direct_bill';
-export type PermissionEnum = 'settings.manage' | 'staff.view' | 'staff.manage' | 'roles.manage' | 'rooms.view' | 'rooms.manage' | 'notification.manage';
+export type PermissionEnum = 'settings.manage' | 'staff.view' | 'staff.manage' | 'roles.manage' | 'rooms.view' | 'rooms.manage' | 'rooms.block' | 'notification.manage';
 export type PlatformFeature = 'channel-manager';
 export type PropertyStatus = 'onboarding' | 'pending_approval' | 'live' | 'suspended';
 export type PropertyType = 'hotel' | 'hostel' | 'resort' | 'serviced_apartment' | 'homestay';
 export type RegistrationCardScope = 'primary_only' | 'every_adult';
+export type RoomBlockReason = 'maintenance' | 'owner_use' | 'out_of_order' | 'other';
 export type SellUnit = 'room' | 'bed';
 export type SurchargeType = 'none' | 'fixed' | 'percent';
 export type SystemTransactionCode = 'room_revenue' | 'no_show_revenue' | 'cancellation_revenue' | 'late_checkout_revenue' | 'early_departure_revenue' | 'food_and_beverage_revenue' | 'laundry_revenue' | 'minibar_revenue' | 'fee_revenue' | 'sst_tax' | 'tourism_tax' | 'cash_payment' | 'card_payment' | 'bank_transfer_payment' | 'ewallet_payment' | 'ota_collected_payment' | 'direct_bill_payment' | 'security_deposit' | 'refund' | 'adjustment' | 'discount';
