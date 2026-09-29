@@ -13,7 +13,8 @@ use Illuminate\Support\Facades\DB;
 class UpdatePaymentMethod
 {
     /**
-     * Save property-owned payment method settings without changing its system identity.
+     * Save property-owned payment method settings and keep its payment code in step.
+     * The type never changes. Seeded methods also keep their system code.
      *
      * @param  array<string, mixed>  $attributes
      */
@@ -49,9 +50,15 @@ class UpdatePaymentMethod
                     ->max('position')) + 1;
             }
 
-            $paymentMethod->fill($attributes);
+            $paymentMethod->fill(array_diff_key($attributes, ['code' => true]));
             $changes = $paymentMethod->getDirty();
             $transactionCode->name = $paymentMethod->name;
+            $transactionCode->active = $paymentMethod->active;
+
+            if ($transactionCode->system_key === null) {
+                $transactionCode->code = $attributes['code'];
+            }
+
             $transactionCodeChanges = $transactionCode->getDirty();
 
             if ($changes === [] && $transactionCodeChanges === []) {
@@ -65,7 +72,7 @@ class UpdatePaymentMethod
                 ->performedOn($paymentMethod)
                 ->causedBy($actor)
                 ->event('payment_method.updated')
-                ->withProperties(['property_id' => $paymentMethod->property_id, 'changed' => array_keys($changes)])
+                ->withProperties(['property_id' => $paymentMethod->property_id, 'changed' => array_values(array_unique([...array_keys($changes), ...array_keys($transactionCodeChanges)]))])
                 ->log('Payment method updated');
 
             return true;

@@ -1,5 +1,5 @@
 import { Head, router, useForm } from '@inertiajs/react';
-import { ArrowDown, ArrowUp, CreditCard } from 'lucide-react';
+import { ArrowDown, ArrowUp, CreditCard, Plus } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { EmptyState } from '@/components/pms/empty-state';
 import { EnumSelect } from '@/components/pms/enum-select';
@@ -47,14 +47,22 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import { index, reorder, update } from '@/routes/settings/payment-methods';
+import {
+    index,
+    reorder,
+    store,
+    update,
+} from '@/routes/settings/payment-methods';
 
 type PaymentMethod = App.Data.Catalogues.PaymentMethodData;
 type ChargeItem = App.Data.Catalogues.SurchargeChargeItemData;
 type Option = { value: string; label: string };
+type TypeOption = Option & { requiresReference: boolean };
 
 type FormData = {
     name: string;
+    type: string;
+    code: string;
     surcharge_type: string;
     surcharge_value: string;
     surcharge_charge_item_id: string;
@@ -62,9 +70,27 @@ type FormData = {
     active: boolean;
 };
 
-function formValues(paymentMethod: PaymentMethod): FormData {
+function formValues(
+    paymentMethod: PaymentMethod | null,
+    types: TypeOption[],
+): FormData {
+    if (paymentMethod === null) {
+        return {
+            name: '',
+            type: types[0]?.value ?? '',
+            code: '',
+            surcharge_type: 'none',
+            surcharge_value: '',
+            surcharge_charge_item_id: '',
+            requires_reference: types[0]?.requiresReference ?? false,
+            active: true,
+        };
+    }
+
     return {
         name: paymentMethod.name,
+        type: paymentMethod.type,
+        code: paymentMethod.code,
         surcharge_type: paymentMethod.surchargeType,
         surcharge_value: paymentMethod.surchargeValue ?? '',
         surcharge_charge_item_id: String(
@@ -77,22 +103,25 @@ function formValues(paymentMethod: PaymentMethod): FormData {
 
 function PaymentMethodForm({
     paymentMethod,
+    types,
     chargeItems,
     surchargeTypes,
     currency,
     onDone,
 }: {
-    paymentMethod: PaymentMethod;
+    paymentMethod: PaymentMethod | null;
+    types: TypeOption[];
     chargeItems: ChargeItem[];
     surchargeTypes: Option[];
     currency: App.Enums.Currency;
     onDone: () => void;
 }) {
-    const form = useForm<FormData>(formValues(paymentMethod));
+    const form = useForm<FormData>(formValues(paymentMethod, types));
+    const isSystem = paymentMethod?.isSystem ?? false;
     const availableChargeItems = chargeItems.filter(
         (chargeItem) =>
             chargeItem.active ||
-            chargeItem.id === paymentMethod.surchargeChargeItemId,
+            chargeItem.id === paymentMethod?.surchargeChargeItemId,
     );
     const chargeItemOptions = availableChargeItems.map((chargeItem) => ({
         value: String(chargeItem.id),
@@ -103,10 +132,24 @@ function PaymentMethodForm({
 
     const submit = (event: React.FormEvent) => {
         event.preventDefault();
-        form.put(update.url({ paymentMethod: paymentMethod.id }), {
-            preserveScroll: true,
-            onSuccess: onDone,
-        });
+
+        const options = { preserveScroll: true, onSuccess: onDone };
+
+        if (paymentMethod) {
+            form.put(update.url({ paymentMethod: paymentMethod.id }), options);
+        } else {
+            form.post(store.url(), options);
+        }
+    };
+
+    const changeType = (value: string) => {
+        form.setData((data) => ({
+            ...data,
+            type: value,
+            requires_reference:
+                types.find((type) => type.value === value)?.requiresReference ??
+                data.requires_reference,
+        }));
     };
 
     const changeSurchargeType = (value: string) => {
@@ -126,6 +169,7 @@ function PaymentMethodForm({
                     <FieldLabel htmlFor="payment-method-name">Name</FieldLabel>
                     <Input
                         id="payment-method-name"
+                        placeholder="e.g. DuitNow QR"
                         name="name"
                         maxLength={100}
                         value={form.data.name}
@@ -137,27 +181,61 @@ function PaymentMethodForm({
                     />
                     <FieldError>{form.errors.name}</FieldError>
                 </Field>
-                <Field>
-                    <FieldLabel htmlFor="payment-method-type">Type</FieldLabel>
-                    <Input
-                        id="payment-method-type"
-                        value={paymentMethod.typeLabel}
-                        readOnly
-                    />
-                    <FieldDescription>
-                        The method type is fixed by its system posting code.
-                    </FieldDescription>
-                </Field>
-                <Field>
-                    <FieldLabel htmlFor="payment-method-code">
-                        Transaction code
-                    </FieldLabel>
-                    <Input
-                        id="payment-method-code"
-                        value={paymentMethod.transactionCode}
-                        readOnly
-                    />
-                </Field>
+                <div className="grid gap-4 sm:grid-cols-2">
+                    <Field data-invalid={!!form.errors.type}>
+                        <FieldLabel htmlFor="payment-method-type">
+                            Type
+                        </FieldLabel>
+                        {paymentMethod ? (
+                            <Input
+                                id="payment-method-type"
+                                value={paymentMethod.typeLabel}
+                                readOnly
+                            />
+                        ) : (
+                            <EnumSelect
+                                id="payment-method-type"
+                                name="type"
+                                options={types}
+                                value={form.data.type}
+                                onValueChange={changeType}
+                                aria-invalid={!!form.errors.type}
+                            />
+                        )}
+                        <FieldDescription>
+                            {paymentMethod
+                                ? 'The type cannot change after the method is added.'
+                                : 'Sets the report category. It cannot change later.'}
+                        </FieldDescription>
+                        <FieldError>{form.errors.type}</FieldError>
+                    </Field>
+                    <Field data-invalid={!!form.errors.code}>
+                        <FieldLabel htmlFor="payment-method-code">
+                            Code
+                        </FieldLabel>
+                        <Input
+                            id="payment-method-code"
+                            placeholder="e.g. DUITNOW"
+                            name="code"
+                            maxLength={20}
+                            value={form.data.code}
+                            onChange={(event) =>
+                                form.setData(
+                                    'code',
+                                    event.target.value.toUpperCase(),
+                                )
+                            }
+                            readOnly={isSystem}
+                            aria-invalid={!!form.errors.code}
+                        />
+                        <FieldDescription>
+                            {isSystem
+                                ? 'Preset methods keep their code.'
+                                : 'Used in reports and accounting exports.'}
+                        </FieldDescription>
+                        <FieldError>{form.errors.code}</FieldError>
+                    </Field>
+                </div>
                 <Field data-invalid={!!form.errors.surcharge_type}>
                     <FieldLabel htmlFor="payment-method-surcharge-type">
                         Surcharge
@@ -190,6 +268,7 @@ function PaymentMethodForm({
                                 )}
                                 <InputGroupInput
                                     id="payment-method-surcharge-value"
+                                    placeholder="0.00"
                                     name="surcharge_value"
                                     type="number"
                                     min="0.01"
@@ -300,10 +379,11 @@ function PaymentMethodForm({
                     />
                     <FieldContent>
                         <FieldLabel htmlFor="payment-method-active">
-                            Active
+                            Available for payments
                         </FieldLabel>
                         <FieldDescription>
-                            Active methods are available for new payments.
+                            Staff can record payments with this method. Turn it
+                            off to hide the method without deleting it.
                         </FieldDescription>
                     </FieldContent>
                 </Field>
@@ -318,7 +398,7 @@ function PaymentMethodForm({
                     focusableWhenDisabled
                 >
                     {form.processing && <Spinner data-icon="inline-start" />}
-                    Save changes
+                    {paymentMethod ? 'Save changes' : 'Add payment method'}
                 </Button>
             </SheetFooter>
         </form>
@@ -495,16 +575,20 @@ function PaymentMethodTable({
 
 export default function PaymentMethodsIndex({
     paymentMethods,
+    types,
     chargeItems,
     surchargeTypes,
     currency,
 }: {
     paymentMethods: PaymentMethod[];
+    types: TypeOption[];
     chargeItems: ChargeItem[];
     surchargeTypes: Option[];
     currency: App.Enums.Currency;
 }) {
-    const [editing, setEditing] = useState<PaymentMethod | undefined>();
+    const [editing, setEditing] = useState<PaymentMethod | null | undefined>(
+        undefined,
+    );
     const [togglingIds, setTogglingIds] = useState<Set<number>>(new Set());
     const [query, setQuery] = useState('');
     const filtered = useMemo(() => {
@@ -573,7 +657,7 @@ export default function PaymentMethodsIndex({
             }))
             .put(
                 update.url({ paymentMethod: paymentMethod.id }),
-                { ...formValues(paymentMethod), active },
+                { ...formValues(paymentMethod, types), active },
                 {
                     preserveScroll: true,
                     onStart: () => setToggling(true),
@@ -590,13 +674,25 @@ export default function PaymentMethodsIndex({
                 <PageHeader
                     title="Payment methods"
                     description="The ways staff can record and classify payments."
+                    actions={
+                        <Button onClick={() => setEditing(null)}>
+                            <Plus data-icon="inline-start" />
+                            New payment method
+                        </Button>
+                    }
                 />
 
                 {paymentMethods.length === 0 ? (
                     <EmptyState
                         icon={CreditCard}
                         title="No payment methods"
-                        description="Payment methods are added from the property country preset."
+                        description="Add the first way guests can pay."
+                        action={
+                            <Button onClick={() => setEditing(null)}>
+                                <Plus data-icon="inline-start" />
+                                New payment method
+                            </Button>
+                        }
                     />
                 ) : (
                     <>
@@ -644,17 +740,18 @@ export default function PaymentMethodsIndex({
                         <SheetTitle>
                             {editing
                                 ? `Edit ${editing.name}`
-                                : 'Edit payment method'}
+                                : 'New payment method'}
                         </SheetTitle>
                         <SheetDescription>
                             Configure its availability, references, and optional
                             surcharge.
                         </SheetDescription>
                     </SheetHeader>
-                    {editing && (
+                    {editing !== undefined && (
                         <PaymentMethodForm
-                            key={editing.id}
+                            key={editing?.id ?? 'new'}
                             paymentMethod={editing}
+                            types={types}
                             chargeItems={chargeItems}
                             surchargeTypes={surchargeTypes}
                             currency={currency}

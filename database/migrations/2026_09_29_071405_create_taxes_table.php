@@ -70,6 +70,10 @@ return new class extends Migration
                         ->where('property_id', $property->id)
                         ->whereIn('system_key', ['room_revenue', 'sst_tax', 'tourism_tax'])
                         ->pluck('id', 'system_key');
+                    $roomRevenueCodeIds = DB::table('transaction_codes')
+                        ->where('property_id', $property->id)
+                        ->whereIn('system_key', ['room_revenue', 'no_show_revenue', 'cancellation_revenue', 'late_checkout_revenue', 'early_departure_revenue'])
+                        ->pluck('id');
 
                     if (! $codes->has(['room_revenue', 'sst_tax', 'tourism_tax'])) {
                         continue;
@@ -91,10 +95,10 @@ return new class extends Migration
                             'updated_at' => $now,
                         ]);
 
-                        DB::table('tax_transaction_code')->insert([
+                        DB::table('tax_transaction_code')->insert($roomRevenueCodeIds->map(fn (int $codeId): array => [
                             'tax_id' => $taxId,
-                            'transaction_code_id' => $codes['room_revenue'],
-                        ]);
+                            'transaction_code_id' => $codeId,
+                        ])->all());
                     }
                 }
             });

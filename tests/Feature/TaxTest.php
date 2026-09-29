@@ -8,6 +8,7 @@ use App\Enums\SystemTransactionCode;
 use App\Enums\TaxRateType;
 use App\Enums\TransactionCategory;
 use App\Enums\TransactionKind;
+use App\Models\ChargeItem;
 use App\Models\Property;
 use App\Models\PropertySetting;
 use App\Models\Tax;
@@ -19,7 +20,7 @@ use Inertia\Testing\AssertableInertia as Assert;
 use Spatie\Activitylog\Models\Activity;
 
 /** @param array<string, mixed> $overrides */
-function taxPayload(array $codeIds, array $overrides = []): array
+function taxPayload(array $overrides = []): array
 {
     return array_merge([
         'name' => 'Heritage levy',
@@ -30,7 +31,6 @@ function taxPayload(array $codeIds, array $overrides = []): array
         'foreign_guests_only' => false,
         'registration_number' => ' dbkk 123 ',
         'enabled' => true,
-        'applicable_transaction_code_ids' => $codeIds,
     ], $overrides);
 }
 
@@ -55,7 +55,8 @@ test('Malaysia properties receive disabled tax presets idempotently', function (
         ->and($sst->rate)->toBe('9.00')
         ->and($sst->enabled)->toBeTrue()
         ->and($sst->transactionCode->system_key)->toBe(SystemTransactionCode::SstTax->value)
-        ->and($sst->applicableTransactionCodes()->sole()->system_key)->toBe(SystemTransactionCode::RoomRevenue->value);
+        ->and($sst->applicableTransactionCodes()->pluck('system_key')->sort()->values()->all())
+        ->toBe(collect(SystemTransactionCode::roomRevenueKeys())->sort()->values()->all());
 
     $tourism = $property->taxes()->where('code', 'TTX')->sole();
     expect($tourism->rate_type)->toBe(TaxRateType::Flat)
@@ -73,25 +74,28 @@ test('unsupported countries receive no tax presets', function () {
     expect($property->taxes()->count())->toBe(0);
 });
 
-test('the page loads the bounded catalogue and picker data', function () {
+test('the page loads the bounded catalogue with what each tax applies to', function () {
     $owner = User::factory()->owner()->create();
     $property = $owner->property;
     PropertySetting::factory()->for($property)->create(['currency' => Currency::Myr]);
-    $activeCode = TransactionCode::factory()->for($property)->create(['code' => 'ROOM', 'name' => 'Room revenue']);
-    $inactiveCode = TransactionCode::factory()->for($property)->inactive()->create(['code' => 'OLD', 'name' => 'Old charge']);
-    $tax = Tax::factory()->for($property)->create(['name' => 'SST']);
-    $tax->applicableTransactionCodes()->attach([$activeCode->id, $inactiveCode->id]);
-    TransactionCode::factory()->for($property)->create(['kind' => TransactionKind::Payment]);
+    $roomCode = TransactionCode::factory()->for($property)->system(SystemTransactionCode::RoomRevenue)->create();
+    $noShowCode = TransactionCode::factory()->for($property)->system(SystemTransactionCode::NoShowRevenue)->create();
+    $parking = ChargeItem::factory()->for($property)->create(['name' => 'Parking']);
+    $breakfast = ChargeItem::factory()->for($property)->create(['name' => 'Breakfast']);
+    $sst = Tax::factory()->for($property)->create(['name' => 'SST']);
+    $sst->applicableTransactionCodes()->attach([$roomCode->id, $noShowCode->id, $parking->transaction_code_id, $breakfast->transaction_code_id]);
+    Tax::factory()->for($property)->create(['name' => 'Unused levy']);
     Tax::factory()->create(['name' => 'Another property tax']);
 
     $this->actingAs($owner)
         ->get(route('settings.taxes.index', $property->code))
         ->assertInertia(fn (Assert $page) => $page
             ->component('settings/taxes/index')
-            ->has('taxes', 1)
+            ->has('taxes', 2)
             ->where('taxes.0.name', 'SST')
-            ->where('taxes.0.applicableTransactionCodeIds', [$activeCode->id, $inactiveCode->id])
-            ->where('transactionCodes', fn ($codes) => collect($codes)->pluck('label')->all() === ['ROOM — Room revenue', 'OLD — Old charge'])
+            ->where('taxes.0.appliesTo', ['Room revenue', 'Breakfast', 'Parking'])
+            ->where('taxes.1.appliesTo', [])
+            ->missing('transactionCodes')
             ->where('rateTypes', TaxRateType::options())
             ->where('currency', Currency::Myr->value)
             ->where('navigation.contexts.1.groups.2.items.0.title', 'Taxes')
@@ -100,10 +104,8 @@ test('the page loads the bounded catalogue and picker data', function () {
 
 test('owners create a tax with its posting code and normalized values', function () {
     $owner = User::factory()->owner()->create();
-    $chargeCode = TransactionCode::factory()->for($owner->property)->create();
-
     $this->actingAs($owner)
-        ->post(route('settings.taxes.store', $owner->property->code), taxPayload([$chargeCode->id], [
+        ->post(route('settings.taxes.store', $owner->property->code), taxPayload([
             'name' => ' Heritage levy ',
             'code' => 'heritage-fee',
         ]))
@@ -120,49 +122,34 @@ test('owners create a tax with its posting code and normalized values', function
             'category' => TransactionCategory::Tax,
             'active' => true,
         ])
-        ->and($tax->applicableTransactionCodes()->sole()->is($chargeCode))->toBeTrue()
+        ->and($tax->applicableTransactionCodes()->count())->toBe(0)
         ->and(Activity::query()->where('event', 'tax.created')->count())->toBe(1);
 });
 
 test('tax validation protects identity rate applicability and enabled setup', function (array $overrides, string $field) {
     $owner = User::factory()->owner()->create();
     $property = $owner->property;
-    $chargeCode = TransactionCode::factory()->for($property)->create();
     Tax::factory()->for($property)->create(['name' => 'Heritage levy', 'code' => 'HERITAGE']);
 
     $this->actingAs($owner)
-        ->post(route('settings.taxes.store', $property->code), taxPayload([$chargeCode->id], $overrides))
+        ->post(route('settings.taxes.store', $property->code), taxPayload($overrides))
         ->assertSessionHasErrors($field);
 })->with([
     'name is unique ignoring case' => [['name' => 'HERITAGE LEVY', 'code' => 'OTHER'], 'name'],
     'code is unique ignoring case' => [['name' => 'Other', 'code' => 'heritage'], 'code'],
     'rate is positive' => [['name' => 'Other', 'code' => 'OTHER', 'rate' => '0'], 'rate'],
     'percentage is at most one hundred' => [['name' => 'Other', 'code' => 'OTHER', 'rate_type' => 'percent', 'rate' => '100.01'], 'rate'],
-    'enabled tax needs applicability' => [['name' => 'Other', 'code' => 'OTHER', 'applicable_transaction_code_ids' => []], 'applicable_transaction_code_ids'],
 ]);
 
-test('applicable codes must be active charge codes from the same property', function (string $case) {
-    $owner = User::factory()->owner()->create();
-    $code = match ($case) {
-        'inactive' => TransactionCode::factory()->for($owner->property)->inactive()->create(),
-        'tax' => TransactionCode::factory()->for($owner->property)->create(['kind' => TransactionKind::Tax]),
-        'another property' => TransactionCode::factory()->create(),
-    };
-
-    $this->actingAs($owner)
-        ->post(route('settings.taxes.store', $owner->property->code), taxPayload([$code->id]))
-        ->assertSessionHasErrors('applicable_transaction_code_ids');
-})->with(['inactive', 'tax', 'another property']);
-
-test('disabled drafts may omit applicability and keep posting codes active', function () {
+test('enabled taxes may start without any charges and keep posting codes active', function () {
     $owner = User::factory()->owner()->create();
 
     $this->actingAs($owner)
-        ->post(route('settings.taxes.store', $owner->property->code), taxPayload([], ['enabled' => false]))
+        ->post(route('settings.taxes.store', $owner->property->code), taxPayload())
         ->assertSessionHasNoErrors();
 
     $tax = Tax::query()->sole();
-    expect($tax->enabled)->toBeFalse()
+    expect($tax->enabled)->toBeTrue()
         ->and($tax->transactionCode->active)->toBeTrue()
         ->and($tax->applicableTransactionCodes()->count())->toBe(0);
 });
@@ -179,11 +166,11 @@ test('updates synchronize custom posting identity and preserve system posting co
 
     $this->actingAs($owner)->put(
         route('settings.taxes.update', [$property->code, $custom]),
-        taxPayload([$chargeCode->id], ['name' => 'City levy', 'code' => 'CITY', 'enabled' => false]),
+        taxPayload(['name' => 'City levy', 'code' => 'CITY', 'enabled' => false]),
     );
     $this->put(
         route('settings.taxes.update', [$property->code, $system]),
-        taxPayload([$chargeCode->id], ['name' => 'Accommodation SST', 'code' => 'SERVICE']),
+        taxPayload(['name' => 'Accommodation SST', 'code' => 'SERVICE']),
     );
 
     expect($custom->refresh()->transactionCode->only(['code', 'name', 'active']))->toBe([
@@ -193,20 +180,20 @@ test('updates synchronize custom posting identity and preserve system posting co
     ]);
 });
 
-test('an existing inactive applicable code may be retained but not newly selected', function () {
+test('saving a tax leaves the charges it applies to unchanged', function () {
     $owner = User::factory()->owner()->create();
     $property = $owner->property;
-    $code = TransactionCode::factory()->for($property)->create();
+    $chargeItem = ChargeItem::factory()->for($property)->create();
     $tax = Tax::factory()->for($property)->create();
-    $tax->applicableTransactionCodes()->attach($code);
-    $code->update(['active' => false]);
+    $tax->applicableTransactionCodes()->attach($chargeItem->transaction_code_id);
 
     $this->actingAs($owner)
-        ->put(route('settings.taxes.update', [$property->code, $tax]), taxPayload([$code->id], ['name' => $tax->name, 'code' => $tax->code]))
+        ->put(route('settings.taxes.update', [$property->code, $tax]), taxPayload(['name' => 'Renamed levy', 'code' => $tax->code, 'enabled' => false]))
         ->assertSessionHasNoErrors();
 
-    $this->post(route('settings.taxes.store', $property->code), taxPayload([$code->id], ['name' => 'New levy', 'code' => 'NEW']))
-        ->assertSessionHasErrors('applicable_transaction_code_ids');
+    expect($tax->applicableTransactionCodes()->pluck('transaction_codes.id')->all())->toBe([$chargeItem->transaction_code_id])
+        ->and($tax->refresh()->name)->toBe('Renamed levy')
+        ->and(Activity::query()->where('event', 'tax.updated')->sole()->properties['changed'])->not->toContain('applicable_transaction_code_ids');
 });
 
 test('routes enforce settings permission and property scoping', function () {
@@ -216,9 +203,9 @@ test('routes enforce settings permission and property scoping', function () {
     $ownerCode = TransactionCode::factory()->for($owner->property)->create();
 
     $this->actingAs($frontDesk)->get(route('settings.taxes.index', $frontDesk->property->code))->assertForbidden();
-    $this->post(route('settings.taxes.store', $frontDesk->property->code), taxPayload([$ownerCode->id]))->assertForbidden();
+    $this->post(route('settings.taxes.store', $frontDesk->property->code), taxPayload())->assertForbidden();
     $this->actingAs($owner)
-        ->put(route('settings.taxes.update', [$owner->property->code, $otherTax]), taxPayload([$ownerCode->id]))
+        ->put(route('settings.taxes.update', [$owner->property->code, $otherTax]), taxPayload())
         ->assertNotFound();
 });
 

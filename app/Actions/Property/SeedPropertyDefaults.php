@@ -2,6 +2,7 @@
 
 namespace App\Actions\Property;
 
+use App\Actions\Catalogues\SeedChargeItems;
 use App\Actions\Catalogues\SeedPaymentMethods;
 use App\Actions\Catalogues\SeedTaxes;
 use App\Actions\Catalogues\SeedTransactionCodes;
@@ -22,6 +23,7 @@ class SeedPropertyDefaults
     public function __construct(
         private SeedDefaultRoles $seedDefaultRoles,
         private SeedTransactionCodes $seedTransactionCodes,
+        private SeedChargeItems $seedChargeItems,
         private SeedPaymentMethods $seedPaymentMethods,
         private SeedTaxes $seedTaxes,
     ) {}
@@ -37,6 +39,7 @@ class SeedPropertyDefaults
             ($this->seedDefaultRoles)($property);
             $property->settings()->firstOrCreate([], $settings);
             ($this->seedTransactionCodes)($property, $countryCode);
+            ($this->seedChargeItems)($property, $countryCode);
             ($this->seedPaymentMethods)($property, $countryCode);
             ($this->seedTaxes)($property, $countryCode);
         });

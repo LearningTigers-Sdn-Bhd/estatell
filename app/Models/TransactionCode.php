@@ -11,7 +11,6 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Carbon;
 
@@ -54,10 +53,10 @@ class TransactionCode extends Model
         return $this->belongsTo(Property::class);
     }
 
-    /** @return HasMany<ChargeItem, $this> */
-    public function chargeItems(): HasMany
+    /** @return HasOne<ChargeItem, $this> */
+    public function chargeItem(): HasOne
     {
-        return $this->hasMany(ChargeItem::class);
+        return $this->hasOne(ChargeItem::class);
     }
 
     /** @return HasOne<Tax, $this> */

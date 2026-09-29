@@ -199,28 +199,28 @@ Modules are numbered in build order. Each folder in `docs/` holds one module. Ea
 
 The build plan, as one commit per item, is in [checklist.md](checklist.md).
 
-| #   | Module                             | Summary                                                                         |
-| --- | ---------------------------------- | ------------------------------------------------------------------------------- |
-| 01  | [Platform](01-platform/)           | Platform admins, platform settings, feature flags                               |
-| 02  | [Property](02-property/)           | Properties, settings, defaults seeding, age groups                              |
-| 03  | [Staff](03-staff/)                 | Staff invitations, roles and permissions                                        |
-| 04  | [Notifications](04-notifications/) | Notification types and opt-out                                                  |
-| 05  | [Rooms](05-rooms/)                 | Room types, rooms, beds, groups, blocks                                         |
-| 06  | [Catalogues](06-catalogues/)       | Transaction codes, charge items, taxes, payment methods, discounts              |
-| 07  | [Meals](07-meals/)                 | Meal periods and entitlements                                                   |
-| 08  | [Rates](08-rates/)                 | Rate plans, daily rates, pricing strategies, derived plans, long-stay discounts |
-| 09  | [Packages](09-packages/)           | Inclusions and package prices                                                   |
-| 10  | [Availability](10-availability/)   | Availability calculation                                                        |
-| 11  | [Guests](11-guests/)               | Guest CRM, identity documents, privacy                                          |
-| 12  | [Reservations](12-reservations/)   | Reservation shape, groups, beds, add-ons, booking form                          |
-| 13  | [Folio](13-folio/)                 | Folios, ledger lines, routing, posting                                          |
-| 14  | [Payments](14-payments/)           | Payments and refunds                                                            |
-| 15  | [City ledger](15-city-ledger/)     | Companies, invoices, payments received, statements, aging                       |
-| 16  | [Registration](16-registration/)   | Registration cards and terms                                                    |
-| 17  | [Onboarding](17-onboarding/)       | Account creation, wizard, go-live                                               |
-| 18  | [Front desk](18-front-desk/)       | Check-in, check-out, assignment                                                 |
-| 19  | [Housekeeping](19-housekeeping/)   | Room status board                                                               |
-| 20  | [Night audit](20-night-audit/)     | Business dates, readiness, audit run                                            |
-| 21  | [Channels](21-channels/)           | Channex connection, mapping, sync                                               |
-| 22  | [Reports](22-reports/)             | Core reports                                                                    |
-| 23  | [Agent portal](23-agent-portal/)   | Travel agents and companies book and view their own stays                       |
+| #   | Module                             | Summary                                                                          |
+| --- | ---------------------------------- | -------------------------------------------------------------------------------- |
+| 01  | [Platform](01-platform/)           | Platform admins, platform settings, feature flags                                |
+| 02  | [Property](02-property/)           | Properties, settings, defaults seeding, age groups                               |
+| 03  | [Staff](03-staff/)                 | Staff invitations, roles and permissions                                         |
+| 04  | [Notifications](04-notifications/) | Notification types and opt-out                                                   |
+| 05  | [Rooms](05-rooms/)                 | Room types, rooms, beds, groups, blocks                                          |
+| 06  | [Catalogues](06-catalogues/)       | Transaction codes, charge items, taxes, payment methods, discounts, room revenue |
+| 07  | [Meals](07-meals/)                 | Meal periods and entitlements                                                    |
+| 08  | [Rates](08-rates/)                 | Rate plans, daily rates, pricing strategies, derived plans, long-stay discounts  |
+| 09  | [Packages](09-packages/)           | Inclusions and package prices                                                    |
+| 10  | [Availability](10-availability/)   | Availability calculation                                                         |
+| 11  | [Guests](11-guests/)               | Guest CRM, identity documents, privacy                                           |
+| 12  | [Reservations](12-reservations/)   | Reservation shape, groups, beds, add-ons, booking form                           |
+| 13  | [Folio](13-folio/)                 | Folios, ledger lines, routing, posting                                           |
+| 14  | [Payments](14-payments/)           | Payments and refunds                                                             |
+| 15  | [City ledger](15-city-ledger/)     | Companies, invoices, payments received, statements, aging                        |
+| 16  | [Registration](16-registration/)   | Registration cards and terms                                                     |
+| 17  | [Onboarding](17-onboarding/)       | Account creation, wizard, go-live                                                |
+| 18  | [Front desk](18-front-desk/)       | Check-in, check-out, assignment                                                  |
+| 19  | [Housekeeping](19-housekeeping/)   | Room status board                                                                |
+| 20  | [Night audit](20-night-audit/)     | Business dates, readiness, audit run                                             |
+| 21  | [Channels](21-channels/)           | Channex connection, mapping, sync                                                |
+| 22  | [Reports](22-reports/)             | Core reports                                                                     |
+| 23  | [Agent portal](23-agent-portal/)   | Travel agents and companies book and view their own stays                        |

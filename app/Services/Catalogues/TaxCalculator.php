@@ -26,16 +26,37 @@ class TaxCalculator
         string $quantity,
         ?string $guestNationalityCode,
     ): TaxCalculationResult {
-        $this->validateContext($property, $sourceCode, $enteredAmount, $quantity);
+        if ($sourceCode->property_id !== $property->id || $sourceCode->kind !== TransactionKind::Charge) {
+            throw new InvalidArgumentException('The source transaction code must be a charge code from the property.');
+        }
+
+        $taxes = $property->taxes()
+            ->whereHas('applicableTransactionCodes', fn ($query) => $query->whereKey($sourceCode->id))
+            ->get();
+
+        return $this->calculateWithTaxes($property, $taxes, $enteredAmount, $quantity, $guestNationalityCode);
+    }
+
+    /**
+     * Calculate a given set of the property's taxes, for example to preview a selection before it is saved.
+     * Disabled taxes are skipped.
+     *
+     * @param  Collection<int, Tax>  $taxes
+     */
+    public function calculateWithTaxes(
+        Property $property,
+        Collection $taxes,
+        Money $enteredAmount,
+        string $quantity,
+        ?string $guestNationalityCode,
+    ): TaxCalculationResult {
+        $this->validateContext($property, $taxes, $enteredAmount, $quantity);
         $quantityDecimal = BigDecimal::of($quantity);
         $nationalityCode = filled($guestNationalityCode) ? mb_strtoupper(trim((string) $guestNationalityCode)) : null;
-        $taxes = $property->taxes()
-            ->enabled()
-            ->whereHas('applicableTransactionCodes', fn ($query) => $query->whereKey($sourceCode->id))
-            ->with('transactionCode')
-            ->orderBy('id')
-            ->get()
+        $taxes = $taxes
+            ->filter(fn (Tax $tax): bool => $tax->enabled)
             ->reject(fn (Tax $tax): bool => $tax->foreign_guests_only && $nationalityCode === 'MY')
+            ->sortBy('id')
             ->values();
 
         if ($nationalityCode === null && $taxes->contains(fn (Tax $tax): bool => $tax->foreign_guests_only)) {
@@ -111,10 +132,11 @@ class TaxCalculator
         return $net;
     }
 
-    private function validateContext(Property $property, TransactionCode $sourceCode, Money $amount, string $quantity): void
+    /** @param Collection<int, Tax> $taxes */
+    private function validateContext(Property $property, Collection $taxes, Money $amount, string $quantity): void
     {
-        if ($sourceCode->property_id !== $property->id || $sourceCode->kind !== TransactionKind::Charge) {
-            throw new InvalidArgumentException('The source transaction code must be a charge code from the property.');
+        if ($taxes->contains(fn (Tax $tax): bool => $tax->property_id !== $property->id)) {
+            throw new InvalidArgumentException('Every tax must belong to the property.');
         }
 
         if ($property->settings === null || $amount->getCurrency()->getCurrencyCode() !== $property->settings->currency->value) {

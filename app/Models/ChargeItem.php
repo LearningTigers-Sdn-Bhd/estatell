@@ -20,7 +20,7 @@ use Illuminate\Support\Carbon;
  * @property int $transaction_code_id
  * @property string $name
  * @property string|null $description
- * @property string $default_amount
+ * @property string|null $default_amount
  * @property ChargingUnit $charging_unit
  * @property bool $allow_override
  * @property int $position

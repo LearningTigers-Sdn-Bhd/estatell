@@ -130,4 +130,26 @@ enum SystemTransactionCode: string
             self::Discount => TransactionCategory::Discount,
         };
     }
+
+    /**
+     * The room revenue codes. They always share one set of taxes.
+     *
+     * @return list<self>
+     */
+    public static function roomRevenueCases(): array
+    {
+        return [
+            self::RoomRevenue,
+            self::NoShowRevenue,
+            self::CancellationRevenue,
+            self::LateCheckoutRevenue,
+            self::EarlyDepartureRevenue,
+        ];
+    }
+
+    /** @return list<string> */
+    public static function roomRevenueKeys(): array
+    {
+        return array_map(fn (self $code): string => $code->value, self::roomRevenueCases());
+    }
 }

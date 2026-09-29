@@ -25,12 +25,14 @@ class PaymentMethodFactory extends Factory
     {
         return [
             'property_id' => Property::factory(),
+            'name' => fake()->unique()->words(2, true),
             'transaction_code_id' => fn (array $attributes) => TransactionCode::factory()->create([
                 'property_id' => $attributes['property_id'],
+                'name' => $attributes['name'],
                 'kind' => TransactionKind::Payment,
                 'category' => TransactionCategory::Card,
+                'active' => $attributes['active'],
             ])->id,
-            'name' => fake()->unique()->words(2, true),
             'type' => PaymentMethodType::Card,
             'surcharge_type' => SurchargeType::None,
             'surcharge_value' => null,

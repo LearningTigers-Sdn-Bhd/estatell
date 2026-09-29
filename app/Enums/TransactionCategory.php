@@ -53,4 +53,23 @@ enum TransactionCategory: string
             self::cases(),
         );
     }
+
+    /**
+     * The categories staff may choose for a charge item's own code.
+     *
+     * @return list<self>
+     */
+    public static function chargeItemCases(): array
+    {
+        return [self::FoodAndBeverage, self::Laundry, self::Minibar, self::Fee, self::Other];
+    }
+
+    /** @return list<array{value: string, label: string}> */
+    public static function chargeItemOptions(): array
+    {
+        return array_map(
+            fn (self $category): array => ['value' => $category->value, 'label' => $category->label()],
+            self::chargeItemCases(),
+        );
+    }
 }

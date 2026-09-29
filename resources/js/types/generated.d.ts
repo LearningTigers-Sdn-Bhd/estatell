@@ -3,19 +3,25 @@ namespace Data {
 namespace Catalogues {
 export type ChargeItemData = {
 id: number,
-transactionCodeId: number,
-transactionCode: string,
 name: string,
+code: string,
+category: App.Enums.TransactionCategory,
+isStarter: boolean,
 description: string | null,
-defaultAmount: string,
+defaultAmount: string | null,
 chargingUnit: App.Enums.ChargingUnit,
 allowOverride: boolean,
 active: boolean,
+taxIds: number[],
 };
-export type ChargeTransactionCodeData = {
+export type ChargeItemTaxData = {
 id: number,
-label: string,
-active: boolean,
+name: string,
+rateType: App.Enums.TaxRateType,
+rate: string,
+isInclusive: boolean,
+foreignGuestsOnly: boolean,
+enabled: boolean,
 };
 export type PaymentMethodData = {
 id: number,
@@ -23,12 +29,30 @@ name: string,
 type: App.Enums.PaymentMethodType,
 typeLabel: string,
 transactionCode: string,
+code: string,
+isSystem: boolean,
 surchargeType: App.Enums.SurchargeType,
 surchargeValue: string | null,
 surchargeChargeItemId: number | null,
 surchargeChargeItem: string | null,
 requiresReference: boolean,
 active: boolean,
+};
+export type RoomRevenuePreviewData = {
+sampleAmount: string,
+refusal: string | null,
+localNet: string | null,
+foreignNet: string | null,
+lines: App.Data.Catalogues.RoomRevenuePreviewLineData[],
+localTotal: string | null,
+foreignTotal: string | null,
+};
+export type RoomRevenuePreviewLineData = {
+taxId: number,
+name: string,
+inclusive: boolean,
+localAmount: string | null,
+foreignAmount: string | null,
 };
 export type SurchargeChargeItemData = {
 id: number,
@@ -45,13 +69,8 @@ isInclusive: boolean,
 foreignGuestsOnly: boolean,
 registrationNumber: string | null,
 enabled: boolean,
-applicableTransactionCodeIds: number[],
+appliesTo: string[],
 postingTransactionCode: string,
-};
-export type TaxTransactionCodeData = {
-id: number,
-label: string,
-active: boolean,
 };
 }
 namespace Navigation {

@@ -19,7 +19,10 @@ class SeedTaxes
         }
 
         DB::transaction(function () use ($property): void {
-            $roomRevenue = $property->transactionCodes()->where('system_key', SystemTransactionCode::RoomRevenue->value)->firstOrFail();
+            $roomRevenueCodeIds = $property->transactionCodes()
+                ->whereIn('system_key', SystemTransactionCode::roomRevenueKeys())
+                ->pluck('id')
+                ->all();
             $presets = [
                 ['system_key' => SystemTransactionCode::SstTax->value, 'name' => 'Service Tax (SST)', 'code' => 'SST', 'rate_type' => TaxRateType::Percent, 'rate' => '8.00', 'foreign_guests_only' => false],
                 ['system_key' => SystemTransactionCode::TourismTax->value, 'name' => 'Tourism tax', 'code' => 'TTX', 'rate_type' => TaxRateType::Flat, 'rate' => '10.00', 'foreign_guests_only' => true],
@@ -44,7 +47,7 @@ class SeedTaxes
                     'registration_number' => null,
                     'enabled' => false,
                 ]);
-                $tax->applicableTransactionCodes()->attach($roomRevenue->id);
+                $tax->applicableTransactionCodes()->attach($roomRevenueCodeIds);
             }
         });
     }

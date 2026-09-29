@@ -6,15 +6,15 @@ use App\Actions\Catalogues\CreateChargeItem;
 use App\Actions\Catalogues\ReorderChargeItems;
 use App\Actions\Catalogues\UpdateChargeItem;
 use App\Data\Catalogues\ChargeItemData;
-use App\Data\Catalogues\ChargeTransactionCodeData;
+use App\Data\Catalogues\ChargeItemTaxData;
 use App\Enums\ChargingUnit;
-use App\Enums\TransactionKind;
+use App\Enums\TransactionCategory;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Catalogues\ChargeItemRequest;
 use App\Http\Requests\Catalogues\ReorderChargeItemsRequest;
 use App\Models\ChargeItem;
 use App\Models\Property;
-use App\Models\TransactionCode;
+use App\Models\Tax;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -28,25 +28,19 @@ class ChargeItemController extends Controller
     {
         abort_if($property->settings === null, 404);
 
-        $chargeItems = $property->chargeItems()
-            ->with('transactionCode')
-            ->orderByDesc('active')
-            ->ordered()
-            ->get();
-
-        $currentTransactionCodeIds = $chargeItems->pluck('transaction_code_id')->unique();
-
         return Inertia::render('settings/charge-items/index', [
-            'chargeItems' => $chargeItems->map(fn (ChargeItem $chargeItem): ChargeItemData => ChargeItemData::fromModel($chargeItem)),
-            'transactionCodes' => $property->transactionCodes()
-                ->where('kind', TransactionKind::Charge)
-                ->where(function ($query) use ($currentTransactionCodeIds): void {
-                    $query->active()->orWhereIn('id', $currentTransactionCodeIds);
-                })
+            'chargeItems' => $property->chargeItems()
+                ->with('transactionCode.applicableTaxes')
                 ->orderByDesc('active')
-                ->orderBy('code')
+                ->ordered()
                 ->get()
-                ->map(fn (TransactionCode $transactionCode): ChargeTransactionCodeData => ChargeTransactionCodeData::fromModel($transactionCode)),
+                ->map(fn (ChargeItem $chargeItem): ChargeItemData => ChargeItemData::fromModel($chargeItem)),
+            'taxes' => $property->taxes()
+                ->orderByDesc('enabled')
+                ->orderBy('name')
+                ->get()
+                ->map(fn (Tax $tax): ChargeItemTaxData => ChargeItemTaxData::fromModel($tax)),
+            'categories' => TransactionCategory::chargeItemOptions(),
             'chargingUnits' => ChargingUnit::options(),
             'currency' => $property->settings->currency,
         ]);

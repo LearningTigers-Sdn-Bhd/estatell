@@ -7,6 +7,8 @@ use App\Enums\Currency;
 use App\Enums\DefaultRoleEnum;
 use App\Enums\PaymentMethodType;
 use App\Enums\SurchargeType;
+use App\Enums\TransactionCategory;
+use App\Enums\TransactionKind;
 use App\Models\ChargeItem;
 use App\Models\PaymentMethod;
 use App\Models\Property;
@@ -23,6 +25,7 @@ function paymentMethodPayload(PaymentMethod $paymentMethod, array $overrides = [
 {
     return array_merge([
         'name' => $paymentMethod->name,
+        'code' => $paymentMethod->transactionCode->code,
         'surcharge_type' => $paymentMethod->surcharge_type->value,
         'surcharge_value' => $paymentMethod->surcharge_value,
         'surcharge_charge_item_id' => $paymentMethod->surcharge_charge_item_id,
@@ -115,6 +118,9 @@ test('the page loads the bounded catalogue and surcharge picker data', function 
             ->where('paymentMethods.1.typeLabel', 'Card')
             ->where('paymentMethods.1.surchargeChargeItem', 'Old fee')
             ->where('chargeItems', fn ($items) => collect($items)->pluck('id')->all() === [$activeChargeItem->id, $inactiveChargeItem->id])
+            ->where('paymentMethods.1.code', 'CARD')
+            ->where('paymentMethods.1.isSystem', true)
+            ->where('types', PaymentMethodType::addableOptions())
             ->where('surchargeTypes', SurchargeType::options())
             ->where('currency', Currency::Myr->value)
             ->where('navigation.contexts.1.groups.2.items.2.title', 'Payment methods')
@@ -136,6 +142,7 @@ test('owners update payment settings and synchronize the transaction code name',
             'surcharge_value' => '2.5',
             'surcharge_charge_item_id' => $chargeItem->id,
             'requires_reference' => true,
+            'code' => 'TERMINAL',
         ]))
         ->assertRedirect(route('settings.payment-methods.index', $property->code))
         ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Front desk terminal saved.']);
@@ -148,6 +155,83 @@ test('owners update payment settings and synchronize the transaction code name',
         ->and($card->transactionCode->name)->toBe('Front desk terminal')
         ->and($card->transactionCode->code)->toBe('CARD')
         ->and(Activity::query()->where('event', 'payment_method.updated')->count())->toBe(1);
+});
+
+test('owners add payment methods at the end with their own payment code', function () {
+    $owner = User::factory()->owner()->create();
+    $property = $owner->property;
+    $chargeItem = ChargeItem::factory()->for($property)->create();
+    PaymentMethod::factory()->for($property)->create(['position' => 3]);
+
+    $this->actingAs($owner)
+        ->post(route('settings.payment-methods.store', $property->code), [
+            'name' => ' DuitNow QR ',
+            'type' => PaymentMethodType::EWallet->value,
+            'code' => ' duitnow ',
+            'surcharge_type' => SurchargeType::Percent->value,
+            'surcharge_value' => '1.5',
+            'surcharge_charge_item_id' => $chargeItem->id,
+            'requires_reference' => true,
+            'active' => true,
+        ])
+        ->assertRedirect(route('settings.payment-methods.index', $property->code))
+        ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'DuitNow QR created.']);
+
+    $paymentMethod = PaymentMethod::query()->where('name', 'DuitNow QR')->sole();
+    $transactionCode = $paymentMethod->transactionCode;
+
+    expect($paymentMethod->type)->toBe(PaymentMethodType::EWallet)
+        ->and($paymentMethod->position)->toBe(4)
+        ->and($paymentMethod->surcharge_value)->toBe('1.50')
+        ->and($transactionCode->property_id)->toBe($property->id)
+        ->and($transactionCode->code)->toBe('DUITNOW')
+        ->and($transactionCode->name)->toBe('DuitNow QR')
+        ->and($transactionCode->kind)->toBe(TransactionKind::Payment)
+        ->and($transactionCode->category)->toBe(TransactionCategory::EWallet)
+        ->and($transactionCode->system_key)->toBeNull()
+        ->and(Activity::query()->where('event', 'payment_method.created')->count())->toBe(1);
+});
+
+test('new payment methods need an addable type and an unused code', function (array $overrides, string $field) {
+    $owner = User::factory()->owner()->create();
+    TransactionCode::factory()->for($owner->property)->create(['code' => 'CASH']);
+
+    $this->actingAs($owner)
+        ->post(route('settings.payment-methods.store', $owner->property->code), array_merge([
+            'name' => 'DuitNow QR',
+            'type' => PaymentMethodType::EWallet->value,
+            'code' => 'DUITNOW',
+            'surcharge_type' => SurchargeType::None->value,
+            'requires_reference' => true,
+            'active' => true,
+        ], $overrides))
+        ->assertSessionHasErrors($field);
+
+    expect(PaymentMethod::query()->count())->toBe(0);
+})->with([
+    'type is required' => [['type' => ''], 'type'],
+    'OTA collected stays system-only' => [['type' => PaymentMethodType::OtaCollected->value], 'type'],
+    'City ledger stays system-only' => [['type' => PaymentMethodType::DirectBill->value], 'type'],
+    'code is required' => [['code' => ''], 'code'],
+    'code is unique among transaction codes' => [['code' => 'cash'], 'code'],
+    'code is at most 20 characters' => [['code' => str_repeat('A', 21)], 'code'],
+]);
+
+test('custom methods update their code and status while the type stays fixed', function () {
+    $owner = User::factory()->owner()->create();
+    $paymentMethod = PaymentMethod::factory()->for($owner->property)->create(['type' => PaymentMethodType::EWallet]);
+
+    $this->actingAs($owner)
+        ->put(route('settings.payment-methods.update', [$owner->property->code, $paymentMethod]), paymentMethodPayload($paymentMethod, [
+            'code' => 'TNG',
+            'type' => PaymentMethodType::Cash->value,
+            'active' => false,
+        ]))
+        ->assertSessionHasNoErrors();
+
+    expect($paymentMethod->refresh()->type)->toBe(PaymentMethodType::EWallet)
+        ->and($paymentMethod->transactionCode->code)->toBe('TNG')
+        ->and($paymentMethod->transactionCode->active)->toBeFalse();
 });
 
 test('selecting no surcharge clears its value and charge item', function () {
@@ -285,6 +369,8 @@ test('routes enforce settings permission and property scoping', function () {
 
     $this->actingAs($frontDesk)
         ->get(route('settings.payment-methods.index', $frontDesk->property->code))
+        ->assertForbidden();
+    $this->post(route('settings.payment-methods.store', $frontDesk->property->code), paymentMethodPayload($ownerPaymentMethod, ['type' => 'cash']))
         ->assertForbidden();
     $this->actingAs($owner)
         ->put(

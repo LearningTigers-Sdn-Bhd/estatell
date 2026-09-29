@@ -10,7 +10,7 @@ Every property receives the Malaysia system-code catalogue through `SeedTransact
 
 `system_key` is the stable application identity. `code` is the visible accounting code. Seeding again creates missing system codes but preserves every existing value. If a custom record occupies a canonical code, the system code uses the next suffix, for example `ROOM_2`.
 
-There is no generic transaction-code editor. Charge items, taxes, payment methods and discounts own the user-facing configuration that refers to these codes.
+There is no generic transaction-code editor. Charge items, taxes, payment methods and discounts own the user-facing configuration that refers to these codes. Each charge item owns one charge code: starter items own FNB, LAUNDRY, MINIBAR and FEE, and new items create their own custom code.
 
 ## Data model
 

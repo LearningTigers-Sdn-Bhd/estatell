@@ -3,10 +3,6 @@ import { Landmark, Plus } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { EmptyState } from '@/components/pms/empty-state';
 import { EnumSelect } from '@/components/pms/enum-select';
-import {
-    MultiCombobox,
-    type MultiComboboxOption,
-} from '@/components/pms/multi-combobox';
 import { PageHeader } from '@/components/pms/page-header';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -46,7 +42,6 @@ import {
 import { index, store, update } from '@/routes/settings/taxes';
 
 type Tax = App.Data.Catalogues.TaxData;
-type TransactionCode = App.Data.Catalogues.TaxTransactionCodeData;
 type Option = { value: string; label: string };
 
 type FormData = {
@@ -58,7 +53,6 @@ type FormData = {
     foreign_guests_only: boolean;
     registration_number: string;
     enabled: boolean;
-    applicable_transaction_code_ids: string[];
 };
 
 function formValues(tax: Tax | null): FormData {
@@ -71,33 +65,21 @@ function formValues(tax: Tax | null): FormData {
         foreign_guests_only: tax?.foreignGuestsOnly ?? false,
         registration_number: tax?.registrationNumber ?? '',
         enabled: tax?.enabled ?? true,
-        applicable_transaction_code_ids:
-            tax?.applicableTransactionCodeIds.map(String) ?? [],
     };
 }
 
 function TaxForm({
     tax,
-    transactionCodes,
     rateTypes,
     currency,
     onDone,
 }: {
     tax: Tax | null;
-    transactionCodes: TransactionCode[];
     rateTypes: Option[];
     currency: App.Enums.Currency;
     onDone: () => void;
 }) {
     const form = useForm<FormData>(formValues(tax));
-    const codeItems: MultiComboboxOption[] = transactionCodes.map((code) => ({
-        value: String(code.id),
-        label: code.active ? code.label : `${code.label} (inactive)`,
-        disabled:
-            !code.active &&
-            !tax?.applicableTransactionCodeIds.includes(code.id),
-    }));
-
     const submit = (event: React.FormEvent) => {
         event.preventDefault();
         const options = { preserveScroll: true, onSuccess: onDone };
@@ -116,6 +98,7 @@ function TaxForm({
                     <FieldLabel htmlFor="tax-name">Name</FieldLabel>
                     <Input
                         id="tax-name"
+                        placeholder="e.g. Service charge"
                         maxLength={100}
                         value={form.data.name}
                         onChange={(event) =>
@@ -129,6 +112,7 @@ function TaxForm({
                     <FieldLabel htmlFor="tax-code">Short code</FieldLabel>
                     <Input
                         id="tax-code"
+                        placeholder="e.g. SVC"
                         maxLength={50}
                         value={form.data.code}
                         onChange={(event) =>
@@ -137,7 +121,7 @@ function TaxForm({
                         aria-invalid={!!form.errors.code}
                     />
                     <FieldDescription>
-                        Custom posting codes use the TAX_ prefix.
+                        Short code for reports, for example SVC.
                     </FieldDescription>
                     <FieldError>{form.errors.code}</FieldError>
                 </Field>
@@ -163,6 +147,7 @@ function TaxForm({
                         )}
                         <InputGroupInput
                             id="tax-rate"
+                            placeholder="0.00"
                             type="number"
                             min="0.01"
                             max={
@@ -186,36 +171,13 @@ function TaxForm({
                     </InputGroup>
                     <FieldError>{form.errors.rate}</FieldError>
                 </Field>
-                <Field
-                    data-invalid={!!form.errors.applicable_transaction_code_ids}
-                >
-                    <FieldLabel htmlFor="tax-applies-to">
-                        Applies to charges
-                    </FieldLabel>
-                    <MultiCombobox
-                        id="tax-applies-to"
-                        name="applicable_transaction_code_ids"
-                        items={codeItems}
-                        value={form.data.applicable_transaction_code_ids}
-                        onValueChange={(value) =>
-                            form.setData(
-                                'applicable_transaction_code_ids',
-                                value,
-                            )
-                        }
-                        placeholder="Select charge codes"
-                        invalid={!!form.errors.applicable_transaction_code_ids}
-                    />
-                    <FieldError>
-                        {form.errors.applicable_transaction_code_ids}
-                    </FieldError>
-                </Field>
                 <Field data-invalid={!!form.errors.registration_number}>
                     <FieldLabel htmlFor="tax-registration-number">
                         Registration number
                     </FieldLabel>
                     <Input
                         id="tax-registration-number"
+                        placeholder="e.g. W10-1808-32000123"
                         maxLength={100}
                         value={form.data.registration_number}
                         onChange={(event) =>
@@ -239,10 +201,10 @@ function TaxForm({
                     />
                     <FieldContent>
                         <FieldLabel htmlFor="tax-inclusive">
-                            Included in charge amount
+                            Included in the price
                         </FieldLabel>
                         <FieldDescription>
-                            Extract this tax from the entered amount.
+                            The price already contains this tax.
                         </FieldDescription>
                     </FieldContent>
                 </Field>
@@ -273,10 +235,13 @@ function TaxForm({
                         }
                     />
                     <FieldContent>
-                        <FieldLabel htmlFor="tax-enabled">Available</FieldLabel>
+                        <FieldLabel htmlFor="tax-enabled">
+                            Charge this tax
+                        </FieldLabel>
                         <FieldDescription>
-                            Available taxes apply automatically to matching
-                            charges.
+                            Turn off to stop adding this tax to new charges.
+                            Choose where it applies on Room revenue and Charge
+                            items.
                         </FieldDescription>
                     </FieldContent>
                 </Field>
@@ -319,21 +284,16 @@ function rateLabel(
 
 export default function TaxesIndex({
     taxes,
-    transactionCodes,
     rateTypes,
     currency,
 }: {
     taxes: Tax[];
-    transactionCodes: TransactionCode[];
     rateTypes: Option[];
     currency: App.Enums.Currency;
 }) {
     const [editing, setEditing] = useState<Tax | null | undefined>(undefined);
     const [togglingIds, setTogglingIds] = useState<Set<number>>(new Set());
     const [query, setQuery] = useState('');
-    const codeLabels = new Map(
-        transactionCodes.map((code) => [code.id, code.label]),
-    );
     const filtered = useMemo(() => {
         const normalized = query.trim().toLocaleLowerCase();
         const matching = normalized
@@ -478,15 +438,13 @@ export default function TaxesIndex({
                                                 </TableCell>
                                                 <TableCell>
                                                     <div className="flex max-w-xs flex-wrap gap-1">
-                                                        {tax.applicableTransactionCodeIds.map(
-                                                            (id) => (
+                                                        {tax.appliesTo.map(
+                                                            (name) => (
                                                                 <Badge
-                                                                    key={id}
+                                                                    key={name}
                                                                     variant="secondary"
                                                                 >
-                                                                    {codeLabels.get(
-                                                                        id,
-                                                                    ) ?? id}
+                                                                    {name}
                                                                 </Badge>
                                                             ),
                                                         )}
@@ -495,12 +453,12 @@ export default function TaxesIndex({
                                                                 Foreign guests
                                                             </Badge>
                                                         )}
-                                                        {tax
-                                                            .applicableTransactionCodeIds
+                                                        {tax.appliesTo
                                                             .length === 0 && (
-                                                            <span className="text-muted-foreground">
-                                                                No charge codes
-                                                            </span>
+                                                            <Badge variant="destructive">
+                                                                Not applied to
+                                                                any charge
+                                                            </Badge>
                                                         )}
                                                     </div>
                                                 </TableCell>
@@ -565,7 +523,6 @@ export default function TaxesIndex({
                         <TaxForm
                             key={editing?.id ?? 'new'}
                             tax={editing}
-                            transactionCodes={transactionCodes}
                             rateTypes={rateTypes}
                             currency={currency}
                             onDone={() => setEditing(undefined)}

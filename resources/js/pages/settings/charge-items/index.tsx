@@ -3,6 +3,10 @@ import { ArrowDown, ArrowUp, Plus, ReceiptText } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { EmptyState } from '@/components/pms/empty-state';
 import { EnumSelect } from '@/components/pms/enum-select';
+import {
+    MultiCombobox,
+    type MultiComboboxOption,
+} from '@/components/pms/multi-combobox';
 import { PageHeader } from '@/components/pms/page-header';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -13,6 +17,8 @@ import {
     FieldError,
     FieldGroup,
     FieldLabel,
+    FieldLegend,
+    FieldSet,
 } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import {
@@ -20,14 +26,7 @@ import {
     InputGroupAddon,
     InputGroupInput,
 } from '@/components/ui/input-group';
-import {
-    Select,
-    SelectContent,
-    SelectGroup,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import {
     Sheet,
     SheetClose,
@@ -51,59 +50,100 @@ import { Textarea } from '@/components/ui/textarea';
 import { index, reorder, store, update } from '@/routes/settings/charge-items';
 
 type ChargeItem = App.Data.Catalogues.ChargeItemData;
-type TransactionCode = App.Data.Catalogues.ChargeTransactionCodeData;
+type Tax = App.Data.Catalogues.ChargeItemTaxData;
 type Option = { value: string; label: string };
 
 type FormData = {
     name: string;
+    code: string;
+    category: string;
     description: string;
-    transaction_code_id: string;
     default_amount: string;
     charging_unit: string;
     allow_override: boolean;
     active: boolean;
+    tax_ids: string[];
 };
 
-function formValues(
-    chargeItem: ChargeItem | null,
-    transactionCodes: TransactionCode[],
-): FormData {
+function formValues(chargeItem: ChargeItem | null): FormData {
     return {
         name: chargeItem?.name ?? '',
+        code: chargeItem?.code ?? '',
+        category: chargeItem?.category ?? 'other',
         description: chargeItem?.description ?? '',
-        transaction_code_id: String(
-            chargeItem?.transactionCodeId ??
-                transactionCodes.find((code) => code.active)?.id ??
-                '',
-        ),
         default_amount: chargeItem?.defaultAmount ?? '',
         charging_unit: chargeItem?.chargingUnit ?? 'per_item',
         allow_override: chargeItem?.allowOverride ?? true,
         active: chargeItem?.active ?? true,
+        tax_ids: (chargeItem?.taxIds ?? []).map(String),
     };
+}
+
+const pricingOptions = [
+    {
+        value: 'fixed',
+        label: 'Default amount',
+        description:
+            'The amount is filled in when staff post this item. Use it for items with a set price, such as breakfast or parking.',
+    },
+    {
+        value: 'entered',
+        label: 'Enter when charging',
+        description:
+            'Staff type the amount each time. Use it for items with a varying price, such as damage or minibar.',
+    },
+];
+
+function taxLabel(tax: Tax, currency: App.Enums.Currency): string {
+    const rate =
+        tax.rateType === 'percent'
+            ? `${Number(tax.rate).toFixed(2)}%`
+            : new Intl.NumberFormat(undefined, {
+                  style: 'currency',
+                  currency,
+              }).format(Number(tax.rate));
+
+    return `${tax.name} · ${rate}${tax.enabled ? '' : ' (inactive)'}`;
 }
 
 function ChargeItemForm({
     chargeItem,
-    transactionCodes,
+    taxes,
+    categories,
     chargingUnits,
     currency,
     onDone,
 }: {
     chargeItem: ChargeItem | null;
-    transactionCodes: TransactionCode[];
+    taxes: Tax[];
+    categories: Option[];
     chargingUnits: Option[];
     currency: App.Enums.Currency;
     onDone: () => void;
 }) {
-    const form = useForm<FormData>(formValues(chargeItem, transactionCodes));
-    const availableCodes = transactionCodes.filter(
-        (code) => code.active || code.id === chargeItem?.transactionCodeId,
+    const form = useForm<FormData>(formValues(chargeItem));
+    const [enteredWhenCharging, setEnteredWhenCharging] = useState(
+        chargeItem !== null && chargeItem.defaultAmount === null,
     );
-    const codeItems = availableCodes.map((code) => ({
-        value: String(code.id),
-        label: code.active ? code.label : `${code.label} (inactive)`,
+    const isStarter = chargeItem?.isStarter ?? false;
+    const taxItems: MultiComboboxOption[] = taxes.map((tax) => ({
+        value: String(tax.id),
+        label: taxLabel(tax, currency),
     }));
+
+    const setPricing = (value: string) => {
+        const entered = value === 'entered';
+
+        setEnteredWhenCharging(entered);
+
+        if (entered) {
+            form.setData((data) => ({
+                ...data,
+                default_amount: '',
+                allow_override: true,
+            }));
+        }
+    };
 
     const submit = (event: React.FormEvent) => {
         event.preventDefault();
@@ -124,6 +164,7 @@ function ChargeItemForm({
                     <FieldLabel htmlFor="charge-item-name">Name</FieldLabel>
                     <Input
                         id="charge-item-name"
+                        placeholder="e.g. Airport transfer"
                         maxLength={100}
                         value={form.data.name}
                         onChange={(event) =>
@@ -134,12 +175,54 @@ function ChargeItemForm({
                     />
                     <FieldError>{form.errors.name}</FieldError>
                 </Field>
+                <div className="grid gap-4 sm:grid-cols-2">
+                    <Field data-invalid={!!form.errors.code}>
+                        <FieldLabel htmlFor="charge-item-code">Code</FieldLabel>
+                        <Input
+                            id="charge-item-code"
+                            placeholder="e.g. AIRPORT"
+                            maxLength={20}
+                            value={form.data.code}
+                            onChange={(event) =>
+                                form.setData(
+                                    'code',
+                                    event.target.value.toUpperCase(),
+                                )
+                            }
+                            disabled={isStarter}
+                            aria-invalid={!!form.errors.code}
+                        />
+                        <FieldDescription>
+                            {isStarter
+                                ? 'Starter items keep their code.'
+                                : 'Used in reports and accounting exports.'}
+                        </FieldDescription>
+                        <FieldError>{form.errors.code}</FieldError>
+                    </Field>
+                    <Field data-invalid={!!form.errors.category}>
+                        <FieldLabel htmlFor="charge-item-category">
+                            Category
+                        </FieldLabel>
+                        <EnumSelect
+                            id="charge-item-category"
+                            options={categories}
+                            value={form.data.category}
+                            onValueChange={(value) =>
+                                form.setData('category', value)
+                            }
+                            disabled={isStarter}
+                            aria-invalid={!!form.errors.category}
+                        />
+                        <FieldError>{form.errors.category}</FieldError>
+                    </Field>
+                </div>
                 <Field data-invalid={!!form.errors.description}>
                     <FieldLabel htmlFor="charge-item-description">
                         Description
                     </FieldLabel>
                     <Textarea
                         id="charge-item-description"
+                        placeholder="e.g. One-way transfer to the airport, up to 4 guests"
                         maxLength={2000}
                         value={form.data.description}
                         onChange={(event) =>
@@ -152,82 +235,82 @@ function ChargeItemForm({
                     </FieldDescription>
                     <FieldError>{form.errors.description}</FieldError>
                 </Field>
-                <Field data-invalid={!!form.errors.transaction_code_id}>
-                    <FieldLabel htmlFor="charge-item-code">
-                        Transaction code
-                    </FieldLabel>
-                    <Select
-                        items={codeItems}
-                        value={form.data.transaction_code_id}
-                        onValueChange={(value) =>
-                            form.setData(
-                                'transaction_code_id',
-                                (value as string | null) ?? '',
-                            )
-                        }
+                <FieldSet>
+                    <FieldLegend variant="label">Pricing method</FieldLegend>
+                    <RadioGroup
+                        value={enteredWhenCharging ? 'entered' : 'fixed'}
+                        onValueChange={(value) => setPricing(value as string)}
                     >
-                        <SelectTrigger
-                            id="charge-item-code"
-                            aria-invalid={!!form.errors.transaction_code_id}
-                        >
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent alignItemWithTrigger={false}>
-                            <SelectGroup>
-                                {codeItems.map((code) => (
-                                    <SelectItem
-                                        key={code.value}
-                                        value={code.value}
-                                    >
-                                        {code.label}
-                                    </SelectItem>
-                                ))}
-                            </SelectGroup>
-                        </SelectContent>
-                    </Select>
-                    <FieldDescription>
-                        Controls accounting and reporting classification.
-                    </FieldDescription>
-                    <FieldError>{form.errors.transaction_code_id}</FieldError>
-                </Field>
-                <Field data-invalid={!!form.errors.default_amount}>
-                    <FieldLabel htmlFor="charge-item-amount">
-                        Default amount
-                    </FieldLabel>
-                    <InputGroup>
-                        <InputGroupAddon>{currency}</InputGroupAddon>
-                        <InputGroupInput
-                            id="charge-item-amount"
-                            type="number"
-                            min="0.01"
-                            max="9999999999.99"
-                            step="0.01"
-                            inputMode="decimal"
-                            value={form.data.default_amount}
-                            onChange={(event) =>
-                                form.setData(
-                                    'default_amount',
-                                    event.target.value,
-                                )
+                        {pricingOptions.map((option) => (
+                            <FieldLabel
+                                key={option.value}
+                                htmlFor={`charge-item-price-${option.value}`}
+                            >
+                                <Field orientation="horizontal">
+                                    <RadioGroupItem
+                                        id={`charge-item-price-${option.value}`}
+                                        value={option.value}
+                                    />
+                                    <FieldContent>
+                                        <span className="text-sm font-medium">
+                                            {option.label}
+                                        </span>
+                                        <FieldDescription>
+                                            {option.description}
+                                        </FieldDescription>
+                                    </FieldContent>
+                                </Field>
+                            </FieldLabel>
+                        ))}
+                    </RadioGroup>
+                </FieldSet>
+                <div className="grid gap-4 sm:grid-cols-2">
+                    {!enteredWhenCharging && (
+                        <Field data-invalid={!!form.errors.default_amount}>
+                            <FieldLabel htmlFor="charge-item-amount">
+                                Price
+                            </FieldLabel>
+                            <InputGroup>
+                                <InputGroupAddon>{currency}</InputGroupAddon>
+                                <InputGroupInput
+                                    id="charge-item-amount"
+                                    placeholder="0.00"
+                                    type="number"
+                                    min="0.01"
+                                    max="9999999999.99"
+                                    step="0.01"
+                                    inputMode="decimal"
+                                    value={form.data.default_amount}
+                                    onChange={(event) =>
+                                        form.setData(
+                                            'default_amount',
+                                            event.target.value,
+                                        )
+                                    }
+                                    aria-invalid={!!form.errors.default_amount}
+                                />
+                            </InputGroup>
+                            <FieldError>
+                                {form.errors.default_amount}
+                            </FieldError>
+                        </Field>
+                    )}
+                    <Field data-invalid={!!form.errors.charging_unit}>
+                        <FieldLabel htmlFor="charge-item-unit">
+                            Charged
+                        </FieldLabel>
+                        <EnumSelect
+                            id="charge-item-unit"
+                            options={chargingUnits}
+                            value={form.data.charging_unit}
+                            onValueChange={(value) =>
+                                form.setData('charging_unit', value)
                             }
-                            aria-invalid={!!form.errors.default_amount}
+                            aria-invalid={!!form.errors.charging_unit}
                         />
-                    </InputGroup>
-                    <FieldError>{form.errors.default_amount}</FieldError>
-                </Field>
-                <Field data-invalid={!!form.errors.charging_unit}>
-                    <FieldLabel htmlFor="charge-item-unit">Charged</FieldLabel>
-                    <EnumSelect
-                        id="charge-item-unit"
-                        options={chargingUnits}
-                        value={form.data.charging_unit}
-                        onValueChange={(value) =>
-                            form.setData('charging_unit', value)
-                        }
-                        aria-invalid={!!form.errors.charging_unit}
-                    />
-                    <FieldError>{form.errors.charging_unit}</FieldError>
-                </Field>
+                        <FieldError>{form.errors.charging_unit}</FieldError>
+                    </Field>
+                </div>
                 <Field orientation="horizontal">
                     <Switch
                         id="charge-item-override"
@@ -235,6 +318,7 @@ function ChargeItemForm({
                         onCheckedChange={(checked) =>
                             form.setData('allow_override', checked)
                         }
+                        disabled={enteredWhenCharging}
                     />
                     <FieldContent>
                         <FieldLabel htmlFor="charge-item-override">
@@ -246,6 +330,24 @@ function ChargeItemForm({
                         </FieldDescription>
                     </FieldContent>
                 </Field>
+                <Field data-invalid={!!form.errors.tax_ids}>
+                    <FieldLabel htmlFor="charge-item-taxes">Taxes</FieldLabel>
+                    <MultiCombobox
+                        id="charge-item-taxes"
+                        name="tax_ids"
+                        items={taxItems}
+                        value={form.data.tax_ids}
+                        onValueChange={(value) =>
+                            form.setData('tax_ids', value)
+                        }
+                        placeholder="No taxes"
+                        invalid={!!form.errors.tax_ids}
+                    />
+                    <FieldDescription>
+                        Taxes added automatically when this item is charged.
+                    </FieldDescription>
+                    <FieldError>{form.errors.tax_ids}</FieldError>
+                </Field>
                 <Field orientation="horizontal">
                     <Switch
                         id="charge-item-active"
@@ -256,10 +358,11 @@ function ChargeItemForm({
                     />
                     <FieldContent>
                         <FieldLabel htmlFor="charge-item-active">
-                            Active
+                            Available to charge
                         </FieldLabel>
                         <FieldDescription>
-                            Active items are available for new charges.
+                            Staff can post this item to a folio. Turn it off to
+                            hide the item without deleting it.
                         </FieldDescription>
                     </FieldContent>
                 </Field>
@@ -283,6 +386,7 @@ function ChargeItemForm({
 
 function ChargeItemTable({
     chargeItems,
+    taxes,
     chargingUnits,
     currency,
     onEdit,
@@ -291,6 +395,7 @@ function ChargeItemTable({
     togglingIds,
 }: {
     chargeItems: ChargeItem[];
+    taxes: Tax[];
     chargingUnits: Option[];
     currency: App.Enums.Currency;
     onEdit: (chargeItem: ChargeItem) => void;
@@ -302,6 +407,7 @@ function ChargeItemTable({
         style: 'currency',
         currency,
     });
+    const taxNames = new Map(taxes.map((tax) => [tax.id, tax.name]));
     const unitLabel = (value: string) =>
         chargingUnits.find((option) => option.value === value)?.label ?? value;
     const activeChargeItems = chargeItems.filter(
@@ -321,9 +427,10 @@ function ChargeItemTable({
                     <TableRow>
                         <TableHead>Available</TableHead>
                         <TableHead>Charge item</TableHead>
-                        <TableHead>Transaction code</TableHead>
+                        <TableHead>Code</TableHead>
                         <TableHead>Charged</TableHead>
                         <TableHead className="text-right">Amount</TableHead>
+                        <TableHead>Taxes</TableHead>
                         <TableHead>
                             <span className="sr-only">Actions</span>
                         </TableHead>
@@ -362,20 +469,42 @@ function ChargeItemTable({
                                         )}
                                     </div>
                                 </TableCell>
-                                <TableCell>
-                                    {chargeItem.transactionCode}
+                                <TableCell className="font-mono text-xs">
+                                    {chargeItem.code}
                                 </TableCell>
                                 <TableCell>
                                     {unitLabel(chargeItem.chargingUnit)}
                                 </TableCell>
                                 <TableCell className="text-right tabular-nums">
-                                    {money.format(
-                                        Number(chargeItem.defaultAmount),
+                                    {chargeItem.defaultAmount === null ? (
+                                        <span className="text-muted-foreground">
+                                            Enter when charging
+                                        </span>
+                                    ) : (
+                                        <>
+                                            {money.format(
+                                                Number(
+                                                    chargeItem.defaultAmount,
+                                                ),
+                                            )}
+                                            {chargeItem.allowOverride && (
+                                                <div className="text-xs text-muted-foreground">
+                                                    Override allowed
+                                                </div>
+                                            )}
+                                        </>
                                     )}
-                                    {chargeItem.allowOverride && (
-                                        <div className="text-xs text-muted-foreground">
-                                            Override allowed
-                                        </div>
+                                </TableCell>
+                                <TableCell>
+                                    {chargeItem.taxIds.length > 0 ? (
+                                        chargeItem.taxIds
+                                            .map((id) => taxNames.get(id))
+                                            .filter(Boolean)
+                                            .join(', ')
+                                    ) : (
+                                        <span className="text-muted-foreground">
+                                            None
+                                        </span>
                                     )}
                                 </TableCell>
                                 <TableCell>
@@ -446,12 +575,14 @@ function ChargeItemTable({
 
 export default function ChargeItemsIndex({
     chargeItems,
-    transactionCodes,
+    taxes,
+    categories,
     chargingUnits,
     currency,
 }: {
     chargeItems: ChargeItem[];
-    transactionCodes: TransactionCode[];
+    taxes: Tax[];
+    categories: Option[];
     chargingUnits: Option[];
     currency: App.Enums.Currency;
 }) {
@@ -468,7 +599,7 @@ export default function ChargeItemsIndex({
                   [
                       chargeItem.name,
                       chargeItem.description ?? '',
-                      chargeItem.transactionCode,
+                      chargeItem.code,
                   ].some((value) =>
                       value.toLocaleLowerCase().includes(normalized),
                   ),
@@ -523,7 +654,7 @@ export default function ChargeItemsIndex({
             .put(
                 update.url({ chargeItem: chargeItem.id }),
                 {
-                    ...formValues(chargeItem, transactionCodes),
+                    ...formValues(chargeItem),
                     active,
                 },
                 {
@@ -582,6 +713,7 @@ export default function ChargeItemsIndex({
                         {filtered.length > 0 ? (
                             <ChargeItemTable
                                 chargeItems={filtered}
+                                taxes={taxes}
                                 chargingUnits={chargingUnits}
                                 currency={currency}
                                 onEdit={setEditing}
@@ -618,7 +750,8 @@ export default function ChargeItemsIndex({
                         <ChargeItemForm
                             key={editing?.id ?? 'new'}
                             chargeItem={editing}
-                            transactionCodes={transactionCodes}
+                            taxes={taxes}
+                            categories={categories}
                             chargingUnits={chargingUnits}
                             currency={currency}
                             onDone={() => setEditing(undefined)}

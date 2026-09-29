@@ -28,6 +28,7 @@ test('each property type receives the Malaysia defaults', function (PropertyType
         ->and($property->transactionCodes()->count())->toBe(count(SystemTransactionCode::cases()))
         ->and($property->paymentMethods()->count())->toBe(6)
         ->and($property->paymentMethods()->where('active', true)->count())->toBe(4)
+        ->and($property->chargeItems()->count())->toBe(4)
         ->and($settings->currency)->toBe(Currency::Myr)
         ->and($settings->time_zone)->toBe('Asia/Kuala_Lumpur')
         ->and($settings->default_locale)->toBe(Locale::English)
@@ -86,5 +87,6 @@ test('unsupported countries create no defaults', function () {
     expect($property->roles()->count())->toBe(0)
         ->and($property->settings()->count())->toBe(0)
         ->and($property->transactionCodes()->count())->toBe(0)
+        ->and($property->chargeItems()->count())->toBe(0)
         ->and($property->paymentMethods()->count())->toBe(0);
 });

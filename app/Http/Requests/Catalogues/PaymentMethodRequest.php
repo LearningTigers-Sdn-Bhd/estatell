@@ -2,14 +2,17 @@
 
 namespace App\Http\Requests\Catalogues;
 
+use App\Enums\PaymentMethodType;
 use App\Enums\SurchargeType;
 use App\Models\ChargeItem;
 use App\Models\PaymentMethod;
 use App\Models\Property;
+use App\Models\TransactionCode;
 use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use LogicException;
 
@@ -27,6 +30,7 @@ class PaymentMethodRequest extends FormRequest
 
         $this->merge([
             'name' => trim((string) $this->input('name')),
+            'code' => Str::of((string) $this->input('code'))->trim()->upper()->replaceMatches('/[^A-Z0-9]+/', '_')->trim('_')->toString(),
             'surcharge_value' => $surchargeType === SurchargeType::None->value || ! filled($this->input('surcharge_value'))
                 ? null
                 : trim((string) $this->input('surcharge_value')),
@@ -50,8 +54,11 @@ class PaymentMethodRequest extends FormRequest
 
         $paymentMethod = $this->route('paymentMethod');
         if (! $paymentMethod instanceof PaymentMethod) {
-            throw new LogicException('The payment method route binding is missing.');
+            $paymentMethod = null;
         }
+
+        $isSystem = $paymentMethod instanceof PaymentMethod
+            && $paymentMethod->transactionCode()->whereNotNull('system_key')->exists();
 
         return [
             'name' => [
@@ -60,11 +67,28 @@ class PaymentMethodRequest extends FormRequest
                     $taken = PaymentMethod::query()
                         ->where('property_id', $property->id)
                         ->whereRaw('lower(name) = ?', [mb_strtolower((string) $value)])
-                        ->whereKeyNot($paymentMethod->id)
+                        ->when($paymentMethod instanceof PaymentMethod, fn (Builder $query) => $query->whereKeyNot($paymentMethod->id))
                         ->exists();
 
                     if ($taken) {
                         $fail(__('Another payment method already uses this name.'));
+                    }
+                },
+            ],
+            'type' => $paymentMethod instanceof PaymentMethod
+                ? ['exclude']
+                : ['required', Rule::enum(PaymentMethodType::class)->only(PaymentMethodType::addableCases())],
+            'code' => $isSystem ? ['exclude'] : [
+                'required', 'string', 'max:20', 'regex:/^[A-Z0-9]+(?:_[A-Z0-9]+)*$/',
+                function (string $attribute, mixed $value, Closure $fail) use ($property, $paymentMethod): void {
+                    $taken = TransactionCode::query()
+                        ->where('property_id', $property->id)
+                        ->whereRaw('lower(code) = ?', [mb_strtolower((string) $value)])
+                        ->when($paymentMethod instanceof PaymentMethod, fn (Builder $query) => $query->whereKeyNot($paymentMethod->transaction_code_id))
+                        ->exists();
+
+                    if ($taken) {
+                        $fail(__('The code :code is already in use.', ['code' => $value]));
                     }
                 },
             ],
@@ -90,8 +114,8 @@ class PaymentMethodRequest extends FormRequest
                         ->where(function (Builder $query) use ($paymentMethod): void {
                             $query->active()
                                 ->when(
-                                    $paymentMethod->surcharge_charge_item_id !== null,
-                                    fn (Builder $query) => $query->orWhereKey($paymentMethod->surcharge_charge_item_id),
+                                    $paymentMethod?->surcharge_charge_item_id !== null,
+                                    fn (Builder $query) => $query->orWhereKey($paymentMethod?->surcharge_charge_item_id),
                                 );
                         })
                         ->exists();

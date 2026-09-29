@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers\Catalogues;
 
+use App\Actions\Catalogues\CreatePaymentMethod;
 use App\Actions\Catalogues\ReorderPaymentMethods;
 use App\Actions\Catalogues\UpdatePaymentMethod;
 use App\Data\Catalogues\PaymentMethodData;
 use App\Data\Catalogues\SurchargeChargeItemData;
+use App\Enums\PaymentMethodType;
 use App\Enums\SurchargeType;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Catalogues\PaymentMethodRequest;
@@ -44,9 +46,25 @@ class PaymentMethodController extends Controller
                 ->ordered()
                 ->get()
                 ->map(fn (ChargeItem $chargeItem): SurchargeChargeItemData => SurchargeChargeItemData::fromModel($chargeItem)),
+            'types' => PaymentMethodType::addableOptions(),
             'surchargeTypes' => SurchargeType::options(),
             'currency' => $property->settings->currency,
         ]);
+    }
+
+    public function store(PaymentMethodRequest $request, Property $property, CreatePaymentMethod $createPaymentMethod): RedirectResponse
+    {
+        $paymentMethod = $createPaymentMethod($property, $request->user(), $request->validated());
+
+        if (! $paymentMethod instanceof PaymentMethod) {
+            Inertia::flash('toast', ['type' => 'error', 'message' => __('The surcharge charge item is no longer available.')]);
+
+            return to_route('settings.payment-methods.index', $property);
+        }
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __(':name created.', ['name' => $paymentMethod->name])]);
+
+        return to_route('settings.payment-methods.index', $property);
     }
 
     public function update(

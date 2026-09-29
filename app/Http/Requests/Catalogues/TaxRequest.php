@@ -3,7 +3,6 @@
 namespace App\Http\Requests\Catalogues;
 
 use App\Enums\TaxRateType;
-use App\Enums\TransactionKind;
 use App\Models\Property;
 use App\Models\Tax;
 use App\Models\TransactionCode;
@@ -24,7 +23,6 @@ class TaxRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
-        $applicableTransactionCodeIds = $this->input('applicable_transaction_code_ids', []);
         $registrationNumber = filled($this->input('registration_number'))
             ? Str::of((string) $this->input('registration_number'))->trim()->upper()->replaceMatches('/\s+/', ' ')->toString()
             : null;
@@ -33,9 +31,6 @@ class TaxRequest extends FormRequest
             'name' => trim((string) $this->input('name')),
             'code' => Str::of((string) $this->input('code'))->trim()->upper()->replaceMatches('/[^A-Z0-9]+/', '_')->trim('_')->toString(),
             'registration_number' => $registrationNumber,
-            'applicable_transaction_code_ids' => is_array($applicableTransactionCodeIds)
-                ? array_values(array_map(fn (mixed $id): int => (int) $id, $applicableTransactionCodeIds))
-                : $applicableTransactionCodeIds,
         ]);
     }
 
@@ -85,37 +80,6 @@ class TaxRequest extends FormRequest
             'foreign_guests_only' => ['required', 'boolean'],
             'registration_number' => ['nullable', 'string', 'max:100'],
             'enabled' => ['required', 'boolean'],
-            'applicable_transaction_code_ids' => [
-                'present', 'array', 'distinct',
-                function (string $attribute, mixed $value, Closure $fail) use ($property, $current): void {
-                    if (! is_array($value)) {
-                        return;
-                    }
-
-                    if ($this->boolean('enabled') && $value === []) {
-                        $fail(__('Choose at least one charge code before enabling this tax.'));
-
-                        return;
-                    }
-
-                    $existingIds = $current instanceof Tax
-                        ? $current->applicableTransactionCodes()->pluck('transaction_codes.id')->all()
-                        : [];
-                    $validCount = TransactionCode::query()
-                        ->where('property_id', $property->id)
-                        ->where('kind', TransactionKind::Charge)
-                        ->where(function (Builder $query) use ($existingIds): void {
-                            $query->active()->orWhereKey($existingIds);
-                        })
-                        ->whereKey($value)
-                        ->count();
-
-                    if ($validCount !== count($value)) {
-                        $fail(__('Choose active charge codes from this property.'));
-                    }
-                },
-            ],
-            'applicable_transaction_code_ids.*' => ['integer'],
         ];
     }
 

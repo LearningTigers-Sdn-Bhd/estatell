@@ -3,6 +3,7 @@
 namespace App\Data\Catalogues;
 
 use App\Enums\ChargingUnit;
+use App\Enums\TransactionCategory;
 use App\Models\ChargeItem;
 use Spatie\LaravelData\Data;
 
@@ -11,33 +12,39 @@ use Spatie\LaravelData\Data;
  */
 class ChargeItemData extends Data
 {
+    /** @param list<int> $taxIds */
     public function __construct(
         public int $id,
-        public int $transactionCodeId,
-        public string $transactionCode,
         public string $name,
+        public string $code,
+        public TransactionCategory $category,
+        public bool $isStarter,
         public ?string $description,
-        public string $defaultAmount,
+        public ?string $defaultAmount,
         public ChargingUnit $chargingUnit,
         public bool $allowOverride,
         public bool $active,
+        public array $taxIds,
     ) {}
 
     public static function fromModel(ChargeItem $chargeItem): self
     {
         return new self(
             id: $chargeItem->id,
-            transactionCodeId: $chargeItem->transaction_code_id,
-            transactionCode: __(':code — :name', [
-                'code' => $chargeItem->transactionCode->code,
-                'name' => $chargeItem->transactionCode->name,
-            ]),
             name: $chargeItem->name,
+            code: $chargeItem->transactionCode->code,
+            category: $chargeItem->transactionCode->category,
+            isStarter: $chargeItem->transactionCode->system_key !== null,
             description: $chargeItem->description,
             defaultAmount: $chargeItem->default_amount,
             chargingUnit: $chargeItem->charging_unit,
             allowOverride: $chargeItem->allow_override,
             active: $chargeItem->active,
+            taxIds: array_values($chargeItem->transactionCode->applicableTaxes
+                ->pluck('id')
+                ->map(fn (mixed $id): int => (int) $id)
+                ->sort()
+                ->all()),
         );
     }
 }

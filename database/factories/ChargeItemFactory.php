@@ -22,8 +22,12 @@ class ChargeItemFactory extends Factory
     {
         return [
             'property_id' => Property::factory(),
-            'transaction_code_id' => fn (array $attributes) => TransactionCode::factory()->create(['property_id' => $attributes['property_id']])->id,
             'name' => fake()->unique()->words(2, true),
+            'transaction_code_id' => fn (array $attributes) => TransactionCode::factory()->create([
+                'property_id' => $attributes['property_id'],
+                'name' => $attributes['name'],
+                'active' => $attributes['active'],
+            ])->id,
             'description' => fake()->optional()->sentence(),
             'default_amount' => fake()->randomFloat(2, 1, 500),
             'charging_unit' => ChargingUnit::PerItem,
