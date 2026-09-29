@@ -287,12 +287,16 @@ function ChargeItemTable({
     currency,
     onEdit,
     onMove,
+    onToggleActive,
+    togglingIds,
 }: {
     chargeItems: ChargeItem[];
     chargingUnits: Option[];
     currency: App.Enums.Currency;
     onEdit: (chargeItem: ChargeItem) => void;
     onMove?: (from: number, to: number) => void;
+    onToggleActive: (chargeItem: ChargeItem, active: boolean) => void;
+    togglingIds: Set<number>;
 }) {
     const money = new Intl.NumberFormat(undefined, {
         style: 'currency',
@@ -300,12 +304,22 @@ function ChargeItemTable({
     });
     const unitLabel = (value: string) =>
         chargingUnits.find((option) => option.value === value)?.label ?? value;
+    const activeChargeItems = chargeItems.filter(
+        (chargeItem) => chargeItem.active,
+    );
+    const activePositions = new Map(
+        activeChargeItems.map((chargeItem, position) => [
+            chargeItem.id,
+            position,
+        ]),
+    );
 
     return (
         <div className="overflow-auto rounded-lg border">
             <Table>
                 <TableHeader>
                     <TableRow>
+                        <TableHead>Available</TableHead>
                         <TableHead>Charge item</TableHead>
                         <TableHead>Transaction code</TableHead>
                         <TableHead>Charged</TableHead>
@@ -316,85 +330,114 @@ function ChargeItemTable({
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {chargeItems.map((chargeItem, position) => (
-                        <TableRow key={chargeItem.id}>
-                            <TableCell>
-                                <div className="flex flex-col gap-0.5">
-                                    <span className="font-medium">
-                                        {chargeItem.name}
-                                    </span>
-                                    {chargeItem.description && (
-                                        <span className="max-w-xs truncate text-xs text-muted-foreground">
-                                            {chargeItem.description}
-                                        </span>
-                                    )}
-                                </div>
-                            </TableCell>
-                            <TableCell>{chargeItem.transactionCode}</TableCell>
-                            <TableCell>
-                                {unitLabel(chargeItem.chargingUnit)}
-                            </TableCell>
-                            <TableCell className="text-right tabular-nums">
-                                {money.format(Number(chargeItem.defaultAmount))}
-                                {chargeItem.allowOverride && (
-                                    <div className="text-xs text-muted-foreground">
-                                        Override allowed
-                                    </div>
-                                )}
-                            </TableCell>
-                            <TableCell>
-                                <div className="flex justify-end gap-1">
-                                    {onMove && (
-                                        <>
-                                            <Button
-                                                variant="ghost"
-                                                size="icon-sm"
-                                                aria-label={`Move ${chargeItem.name} up`}
-                                                disabled={position === 0}
-                                                onClick={() =>
-                                                    onMove(
-                                                        position,
-                                                        position - 1,
-                                                    )
-                                                }
-                                            >
-                                                <ArrowUp />
-                                            </Button>
-                                            <Button
-                                                variant="ghost"
-                                                size="icon-sm"
-                                                aria-label={`Move ${chargeItem.name} down`}
-                                                disabled={
-                                                    position ===
-                                                    chargeItems.length - 1
-                                                }
-                                                onClick={() =>
-                                                    onMove(
-                                                        position,
-                                                        position + 1,
-                                                    )
-                                                }
-                                            >
-                                                <ArrowDown />
-                                            </Button>
-                                        </>
-                                    )}
-                                    {!chargeItem.active && (
-                                        <Badge variant="secondary">
-                                            Inactive
-                                        </Badge>
-                                    )}
-                                    <Button
-                                        variant="ghost"
+                    {chargeItems.map((chargeItem) => {
+                        const activePosition = activePositions.get(
+                            chargeItem.id,
+                        );
+
+                        return (
+                            <TableRow key={chargeItem.id}>
+                                <TableCell>
+                                    <Switch
                                         size="sm"
-                                        onClick={() => onEdit(chargeItem)}
-                                    >
-                                        Edit
-                                    </Button>
-                                </div>
-                            </TableCell>
-                        </TableRow>
-                    ))}
+                                        checked={chargeItem.active}
+                                        disabled={togglingIds.has(
+                                            chargeItem.id,
+                                        )}
+                                        aria-label={`Make ${chargeItem.name} ${chargeItem.active ? 'unavailable' : 'available'}`}
+                                        onCheckedChange={(active) =>
+                                            onToggleActive(chargeItem, active)
+                                        }
+                                    />
+                                </TableCell>
+                                <TableCell>
+                                    <div className="flex min-w-0 flex-col gap-0.5">
+                                        <span className="font-medium">
+                                            {chargeItem.name}
+                                        </span>
+                                        {chargeItem.description && (
+                                            <span className="max-w-xs truncate text-xs text-muted-foreground">
+                                                {chargeItem.description}
+                                            </span>
+                                        )}
+                                    </div>
+                                </TableCell>
+                                <TableCell>
+                                    {chargeItem.transactionCode}
+                                </TableCell>
+                                <TableCell>
+                                    {unitLabel(chargeItem.chargingUnit)}
+                                </TableCell>
+                                <TableCell className="text-right tabular-nums">
+                                    {money.format(
+                                        Number(chargeItem.defaultAmount),
+                                    )}
+                                    {chargeItem.allowOverride && (
+                                        <div className="text-xs text-muted-foreground">
+                                            Override allowed
+                                        </div>
+                                    )}
+                                </TableCell>
+                                <TableCell>
+                                    <div className="flex justify-end gap-1">
+                                        {onMove &&
+                                            activePosition !== undefined && (
+                                                <>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon-sm"
+                                                        aria-label={`Move ${chargeItem.name} up`}
+                                                        disabled={
+                                                            activePosition === 0
+                                                        }
+                                                        onClick={() =>
+                                                            onMove(
+                                                                activePosition,
+                                                                activePosition -
+                                                                    1,
+                                                            )
+                                                        }
+                                                    >
+                                                        <ArrowUp />
+                                                    </Button>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon-sm"
+                                                        aria-label={`Move ${chargeItem.name} down`}
+                                                        disabled={
+                                                            activePosition ===
+                                                            activeChargeItems.length -
+                                                                1
+                                                        }
+                                                        onClick={() =>
+                                                            onMove(
+                                                                activePosition,
+                                                                activePosition +
+                                                                    1,
+                                                            )
+                                                        }
+                                                    >
+                                                        <ArrowDown />
+                                                    </Button>
+                                                </>
+                                            )}
+                                        {!chargeItem.active && (
+                                            <Badge variant="secondary">
+                                                Inactive
+                                            </Badge>
+                                        )}
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => onEdit(chargeItem)}
+                                        >
+                                            Edit
+                                        </Button>
+                                    </div>
+                                </TableCell>
+                            </TableRow>
+                        );
+                    })}
                 </TableBody>
             </Table>
         </div>
@@ -415,24 +458,28 @@ export default function ChargeItemsIndex({
     const [editing, setEditing] = useState<ChargeItem | null | undefined>(
         undefined,
     );
+    const [togglingIds, setTogglingIds] = useState<Set<number>>(new Set());
     const [query, setQuery] = useState('');
     const filtered = useMemo(() => {
         const normalized = query.trim().toLocaleLowerCase();
 
-        if (!normalized) {
-            return chargeItems;
-        }
+        const matching = normalized
+            ? chargeItems.filter((chargeItem) =>
+                  [
+                      chargeItem.name,
+                      chargeItem.description ?? '',
+                      chargeItem.transactionCode,
+                  ].some((value) =>
+                      value.toLocaleLowerCase().includes(normalized),
+                  ),
+              )
+            : [...chargeItems];
 
-        return chargeItems.filter((chargeItem) =>
-            [
-                chargeItem.name,
-                chargeItem.description ?? '',
-                chargeItem.transactionCode,
-            ].some((value) => value.toLocaleLowerCase().includes(normalized)),
+        return matching.sort(
+            (first, second) => Number(second.active) - Number(first.active),
         );
     }, [chargeItems, query]);
     const active = filtered.filter((chargeItem) => chargeItem.active);
-    const inactive = filtered.filter((chargeItem) => !chargeItem.active);
 
     const move = (from: number, to: number) => {
         const order = chargeItems
@@ -450,6 +497,41 @@ export default function ChargeItemsIndex({
         order.splice(targetIndex, 0, ...order.splice(sourceIndex, 1));
 
         router.put(reorder.url(), { order }, { preserveScroll: true });
+    };
+
+    const toggleActive = (chargeItem: ChargeItem, active: boolean) => {
+        const setToggling = (toggling: boolean) => {
+            setTogglingIds((current) => {
+                const next = new Set(current);
+
+                if (toggling) {
+                    next.add(chargeItem.id);
+                } else {
+                    next.delete(chargeItem.id);
+                }
+
+                return next;
+            });
+        };
+
+        router
+            .optimistic<{ chargeItems: ChargeItem[] }>((props) => ({
+                chargeItems: props.chargeItems.map((item) =>
+                    item.id === chargeItem.id ? { ...item, active } : item,
+                ),
+            }))
+            .put(
+                update.url({ chargeItem: chargeItem.id }),
+                {
+                    ...formValues(chargeItem, transactionCodes),
+                    active,
+                },
+                {
+                    preserveScroll: true,
+                    onStart: () => setToggling(true),
+                    onFinish: () => setToggling(false),
+                },
+            );
     };
 
     return (
@@ -497,33 +579,21 @@ export default function ChargeItemsIndex({
                             />
                         </Field>
 
-                        {active.length > 0 ? (
+                        {filtered.length > 0 ? (
                             <ChargeItemTable
-                                chargeItems={active}
+                                chargeItems={filtered}
                                 chargingUnits={chargingUnits}
                                 currency={currency}
                                 onEdit={setEditing}
                                 onMove={move}
+                                onToggleActive={toggleActive}
+                                togglingIds={togglingIds}
                             />
                         ) : (
                             <EmptyState
-                                title="No matching active charge items"
+                                title="No matching charge items"
                                 description="Change the search or add a new charge item."
                             />
-                        )}
-
-                        {inactive.length > 0 && (
-                            <section className="flex flex-col gap-2">
-                                <h2 className="font-heading text-sm font-medium">
-                                    Inactive
-                                </h2>
-                                <ChargeItemTable
-                                    chargeItems={inactive}
-                                    chargingUnits={chargingUnits}
-                                    currency={currency}
-                                    onEdit={setEditing}
-                                />
-                            </section>
                         )}
                     </>
                 )}
