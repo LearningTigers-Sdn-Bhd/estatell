@@ -53,13 +53,13 @@ export default function RateCalendar({
                         filters={filters}
                         onFiltersChange={setFilters}
                     />
+                    <RateCalendarLegend />
                     <RateCalendarGrid
                         roomTypes={calendar.roomTypes}
                         dates={calendar.dates}
                         today={today}
                         filters={filters}
                     />
-                    <RateCalendarLegend />
                 </>
             )}
         </div>

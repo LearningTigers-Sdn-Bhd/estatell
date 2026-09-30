@@ -3,6 +3,7 @@ import { useRef } from 'react';
 import type { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 import type { DateColumn } from './date-columns';
+import { useViewportFit } from './use-viewport-fit';
 
 export type GridRow = {
     key: string;
@@ -21,7 +22,8 @@ type Props<Row extends GridRow> = {
     columnWidth?: number;
     labelWidth?: number;
     headerHeight?: number;
-    maxHeight?: string;
+    /** Room to leave below the grid, in pixels. */
+    bottomGap?: number;
 };
 
 /**
@@ -39,9 +41,10 @@ export function DateGrid<Row extends GridRow>({
     columnWidth = 88,
     labelWidth = 208,
     headerHeight = 48,
-    maxHeight = '70vh',
+    bottomGap = 16,
 }: Props<Row>) {
     const scrollRef = useRef<HTMLDivElement>(null);
+    const maxHeight = useViewportFit(scrollRef, { bottomGap });
 
     const rowVirtualizer = useVirtualizer({
         count: rows.length,
@@ -69,7 +72,7 @@ export function DateGrid<Row extends GridRow>({
             aria-label={ariaLabel}
             aria-rowcount={rows.length + 1}
             aria-colcount={columns.length + 1}
-            className="relative overflow-auto rounded-lg border bg-background"
+            className="relative overflow-auto overscroll-none rounded-lg border bg-background"
             style={{ maxHeight }}
         >
             <div
