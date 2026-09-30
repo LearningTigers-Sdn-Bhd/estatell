@@ -6,6 +6,7 @@ use App\Http\Controllers\Catalogues\DiscountController;
 use App\Http\Controllers\Catalogues\PaymentMethodController;
 use App\Http\Controllers\Catalogues\RoomRevenueController;
 use App\Http\Controllers\Catalogues\TaxController;
+use App\Http\Controllers\Meals\MealPeriodController;
 use App\Http\Controllers\Property\NotificationSettingController;
 use App\Http\Controllers\Property\PropertySettingsController;
 use App\Http\Controllers\Rooms\BedController;
@@ -103,6 +104,12 @@ Route::prefix('settings')->name('settings.')->group(function () {
         Route::post('/', [DiscountController::class, 'store'])->name('store');
         Route::put('order', [DiscountController::class, 'reorder'])->name('reorder');
         Route::put('{discount}', [DiscountController::class, 'update'])->name('update');
+    });
+
+    Route::prefix('meal-periods')->name('meal-periods.')->middleware('can:'.PermissionEnum::SettingsManage->value)->scopeBindings()->group(function () {
+        Route::get('/', [MealPeriodController::class, 'index'])->name('index');
+        Route::post('/', [MealPeriodController::class, 'store'])->name('store');
+        Route::put('{mealPeriod}', [MealPeriodController::class, 'update'])->name('update');
     });
 
     Route::prefix('staff')->name('staff.')->group(function () {

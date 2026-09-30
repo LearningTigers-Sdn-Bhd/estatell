@@ -42,6 +42,14 @@ class SettingsNavigation
                     active: request()->routeIs('settings.rooms.*', 'settings.room-groups.*'),
                 ) : null,
             ]))),
+            new NavGroupData(label: __('Rates'), items: array_values(array_filter([
+                $user->can(PermissionEnum::SettingsManage->value) ? new NavItemData(
+                    title: __('Meal periods'),
+                    href: route('settings.meal-periods.index', ['property' => $property->code], absolute: false),
+                    icon: 'utensils',
+                    active: request()->routeIs('settings.meal-periods.*'),
+                ) : null,
+            ]))),
             new NavGroupData(label: __('Billing setup'), items: array_values(array_filter([
                 $user->can(PermissionEnum::SettingsManage->value) ? new NavItemData(
                     title: __('Taxes'),

@@ -30,6 +30,7 @@ test('each property type receives the Malaysia defaults', function (PropertyType
         ->and($property->paymentMethods()->where('active', true)->count())->toBe(4)
         ->and($property->chargeItems()->count())->toBe(4)
         ->and($property->discounts()->count())->toBe(1)
+        ->and($property->mealPeriods()->count())->toBe(3)
         ->and($settings->currency)->toBe(Currency::Myr)
         ->and($settings->time_zone)->toBe('Asia/Kuala_Lumpur')
         ->and($settings->default_locale)->toBe(Locale::English)

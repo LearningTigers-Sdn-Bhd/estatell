@@ -123,8 +123,8 @@ test('the page loads the bounded catalogue and surcharge picker data', function 
             ->where('types', PaymentMethodType::addableOptions())
             ->where('surchargeTypes', SurchargeType::options())
             ->where('currency', Currency::Myr->value)
-            ->where('navigation.contexts.1.groups.2.items.2.title', 'Payment methods')
-            ->where('navigation.contexts.1.groups.2.items.2.active', true));
+            ->where('navigation.contexts.1.groups.3.items.2.title', 'Payment methods')
+            ->where('navigation.contexts.1.groups.3.items.2.active', true));
 });
 
 test('owners update payment settings and synchronize the transaction code name', function () {

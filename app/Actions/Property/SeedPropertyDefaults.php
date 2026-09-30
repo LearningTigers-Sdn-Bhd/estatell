@@ -7,6 +7,7 @@ use App\Actions\Catalogues\SeedDiscounts;
 use App\Actions\Catalogues\SeedPaymentMethods;
 use App\Actions\Catalogues\SeedTaxes;
 use App\Actions\Catalogues\SeedTransactionCodes;
+use App\Actions\Meals\SeedMealPeriods;
 use App\Actions\Staff\SeedDefaultRoles;
 use App\Enums\Currency;
 use App\Enums\Locale;
@@ -28,6 +29,7 @@ class SeedPropertyDefaults
         private SeedPaymentMethods $seedPaymentMethods,
         private SeedTaxes $seedTaxes,
         private SeedDiscounts $seedDiscounts,
+        private SeedMealPeriods $seedMealPeriods,
     ) {}
 
     /**
@@ -45,6 +47,7 @@ class SeedPropertyDefaults
             ($this->seedPaymentMethods)($property, $countryCode);
             ($this->seedTaxes)($property, $countryCode);
             ($this->seedDiscounts)($property, $countryCode);
+            ($this->seedMealPeriods)($property, $countryCode);
         });
     }
 

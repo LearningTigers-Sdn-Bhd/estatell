@@ -14,6 +14,7 @@ import {
     Settings,
     Shield,
     Users,
+    Utensils,
     Wallet,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
@@ -33,6 +34,7 @@ const icons: Record<string, LucideIcon> = {
     'credit-card': CreditCard,
     landmark: Landmark,
     percent: Percent,
+    utensils: Utensils,
     ban: Ban,
     'chart-column': ChartColumn,
     users: Users,

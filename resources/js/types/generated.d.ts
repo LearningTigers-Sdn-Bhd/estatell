@@ -91,6 +91,15 @@ appliesTo: string[],
 postingTransactionCode: string,
 };
 }
+namespace Meals {
+export type MealPeriodData = {
+id: number,
+name: string,
+startsAt: string,
+endsAt: string,
+active: boolean,
+};
+}
 namespace Navigation {
 export type NavContextData = {
 key: App.Enums.NavigationContext,
@@ -341,6 +350,7 @@ deactivatedAt: string | null,
 namespace Enums {
 export type ChargingUnit = 'per_item' | 'per_night' | 'per_stay' | 'per_guest_night' | 'per_guest';
 export type Currency = 'MYR';
+export type DefaultMealPeriod = 'breakfast' | 'lunch' | 'dinner';
 export type DefaultRoleEnum = 'owner' | 'manager' | 'front_desk' | 'housekeeping' | 'finance';
 export type DiscountScope = 'room_only' | 'all_charges' | 'selected';
 export type DiscountType = 'percent' | 'fixed' | 'open';
