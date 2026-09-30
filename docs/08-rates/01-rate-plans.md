@@ -108,6 +108,20 @@ Unlinking a room type with no future reservations deletes the pair's future `rat
 - `SaveRatePlanStayDiscounts` saves the whole list in one transaction and matches rows by `min_nights`. It refuses an archived or Package plan. A save that changes nothing is not logged. The database checks `min_nights` ≥ 2, `from_night` from 1 to `min_nights`, Percent 1–100 and Amount above 0.
 - Example: "3+ nights, 20% off from night 2". A 3-night stay at RM200 a night costs 200 + 160 + 160 = RM520.
 
+### Price preview
+
+The Discounts tab prices every linked room type with the rules on screen, before they are saved.
+
+- The page posts the unsaved rows and the sample stay to `settings.rate-plans.discounts.preview`. `StayDiscountPreview` prices the stays and nothing is saved. The tab opens with a preview of the saved rules from the property's today.
+- Rows that are not valid yet are left out, and the preview says how many.
+- Two views, switched in the preview header without a request. **By night** is the default.
+    - **By night:** one sample stay, a column per night, then Total. Each night shows its own price and discount, and the amount per unit. The sample stay's **Nights** (1–14) starts at the longest rule's `min_nights`, or 2 with no rules.
+    - **By stay length:** a column for 1 night and each rule's `min_nights`, at most 4 columns. Each cell is the stay total, the discount and the nights in short form (`475.00 + 2 × 375.00`). Use it to compare tiers.
+- Each room type is priced once for the longest stay either view needs, with `RateQuoteService::priceNights()`. Each stay then gets its own discount from `StayDiscount`, so the preview uses the same code as a booking quote.
+- The amount per unit is per guest on a PerGuest plan with adults only, per bed on a PerBed plan, and per room otherwise.
+- Sample stay: a start date and the guests. "Guests included" uses each room type's `base_occupancy` in adults. "Custom" sets adults, and children per age group on PerGuest plans, for every room type.
+- A room type shows a reason instead of prices when a rate is missing ("No rate on 3 Nov 2026."), child prices are missing, or a custom party is larger than its `max_adults` or `max_children`. A PerBed plan books one bed per adult and skips the size check.
+
 ## UI
 
 Three screens, one job each:
@@ -130,15 +144,16 @@ A right-side Sheet with one short form, not a wizard: a name, how it is priced (
 
 A full page with tab links (one URL per tab): **Details · Room types · Pricing · Children · Discounts · Agents**. Background text goes in info tooltips, not paragraphs under each heading.
 
-| Tab        | Content                                                                                                          |
-| ---------- | ---------------------------------------------------------------------------------------------------------------- |
-| Details    | Name, description (shown to guests and agents), extra guest charges, single supplement                           |
-| Room types | A checkbox per room type. Room types of the other family are shown disabled, with the reason in a tooltip.       |
-| Pricing    | Step 1: "Set prices directly" or "Follow another plan". Package plans show package prices instead.               |
-| Children   | PerGuest plans only. One row per age group: Free, Percent or Fixed.                                              |
-| Discounts  | Long-stay discounts. A table of rules with one Save. "Add long-stay discount" adds a row. Not for Package plans. |
-| Agents     | `agent_access`: Hidden, All or Selected                                                                          |
+| Tab        | Content                                                                                                            |
+| ---------- | ------------------------------------------------------------------------------------------------------------------ |
+| Details    | Name, description (shown to guests and agents), extra guest charges, single supplement                             |
+| Room types | A checkbox per room type. Room types of the other family are shown disabled, with the reason in a tooltip.         |
+| Pricing    | Step 1: "Set prices directly" or "Follow another plan". Package plans show package prices instead.                 |
+| Children   | PerGuest plans only. One row per age group: Free, Percent or Fixed.                                                |
+| Discounts  | Long-stay discounts and a price preview. "Add long-stay discount" sits in the table footer. Not for Package plans. |
+| Agents     | `agent_access`: Hidden, All or Selected                                                                            |
 
+- The Pricing and Discounts tabs use the full panel width (`panelWidth="full"`), not the 80% of the other tabs. Pricing needs it for the By day view (7 columns). On Discounts, the rules table is full width. Under it, a 3-column grid holds the sample stay (column 1) and the price preview (columns 2–3). Save is in the form footer under the preview.
 - "Set prices directly" uses the shared [pricing form](02-daily-rates-and-restrictions.md#pricing-form). It writes `rates` rows and stores nothing on the plan.
 - "Follow another plan" saves a derivation. It is disabled when no parent is eligible (see [Derived rate plans](04-derived-rate-plans.md#ui)).
 

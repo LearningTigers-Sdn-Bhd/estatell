@@ -2,6 +2,7 @@ import { useForm } from '@inertiajs/react';
 import { Plus, Trash2 } from 'lucide-react';
 import { EmptyState } from '@/components/pms/empty-state';
 import { EnumSelect } from '@/components/pms/enum-select';
+import { DiscountPreview } from '@/components/pms/rate-plans/discount-preview';
 import { UnsavedChangesDialog } from '@/components/pms/unsaved-changes-dialog';
 import { Button } from '@/components/ui/button';
 import { FieldError } from '@/components/ui/field';
@@ -10,12 +11,12 @@ import {
     InputGroupAddon,
     InputGroupInput,
 } from '@/components/ui/input-group';
-import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
 import {
     Table,
     TableBody,
     TableCell,
+    TableFooter,
     TableHead,
     TableHeader,
     TableRow,
@@ -47,11 +48,15 @@ export function DiscountsForm({
     discounts,
     types,
     currency,
+    ageGroups,
+    preview,
 }: {
     ratePlan: RatePlan;
     discounts: Discount[];
     types: Option[];
     currency: App.Enums.Currency;
+    ageGroups: App.Data.Property.PropertyAgeGroupData[];
+    preview: App.Data.Rates.StayDiscountPreviewData;
 }) {
     const form = useForm<{ discounts: Row[] }>({
         discounts: discounts.map((discount) => ({
@@ -94,6 +99,13 @@ export function DiscountsForm({
         );
     };
 
+    const addButton = (
+        <Button type="button" variant="outline" onClick={addRow}>
+            <Plus data-icon="inline-start" />
+            Add long-stay discount
+        </Button>
+    );
+
     const save = (onSaved?: () => void) => {
         form.put(update.url({ ratePlan: ratePlan.id }), {
             preserveScroll: true,
@@ -111,17 +123,12 @@ export function DiscountsForm({
     };
 
     return (
-        <form onSubmit={submit} className="flex flex-col gap-5">
-            <p className="text-sm text-muted-foreground">
-                A stay gets the longest rule it qualifies for. A percentage is
-                taken off the night total. An amount is taken off per {unit}.
-                From night 2 keeps the first night at full price. Direct
-                bookings only.
-            </p>
+        <form onSubmit={submit} className="flex flex-col gap-6">
             {rows.length === 0 ? (
                 <EmptyState
                     title="No long-stay discounts"
                     description="Add a rule such as 3 or more nights, 20% off from night 2."
+                    action={addButton}
                 />
             ) : (
                 <div className="overflow-auto rounded-lg border">
@@ -141,26 +148,31 @@ export function DiscountsForm({
                             {rows.map((row, index) => (
                                 <TableRow key={index}>
                                     <TableCell className="align-top">
-                                        <Input
-                                            aria-label="Minimum nights"
-                                            className="sm:max-w-24"
-                                            type="number"
-                                            min="2"
-                                            max="365"
-                                            inputMode="numeric"
-                                            value={row.min_nights}
-                                            onChange={(event) =>
-                                                setRow(index, {
-                                                    min_nights:
-                                                        event.target.value,
-                                                })
-                                            }
-                                            aria-invalid={
-                                                !!errors[
-                                                    `discounts.${index}.min_nights`
-                                                ]
-                                            }
-                                        />
+                                        <InputGroup className="w-32">
+                                            <InputGroupInput
+                                                aria-label="Minimum nights"
+                                                type="number"
+                                                min="2"
+                                                max="365"
+                                                inputMode="numeric"
+                                                placeholder="3"
+                                                value={row.min_nights}
+                                                onChange={(event) =>
+                                                    setRow(index, {
+                                                        min_nights:
+                                                            event.target.value,
+                                                    })
+                                                }
+                                                aria-invalid={
+                                                    !!errors[
+                                                        `discounts.${index}.min_nights`
+                                                    ]
+                                                }
+                                            />
+                                            <InputGroupAddon align="inline-end">
+                                                nights
+                                            </InputGroupAddon>
+                                        </InputGroup>
                                         <FieldError>
                                             {
                                                 errors[
@@ -172,6 +184,7 @@ export function DiscountsForm({
                                     <TableCell className="align-top">
                                         <EnumSelect
                                             aria-label="Discount type"
+                                            className="w-48"
                                             options={types}
                                             value={row.discount_type}
                                             onValueChange={(value) =>
@@ -182,7 +195,7 @@ export function DiscountsForm({
                                         />
                                     </TableCell>
                                     <TableCell className="align-top">
-                                        <InputGroup className="sm:max-w-48">
+                                        <InputGroup className="w-44">
                                             {row.discount_type === 'amount' && (
                                                 <InputGroupAddon>
                                                     {currency}
@@ -190,6 +203,12 @@ export function DiscountsForm({
                                             )}
                                             <InputGroupInput
                                                 aria-label="Discount value"
+                                                placeholder={
+                                                    row.discount_type ===
+                                                    'percent'
+                                                        ? '10'
+                                                        : '0.00'
+                                                }
                                                 type="number"
                                                 min={
                                                     row.discount_type ===
@@ -230,25 +249,30 @@ export function DiscountsForm({
                                         </FieldError>
                                     </TableCell>
                                     <TableCell className="align-top">
-                                        <Input
-                                            aria-label="From night"
-                                            className="sm:max-w-24"
-                                            type="number"
-                                            min="1"
-                                            inputMode="numeric"
-                                            value={row.from_night}
-                                            onChange={(event) =>
-                                                setRow(index, {
-                                                    from_night:
-                                                        event.target.value,
-                                                })
-                                            }
-                                            aria-invalid={
-                                                !!errors[
-                                                    `discounts.${index}.from_night`
-                                                ]
-                                            }
-                                        />
+                                        <InputGroup className="w-32">
+                                            <InputGroupAddon>
+                                                Night
+                                            </InputGroupAddon>
+                                            <InputGroupInput
+                                                aria-label="From night"
+                                                type="number"
+                                                min="1"
+                                                inputMode="numeric"
+                                                placeholder="1"
+                                                value={row.from_night}
+                                                onChange={(event) =>
+                                                    setRow(index, {
+                                                        from_night:
+                                                            event.target.value,
+                                                    })
+                                                }
+                                                aria-invalid={
+                                                    !!errors[
+                                                        `discounts.${index}.from_night`
+                                                    ]
+                                                }
+                                            />
+                                        </InputGroup>
                                         <FieldError>
                                             {
                                                 errors[
@@ -271,15 +295,35 @@ export function DiscountsForm({
                                 </TableRow>
                             ))}
                         </TableBody>
+                        <TableFooter>
+                            <TableRow>
+                                <TableCell colSpan={5}>
+                                    <div className="flex flex-wrap items-center justify-between gap-3">
+                                        <p className="text-sm font-normal whitespace-normal text-muted-foreground">
+                                            The longest rule a stay qualifies
+                                            for wins. A percentage is taken off
+                                            the night total, an amount per{' '}
+                                            {unit}. Direct bookings only.
+                                        </p>
+                                        {addButton}
+                                    </div>
+                                </TableCell>
+                            </TableRow>
+                        </TableFooter>
                     </Table>
                 </div>
             )}
             <FieldError>{errors.discounts}</FieldError>
-            <footer className="flex justify-between gap-2">
-                <Button type="button" variant="outline" onClick={addRow}>
-                    <Plus data-icon="inline-start" />
-                    Add long-stay discount
-                </Button>
+            {rows.length > 0 && (
+                <DiscountPreview
+                    ratePlanId={ratePlan.id}
+                    rules={rows}
+                    preview={preview}
+                    ageGroups={ageGroups}
+                    currency={currency}
+                />
+            )}
+            <footer className="flex justify-end gap-2">
                 <Button
                     type="submit"
                     disabled={form.processing}

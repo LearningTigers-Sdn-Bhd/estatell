@@ -12,6 +12,7 @@ use App\Actions\Rates\SaveRatePlanStayDiscounts;
 use App\Actions\Rates\SaveRates;
 use App\Actions\Rates\SyncRatePlanRoomTypes;
 use App\Actions\Rates\UpdateRatePlan;
+use App\Data\Property\PropertyAgeGroupData;
 use App\Data\Property\WeekendNightsOptionData;
 use App\Data\Rates\NewRatePlanRoomTypeData;
 use App\Data\Rates\RatePlanChildPriceData;
@@ -19,6 +20,7 @@ use App\Data\Rates\RatePlanData;
 use App\Data\Rates\RatePlanRoomTypeChoiceData;
 use App\Data\Rates\RatePlanStayDiscountData;
 use App\Data\Rates\RatePricingRoomTypeData;
+use App\Data\Rates\StayDiscountPreviewData;
 use App\Enums\AgeBandPricing;
 use App\Enums\PricingBasis;
 use App\Enums\SellUnit;
@@ -28,6 +30,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Rates\ArchiveRatePlanRequest;
 use App\Http\Requests\Rates\CreateRatePlanRequest;
 use App\Http\Requests\Rates\RatePlanChildPricesRequest;
+use App\Http\Requests\Rates\RatePlanDiscountsPreviewRequest;
 use App\Http\Requests\Rates\RatePlanRequest;
 use App\Http\Requests\Rates\RatePlanRoomTypesRequest;
 use App\Http\Requests\Rates\RatePlanStayDiscountsRequest;
@@ -39,6 +42,8 @@ use App\Models\RatePlanChildPrice;
 use App\Models\RatePlanStayDiscount;
 use App\Models\RoomType;
 use App\Services\Rates\RatesEndingCheck;
+use App\Services\Rates\StayDiscountPreview;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -128,17 +133,49 @@ class RatePlanController extends Controller
     /**
      * The Discounts tab: long-stay discounts. Package plans have none.
      */
-    public function editDiscounts(Property $property, RatePlan $ratePlan): Response
+    public function editDiscounts(Property $property, RatePlan $ratePlan, StayDiscountPreview $stayDiscountPreview): Response
     {
         abort_if($ratePlan->pricing_basis === PricingBasis::Package, 404);
 
+        $today = now($property->settings->time_zone)->startOfDay();
+        $discounts = $ratePlan->stayDiscounts()->orderBy('min_nights')->get();
+        $nights = $stayDiscountPreview->defaultNights($discounts);
+
         return Inertia::render('settings/rate-plans/discounts', [
             'ratePlan' => RatePlanData::fromModel($ratePlan->load('roomTypes')),
-            'discounts' => $ratePlan->stayDiscounts()->orderBy('min_nights')->get()
-                ->map(fn (RatePlanStayDiscount $discount): RatePlanStayDiscountData => RatePlanStayDiscountData::fromModel($discount)),
+            'discounts' => $discounts->map(fn (RatePlanStayDiscount $discount): RatePlanStayDiscountData => RatePlanStayDiscountData::fromModel($discount)),
             'discountTypes' => StayDiscountType::options(),
             'currency' => $property->settings->currency,
+            'ageGroups' => $ratePlan->pricing_basis === PricingBasis::PerGuest
+                ? $property->ageGroups()->orderBy('min_age')->get()->map(PropertyAgeGroupData::fromModel(...))
+                : [],
+            'preview' => StayDiscountPreviewData::fromPreview(
+                $today->toDateString(),
+                $nights,
+                $stayDiscountPreview->stayLengths($discounts),
+                0,
+                $stayDiscountPreview->preview($ratePlan, $discounts, $today, $nights, null, []),
+            ),
         ]);
+    }
+
+    /**
+     * Prices the linked room types with the unsaved rules of the Discounts tab. Nothing is saved.
+     */
+    public function previewDiscounts(RatePlanDiscountsPreviewRequest $request, Property $property, RatePlan $ratePlan, StayDiscountPreview $stayDiscountPreview): JsonResponse
+    {
+        abort_if($ratePlan->pricing_basis === PricingBasis::Package, 404);
+
+        $rules = $request->validRules();
+        $nights = $request->nights() ?? $stayDiscountPreview->defaultNights($rules);
+
+        return response()->json(StayDiscountPreviewData::fromPreview(
+            $request->arrival()->toDateString(),
+            $nights,
+            $stayDiscountPreview->stayLengths($rules),
+            $request->ignoredRuleCount(),
+            $stayDiscountPreview->preview($ratePlan, $rules, $request->arrival(), $nights, $request->adults(), $request->childrenByAgeGroup()),
+        ));
     }
 
     /**

@@ -4,6 +4,7 @@ namespace App\Services\Rates;
 
 use App\Models\PropertyAgeGroup;
 use App\Models\Rate;
+use App\Services\Rates\Pricing\PricedNights;
 use App\Services\Rates\Pricing\QuoteRefused;
 use App\Services\Rates\Pricing\StayContext;
 use InvalidArgumentException;
@@ -18,41 +19,59 @@ class RateQuoteService
 
     public function quote(RateQuoteRequest $request): RateQuote
     {
+        try {
+            $priced = $this->priceNights($request);
+        } catch (QuoteRefused $refused) {
+            return RateQuote::refused($refused->reason, $refused->date);
+        }
+
+        $request->ratePlan->loadMissing('stayDiscounts');
+
+        return RateQuote::quoted($this->stayDiscount->apply($request->ratePlan->stayDiscounts, $priced->nights, $priced->discountUnits));
+    }
+
+    /**
+     * Prices every night of the stay before the long-stay discount, so a caller can try other discount rules.
+     *
+     * @throws QuoteRefused when the stay cannot be priced
+     */
+    public function priceNights(RateQuoteRequest $request): PricedNights
+    {
         $plan = $request->ratePlan;
         $roomType = $request->roomType;
         $arrival = $request->arrival->toImmutable()->startOfDay();
         $departure = $request->departure->toImmutable()->startOfDay();
 
         if ($arrival->diffInDays($departure) < 1) {
-            return RateQuote::refused(RateQuote::REFUSAL_INVALID_STAY);
+            throw new QuoteRefused(RateQuote::REFUSAL_INVALID_STAY);
         }
 
         if ($request->adults < 1) {
-            return RateQuote::refused(RateQuote::REFUSAL_ADULTS_REQUIRED);
+            throw new QuoteRefused(RateQuote::REFUSAL_ADULTS_REQUIRED);
         }
 
         if ($request->beds < 1) {
-            return RateQuote::refused(RateQuote::REFUSAL_BEDS_REQUIRED);
+            throw new QuoteRefused(RateQuote::REFUSAL_BEDS_REQUIRED);
         }
 
         if ($plan->archived_at !== null) {
-            return RateQuote::refused(RateQuote::REFUSAL_PLAN_ARCHIVED);
+            throw new QuoteRefused(RateQuote::REFUSAL_PLAN_ARCHIVED);
         }
 
         $strategyClass = $plan->pricing_basis->strategy();
 
         if ($strategyClass === null) {
-            return RateQuote::refused(RateQuote::REFUSAL_BASIS_UNSUPPORTED);
+            throw new QuoteRefused(RateQuote::REFUSAL_BASIS_UNSUPPORTED);
         }
 
         if (! $plan->roomTypes()->whereKey($roomType->id)->exists()) {
-            return RateQuote::refused(RateQuote::REFUSAL_ROOM_TYPE_NOT_SOLD);
+            throw new QuoteRefused(RateQuote::REFUSAL_ROOM_TYPE_NOT_SOLD);
         }
 
         $currency = $plan->property->settings?->currency->value
             ?? throw new InvalidArgumentException('The property needs settings with a currency to quote a stay.');
 
-        $plan->loadMissing('childPrices', 'stayDiscounts');
+        $plan->loadMissing('childPrices');
         [$adults, $childAgeGroupIds] = $this->splitGuests($request);
         $stay = new StayContext($plan, $roomType, $adults, $childAgeGroupIds, $request->beds, $currency);
         $strategy = app($strategyClass);
@@ -68,21 +87,17 @@ class RateQuoteService
 
         $nights = [];
 
-        try {
-            for ($date = $arrival; $date->lt($departure); $date = $date->addDay()) {
-                $rate = $rates->get($date->toDateString());
+        for ($date = $arrival; $date->lt($departure); $date = $date->addDay()) {
+            $rate = $rates->get($date->toDateString());
 
-                if ($rate === null || $rate->amount === null) {
-                    return RateQuote::refused(RateQuote::REFUSAL_RATE_MISSING, $date);
-                }
-
-                $nights[] = $strategy->priceNight($stay, $rate);
+            if ($rate === null || $rate->amount === null) {
+                throw new QuoteRefused(RateQuote::REFUSAL_RATE_MISSING, $date);
             }
-        } catch (QuoteRefused $refused) {
-            return RateQuote::refused($refused->reason, $refused->date);
+
+            $nights[] = $strategy->priceNight($stay, $rate);
         }
 
-        return RateQuote::quoted($this->stayDiscount->apply($plan->stayDiscounts, $nights, $strategy->discountUnits($stay)));
+        return new PricedNights($nights, $strategy->discountUnits($stay));
     }
 
     /**

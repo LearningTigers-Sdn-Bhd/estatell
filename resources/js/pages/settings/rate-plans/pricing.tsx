@@ -29,7 +29,11 @@ export default function RatePlanPricing({
     return (
         <>
             <Head title={`${ratePlan.name} pricing`} />
-            <RatePlanShell ratePlan={ratePlan} activeTab="pricing">
+            <RatePlanShell
+                ratePlan={ratePlan}
+                activeTab="pricing"
+                panelWidth="full"
+            >
                 {roomTypes.length === 0 ? (
                     <EmptyState
                         title="No room types"

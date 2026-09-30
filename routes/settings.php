@@ -127,6 +127,7 @@ Route::prefix('settings')->name('settings.')->group(function () {
         Route::put('{ratePlan}/child-prices', [RatePlanController::class, 'updateChildPrices'])->name('child-prices.update');
         Route::get('{ratePlan}/discounts', [RatePlanController::class, 'editDiscounts'])->name('discounts.edit');
         Route::put('{ratePlan}/discounts', [RatePlanController::class, 'updateDiscounts'])->name('discounts.update');
+        Route::post('{ratePlan}/discounts/preview', [RatePlanController::class, 'previewDiscounts'])->name('discounts.preview');
         Route::get('{ratePlan}/pricing', [RatePlanController::class, 'editPricing'])->name('pricing.edit');
         Route::put('{ratePlan}/pricing', [RatePlanController::class, 'updatePricing'])->name('pricing.update');
         Route::post('{ratePlan}/pricing/extend', [RatePlanController::class, 'extendPricing'])->name('pricing.extend');

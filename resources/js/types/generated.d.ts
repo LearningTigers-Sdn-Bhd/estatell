@@ -312,6 +312,39 @@ maxAdults: number,
 pricedUntil: string | null,
 ending: boolean,
 };
+export type StayDiscountPreviewByNightData = {
+nights: App.Data.Rates.StayDiscountPreviewNightData[],
+total: string,
+discount: string,
+};
+export type StayDiscountPreviewData = {
+arrival: string,
+nights: number,
+stayLengths: number[],
+ignoredRules: number,
+rows: App.Data.Rates.StayDiscountPreviewRowData[],
+};
+export type StayDiscountPreviewNightData = {
+amount: string,
+discount: string,
+unitAmount: string,
+};
+export type StayDiscountPreviewRowData = {
+roomTypeId: number,
+name: string,
+adults: number,
+children: number,
+unit: string,
+refusal: string | null,
+stays: App.Data.Rates.StayDiscountPreviewStayData[],
+byNight: App.Data.Rates.StayDiscountPreviewByNightData | null,
+};
+export type StayDiscountPreviewStayData = {
+nights: number,
+total: string,
+discount: string,
+nightAmounts: string[],
+};
 }
 namespace Rooms {
 export type BedData = {

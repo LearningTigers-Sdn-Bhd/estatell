@@ -32,10 +32,12 @@ export function ratePlanBreadcrumbs(ratePlan: RatePlan) {
 export function RatePlanShell({
     ratePlan,
     activeTab,
+    panelWidth,
     children,
 }: {
     ratePlan: RatePlan;
     activeTab: RatePlanTab;
+    panelWidth?: 'default' | 'full';
     children: ReactNode;
 }) {
     const tabs: TabLink[] = [
@@ -105,6 +107,7 @@ export function RatePlanShell({
             <TabLinks
                 tabs={tabs}
                 activeTab={activeTab}
+                panelWidth={panelWidth}
                 className="flex flex-col gap-4"
             >
                 {children}
