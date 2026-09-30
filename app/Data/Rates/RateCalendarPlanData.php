@@ -12,7 +12,7 @@ class RateCalendarPlanData extends Data
 {
     /**
      * @param  string|null  $followsName  The parent plan name when this plan is derived.
-     * @param  list<string>  $inclusions  The names of the charge items the plan includes.
+     * @param  list<RateCalendarInclusionData>  $inclusions  What the plan includes, in the order of the Inclusions tab.
      * @param  list<RateCalendarCellData>  $cells
      */
     public function __construct(
@@ -42,7 +42,7 @@ class RateCalendarPlanData extends Data
             followsName: $ratePlan->parent?->name,
             fixedNights: $ratePlan->fixed_nights,
             packageUnit: $ratePlan->package_unit,
-            inclusions: $ratePlan->inclusions->map(fn ($inclusion): string => $inclusion->chargeItem->name)->unique()->values()->all(),
+            inclusions: $ratePlan->inclusions->map(RateCalendarInclusionData::fromModel(...))->values()->all(),
             cells: $cells,
         );
     }

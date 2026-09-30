@@ -14,6 +14,8 @@ import {
     planOptions,
     stayLimit,
     toggleCollapsed,
+    indexAvailability,
+    occupancyOn,
 } from './calendar-model';
 
 type RoomType = App.Data.Rates.RateCalendarRoomTypeData;
@@ -51,6 +53,7 @@ const roomTypes: RoomType[] = [
         baseOccupancy: 2,
         maxAdults: 3,
         plans: [plan(10, 'Basic'), plan(11, 'Breakfast')],
+        availability: [],
     },
     {
         id: 2,
@@ -58,6 +61,7 @@ const roomTypes: RoomType[] = [
         baseOccupancy: 2,
         maxAdults: 3,
         plans: [plan(10, 'Basic')],
+        availability: [],
     },
 ];
 
@@ -244,7 +248,7 @@ test('toggling collapses a room type and expands it again without changing the o
     expect(none.size).toBe(0);
 });
 
-test('a plan note says what a plan follows, what a package stay is and what it includes', () => {
+test('a plan note says what a plan follows and what a package stay is', () => {
     const base = plan(10, 'Basic');
 
     expect(planNote(base)).toBeNull();
@@ -252,17 +256,13 @@ test('a plan note says what a plan follows, what a package stay is and what it i
         planNote({ ...base, derived: true, followsName: 'Basic Rate' }),
     ).toBe('Follows Basic Rate');
     expect(
-        planNote({ ...base, inclusions: ['Breakfast', 'Boat transfer'] }),
-    ).toBe('Includes Breakfast, Boat transfer');
-    expect(
         planNote({
             ...base,
             pricingBasis: 'package',
             fixedNights: 2,
             packageUnit: 'per_guest',
-            inclusions: ['Boat transfer'],
         }),
-    ).toBe('Package, 2 nights, per adult. Includes Boat transfer');
+    ).toBe('Package, 2 nights, per adult');
     expect(
         planNote({
             ...base,
@@ -271,4 +271,38 @@ test('a plan note says what a plan follows, what a package stay is and what it i
             packageUnit: 'per_room',
         }),
     ).toBe('Package, 1 night, per room');
+});
+
+const night = (date: string, units: number, sold: number) => ({
+    date,
+    units,
+    sold,
+    open: units - sold,
+});
+
+test('occupancy adds the sold and sellable units of the room types and rounds the percent', () => {
+    const types: RoomType[] = [
+        { ...roomTypes[0], availability: [night('2026-10-05', 10, 3)] },
+        { ...roomTypes[1], availability: [night('2026-10-05', 3, 1)] },
+    ];
+
+    expect(occupancyOn(types, '2026-10-05')).toEqual({
+        sold: 4,
+        units: 13,
+        percent: 31,
+    });
+});
+
+test('occupancy is zero when a date has no sellable units', () => {
+    expect(occupancyOn(roomTypes, '2026-10-05')).toEqual({
+        sold: 0,
+        units: 0,
+        percent: 0,
+    });
+});
+
+test('availability is indexed by date', () => {
+    const type = { ...roomTypes[0], availability: [night('2026-10-05', 4, 1)] };
+
+    expect(indexAvailability(type).get('2026-10-05')?.open).toBe(3);
 });

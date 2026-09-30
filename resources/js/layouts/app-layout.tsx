@@ -1,13 +1,15 @@
 import { usePage } from '@inertiajs/react';
 import AppLayoutTemplate from '@/layouts/app/app-sidebar-layout';
-import type { BreadcrumbItem } from '@/types';
+import type { BreadcrumbItem, PageLayoutVariant } from '@/types';
 import { setUrlDefaults } from '@/wayfinder';
 
 export default function AppLayout({
     breadcrumbs = [],
+    variant = 'default',
     children,
 }: {
     breadcrumbs?: BreadcrumbItem[];
+    variant?: PageLayoutVariant;
     children: React.ReactNode;
 }) {
     const { property } = usePage().props;
@@ -17,7 +19,7 @@ export default function AppLayout({
     setUrlDefaults({ property: property?.code });
 
     return (
-        <AppLayoutTemplate breadcrumbs={breadcrumbs}>
+        <AppLayoutTemplate breadcrumbs={breadcrumbs} variant={variant}>
             {children}
         </AppLayoutTemplate>
     );

@@ -3,6 +3,7 @@ import type { GridRow } from '@/components/pms/grid/date-grid';
 type RoomType = App.Data.Rates.RateCalendarRoomTypeData;
 type Plan = App.Data.Rates.RateCalendarPlanData;
 type Cell = App.Data.Rates.RateCalendarCellData;
+type Availability = App.Data.Rates.RateCalendarAvailabilityData;
 
 export type CalendarFilters = {
     /** A room type id as text, or "" for all. */
@@ -148,7 +149,7 @@ export function nightsLabel(nights: number): string {
 }
 
 /**
- * The muted second line of a plan row: what it follows, what a package stay is, and what it includes.
+ * The muted second line of a plan row: what it follows and what a package stay is. Inclusions have their own popover.
  * Null when the plan has nothing to add.
  */
 export function planNote(plan: Plan): string | null {
@@ -156,9 +157,6 @@ export function planNote(plan: Plan): string | null {
         plan.derived ? `Follows ${plan.followsName}` : null,
         plan.pricingBasis === 'package' && plan.fixedNights !== null
             ? `Package, ${nightsLabel(plan.fixedNights)}, ${plan.packageUnit === 'per_room' ? 'per room' : 'per adult'}`
-            : null,
-        plan.inclusions.length > 0
-            ? `Includes ${plan.inclusions.join(', ')}`
             : null,
     ].filter((part): part is string => part !== null);
 
@@ -292,4 +290,32 @@ export function todayRange(today: string, range: DateRange): DateRange {
 /** Whether the date is in the range, both ends included. */
 export function rangeContains({ from, to }: DateRange, date: string): boolean {
     return date >= from && date <= to;
+}
+
+/** The availability of a room type by date, so a lookup for each grid cell is cheap. */
+export function indexAvailability(
+    roomType: RoomType,
+): Map<string, Availability> {
+    return new Map(roomType.availability.map((night) => [night.date, night]));
+}
+
+export type OccupancyDay = { sold: number; units: number; percent: number };
+
+/** The sold and sellable units of a date over the room types, and the occupancy rate as a whole percent. */
+export function occupancyOn(roomTypes: RoomType[], date: string): OccupancyDay {
+    let sold = 0;
+    let units = 0;
+
+    roomTypes.forEach((roomType) => {
+        const night = roomType.availability.find((item) => item.date === date);
+
+        sold += night?.sold ?? 0;
+        units += night?.units ?? 0;
+    });
+
+    return {
+        sold,
+        units,
+        percent: units === 0 ? 0 : Math.round((sold / units) * 100),
+    };
 }

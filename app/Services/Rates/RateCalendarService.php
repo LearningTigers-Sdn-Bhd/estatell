@@ -2,6 +2,7 @@
 
 namespace App\Services\Rates;
 
+use App\Data\Rates\RateCalendarAvailabilityData;
 use App\Data\Rates\RateCalendarCellData;
 use App\Data\Rates\RateCalendarData;
 use App\Data\Rates\RateCalendarEndingData;
@@ -14,6 +15,7 @@ use App\Models\Property;
 use App\Models\Rate;
 use App\Models\RatePlan;
 use App\Models\RoomType;
+use App\Services\Availability\AvailabilityService;
 use App\Services\Rates\Pricing\NightPrice;
 use Brick\Money\Money;
 use Carbon\CarbonImmutable;
@@ -29,6 +31,7 @@ class RateCalendarService
     public function __construct(
         private DerivedRateResolver $resolver,
         private RatesEndingCheck $ratesEndingCheck,
+        private AvailabilityService $availabilityService,
     ) {}
 
     public function forRange(Property $property, CarbonInterface $from, CarbonInterface $to, CarbonInterface $today, string $currency): RateCalendarData
@@ -56,17 +59,18 @@ class RateCalendarService
             ->get()
             ->groupBy(fn (PackagePrice $price): string => $price->rate_plan_id.'-'.$price->room_type_id);
 
-        $groups = $roomTypes->map(fn (RoomType $roomType): RateCalendarRoomTypeData => RateCalendarRoomTypeData::fromModel(
-            $roomType,
-            $plans
+        $groups = $roomTypes->map(function (RoomType $roomType) use ($plans, $rates, $packagePrices, $start, $end, $currency): ?RateCalendarRoomTypeData {
+            $rows = $plans
                 ->filter(fn (RatePlan $plan): bool => $plan->roomTypes->contains('id', $roomType->id))
                 ->map(fn (RatePlan $plan): RateCalendarPlanData => RateCalendarPlanData::fromModel(
                     $plan,
                     $this->cells($plan, $roomType, $rates, $packagePrices, $start, $end, $currency),
                 ))
                 ->values()
-                ->all(),
-        ))->filter(fn (RateCalendarRoomTypeData $group): bool => $group->plans !== [])->values();
+                ->all();
+
+            return $rows === [] ? null : RateCalendarRoomTypeData::fromModel($roomType, $rows, $this->availability($roomType, $start, $end));
+        })->filter()->values();
 
         return new RateCalendarData(
             from: $start->toDateString(),
@@ -74,6 +78,19 @@ class RateCalendarService
             dates: $this->datesOf($start, $end),
             roomTypes: $groups->all(),
             ending: $this->ending($plans, $roomTypes, $today),
+        );
+    }
+
+    /**
+     * The units of the room type on each date of the range.
+     *
+     * @return list<RateCalendarAvailabilityData>
+     */
+    private function availability(RoomType $roomType, CarbonInterface $start, CarbonInterface $end): array
+    {
+        return array_map(
+            RateCalendarAvailabilityData::fromNight(...),
+            $this->availabilityService->nights($roomType, $start, $end->addDay()),
         );
     }
 

@@ -4,15 +4,19 @@ import type { Ref } from 'react';
 import { buildDateColumns } from '@/components/pms/grid/date-columns';
 import { DateGrid } from '@/components/pms/grid/date-grid';
 import type { DateGridHandle } from '@/components/pms/grid/date-grid';
+import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
+import { InclusionsPopover } from './inclusions-popover';
 import { RateCellSheet } from './rate-cell-sheet';
 import type { EditingCell } from './rate-cell-sheet';
 import {
     buildRows,
     cellFlags,
     formatAmount,
+    indexAvailability,
     indexCells,
     nightsLabel,
+    occupancyOn,
     planNote,
     stayLimit,
     toggleCollapsed,
@@ -20,6 +24,11 @@ import {
 import type { CalendarFilters, CalendarRow } from './calendar-model';
 
 type Cell = App.Data.Rates.RateCalendarCellData;
+type Availability = App.Data.Rates.RateCalendarAvailabilityData;
+
+/** A small bar with a track that shows on the grid's muted backgrounds, where the default muted track vanishes. */
+const BAR_CLASS =
+    'w-10 gap-0 [&_[data-slot=progress-track]]:h-1.5 [&_[data-slot=progress-track]]:bg-foreground/15';
 
 const FLAG_LABELS = {
     'stop-sell': 'Stop sell',
@@ -119,6 +128,40 @@ function RateCell({
 }
 
 /**
+ * The units of a room type on a date: how many are open and how many are sold. A date with nothing open shows in
+ * the warning tone.
+ */
+function AvailabilityCell({ night }: { night: Availability | undefined }) {
+    if (!night) {
+        return null;
+    }
+
+    return (
+        <div
+            title={`${night.open} open, ${night.sold} sold, ${night.units} units`}
+            className="flex h-full flex-col items-center justify-center gap-0.5 text-xs tabular-nums"
+        >
+            <Progress
+                value={night.units === 0 ? 0 : (night.sold / night.units) * 100}
+                aria-label={`${night.sold} of ${night.units} units sold`}
+                className={BAR_CLASS}
+            />
+            <span
+                className={cn(
+                    'font-medium',
+                    night.open === 0 ? 'text-warning' : 'text-foreground',
+                )}
+            >
+                {night.open} open
+            </span>
+            <span className="text-grid-muted-foreground">
+                {night.sold} sold
+            </span>
+        </div>
+    );
+}
+
+/**
  * A range of daily rates: a heading for each room type and a row for each plan that sells it. A plan that
  * follows another shows the calculated price with a link marker.
  */
@@ -130,6 +173,7 @@ export function RateCalendarGrid({
     weekendDays,
     filters,
     canManage,
+    canManageInclusions,
     currency,
 }: {
     gridRef: Ref<DateGridHandle>;
@@ -141,6 +185,8 @@ export function RateCalendarGrid({
     filters: CalendarFilters;
     /** Whether a click on a cell opens the date editor. */
     canManage: boolean;
+    /** Whether the inclusions popover links to the plan's Inclusions tab. */
+    canManageInclusions: boolean;
     currency: string;
 }) {
     const columns = useMemo(
@@ -154,6 +200,25 @@ export function RateCalendarGrid({
     const rows = useMemo(
         () => buildRows(roomTypes, filters, collapsedIds),
         [roomTypes, filters, collapsedIds],
+    );
+    const shownRoomTypes = useMemo(
+        () =>
+            filters.roomTypeId === ''
+                ? roomTypes
+                : roomTypes.filter(
+                      (roomType) => String(roomType.id) === filters.roomTypeId,
+                  ),
+        [roomTypes, filters.roomTypeId],
+    );
+    const availabilityByType = useMemo(
+        () =>
+            new Map(
+                roomTypes.map((roomType) => [
+                    roomType.id,
+                    indexAvailability(roomType),
+                ]),
+            ),
+        [roomTypes],
     );
     const cellsByPlan = useMemo(() => {
         const index = new Map<string, Map<string, Cell>>();
@@ -172,9 +237,10 @@ export function RateCalendarGrid({
             <DateGrid<CalendarRow>
                 ref={gridRef}
                 aria-label="Rate calendar"
-                className="rounded-none border-x-0 border-b-0"
+                className="rounded-none border-x-0"
                 labelWidth={288}
-                bottomGap={0}
+                fill
+                groupHeight={56}
                 rows={rows}
                 columns={columns}
                 renderLabel={(row) =>
@@ -213,8 +279,14 @@ export function RateCalendarGrid({
                         </button>
                     ) : (
                         <span className="flex min-w-0 flex-col">
-                            <span className="truncate text-sm">
-                                {row.plan.name}
+                            <span className="flex min-w-0 items-center gap-1">
+                                <span className="truncate text-sm">
+                                    {row.plan.name}
+                                </span>
+                                <InclusionsPopover
+                                    plan={row.plan}
+                                    canManage={canManageInclusions}
+                                />
                             </span>
                             {planNote(row.plan) && (
                                 <span
@@ -227,6 +299,43 @@ export function RateCalendarGrid({
                         </span>
                     )
                 }
+                renderGroupCell={(row, column) =>
+                    row.kind === 'group' ? (
+                        <AvailabilityCell
+                            night={availabilityByType
+                                .get(row.roomType.id)
+                                ?.get(column.date)}
+                        />
+                    ) : null
+                }
+                renderFooterLabel={() => (
+                    <span className="text-xs font-semibold tracking-wide text-grid-header-foreground uppercase">
+                        Occupancy rate
+                    </span>
+                )}
+                renderFooterCell={(column) => {
+                    const day = occupancyOn(shownRoomTypes, column.date);
+
+                    return (
+                        <div
+                            title={`${day.sold} of ${day.units} sellable units sold`}
+                            className="flex h-full flex-col items-center justify-center gap-0.5 pb-2 text-xs tabular-nums"
+                        >
+                            <Progress
+                                value={day.percent}
+                                aria-label={`Occupancy ${day.percent}%`}
+                                className={BAR_CLASS}
+                            />
+                            <span className="text-sm font-semibold">
+                                {day.percent}%
+                            </span>
+                            <span className="text-grid-muted-foreground">
+                                {day.sold}/{day.units}
+                            </span>
+                        </div>
+                    );
+                }}
+                footerHeight={64}
                 renderCell={(row, column) => {
                     if (row.kind !== 'row') {
                         return null;

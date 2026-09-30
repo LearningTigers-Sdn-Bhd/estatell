@@ -3,6 +3,7 @@ import type { InertiaLinkProps } from '@inertiajs/react';
 import type { LucideIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { cn } from '@/lib/utils';
 
 export type TabLink = {
     value: string;
@@ -17,6 +18,8 @@ type Props = {
     className?: string;
     /** `full` drops the 80% panel width, for a tab with a side-by-side preview. */
     panelWidth?: 'default' | 'full';
+    /** Extra classes for the tab panel, for example to make it a flex column that fills the page. */
+    panelClassName?: string;
     /** Content of the active tab. */
     children: ReactNode;
 };
@@ -30,6 +33,7 @@ export function TabLinks({
     activeTab,
     className,
     panelWidth = 'default',
+    panelClassName,
     children,
 }: Props) {
     return (
@@ -57,7 +61,10 @@ export function TabLinks({
             </TabsList>
             <div
                 role="tabpanel"
-                className={panelWidth === 'full' ? 'w-full' : 'w-full md:w-4/5'}
+                className={cn(
+                    panelWidth === 'full' ? 'w-full' : 'w-full md:w-4/5',
+                    panelClassName,
+                )}
             >
                 {children}
             </div>

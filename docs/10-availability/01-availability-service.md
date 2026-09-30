@@ -27,6 +27,7 @@ Date overlap uses `spatie/period`.
 - **Booked units are not counted yet.** `bookedUnits()` returns none until reservations exist. Module 12 replaces it with the `unit_nights` query. Nothing calls the service before then.
 - **Not here:** stop-sell and the other restrictions belong to a plan and a room type, so `RestrictionCheck` reports them. Availability counts units per room type.
 - **Queries:** a fixed number, however many rooms and blocks there are.
+- **Used by:** the [rate calendar](../08-rates/02-daily-rates-and-restrictions.md#the-rate-calendar) calls `nights()` once for each room type to show open and sold units and the occupancy rate.
 
 ## Rules
 

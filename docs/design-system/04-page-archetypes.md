@@ -12,11 +12,12 @@ Every screen uses one archetype.
 | Settings      | Tabs + `SettingsSection` (one card = one form, saved separately)          | Property, taxes, payments, terms, notifications |
 | Wizard        | The Form archetype in the onboarding layout (`useLayoutProps`)            | Onboarding                                      |
 | Board         | Grouped card grid + filters                                               | Housekeeping, readiness panel                   |
-| Grid calendar | Toolbar + the `pms/grid` engine, no `PageHeader`                          | Rate calendar, Stay View                        |
+| Grid calendar | Optional tab links + toolbar + the `pms/grid` engine, no `PageHeader`     | Rate calendar, Stay View                        |
 
 Rules:
 
 - The app shell owns the page width and padding. Pages do not add page-level `max-w-*` or replacement padding.
+- Layout variants: a page sets `Page.layout = { variant }`. `default` grows with its content and the window scrolls. `grid-only` (Grid calendar) fixes the page to the window height as a flex column. The grid gets `fill` and scrolls on its own, and a footer row stays at the bottom. The app header stays above.
 - Forms are never embedded inline in tables, boards or dashboards.
 - Deferred props always show a `Skeleton` while loading.
 - Avoid nested cards and duplicated headings.

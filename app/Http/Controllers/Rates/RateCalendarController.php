@@ -43,6 +43,7 @@ class RateCalendarController extends Controller
             'today' => $today->toDateString(),
             'weekendDays' => $property->settings->weekend_nights->isoWeekdays(),
             'canManage' => $request->user()->can(PermissionEnum::RatesManage->value),
+            'canManageInclusions' => $request->user()->can(PermissionEnum::SettingsManage->value),
         ]);
     }
 

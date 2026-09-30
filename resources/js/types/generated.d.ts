@@ -289,6 +289,12 @@ derived: boolean,
 followsName: string | null,
 hasOwnPrices: boolean,
 };
+export type RateCalendarAvailabilityData = {
+date: string,
+units: number,
+sold: number,
+open: number,
+};
 export type RateCalendarCellData = {
 date: string,
 amount: string | null,
@@ -312,6 +318,11 @@ ratePlanId: number,
 ratePlanName: string,
 roomTypeNames: string[],
 };
+export type RateCalendarInclusionData = {
+name: string,
+quantity: number,
+chargingUnit: string,
+};
 export type RateCalendarOccupancyData = {
 adults: number,
 amount: string,
@@ -324,7 +335,7 @@ derived: boolean,
 followsName: string | null,
 fixedNights: number | null,
 packageUnit: App.Enums.PackageUnit | null,
-inclusions: string[],
+inclusions: App.Data.Rates.RateCalendarInclusionData[],
 cells: App.Data.Rates.RateCalendarCellData[],
 };
 export type RateCalendarRoomTypeData = {
@@ -333,6 +344,7 @@ name: string,
 baseOccupancy: number,
 maxAdults: number,
 plans: App.Data.Rates.RateCalendarPlanData[],
+availability: App.Data.Rates.RateCalendarAvailabilityData[],
 };
 export type RatePlanChildPriceData = {
 ageGroupId: number,

@@ -11,14 +11,15 @@ export function useViewportFit(
     {
         bottomGap = 16,
         minHeight = 240,
-    }: { bottomGap?: number; minHeight?: number } = {},
+        enabled = true,
+    }: { bottomGap?: number; minHeight?: number; enabled?: boolean } = {},
 ): number | undefined {
     const [height, setHeight] = useState<number>();
 
     const measure = () => {
         const element = ref.current;
 
-        if (!element) {
+        if (!enabled || !element) {
             return;
         }
 

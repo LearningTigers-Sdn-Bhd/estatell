@@ -27,6 +27,12 @@ type Props<Row extends GridRow> = {
     columns: DateColumn[];
     renderLabel: (row: Row) => ReactNode;
     renderCell: (row: Row, column: DateColumn) => ReactNode;
+    /** Content for the date cells of a group row. A group row has none unless this is set. */
+    renderGroupCell?: (row: Row, column: DateColumn) => ReactNode;
+    /** A row that stays at the bottom of the grid while the rows scroll: the label, then a cell for each date. */
+    renderFooterLabel?: () => ReactNode;
+    renderFooterCell?: (column: DateColumn) => ReactNode;
+    footerHeight?: number;
     'aria-label': string;
     rowHeight?: number;
     groupHeight?: number;
@@ -35,6 +41,11 @@ type Props<Row extends GridRow> = {
     headerHeight?: number;
     /** Room to leave below the grid, in pixels. */
     bottomGap?: number;
+    /**
+     * Fill the height the parent gives it, for a parent that is a fixed-height flex column (the `grid-only` page
+     * layout). The grid then does not measure the window.
+     */
+    fill?: boolean;
 };
 
 /**
@@ -48,6 +59,10 @@ export function DateGrid<Row extends GridRow>({
     columns,
     renderLabel,
     renderCell,
+    renderGroupCell,
+    renderFooterLabel,
+    renderFooterCell,
+    footerHeight = 44,
     'aria-label': ariaLabel,
     rowHeight = 48,
     groupHeight = 36,
@@ -55,9 +70,13 @@ export function DateGrid<Row extends GridRow>({
     labelWidth = 208,
     headerHeight = 48,
     bottomGap = 16,
+    fill = false,
 }: Props<Row>) {
     const scrollRef = useRef<HTMLDivElement>(null);
-    const maxHeight = useViewportFit(scrollRef, { bottomGap });
+    const maxHeight = useViewportFit(scrollRef, {
+        bottomGap,
+        enabled: !fill,
+    });
 
     const rowVirtualizer = useVirtualizer({
         count: rows.length,
@@ -95,7 +114,8 @@ export function DateGrid<Row extends GridRow>({
         );
 
     const totalWidth = labelWidth + columnVirtualizer.getTotalSize();
-    const totalHeight = headerHeight + rowVirtualizer.getTotalSize();
+    const rowsHeight = rowVirtualizer.getTotalSize();
+    const hasFooter = renderFooterCell !== undefined;
     const virtualColumns = columnVirtualizer.getVirtualItems();
 
     return (
@@ -107,18 +127,25 @@ export function DateGrid<Row extends GridRow>({
             aria-colcount={columns.length + 1}
             className={cn(
                 'relative overflow-auto overscroll-none rounded-lg border border-grid-line bg-grid-surface text-grid-foreground',
+                fill && 'min-h-0 flex-1',
                 className,
             )}
-            style={{ maxHeight }}
+            style={
+                fill
+                    ? undefined
+                    : hasFooter
+                      ? { height: maxHeight }
+                      : { maxHeight }
+            }
             onMouseLeave={() => changeHover(null, null)}
         >
             <div
-                className="relative"
-                style={{ width: totalWidth, height: totalHeight }}
+                className="relative flex min-h-full flex-col"
+                style={{ width: totalWidth }}
             >
                 <div
                     role="row"
-                    className="sticky top-0 z-20 border-b border-grid-line bg-grid-header"
+                    className="sticky top-0 z-20 shrink-0 border-b border-grid-line bg-grid-header"
                     style={{ width: totalWidth, height: headerHeight }}
                 >
                     <div
@@ -168,6 +195,11 @@ export function DateGrid<Row extends GridRow>({
                         );
                     })}
                 </div>
+                <div
+                    aria-hidden
+                    className="flex-1"
+                    style={{ minHeight: rowsHeight }}
+                />
                 {rowVirtualizer.getVirtualItems().map((virtualRow) => {
                     const row = rows[virtualRow.index];
                     const isGroup = row.kind === 'group';
@@ -210,6 +242,27 @@ export function DateGrid<Row extends GridRow>({
                                     {renderLabel(row)}
                                 </div>
                             </div>
+                            {isGroup &&
+                                renderGroupCell &&
+                                virtualColumns.map((virtualColumn) => {
+                                    const column = columns[virtualColumn.index];
+
+                                    return (
+                                        <div
+                                            key={column.date}
+                                            role="gridcell"
+                                            className="absolute top-0 h-full border-r border-grid-line"
+                                            style={{
+                                                left:
+                                                    labelWidth +
+                                                    virtualColumn.start,
+                                                width: virtualColumn.size,
+                                            }}
+                                        >
+                                            {renderGroupCell(row, column)}
+                                        </div>
+                                    );
+                                })}
                             {!isGroup &&
                                 virtualColumns.map((virtualColumn) => {
                                     const column = columns[virtualColumn.index];
@@ -249,6 +302,41 @@ export function DateGrid<Row extends GridRow>({
                         </div>
                     );
                 })}
+                {hasFooter && (
+                    <div
+                        role="row"
+                        className="sticky bottom-0 z-20 shrink-0 border-t border-grid-line bg-grid-header"
+                        style={{ width: totalWidth, height: footerHeight }}
+                    >
+                        <div
+                            role="rowheader"
+                            className="sticky left-0 z-10 flex h-full items-center border-r border-grid-line bg-grid-header px-3"
+                            style={{ width: labelWidth }}
+                        >
+                            {renderFooterLabel?.()}
+                        </div>
+                        {virtualColumns.map((virtualColumn) => {
+                            const column = columns[virtualColumn.index];
+
+                            return (
+                                <div
+                                    key={column.date}
+                                    role="gridcell"
+                                    className={cn(
+                                        'absolute top-0 h-full border-r border-grid-line',
+                                        column.isToday && 'bg-grid-today-soft',
+                                    )}
+                                    style={{
+                                        left: labelWidth + virtualColumn.start,
+                                        width: virtualColumn.size,
+                                    }}
+                                >
+                                    {renderFooterCell(column)}
+                                </div>
+                            );
+                        })}
+                    </div>
+                )}
             </div>
         </div>
     );
