@@ -29,6 +29,7 @@ class RateCalendarController extends Controller
         return Inertia::render('rates/calendar', [
             'calendar' => $rateCalendarService->forRange($property, $from, $to, $today, $property->settings->currency->value),
             'today' => $today->toDateString(),
+            'weekendDays' => $property->settings->weekend_nights->isoWeekdays(),
             'canManage' => $request->user()->can(PermissionEnum::RatesManage->value),
         ]);
     }

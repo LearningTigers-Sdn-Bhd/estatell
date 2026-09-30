@@ -8,6 +8,7 @@ import {
     PopoverTrigger,
 } from '@/components/ui/popover';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { cn } from '@/lib/utils';
 
 /** Parse `2026-09-12` as a local date so it never shifts a day. */
 function toDate(value: string): Date | undefined {
@@ -52,6 +53,8 @@ type Props = {
     /** Unit shown after the count, for example "night". */
     unit?: string;
     placeholder?: string;
+    /** Width of the trigger. Full width when left out. */
+    className?: string;
     id?: string;
     'aria-invalid'?: boolean;
 };
@@ -69,6 +72,7 @@ export function DateRangePicker({
     months = 1,
     unit = 'day',
     placeholder = 'Pick dates',
+    className,
     id,
     ...props
 }: Props) {
@@ -143,7 +147,10 @@ export function DateRangePicker({
                         id={id}
                         type="button"
                         variant="outline"
-                        className="w-full justify-start font-normal"
+                        className={cn(
+                            'justify-start font-normal',
+                            className ?? 'w-full',
+                        )}
                         aria-invalid={props['aria-invalid']}
                     />
                 }

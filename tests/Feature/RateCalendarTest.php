@@ -4,6 +4,7 @@ use App\Enums\DefaultRoleEnum;
 use App\Enums\PermissionEnum;
 use App\Enums\PricingBasis;
 use App\Enums\RateDerivation;
+use App\Enums\WeekendNights;
 use App\Models\Property;
 use App\Models\PropertySetting;
 use App\Models\Rate;
@@ -73,6 +74,20 @@ test('the calendar opens on today and the next 13 days in the property time zone
             ->where('calendar.dates.13', '2027-01-02')
             ->where('today', '2026-12-20')
         );
+});
+
+test('the calendar sends the weekend days of the property setting', function () {
+    [$owner, $property] = calendarSetup();
+    $property->settings->update(['weekend_nights' => WeekendNights::SatSun]);
+
+    $this->actingAs($owner)
+        ->get(route('rates.calendar', $property->code))
+        ->assertInertia(fn (Assert $page) => $page->where('weekendDays', [6, 7]));
+
+    $property->settings->update(['weekend_nights' => WeekendNights::FriSat]);
+
+    $this->get(route('rates.calendar', $property->code))
+        ->assertInertia(fn (Assert $page) => $page->where('weekendDays', [5, 6]));
 });
 
 test('a start date alone shows 14 days from it', function () {

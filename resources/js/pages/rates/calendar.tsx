@@ -16,10 +16,12 @@ import { calendar as calendarRoute } from '@/routes/rates';
 export default function RateCalendar({
     calendar,
     today,
+    weekendDays,
     canManage,
 }: {
     calendar: App.Data.Rates.RateCalendarData;
     today: string;
+    weekendDays: number[];
     canManage: boolean;
 }) {
     const gridRef = useRef<DateGridHandle>(null);
@@ -70,6 +72,7 @@ export default function RateCalendar({
                         roomTypes={calendar.roomTypes}
                         dates={calendar.dates}
                         today={today}
+                        weekendDays={weekendDays}
                         filters={filters}
                     />
                 </>

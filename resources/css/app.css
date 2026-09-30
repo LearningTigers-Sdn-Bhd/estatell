@@ -99,6 +99,24 @@
     --warning-foreground: oklch(0.279 0.077 45.635);
     --info: oklch(0.546 0.245 262.881);
     --info-foreground: oklch(0.97 0.014 254.604);
+
+    /*
+     * Grid tokens (estatell): the date grid engine and the calendars built on it. Named by role, so the hue can
+     * change here without touching a component. `weekend` and `hover` are translucent tints that lay over any
+     * row background. Every text pair meets WCAG 2.2 AA (4.5:1) in light and dark.
+     */
+    --grid-surface: oklch(99% 0.005 108);
+    --grid-foreground: oklch(0.3 0.03 110);
+    --grid-header: oklch(96.4% 0.014 108);
+    --grid-header-foreground: oklch(0.46 0.035 110);
+    --grid-group: oklch(98.2% 0.008 108);
+    --grid-line: oklch(93.5% 0.012 108);
+    --grid-weekend: oklch(0.45 0.07 110 / 4%);
+    --grid-hover: oklch(0.45 0.07 110 / 8%);
+    --grid-today: oklch(90.5% 0.093 164.15);
+    --grid-today-foreground: oklch(26.2% 0.051 172.552);
+    --grid-today-soft: oklch(97.6% 0.025 165);
+    --grid-muted-foreground: oklch(0.5 0.035 110);
 }
 
 .dark {
@@ -142,6 +160,20 @@
     --warning-foreground: oklch(0.279 0.077 45.635);
     --info: oklch(0.707 0.165 254.624);
     --info-foreground: oklch(0.282 0.091 267.935);
+
+    /* Grid tokens (estatell). */
+    --grid-surface: oklch(0.2 0.012 108);
+    --grid-foreground: oklch(0.988 0.003 106.5);
+    --grid-header: oklch(0.265 0.02 108);
+    --grid-header-foreground: oklch(0.82 0.03 110);
+    --grid-group: oklch(0.228 0.014 108);
+    --grid-line: oklch(0.8 0.05 110 / 12%);
+    --grid-weekend: oklch(0.85 0.06 110 / 4%);
+    --grid-hover: oklch(0.85 0.06 110 / 9%);
+    --grid-today: oklch(0.36 0.07 167);
+    --grid-today-foreground: oklch(0.95 0.04 165);
+    --grid-today-soft: oklch(0.36 0.07 167 / 30%);
+    --grid-muted-foreground: oklch(0.78 0.03 110);
 }
 
 @layer base {
@@ -208,4 +240,16 @@
     --color-warning-foreground: var(--warning-foreground);
     --color-info: var(--info);
     --color-info-foreground: var(--info-foreground);
+    --color-grid-surface: var(--grid-surface);
+    --color-grid-foreground: var(--grid-foreground);
+    --color-grid-header: var(--grid-header);
+    --color-grid-header-foreground: var(--grid-header-foreground);
+    --color-grid-group: var(--grid-group);
+    --color-grid-line: var(--grid-line);
+    --color-grid-weekend: var(--grid-weekend);
+    --color-grid-hover: var(--grid-hover);
+    --color-grid-today: var(--grid-today);
+    --color-grid-today-foreground: var(--grid-today-foreground);
+    --color-grid-today-soft: var(--grid-today-soft);
+    --color-grid-muted-foreground: var(--grid-muted-foreground);
 }

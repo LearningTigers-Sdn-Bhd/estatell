@@ -56,41 +56,36 @@ function RateCell({
                 cell.stopSell && 'bg-destructive/10',
             )}
         >
+            <span className="sr-only">{cellTitle(cell, derived)}</span>
             {cell.amount !== null && (
                 <span
+                    aria-hidden
                     className={cn(
                         'flex items-center gap-1 text-sm font-medium',
-                        cell.stopSell && 'text-muted-foreground line-through',
+                        cell.stopSell &&
+                            'text-grid-muted-foreground line-through',
                         derived && 'italic',
                     )}
                 >
-                    {derived && (
-                        <Link2 aria-hidden className="size-3 text-info" />
-                    )}
+                    {derived && <Link2 className="size-3 text-info" />}
                     {formatAmount(cell.amount)}
                 </span>
             )}
             {(flags.length > 0 || limit) && (
-                <span className="flex items-center gap-1 text-muted-foreground">
+                <span
+                    aria-hidden
+                    className="flex items-center gap-1 text-grid-muted-foreground"
+                >
                     {cell.stopSell && (
-                        <Ban
-                            aria-label={FLAG_LABELS['stop-sell']}
-                            className="size-3 text-destructive"
-                        />
+                        <Ban className="size-3 text-destructive" />
                     )}
                     {cell.closedToArrival && (
-                        <span
-                            className="text-warning"
-                            aria-label={FLAG_LABELS['closed-arrival']}
-                        >
+                        <span className="rounded-sm bg-warning px-1 text-warning-foreground">
                             CTA
                         </span>
                     )}
                     {cell.closedToDeparture && (
-                        <span
-                            className="text-warning"
-                            aria-label={FLAG_LABELS['closed-departure']}
-                        >
+                        <span className="rounded-sm bg-warning px-1 text-warning-foreground">
                             CTD
                         </span>
                     )}
@@ -102,7 +97,7 @@ function RateCell({
 }
 
 /**
- * One month of daily rates: a heading for each room type and a row for each plan that sells it. A plan that
+ * A range of daily rates: a heading for each room type and a row for each plan that sells it. A plan that
  * follows another shows the calculated price with a link marker.
  */
 export function RateCalendarGrid({
@@ -110,17 +105,20 @@ export function RateCalendarGrid({
     roomTypes,
     dates,
     today,
+    weekendDays,
     filters,
 }: {
     gridRef: Ref<DateGridHandle>;
     roomTypes: App.Data.Rates.RateCalendarRoomTypeData[];
     dates: string[];
     today: string;
+    /** ISO weekdays whose nights are weekend nights, from the property settings. */
+    weekendDays: number[];
     filters: CalendarFilters;
 }) {
     const columns = useMemo(
-        () => buildDateColumns(dates, today),
-        [dates, today],
+        () => buildDateColumns(dates, today, weekendDays),
+        [dates, today, weekendDays],
     );
     const rows = useMemo(
         () => buildRows(roomTypes, filters),
@@ -158,7 +156,7 @@ export function RateCalendarGrid({
                             {row.plan.name}
                         </span>
                         {row.plan.derived && (
-                            <span className="truncate text-xs text-muted-foreground">
+                            <span className="truncate text-xs text-grid-muted-foreground">
                                 Follows {row.plan.followsName}
                             </span>
                         )}

@@ -1,5 +1,5 @@
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { useImperativeHandle, useRef } from 'react';
+import { useImperativeHandle, useRef, useState } from 'react';
 import type { ReactNode, Ref } from 'react';
 import { cn } from '@/lib/utils';
 import type { DateColumn } from './date-columns';
@@ -10,6 +10,9 @@ export type GridRow = {
     /** A group row is a full-width heading. A plain row has a cell for each column. */
     kind: 'group' | 'row';
 };
+
+/** The row and date under the pointer. A row label sets only the row, and a date header sets only the date. */
+type Hover = { rowKey: string | null; date: string | null };
 
 /** What a parent can ask the grid to do. */
 export type DateGridHandle = {
@@ -82,6 +85,15 @@ export function DateGrid<Row extends GridRow>({
         },
     }));
 
+    const [hover, setHover] = useState<Hover>({ rowKey: null, date: null });
+
+    const changeHover = (rowKey: string | null, date: string | null) =>
+        setHover((current) =>
+            current.rowKey === rowKey && current.date === date
+                ? current
+                : { rowKey, date },
+        );
+
     const totalWidth = labelWidth + columnVirtualizer.getTotalSize();
     const totalHeight = headerHeight + rowVirtualizer.getTotalSize();
     const virtualColumns = columnVirtualizer.getVirtualItems();
@@ -94,10 +106,11 @@ export function DateGrid<Row extends GridRow>({
             aria-rowcount={rows.length + 1}
             aria-colcount={columns.length + 1}
             className={cn(
-                'relative overflow-auto overscroll-none rounded-lg border bg-background',
+                'relative overflow-auto overscroll-none rounded-lg border border-grid-line bg-grid-surface text-grid-foreground',
                 className,
             )}
             style={{ maxHeight }}
+            onMouseLeave={() => changeHover(null, null)}
         >
             <div
                 className="relative"
@@ -105,12 +118,12 @@ export function DateGrid<Row extends GridRow>({
             >
                 <div
                     role="row"
-                    className="sticky top-0 z-20 border-b bg-muted"
+                    className="sticky top-0 z-20 border-b border-grid-line bg-grid-header"
                     style={{ width: totalWidth, height: headerHeight }}
                 >
                     <div
                         role="columnheader"
-                        className="sticky left-0 z-10 h-full border-r bg-muted"
+                        className="sticky left-0 z-10 h-full border-r border-grid-line bg-grid-header"
                         style={{ width: labelWidth }}
                     />
                     {virtualColumns.map((virtualColumn) => {
@@ -121,19 +134,35 @@ export function DateGrid<Row extends GridRow>({
                                 key={column.date}
                                 role="columnheader"
                                 aria-label={column.date}
+                                aria-current={
+                                    column.isToday ? 'date' : undefined
+                                }
                                 className={cn(
-                                    'absolute top-0 flex h-full flex-col items-center justify-center border-r text-xs text-muted-foreground tabular-nums',
+                                    'absolute top-0 flex h-full flex-col items-center justify-center border-r border-grid-line text-xs text-grid-header-foreground tabular-nums',
+                                    column.isWeekend && 'bg-grid-weekend',
+                                    hover.date === column.date &&
+                                        'bg-grid-hover',
                                     column.isToday &&
-                                        'bg-accent font-medium text-foreground',
+                                        'bg-grid-today font-medium text-grid-today-foreground',
                                 )}
                                 style={{
                                     left: labelWidth + virtualColumn.start,
                                     width: virtualColumn.size,
                                 }}
+                                onMouseEnter={() =>
+                                    changeHover(null, column.date)
+                                }
                             >
                                 <span>{column.weekday}</span>
-                                <span className="text-sm text-foreground">
-                                    {column.day}
+                                <span
+                                    className={cn(
+                                        'text-sm',
+                                        column.isToday
+                                            ? 'text-grid-today-foreground'
+                                            : 'text-grid-foreground',
+                                    )}
+                                >
+                                    {column.day} {column.month}
                                 </span>
                             </div>
                         );
@@ -149,8 +178,8 @@ export function DateGrid<Row extends GridRow>({
                             role="row"
                             aria-rowindex={virtualRow.index + 2}
                             className={cn(
-                                'absolute left-0 border-b',
-                                isGroup && 'bg-muted/50',
+                                'absolute left-0 border-b border-grid-line',
+                                isGroup && 'bg-grid-group',
                             )}
                             style={{
                                 top: headerHeight + virtualRow.start,
@@ -161,12 +190,25 @@ export function DateGrid<Row extends GridRow>({
                             <div
                                 role="rowheader"
                                 className={cn(
-                                    'sticky left-0 z-10 flex h-full items-center border-r px-3',
-                                    isGroup ? 'bg-muted' : 'bg-background',
+                                    'sticky left-0 z-10 flex h-full items-center border-r border-grid-line px-3',
+                                    isGroup
+                                        ? 'bg-grid-group'
+                                        : 'bg-grid-surface',
                                 )}
                                 style={{ width: labelWidth }}
+                                onMouseEnter={() =>
+                                    changeHover(isGroup ? null : row.key, null)
+                                }
                             >
-                                {renderLabel(row)}
+                                {!isGroup && hover.rowKey === row.key && (
+                                    <span
+                                        aria-hidden
+                                        className="pointer-events-none absolute inset-0 bg-grid-hover"
+                                    />
+                                )}
+                                <div className="relative min-w-0">
+                                    {renderLabel(row)}
+                                </div>
                             </div>
                             {!isGroup &&
                                 virtualColumns.map((virtualColumn) => {
@@ -177,9 +219,15 @@ export function DateGrid<Row extends GridRow>({
                                             key={column.date}
                                             role="gridcell"
                                             className={cn(
-                                                'absolute top-0 h-full border-r',
+                                                'absolute top-0 h-full border-r border-grid-line',
+                                                column.isWeekend &&
+                                                    'bg-grid-weekend',
                                                 column.isToday &&
-                                                    'bg-accent/40',
+                                                    'bg-grid-today-soft',
+                                                (hover.rowKey === row.key ||
+                                                    hover.date ===
+                                                        column.date) &&
+                                                    'bg-grid-hover',
                                             )}
                                             style={{
                                                 left:
@@ -187,6 +235,12 @@ export function DateGrid<Row extends GridRow>({
                                                     virtualColumn.start,
                                                 width: virtualColumn.size,
                                             }}
+                                            onMouseEnter={() =>
+                                                changeHover(
+                                                    row.key,
+                                                    column.date,
+                                                )
+                                            }
                                         >
                                             {renderCell(row, column)}
                                         </div>

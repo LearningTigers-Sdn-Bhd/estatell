@@ -79,6 +79,7 @@ Legend: **Needs** lists items that must be done first.
 | `15fd738` | feat(rates): save copied parent discounts at once                      |
 | `4f982f2` | feat(rates): add the read-only rate calendar                           |
 | `c87f55a` | fix(ui): fit the date grid to the window and stop bounce               |
+| `8d5dcec` | feat(rates): choose the rate calendar date range                       |
 
 Smaller fixes and reverts are in `git log`.
 

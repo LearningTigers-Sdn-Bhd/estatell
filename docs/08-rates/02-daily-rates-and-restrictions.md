@@ -109,7 +109,7 @@ Route: `rates.calendar` at `/p/{code}/rates/calendar` (`rates.view`). It is in t
 **Built (read only):**
 
 - **Range.** The range is in the URL: `?from=2026-10-05&to=2026-10-18`. With no `from` it starts today, and with no `to` it shows 14 days. The longest range is 62 days, counting both ends. `to` before `from`, a bad date or a `to` with no `from` is refused. A range change is a request. The neighbouring ranges are prefetched.
-- **Toolbar.** **Today**, the previous and next arrows, the date range picker, the **14 days**, **21 days** and **Month** presets, the room type and plan filters, and a **Legend** popover.
+- **Toolbar.** **Today**, the previous and next arrows, the date range picker, the **14 days**, **21 days** and **Month** presets, the room type and plan filters, and an icon button that opens the legend.
     - Today scrolls to today's column when today is already in the range. Otherwise it starts the range today and keeps its length. A month range becomes this month.
     - The arrows move by the length of the range, or by one month for a whole-month range.
     - A preset keeps the start date. Month snaps to the whole month of the start date.
@@ -120,6 +120,9 @@ Route: `rates.calendar` at `/p/{code}/rates/calendar` (`rates.view`). It is in t
 - **Filters.** The room type and plan filters run in the browser. They make no request.
 - **Rates ending.** The warning shows above the toolbar for plans with their own prices. Staff with `rates.manage` get **Extend 12 months** for each plan.
 - **Layout.** A Grid calendar page has no page header. The toolbar is the top of the page and the grid fills the rest of the window, edge to edge. The plan column is 288px wide.
+- **Columns.** A date header shows the weekday over the day and month, for example "Wed" over "30 Sep". Weekend nights are tinted across the whole column. They come from the property's weekend nights setting, not from a rate plan. Today's column has its own highlight.
+- **Theme and contrast.** The grid uses the `grid-*` tokens (see [Tokens](../design-system/02-tokens-and-typography.md)). CTA and CTD are filled warning pills, because warning-colored text fails contrast on the tints. Today's header has `aria-current="date"`. Each cell has a text alternative for screen readers, and its markers are decorative.
+- **Hover.** The row and the column under the pointer are highlighted, on the cells and on the plan label and date header. It makes no request.
 - **Engine.** The grid is the shared `pms/grid` engine (`DateGrid`): a sticky label column and date header, fixed row and column sizes, and virtualized rows and columns with `@tanstack/react-virtual`. Its scroll area has no overscroll bounce, and it sizes itself to the space left in the window, so only the grid scrolls. Stay View reuses it.
 
 **Next (edit):** click a cell to change one date. Bulk edit uses the pricing form with the restriction fields (`SaveRates` already takes them).
