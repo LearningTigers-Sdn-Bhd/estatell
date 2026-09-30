@@ -1,6 +1,7 @@
 import { useForm } from '@inertiajs/react';
 import { Plus } from 'lucide-react';
 import { useState } from 'react';
+import { EnumSelect } from '@/components/pms/enum-select';
 import { RoomTypeCheckboxItem } from '@/components/pms/rate-plans/room-type-checkbox-item';
 import { Button } from '@/components/ui/button';
 import {
@@ -35,6 +36,8 @@ const basisDescriptions: Record<string, string> = {
     per_guest:
         'Sells rooms. A price for one adult. Extra adults and children add to it.',
     per_bed: 'Sells dorm beds. One price for each bed.',
+    package:
+        'Sells rooms or beds. One price for the whole stay, set by arrival date.',
 };
 
 /**
@@ -43,17 +46,27 @@ const basisDescriptions: Record<string, string> = {
  */
 export function NewRatePlanSheet({
     pricingBases,
+    packageUnits,
     roomTypes,
 }: {
     pricingBases: Option[];
+    packageUnits: Option[];
     roomTypes: RoomType[];
 }) {
     const [open, setOpen] = useState(false);
     const form = useForm<{
         name: string;
         pricing_basis: string;
+        fixed_nights: string;
+        package_unit: string;
         room_type_ids: number[];
-    }>({ name: '', pricing_basis: 'per_room', room_type_ids: [] });
+    }>({
+        name: '',
+        pricing_basis: 'per_room',
+        fixed_nights: '2',
+        package_unit: 'per_guest',
+        room_type_ids: [],
+    });
     const basis = form.data.pricing_basis as App.Enums.PricingBasis;
 
     // Switching the basis unticks room types the new basis cannot sell.
@@ -171,6 +184,76 @@ export function NewRatePlanSheet({
                                     {form.errors.pricing_basis}
                                 </FieldError>
                             </FieldSet>
+                            {basis === 'package' && (
+                                <>
+                                    <Field
+                                        data-invalid={
+                                            !!form.errors.fixed_nights
+                                        }
+                                    >
+                                        <FieldLabel htmlFor="rate-plan-nights">
+                                            Nights
+                                        </FieldLabel>
+                                        <Input
+                                            id="rate-plan-nights"
+                                            type="number"
+                                            min="1"
+                                            max="30"
+                                            inputMode="numeric"
+                                            className="sm:max-w-32"
+                                            value={form.data.fixed_nights}
+                                            onChange={(event) =>
+                                                form.setData(
+                                                    'fixed_nights',
+                                                    event.target.value,
+                                                )
+                                            }
+                                            aria-invalid={
+                                                !!form.errors.fixed_nights
+                                            }
+                                        />
+                                        <FieldDescription>
+                                            The stay is fixed. 3D2N is 2 nights.
+                                        </FieldDescription>
+                                        <FieldError>
+                                            {form.errors.fixed_nights}
+                                        </FieldError>
+                                    </Field>
+                                    <Field
+                                        data-invalid={
+                                            !!form.errors.package_unit
+                                        }
+                                    >
+                                        <FieldLabel htmlFor="rate-plan-unit">
+                                            Charged
+                                        </FieldLabel>
+                                        <EnumSelect
+                                            id="rate-plan-unit"
+                                            name="package_unit"
+                                            className="sm:max-w-60"
+                                            options={packageUnits}
+                                            value={form.data.package_unit}
+                                            onValueChange={(value) =>
+                                                form.setData(
+                                                    'package_unit',
+                                                    value,
+                                                )
+                                            }
+                                            aria-invalid={
+                                                !!form.errors.package_unit
+                                            }
+                                        />
+                                        <FieldDescription>
+                                            Per guest prices each adult and uses
+                                            child prices. Per room prices the
+                                            room and adds extra guests.
+                                        </FieldDescription>
+                                        <FieldError>
+                                            {form.errors.package_unit}
+                                        </FieldError>
+                                    </Field>
+                                </>
+                            )}
                             {roomTypes.length > 0 && (
                                 <FieldSet>
                                     <FieldLegend variant="label">

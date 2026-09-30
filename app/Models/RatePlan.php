@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\EarlyDeparturePolicy;
+use App\Enums\PackageUnit;
 use App\Enums\PricingBasis;
 use App\Enums\RateDerivation;
 use Database\Factories\RatePlanFactory;
@@ -23,6 +24,8 @@ use Illuminate\Support\Carbon;
  * @property string $name
  * @property string|null $description
  * @property PricingBasis $pricing_basis
+ * @property int|null $fixed_nights
+ * @property PackageUnit|null $package_unit
  * @property string $extra_adult_amount
  * @property string $extra_child_amount
  * @property string $single_supplement
@@ -37,7 +40,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $updated_at
  */
 #[Fillable([
-    'name', 'description', 'pricing_basis', 'extra_adult_amount', 'extra_child_amount', 'single_supplement',
+    'name', 'description', 'pricing_basis', 'fixed_nights', 'package_unit', 'extra_adult_amount', 'extra_child_amount', 'single_supplement',
     'parent_rate_plan_id', 'derivation', 'derivation_value', 'early_departure_policy', 'needs_child_price_review', 'position', 'archived_at',
 ])]
 class RatePlan extends Model
@@ -52,6 +55,8 @@ class RatePlan extends Model
     {
         return [
             'pricing_basis' => PricingBasis::class,
+            'fixed_nights' => 'integer',
+            'package_unit' => PackageUnit::class,
             'derivation' => RateDerivation::class,
             'derivation_value' => 'decimal:2',
             'early_departure_policy' => EarlyDeparturePolicy::class,
@@ -120,6 +125,22 @@ class RatePlan extends Model
     }
 
     /**
+     * @return HasMany<PackagePrice, $this>
+     */
+    public function packagePrices(): HasMany
+    {
+        return $this->hasMany(PackagePrice::class)->orderBy('room_type_id')->orderBy('arrival_from');
+    }
+
+    /**
+     * @return HasMany<RatePlanArrivalWeekday, $this>
+     */
+    public function arrivalWeekdays(): HasMany
+    {
+        return $this->hasMany(RatePlanArrivalWeekday::class);
+    }
+
+    /**
      * @return HasMany<Rate, $this>
      */
     public function rates(): HasMany
@@ -133,6 +154,20 @@ class RatePlan extends Model
     public function scopeActive(Builder $query): void
     {
         $query->whereNull('archived_at');
+    }
+
+    /**
+     * Plans that price children by age group: per-guest plans and per-guest packages.
+     *
+     * @param  Builder<RatePlan>  $query
+     */
+    public function scopeUsingChildPrices(Builder $query): void
+    {
+        $query->where(fn (Builder $plans) => $plans
+            ->where('pricing_basis', PricingBasis::PerGuest)
+            ->orWhere(fn (Builder $packages) => $packages
+                ->where('pricing_basis', PricingBasis::Package)
+                ->where('package_unit', PackageUnit::PerGuest)));
     }
 
     /**

@@ -160,7 +160,7 @@ Smaller fixes and reverts are in `git log`.
 ### 09 Packages and 10 Availability
 
 - [x] `feat(packages): add inclusions` — Inclusions tab on every rate plan and `InclusionAllocator`. Docs: [Inclusions](09-packages/01-inclusions.md).
-- [ ] `feat(packages): add package prices` — Docs: [Package prices](09-packages/02-package-prices.md).
+- [x] `feat(packages): add package prices` — `fixed_nights` and `package_unit` on rate plans (no `is_package`), stay price grid on the Pricing tab, arrival weekdays. Docs: [Package prices](09-packages/02-package-prices.md).
 - [ ] `feat(packages): add the package pricing strategy` — `PackagePricing` with `allocate()` split, wired into `PricingBasis::strategy()`. Docs: [Pricing strategies](08-rates/03-pricing-strategies.md).
 - [ ] `feat(availability): add the availability service` — Docs: [Availability service](10-availability/01-availability-service.md).
 

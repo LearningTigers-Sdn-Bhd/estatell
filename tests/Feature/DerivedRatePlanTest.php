@@ -179,7 +179,7 @@ test('a plan cannot follow an ineligible parent', function (string $case) {
         'archived' => RatePlan::factory()->for($property)->archived()->create()->id,
         'another property' => RatePlan::factory()->create()->id,
         'a derived plan' => derivedPlan($property, $parent, $roomType, RateDerivation::Percent, '-5.00', ['name' => 'Chain'])->id,
-        'a package plan' => RatePlan::factory()->for($property)->create(['pricing_basis' => PricingBasis::Package])->id,
+        'a package plan' => RatePlan::factory()->for($property)->package()->create()->id,
         'another pricing basis' => tap(RatePlan::factory()->for($property)->perGuest()->create(), fn (RatePlan $plan) => $plan->roomTypes()->attach($roomType))->id,
         'a plan missing a room type' => RatePlan::factory()->for($property)->create()->id,
     };

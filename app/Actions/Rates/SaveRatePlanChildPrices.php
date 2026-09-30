@@ -3,7 +3,6 @@
 namespace App\Actions\Rates;
 
 use App\Enums\AgeBandPricing;
-use App\Enums\PricingBasis;
 use App\Models\Property;
 use App\Models\RatePlan;
 use App\Models\User;
@@ -14,7 +13,7 @@ class SaveRatePlanChildPrices
     /**
      * Save one child price per age group of the property, and clear the "Check child prices" flag.
      *
-     * Returns false for an archived plan, a plan that is not per guest, or a list that is not exactly the
+     * Returns false for an archived plan, a plan that does not price children, or a list that is not exactly the
      * property's current age groups. A save that changes no price is not logged.
      *
      * @param  list<array{property_age_group_id: int, pricing: string, value: string|int|float|null}>  $prices
@@ -25,7 +24,7 @@ class SaveRatePlanChildPrices
             $property = Property::query()->lockForUpdate()->findOrFail($ratePlan->property_id);
             $ratePlan = RatePlan::query()->lockForUpdate()->findOrFail($ratePlan->id);
 
-            if ($ratePlan->archived_at !== null || $ratePlan->pricing_basis !== PricingBasis::PerGuest) {
+            if ($ratePlan->archived_at !== null || ! $ratePlan->pricing_basis->usesChildPrices($ratePlan->package_unit)) {
                 return false;
             }
 

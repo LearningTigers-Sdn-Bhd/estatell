@@ -62,17 +62,13 @@ export function RatePlanShell({
             icon: Bed,
             href: editRoomTypes.url({ ratePlan: ratePlan.id }),
         },
-        ...(ratePlan.pricingBasis !== 'package'
-            ? [
-                  {
-                      value: 'pricing',
-                      label: 'Pricing',
-                      icon: CircleDollarSign,
-                      href: editPricing.url({ ratePlan: ratePlan.id }),
-                  },
-              ]
-            : []),
-        ...(ratePlan.pricingBasis === 'per_guest'
+        {
+            value: 'pricing',
+            label: 'Pricing',
+            icon: CircleDollarSign,
+            href: editPricing.url({ ratePlan: ratePlan.id }),
+        },
+        ...(ratePlan.usesChildPrices
             ? [
                   {
                       value: 'children',
@@ -112,7 +108,11 @@ export function RatePlanShell({
             <PageHeader
                 title={ratePlan.name}
                 back={{ href: index.url(), label: 'Rate plans' }}
-                description={`Sells ${ratePlan.family.toLowerCase()} types. Priced ${ratePlan.pricingBasis.replace('_', ' ')}.`}
+                description={
+                    ratePlan.pricingBasis === 'package'
+                        ? `Sells ${ratePlan.family.toLowerCase()} types. Package of ${ratePlan.fixedNights} ${ratePlan.fixedNights === 1 ? 'night' : 'nights'}, charged ${ratePlan.packageUnit?.replace('_', ' ')}.`
+                        : `Sells ${ratePlan.family.toLowerCase()} types. Priced ${ratePlan.pricingBasis.replace('_', ' ')}.`
+                }
                 badge={
                     ratePlan.archived ? (
                         <Badge variant="secondary">Archived</Badge>

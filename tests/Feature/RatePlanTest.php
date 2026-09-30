@@ -74,7 +74,7 @@ test('the list shows active plans in order with their room types, then archived 
             ->where('ratePlans.0.family', 'Room')
             ->where('ratePlans.1.pricingBasis', 'per_guest')
             ->where('ratePlans.2.archived', true)
-            ->where('pricingBases', fn ($bases) => collect($bases)->pluck('value')->all() === ['per_room', 'per_guest', 'per_bed']));
+            ->where('pricingBases', fn ($bases) => collect($bases)->pluck('value')->all() === ['per_room', 'per_guest', 'per_bed', 'package']));
 });
 
 test('owners create a plan at the end of the list and land on its room types tab', function () {
@@ -181,7 +181,11 @@ test('plan creation is validated', function (array $payload, string $field) {
     'name is required' => [['name' => '', 'pricing_basis' => 'per_room'], 'name'],
     'name is unique among active plans, ignoring case' => [['name' => 'basic RATE', 'pricing_basis' => 'per_room'], 'name'],
     'basis is a known value' => [['name' => 'X', 'pricing_basis' => 'per_night'], 'pricing_basis'],
-    'package plans are not offered yet' => [['name' => 'X', 'pricing_basis' => 'package'], 'pricing_basis'],
+    'a package needs its nights' => [['name' => 'X', 'pricing_basis' => 'package', 'package_unit' => 'per_guest'], 'fixed_nights'],
+    'a package has at least one night' => [['name' => 'X', 'pricing_basis' => 'package', 'package_unit' => 'per_guest', 'fixed_nights' => 0], 'fixed_nights'],
+    'a package has at most 30 nights' => [['name' => 'X', 'pricing_basis' => 'package', 'package_unit' => 'per_guest', 'fixed_nights' => 31], 'fixed_nights'],
+    'a package needs its charging unit' => [['name' => 'X', 'pricing_basis' => 'package', 'fixed_nights' => 2], 'package_unit'],
+    'a package unit is a known value' => [['name' => 'X', 'pricing_basis' => 'package', 'fixed_nights' => 2, 'package_unit' => 'per_bed'], 'package_unit'],
 ]);
 
 test('an archived plan\'s name can be reused', function () {

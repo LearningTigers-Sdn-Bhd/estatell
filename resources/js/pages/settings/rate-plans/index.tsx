@@ -97,10 +97,12 @@ function ArchiveRatePlan({ ratePlan }: { ratePlan: RatePlan }) {
 export default function RatePlansIndex({
     ratePlans,
     pricingBases,
+    packageUnits,
     roomTypes,
 }: {
     ratePlans: RatePlan[];
     pricingBases: Option[];
+    packageUnits: Option[];
     roomTypes: App.Data.Rates.NewRatePlanRoomTypeData[];
 }) {
     const active = ratePlans.filter((ratePlan) => !ratePlan.archived);
@@ -126,6 +128,7 @@ export default function RatePlansIndex({
                     actions={
                         <NewRatePlanSheet
                             pricingBases={pricingBases}
+                            packageUnits={packageUnits}
                             roomTypes={roomTypes}
                         />
                     }
@@ -139,6 +142,7 @@ export default function RatePlansIndex({
                         action={
                             <NewRatePlanSheet
                                 pricingBases={pricingBases}
+                                packageUnits={packageUnits}
                                 roomTypes={roomTypes}
                             />
                         }

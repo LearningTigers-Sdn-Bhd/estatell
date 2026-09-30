@@ -269,6 +269,18 @@ sellUnit: App.Enums.SellUnit,
 sellUnitLabel: string,
 fitsBases: App.Enums.PricingBasis[],
 };
+export type PackagePriceData = {
+id: number,
+roomTypeId: number,
+arrivalFrom: string,
+arrivalTo: string,
+amount: string,
+};
+export type PackagePriceRoomTypeData = {
+id: number,
+name: string,
+sellUnitLabel: string,
+};
 export type RateBulkPlanData = {
 id: number,
 name: string,
@@ -331,6 +343,9 @@ id: number,
 name: string,
 description: string | null,
 pricingBasis: App.Enums.PricingBasis,
+fixedNights: number | null,
+packageUnit: App.Enums.PackageUnit | null,
+usesChildPrices: boolean,
 family: string,
 pricingLabel: string,
 extraAdultAmount: string,
@@ -571,6 +586,7 @@ export type NotificationChannel = 'mail' | 'database';
 export type NotificationType = 'night_audit_completed' | 'night_audit_exceptions' | 'night_audit_failed' | 'registration_card_link' | 'onboarding_reminder' | 'dorm_strategy_changed' | 'support_access_used';
 export type OverdueDeparturePolicy = 'extend_one_night' | 'block';
 export type OwnerSetupMethod = 'email_link' | 'initial_password';
+export type PackageUnit = 'per_guest' | 'per_room';
 export type PaymentMethodType = 'cash' | 'card' | 'bank_transfer' | 'e_wallet' | 'ota_collected' | 'direct_bill';
 export type PermissionEnum = 'settings.manage' | 'staff.view' | 'staff.manage' | 'roles.manage' | 'rooms.view' | 'rooms.manage' | 'rooms.block' | 'notification.manage' | 'rates.view' | 'rates.manage' | 'rates.override-restrictions';
 export type PlatformFeature = 'channel-manager';
@@ -588,6 +604,7 @@ export type TaxRateType = 'percent' | 'flat';
 export type Tone = 'neutral' | 'info' | 'success' | 'warning' | 'danger';
 export type TransactionCategory = 'room' | 'food_and_beverage' | 'laundry' | 'minibar' | 'fee' | 'tax' | 'discount' | 'cash' | 'card' | 'bank_transfer' | 'e_wallet' | 'ota_collected' | 'direct_bill' | 'deposit' | 'refund' | 'adjustment' | 'other';
 export type TransactionKind = 'charge' | 'payment' | 'adjustment' | 'tax';
+export type Weekday = 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday';
 export type WeekendNights = 'fri_sat' | 'sat_sun';
 }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Rates;
 
+use App\Enums\PackageUnit;
 use App\Enums\PricingBasis;
 use App\Models\Property;
 use App\Models\RatePlan;
@@ -29,7 +30,8 @@ class RatePlanRequest extends FormRequest
 
     /**
      * The extra guest charges depend on the plan's pricing basis: per room plans charge extra adults and children,
-     * per guest plans charge a single supplement, and other plans charge neither.
+     * per guest plans charge a single supplement, and other plans charge neither. A package also has its number of
+     * nights, and a package charged per room charges extra adults and children per stay.
      *
      * @return array<string, ValidationRule|array<mixed>|string>
      */
@@ -61,7 +63,11 @@ class RatePlanRequest extends FormRequest
             ...match ($current->pricing_basis) {
                 PricingBasis::PerRoom => ['extra_adult_amount' => $amount, 'extra_child_amount' => $amount],
                 PricingBasis::PerGuest => ['single_supplement' => $amount],
-                PricingBasis::PerBed, PricingBasis::Package => [],
+                PricingBasis::PerBed => [],
+                PricingBasis::Package => [
+                    'fixed_nights' => ['required', 'integer', 'between:1,30'],
+                    ...($current->package_unit === PackageUnit::PerRoom ? ['extra_adult_amount' => $amount, 'extra_child_amount' => $amount] : []),
+                ],
             },
         ];
     }

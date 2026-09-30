@@ -178,7 +178,7 @@ test('an archived plan, an unlinked room type and a package plan are refused', f
     [$property, $plan, $roomType] = quoteSetup();
     quoteRate($plan, $roomType, '2026-11-02');
     $other = RoomType::factory()->for($property)->create();
-    $package = RatePlan::factory()->for($property)->create(['pricing_basis' => PricingBasis::Package]);
+    $package = RatePlan::factory()->for($property)->package()->create();
     $package->roomTypes()->attach($roomType);
 
     expect(quoteFor($plan, $other)->refusal)->toBe(RateQuote::REFUSAL_ROOM_TYPE_NOT_SOLD)

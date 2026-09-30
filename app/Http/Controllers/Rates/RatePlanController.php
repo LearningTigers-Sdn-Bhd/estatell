@@ -8,6 +8,7 @@ use App\Actions\Rates\CreateRatePlan;
 use App\Actions\Rates\ExtendRates;
 use App\Actions\Rates\ReorderRatePlans;
 use App\Actions\Rates\RestoreRatePlan;
+use App\Actions\Rates\SavePackagePricing;
 use App\Actions\Rates\SaveRatePlanChildPrices;
 use App\Actions\Rates\SaveRatePlanDerivation;
 use App\Actions\Rates\SaveRatePlanInclusions;
@@ -18,6 +19,8 @@ use App\Actions\Rates\UpdateRatePlan;
 use App\Data\Property\PropertyAgeGroupData;
 use App\Data\Property\WeekendNightsOptionData;
 use App\Data\Rates\NewRatePlanRoomTypeData;
+use App\Data\Rates\PackagePriceData;
+use App\Data\Rates\PackagePriceRoomTypeData;
 use App\Data\Rates\RatePlanChildPriceData;
 use App\Data\Rates\RatePlanData;
 use App\Data\Rates\RatePlanDerivationData;
@@ -34,14 +37,17 @@ use App\Enums\AgeBandPricing;
 use App\Enums\ChargingUnit;
 use App\Enums\InclusionEnd;
 use App\Enums\InclusionStart;
+use App\Enums\PackageUnit;
 use App\Enums\PricingBasis;
 use App\Enums\RateDerivation;
 use App\Enums\SellUnit;
 use App\Enums\StayDiscountType;
+use App\Enums\Weekday;
 use App\Enums\WeekendNights;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Rates\ArchiveRatePlanRequest;
 use App\Http\Requests\Rates\CreateRatePlanRequest;
+use App\Http\Requests\Rates\PackagePricingRequest;
 use App\Http\Requests\Rates\RatePlanChildPricesRequest;
 use App\Http\Requests\Rates\RatePlanDerivationRequest;
 use App\Http\Requests\Rates\RatePlanDiscountsPreviewRequest;
@@ -53,6 +59,7 @@ use App\Http\Requests\Rates\ReorderRatePlansRequest;
 use App\Http\Requests\Rates\SaveRatesRequest;
 use App\Models\ChargeItem;
 use App\Models\MealPeriod;
+use App\Models\PackagePrice;
 use App\Models\Property;
 use App\Models\RatePlan;
 use App\Models\RatePlanChildPrice;
@@ -84,10 +91,8 @@ class RatePlanController extends Controller
                 ->ordered()
                 ->get()
                 ->map(fn (RatePlan $ratePlan): RatePlanData => RatePlanData::fromModel($ratePlan)),
-            'pricingBases' => array_values(array_filter(
-                PricingBasis::options(),
-                fn (array $option): bool => $option['value'] !== PricingBasis::Package->value,
-            )),
+            'pricingBases' => PricingBasis::options(),
+            'packageUnits' => PackageUnit::options(),
             'roomTypes' => $property->roomTypes()->active()->ordered()->get()
                 ->map(fn (RoomType $roomType): NewRatePlanRoomTypeData => NewRatePlanRoomTypeData::fromModel($roomType)),
         ]);
@@ -135,11 +140,11 @@ class RatePlanController extends Controller
     }
 
     /**
-     * The Children tab, for per-guest plans only.
+     * The Children tab, for plans that price children by age group: per-guest plans and per-guest packages.
      */
     public function editChildPrices(Property $property, RatePlan $ratePlan): Response
     {
-        abort_unless($ratePlan->pricing_basis === PricingBasis::PerGuest, 404);
+        abort_unless($ratePlan->pricing_basis->usesChildPrices($ratePlan->package_unit), 404);
 
         return Inertia::render('settings/rate-plans/child-prices', [
             'ratePlan' => RatePlanData::fromModel($ratePlan->load('roomTypes')),
@@ -173,6 +178,26 @@ class RatePlanController extends Controller
             'chargingUnits' => ChargingUnit::options(),
             'startOptions' => InclusionStart::options(),
             'endOptions' => InclusionEnd::options(),
+            'currency' => $property->settings->currency,
+        ]);
+    }
+
+    /**
+     * The Pricing tab of a package plan: the stay price by room type and arrival period, and the arrival weekdays.
+     * A plan with no stored weekdays starts on any day, so all seven are ticked.
+     */
+    private function editPackagePricing(Property $property, RatePlan $ratePlan): Response
+    {
+        $stored = $ratePlan->arrivalWeekdays()->get()->map(fn ($row): string => $row->weekday->value)->all();
+
+        return Inertia::render('settings/rate-plans/package-pricing', [
+            'ratePlan' => RatePlanData::fromModel($ratePlan->load('roomTypes')),
+            'roomTypes' => $ratePlan->roomTypes()->whereNull('room_types.archived_at')->orderBy('room_types.position')->orderBy('room_types.id')->get()
+                ->map(fn (RoomType $roomType): PackagePriceRoomTypeData => PackagePriceRoomTypeData::fromModel($roomType)),
+            'prices' => $ratePlan->packagePrices()->get()
+                ->map(fn (PackagePrice $price): PackagePriceData => PackagePriceData::fromModel($price)),
+            'weekdays' => $stored === [] ? array_map(fn (Weekday $day): string => $day->value, Weekday::cases()) : $stored,
+            'weekdayOptions' => Weekday::options(),
             'currency' => $property->settings->currency,
         ]);
     }
@@ -232,11 +257,13 @@ class RatePlanController extends Controller
     }
 
     /**
-     * The Pricing tab, for plans that carry their own prices. Package plans use package prices instead.
+     * The Pricing tab. Package plans show their stay price grid instead of the nightly pricing form.
      */
     public function editPricing(Property $property, RatePlan $ratePlan, RatesEndingCheck $ratesEndingCheck, DerivedRatePlans $derivedRatePlans): Response
     {
-        abort_if($ratePlan->pricing_basis === PricingBasis::Package, 404);
+        if ($ratePlan->pricing_basis === PricingBasis::Package) {
+            return $this->editPackagePricing($property, $ratePlan);
+        }
 
         $today = now($property->settings->time_zone);
         $pricedUntil = $ratesEndingCheck->pricedUntil($ratePlan);
@@ -292,6 +319,15 @@ class RatePlanController extends Controller
             : ['type' => 'error', 'message' => __('The rate plan, charge items or meal periods changed. Reload the page and try again.')]);
 
         return to_route('settings.rate-plans.inclusions.edit', ['property' => $property, 'ratePlan' => $ratePlan]);
+    }
+
+    public function updatePackagePricing(PackagePricingRequest $request, Property $property, RatePlan $ratePlan, SavePackagePricing $savePackagePricing): RedirectResponse
+    {
+        Inertia::flash('toast', $savePackagePricing($request->user(), $ratePlan, $request->prices(), $request->weekdays())
+            ? ['type' => 'success', 'message' => __('Package pricing saved.')]
+            : ['type' => 'error', 'message' => __('The rate plan or room types changed. Reload the page and try again.')]);
+
+        return to_route('settings.rate-plans.pricing.edit', ['property' => $property, 'ratePlan' => $ratePlan]);
     }
 
     public function updateDiscounts(RatePlanStayDiscountsRequest $request, Property $property, RatePlan $ratePlan, SaveRatePlanStayDiscounts $saveRatePlanStayDiscounts): RedirectResponse

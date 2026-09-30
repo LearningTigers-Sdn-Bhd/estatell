@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Enums\PackageUnit;
 use App\Enums\PricingBasis;
 use App\Models\Property;
 use App\Models\RatePlan;
@@ -29,6 +30,15 @@ class RatePlanFactory extends Factory
     public function perGuest(): static
     {
         return $this->state(fn (array $attributes) => ['pricing_basis' => PricingBasis::PerGuest]);
+    }
+
+    public function package(PackageUnit $unit = PackageUnit::PerGuest, int $nights = 2): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'pricing_basis' => PricingBasis::Package,
+            'package_unit' => $unit,
+            'fixed_nights' => $nights,
+        ]);
     }
 
     public function perBed(): static

@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Rates;
 
+use App\Enums\PackageUnit;
 use App\Enums\PricingBasis;
 use App\Models\Property;
 use App\Models\RatePlan;
@@ -50,8 +51,9 @@ class CreateRatePlanRequest extends FormRequest
                     }
                 },
             ],
-            // Package plans arrive with package prices.
-            'pricing_basis' => ['required', Rule::enum(PricingBasis::class)->except([PricingBasis::Package])],
+            'pricing_basis' => ['required', Rule::enum(PricingBasis::class)],
+            'fixed_nights' => ['exclude_unless:pricing_basis,package', 'required', 'integer', 'between:1,30'],
+            'package_unit' => ['exclude_unless:pricing_basis,package', 'required', Rule::enum(PackageUnit::class)],
             'room_type_ids' => ['nullable', 'array'],
             'room_type_ids.*' => ['integer', 'distinct'],
         ];
@@ -80,11 +82,11 @@ class CreateRatePlanRequest extends FormRequest
     }
 
     /**
-     * @return array{name: string, pricing_basis: string}
+     * @return array{name: string, pricing_basis: string, fixed_nights?: int, package_unit?: string}
      */
     public function ratePlanAttributes(): array
     {
-        return $this->safe()->only(['name', 'pricing_basis']);
+        return $this->safe()->only(['name', 'pricing_basis', 'fixed_nights', 'package_unit']);
     }
 
     /**

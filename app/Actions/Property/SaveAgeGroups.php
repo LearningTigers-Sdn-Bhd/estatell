@@ -3,7 +3,6 @@
 namespace App\Actions\Property;
 
 use App\Enums\AgeBandPricing;
-use App\Enums\PricingBasis;
 use App\Models\Property;
 use App\Models\PropertyAgeGroup;
 use App\Models\User;
@@ -86,7 +85,7 @@ class SaveAgeGroups
 
     private function addChildPrices(Property $property, PropertyAgeGroup $ageGroup): void
     {
-        $ratePlans = $property->ratePlans()->where('pricing_basis', PricingBasis::PerGuest)->get();
+        $ratePlans = $property->ratePlans()->usingChildPrices()->get();
 
         foreach ($ratePlans as $ratePlan) {
             $ratePlan->childPrices()->create([

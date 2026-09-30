@@ -17,11 +17,11 @@ class CreateRatePlan
     /**
      * Add a rate plan at the end of the list, selling the given room types (none by default).
      *
-     * A per-guest plan starts with one child price per age group: the youngest group free, every other group 50%.
+     * A plan that prices children by age group (per guest, or a per-guest package) starts with one child price per age group: the youngest group free, every other group 50%.
      *
      * Returns null, without writing, when a room type is not an active room type of the property that fits the pricing basis.
      *
-     * @param  array<string, mixed>  $attributes  Validated name, pricing_basis and optional description.
+     * @param  array<string, mixed>  $attributes  Validated name, pricing_basis and optional description. A package also has fixed_nights and package_unit.
      * @param  list<int>  $roomTypeIds
      */
     public function __invoke(Property $property, User $actor, array $attributes, array $roomTypeIds = []): ?RatePlan
@@ -41,7 +41,7 @@ class CreateRatePlan
 
             $ratePlan->roomTypes()->attach($roomTypeIds);
 
-            if ($ratePlan->pricing_basis === PricingBasis::PerGuest) {
+            if ($ratePlan->pricing_basis->usesChildPrices($ratePlan->package_unit)) {
                 foreach ($property->ageGroups()->ordered()->get() as $index => $ageGroup) {
                     $ratePlan->childPrices()->create($index === 0
                         ? ['property_age_group_id' => $ageGroup->id, 'pricing' => AgeBandPricing::Free, 'value' => null]

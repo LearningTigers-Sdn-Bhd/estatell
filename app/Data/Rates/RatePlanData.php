@@ -2,6 +2,7 @@
 
 namespace App\Data\Rates;
 
+use App\Enums\PackageUnit;
 use App\Enums\PricingBasis;
 use App\Enums\RateDerivation;
 use App\Models\RatePlan;
@@ -19,6 +20,9 @@ class RatePlanData extends Data
         public string $name,
         public ?string $description,
         public PricingBasis $pricingBasis,
+        public ?int $fixedNights,
+        public ?PackageUnit $packageUnit,
+        public bool $usesChildPrices,
         public string $family,
         public string $pricingLabel,
         public string $extraAdultAmount,
@@ -42,6 +46,9 @@ class RatePlanData extends Data
             name: $ratePlan->name,
             description: $ratePlan->description,
             pricingBasis: $ratePlan->pricing_basis,
+            fixedNights: $ratePlan->fixed_nights,
+            packageUnit: $ratePlan->package_unit,
+            usesChildPrices: $ratePlan->pricing_basis->usesChildPrices($ratePlan->package_unit),
             family: $ratePlan->pricing_basis->family(),
             pricingLabel: self::pricingLabel($ratePlan),
             extraAdultAmount: $ratePlan->extra_adult_amount,

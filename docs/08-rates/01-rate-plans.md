@@ -11,7 +11,7 @@ rate_plans              id, property_id, name, description, pricing_basis (Prici
                         extra_adult_amount, extra_child_amount, single_supplement,
                         parent_rate_plan_id (nullable), derivation (RateDerivation, nullable),
                         derivation_value (nullable, signed),
-                        is_package, fixed_nights (nullable),
+                        fixed_nights (nullable), package_unit (PackageUnit, nullable),
                         early_departure_policy (EarlyDeparturePolicy),
                         agent_access (AgentAccess, default Hidden),
                         position, archived_at, timestamps
@@ -34,12 +34,12 @@ rate_plan_stay_discounts
 
 Staff with `settings.manage` use Settings, Rates, Rate plans (`settings.rate-plans.*`, `RatePlanController`). Every write is an Action in `app/Actions/Rates/`.
 
-- **Tables built:** `rate_plans`, `rate_plan_room_types`, `rate_plan_child_prices`, `rate_plan_stay_discounts`, `rate_plan_inclusions`. `rate_plans` has `parent_rate_plan_id`, `derivation` and `derivation_value` (see [Derived rate plans](04-derived-rate-plans.md)). It has no `is_package`, `fixed_nights` or `agent_access` yet. Each arrives with its own item (package prices, agent portal).
+- **Tables built:** `rate_plans`, `rate_plan_room_types`, `rate_plan_child_prices`, `rate_plan_stay_discounts`, `rate_plan_inclusions`. `rate_plans` has `parent_rate_plan_id`, `derivation` and `derivation_value` (see [Derived rate plans](04-derived-rate-plans.md)). It has `fixed_nights` and `package_unit` (see [Package prices](../09-packages/02-package-prices.md)). It has no `agent_access` yet, which arrives with the agent portal.
 - **Extra column:** `needs_child_price_review` (boolean) stores the "Check child prices" flag. [Age groups](../02-property/04-age-groups.md) sets it when a group is added. Saving the Children tab clears it.
-- **Enums built:** `PricingBasis`, `EarlyDeparturePolicy`, `AgeBandPricing`, `StayDiscountType`, `RateDerivation`. `PricingBasis::fits(SellUnit)` holds the sell unit table below.
-- **Package plans** cannot be created yet. The Package case exists and fits both families. The new plan Sheet and `CreateRatePlanRequest` leave it out until package prices exist.
-- **New plan:** a Sheet with name, pricing basis and optional room types. Package is not offered yet. The room type checkbox item is shared with the Room types tab.
-- **Editor:** a full page with `TabLinks`. Each tab is its own URL, controller method and page, and loads only its own data: Details (`settings.rate-plans.edit`), Room types (`settings.rate-plans.room-types.edit`), Pricing (`settings.rate-plans.pricing.edit`, not for Package plans, see [Daily rates](02-daily-rates-and-restrictions.md#ui)) Children (`settings.rate-plans.child-prices.edit`, PerGuest plans only, 404 otherwise) and Discounts (`settings.rate-plans.discounts.edit`, 404 for Package plans). Each tab is its own form. Leaving a tab with unsaved changes asks Cancel, Discard or Save (see [Form containers](../design-system/05-form-containers.md#unsaved-changes)). The Inclusions tab (`settings.rate-plans.inclusions.edit`) is open to every plan, see [Inclusions](../09-packages/01-inclusions.md). The Agents tab arrives with its item. `early_departure_policy` has a column and a default (ChargeFull) but no field yet.
+- **Enums built:** `PricingBasis`, `EarlyDeparturePolicy`, `AgeBandPricing`, `StayDiscountType`, `RateDerivation`, `PackageUnit`. `PricingBasis::fits(SellUnit)` holds the sell unit table below.
+- **Package plans** are created like any plan. The Package case fits both families. A database CHECK keeps `fixed_nights` (1 to 30) and `package_unit` set on a package and empty on every other plan. There is no `is_package` column, `pricing_basis = Package` says it.
+- **New plan:** a Sheet with name, pricing basis and optional room types. Choosing Package adds Nights and Charged (per guest or per room). The room type checkbox item is shared with the Room types tab.
+- **Editor:** a full page with `TabLinks`. Each tab is its own URL, controller method and page, and loads only its own data: Details (`settings.rate-plans.edit`), Room types (`settings.rate-plans.room-types.edit`), Pricing (`settings.rate-plans.pricing.edit`, a stay price grid for Package plans, see [Package prices](../09-packages/02-package-prices.md#ui), and [Daily rates](02-daily-rates-and-restrictions.md#ui) for the others) Children (`settings.rate-plans.child-prices.edit`, PerGuest plans and per-guest packages only, 404 otherwise) and Discounts (`settings.rate-plans.discounts.edit`, 404 for Package plans). Each tab is its own form. Leaving a tab with unsaved changes asks Cancel, Discard or Save (see [Form containers](../design-system/05-form-containers.md#unsaved-changes)). The Inclusions tab (`settings.rate-plans.inclusions.edit`) is open to every plan, see [Inclusions](../09-packages/01-inclusions.md). The Agents tab arrives with its item. `early_departure_policy` has a column and a default (ChargeFull) but no field yet.
 - **List:** name, family, pricing, linked room types, reorder, archive and restore. A new plan opens on its Room types tab.
 - **Guard built:** a room type keeps at least one active linked plan. It is checked on unlinking and archiving by `RatePlanCoverage`, and re-checked in the Action under a lock.
 - **Guards built for derived plans:** a parent is not archived while active plans follow it, a room type is not unlinked from a parent while a follower sells it, and a follower is not restored under an archived parent.
@@ -53,6 +53,7 @@ Staff with `settings.manage` use Settings, Rates, Rate plans (`settings.rate-pla
 - `PricingBasis`: PerRoom, PerGuest, PerBed, Package.
 - `RateDerivation`: Percent, Amount. See [Derived rate plans](04-derived-rate-plans.md).
 - `EarlyDeparturePolicy`: ChargeFull, ChargeUsedNights.
+- `PackageUnit`: PerGuest, PerRoom. See [Package prices](../09-packages/02-package-prices.md).
 - `AgeBandPricing`: Free, Percent, Fixed.
 - `StayDiscountType`: Percent, Amount.
 - `AgentAccess`: Hidden, All, Selected. Selected uses `company_rate_plans`. See [Agent portal](../23-agent-portal/01-agent-portal.md).
@@ -74,10 +75,10 @@ Plans fall into two families: room plans and bed plans. Package is the only basi
 - The first linked plan by `position` is preselected on the booking form and listed first on the public site.
 - A booking can move only to a room type that is linked to its plan (see [Room and bed assignment](../18-front-desk/02-room-and-bed-assignment.md)).
 - Property creation seeds one ordinary plan, "Basic Rate". New room types are linked to it when the sell unit fits (see [Seed property defaults](../02-property/03-seed-property-defaults.md)).
-- Child prices apply to PerGuest plans. A PerGuest plan has one row per [age group](../02-property/04-age-groups.md). PerRoom plans use `extra_child_amount`.
+- Child prices apply to PerGuest plans and to packages charged per guest (`PricingBasis::usesChildPrices()`). Such a plan has one row per [age group](../02-property/04-age-groups.md). PerRoom plans and packages charged per room use `extra_child_amount`.
 - A new PerGuest plan is pre-filled: the first group Free, every other group 50%.
 - `Percent` is a percent of the plan's **1-adult** price for that night, never the party's per-adult share.
-- `is_package` and `fixed_nights` are described in [Package prices](../09-packages/02-package-prices.md).
+- `fixed_nights` and `package_unit` are described in [Package prices](../09-packages/02-package-prices.md).
 
 ## Guards
 
@@ -139,7 +140,7 @@ A table with name, family (Room or Bed), pricing summary ("Per room", "Basic Rat
 
 ### New plan
 
-A right-side Sheet with one short form, not a wizard: a name, how it is priced (Per room, Per guest or Per bed) and, optionally, the room types it sells. The family follows from the basis. Each room type is a checkbox item (name, description). It is disabled, with the reason, when the chosen basis cannot sell it, and changing the basis unticks room types that no longer fit. Saving opens the Details tab, or the Room types tab when none were chosen.
+A right-side Sheet with one short form, not a wizard: a name, how it is priced (Per room, Per guest, Per bed or Package; a package also asks for its nights and what it is charged on) and, optionally, the room types it sells. The family follows from the basis. Each room type is a checkbox item (name, description). It is disabled, with the reason, when the chosen basis cannot sell it, and changing the basis unticks room types that no longer fit. Saving opens the Details tab, or the Room types tab when none were chosen.
 
 ### Editor
 
@@ -150,7 +151,7 @@ A full page with tab links (one URL per tab): **Details · Room types · Pricing
 | Details    | Name, description (shown to guests and agents), extra guest charges, single supplement                             |
 | Room types | A checkbox per room type. Room types of the other family are shown disabled, with the reason in a tooltip.         |
 | Pricing    | Step 1: "Set prices directly" or "Follow another plan". Package plans show package prices instead.                 |
-| Children   | PerGuest plans only. One row per age group: Free, Percent or Fixed.                                                |
+| Children   | PerGuest plans and per-guest packages only. One row per age group: Free, Percent or Fixed.                         |
 | Discounts  | Long-stay discounts and a price preview. "Add long-stay discount" sits in the table footer. Not for Package plans. |
 | Agents     | `agent_access`: Hidden, All or Selected                                                                            |
 

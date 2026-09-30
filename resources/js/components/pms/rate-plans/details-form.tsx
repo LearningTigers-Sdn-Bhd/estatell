@@ -78,9 +78,15 @@ export function DetailsForm({
         extra_adult_amount: ratePlan.extraAdultAmount,
         extra_child_amount: ratePlan.extraChildAmount,
         single_supplement: ratePlan.singleSupplement,
+        fixed_nights: String(ratePlan.fixedNights ?? ''),
     });
     const guard = useUnsavedChanges(form.isDirty);
     const basis = ratePlan.pricingBasis;
+    const isPackage = basis === 'package';
+    const extraGuests =
+        basis === 'per_room' ||
+        (isPackage && ratePlan.packageUnit === 'per_room');
+    const period = isPackage ? 'Per stay' : 'Per night';
 
     const save = (onSaved?: () => void) => {
         form.put(update.url({ ratePlan: ratePlan.id }), {
@@ -132,12 +138,36 @@ export function DetailsForm({
                     </FieldDescription>
                     <FieldError>{form.errors.description}</FieldError>
                 </Field>
-                {basis === 'per_room' && (
+                {isPackage && (
+                    <Field data-invalid={!!form.errors.fixed_nights}>
+                        <FieldLabel htmlFor="fixed_nights">Nights</FieldLabel>
+                        <Input
+                            id="fixed_nights"
+                            type="number"
+                            min="1"
+                            max="30"
+                            inputMode="numeric"
+                            className="sm:max-w-32"
+                            value={form.data.fixed_nights}
+                            onChange={(event) =>
+                                form.setData('fixed_nights', event.target.value)
+                            }
+                            aria-invalid={!!form.errors.fixed_nights}
+                        />
+                        <FieldDescription>
+                            The stay is fixed. The booking form sets departure
+                            to arrival plus these nights. Existing bookings keep
+                            their prices.
+                        </FieldDescription>
+                        <FieldError>{form.errors.fixed_nights}</FieldError>
+                    </Field>
+                )}
+                {extraGuests && (
                     <>
                         <AmountField
                             id="extra_adult_amount"
                             label="Extra adult"
-                            description="Per night, for each adult above the guests the room type includes."
+                            description={`${period}, for each adult above the guests the room type includes.`}
                             currency={currency}
                             value={form.data.extra_adult_amount}
                             error={form.errors.extra_adult_amount}
@@ -148,7 +178,7 @@ export function DetailsForm({
                         <AmountField
                             id="extra_child_amount"
                             label="Extra child"
-                            description="Per night, for each child above the guests the room type includes."
+                            description={`${period}, for each child above the guests the room type includes.`}
                             currency={currency}
                             value={form.data.extra_child_amount}
                             error={form.errors.extra_child_amount}

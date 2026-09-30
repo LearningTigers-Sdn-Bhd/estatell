@@ -2,7 +2,6 @@
 
 use App\Enums\DefaultRoleEnum;
 use App\Enums\PermissionEnum;
-use App\Enums\PricingBasis;
 use App\Enums\RateDerivation;
 use App\Enums\WeekendNights;
 use App\Models\Property;
@@ -153,7 +152,7 @@ test('a derived plan shows its parent price after the derivation and keeps its o
 
 test('a package plan shows restrictions without a price', function () {
     [$owner, $property, , $roomType] = calendarSetup();
-    $package = RatePlan::factory()->for($property)->create(['name' => 'Honeymoon', 'pricing_basis' => PricingBasis::Package]);
+    $package = RatePlan::factory()->for($property)->package()->create(['name' => 'Honeymoon']);
     $package->roomTypes()->attach($roomType);
     calendarRate($package, $roomType, '2026-10-05', ['amount' => null, 'min_stay' => 3]);
 
@@ -203,7 +202,7 @@ test('plans whose prices run out are listed, and priced, derived and package pla
     calendarRate($priced, $roomType, '2027-03-01');
     $derived = RatePlan::factory()->for($property)->create(['parent_rate_plan_id' => $priced->id, 'derivation' => RateDerivation::Amount, 'derivation_value' => '10']);
     $derived->roomTypes()->attach($roomType);
-    $package = RatePlan::factory()->for($property)->create(['pricing_basis' => PricingBasis::Package]);
+    $package = RatePlan::factory()->for($property)->package()->create();
     $package->roomTypes()->attach($roomType);
 
     $this->actingAs($owner)
@@ -427,7 +426,7 @@ test('a derived plan takes restrictions from the calendar but never a price', fu
 
 test('a package plan takes restrictions from the calendar but never a price', function () {
     [$owner, $property, , $roomType] = calendarSetup();
-    $package = RatePlan::factory()->for($property)->create(['pricing_basis' => PricingBasis::Package]);
+    $package = RatePlan::factory()->for($property)->package()->create();
     $package->roomTypes()->attach($roomType);
 
     $this->actingAs($owner)
@@ -555,7 +554,7 @@ test('the bulk edit page ignores a plan of another property and one that is arch
 test('the bulk edit page says which plans have prices of their own', function () {
     [$owner, $property, $parent, $roomType] = calendarSetup();
     $derived = RatePlan::factory()->for($property)->create(['name' => 'Member', 'parent_rate_plan_id' => $parent->id, 'derivation' => RateDerivation::Percent, 'derivation_value' => '-10']);
-    $package = RatePlan::factory()->for($property)->create(['name' => 'Honeymoon', 'pricing_basis' => PricingBasis::Package]);
+    $package = RatePlan::factory()->for($property)->package()->create(['name' => 'Honeymoon']);
     $derived->roomTypes()->attach($roomType);
     $package->roomTypes()->attach($roomType);
 

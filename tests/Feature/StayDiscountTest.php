@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\DefaultRoleEnum;
+use App\Enums\PackageUnit;
 use App\Enums\PricingBasis;
 use App\Enums\StayDiscountType;
 use App\Models\Property;
@@ -127,7 +128,7 @@ test('an archived plan is refused with an error toast and nothing is logged', fu
 });
 
 test('package plans have no discounts tab', function () {
-    [$owner, $property, $plan] = discountSetup(['pricing_basis' => PricingBasis::Package]);
+    [$owner, $property, $plan] = discountSetup(['pricing_basis' => PricingBasis::Package, 'fixed_nights' => 2, 'package_unit' => PackageUnit::PerGuest]);
 
     $this->actingAs($owner)
         ->get(route('settings.rate-plans.discounts.edit', [$property->code, $plan]))

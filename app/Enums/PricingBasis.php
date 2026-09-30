@@ -53,6 +53,18 @@ enum PricingBasis: string
     }
 
     /**
+     * Whether a plan with this basis prices children by age group. A package does when it is charged per guest.
+     */
+    public function usesChildPrices(?PackageUnit $packageUnit): bool
+    {
+        return match ($this) {
+            self::PerGuest => true,
+            self::Package => $packageUnit === PackageUnit::PerGuest,
+            self::PerRoom, self::PerBed => false,
+        };
+    }
+
+    /**
      * The class that prices a night for this basis. Package has none until module 09 adds `PackagePricing`.
      *
      * @return class-string<StayPricing>|null

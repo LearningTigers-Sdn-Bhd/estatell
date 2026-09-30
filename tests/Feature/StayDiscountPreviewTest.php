@@ -158,6 +158,6 @@ test('the preview needs settings.manage, stays inside the property and is not fo
     [$owner, $property] = previewSetup();
     previewPost($owner, $property, $plan, [])->assertNotFound();
 
-    $package = RatePlan::factory()->for($property)->create(['pricing_basis' => PricingBasis::Package]);
+    $package = RatePlan::factory()->for($property)->package()->create();
     previewPost($owner, $property, $package, [])->assertNotFound();
 });
