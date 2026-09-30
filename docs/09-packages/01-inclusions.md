@@ -17,6 +17,8 @@ rate_plan_inclusions    id, rate_plan_id, charge_item_id, meal_period_id (nullab
 - `InclusionStart`: ArrivalDay, DayAfterArrival.
 - `InclusionEnd`: DepartureDay, NightBeforeDeparture.
 
+Both enums already exist (added with meal entitlements). Each has `label()`, `options()` and the date rule (`firstDate()`, `lastDate()`).
+
 ## Service
 
 `InclusionAllocator`: splits a night's amount into lines. Example: RM300 Room + Breakfast for 2 guests posts ROOM RM250 and Breakfast RM50.

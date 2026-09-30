@@ -92,6 +92,17 @@ postingTransactionCode: string,
 };
 }
 namespace Meals {
+export type MealEntitlementData = {
+date: string,
+mealPeriodId: number,
+guests: number,
+};
+export type MealInclusionData = {
+mealPeriodId: number,
+mealPeriodStartsAt: string,
+startsOn: App.Enums.InclusionStart,
+endsOn: App.Enums.InclusionEnd,
+};
 export type MealPeriodData = {
 id: number,
 name: string,
@@ -356,6 +367,8 @@ export type DiscountScope = 'room_only' | 'all_charges' | 'selected';
 export type DiscountType = 'percent' | 'fixed' | 'open';
 export type DormStrategy = 'bed_as_unit' | 'native_dorm';
 export type HousekeepingStatus = 'clean' | 'dirty' | 'inspected';
+export type InclusionEnd = 'departure_day' | 'night_before_departure';
+export type InclusionStart = 'arrival_day' | 'day_after_arrival';
 export type Locale = 'en' | 'ms';
 export type MediaDisk = 'local' | 'r2';
 export type MissedArrivalPolicy = 'mark_no_show' | 'keep_as_late_arrival';

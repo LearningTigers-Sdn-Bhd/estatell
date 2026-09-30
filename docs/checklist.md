@@ -64,6 +64,7 @@ Legend: **Needs** lists items that must be done first.
 | `cc78e80` | feat(catalogues): own codes per charge item and add room revenue taxes |
 | `fda168b` | feat(catalogues): add discounts                                        |
 | `d1e2d90` | feat(rooms): add room blocks and room statuses                         |
+| `9440d01` | feat(meals): add meal periods                                          |
 
 Smaller fixes and reverts are in `git log`.
 
@@ -123,7 +124,7 @@ Smaller fixes and reverts are in `git log`.
 ### 07 Meals
 
 - [x] `feat(meals): add meal periods` — Docs: [Meal periods](07-meals/01-meal-periods.md).
-- [ ] `feat(meals): add meal entitlements` — Docs: [Meal entitlements](07-meals/02-meal-entitlements.md).
+- [x] `feat(meals): add meal entitlements` — Docs: [Meal entitlements](07-meals/02-meal-entitlements.md).
 
 ### 08 Rates
 

@@ -14,7 +14,21 @@ Inputs:
 - The rate plan's inclusions that have a `meal_period_id`.
 - Each inclusion's `starts_on` and `ends_on`.
 
+## Built first slice
+
+`MealEntitlementResolver::resolve($arrival, $departure, $guests, $inclusions)` is a stateless service with no tables. Callers pass plain `MealInclusionData` objects (meal period id, its start time for sorting, `InclusionStart`, `InclusionEnd`). It returns `MealEntitlementData` rows (date, meal period id, guests), sorted by date and then meal start time. The inclusions and reservation commits will build the input from real rows.
+
+Rules:
+
+- A meal is served on every date from `InclusionStart::firstDate()` to `InclusionEnd::lastDate()`, inclusive. If the first date is after the last, nothing is served.
+- Every guest counts and every guest gets every meal. Age groups (infants) come later.
+- Two inclusions for one period give one row per date, so a guest is never fed twice.
+- The resolver does not filter by active periods. A period turned off later keeps the meals of existing bookings.
+- Times of day on arrival and departure are ignored. Only the dates count.
+
 ## Defaults
+
+These are the values the inclusion form will prefill. They are not resolver logic.
 
 | Meal      | Starts            | Ends                   |
 | --------- | ----------------- | ---------------------- |
