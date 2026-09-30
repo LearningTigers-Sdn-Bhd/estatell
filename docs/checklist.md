@@ -132,15 +132,16 @@ Smaller fixes and reverts are in `git log`.
 - [x] `feat(property): add age groups` — seeded Infant 0–3, Child 4–11. Docs: [Age groups](02-property/04-age-groups.md).
 - [x] `feat(rates): add rate plans` — with child prices. Docs: [Rate plans](08-rates/01-rate-plans.md).
 - [x] `feat(rates): add daily rates and restrictions` — Docs: [Daily rates and restrictions](08-rates/02-daily-rates-and-restrictions.md).
-- [ ] `feat(rates): add pricing strategies and rate quotes` — `RateQuoteService`. Docs: [Pricing strategies](08-rates/03-pricing-strategies.md).
-- [ ] `feat(rates): add derived rate plans` — Docs: [Derived rate plans](08-rates/04-derived-rate-plans.md).
+- [x] `feat(rates): add pricing strategies and rate quotes` — `RateQuoteService` for Room, Guest and Bed pricing. Child ages come in as input. `PackagePricing` comes with module 09. Docs: [Pricing strategies](08-rates/03-pricing-strategies.md).
 - [ ] `feat(rates): add long-stay discounts` — Docs: [Rate plans](08-rates/01-rate-plans.md#long-stay-discounts).
+- [ ] `feat(rates): add derived rate plans` — Docs: [Derived rate plans](08-rates/04-derived-rate-plans.md).
 - [ ] `feat(rates): add the rate calendar grid` — first use of the `pms/grid` engine. Docs: [Data loading and grids](design-system/08-data-loading-and-grids.md).
 
 ### 09 Packages and 10 Availability
 
 - [ ] `feat(packages): add inclusions` — Docs: [Inclusions](09-packages/01-inclusions.md).
 - [ ] `feat(packages): add package prices` — Docs: [Package prices](09-packages/02-package-prices.md).
+- [ ] `feat(packages): add the package pricing strategy` — `PackagePricing` with `allocate()` split, wired into `PricingBasis::strategy()`. Docs: [Pricing strategies](08-rates/03-pricing-strategies.md).
 - [ ] `feat(availability): add the availability service` — Docs: [Availability service](10-availability/01-availability-service.md).
 
 ### 11 Guests
