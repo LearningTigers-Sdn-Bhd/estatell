@@ -269,6 +269,39 @@ sellUnit: App.Enums.SellUnit,
 sellUnitLabel: string,
 fitsBases: App.Enums.PricingBasis[],
 };
+export type RateCalendarCellData = {
+date: string,
+amount: string | null,
+minStay: number | null,
+maxStay: number | null,
+closedToArrival: boolean,
+closedToDeparture: boolean,
+stopSell: boolean,
+};
+export type RateCalendarData = {
+month: string,
+dates: string[],
+roomTypes: App.Data.Rates.RateCalendarRoomTypeData[],
+ending: App.Data.Rates.RateCalendarEndingData[],
+};
+export type RateCalendarEndingData = {
+ratePlanId: number,
+ratePlanName: string,
+roomTypeNames: string[],
+};
+export type RateCalendarPlanData = {
+id: number,
+name: string,
+pricingBasis: App.Enums.PricingBasis,
+derived: boolean,
+followsName: string | null,
+cells: App.Data.Rates.RateCalendarCellData[],
+};
+export type RateCalendarRoomTypeData = {
+id: number,
+name: string,
+plans: App.Data.Rates.RateCalendarPlanData[],
+};
 export type RatePlanChildPriceData = {
 ageGroupId: number,
 label: string,
@@ -499,7 +532,7 @@ export type NotificationType = 'night_audit_completed' | 'night_audit_exceptions
 export type OverdueDeparturePolicy = 'extend_one_night' | 'block';
 export type OwnerSetupMethod = 'email_link' | 'initial_password';
 export type PaymentMethodType = 'cash' | 'card' | 'bank_transfer' | 'e_wallet' | 'ota_collected' | 'direct_bill';
-export type PermissionEnum = 'settings.manage' | 'staff.view' | 'staff.manage' | 'roles.manage' | 'rooms.view' | 'rooms.manage' | 'rooms.block' | 'notification.manage' | 'rates.override-restrictions';
+export type PermissionEnum = 'settings.manage' | 'staff.view' | 'staff.manage' | 'roles.manage' | 'rooms.view' | 'rooms.manage' | 'rooms.block' | 'notification.manage' | 'rates.view' | 'rates.manage' | 'rates.override-restrictions';
 export type PlatformFeature = 'channel-manager';
 export type PricingBasis = 'per_room' | 'per_guest' | 'per_bed' | 'package';
 export type PropertyStatus = 'onboarding' | 'pending_approval' | 'live' | 'suspended';

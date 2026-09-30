@@ -78,8 +78,8 @@ test('the page lists this property\'s periods by start time', function () {
             ->where('mealPeriods.0.endsAt', '10:00')
             ->where('mealPeriods.3.name', 'Supper')
             ->where('navigation.contexts.1.groups.2.label', 'Rates')
-            ->where('navigation.contexts.1.groups.2.items.0.title', 'Meal periods')
-            ->where('navigation.contexts.1.groups.2.items.0.active', true));
+            ->where('navigation.contexts.1.groups.2.items.1.title', 'Meal periods')
+            ->where('navigation.contexts.1.groups.2.items.1.active', true));
 });
 
 test('a new period lands between lunch and dinner by its start time', function () {

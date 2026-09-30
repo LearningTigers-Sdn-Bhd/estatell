@@ -35,6 +35,31 @@ class RatesEndingCheck
     }
 
     /**
+     * The same as `pricedUntil()` for many plans in one query. A room type the plan does not sell may appear, so
+     * read only the room types you know the plan sells.
+     *
+     * @param  list<int>  $ratePlanIds
+     * @return array<int, array<int, string>> Last priced date as `Y-m-d`, keyed by plan id then room type id.
+     */
+    public function pricedUntilByPlan(array $ratePlanIds): array
+    {
+        $lastDates = [];
+
+        Rate::query()
+            ->whereIn('rate_plan_id', $ratePlanIds)
+            ->whereNotNull('amount')
+            ->groupBy('rate_plan_id', 'room_type_id')
+            ->selectRaw('rate_plan_id, room_type_id, max(date) as last_date')
+            ->toBase()
+            ->get()
+            ->each(function (object $row) use (&$lastDates): void {
+                $lastDates[$row->rate_plan_id][$row->room_type_id] = $row->last_date;
+            });
+
+        return $lastDates;
+    }
+
+    /**
      * Whether prices that end on this date run out within the warning window.
      */
     public function isEnding(?string $pricedUntil, CarbonInterface $today): bool

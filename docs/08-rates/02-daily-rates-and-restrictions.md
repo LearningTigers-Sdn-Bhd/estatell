@@ -62,11 +62,14 @@ Routes: `settings.rate-plans.pricing.edit`, `.update` and `.extend` (all `settin
 
 ## Permissions
 
-| Permission                    | Guards                                    | Default roles  |
-| ----------------------------- | ----------------------------------------- | -------------- |
-| `rates.override-restrictions` | Book past a restriction at the front desk | Owner, Manager |
+| Permission                    | Guards                                                        | Default roles     |
+| ----------------------------- | ------------------------------------------------------------- | ----------------- |
+| `rates.view`                  | Open the rate calendar                                        | All default roles |
+| `rates.manage`                | Edit rates and restrictions in the calendar, and Extend there | Owner, Manager    |
+| `rates.override-restrictions` | Book past a restriction at the front desk                     | Owner, Manager    |
+| `settings.manage`             | The plan editor, including its Pricing tab                    | Owner, Manager    |
 
-The permission exists now. The front desk override arrives with the booking form.
+The front desk override arrives with the booking form.
 
 ## Rates ending
 
@@ -93,19 +96,27 @@ One form fills `rates` for a date range. The rate plan editor's Pricing tab ("Se
 | PerBed        | Weekdays and Weekend per room type                                                          | 7 columns per room type                                        |
 | Package       | Not used. Package plans use [package prices](../09-packages/02-package-prices.md).          | Not used                                                       |
 
-Bulk edit adds the restriction fields to the same form.
+Bulk edit adds the restriction fields to the same form (not built yet).
 
 ## UI
 
-Built now: the rate plan editor's **Pricing** tab (`settings.rate-plans.pricing.edit`). It has the rates ending warning with **Extend 12 months**, then one table. Each room type is a collapsible group row that shows how far it is priced, its **Auto** button and its "Different price by adults" switch, with its price rows underneath. On a PerGuest plan in By day view, only one group is open at a time. The form starts empty for each save. It does not preload saved prices. Bulk edit restrictions and the calendar grid arrive with the rate calendar item.
+Built now: the rate plan editor's **Pricing** tab (`settings.rate-plans.pricing.edit`). It has the rates ending warning with **Extend 12 months**, then one table. Each room type is a collapsible group row that shows how far it is priced, its **Auto** button and its "Different price by adults" switch, with its price rows underneath. On a PerGuest plan in By day view, only one group is open at a time. The form starts empty for each save. It does not preload saved prices. Bulk edit restrictions and cell editing arrive with the calendar edit item.
 
-The calendar grid:
+## The rate calendar
 
-- A calendar grid grouped by room type, with each linked plan as a row under it. Virtualized with `@tanstack/react-virtual`.
-- Filters: month, room type and plan.
-- Click a cell to change one date. Bulk edit uses the pricing form.
-- Derived plan rows show the calculated price with a marker and are read-only.
-- The rates ending warning shows above the grid with the Extend button.
+Route: `rates.calendar` at `/p/{code}/rates/calendar` (`rates.view`). It is in the Front desk context under Operations. `rates.calendar.extend` (`rates.manage`) extends one plan and returns to the calendar.
+
+**Built (read only):**
+
+- One month at a time. `?month=2026-10` picks the month. It defaults to the current month in the property time zone. A month change is a request, and the neighbouring months are prefetched.
+- `RateCalendarService` builds the month. It reads only and adds no query per plan or date. The page gets a group for each active room type and a row for each active plan that sells it. Archived plans, archived room types and unlinked room types are left out.
+- A row has a cell only for a date with a price or a restriction row. The cell shows the price, stop sell, closed to arrival (CTA), closed to departure (CTD) and the min and max stay.
+- A derived plan row shows the parent's room price after the derivation, with a link marker. It is read only. The plan's own restriction rows show on the same dates. A package plan row shows restrictions only.
+- Filters for room type and plan run in the browser. They make no request.
+- The rates ending warning shows above the grid for plans with their own prices. Staff with `rates.manage` get **Extend 12 months** for each plan.
+- The grid is the shared `pms/grid` engine (`DateGrid`): a sticky label column and date header, fixed row and column sizes, and virtualized rows and columns with `@tanstack/react-virtual`. Stay View reuses it.
+
+**Next (edit):** click a cell to change one date. Bulk edit uses the pricing form with the restriction fields (`SaveRates` already takes them).
 
 ## Lessons from wastays
 

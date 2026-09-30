@@ -36,6 +36,14 @@ class FrontDeskNavigation
                     active: request()->routeIs('front-desk.room-blocks.*'),
                 ) : null,
             ]))),
+            new NavGroupData(label: __('Operations'), items: array_values(array_filter([
+                $user->can(PermissionEnum::RatesView->value) ? new NavItemData(
+                    title: __('Rate calendar'),
+                    href: route('rates.calendar', ['property' => $property->code], absolute: false),
+                    icon: 'calendar-range',
+                    active: request()->routeIs('rates.calendar'),
+                ) : null,
+            ]))),
         ];
     }
 }

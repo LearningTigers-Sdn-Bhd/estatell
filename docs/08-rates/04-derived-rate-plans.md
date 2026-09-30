@@ -64,7 +64,8 @@ The option is disabled, with the reason in a tooltip, in these cases:
 - **Action:** `SaveRatePlanDerivation` sets, changes or removes the link (a null parent removes it). Following clears the plan's own `rates.amount` and occupancy prices and keeps the restriction columns. Stopping leaves the plan with no prices until staff set them. `SaveRates` refuses an amount for a derived plan, and `ExtendRates` refuses the plan.
 - **Routes:** `settings.rate-plans.pricing.derivation.update` and `.preview` (preview saves nothing).
 - **UI:** a "Set prices directly / Follow another plan" choice on the Pricing tab. The form has the parent, Down or Up, the value and the unit. The preview shows today's room price per room type. A plan that follows another shows "Stop following" instead of the price form. The list shows "Follows Basic Rate -10%".
-- **Not built yet:** derived rows with a calculated price in the rate calendar ([the grid item](../checklist.md)) and company links (module 15).
+- **Rate calendar:** a derived plan row shows the parent's room price after the derivation, with a link marker, read-only. Its own restriction rows show too (see [the calendar](02-daily-rates-and-restrictions.md#the-rate-calendar)).
+- **Not built yet:** company links (module 15).
 
 ## Future
 

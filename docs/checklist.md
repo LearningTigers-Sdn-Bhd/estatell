@@ -66,6 +66,17 @@ Legend: **Needs** lists items that must be done first.
 | `d1e2d90` | feat(rooms): add room blocks and room statuses                         |
 | `9440d01` | feat(meals): add meal periods                                          |
 | `7eb53e8` | feat(meals): add meal entitlements                                     |
+| `3fb3f88` | feat(property): add age groups                                         |
+| `3cd50e5` | feat(settings): move age groups into settings tabs                     |
+| `b0a0989` | feat(rates): add rate plans                                            |
+| `f15004c` | feat(rates): add daily rates and restrictions                          |
+| `f562fb8` | feat(rates): add pricing strategies and rate quotes                    |
+| `3851160` | feat(rates): add long-stay discounts                                   |
+| `037b4c6` | feat(rates): preview long-stay discounts per room type                 |
+| `c12721b` | feat(rates): per-guest auto fill and per-person price hint             |
+| `855265d` | feat(rates): add derived rate plans                                    |
+| `a9499aa` | feat(rates): copy parent discounts onto a derived plan                 |
+| `15fd738` | feat(rates): save copied parent discounts at once                      |
 
 Smaller fixes and reverts are in `git log`.
 
@@ -135,7 +146,8 @@ Smaller fixes and reverts are in `git log`.
 - [x] `feat(rates): add pricing strategies and rate quotes` — `RateQuoteService` for Room, Guest and Bed pricing. Child ages come in as input. `PackagePricing` comes with module 09. Docs: [Pricing strategies](08-rates/03-pricing-strategies.md).
 - [x] `feat(rates): add long-stay discounts` — Docs: [Rate plans](08-rates/01-rate-plans.md#long-stay-discounts).
 - [x] `feat(rates): add derived rate plans` — Docs: [Derived rate plans](08-rates/04-derived-rate-plans.md).
-- [ ] `feat(rates): add the rate calendar grid` — first use of the `pms/grid` engine. Docs: [Data loading and grids](design-system/08-data-loading-and-grids.md).
+- [x] `feat(rates): add the read-only rate calendar` — first use of the `pms/grid` engine, `rates.view` and `rates.manage`, month window, room type and plan filters, derived rows, rates ending alert with Extend. Docs: [Daily rates and restrictions](08-rates/02-daily-rates-and-restrictions.md#the-rate-calendar), [Data loading and grids](design-system/08-data-loading-and-grids.md).
+- [ ] `feat(rates): edit rates from the calendar` — cell edit popover and Bulk edit with the pricing form plus restriction fields, behind `rates.manage`. Needs: the read-only calendar. Docs: [Daily rates and restrictions](08-rates/02-daily-rates-and-restrictions.md#the-rate-calendar).
 
 ### 09 Packages and 10 Availability
 

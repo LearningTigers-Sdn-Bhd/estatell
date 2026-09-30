@@ -37,6 +37,8 @@ roles    spatie columns + property_id (NOT NULL, FK) + default_role (nullable)
 | `staff.manage`                | Invite, deactivate, reactivate, assign roles   | ✓     | ✓       | –                                 |
 | `roles.manage`                | Create roles, edit role permissions            | ✓     | –       | –                                 |
 | `notification.manage`         | Property notification settings                 | ✓     | –       | –                                 |
+| `rates.view`                  | Rate calendar (view)                           | ✓     | ✓       | ✓                                 |
+| `rates.manage`                | Edit rates and restrictions in the calendar    | ✓     | ✓       | –                                 |
 | `rates.override-restrictions` | Book past a rate restriction at the front desk | ✓     | ✓       | –                                 |
 
 Later modules add rows here. Their module docs list their permissions.
