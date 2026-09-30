@@ -125,6 +125,12 @@ class Property extends Model implements FeatureScopeSerializeable
         return $this->hasMany(Tax::class);
     }
 
+    /** @return HasMany<PropertyAgeGroup, $this> */
+    public function ageGroups(): HasMany
+    {
+        return $this->hasMany(PropertyAgeGroup::class);
+    }
+
     /** @return HasMany<MealPeriod, $this> */
     public function mealPeriods(): HasMany
     {

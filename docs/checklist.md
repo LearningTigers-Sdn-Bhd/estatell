@@ -65,6 +65,7 @@ Legend: **Needs** lists items that must be done first.
 | `fda168b` | feat(catalogues): add discounts                                        |
 | `d1e2d90` | feat(rooms): add room blocks and room statuses                         |
 | `9440d01` | feat(meals): add meal periods                                          |
+| `7eb53e8` | feat(meals): add meal entitlements                                     |
 
 Smaller fixes and reverts are in `git log`.
 
@@ -128,7 +129,7 @@ Smaller fixes and reverts are in `git log`.
 
 ### 08 Rates
 
-- [ ] `feat(property): add age groups` — seeded Infant 0–3, Child 4–11. Docs: [Age groups](02-property/04-age-groups.md).
+- [x] `feat(property): add age groups` — seeded Infant 0–3, Child 4–11. Docs: [Age groups](02-property/04-age-groups.md).
 - [ ] `feat(rates): add rate plans` — with child prices. Docs: [Rate plans](08-rates/01-rate-plans.md).
 - [ ] `feat(rates): add daily rates and restrictions` — Docs: [Daily rates and restrictions](08-rates/02-daily-rates-and-restrictions.md).
 - [ ] `feat(rates): add pricing strategies and rate quotes` — `RateQuoteService`. Docs: [Pricing strategies](08-rates/03-pricing-strategies.md).

@@ -1,5 +1,6 @@
 import {
     Activity,
+    Baby,
     Ban,
     Bed,
     Bell,
@@ -35,6 +36,7 @@ const icons: Record<string, LucideIcon> = {
     landmark: Landmark,
     percent: Percent,
     utensils: Utensils,
+    baby: Baby,
     ban: Ban,
     'chart-column': ChartColumn,
     users: Users,

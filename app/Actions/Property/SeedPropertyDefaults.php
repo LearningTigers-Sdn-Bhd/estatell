@@ -30,6 +30,7 @@ class SeedPropertyDefaults
         private SeedTaxes $seedTaxes,
         private SeedDiscounts $seedDiscounts,
         private SeedMealPeriods $seedMealPeriods,
+        private SeedAgeGroups $seedAgeGroups,
     ) {}
 
     /**
@@ -48,6 +49,7 @@ class SeedPropertyDefaults
             ($this->seedTaxes)($property, $countryCode);
             ($this->seedDiscounts)($property, $countryCode);
             ($this->seedMealPeriods)($property, $countryCode);
+            ($this->seedAgeGroups)($property, $countryCode);
         });
     }
 

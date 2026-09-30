@@ -7,6 +7,7 @@ use App\Http\Controllers\Catalogues\PaymentMethodController;
 use App\Http\Controllers\Catalogues\RoomRevenueController;
 use App\Http\Controllers\Catalogues\TaxController;
 use App\Http\Controllers\Meals\MealPeriodController;
+use App\Http\Controllers\Property\AgeGroupController;
 use App\Http\Controllers\Property\NotificationSettingController;
 use App\Http\Controllers\Property\PropertySettingsController;
 use App\Http\Controllers\Rooms\BedController;
@@ -110,6 +111,11 @@ Route::prefix('settings')->name('settings.')->group(function () {
         Route::get('/', [MealPeriodController::class, 'index'])->name('index');
         Route::post('/', [MealPeriodController::class, 'store'])->name('store');
         Route::put('{mealPeriod}', [MealPeriodController::class, 'update'])->name('update');
+    });
+
+    Route::prefix('age-groups')->name('age-groups.')->middleware('can:'.PermissionEnum::SettingsManage->value)->scopeBindings()->group(function () {
+        Route::get('/', [AgeGroupController::class, 'index'])->name('index');
+        Route::put('/', [AgeGroupController::class, 'update'])->name('update');
     });
 
     Route::prefix('staff')->name('staff.')->group(function () {

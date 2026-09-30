@@ -7,13 +7,24 @@ Who counts as an infant, a child or an adult at this property. Defined once and 
 ## Data model
 
 ```
-property_age_groups    id, property_id, label, min_age, max_age, position, timestamps
-                       unique (property_id, min_age)
+property_age_groups    id, property_id, label, min_age, max_age, timestamps
+                       unique (property_id, min_age), unique (property_id, lower(label))
 ```
+
+## Built first slice
+
+Staff with `settings.manage` use `/p/{code}/settings/age-groups` (Settings, Guests, Age groups). One form holds every group and one Save button. `SaveAgeGroups` saves the whole ordered list in one transaction. Rows keep their ids, so rate plan child prices can point at them later. `SeedAgeGroups` seeds Infant 0–3 and Child 4–11 and does nothing once the property has groups.
+
+Not built yet, because rate plans do not exist: the child price rows added or removed with a group, and the "Check child prices" flag. The rate plans commit adds both.
 
 ## Rules
 
-- The groups start at age 0 and have no gaps or overlaps. The Form Request checks this.
+- The groups start at age 0 and have no gaps or overlaps. The form never asks for "From". The server derives it: the first group starts at 0 and each next group starts one year after the previous "To". Staff edit only the label, the "To" age and the row order.
+- Groups are always listed by `min_age`. There is no stored order.
+- "To" is a whole number from 0 to 17 and rises down the list. Labels are unique per property, ignoring case.
+- A property may have no groups. Every guest is then an adult.
+- Removing a middle group makes the next group absorb its ages. Removing Infant turns Child 4–11 into 0–11.
+- A save that changes nothing is not logged.
 - A guest counts as an adult from the last group's `max_age + 1`. There is no separate setting.
 - `SeedPropertyDefaults` seeds two groups: Infant 0–3 and Child 4–11. Adults start at 12.
 - Staff can add, rename, re-range and remove groups.

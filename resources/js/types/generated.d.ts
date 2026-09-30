@@ -214,6 +214,12 @@ active: boolean,
 };
 }
 namespace Property {
+export type PropertyAgeGroupData = {
+id: number,
+label: string,
+minAge: number,
+maxAge: number,
+};
 export type PropertyBasicsData = {
 name: string,
 type: App.Enums.PropertyType | null,
