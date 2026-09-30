@@ -12,6 +12,8 @@ import {
     cellFlags,
     formatAmount,
     indexCells,
+    nightsLabel,
+    planNote,
     stayLimit,
     toggleCollapsed,
 } from './calendar-model';
@@ -25,11 +27,16 @@ const FLAG_LABELS = {
     'closed-departure': 'Closed to departure',
 } as const;
 
-export function cellTitle(cell: Cell, derived: boolean): string {
+export function cellTitle(
+    cell: Cell,
+    derived: boolean,
+    stayNights: number | null = null,
+): string {
     const parts = [
         cell.amount === null
             ? null
-            : `${formatAmount(cell.amount)}${derived ? ' (follows parent)' : ''}`,
+            : `${formatAmount(cell.amount)}${derived ? ' (follows parent)' : ''}${stayNights === null ? '' : ` for ${nightsLabel(stayNights)}`}`,
+        cell.arrivalNotAllowed ? 'No arrival on this day' : null,
         ...cellFlags(cell).map((flag) => FLAG_LABELS[flag]),
         stayLimit(cell),
     ];
@@ -40,9 +47,12 @@ export function cellTitle(cell: Cell, derived: boolean): string {
 function RateCell({
     cell,
     derived,
+    stayNights,
 }: {
     cell: Cell | undefined;
     derived: boolean;
+    /** The fixed length of a package stay. The price on a package cell is for the whole stay. */
+    stayNights: number | null;
 }) {
     if (!cell) {
         return null;
@@ -53,28 +63,36 @@ function RateCell({
 
     return (
         <div
-            title={cellTitle(cell, derived)}
+            title={cellTitle(cell, derived, stayNights)}
             className={cn(
                 'flex h-full flex-col items-center justify-center gap-0.5 text-xs tabular-nums',
                 cell.stopSell && 'bg-destructive/10',
             )}
         >
-            <span className="sr-only">{cellTitle(cell, derived)}</span>
+            <span className="sr-only">
+                {cellTitle(cell, derived, stayNights)}
+            </span>
             {cell.amount !== null && (
                 <span
                     aria-hidden
                     className={cn(
                         'flex items-center gap-1 text-sm font-medium',
-                        cell.stopSell &&
-                            'text-grid-muted-foreground line-through',
+                        (cell.stopSell || cell.arrivalNotAllowed) &&
+                            'text-grid-muted-foreground',
+                        cell.stopSell && 'line-through',
                         derived && 'italic',
                     )}
                 >
                     {derived && <Link2 className="size-3 text-info" />}
                     {formatAmount(cell.amount)}
+                    {stayNights !== null && (
+                        <span className="text-xs font-normal text-grid-muted-foreground">
+                            /{stayNights}N
+                        </span>
+                    )}
                 </span>
             )}
-            {(flags.length > 0 || limit) && (
+            {(flags.length > 0 || limit || cell.arrivalNotAllowed) && (
                 <span
                     aria-hidden
                     className="flex items-center gap-1 text-grid-muted-foreground"
@@ -92,6 +110,7 @@ function RateCell({
                             CTD
                         </span>
                     )}
+                    {cell.arrivalNotAllowed && <span>No arrival</span>}
                     {limit && <span>{limit}</span>}
                 </span>
             )}
@@ -197,9 +216,12 @@ export function RateCalendarGrid({
                             <span className="truncate text-sm">
                                 {row.plan.name}
                             </span>
-                            {row.plan.derived && (
-                                <span className="truncate text-xs text-grid-muted-foreground">
-                                    Follows {row.plan.followsName}
+                            {planNote(row.plan) && (
+                                <span
+                                    title={planNote(row.plan) ?? undefined}
+                                    className="truncate text-xs text-grid-muted-foreground"
+                                >
+                                    {planNote(row.plan)}
                                 </span>
                             )}
                         </span>
@@ -214,7 +236,15 @@ export function RateCalendarGrid({
                         .get(`${row.roomType.id}-${row.plan.id}`)
                         ?.get(column.date);
                     const content = (
-                        <RateCell cell={cell} derived={row.plan.derived} />
+                        <RateCell
+                            cell={cell}
+                            derived={row.plan.derived}
+                            stayNights={
+                                row.plan.pricingBasis === 'package'
+                                    ? row.plan.fixedNights
+                                    : null
+                            }
+                        />
                     );
 
                     if (!canManage) {
@@ -224,7 +254,7 @@ export function RateCalendarGrid({
                     return (
                         <button
                             type="button"
-                            aria-label={`Edit ${row.roomType.name}, ${row.plan.name}, ${column.date}: ${cell ? cellTitle(cell, row.plan.derived) || 'no price' : 'no rate'}`}
+                            aria-label={`Edit ${row.roomType.name}, ${row.plan.name}, ${column.date}: ${cell ? cellTitle(cell, row.plan.derived, row.plan.pricingBasis === 'package' ? row.plan.fixedNights : null) || 'no price' : 'no rate'}`}
                             className="block h-full w-full cursor-pointer outline-none focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:ring-inset"
                             onClick={() =>
                                 setEditing({

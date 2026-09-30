@@ -116,7 +116,9 @@ Route: `rates.calendar` at `/p/{code}/rates/calendar` (`rates.view`). It is in t
     - The range picker asks for the new range only after the last date is picked.
 - **Rows.** `RateCalendarService` builds the range. It reads only and adds no query per plan or date. The page gets a group for each active room type and a row for each active plan that sells it. Archived plans, archived room types and unlinked room types are left out.
 - **Cells.** A row has a cell only for a date with a price or a restriction row. The cell shows the price, stop sell, closed to arrival (CTA), closed to departure (CTD) and the min and max stay.
-- **Derived and package plans.** A derived plan row shows the parent's room price after the derivation, with a link marker. It is read only. The plan's own restriction rows show on the same dates. A package plan row shows restrictions only.
+- **Derived plans.** A derived plan row shows the parent's room price after the derivation, with a link marker. It is read only. The plan's own restriction rows show on the same dates.
+- **Package plans.** A package row shows the price of the **whole stay** on every date of a price period, for example `600/2N`, which is the price for guests arriving that day. The row's second line says "Package, 2 nights, per adult" (or "per room"). The restrictions of a date's `rates` row show beside the price. A date on a weekday the package cannot start on shows "No arrival" and a muted price. It is drawn only, nothing is stored as closed to arrival. A period is clipped to the range. Dates outside every period have no price.
+- **Inclusions.** A plan that has [inclusions](../09-packages/01-inclusions.md) shows "Includes Breakfast, Boat transfer" on its second line, the charge item names once each in list order. Inclusions never change the price shown.
 - **Filters.** The room type and plan filters run in the browser. They make no request.
 - **Rates ending.** The warning shows above the toolbar for plans with their own prices. Staff with `rates.manage` get **Extend 12 months** for each plan.
 - **Layout.** A Grid calendar page has no page header. The toolbar is the top of the page and the grid fills the rest of the window, edge to edge. The plan column is 288px wide.
@@ -130,10 +132,10 @@ Route: `rates.calendar` at `/p/{code}/rates/calendar` (`rates.view`). It is in t
 
 - **Price.** The label follows the pricing basis: Room price, Price per adult or Price per bed. A room or guest plan can also set a price for each adult count from 1 up to what the room type sleeps. A blank field uses the default price.
 - **Restrictions.** Stop sell, closed to arrival, closed to departure, min stay and max stay. A blank stay limit clears it.
-- **Derived and package plans.** The sheet shows the calculated price or a note, and only the restrictions can change.
+- **Derived and package plans.** The sheet shows the calculated price, or the stay price of the date for a package, and only the restrictions can change. A package sheet also says the price is set on the package's Pricing tab in Settings, because `rates.manage` does not include `settings.manage`.
 - **Save.** It sends one date to `SaveRates` through `rates.calendar.update`. The price and prices by adults are sent only when they changed, because saving a price replaces that date's prices by adults. Every restriction is sent. Save is off until something changed.
 - **Limits.** A price cannot be removed here, because `SaveRates` leaves a blank price alone. To stop selling a date, turn on stop sell. A price by adults needs a price first.
-- **Data.** Each cell carries its prices by adult count, and each room type carries `baseOccupancy` and `maxAdults`, from one extra query for the month.
+- **Data.** `RateCalendarService` adds one query each for the package prices, the arrival weekdays and the inclusions of the range, so a plan or a date adds none. Each cell carries its prices by adult count, and each room type carries `baseOccupancy` and `maxAdults`, from one extra query for the month.
 
 ### Bulk edit
 

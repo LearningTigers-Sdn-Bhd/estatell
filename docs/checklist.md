@@ -156,6 +156,7 @@ Smaller fixes and reverts are in `git log`.
 - [x] `feat(rates): choose the rate calendar date range` — date range picker, Today, 14 and 21 day and Month presets, wider plan column, no page header. Docs: [Daily rates and restrictions](08-rates/02-daily-rates-and-restrictions.md#the-rate-calendar).
 - [x] `feat(rates): edit rates from the calendar` — date editor sheet from a calendar cell, `rates.calendar.update`, prices by adult count in the cell data. Docs: [Daily rates and restrictions](08-rates/02-daily-rates-and-restrictions.md#the-rate-calendar).
 - [x] `feat(rates): bulk edit rates and restrictions` — a full page with a plan picker that reuses the pricing form and adds the restriction fields, behind `rates.manage`. Needs: the date editor. Docs: [Daily rates and restrictions](08-rates/02-daily-rates-and-restrictions.md#pricing-form).
+- [x] `feat(rates): show package prices and inclusions in the rate calendar` — stay price on package dates, "No arrival" weekdays, inclusions on the plan row. Needs: package prices, inclusions. Docs: [Daily rates and restrictions](08-rates/02-daily-rates-and-restrictions.md#the-rate-calendar).
 
 ### 09 Packages and 10 Availability
 

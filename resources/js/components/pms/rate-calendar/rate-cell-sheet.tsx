@@ -35,7 +35,7 @@ import {
     isCellFormDirty,
 } from './cell-form';
 import type { CellFormValues, CellTarget } from './cell-form';
-import { formatAmount } from './calendar-model';
+import { formatAmount, nightsLabel } from './calendar-model';
 
 type Cell = App.Data.Rates.RateCalendarCellData;
 type RoomType = App.Data.Rates.RateCalendarRoomTypeData;
@@ -282,12 +282,14 @@ function CellForm({
                         <p className="text-sm">
                             {plan.derived
                                 ? `${cell?.amount ? formatAmount(cell.amount) : 'No price'} ${currency}, calculated from ${plan.followsName}.`
-                                : 'Package prices are set on the package.'}
+                                : cell?.amount
+                                  ? `${formatAmount(cell.amount)} ${currency} for the ${nightsLabel(plan.fixedNights ?? 0)}, ${plan.packageUnit === 'per_room' ? 'for the room' : 'for each adult'}, for guests arriving on this date.${cell.arrivalNotAllowed ? ' The package cannot start on this weekday.' : ''}`
+                                  : 'No package price covers this arrival date.'}
                         </p>
                         <FieldDescription>
                             {plan.derived
                                 ? `To change it, change the price of ${plan.followsName} or how this plan follows it.`
-                                : 'You can still set the selling restrictions for this date.'}
+                                : "Package prices are set on the package's Pricing tab in Settings. You can still set the selling restrictions for this date."}
                         </FieldDescription>
                     </FieldSet>
                 )}

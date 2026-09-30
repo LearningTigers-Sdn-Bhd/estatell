@@ -10,6 +10,7 @@ import {
     rangeLength,
     shiftRange,
     todayRange,
+    planNote,
     planOptions,
     stayLimit,
     toggleCollapsed,
@@ -27,6 +28,7 @@ const cell = (overrides: Partial<Cell> = {}): Cell => ({
     closedToDeparture: false,
     stopSell: false,
     occupancy: [],
+    arrivalNotAllowed: false,
     ...overrides,
 });
 
@@ -36,6 +38,9 @@ const plan = (id: number, name: string) => ({
     pricingBasis: 'per_room' as const,
     derived: false,
     followsName: null,
+    fixedNights: null,
+    packageUnit: null,
+    inclusions: [],
     cells: [],
 });
 
@@ -237,4 +242,33 @@ test('toggling collapses a room type and expands it again without changing the o
         1, 2,
     ]);
     expect(none.size).toBe(0);
+});
+
+test('a plan note says what a plan follows, what a package stay is and what it includes', () => {
+    const base = plan(10, 'Basic');
+
+    expect(planNote(base)).toBeNull();
+    expect(
+        planNote({ ...base, derived: true, followsName: 'Basic Rate' }),
+    ).toBe('Follows Basic Rate');
+    expect(
+        planNote({ ...base, inclusions: ['Breakfast', 'Boat transfer'] }),
+    ).toBe('Includes Breakfast, Boat transfer');
+    expect(
+        planNote({
+            ...base,
+            pricingBasis: 'package',
+            fixedNights: 2,
+            packageUnit: 'per_guest',
+            inclusions: ['Boat transfer'],
+        }),
+    ).toBe('Package, 2 nights, per adult. Includes Boat transfer');
+    expect(
+        planNote({
+            ...base,
+            pricingBasis: 'package',
+            fixedNights: 1,
+            packageUnit: 'per_room',
+        }),
+    ).toBe('Package, 1 night, per room');
 });

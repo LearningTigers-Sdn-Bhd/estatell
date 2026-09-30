@@ -10,6 +10,7 @@ class RateCalendarCellData extends Data
 {
     /**
      * @param  list<RateCalendarOccupancyData>  $occupancy  Explicit prices by adult count, by adults. Empty for a derived plan.
+     * @param  bool  $arrivalNotAllowed  A package date whose weekday the package cannot start on. The price is still shown.
      */
     public function __construct(
         public string $date,
@@ -20,6 +21,7 @@ class RateCalendarCellData extends Data
         public bool $closedToDeparture,
         public bool $stopSell,
         public array $occupancy = [],
+        public bool $arrivalNotAllowed = false,
     ) {}
 
     /**
@@ -38,6 +40,25 @@ class RateCalendarCellData extends Data
             closedToDeparture: $rate->closed_to_departure,
             stopSell: $rate->stop_sell,
             occupancy: $rate->occupancyPrices->sortBy('adults')->map(RateCalendarOccupancyData::fromModel(...))->values()->all(),
+        );
+    }
+
+    /**
+     * A package date in a price period: the price of the whole stay for guests arriving that day, with the restrictions
+     * of the date's rate row when it has one. A package has no prices by adults.
+     */
+    public static function forPackage(?Rate $rate, string $date, string $amount, bool $arrivalNotAllowed): self
+    {
+        return new self(
+            date: $date,
+            amount: $amount,
+            minStay: $rate?->min_stay,
+            maxStay: $rate?->max_stay,
+            closedToArrival: $rate->closed_to_arrival ?? false,
+            closedToDeparture: $rate->closed_to_departure ?? false,
+            stopSell: $rate->stop_sell ?? false,
+            occupancy: [],
+            arrivalNotAllowed: $arrivalNotAllowed,
         );
     }
 

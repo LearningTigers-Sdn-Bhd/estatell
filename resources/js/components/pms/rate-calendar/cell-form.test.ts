@@ -20,6 +20,7 @@ const cell = (overrides: Partial<Cell> = {}): Cell => ({
     closedToDeparture: false,
     stopSell: false,
     occupancy: [],
+    arrivalNotAllowed: false,
     ...overrides,
 });
 

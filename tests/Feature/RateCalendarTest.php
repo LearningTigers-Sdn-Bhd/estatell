@@ -3,11 +3,15 @@
 use App\Enums\DefaultRoleEnum;
 use App\Enums\PermissionEnum;
 use App\Enums\RateDerivation;
+use App\Enums\Weekday;
 use App\Enums\WeekendNights;
+use App\Models\ChargeItem;
+use App\Models\PackagePrice;
 use App\Models\Property;
 use App\Models\PropertySetting;
 use App\Models\Rate;
 use App\Models\RatePlan;
+use App\Models\RatePlanInclusion;
 use App\Models\Role;
 use App\Models\RoomType;
 use App\Models\User;
@@ -684,3 +688,146 @@ test('the rate calendar and its bulk edit page both sit in the front desk sideba
             ->where('navigation.contexts.0.groups.2.items.0.active', true)
         );
 })->with(['rates.calendar', 'rates.calendar.bulk']);
+
+/** @return array{0: RatePlan, 1: RoomType} A package plan linked to a new room type. */
+function calendarPackage(Property $property, array $attributes = [], string $roomTypeName = 'Suite'): array
+{
+    $package = RatePlan::factory()->for($property)->package()->create(['name' => 'Honeymoon', ...$attributes]);
+    $roomType = RoomType::factory()->for($property)->create(['name' => $roomTypeName]);
+    $package->roomTypes()->attach($roomType);
+
+    return [$package, $roomType];
+}
+
+function calendarPage($test, User $owner, Property $property, array $range = ['from' => '2026-10-01', 'to' => '2026-10-31'])
+{
+    return $test->actingAs($owner)->get(route('rates.calendar', [$property->code, ...$range]));
+}
+
+test('a package plan shows its stay price on every arrival date of a price period, merged with the restrictions', function () {
+    [$owner, $property] = calendarSetup();
+    [$package, $suite] = calendarPackage($property);
+    PackagePrice::factory()->for($package)->create(['room_type_id' => $suite->id, 'arrival_from' => '2026-10-03', 'arrival_to' => '2026-10-07', 'amount' => '600.00']);
+    calendarRate($package, $suite, '2026-10-05', ['amount' => null, 'min_stay' => 2, 'closed_to_arrival' => true]);
+    calendarRate($package, $suite, '2026-10-20', ['amount' => null, 'stop_sell' => true]);
+
+    calendarPage($this, $owner, $property)->assertInertia(fn (Assert $page) => $page
+        ->where('calendar.roomTypes.1.name', 'Suite')
+        ->where('calendar.roomTypes.1.plans.0.pricingBasis', 'package')
+        ->where('calendar.roomTypes.1.plans.0.fixedNights', 2)
+        ->where('calendar.roomTypes.1.plans.0.packageUnit', 'per_guest')
+        ->has('calendar.roomTypes.1.plans.0.cells', 6)
+        ->where('calendar.roomTypes.1.plans.0.cells.0.date', '2026-10-03')
+        ->where('calendar.roomTypes.1.plans.0.cells.0.amount', '600.00')
+        ->where('calendar.roomTypes.1.plans.0.cells.2.date', '2026-10-05')
+        ->where('calendar.roomTypes.1.plans.0.cells.2.amount', '600.00')
+        ->where('calendar.roomTypes.1.plans.0.cells.2.minStay', 2)
+        ->where('calendar.roomTypes.1.plans.0.cells.2.closedToArrival', true)
+        ->where('calendar.roomTypes.1.plans.0.cells.4.date', '2026-10-07')
+        ->where('calendar.roomTypes.1.plans.0.cells.5.date', '2026-10-20')
+        ->where('calendar.roomTypes.1.plans.0.cells.5.amount', null)
+        ->where('calendar.roomTypes.1.plans.0.cells.5.stopSell', true));
+});
+
+test('a price period is clipped to the range, and a period outside it shows nothing', function () {
+    [$owner, $property] = calendarSetup();
+    [$package, $suite] = calendarPackage($property);
+    PackagePrice::factory()->for($package)->create(['room_type_id' => $suite->id, 'arrival_from' => '2026-09-28', 'arrival_to' => '2026-10-02', 'amount' => '500.00']);
+    PackagePrice::factory()->for($package)->create(['room_type_id' => $suite->id, 'arrival_from' => '2026-10-30', 'arrival_to' => '2026-11-15', 'amount' => '700.00']);
+    PackagePrice::factory()->for($package)->create(['room_type_id' => $suite->id, 'arrival_from' => '2026-12-01', 'arrival_to' => '2026-12-31', 'amount' => '900.00']);
+
+    calendarPage($this, $owner, $property)->assertInertia(fn (Assert $page) => $page
+        ->has('calendar.roomTypes.1.plans.0.cells', 4)
+        ->where('calendar.roomTypes.1.plans.0.cells.0.date', '2026-10-01')
+        ->where('calendar.roomTypes.1.plans.0.cells.1.date', '2026-10-02')
+        ->where('calendar.roomTypes.1.plans.0.cells.1.amount', '500.00')
+        ->where('calendar.roomTypes.1.plans.0.cells.2.date', '2026-10-30')
+        ->where('calendar.roomTypes.1.plans.0.cells.3.date', '2026-10-31')
+        ->where('calendar.roomTypes.1.plans.0.cells.3.amount', '700.00'));
+});
+
+test('a package date on a weekday the package cannot start on is marked, and a package with no weekdays is not', function () {
+    [$owner, $property] = calendarSetup();
+    [$package, $suite] = calendarPackage($property);
+    [$anyDay, $otherSuite] = calendarPackage($property, ['name' => 'Any day'], 'Villa');
+    foreach ([[$package, $suite], [$anyDay, $otherSuite]] as [$plan, $roomType]) {
+        PackagePrice::factory()->for($plan)->create(['room_type_id' => $roomType->id, 'arrival_from' => '2026-10-02', 'arrival_to' => '2026-10-05', 'amount' => '600.00']);
+    }
+    $package->arrivalWeekdays()->create(['weekday' => Weekday::Friday]);
+    $package->arrivalWeekdays()->create(['weekday' => Weekday::Saturday]);
+
+    calendarPage($this, $owner, $property)->assertInertia(fn (Assert $page) => $page
+        ->where('calendar.roomTypes.1.plans.0.cells.0.date', '2026-10-02')
+        ->where('calendar.roomTypes.1.plans.0.cells.0.arrivalNotAllowed', false)
+        ->where('calendar.roomTypes.1.plans.0.cells.1.arrivalNotAllowed', false)
+        ->where('calendar.roomTypes.1.plans.0.cells.2.arrivalNotAllowed', true)
+        ->where('calendar.roomTypes.1.plans.0.cells.3.arrivalNotAllowed', true)
+        ->where('calendar.roomTypes.2.plans.0.cells.0.arrivalNotAllowed', false)
+        ->where('calendar.roomTypes.2.plans.0.cells.3.arrivalNotAllowed', false));
+});
+
+test('package prices are kept apart by room type and by plan', function () {
+    [$owner, $property] = calendarSetup();
+    [$package, $suite] = calendarPackage($property);
+    $other = RoomType::factory()->for($property)->create(['name' => 'Villa']);
+    $package->roomTypes()->attach($other);
+    $otherPlan = RatePlan::factory()->for($property)->package()->create(['name' => 'Other']);
+    $otherPlan->roomTypes()->attach($suite);
+    PackagePrice::factory()->for($package)->create(['room_type_id' => $suite->id, 'arrival_from' => '2026-10-02', 'arrival_to' => '2026-10-02', 'amount' => '600.00']);
+    PackagePrice::factory()->for($package)->create(['room_type_id' => $other->id, 'arrival_from' => '2026-10-03', 'arrival_to' => '2026-10-03', 'amount' => '800.00']);
+    PackagePrice::factory()->for($otherPlan)->create(['room_type_id' => $suite->id, 'arrival_from' => '2026-10-04', 'arrival_to' => '2026-10-04', 'amount' => '999.00']);
+
+    calendarPage($this, $owner, $property)->assertInertia(fn (Assert $page) => $page
+        ->where('calendar.roomTypes.1.name', 'Suite')
+        ->where('calendar.roomTypes.1.plans.0.name', 'Honeymoon')
+        ->has('calendar.roomTypes.1.plans.0.cells', 1)
+        ->where('calendar.roomTypes.1.plans.0.cells.0.amount', '600.00')
+        ->where('calendar.roomTypes.1.plans.1.name', 'Other')
+        ->has('calendar.roomTypes.1.plans.1.cells', 1)
+        ->where('calendar.roomTypes.1.plans.1.cells.0.amount', '999.00')
+        ->where('calendar.roomTypes.2.name', 'Villa')
+        ->has('calendar.roomTypes.2.plans.0.cells', 1)
+        ->where('calendar.roomTypes.2.plans.0.cells.0.amount', '800.00'));
+});
+
+test('a plan lists the charge items it includes, once each and in order', function () {
+    [$owner, $property, $plan] = calendarSetup();
+    $breakfast = ChargeItem::factory()->for($property)->create(['name' => 'Breakfast']);
+    $boat = ChargeItem::factory()->for($property)->create(['name' => 'Boat transfer']);
+    RatePlanInclusion::factory()->for($plan)->create(['charge_item_id' => $boat->id, 'position' => 1]);
+    RatePlanInclusion::factory()->for($plan)->create(['charge_item_id' => $breakfast->id, 'position' => 0]);
+    RatePlanInclusion::factory()->for($plan)->create(['charge_item_id' => $breakfast->id, 'position' => 2]);
+    [$package] = calendarPackage($property);
+
+    calendarPage($this, $owner, $property)->assertInertia(fn (Assert $page) => $page
+        ->where('calendar.roomTypes.0.plans.0.inclusions', ['Breakfast', 'Boat transfer'])
+        ->where('calendar.roomTypes.0.plans.0.fixedNights', null)
+        ->where('calendar.roomTypes.0.plans.0.packageUnit', null)
+        ->where('calendar.roomTypes.1.plans.0.inclusions', []));
+});
+
+test('package prices and inclusions add no query per plan', function () {
+    [$owner, $property, $plan, $roomType] = calendarSetup();
+    $queries = function () use ($owner, $property): int {
+        DB::enableQueryLog();
+        DB::flushQueryLog();
+        calendarPage($this, $owner, $property);
+
+        return count(DB::getQueryLog());
+    };
+    [$package, $suite] = calendarPackage($property);
+    PackagePrice::factory()->for($package)->create(['room_type_id' => $suite->id, 'arrival_from' => '2026-10-02', 'arrival_to' => '2026-10-09']);
+    RatePlanInclusion::factory()->for($package)->create();
+    $queries();
+    $before = $queries();
+
+    foreach (range(1, 4) as $number) {
+        [$next, $nextType] = calendarPackage($property, ['name' => "Package {$number}"], "Room type {$number}");
+        PackagePrice::factory()->for($next)->create(['room_type_id' => $nextType->id, 'arrival_from' => '2026-10-02', 'arrival_to' => '2026-10-20']);
+        RatePlanInclusion::factory()->for($next)->create();
+        RatePlanInclusion::factory()->for($next)->create();
+        $next->arrivalWeekdays()->create(['weekday' => Weekday::Friday]);
+    }
+
+    expect($queries())->toBe($before);
+});

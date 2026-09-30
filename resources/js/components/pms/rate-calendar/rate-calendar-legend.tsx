@@ -56,6 +56,18 @@ export function RateCalendarLegend() {
                         Minimum nights
                     </li>
                     <li className="flex items-center gap-2">
+                        <span aria-hidden className="w-10 text-xs">
+                            600/2N
+                        </span>
+                        Package price for the whole stay, by arrival day
+                    </li>
+                    <li className="flex items-center gap-2">
+                        <span aria-hidden className="w-10 text-xs">
+                            No arrival
+                        </span>
+                        The package cannot start on this weekday
+                    </li>
+                    <li className="flex items-center gap-2">
                         <span aria-hidden className="flex w-10">
                             <Link2 className="size-4 text-info" />
                         </span>

@@ -2,6 +2,7 @@
 
 namespace App\Data\Rates;
 
+use App\Enums\PackageUnit;
 use App\Enums\PricingBasis;
 use App\Models\RatePlan;
 use Spatie\LaravelData\Data;
@@ -11,6 +12,7 @@ class RateCalendarPlanData extends Data
 {
     /**
      * @param  string|null  $followsName  The parent plan name when this plan is derived.
+     * @param  list<string>  $inclusions  The names of the charge items the plan includes.
      * @param  list<RateCalendarCellData>  $cells
      */
     public function __construct(
@@ -19,11 +21,14 @@ class RateCalendarPlanData extends Data
         public PricingBasis $pricingBasis,
         public bool $derived,
         public ?string $followsName,
+        public ?int $fixedNights,
+        public ?PackageUnit $packageUnit,
+        public array $inclusions,
         public array $cells,
     ) {}
 
     /**
-     * Load the plan's `parent` first when it is derived.
+     * Load the plan's `parent` first when it is derived, and its `inclusions.chargeItem`.
      *
      * @param  list<RateCalendarCellData>  $cells
      */
@@ -35,6 +40,9 @@ class RateCalendarPlanData extends Data
             pricingBasis: $ratePlan->pricing_basis,
             derived: $ratePlan->parent_rate_plan_id !== null,
             followsName: $ratePlan->parent?->name,
+            fixedNights: $ratePlan->fixed_nights,
+            packageUnit: $ratePlan->package_unit,
+            inclusions: $ratePlan->inclusions->map(fn ($inclusion): string => $inclusion->chargeItem->name)->unique()->values()->all(),
             cells: $cells,
         );
     }

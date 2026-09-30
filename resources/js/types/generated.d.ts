@@ -298,6 +298,7 @@ closedToArrival: boolean,
 closedToDeparture: boolean,
 stopSell: boolean,
 occupancy: App.Data.Rates.RateCalendarOccupancyData[],
+arrivalNotAllowed: boolean,
 };
 export type RateCalendarData = {
 from: string,
@@ -321,6 +322,9 @@ name: string,
 pricingBasis: App.Enums.PricingBasis,
 derived: boolean,
 followsName: string | null,
+fixedNights: number | null,
+packageUnit: App.Enums.PackageUnit | null,
+inclusions: string[],
 cells: App.Data.Rates.RateCalendarCellData[],
 };
 export type RateCalendarRoomTypeData = {

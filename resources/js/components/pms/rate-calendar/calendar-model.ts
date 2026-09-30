@@ -142,6 +142,29 @@ export function stayLimit(cell: Cell): string | null {
     return null;
 }
 
+/** How many nights a package stay lasts, for example "2 nights". */
+export function nightsLabel(nights: number): string {
+    return `${nights} ${nights === 1 ? 'night' : 'nights'}`;
+}
+
+/**
+ * The muted second line of a plan row: what it follows, what a package stay is, and what it includes.
+ * Null when the plan has nothing to add.
+ */
+export function planNote(plan: Plan): string | null {
+    const parts = [
+        plan.derived ? `Follows ${plan.followsName}` : null,
+        plan.pricingBasis === 'package' && plan.fixedNights !== null
+            ? `Package, ${nightsLabel(plan.fixedNights)}, ${plan.packageUnit === 'per_room' ? 'per room' : 'per adult'}`
+            : null,
+        plan.inclusions.length > 0
+            ? `Includes ${plan.inclusions.join(', ')}`
+            : null,
+    ].filter((part): part is string => part !== null);
+
+    return parts.length > 0 ? parts.join('. ') : null;
+}
+
 /** A price with no trailing ".00", for example "180" or "180.50". */
 export function formatAmount(amount: string | null): string {
     if (amount === null) {

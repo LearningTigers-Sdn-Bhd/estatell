@@ -8,12 +8,15 @@ use App\Data\Rates\RateCalendarEndingData;
 use App\Data\Rates\RateCalendarPlanData;
 use App\Data\Rates\RateCalendarRoomTypeData;
 use App\Enums\PricingBasis;
+use App\Enums\Weekday;
+use App\Models\PackagePrice;
 use App\Models\Property;
 use App\Models\Rate;
 use App\Models\RatePlan;
 use App\Models\RoomType;
 use App\Services\Rates\Pricing\NightPrice;
 use Brick\Money\Money;
+use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Collection;
 
@@ -34,7 +37,7 @@ class RateCalendarService
         $end = $to->startOfDay();
 
         $roomTypes = $property->roomTypes()->active()->ordered()->get();
-        $plans = $property->ratePlans()->active()->ordered()->with(['roomTypes', 'parent'])->get();
+        $plans = $property->ratePlans()->active()->ordered()->with(['roomTypes', 'parent', 'arrivalWeekdays', 'inclusions.chargeItem'])->get();
 
         $rates = Rate::query()
             ->whereIn('rate_plan_id', $plans->modelKeys())
@@ -45,13 +48,21 @@ class RateCalendarService
             ->get()
             ->groupBy(fn (Rate $rate): string => $rate->rate_plan_id.'-'.$rate->room_type_id);
 
+        $packagePrices = PackagePrice::query()
+            ->whereIn('rate_plan_id', $plans->where('pricing_basis', PricingBasis::Package)->modelKeys())
+            ->whereIn('room_type_id', $roomTypes->modelKeys())
+            ->whereDate('arrival_from', '<=', $end->toDateString())
+            ->whereDate('arrival_to', '>=', $start->toDateString())
+            ->get()
+            ->groupBy(fn (PackagePrice $price): string => $price->rate_plan_id.'-'.$price->room_type_id);
+
         $groups = $roomTypes->map(fn (RoomType $roomType): RateCalendarRoomTypeData => RateCalendarRoomTypeData::fromModel(
             $roomType,
             $plans
                 ->filter(fn (RatePlan $plan): bool => $plan->roomTypes->contains('id', $roomType->id))
                 ->map(fn (RatePlan $plan): RateCalendarPlanData => RateCalendarPlanData::fromModel(
                     $plan,
-                    $this->cells($plan, $roomType, $rates, $currency),
+                    $this->cells($plan, $roomType, $rates, $packagePrices, $start, $end, $currency),
                 ))
                 ->values()
                 ->all(),
@@ -68,17 +79,19 @@ class RateCalendarService
 
     /**
      * @param  Collection<string, Collection<int, Rate>>  $rates  Keyed by `{plan id}-{room type id}`.
+     * @param  Collection<string, Collection<int, PackagePrice>>  $packagePrices  Keyed the same way.
      * @return list<RateCalendarCellData>
      */
-    private function cells(RatePlan $plan, RoomType $roomType, Collection $rates, string $currency): array
+    private function cells(RatePlan $plan, RoomType $roomType, Collection $rates, Collection $packagePrices, CarbonInterface $start, CarbonInterface $end, string $currency): array
     {
         $own = $rates->get($plan->id.'-'.$roomType->id, new Collection);
 
+        if ($plan->pricing_basis === PricingBasis::Package) {
+            return $this->packageCells($plan, $own, $packagePrices->get($plan->id.'-'.$roomType->id, new Collection), $start, $end);
+        }
+
         if ($plan->parent_rate_plan_id === null) {
-            return $own->map(fn (Rate $rate): RateCalendarCellData => RateCalendarCellData::fromRate(
-                $rate,
-                $plan->pricing_basis === PricingBasis::Package ? null : $rate->amount,
-            ))->values()->all();
+            return $own->map(fn (Rate $rate): RateCalendarCellData => RateCalendarCellData::fromRate($rate, $rate->amount))->values()->all();
         }
 
         $cells = [];
@@ -95,6 +108,39 @@ class RateCalendarService
         foreach ($own as $rate) {
             $date = $rate->date->toDateString();
             $cells[$date] = RateCalendarCellData::fromRate($rate, ($cells[$date] ?? null)?->amount);
+        }
+
+        ksort($cells);
+
+        return array_values($cells);
+    }
+
+    /**
+     * A package plan shows the price of the whole stay on every date in a price period, and the restrictions of the
+     * dates that have a rate row. A date on a weekday the package cannot start on is marked.
+     *
+     * @param  Collection<int, Rate>  $rates
+     * @param  Collection<int, PackagePrice>  $prices
+     * @return list<RateCalendarCellData>
+     */
+    private function packageCells(RatePlan $plan, Collection $rates, Collection $prices, CarbonInterface $start, CarbonInterface $end): array
+    {
+        $byDate = $rates->keyBy(fn (Rate $rate): string => $rate->date->toDateString());
+        $allowed = $plan->arrivalWeekdays->map(fn ($row): Weekday => $row->weekday);
+        $cells = $byDate->map(fn (Rate $rate): RateCalendarCellData => RateCalendarCellData::fromRate($rate, null))->all();
+
+        foreach ($prices as $price) {
+            $last = min($price->arrival_to->toDateString(), $end->toDateString());
+
+            for ($date = CarbonImmutable::parse(max($price->arrival_from->toDateString(), $start->toDateString())); $date->toDateString() <= $last; $date = $date->addDay()) {
+                $key = $date->toDateString();
+                $cells[$key] = RateCalendarCellData::forPackage(
+                    $byDate->get($key),
+                    $key,
+                    $price->amount,
+                    $allowed->isNotEmpty() && ! $allowed->contains(Weekday::forDate($date)),
+                );
+            }
         }
 
         ksort($cells);
