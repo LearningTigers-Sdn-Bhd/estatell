@@ -82,6 +82,14 @@ class RatePlan extends Model
     }
 
     /**
+     * @return HasMany<RatePlanStayDiscount, $this>
+     */
+    public function stayDiscounts(): HasMany
+    {
+        return $this->hasMany(RatePlanStayDiscount::class);
+    }
+
+    /**
      * @return HasMany<Rate, $this>
      */
     public function rates(): HasMany

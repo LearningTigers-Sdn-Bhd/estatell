@@ -1,4 +1,4 @@
-import { Baby, Bed, CircleDollarSign, FileText } from 'lucide-react';
+import { Baby, Bed, CircleDollarSign, FileText, Percent } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { PageHeader } from '@/components/pms/page-header';
 import { TabLinks } from '@/components/pms/tab-links';
@@ -6,12 +6,18 @@ import type { TabLink } from '@/components/pms/tab-links';
 import { Badge } from '@/components/ui/badge';
 import { edit, index } from '@/routes/settings/rate-plans';
 import { edit as editChildPrices } from '@/routes/settings/rate-plans/child-prices';
+import { edit as editDiscounts } from '@/routes/settings/rate-plans/discounts';
 import { edit as editPricing } from '@/routes/settings/rate-plans/pricing';
 import { edit as editRoomTypes } from '@/routes/settings/rate-plans/room-types';
 
 type RatePlan = App.Data.Rates.RatePlanData;
 
-export type RatePlanTab = 'details' | 'room-types' | 'pricing' | 'children';
+export type RatePlanTab =
+    | 'details'
+    | 'room-types'
+    | 'pricing'
+    | 'children'
+    | 'discounts';
 
 export function ratePlanBreadcrumbs(ratePlan: RatePlan) {
     return [
@@ -69,6 +75,16 @@ export function RatePlanShell({
                       ),
                       icon: Baby,
                       href: editChildPrices.url({ ratePlan: ratePlan.id }),
+                  },
+              ]
+            : []),
+        ...(ratePlan.pricingBasis !== 'package'
+            ? [
+                  {
+                      value: 'discounts',
+                      label: 'Discounts',
+                      icon: Percent,
+                      href: editDiscounts.url({ ratePlan: ratePlan.id }),
                   },
               ]
             : []),

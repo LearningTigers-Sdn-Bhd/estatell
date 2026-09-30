@@ -8,6 +8,7 @@ use App\Actions\Rates\ExtendRates;
 use App\Actions\Rates\ReorderRatePlans;
 use App\Actions\Rates\RestoreRatePlan;
 use App\Actions\Rates\SaveRatePlanChildPrices;
+use App\Actions\Rates\SaveRatePlanStayDiscounts;
 use App\Actions\Rates\SaveRates;
 use App\Actions\Rates\SyncRatePlanRoomTypes;
 use App\Actions\Rates\UpdateRatePlan;
@@ -16,10 +17,12 @@ use App\Data\Rates\NewRatePlanRoomTypeData;
 use App\Data\Rates\RatePlanChildPriceData;
 use App\Data\Rates\RatePlanData;
 use App\Data\Rates\RatePlanRoomTypeChoiceData;
+use App\Data\Rates\RatePlanStayDiscountData;
 use App\Data\Rates\RatePricingRoomTypeData;
 use App\Enums\AgeBandPricing;
 use App\Enums\PricingBasis;
 use App\Enums\SellUnit;
+use App\Enums\StayDiscountType;
 use App\Enums\WeekendNights;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Rates\ArchiveRatePlanRequest;
@@ -27,11 +30,13 @@ use App\Http\Requests\Rates\CreateRatePlanRequest;
 use App\Http\Requests\Rates\RatePlanChildPricesRequest;
 use App\Http\Requests\Rates\RatePlanRequest;
 use App\Http\Requests\Rates\RatePlanRoomTypesRequest;
+use App\Http\Requests\Rates\RatePlanStayDiscountsRequest;
 use App\Http\Requests\Rates\ReorderRatePlansRequest;
 use App\Http\Requests\Rates\SaveRatesRequest;
 use App\Models\Property;
 use App\Models\RatePlan;
 use App\Models\RatePlanChildPrice;
+use App\Models\RatePlanStayDiscount;
 use App\Models\RoomType;
 use App\Services\Rates\RatesEndingCheck;
 use Illuminate\Http\RedirectResponse;
@@ -121,6 +126,22 @@ class RatePlanController extends Controller
     }
 
     /**
+     * The Discounts tab: long-stay discounts. Package plans have none.
+     */
+    public function editDiscounts(Property $property, RatePlan $ratePlan): Response
+    {
+        abort_if($ratePlan->pricing_basis === PricingBasis::Package, 404);
+
+        return Inertia::render('settings/rate-plans/discounts', [
+            'ratePlan' => RatePlanData::fromModel($ratePlan->load('roomTypes')),
+            'discounts' => $ratePlan->stayDiscounts()->orderBy('min_nights')->get()
+                ->map(fn (RatePlanStayDiscount $discount): RatePlanStayDiscountData => RatePlanStayDiscountData::fromModel($discount)),
+            'discountTypes' => StayDiscountType::options(),
+            'currency' => $property->settings->currency,
+        ]);
+    }
+
+    /**
      * The Pricing tab, for plans that carry their own prices. Package plans use package prices instead.
      */
     public function editPricing(Property $property, RatePlan $ratePlan, RatesEndingCheck $ratesEndingCheck): Response
@@ -170,6 +191,17 @@ class RatePlanController extends Controller
             : ['type' => 'error', 'message' => __('The rate plan or age groups changed. Reload the page and try again.')]);
 
         return to_route('settings.rate-plans.child-prices.edit', ['property' => $property, 'ratePlan' => $ratePlan]);
+    }
+
+    public function updateDiscounts(RatePlanStayDiscountsRequest $request, Property $property, RatePlan $ratePlan, SaveRatePlanStayDiscounts $saveRatePlanStayDiscounts): RedirectResponse
+    {
+        abort_if($ratePlan->pricing_basis === PricingBasis::Package, 404);
+
+        Inertia::flash('toast', $saveRatePlanStayDiscounts($request->user(), $ratePlan, $request->discounts())
+            ? ['type' => 'success', 'message' => __('Discounts saved.')]
+            : ['type' => 'error', 'message' => __('The rate plan changed. Reload the page and try again.')]);
+
+        return to_route('settings.rate-plans.discounts.edit', ['property' => $property, 'ratePlan' => $ratePlan]);
     }
 
     public function updatePricing(SaveRatesRequest $request, Property $property, RatePlan $ratePlan, SaveRates $saveRates): RedirectResponse

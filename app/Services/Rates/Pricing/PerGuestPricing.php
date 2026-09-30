@@ -48,4 +48,9 @@ class PerGuestPricing implements StayPricing
 
         return NightPrice::of($rate->date, $base, $extra, $supplement);
     }
+
+    public function discountUnits(StayContext $stay): int
+    {
+        return $stay->adults + count($stay->childAgeGroupIds);
+    }
 }

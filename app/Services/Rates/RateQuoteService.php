@@ -14,6 +14,8 @@ use InvalidArgumentException;
  */
 class RateQuoteService
 {
+    public function __construct(private StayDiscount $stayDiscount) {}
+
     public function quote(RateQuoteRequest $request): RateQuote
     {
         $plan = $request->ratePlan;
@@ -50,7 +52,7 @@ class RateQuoteService
         $currency = $plan->property->settings?->currency->value
             ?? throw new InvalidArgumentException('The property needs settings with a currency to quote a stay.');
 
-        $plan->loadMissing('childPrices');
+        $plan->loadMissing('childPrices', 'stayDiscounts');
         [$adults, $childAgeGroupIds] = $this->splitGuests($request);
         $stay = new StayContext($plan, $roomType, $adults, $childAgeGroupIds, $request->beds, $currency);
         $strategy = app($strategyClass);
@@ -80,7 +82,7 @@ class RateQuoteService
             return RateQuote::refused($refused->reason, $refused->date);
         }
 
-        return RateQuote::quoted($nights);
+        return RateQuote::quoted($this->stayDiscount->apply($plan->stayDiscounts, $nights, $strategy->discountUnits($stay)));
     }
 
     /**

@@ -2,6 +2,7 @@
 
 use App\Enums\AgeBandPricing;
 use App\Enums\PricingBasis;
+use App\Enums\StayDiscountType;
 use App\Models\Property;
 use App\Models\PropertyAgeGroup;
 use App\Models\PropertySetting;
@@ -9,6 +10,7 @@ use App\Models\Rate;
 use App\Models\RateOccupancyPrice;
 use App\Models\RatePlan;
 use App\Models\RatePlanChildPrice;
+use App\Models\RatePlanStayDiscount;
 use App\Models\RoomType;
 use App\Services\Rates\RateQuote;
 use App\Services\Rates\RateQuoteRequest;
@@ -202,4 +204,82 @@ test('another room type or plan price does not leak into the quote', function ()
     quoteRate($otherPlan, $roomType, '2026-11-02', '999.00');
 
     expect(quoteFor($plan, $roomType)->refusal)->toBe(RateQuote::REFUSAL_RATE_MISSING);
+});
+
+/** @param array<string, mixed> $attributes */
+function stayDiscount(RatePlan $plan, array $attributes): RatePlanStayDiscount
+{
+    return RatePlanStayDiscount::factory()->for($plan)->create($attributes);
+}
+
+test('a long-stay percent discount from night 2 keeps the first night at full price', function () {
+    [, $plan, $roomType] = quoteSetup();
+    foreach (['02', '03', '04'] as $day) {
+        quoteRate($plan, $roomType, "2026-11-{$day}", '200.00');
+    }
+    stayDiscount($plan, ['min_nights' => 3, 'discount_type' => StayDiscountType::Percent, 'value' => '20.00', 'from_night' => 2]);
+
+    $quote = quoteFor($plan, $roomType, departure: '2026-11-05');
+
+    expect(quoteTotal($quote))->toBe('520.00')
+        ->and((string) $quote->discountAmount->getAmount())->toBe('80.00')
+        ->and((string) $quote->nights[0]->discountAmount->getAmount())->toBe('0.00')
+        ->and((string) $quote->nights[1]->discountAmount->getAmount())->toBe('40.00');
+});
+
+test('the longest qualifying long-stay rule wins and a shorter stay gets none', function () {
+    [, $plan, $roomType] = quoteSetup();
+    foreach (['02', '03', '04', '05', '06'] as $day) {
+        quoteRate($plan, $roomType, "2026-11-{$day}", '100.00');
+    }
+    stayDiscount($plan, ['min_nights' => 2, 'value' => '10.00']);
+    stayDiscount($plan, ['min_nights' => 4, 'value' => '20.00']);
+
+    expect(quoteTotal(quoteFor($plan, $roomType, departure: '2026-11-07')))->toBe('400.00')
+        ->and(quoteTotal(quoteFor($plan, $roomType, departure: '2026-11-04')))->toBe('180.00')
+        ->and(quoteTotal(quoteFor($plan, $roomType, departure: '2026-11-03')))->toBe('100.00');
+});
+
+test('a percent discount is taken off the whole night including extras', function () {
+    [, $plan, $roomType] = quoteSetup(['extra_adult_amount' => '50.00']);
+    quoteRate($plan, $roomType, '2026-11-02', '200.00');
+    quoteRate($plan, $roomType, '2026-11-03', '200.00');
+    stayDiscount($plan, ['min_nights' => 2, 'value' => '10.00']);
+
+    expect(quoteTotal(quoteFor($plan, $roomType, adults: 3, departure: '2026-11-04')))->toBe('450.00');
+});
+
+test('an amount discount is per room, per guest or per bed by pricing basis', function () {
+    [, $room, $roomType] = quoteSetup();
+    quoteRate($room, $roomType, '2026-11-02', '100.00');
+    quoteRate($room, $roomType, '2026-11-03', '100.00');
+    stayDiscount($room, ['min_nights' => 2, 'discount_type' => StayDiscountType::Amount, 'value' => '15.00']);
+
+    [$property, $guest, $guestRoomType] = quoteSetup(['pricing_basis' => PricingBasis::PerGuest]);
+    quoteRate($guest, $guestRoomType, '2026-11-02', '100.00');
+    quoteRate($guest, $guestRoomType, '2026-11-03', '100.00');
+    stayDiscount($guest, ['min_nights' => 2, 'discount_type' => StayDiscountType::Amount, 'value' => '15.00']);
+    $child = PropertyAgeGroup::factory()->for($property)->create(['label' => 'Child', 'min_age' => 0, 'max_age' => 11]);
+    RatePlanChildPrice::factory()->for($guest)->for($child, 'ageGroup')->create(['pricing' => AgeBandPricing::Free]);
+
+    [, $bed, $bedRoomType] = quoteSetup(['pricing_basis' => PricingBasis::PerBed], bed: true);
+    quoteRate($bed, $bedRoomType, '2026-11-02', '50.00');
+    quoteRate($bed, $bedRoomType, '2026-11-03', '50.00');
+    stayDiscount($bed, ['min_nights' => 2, 'discount_type' => StayDiscountType::Amount, 'value' => '15.00']);
+
+    expect(quoteTotal(quoteFor($room, $roomType, departure: '2026-11-04')))->toBe('170.00')
+        ->and(quoteTotal(quoteFor($guest, $guestRoomType, adults: 2, childAges: [5], departure: '2026-11-04')))->toBe('310.00')
+        ->and(quoteTotal(quoteFor($bed, $bedRoomType, adults: 1, beds: 2, departure: '2026-11-04')))->toBe('140.00');
+});
+
+test('a night never goes below zero after the discount', function () {
+    [, $plan, $roomType] = quoteSetup();
+    quoteRate($plan, $roomType, '2026-11-02', '30.00');
+    quoteRate($plan, $roomType, '2026-11-03', '30.00');
+    stayDiscount($plan, ['min_nights' => 2, 'discount_type' => StayDiscountType::Amount, 'value' => '100.00']);
+
+    $quote = quoteFor($plan, $roomType, departure: '2026-11-04');
+
+    expect(quoteTotal($quote))->toBe('0.00')
+        ->and((string) $quote->discountAmount->getAmount())->toBe('60.00');
 });

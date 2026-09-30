@@ -27,4 +27,9 @@ class PerRoomPricing implements StayPricing
 
         return NightPrice::of($rate->date, Money::of($rate->amount, $currency), $extra, Money::zero($currency));
     }
+
+    public function discountUnits(StayContext $stay): int
+    {
+        return 1;
+    }
 }

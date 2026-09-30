@@ -17,4 +17,9 @@ class PerBedPricing implements StayPricing
 
         return NightPrice::of($rate->date, $base, Money::zero($currency), Money::zero($currency));
     }
+
+    public function discountUnits(StayContext $stay): int
+    {
+        return $stay->beds;
+    }
 }

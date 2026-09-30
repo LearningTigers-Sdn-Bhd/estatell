@@ -22,7 +22,7 @@ Interface `StayPricing`: returns one amount breakdown per night (base, extra, su
 `RateQuoteService::quote(RateQuoteRequest)` in `app/Services/Rates/`. It reads only. Strategies live in `app/Services/Rates/Pricing/` and implement `StayPricing`.
 
 - **Input:** rate plan, room type, arrival, departure (check-out), `adults`, `childAges` (list) and `beds` (default 1, used by PerBed).
-- **Output:** `RateQuote` with one `NightPrice` per night (`base`, `extra`, `supplement`, `discountAmount`), a `total` and a `discountAmount`. `discountAmount` is 0 until [long-stay discounts](01-rate-plans.md#long-stay-discounts) are built.
+- **Output:** `RateQuote` with one `NightPrice` per night (`base`, `extra`, `supplement`, `discountAmount`), a `total` and a `discountAmount`. `StayDiscount` sets the discount from the plan's [long-stay discounts](01-rate-plans.md#long-stay-discounts). A strategy's `discountUnits()` says how many units an Amount is taken off: guests, beds or rooms.
 - **Refused, not guessed:** the quote returns a `refusal` reason (and the date, where one applies) for these cases: no nights, no adults, no beds, an archived plan, a room type the plan does not sell, a Package plan (no strategy yet), a night with no price, and a PerGuest age group with no child price.
 - **Restrictions are not checked here.** `RestrictionCheck` does that.
 - **Guests:** each child age maps to the property's age group. An age past the last group counts as an adult, for every basis.

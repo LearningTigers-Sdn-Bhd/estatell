@@ -133,7 +133,7 @@ Smaller fixes and reverts are in `git log`.
 - [x] `feat(rates): add rate plans` — with child prices. Docs: [Rate plans](08-rates/01-rate-plans.md).
 - [x] `feat(rates): add daily rates and restrictions` — Docs: [Daily rates and restrictions](08-rates/02-daily-rates-and-restrictions.md).
 - [x] `feat(rates): add pricing strategies and rate quotes` — `RateQuoteService` for Room, Guest and Bed pricing. Child ages come in as input. `PackagePricing` comes with module 09. Docs: [Pricing strategies](08-rates/03-pricing-strategies.md).
-- [ ] `feat(rates): add long-stay discounts` — Docs: [Rate plans](08-rates/01-rate-plans.md#long-stay-discounts).
+- [x] `feat(rates): add long-stay discounts` — Docs: [Rate plans](08-rates/01-rate-plans.md#long-stay-discounts).
 - [ ] `feat(rates): add derived rate plans` — Docs: [Derived rate plans](08-rates/04-derived-rate-plans.md).
 - [ ] `feat(rates): add the rate calendar grid` — first use of the `pms/grid` engine. Docs: [Data loading and grids](design-system/08-data-loading-and-grids.md).
 

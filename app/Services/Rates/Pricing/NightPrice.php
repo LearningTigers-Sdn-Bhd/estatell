@@ -23,6 +23,11 @@ class NightPrice
         return new self($date, $base, $extra, $supplement, Money::zero($base->getCurrency()));
     }
 
+    public function withDiscount(Money $discountAmount): self
+    {
+        return new self($this->date, $this->base, $this->extra, $this->supplement, $discountAmount);
+    }
+
     public function total(): Money
     {
         return $this->base->plus($this->extra)->plus($this->supplement);
