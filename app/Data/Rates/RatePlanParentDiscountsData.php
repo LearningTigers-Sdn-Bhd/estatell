@@ -4,14 +4,10 @@ namespace App\Data\Rates;
 
 use Spatie\LaravelData\Data;
 
-/** The long-stay rules of the plan a derived plan follows, offered on the Discounts tab to copy. */
+/** Marks that the plan a derived plan follows has long-stay rules the Discounts tab can copy. */
 class RatePlanParentDiscountsData extends Data
 {
-    /**
-     * @param  list<RatePlanStayDiscountData>  $discounts
-     */
     public function __construct(
         public string $parentName,
-        public array $discounts,
     ) {}
 }

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Rates;
 
 use App\Actions\Rates\ArchiveRatePlan;
+use App\Actions\Rates\CopyParentStayDiscounts;
 use App\Actions\Rates\CreateRatePlan;
 use App\Actions\Rates\ExtendRates;
 use App\Actions\Rates\ReorderRatePlans;
@@ -149,7 +150,7 @@ class RatePlanController extends Controller
         $today = now($property->settings->time_zone)->startOfDay();
         $discounts = $ratePlan->stayDiscounts()->orderBy('min_nights')->get();
         $nights = $stayDiscountPreview->defaultNights($discounts);
-        $parentDiscounts = $ratePlan->parent_rate_plan_id === null
+        $parentDiscounts = $ratePlan->parent_rate_plan_id === null || $discounts->isNotEmpty()
             ? new Collection
             : $ratePlan->parent->stayDiscounts()->orderBy('min_nights')->get();
 
@@ -159,10 +160,7 @@ class RatePlanController extends Controller
             'discountTypes' => StayDiscountType::options(),
             'parentDiscounts' => $ratePlan->parent_rate_plan_id === null || $parentDiscounts->isEmpty()
                 ? null
-                : new RatePlanParentDiscountsData(
-                    $ratePlan->parent->name,
-                    $parentDiscounts->map(fn (RatePlanStayDiscount $discount): RatePlanStayDiscountData => RatePlanStayDiscountData::fromModel($discount))->all(),
-                ),
+                : new RatePlanParentDiscountsData($ratePlan->parent->name),
             'currency' => $property->settings->currency,
             'ageGroups' => $ratePlan->pricing_basis === PricingBasis::PerGuest
                 ? $property->ageGroups()->orderBy('min_age')->get()->map(PropertyAgeGroupData::fromModel(...))
@@ -256,6 +254,15 @@ class RatePlanController extends Controller
 
         Inertia::flash('toast', $saveRatePlanStayDiscounts($request->user(), $ratePlan, $request->discounts())
             ? ['type' => 'success', 'message' => __('Discounts saved.')]
+            : ['type' => 'error', 'message' => __('The rate plan changed. Reload the page and try again.')]);
+
+        return to_route('settings.rate-plans.discounts.edit', ['property' => $property, 'ratePlan' => $ratePlan]);
+    }
+
+    public function copyDiscounts(Request $request, Property $property, RatePlan $ratePlan, CopyParentStayDiscounts $copyParentStayDiscounts): RedirectResponse
+    {
+        Inertia::flash('toast', $copyParentStayDiscounts($request->user(), $ratePlan)
+            ? ['type' => 'success', 'message' => __('Discounts copied.')]
             : ['type' => 'error', 'message' => __('The rate plan changed. Reload the page and try again.')]);
 
         return to_route('settings.rate-plans.discounts.edit', ['property' => $property, 'ratePlan' => $ratePlan]);

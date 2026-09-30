@@ -1,6 +1,7 @@
 <?php
 
 use App\Actions\Rates\ArchiveRatePlan;
+use App\Actions\Rates\CopyParentStayDiscounts;
 use App\Actions\Rates\ExtendRates;
 use App\Actions\Rates\RestoreRatePlan;
 use App\Actions\Rates\SaveRatePlanDerivation;
@@ -364,7 +365,7 @@ test('the list says which plan a derived plan follows', function () {
             ->where('ratePlans.1.pricingLabel', 'Follows Basic Rate +50'));
 });
 
-test('the discounts tab offers the parent rules to copy only for a derived plan whose parent has some', function () {
+test('the discounts tab offers the parent rules only to a derived plan with none of its own', function () {
     [$owner, $property, $parent, $roomType] = derivedSetup();
     $child = derivedPlan($property, $parent, $roomType, RateDerivation::Percent, '-10.00');
     $url = route('settings.rate-plans.discounts.edit', [$property->code, $child]);
@@ -373,12 +374,46 @@ test('the discounts tab offers the parent rules to copy only for a derived plan 
 
     RatePlanStayDiscount::factory()->create(['rate_plan_id' => $parent->id, 'min_nights' => 3, 'discount_type' => StayDiscountType::Percent, 'value' => '20.00', 'from_night' => 2]);
 
-    $this->actingAs($owner)->get($url)->assertInertia(fn (Assert $page) => $page
-        ->where('parentDiscounts.parentName', 'Basic Rate')
-        ->where('parentDiscounts.discounts.0.minNights', 3)
-        ->where('parentDiscounts.discounts.0.value', '20.00'));
+    $this->actingAs($owner)->get($url)->assertInertia(fn (Assert $page) => $page->where('parentDiscounts.parentName', 'Basic Rate'));
 
     $this->actingAs($owner)
         ->get(route('settings.rate-plans.discounts.edit', [$property->code, $parent]))
         ->assertInertia(fn (Assert $page) => $page->where('parentDiscounts', null));
+
+    RatePlanStayDiscount::factory()->create(['rate_plan_id' => $child->id, 'min_nights' => 2]);
+
+    $this->actingAs($owner)->get($url)->assertInertia(fn (Assert $page) => $page->where('parentDiscounts', null));
+});
+
+test('copying saves the parent discounts on the derived plan at once', function () {
+    [$owner, $property, $parent, $roomType] = derivedSetup();
+    $child = derivedPlan($property, $parent, $roomType, RateDerivation::Percent, '-10.00');
+    RatePlanStayDiscount::factory()->create(['rate_plan_id' => $parent->id, 'min_nights' => 3, 'discount_type' => StayDiscountType::Percent, 'value' => '20.00', 'from_night' => 2]);
+    RatePlanStayDiscount::factory()->create(['rate_plan_id' => $parent->id, 'min_nights' => 7, 'discount_type' => StayDiscountType::Amount, 'value' => '30.00', 'from_night' => 1]);
+
+    $this->actingAs($owner)
+        ->post(route('settings.rate-plans.discounts.copy', [$property->code, $child]))
+        ->assertRedirect(route('settings.rate-plans.discounts.edit', [$property->code, $child]));
+
+    expect($child->stayDiscounts()->orderBy('min_nights')->get()->map(fn ($d) => [$d->min_nights, $d->discount_type->value, $d->value, $d->from_night])->all())
+        ->toBe([[3, 'percent', '20.00', 2], [7, 'amount', '30.00', 1]]);
+
+    $parent->stayDiscounts()->where('min_nights', 3)->update(['value' => '50.00']);
+
+    expect($child->stayDiscounts()->where('min_nights', 3)->value('value'))->toBe('20.00');
+});
+
+test('copying is refused for a plan that has discounts, follows nothing or has a parent without any', function () {
+    [$owner, $property, $parent, $roomType] = derivedSetup();
+    $child = derivedPlan($property, $parent, $roomType, RateDerivation::Percent, '-10.00');
+    $action = app(CopyParentStayDiscounts::class);
+
+    expect($action($owner, $child))->toBeFalse()
+        ->and($action($owner, $parent))->toBeFalse();
+
+    RatePlanStayDiscount::factory()->create(['rate_plan_id' => $parent->id, 'min_nights' => 3]);
+    RatePlanStayDiscount::factory()->create(['rate_plan_id' => $child->id, 'min_nights' => 2]);
+
+    expect($action($owner, $child))->toBeFalse()
+        ->and($child->stayDiscounts()->count())->toBe(1);
 });

@@ -1,5 +1,6 @@
-import { useForm } from '@inertiajs/react';
+import { router, useForm } from '@inertiajs/react';
 import { Copy, Plus, Trash2 } from 'lucide-react';
+import { useState } from 'react';
 import { EmptyState } from '@/components/pms/empty-state';
 import { EnumSelect } from '@/components/pms/enum-select';
 import { DiscountPreview } from '@/components/pms/rate-plans/discount-preview';
@@ -22,7 +23,7 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { useUnsavedChanges } from '@/hooks/use-unsaved-changes';
-import { update } from '@/routes/settings/rate-plans/discounts';
+import { copy, update } from '@/routes/settings/rate-plans/discounts';
 
 type RatePlan = App.Data.Rates.RatePlanData;
 type Discount = App.Data.Rates.RatePlanStayDiscountData;
@@ -101,35 +102,24 @@ export function DiscountsForm({
         );
     };
 
-    const copyParentRows = () => {
-        form.setData(
-            'discounts',
-            (parentDiscounts?.discounts ?? []).map((discount) => ({
-                min_nights: String(discount.minNights),
-                discount_type: discount.discountType,
-                value: discount.value,
-                from_night: String(discount.fromNight),
-            })),
+    const [copying, setCopying] = useState(false);
+
+    const copyParentRules = () =>
+        router.post(
+            copy.url({ ratePlan: ratePlan.id }),
+            {},
+            {
+                preserveScroll: true,
+                onStart: () => setCopying(true),
+                onFinish: () => setCopying(false),
+            },
         );
-    };
 
     const addButton = (
-        <div className="flex flex-wrap justify-center gap-2">
-            <Button type="button" variant="outline" onClick={addRow}>
-                <Plus data-icon="inline-start" />
-                Add long-stay discount
-            </Button>
-            {parentDiscounts && (
-                <Button
-                    type="button"
-                    variant="outline"
-                    onClick={copyParentRows}
-                >
-                    <Copy data-icon="inline-start" />
-                    Copy discounts from {parentDiscounts.parentName}
-                </Button>
-            )}
-        </div>
+        <Button type="button" variant="outline" onClick={addRow}>
+            <Plus data-icon="inline-start" />
+            Add long-stay discount
+        </Button>
     );
 
     const save = (onSaved?: () => void) => {
@@ -154,7 +144,27 @@ export function DiscountsForm({
                 <EmptyState
                     title="No long-stay discounts"
                     description="Add a rule such as 3 or more nights, 20% off from night 2."
-                    action={addButton}
+                    action={
+                        <div className="flex flex-wrap justify-center gap-2">
+                            {addButton}
+                            {parentDiscounts && (
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={copyParentRules}
+                                    disabled={copying}
+                                >
+                                    {copying ? (
+                                        <Spinner data-icon="inline-start" />
+                                    ) : (
+                                        <Copy data-icon="inline-start" />
+                                    )}
+                                    Copy discounts from{' '}
+                                    {parentDiscounts.parentName}
+                                </Button>
+                            )}
+                        </div>
+                    }
                 />
             ) : (
                 <div className="overflow-auto rounded-lg border">
