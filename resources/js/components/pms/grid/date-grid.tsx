@@ -206,7 +206,7 @@ export function DateGrid<Row extends GridRow>({
                                         className="pointer-events-none absolute inset-0 bg-grid-hover"
                                     />
                                 )}
-                                <div className="relative min-w-0">
+                                <div className="relative min-w-0 flex-1">
                                     {renderLabel(row)}
                                 </div>
                             </div>

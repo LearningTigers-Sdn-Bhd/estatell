@@ -12,6 +12,7 @@ import {
     todayRange,
     planOptions,
     stayLimit,
+    toggleCollapsed,
 } from './calendar-model';
 
 type RoomType = App.Data.Rates.RateCalendarRoomTypeData;
@@ -180,4 +181,51 @@ test('checks whether a date is in a range', () => {
     expect(rangeContains(range, '2026-10-05')).toBe(true);
     expect(rangeContains(range, '2026-10-18')).toBe(true);
     expect(rangeContains(range, '2026-10-19')).toBe(false);
+});
+
+test('a collapsed room type keeps its heading and drops its plan rows', () => {
+    const rows = buildRows(
+        roomTypes,
+        { roomTypeId: '', ratePlanId: '' },
+        new Set([1]),
+    );
+
+    expect(rows.map((row) => row.key)).toEqual([
+        'group-1',
+        'group-2',
+        'row-2-10',
+    ]);
+    expect(rows[0]).toMatchObject({
+        kind: 'group',
+        collapsed: true,
+        planCount: 2,
+    });
+    expect(rows[1]).toMatchObject({
+        kind: 'group',
+        collapsed: false,
+        planCount: 1,
+    });
+});
+
+test('the plan count of a heading follows the filters', () => {
+    const rows = buildRows(
+        roomTypes,
+        { roomTypeId: '', ratePlanId: '11' },
+        new Set([1]),
+    );
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ collapsed: true, planCount: 1 });
+});
+
+test('toggling collapses a room type and expands it again without changing the old set', () => {
+    const none = new Set<number>();
+    const collapsed = toggleCollapsed(none, 1);
+
+    expect([...collapsed]).toEqual([1]);
+    expect([...toggleCollapsed(collapsed, 1)]).toEqual([]);
+    expect([...toggleCollapsed(collapsed, 2)].sort((a, b) => a - b)).toEqual([
+        1, 2,
+    ]);
+    expect(none.size).toBe(0);
 });

@@ -12,16 +12,23 @@ export type CalendarFilters = {
 };
 
 export type CalendarRow =
-    | (GridRow & { kind: 'group'; roomType: RoomType })
+    | (GridRow & {
+          kind: 'group';
+          roomType: RoomType;
+          /** How many plan rows the heading covers after filtering. */
+          planCount: number;
+          collapsed: boolean;
+      })
     | (GridRow & { kind: 'row'; roomType: RoomType; plan: Plan });
 
 /**
  * The grid rows: a heading for each room type, then a row for each of its plans. A room type with no plan
- * left after filtering is left out.
+ * left after filtering is left out. The plan rows of a collapsed room type are left out, and its heading stays.
  */
 export function buildRows(
     roomTypes: RoomType[],
     filters: CalendarFilters,
+    collapsedIds: ReadonlySet<number> = new Set(),
 ): CalendarRow[] {
     return roomTypes.flatMap((roomType): CalendarRow[] => {
         if (
@@ -41,16 +48,40 @@ export function buildRows(
             return [];
         }
 
+        const collapsed = collapsedIds.has(roomType.id);
+
         return [
-            { key: `group-${roomType.id}`, kind: 'group', roomType },
-            ...plans.map((plan): CalendarRow => ({
-                key: `row-${roomType.id}-${plan.id}`,
-                kind: 'row',
+            {
+                key: `group-${roomType.id}`,
+                kind: 'group',
                 roomType,
-                plan,
-            })),
+                planCount: plans.length,
+                collapsed,
+            },
+            ...(collapsed
+                ? []
+                : plans.map((plan): CalendarRow => ({
+                      key: `row-${roomType.id}-${plan.id}`,
+                      kind: 'row',
+                      roomType,
+                      plan,
+                  }))),
         ];
     });
+}
+
+/** A new set with the room type collapsed, or expanded when it was collapsed. */
+export function toggleCollapsed(
+    collapsedIds: ReadonlySet<number>,
+    roomTypeId: number,
+): Set<number> {
+    const next = new Set(collapsedIds);
+
+    if (!next.delete(roomTypeId)) {
+        next.add(roomTypeId);
+    }
+
+    return next;
 }
 
 /**

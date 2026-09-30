@@ -1,5 +1,5 @@
-import { Ban, Link2 } from 'lucide-react';
-import { useMemo } from 'react';
+import { Ban, ChevronDown, ChevronRight, Link2 } from 'lucide-react';
+import { useMemo, useState } from 'react';
 import type { Ref } from 'react';
 import { buildDateColumns } from '@/components/pms/grid/date-columns';
 import { DateGrid } from '@/components/pms/grid/date-grid';
@@ -11,6 +11,7 @@ import {
     formatAmount,
     indexCells,
     stayLimit,
+    toggleCollapsed,
 } from './calendar-model';
 import type { CalendarFilters, CalendarRow } from './calendar-model';
 
@@ -120,9 +121,12 @@ export function RateCalendarGrid({
         () => buildDateColumns(dates, today, weekendDays),
         [dates, today, weekendDays],
     );
+    const [collapsedIds, setCollapsedIds] = useState<ReadonlySet<number>>(
+        new Set(),
+    );
     const rows = useMemo(
-        () => buildRows(roomTypes, filters),
-        [roomTypes, filters],
+        () => buildRows(roomTypes, filters, collapsedIds),
+        [roomTypes, filters, collapsedIds],
     );
     const cellsByPlan = useMemo(() => {
         const index = new Map<string, Map<string, Cell>>();
@@ -147,9 +151,38 @@ export function RateCalendarGrid({
             columns={columns}
             renderLabel={(row) =>
                 row.kind === 'group' ? (
-                    <span className="truncate text-sm font-semibold">
-                        {row.roomType.name}
-                    </span>
+                    <button
+                        type="button"
+                        aria-expanded={!row.collapsed}
+                        title={row.collapsed ? 'Expand' : 'Collapse'}
+                        className="flex w-full min-w-0 items-center gap-2 rounded-md text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+                        onClick={() =>
+                            setCollapsedIds((current) =>
+                                toggleCollapsed(current, row.roomType.id),
+                            )
+                        }
+                    >
+                        {row.collapsed ? (
+                            <ChevronRight
+                                aria-hidden
+                                className="size-4 shrink-0"
+                            />
+                        ) : (
+                            <ChevronDown
+                                aria-hidden
+                                className="size-4 shrink-0"
+                            />
+                        )}
+                        <span className="truncate text-sm font-semibold">
+                            {row.roomType.name}
+                        </span>
+                        {row.collapsed && (
+                            <span className="ml-auto shrink-0 text-xs text-grid-muted-foreground">
+                                {row.planCount}{' '}
+                                {row.planCount === 1 ? 'plan' : 'plans'}
+                            </span>
+                        )}
+                    </button>
                 ) : (
                     <span className="flex min-w-0 flex-col">
                         <span className="truncate text-sm">
