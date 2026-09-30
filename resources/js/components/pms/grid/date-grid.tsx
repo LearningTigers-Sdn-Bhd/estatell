@@ -1,6 +1,6 @@
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { useRef } from 'react';
-import type { ReactNode } from 'react';
+import { useImperativeHandle, useRef } from 'react';
+import type { ReactNode, Ref } from 'react';
 import { cn } from '@/lib/utils';
 import type { DateColumn } from './date-columns';
 import { useViewportFit } from './use-viewport-fit';
@@ -11,7 +11,15 @@ export type GridRow = {
     kind: 'group' | 'row';
 };
 
+/** What a parent can ask the grid to do. */
+export type DateGridHandle = {
+    /** Scroll sideways so the date's column is the first one after the label column. */
+    scrollToDate: (date: string) => void;
+};
+
 type Props<Row extends GridRow> = {
+    ref?: Ref<DateGridHandle>;
+    className?: string;
     rows: Row[];
     columns: DateColumn[];
     renderLabel: (row: Row) => ReactNode;
@@ -31,6 +39,8 @@ type Props<Row extends GridRow> = {
  * Row and column heights are fixed, and only the rows and columns in view are rendered.
  */
 export function DateGrid<Row extends GridRow>({
+    ref,
+    className,
     rows,
     columns,
     renderLabel,
@@ -59,7 +69,18 @@ export function DateGrid<Row extends GridRow>({
         getScrollElement: () => scrollRef.current,
         estimateSize: () => columnWidth,
         overscan: 4,
+        scrollPaddingStart: labelWidth,
     });
+
+    useImperativeHandle(ref, () => ({
+        scrollToDate: (date) => {
+            const index = columns.findIndex((column) => column.date === date);
+
+            if (index >= 0) {
+                columnVirtualizer.scrollToIndex(index, { align: 'start' });
+            }
+        },
+    }));
 
     const totalWidth = labelWidth + columnVirtualizer.getTotalSize();
     const totalHeight = headerHeight + rowVirtualizer.getTotalSize();
@@ -72,7 +93,10 @@ export function DateGrid<Row extends GridRow>({
             aria-label={ariaLabel}
             aria-rowcount={rows.length + 1}
             aria-colcount={columns.length + 1}
-            className="relative overflow-auto overscroll-none rounded-lg border bg-background"
+            className={cn(
+                'relative overflow-auto overscroll-none rounded-lg border bg-background',
+                className,
+            )}
             style={{ maxHeight }}
         >
             <div

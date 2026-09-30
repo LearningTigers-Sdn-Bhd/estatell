@@ -18,7 +18,7 @@ use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
- * Builds the rate calendar for one month: a group per room type, a row per plan that sells it, and a cell per date
+ * Builds the rate calendar for a date range: a group per room type, a row per plan that sells it, and a cell per date
  * that has a price or a restriction. A derived plan shows its parent's price after the derivation. It reads only.
  */
 class RateCalendarService
@@ -28,10 +28,10 @@ class RateCalendarService
         private RatesEndingCheck $ratesEndingCheck,
     ) {}
 
-    public function forMonth(Property $property, CarbonInterface $month, CarbonInterface $today, string $currency): RateCalendarData
+    public function forRange(Property $property, CarbonInterface $from, CarbonInterface $to, CarbonInterface $today, string $currency): RateCalendarData
     {
-        $start = $month->startOfMonth();
-        $end = $month->endOfMonth();
+        $start = $from->startOfDay();
+        $end = $to->startOfDay();
 
         $roomTypes = $property->roomTypes()->active()->ordered()->get();
         $plans = $property->ratePlans()->active()->ordered()->with(['roomTypes', 'parent'])->get();
@@ -57,7 +57,8 @@ class RateCalendarService
         ))->filter(fn (RateCalendarRoomTypeData $group): bool => $group->plans !== [])->values();
 
         return new RateCalendarData(
-            month: $start->format('Y-m'),
+            from: $start->toDateString(),
+            to: $end->toDateString(),
             dates: $this->datesOf($start, $end),
             roomTypes: $groups->all(),
             ending: $this->ending($plans, $roomTypes, $today),

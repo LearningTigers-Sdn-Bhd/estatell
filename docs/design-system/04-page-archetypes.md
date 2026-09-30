@@ -12,7 +12,7 @@ Every screen uses one archetype.
 | Settings      | Tabs + `SettingsSection` (one card = one form, saved separately)          | Property, taxes, payments, terms, notifications |
 | Wizard        | The Form archetype in the onboarding layout (`useLayoutProps`)            | Onboarding                                      |
 | Board         | Grouped card grid + filters                                               | Housekeeping, readiness panel                   |
-| Grid calendar | The `pms/grid` engine                                                     | Rate calendar, Stay View                        |
+| Grid calendar | Toolbar + the `pms/grid` engine, no `PageHeader`                          | Rate calendar, Stay View                        |
 
 Rules:
 

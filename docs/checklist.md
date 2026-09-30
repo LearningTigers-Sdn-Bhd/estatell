@@ -77,6 +77,8 @@ Legend: **Needs** lists items that must be done first.
 | `855265d` | feat(rates): add derived rate plans                                    |
 | `a9499aa` | feat(rates): copy parent discounts onto a derived plan                 |
 | `15fd738` | feat(rates): save copied parent discounts at once                      |
+| `4f982f2` | feat(rates): add the read-only rate calendar                           |
+| `c87f55a` | fix(ui): fit the date grid to the window and stop bounce               |
 
 Smaller fixes and reverts are in `git log`.
 
@@ -147,6 +149,7 @@ Smaller fixes and reverts are in `git log`.
 - [x] `feat(rates): add long-stay discounts` — Docs: [Rate plans](08-rates/01-rate-plans.md#long-stay-discounts).
 - [x] `feat(rates): add derived rate plans` — Docs: [Derived rate plans](08-rates/04-derived-rate-plans.md).
 - [x] `feat(rates): add the read-only rate calendar` — first use of the `pms/grid` engine, `rates.view` and `rates.manage`, month window, room type and plan filters, derived rows, rates ending alert with Extend. Docs: [Daily rates and restrictions](08-rates/02-daily-rates-and-restrictions.md#the-rate-calendar), [Data loading and grids](design-system/08-data-loading-and-grids.md).
+- [x] `feat(rates): choose the rate calendar date range` — date range picker, Today, 14 and 21 day and Month presets, wider plan column, no page header. Docs: [Daily rates and restrictions](08-rates/02-daily-rates-and-restrictions.md#the-rate-calendar).
 - [ ] `feat(rates): edit rates from the calendar` — cell edit popover and Bulk edit with the pricing form plus restriction fields, behind `rates.manage`. Needs: the read-only calendar. Docs: [Daily rates and restrictions](08-rates/02-daily-rates-and-restrictions.md#the-rate-calendar).
 
 ### 09 Packages and 10 Availability

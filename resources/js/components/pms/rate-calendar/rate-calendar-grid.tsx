@@ -1,7 +1,9 @@
 import { Ban, Link2 } from 'lucide-react';
 import { useMemo } from 'react';
+import type { Ref } from 'react';
 import { buildDateColumns } from '@/components/pms/grid/date-columns';
 import { DateGrid } from '@/components/pms/grid/date-grid';
+import type { DateGridHandle } from '@/components/pms/grid/date-grid';
 import { cn } from '@/lib/utils';
 import {
     buildRows,
@@ -104,11 +106,13 @@ function RateCell({
  * follows another shows the calculated price with a link marker.
  */
 export function RateCalendarGrid({
+    gridRef,
     roomTypes,
     dates,
     today,
     filters,
 }: {
+    gridRef: Ref<DateGridHandle>;
     roomTypes: App.Data.Rates.RateCalendarRoomTypeData[];
     dates: string[];
     today: string;
@@ -136,7 +140,11 @@ export function RateCalendarGrid({
 
     return (
         <DateGrid<CalendarRow>
+            ref={gridRef}
             aria-label="Rate calendar"
+            className="rounded-none border-x-0 border-b-0"
+            labelWidth={288}
+            bottomGap={0}
             rows={rows}
             columns={columns}
             renderLabel={(row) =>

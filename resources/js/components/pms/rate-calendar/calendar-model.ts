@@ -123,20 +123,119 @@ export function formatAmount(amount: string | null): string {
     });
 }
 
-/** `2026-10` moved by whole months, for the previous and next links. */
-export function shiftMonth(month: string, delta: number): string {
-    const [year, monthNumber] = month.split('-').map(Number);
-    const shifted = new Date(year, monthNumber - 1 + delta, 1);
+/** The longest range the server accepts, counting both ends. */
+export const MAX_RANGE_DAYS = 62;
 
-    return `${shifted.getFullYear()}-${String(shifted.getMonth() + 1).padStart(2, '0')}`;
+export type RangePreset = 14 | 21 | 'month';
+
+export type DateRange = { from: string; to: string };
+
+function parseDate(date: string): Date {
+    const [year, month, day] = date.split('-').map(Number);
+
+    return new Date(year, month - 1, day);
 }
 
-/** `2026-10` as "October 2026". */
-export function monthLabel(month: string): string {
-    const [year, monthNumber] = month.split('-').map(Number);
+function formatDate(date: Date): string {
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
 
-    return new Date(year, monthNumber - 1, 1).toLocaleDateString('en-GB', {
-        month: 'long',
-        year: 'numeric',
-    });
+    return `${date.getFullYear()}-${month}-${day}`;
+}
+
+/** A `Y-m-d` date moved by whole days, read as a calendar date so a time zone never shifts it. */
+export function addDays(date: string, days: number): string {
+    const value = parseDate(date);
+
+    return formatDate(
+        new Date(value.getFullYear(), value.getMonth(), value.getDate() + days),
+    );
+}
+
+/** The number of dates in the range, counting both ends. */
+export function rangeLength({ from, to }: DateRange): number {
+    return (
+        Math.round(
+            (parseDate(to).getTime() - parseDate(from).getTime()) / 86_400_000,
+        ) + 1
+    );
+}
+
+/** Whether the range is one whole calendar month. */
+export function isMonthRange({ from, to }: DateRange): boolean {
+    const start = parseDate(from);
+
+    return (
+        from ===
+            formatDate(new Date(start.getFullYear(), start.getMonth(), 1)) &&
+        to ===
+            formatDate(new Date(start.getFullYear(), start.getMonth() + 1, 0))
+    );
+}
+
+/** Which preset the range is, or null for a custom range. */
+export function activePreset(range: DateRange): RangePreset | null {
+    if (isMonthRange(range)) {
+        return 'month';
+    }
+
+    const length = rangeLength(range);
+
+    return length === 14 || length === 21 ? length : null;
+}
+
+/** The range of a preset that starts at the date. Month is the whole month the date is in. */
+export function presetRange(preset: RangePreset, from: string): DateRange {
+    if (preset === 'month') {
+        const start = parseDate(from);
+
+        return {
+            from: formatDate(
+                new Date(start.getFullYear(), start.getMonth(), 1),
+            ),
+            to: formatDate(
+                new Date(start.getFullYear(), start.getMonth() + 1, 0),
+            ),
+        };
+    }
+
+    return { from, to: addDays(from, preset - 1) };
+}
+
+/** The range one step back or forward: a month for a month range, otherwise its own length. */
+export function shiftRange(range: DateRange, direction: 1 | -1): DateRange {
+    if (isMonthRange(range)) {
+        const start = parseDate(range.from);
+
+        return presetRange(
+            'month',
+            formatDate(
+                new Date(start.getFullYear(), start.getMonth() + direction, 1),
+            ),
+        );
+    }
+
+    const length = rangeLength(range);
+
+    return {
+        from: addDays(range.from, direction * length),
+        to: addDays(range.to, direction * length),
+    };
+}
+
+/** The range that starts today. A month range becomes this month, and other ranges keep their length. */
+export function todayRange(today: string, range: DateRange): DateRange {
+    if (isMonthRange(range)) {
+        return presetRange('month', today);
+    }
+
+    return {
+        from: today,
+        to: addDays(today, Math.min(rangeLength(range), MAX_RANGE_DAYS) - 1),
+    };
+}
+
+/** Whether the date is in the range, both ends included. */
+export function rangeContains({ from, to }: DateRange, date: string): boolean {
+    return date >= from && date <= to;
 }

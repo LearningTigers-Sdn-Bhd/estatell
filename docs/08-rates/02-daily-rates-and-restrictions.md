@@ -108,13 +108,19 @@ Route: `rates.calendar` at `/p/{code}/rates/calendar` (`rates.view`). It is in t
 
 **Built (read only):**
 
-- One month at a time. `?month=2026-10` picks the month. It defaults to the current month in the property time zone. A month change is a request, and the neighbouring months are prefetched.
-- `RateCalendarService` builds the month. It reads only and adds no query per plan or date. The page gets a group for each active room type and a row for each active plan that sells it. Archived plans, archived room types and unlinked room types are left out.
-- A row has a cell only for a date with a price or a restriction row. The cell shows the price, stop sell, closed to arrival (CTA), closed to departure (CTD) and the min and max stay.
-- A derived plan row shows the parent's room price after the derivation, with a link marker. It is read only. The plan's own restriction rows show on the same dates. A package plan row shows restrictions only.
-- Filters for room type and plan run in the browser. They make no request.
-- The rates ending warning shows above the grid for plans with their own prices. Staff with `rates.manage` get **Extend 12 months** for each plan.
-- The grid is the shared `pms/grid` engine (`DateGrid`): a sticky label column and date header, fixed row and column sizes, and virtualized rows and columns with `@tanstack/react-virtual`. Stay View reuses it.
+- **Range.** The range is in the URL: `?from=2026-10-05&to=2026-10-18`. With no `from` it starts today, and with no `to` it shows 14 days. The longest range is 62 days, counting both ends. `to` before `from`, a bad date or a `to` with no `from` is refused. A range change is a request. The neighbouring ranges are prefetched.
+- **Toolbar.** **Today**, the previous and next arrows, the date range picker, the **14 days**, **21 days** and **Month** presets, the room type and plan filters, and a **Legend** popover.
+    - Today scrolls to today's column when today is already in the range. Otherwise it starts the range today and keeps its length. A month range becomes this month.
+    - The arrows move by the length of the range, or by one month for a whole-month range.
+    - A preset keeps the start date. Month snaps to the whole month of the start date.
+    - The range picker asks for the new range only after the last date is picked.
+- **Rows.** `RateCalendarService` builds the range. It reads only and adds no query per plan or date. The page gets a group for each active room type and a row for each active plan that sells it. Archived plans, archived room types and unlinked room types are left out.
+- **Cells.** A row has a cell only for a date with a price or a restriction row. The cell shows the price, stop sell, closed to arrival (CTA), closed to departure (CTD) and the min and max stay.
+- **Derived and package plans.** A derived plan row shows the parent's room price after the derivation, with a link marker. It is read only. The plan's own restriction rows show on the same dates. A package plan row shows restrictions only.
+- **Filters.** The room type and plan filters run in the browser. They make no request.
+- **Rates ending.** The warning shows above the toolbar for plans with their own prices. Staff with `rates.manage` get **Extend 12 months** for each plan.
+- **Layout.** A Grid calendar page has no page header. The toolbar is the top of the page and the grid fills the rest of the window, edge to edge. The plan column is 288px wide.
+- **Engine.** The grid is the shared `pms/grid` engine (`DateGrid`): a sticky label column and date header, fixed row and column sizes, and virtualized rows and columns with `@tanstack/react-virtual`. Its scroll area has no overscroll bounce, and it sizes itself to the space left in the window, so only the grid scrolls. Stay View reuses it.
 
 **Next (edit):** click a cell to change one date. Bulk edit uses the pricing form with the restriction fields (`SaveRates` already takes them).
 

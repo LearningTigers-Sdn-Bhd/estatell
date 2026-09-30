@@ -32,18 +32,19 @@ function calendarRate(RatePlan $plan, RoomType $roomType, string $date, array $a
     return Rate::factory()->create(['rate_plan_id' => $plan->id, 'room_type_id' => $roomType->id, 'date' => $date, 'amount' => '200.00', ...$attributes]);
 }
 
-test('the calendar shows one month of prices and restrictions for each room type and plan', function () {
+test('the calendar shows the range of prices and restrictions for each room type and plan', function () {
     [$owner, $property, $plan, $roomType] = calendarSetup();
     calendarRate($plan, $roomType, '2026-10-05');
     calendarRate($plan, $roomType, '2026-10-06', ['amount' => '250.00', 'stop_sell' => true, 'min_stay' => 2]);
     calendarRate($plan, $roomType, '2026-11-01');
 
     $this->actingAs($owner)
-        ->get(route('rates.calendar', [$property->code, 'month' => '2026-10']))
+        ->get(route('rates.calendar', [$property->code, 'from' => '2026-10-01', 'to' => '2026-10-31']))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('rates/calendar')
-            ->where('calendar.month', '2026-10')
+            ->where('calendar.from', '2026-10-01')
+            ->where('calendar.to', '2026-10-31')
             ->has('calendar.dates', 31)
             ->where('calendar.dates.0', '2026-10-01')
             ->has('calendar.roomTypes', 1)
@@ -59,26 +60,51 @@ test('the calendar shows one month of prices and restrictions for each room type
         );
 });
 
-test('the calendar opens on the current month in the property time zone', function () {
+test('the calendar opens on today and the next 13 days in the property time zone', function () {
     [$owner, $property] = calendarSetup();
     $this->travelTo(now()->setDate(2026, 12, 20));
 
     $this->actingAs($owner)
         ->get(route('rates.calendar', $property->code))
         ->assertInertia(fn (Assert $page) => $page
-            ->where('calendar.month', '2026-12')
-            ->has('calendar.dates', 31)
+            ->where('calendar.from', '2026-12-20')
+            ->where('calendar.to', '2027-01-02')
+            ->has('calendar.dates', 14)
+            ->where('calendar.dates.13', '2027-01-02')
             ->where('today', '2026-12-20')
         );
 });
 
-test('a month that is not a month is refused', function () {
+test('a start date alone shows 14 days from it', function () {
     [$owner, $property] = calendarSetup();
 
     $this->actingAs($owner)
-        ->get(route('rates.calendar', [$property->code, 'month' => '2026-13']))
-        ->assertSessionHasErrors('month');
+        ->get(route('rates.calendar', [$property->code, 'from' => '2026-10-05']))
+        ->assertInertia(fn (Assert $page) => $page->where('calendar.to', '2026-10-18')->has('calendar.dates', 14));
 });
+
+test('the longest range is 62 days', function () {
+    [$owner, $property] = calendarSetup();
+
+    $this->actingAs($owner)
+        ->get(route('rates.calendar', [$property->code, 'from' => '2026-10-01', 'to' => '2026-12-01']))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page->has('calendar.dates', 62));
+
+    $this->get(route('rates.calendar', [$property->code, 'from' => '2026-10-01', 'to' => '2026-12-02']))->assertSessionHasErrors('to');
+});
+
+test('a range that is not a range is refused', function (array $query, string $field) {
+    [$owner, $property] = calendarSetup();
+
+    $this->actingAs($owner)
+        ->get(route('rates.calendar', [$property->code, ...$query]))
+        ->assertSessionHasErrors($field);
+})->with([
+    'a bad date' => [['from' => '2026-13-01'], 'from'],
+    'an end before the start' => [['from' => '2026-10-10', 'to' => '2026-10-09'], 'to'],
+    'an end with no start' => [['to' => '2026-10-10'], 'from'],
+]);
 
 test('a derived plan shows its parent price after the derivation and keeps its own restrictions', function () {
     [$owner, $property, $parent, $roomType] = calendarSetup();
@@ -95,7 +121,7 @@ test('a derived plan shows its parent price after the derivation and keeps its o
     calendarRate($derived, $roomType, '2026-10-07', ['amount' => null, 'stop_sell' => true]);
 
     $this->actingAs($owner)
-        ->get(route('rates.calendar', [$property->code, 'month' => '2026-10']))
+        ->get(route('rates.calendar', [$property->code, 'from' => '2026-10-01', 'to' => '2026-10-31']))
         ->assertInertia(fn (Assert $page) => $page
             ->where('calendar.roomTypes.0.plans.1.name', 'Member')
             ->where('calendar.roomTypes.0.plans.1.derived', true)
@@ -116,7 +142,7 @@ test('a package plan shows restrictions without a price', function () {
     calendarRate($package, $roomType, '2026-10-05', ['amount' => null, 'min_stay' => 3]);
 
     $this->actingAs($owner)
-        ->get(route('rates.calendar', [$property->code, 'month' => '2026-10']))
+        ->get(route('rates.calendar', [$property->code, 'from' => '2026-10-01', 'to' => '2026-10-31']))
         ->assertInertia(fn (Assert $page) => $page
             ->where('calendar.roomTypes.0.plans.1.name', 'Honeymoon')
             ->where('calendar.roomTypes.0.plans.1.cells.0.amount', null)
@@ -133,7 +159,7 @@ test('archived plans, archived room types and unlinked room types are left out',
     $plan->roomTypes()->attach($archivedRoomType);
 
     $this->actingAs($owner)
-        ->get(route('rates.calendar', [$property->code, 'month' => '2026-10']))
+        ->get(route('rates.calendar', [$property->code, 'from' => '2026-10-01', 'to' => '2026-10-31']))
         ->assertInertia(fn (Assert $page) => $page
             ->has('calendar.roomTypes', 1)
             ->where('calendar.roomTypes.0.name', 'Deluxe')
@@ -149,7 +175,7 @@ test('rates of another property never show', function () {
     calendarRate(RatePlan::factory()->create(), RoomType::factory()->create(), '2026-10-05');
 
     $this->actingAs($owner)
-        ->get(route('rates.calendar', [$property->code, 'month' => '2026-10']))
+        ->get(route('rates.calendar', [$property->code, 'from' => '2026-10-01', 'to' => '2026-10-31']))
         ->assertInertia(fn (Assert $page) => $page->has('calendar.roomTypes', 1)->has('calendar.roomTypes.0.plans.0.cells', 0));
 });
 
@@ -248,7 +274,7 @@ test('more plans and dates do not add queries', function () {
     $countQueries = function () use ($owner, $property): int {
         DB::flushQueryLog();
         DB::enableQueryLog();
-        $this->actingAs($owner)->get(route('rates.calendar', [$property->code, 'month' => '2026-10']))->assertOk();
+        $this->actingAs($owner)->get(route('rates.calendar', [$property->code, 'from' => '2026-10-01', 'to' => '2026-10-31']))->assertOk();
         DB::disableQueryLog();
 
         return count(DB::getQueryLog());

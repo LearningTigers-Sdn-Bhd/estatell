@@ -18,16 +18,16 @@ use Inertia\Response;
 class RateCalendarController extends Controller
 {
     /**
-     * One month of the calendar. Room types, plans and filters are bounded lists the page filters in the browser.
-     * Only a change of month asks the server again.
+     * A date range of the calendar, 14 days from today by default. Room types, plans and filters are bounded lists
+     * the page filters in the browser. Only a change of range asks the server again.
      */
     public function index(RateCalendarRequest $request, Property $property, PropertyToday $propertyToday, RateCalendarService $rateCalendarService): Response
     {
         $today = $propertyToday->date($property);
+        [$from, $to] = $request->range($today);
 
         return Inertia::render('rates/calendar', [
-            'calendar' => $rateCalendarService->forMonth($property, $request->month($today), $today, $property->settings->currency->value),
-            'currency' => $property->settings->currency,
+            'calendar' => $rateCalendarService->forRange($property, $from, $to, $today, $property->settings->currency->value),
             'today' => $today->toDateString(),
             'canManage' => $request->user()->can(PermissionEnum::RatesManage->value),
         ]);

@@ -279,7 +279,8 @@ closedToDeparture: boolean,
 stopSell: boolean,
 };
 export type RateCalendarData = {
-month: string,
+from: string,
+to: string,
 dates: string[],
 roomTypes: App.Data.Rates.RateCalendarRoomTypeData[],
 ending: App.Data.Rates.RateCalendarEndingData[],

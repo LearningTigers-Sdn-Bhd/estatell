@@ -3,9 +3,14 @@ import {
     buildRows,
     cellFlags,
     formatAmount,
-    monthLabel,
+    activePreset,
+    addDays,
+    presetRange,
+    rangeContains,
+    rangeLength,
+    shiftRange,
+    todayRange,
     planOptions,
-    shiftMonth,
     stayLimit,
 } from './calendar-model';
 
@@ -97,8 +102,82 @@ test('formats prices without trailing zeros', () => {
     expect(formatAmount(null)).toBe('');
 });
 
-test('moves and labels months', () => {
-    expect(shiftMonth('2026-12', 1)).toBe('2027-01');
-    expect(shiftMonth('2026-01', -1)).toBe('2025-12');
-    expect(monthLabel('2026-10')).toBe('October 2026');
+test('adds days across month and year ends', () => {
+    expect(addDays('2026-10-31', 1)).toBe('2026-11-01');
+    expect(addDays('2026-12-31', 1)).toBe('2027-01-01');
+    expect(addDays('2026-03-01', -1)).toBe('2026-02-28');
+    expect(addDays('2028-03-01', -1)).toBe('2028-02-29');
+});
+
+test('counts the dates in a range', () => {
+    expect(rangeLength({ from: '2026-10-05', to: '2026-10-05' })).toBe(1);
+    expect(rangeLength({ from: '2026-10-05', to: '2026-10-18' })).toBe(14);
+    expect(rangeLength({ from: '2026-10-01', to: '2026-10-31' })).toBe(31);
+});
+
+test('builds preset ranges', () => {
+    expect(presetRange(14, '2026-10-05')).toEqual({
+        from: '2026-10-05',
+        to: '2026-10-18',
+    });
+    expect(presetRange(21, '2026-10-05')).toEqual({
+        from: '2026-10-05',
+        to: '2026-10-25',
+    });
+    expect(presetRange('month', '2026-10-15')).toEqual({
+        from: '2026-10-01',
+        to: '2026-10-31',
+    });
+    expect(presetRange('month', '2028-02-10')).toEqual({
+        from: '2028-02-01',
+        to: '2028-02-29',
+    });
+});
+
+test('finds the active preset', () => {
+    expect(activePreset({ from: '2026-10-05', to: '2026-10-18' })).toBe(14);
+    expect(activePreset({ from: '2026-10-05', to: '2026-10-25' })).toBe(21);
+    expect(activePreset({ from: '2026-10-01', to: '2026-10-31' })).toBe(
+        'month',
+    );
+    expect(activePreset({ from: '2026-10-05', to: '2026-10-09' })).toBeNull();
+});
+
+test('steps a range by its length, or by a month for a month range', () => {
+    expect(shiftRange({ from: '2026-10-05', to: '2026-10-18' }, 1)).toEqual({
+        from: '2026-10-19',
+        to: '2026-11-01',
+    });
+    expect(shiftRange({ from: '2026-10-05', to: '2026-10-18' }, -1)).toEqual({
+        from: '2026-09-21',
+        to: '2026-10-04',
+    });
+    expect(shiftRange({ from: '2026-10-01', to: '2026-10-31' }, 1)).toEqual({
+        from: '2026-11-01',
+        to: '2026-11-30',
+    });
+    expect(shiftRange({ from: '2026-01-01', to: '2026-01-31' }, -1)).toEqual({
+        from: '2025-12-01',
+        to: '2025-12-31',
+    });
+});
+
+test('starts the range today, keeping its length', () => {
+    expect(
+        todayRange('2026-10-20', { from: '2026-10-05', to: '2026-10-25' }),
+    ).toEqual({ from: '2026-10-20', to: '2026-11-09' });
+    expect(
+        todayRange('2026-10-20', { from: '2026-09-01', to: '2026-09-30' }),
+    ).toEqual({ from: '2026-10-01', to: '2026-10-31' });
+    expect(
+        todayRange('2026-10-20', { from: '2026-08-01', to: '2026-10-31' }),
+    ).toEqual({ from: '2026-10-20', to: '2026-12-20' });
+});
+
+test('checks whether a date is in a range', () => {
+    const range = { from: '2026-10-05', to: '2026-10-18' };
+
+    expect(rangeContains(range, '2026-10-05')).toBe(true);
+    expect(rangeContains(range, '2026-10-18')).toBe(true);
+    expect(rangeContains(range, '2026-10-19')).toBe(false);
 });
