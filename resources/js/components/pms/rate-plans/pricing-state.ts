@@ -35,6 +35,13 @@ export type AutoFillOptions = {
     unit: 'amount' | 'percent';
 };
 
+/** PerGuest Auto: how the price per person changes with each adult after the first. */
+export type GuestAutoFillOptions = {
+    change: 'same' | 'less' | 'more';
+    step: number;
+    unit: 'amount' | 'percent';
+};
+
 const blank = () => Array<string>(7).fill('');
 
 const adultsLabel = (adults: number) =>
@@ -241,6 +248,53 @@ export function autoFill(
     }
 
     return rows.map((row) => ({ ...row, values: next.get(row.id)! }));
+}
+
+/**
+ * PerGuest Auto: start from the 1 adult price (per person). N adults pay N times the per person price, which moves
+ * by one step for each adult after the first. The rows hold room totals. Only the form is filled.
+ */
+export function autoFillPerGuest(
+    rows: PricingRow[],
+    options: GuestAutoFillOptions,
+): PricingRow[] {
+    const seed = rows.find((row) => row.kind === 'amount');
+    const direction =
+        options.change === 'less' ? -1 : options.change === 'more' ? 1 : 0;
+
+    return rows.map((row) => {
+        if (row.kind !== 'occupancy' || row.adults === null || !seed) {
+            return row;
+        }
+
+        const adults = row.adults;
+
+        return {
+            ...row,
+            values: row.values.map((value, index) => {
+                const perPerson = parseFloat(seed.values[index] ?? '');
+
+                if (Number.isNaN(perPerson)) {
+                    return value;
+                }
+
+                const steps = direction * (adults - 1);
+                const moved =
+                    options.unit === 'percent'
+                        ? perPerson * (1 + (steps * options.step) / 100)
+                        : perPerson + steps * options.step;
+
+                return String(round(round(moved) * adults));
+            }),
+        };
+    });
+}
+
+/** The share of one person in a PerGuest room total, for the hint under an adult-count price. Display only. */
+export function perPersonShare(value: string, adults: number): number | null {
+    const total = parseFloat(value);
+
+    return Number.isNaN(total) || adults < 1 ? null : total / adults;
 }
 
 /** True when any price has been typed. */

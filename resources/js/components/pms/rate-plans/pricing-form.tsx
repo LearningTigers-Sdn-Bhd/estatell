@@ -41,6 +41,7 @@ import {
     Table,
     TableBody,
     TableCell,
+    TableFooter,
     TableHead,
     TableHeader,
     TableRow,
@@ -50,10 +51,12 @@ import { useUnsavedChanges } from '@/hooks/use-unsaved-changes';
 import { update } from '@/routes/settings/rate-plans/pricing';
 import {
     autoFill,
+    autoFillPerGuest,
     buildRows,
     fitsSimple,
     hasSeed,
     hasValues,
+    perPersonShare,
     remapWeekend,
     setSimpleValue,
     simpleValue,
@@ -62,6 +65,7 @@ import {
 } from './pricing-state';
 import type {
     AutoFillOptions,
+    GuestAutoFillOptions,
     PricingRow,
     RoomTypeGrid,
 } from './pricing-state';
@@ -139,6 +143,10 @@ export function PricingForm({
                   { key: 'weekend' as const, label: 'Weekend' },
               ]
             : WEEKDAYS.map((day, index) => ({ index, label: day.label }));
+    const cellValue = (row: PricingRow, column: (typeof columns)[number]) =>
+        'key' in column
+            ? simpleValue(row, column.key, weekend)
+            : row.values[column.index];
 
     const changeRows = (
         roomTypeId: number,
@@ -402,18 +410,10 @@ export function PricingForm({
                                                             basis={basis}
                                                             rows={grid.rows}
                                                             currency={currency}
-                                                            onApply={(
-                                                                options,
-                                                            ) =>
+                                                            onApply={(fill) =>
                                                                 changeRows(
                                                                     roomType.id,
-                                                                    (rows) =>
-                                                                        autoFill(
-                                                                            rows,
-                                                                            roomType,
-                                                                            basis,
-                                                                            options,
-                                                                        ),
+                                                                    fill,
                                                                 )
                                                             }
                                                         />
@@ -474,20 +474,10 @@ export function PricingForm({
                                                                 max="9999999999.99"
                                                                 step="0.01"
                                                                 inputMode="decimal"
-                                                                value={
-                                                                    'key' in
-                                                                    column
-                                                                        ? simpleValue(
-                                                                              row,
-                                                                              column.key,
-                                                                              weekend,
-                                                                          )
-                                                                        : row
-                                                                              .values[
-                                                                              column
-                                                                                  .index
-                                                                          ]
-                                                                }
+                                                                value={cellValue(
+                                                                    row,
+                                                                    column,
+                                                                )}
                                                                 onChange={(
                                                                     event,
                                                                 ) =>
@@ -502,6 +492,14 @@ export function PricingForm({
                                                                 }
                                                             />
                                                         </InputGroup>
+                                                        <PerPersonHint
+                                                            basis={basis}
+                                                            row={row}
+                                                            value={cellValue(
+                                                                row,
+                                                                column,
+                                                            )}
+                                                        />
                                                     </TableCell>
                                                 ))}
                                             </TableRow>
@@ -510,26 +508,35 @@ export function PricingForm({
                             );
                         })}
                     </TableBody>
+                    <TableFooter>
+                        <TableRow>
+                            <TableCell colSpan={columns.length + 1}>
+                                <div className="flex flex-wrap items-center justify-between gap-3">
+                                    <p className="text-sm font-normal whitespace-normal text-muted-foreground">
+                                        Leave a price blank to keep what is
+                                        saved for that day.
+                                        {basis === 'per_guest' &&
+                                            ' The 1 adult price is per adult. Prices for more adults are optional totals for that many adults.'}
+                                    </p>
+                                    <Button
+                                        type="submit"
+                                        disabled={form.processing}
+                                        focusableWhenDisabled
+                                    >
+                                        {form.processing && (
+                                            <Spinner data-icon="inline-start" />
+                                        )}
+                                        Save prices
+                                    </Button>
+                                </div>
+                            </TableCell>
+                        </TableRow>
+                    </TableFooter>
                 </Table>
             </div>
             {gridErrors.map((message) => (
                 <FieldError key={message}>{message}</FieldError>
             ))}
-            <p className="text-sm text-muted-foreground">
-                Leave a price blank to keep what is saved for that day.
-                {basis === 'per_guest' &&
-                    ' The 1 adult price is per adult. Prices for more adults are optional totals for that many adults.'}
-            </p>
-            <footer className="flex justify-end">
-                <Button
-                    type="submit"
-                    disabled={form.processing}
-                    focusableWhenDisabled
-                >
-                    {form.processing && <Spinner data-icon="inline-start" />}
-                    Save prices
-                </Button>
-            </footer>
             <UnsavedChangesDialog
                 guard={guard}
                 name={ratePlan.name}
@@ -554,13 +561,81 @@ function AutoFill({
     basis: App.Enums.PricingBasis;
     rows: PricingRow[];
     currency: App.Enums.Currency;
-    onApply: (options: AutoFillOptions) => void;
+    onApply: (fill: (rows: PricingRow[]) => PricingRow[]) => void;
+}) {
+    if (basis === 'per_guest') {
+        return (
+            <GuestAutoFill
+                roomType={roomType}
+                rows={rows}
+                currency={currency}
+                onApply={onApply}
+            />
+        );
+    }
+
+    return (
+        <RoomAutoFill
+            roomType={roomType}
+            basis={basis}
+            rows={rows}
+            currency={currency}
+            onApply={onApply}
+        />
+    );
+}
+
+/**
+ * Under a PerGuest adult-count price, the share of one person, so a room total is never mistaken for a per person price.
+ */
+function PerPersonHint({
+    basis,
+    row,
+    value,
+}: {
+    basis: App.Enums.PricingBasis;
+    row: PricingRow;
+    value: string;
+}) {
+    const share =
+        basis === 'per_guest' && row.kind === 'occupancy' && row.adults
+            ? perPersonShare(value, row.adults)
+            : null;
+
+    if (share === null) {
+        return null;
+    }
+
+    return (
+        <p className="mt-1 text-xs text-muted-foreground tabular-nums">
+            {share.toLocaleString(undefined, {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+            })}{' '}
+            each
+        </p>
+    );
+}
+
+/**
+ * PerRoom Auto: start from the price of a base adult count. Each step up adds and each step down subtracts.
+ */
+function RoomAutoFill({
+    roomType,
+    basis,
+    rows,
+    currency,
+    onApply,
+}: {
+    roomType: RoomType;
+    basis: App.Enums.PricingBasis;
+    rows: PricingRow[];
+    currency: App.Enums.Currency;
+    onApply: (fill: (rows: PricingRow[]) => PricingRow[]) => void;
 }) {
     const [open, setOpen] = useState(false);
     const [baseAdults, setBaseAdults] = useState(
-        basis === 'per_guest'
-            ? '1'
-            : String(Math.min(roomType.baseOccupancy, roomType.maxAdults)),
+        String(Math.min(roomType.baseOccupancy, roomType.maxAdults)),
     );
     const [stepUp, setStepUp] = useState('');
     const [stepDown, setStepDown] = useState('');
@@ -579,12 +654,14 @@ function AutoFill({
             : `price for ${baseAdults} ${baseAdults === '1' ? 'adult' : 'adults'}`;
 
     const apply = () => {
-        onApply({
+        const options: AutoFillOptions = {
             baseAdults: Number(baseAdults),
             stepUp: Number(stepUp) || 0,
             stepDown: Number(stepDown) || 0,
             unit,
-        });
+        };
+
+        onApply((current) => autoFill(current, roomType, basis, options));
         setOpen(false);
     };
 
@@ -680,6 +757,162 @@ function AutoFill({
                             setStepDown,
                         )}
                     </div>
+                    <Button
+                        type="button"
+                        onClick={apply}
+                        disabled={!seeded}
+                        focusableWhenDisabled
+                    >
+                        Fill prices
+                    </Button>
+                </div>
+            </PopoverContent>
+        </Popover>
+    );
+}
+
+/**
+ * PerGuest Auto: start from the 1 adult price, which is per person. The per person price moves by one step for
+ * each adult after the first, and each row gets the room total.
+ */
+function GuestAutoFill({
+    roomType,
+    rows,
+    currency,
+    onApply,
+}: {
+    roomType: RoomType;
+    rows: PricingRow[];
+    currency: App.Enums.Currency;
+    onApply: (fill: (rows: PricingRow[]) => PricingRow[]) => void;
+}) {
+    const [open, setOpen] = useState(false);
+    const [change, setChange] =
+        useState<GuestAutoFillOptions['change']>('same');
+    const [step, setStep] = useState('');
+    const [unit, setUnit] = useState<GuestAutoFillOptions['unit']>('amount');
+    const seed = rows.find((row) => row.kind === 'amount');
+    const seeded = hasSeed(rows, roomType, 'per_guest', 1);
+    const seedPrices = [
+        ...new Set(seed?.values.filter((value) => value !== '') ?? []),
+    ];
+    const money = new Intl.NumberFormat(undefined, {
+        style: 'currency',
+        currency,
+    });
+
+    const apply = () => {
+        const options: GuestAutoFillOptions = {
+            change,
+            step: Number(step) || 0,
+            unit,
+        };
+
+        onApply((current) => autoFillPerGuest(current, options));
+        setOpen(false);
+    };
+
+    return (
+        <Popover open={open} onOpenChange={setOpen}>
+            <PopoverTrigger
+                render={<Button type="button" variant="outline" size="sm" />}
+            >
+                <WandSparkles data-icon="inline-start" />
+                Auto
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-80">
+                <PopoverHeader>
+                    <PopoverTitle>Auto fill prices by adults</PopoverTitle>
+                    <PopoverDescription>
+                        {seeded && seedPrices.length === 1
+                            ? `Starts from the 1 adult price: ${money.format(Number(seedPrices[0]))} per person.`
+                            : 'Starts from the 1 adult price, which is per person.'}{' '}
+                        Each row gets the total for that many adults.
+                    </PopoverDescription>
+                </PopoverHeader>
+                <div className="flex flex-col gap-3">
+                    {!seeded && (
+                        <Alert>
+                            <TriangleAlert />
+                            <AlertDescription>
+                                Enter the 1 adult price first. Auto fill starts
+                                from it.
+                            </AlertDescription>
+                        </Alert>
+                    )}
+                    <Field>
+                        <FieldLabel>Per person, each extra adult</FieldLabel>
+                        <EnumSelect
+                            aria-label="Per person change"
+                            options={[
+                                { value: 'same', label: 'Same price' },
+                                { value: 'less', label: 'Less' },
+                                { value: 'more', label: 'More' },
+                            ]}
+                            value={change}
+                            onValueChange={(value) =>
+                                setChange(
+                                    value as GuestAutoFillOptions['change'],
+                                )
+                            }
+                        />
+                    </Field>
+                    {change !== 'same' && (
+                        <div className="grid grid-cols-2 gap-3">
+                            <Field>
+                                <FieldLabel>Change by</FieldLabel>
+                                <EnumSelect
+                                    aria-label="Change unit"
+                                    options={[
+                                        { value: 'amount', label: 'Amount' },
+                                        {
+                                            value: 'percent',
+                                            label: 'Percentage',
+                                        },
+                                    ]}
+                                    value={unit}
+                                    onValueChange={(value) =>
+                                        setUnit(
+                                            value as GuestAutoFillOptions['unit'],
+                                        )
+                                    }
+                                />
+                            </Field>
+                            <Field>
+                                <FieldLabel
+                                    htmlFor={`guest-step-${roomType.id}`}
+                                >
+                                    Step
+                                </FieldLabel>
+                                <InputGroup>
+                                    {unit === 'amount' && (
+                                        <InputGroupAddon>
+                                            {currency}
+                                        </InputGroupAddon>
+                                    )}
+                                    <InputGroupInput
+                                        id={`guest-step-${roomType.id}`}
+                                        type="number"
+                                        min="0"
+                                        step="0.01"
+                                        inputMode="decimal"
+                                        placeholder={
+                                            unit === 'amount' ? '0.00' : '0'
+                                        }
+                                        value={step}
+                                        onChange={(event) =>
+                                            setStep(event.target.value)
+                                        }
+                                    />
+                                    {unit === 'percent' && (
+                                        <InputGroupAddon align="inline-end">
+                                            %
+                                        </InputGroupAddon>
+                                    )}
+                                </InputGroup>
+                            </Field>
+                        </div>
+                    )}
                     <Button
                         type="button"
                         onClick={apply}
