@@ -112,6 +112,14 @@ class RatePlan extends Model
     }
 
     /**
+     * @return HasMany<RatePlanInclusion, $this>
+     */
+    public function inclusions(): HasMany
+    {
+        return $this->hasMany(RatePlanInclusion::class)->orderBy('position')->orderBy('id');
+    }
+
+    /**
      * @return HasMany<Rate, $this>
      */
     public function rates(): HasMany

@@ -1,4 +1,11 @@
-import { Baby, Bed, CircleDollarSign, FileText, Percent } from 'lucide-react';
+import {
+    Baby,
+    Bed,
+    CircleDollarSign,
+    FileText,
+    PackagePlus,
+    Percent,
+} from 'lucide-react';
 import type { ReactNode } from 'react';
 import { PageHeader } from '@/components/pms/page-header';
 import { TabLinks } from '@/components/pms/tab-links';
@@ -7,6 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { edit, index } from '@/routes/settings/rate-plans';
 import { edit as editChildPrices } from '@/routes/settings/rate-plans/child-prices';
 import { edit as editDiscounts } from '@/routes/settings/rate-plans/discounts';
+import { edit as editInclusions } from '@/routes/settings/rate-plans/inclusions';
 import { edit as editPricing } from '@/routes/settings/rate-plans/pricing';
 import { edit as editRoomTypes } from '@/routes/settings/rate-plans/room-types';
 
@@ -17,6 +25,7 @@ export type RatePlanTab =
     | 'room-types'
     | 'pricing'
     | 'children'
+    | 'inclusions'
     | 'discounts';
 
 export function ratePlanBreadcrumbs(ratePlan: RatePlan) {
@@ -80,6 +89,12 @@ export function RatePlanShell({
                   },
               ]
             : []),
+        {
+            value: 'inclusions',
+            label: 'Inclusions',
+            icon: PackagePlus,
+            href: editInclusions.url({ ratePlan: ratePlan.id }),
+        },
         ...(ratePlan.pricingBasis !== 'package'
             ? [
                   {

@@ -10,6 +10,7 @@ use App\Actions\Rates\ReorderRatePlans;
 use App\Actions\Rates\RestoreRatePlan;
 use App\Actions\Rates\SaveRatePlanChildPrices;
 use App\Actions\Rates\SaveRatePlanDerivation;
+use App\Actions\Rates\SaveRatePlanInclusions;
 use App\Actions\Rates\SaveRatePlanStayDiscounts;
 use App\Actions\Rates\SaveRates;
 use App\Actions\Rates\SyncRatePlanRoomTypes;
@@ -21,12 +22,18 @@ use App\Data\Rates\RatePlanChildPriceData;
 use App\Data\Rates\RatePlanData;
 use App\Data\Rates\RatePlanDerivationData;
 use App\Data\Rates\RatePlanDerivationPreviewRowData;
+use App\Data\Rates\RatePlanInclusionChargeItemData;
+use App\Data\Rates\RatePlanInclusionData;
+use App\Data\Rates\RatePlanInclusionMealPeriodData;
 use App\Data\Rates\RatePlanParentDiscountsData;
 use App\Data\Rates\RatePlanRoomTypeChoiceData;
 use App\Data\Rates\RatePlanStayDiscountData;
 use App\Data\Rates\RatePricingRoomTypeData;
 use App\Data\Rates\StayDiscountPreviewData;
 use App\Enums\AgeBandPricing;
+use App\Enums\ChargingUnit;
+use App\Enums\InclusionEnd;
+use App\Enums\InclusionStart;
 use App\Enums\PricingBasis;
 use App\Enums\RateDerivation;
 use App\Enums\SellUnit;
@@ -38,14 +45,18 @@ use App\Http\Requests\Rates\CreateRatePlanRequest;
 use App\Http\Requests\Rates\RatePlanChildPricesRequest;
 use App\Http\Requests\Rates\RatePlanDerivationRequest;
 use App\Http\Requests\Rates\RatePlanDiscountsPreviewRequest;
+use App\Http\Requests\Rates\RatePlanInclusionsRequest;
 use App\Http\Requests\Rates\RatePlanRequest;
 use App\Http\Requests\Rates\RatePlanRoomTypesRequest;
 use App\Http\Requests\Rates\RatePlanStayDiscountsRequest;
 use App\Http\Requests\Rates\ReorderRatePlansRequest;
 use App\Http\Requests\Rates\SaveRatesRequest;
+use App\Models\ChargeItem;
+use App\Models\MealPeriod;
 use App\Models\Property;
 use App\Models\RatePlan;
 use App\Models\RatePlanChildPrice;
+use App\Models\RatePlanInclusion;
 use App\Models\RatePlanStayDiscount;
 use App\Models\RoomType;
 use App\Services\Rates\DerivedRatePlans;
@@ -136,6 +147,32 @@ class RatePlanController extends Controller
                 ->sortBy('ageGroup.min_age')->values()
                 ->map(fn (RatePlanChildPrice $childPrice): RatePlanChildPriceData => RatePlanChildPriceData::fromModel($childPrice)),
             'ageBandPricings' => AgeBandPricing::options(),
+            'currency' => $property->settings->currency,
+        ]);
+    }
+
+    /**
+     * The Inclusions tab: what the plan's price includes. Charge items and meal periods that are off are listed
+     * only when the plan already uses them.
+     */
+    public function editInclusions(Property $property, RatePlan $ratePlan): Response
+    {
+        $inclusions = $ratePlan->inclusions()->get();
+
+        return Inertia::render('settings/rate-plans/inclusions', [
+            'ratePlan' => RatePlanData::fromModel($ratePlan->load('roomTypes')),
+            'inclusions' => $inclusions->map(fn (RatePlanInclusion $inclusion): RatePlanInclusionData => RatePlanInclusionData::fromModel($inclusion)),
+            'chargeItems' => $property->chargeItems()
+                ->where(fn ($query) => $query->where('active', true)->orWhereIn('id', $inclusions->pluck('charge_item_id')))
+                ->ordered()->get()
+                ->map(fn (ChargeItem $chargeItem): RatePlanInclusionChargeItemData => RatePlanInclusionChargeItemData::fromModel($chargeItem)),
+            'mealPeriods' => $property->mealPeriods()
+                ->where(fn ($query) => $query->where('active', true)->orWhereIn('id', $inclusions->pluck('meal_period_id')))
+                ->ordered()->get()
+                ->map(fn (MealPeriod $mealPeriod): RatePlanInclusionMealPeriodData => RatePlanInclusionMealPeriodData::fromModel($mealPeriod)),
+            'chargingUnits' => ChargingUnit::options(),
+            'startOptions' => InclusionStart::options(),
+            'endOptions' => InclusionEnd::options(),
             'currency' => $property->settings->currency,
         ]);
     }
@@ -246,6 +283,15 @@ class RatePlanController extends Controller
             : ['type' => 'error', 'message' => __('The rate plan or age groups changed. Reload the page and try again.')]);
 
         return to_route('settings.rate-plans.child-prices.edit', ['property' => $property, 'ratePlan' => $ratePlan]);
+    }
+
+    public function updateInclusions(RatePlanInclusionsRequest $request, Property $property, RatePlan $ratePlan, SaveRatePlanInclusions $saveRatePlanInclusions): RedirectResponse
+    {
+        Inertia::flash('toast', $saveRatePlanInclusions($request->user(), $ratePlan, $request->inclusions())
+            ? ['type' => 'success', 'message' => __('Inclusions saved.')]
+            : ['type' => 'error', 'message' => __('The rate plan, charge items or meal periods changed. Reload the page and try again.')]);
+
+        return to_route('settings.rate-plans.inclusions.edit', ['property' => $property, 'ratePlan' => $ratePlan]);
     }
 
     public function updateDiscounts(RatePlanStayDiscountsRequest $request, Property $property, RatePlan $ratePlan, SaveRatePlanStayDiscounts $saveRatePlanStayDiscounts): RedirectResponse

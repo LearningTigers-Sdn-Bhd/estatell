@@ -355,6 +355,30 @@ name: string,
 parentAmount: string | null,
 derivedAmount: string | null,
 };
+export type RatePlanInclusionChargeItemData = {
+id: number,
+name: string,
+active: boolean,
+chargingUnit: App.Enums.ChargingUnit,
+defaultAmount: string | null,
+};
+export type RatePlanInclusionData = {
+id: number,
+chargeItemId: number,
+mealPeriodId: number | null,
+chargingUnit: App.Enums.ChargingUnit,
+quantity: number,
+allocatedAmount: string,
+startsOn: App.Enums.InclusionStart,
+endsOn: App.Enums.InclusionEnd,
+};
+export type RatePlanInclusionMealPeriodData = {
+id: number,
+name: string,
+active: boolean,
+defaultStartsOn: App.Enums.InclusionStart,
+defaultEndsOn: App.Enums.InclusionEnd,
+};
 export type RatePlanParentDiscountsData = {
 parentName: string,
 };

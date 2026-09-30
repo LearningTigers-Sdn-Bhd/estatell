@@ -16,7 +16,7 @@ Inputs:
 
 ## Built first slice
 
-`MealEntitlementResolver::resolve($arrival, $departure, $guests, $inclusions)` is a stateless service with no tables. Callers pass plain `MealInclusionData` objects (meal period id, its start time for sorting, `InclusionStart`, `InclusionEnd`). It returns `MealEntitlementData` rows (date, meal period id, guests), sorted by date and then meal start time. The inclusions and reservation commits will build the input from real rows.
+`MealEntitlementResolver::resolve($arrival, $departure, $guests, $inclusions)` is a stateless service with no tables. Callers pass plain `MealInclusionData` objects (meal period id, its start time for sorting, `InclusionStart`, `InclusionEnd`). It returns `MealEntitlementData` rows (date, meal period id, guests), sorted by date and then meal start time. `MealInclusionData::fromInclusion()` builds the input from a rate plan inclusion row (load its `mealPeriod` first). The reservation commit will call the resolver with a plan's meal inclusions.
 
 Rules:
 
@@ -28,7 +28,7 @@ Rules:
 
 ## Defaults
 
-These are the values the inclusion form will prefill. They are not resolver logic.
+These are the values the inclusion form prefills, by meal period name (`DefaultMealPeriod::inclusionStart()` and `inclusionEnd()`). Lunch is arrival day to departure day. They are not resolver logic.
 
 | Meal      | Starts            | Ends                   |
 | --------- | ----------------- | ---------------------- |
