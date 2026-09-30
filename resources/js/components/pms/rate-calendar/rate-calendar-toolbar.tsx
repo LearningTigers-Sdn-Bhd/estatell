@@ -1,10 +1,11 @@
 import { Link, router } from '@inertiajs/react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ListChecks } from 'lucide-react';
 import { DateRangePicker } from '@/components/pms/date-range-picker';
 import { EnumSelect } from '@/components/pms/enum-select';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { calendar } from '@/routes/rates';
+import { bulk } from '@/routes/rates/calendar';
 import {
     MAX_RANGE_DAYS,
     activePreset,
@@ -42,6 +43,7 @@ export function RateCalendarToolbar({
     planOptions,
     filters,
     onFiltersChange,
+    canManage,
 }: {
     range: DateRange;
     today: string;
@@ -50,6 +52,8 @@ export function RateCalendarToolbar({
     planOptions: Option[];
     filters: CalendarFilters;
     onFiltersChange: (filters: CalendarFilters) => void;
+    /** Whether to show the Bulk edit link. */
+    canManage: boolean;
 }) {
     const [draft, setDraft] = useState(range);
 
@@ -161,7 +165,23 @@ export function RateCalendarToolbar({
                     onFiltersChange({ ...filters, ratePlanId })
                 }
             />
-            <div className="ml-auto">
+            <div className="ml-auto flex items-center gap-2">
+                {canManage && (
+                    <Link
+                        href={bulk.url(undefined, {
+                            query: {
+                                ...range,
+                                ...(filters.ratePlanId
+                                    ? { plan: filters.ratePlanId }
+                                    : {}),
+                            },
+                        })}
+                        className={buttonVariants({ variant: 'outline' })}
+                    >
+                        <ListChecks data-icon="inline-start" />
+                        Bulk edit
+                    </Link>
+                )}
                 <RateCalendarLegend />
             </div>
         </div>

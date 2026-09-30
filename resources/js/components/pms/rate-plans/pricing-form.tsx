@@ -50,6 +50,13 @@ import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { useUnsavedChanges } from '@/hooks/use-unsaved-changes';
 import { update } from '@/routes/settings/rate-plans/pricing';
 import {
+    emptyRestrictionChoices,
+    hasRestrictionChanges,
+    restrictionsProblem,
+    restrictionsToPayload,
+} from './restriction-choices';
+import { RestrictionsSection } from './restrictions-section';
+import {
     autoFill,
     autoFillPerGuest,
     buildRows,
@@ -97,6 +104,11 @@ export function PricingForm({
     weekendNights,
     weekendNightsOptions,
     today,
+    saveUrl,
+    initialRange,
+    restrictions = false,
+    prices = true,
+    submitLabel = 'Save prices',
 }: {
     ratePlan: RatePlan;
     roomTypes: RoomType[];
@@ -104,6 +116,15 @@ export function PricingForm({
     weekendNights: string;
     weekendNightsOptions: WeekendOption[];
     today: string;
+    /** Where the form saves. The plan editor's Pricing tab route when left out. */
+    saveUrl?: string;
+    /** The dates to start with. Empty when left out. */
+    initialRange?: { from: string; to: string };
+    /** Show the restrictions a bulk edit can change, and send them with the prices. */
+    restrictions?: boolean;
+    /** Show the price table. Off for a plan with no prices of its own, so only restrictions can change. */
+    prices?: boolean;
+    submitLabel?: string;
 }) {
     const basis = ratePlan.pricingBasis;
     const emptyGrids = () =>
@@ -112,14 +133,28 @@ export function PricingForm({
             byAdults: false,
             rows: buildRows(basis, roomType, false),
         }));
-    const form = useForm<{ from: string; to: string }>({ from: '', to: '' });
+    const form = useForm<{ from: string; to: string }>({
+        from: initialRange?.from ?? '',
+        to: initialRange?.to ?? '',
+    });
+    const [choices, setChoices] = useState(emptyRestrictionChoices);
     const [grids, setGrids] = useState<RoomTypeGrid[]>(emptyGrids);
     const [mode, setMode] = useState<Mode>('simple');
     const [weekendValue, setWeekendValue] = useState(weekendNights);
     const [notice, setNotice] = useState('');
     const [openRoomTypeId, setOpenRoomTypeId] = useState(roomTypes[0]?.id);
     const [collapsed, setCollapsed] = useState<number[]>([]);
-    const dirty = form.isDirty || hasValues(grids);
+    const dirty =
+        form.isDirty || hasValues(grids) || hasRestrictionChanges(choices);
+    const restrictionsError = restrictions
+        ? restrictionsProblem(choices)
+        : null;
+    const cannotSave =
+        restrictions &&
+        (!form.data.from ||
+            !form.data.to ||
+            !(hasValues(grids) || hasRestrictionChanges(choices)) ||
+            restrictionsError !== null);
     const guard = useUnsavedChanges(dirty);
     const errors = form.errors as Record<string, string | undefined>;
     const weekend =
@@ -242,14 +277,18 @@ export function PricingForm({
         form.transform((data) => ({
             ...data,
             room_types: toPayload(grids),
+            ...(restrictions
+                ? { restrictions: restrictionsToPayload(choices) }
+                : {}),
         }));
-        form.put(update.url({ ratePlan: ratePlan.id }), {
+        form.put(saveUrl ?? update.url({ ratePlan: ratePlan.id }), {
             preserveScroll: true,
             preserveState: true,
             onSuccess: () => {
                 form.reset();
                 form.setDefaults();
                 setGrids(emptyGrids());
+                setChoices(emptyRestrictionChoices());
                 onSaved?.();
             },
         });
@@ -300,240 +339,278 @@ export function PricingForm({
                         </Button>
                     </div>
                     <FieldDescription>
-                        Every date in the range gets the price of its weekday.
+                        {prices
+                            ? 'Every date in the range gets the price of its weekday.'
+                            : 'The restrictions apply to every date in the range.'}
                     </FieldDescription>
                     <FieldError>{errors.from ?? errors.to}</FieldError>
                 </Field>
-                <div className="flex flex-wrap items-start gap-3">
-                    <Field className="w-auto">
-                        <FieldLabel>View</FieldLabel>
-                        <ToggleGroup
-                            variant="outline"
-                            value={[mode]}
-                            onValueChange={(value) =>
-                                value[0] && changeMode(value[0] as Mode)
-                            }
-                            aria-label="Pricing view"
-                        >
-                            <ToggleGroupItem value="simple">
-                                <Rows2 data-icon="inline-start" />
-                                Simple
-                            </ToggleGroupItem>
-                            <ToggleGroupItem value="by-day">
-                                <CalendarDays data-icon="inline-start" />
-                                By day
-                            </ToggleGroupItem>
-                        </ToggleGroup>
-                    </Field>
-                    {mode === 'simple' && (
-                        <Field className="w-52">
-                            <FieldLabel htmlFor="pricing-weekend">
-                                Weekend nights
-                            </FieldLabel>
-                            <EnumSelect
-                                id="pricing-weekend"
-                                options={weekendNightsOptions}
-                                value={weekendValue}
-                                onValueChange={changeWeekend}
-                            />
+                {prices && (
+                    <div className="flex flex-wrap items-start gap-3">
+                        <Field className="w-auto">
+                            <FieldLabel>View</FieldLabel>
+                            <ToggleGroup
+                                variant="outline"
+                                value={[mode]}
+                                onValueChange={(value) =>
+                                    value[0] && changeMode(value[0] as Mode)
+                                }
+                                aria-label="Pricing view"
+                            >
+                                <ToggleGroupItem value="simple">
+                                    <Rows2 data-icon="inline-start" />
+                                    Simple
+                                </ToggleGroupItem>
+                                <ToggleGroupItem value="by-day">
+                                    <CalendarDays data-icon="inline-start" />
+                                    By day
+                                </ToggleGroupItem>
+                            </ToggleGroup>
                         </Field>
-                    )}
-                    {notice && <FieldError>{notice}</FieldError>}
-                </div>
+                        {mode === 'simple' && (
+                            <Field className="w-52">
+                                <FieldLabel htmlFor="pricing-weekend">
+                                    Weekend nights
+                                </FieldLabel>
+                                <EnumSelect
+                                    id="pricing-weekend"
+                                    options={weekendNightsOptions}
+                                    value={weekendValue}
+                                    onValueChange={changeWeekend}
+                                />
+                            </Field>
+                        )}
+                        {notice && <FieldError>{notice}</FieldError>}
+                    </div>
+                )}
             </div>
-            <div className="overflow-auto rounded-lg border">
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>Price</TableHead>
-                            {columns.map((column) => (
-                                <TableHead key={column.label}>
-                                    {column.label}
-                                </TableHead>
-                            ))}
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {roomTypes.map((roomType) => {
-                            const grid = grids.find(
-                                (item) => item.roomTypeId === roomType.id,
-                            )!;
-                            const open = isOpen(roomType.id);
+            {prices && (
+                <div className="overflow-auto rounded-lg border">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Price</TableHead>
+                                {columns.map((column) => (
+                                    <TableHead key={column.label}>
+                                        {column.label}
+                                    </TableHead>
+                                ))}
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {roomTypes.map((roomType) => {
+                                const grid = grids.find(
+                                    (item) => item.roomTypeId === roomType.id,
+                                )!;
+                                const open = isOpen(roomType.id);
 
-                            return (
-                                <Fragment key={roomType.id}>
-                                    <TableRow className="bg-muted/50 hover:bg-muted/50">
-                                        <TableCell colSpan={columns.length + 1}>
-                                            <div className="flex flex-wrap items-center justify-between gap-3">
-                                                <div className="flex flex-wrap items-center gap-3">
-                                                    <Button
-                                                        type="button"
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        aria-expanded={open}
-                                                        onClick={() =>
-                                                            toggleOpen(
-                                                                roomType.id,
-                                                            )
-                                                        }
-                                                    >
-                                                        {open ? (
-                                                            <ChevronDown data-icon="inline-start" />
-                                                        ) : (
-                                                            <ChevronRight data-icon="inline-start" />
-                                                        )}
-                                                        {roomType.name}
-                                                    </Button>
-                                                    {roomType.pricedUntil ? (
-                                                        <span className="text-sm text-muted-foreground">
-                                                            Priced until{' '}
-                                                            <DateText
-                                                                date={
-                                                                    roomType.pricedUntil
-                                                                }
-                                                            />
-                                                        </span>
-                                                    ) : (
-                                                        <Badge variant="outline">
-                                                            No prices yet
-                                                        </Badge>
-                                                    )}
-                                                </div>
-                                                <div className="flex flex-wrap items-center gap-4">
-                                                    {grid.rows.some(
-                                                        (row) =>
-                                                            row.kind ===
-                                                            'occupancy',
-                                                    ) && (
-                                                        <AutoFill
-                                                            roomType={roomType}
-                                                            basis={basis}
-                                                            rows={grid.rows}
-                                                            currency={currency}
-                                                            onApply={(fill) =>
-                                                                changeRows(
+                                return (
+                                    <Fragment key={roomType.id}>
+                                        <TableRow className="bg-muted/50 hover:bg-muted/50">
+                                            <TableCell
+                                                colSpan={columns.length + 1}
+                                            >
+                                                <div className="flex flex-wrap items-center justify-between gap-3">
+                                                    <div className="flex flex-wrap items-center gap-3">
+                                                        <Button
+                                                            type="button"
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            aria-expanded={open}
+                                                            onClick={() =>
+                                                                toggleOpen(
                                                                     roomType.id,
-                                                                    fill,
                                                                 )
                                                             }
-                                                        />
-                                                    )}
-                                                    {basis === 'per_room' && (
-                                                        <Field
-                                                            orientation="horizontal"
-                                                            className="w-auto"
                                                         >
-                                                            <Switch
-                                                                id={`by-adults-${roomType.id}`}
-                                                                checked={
-                                                                    grid.byAdults
+                                                            {open ? (
+                                                                <ChevronDown data-icon="inline-start" />
+                                                            ) : (
+                                                                <ChevronRight data-icon="inline-start" />
+                                                            )}
+                                                            {roomType.name}
+                                                        </Button>
+                                                        {roomType.pricedUntil ? (
+                                                            <span className="text-sm text-muted-foreground">
+                                                                Priced until{' '}
+                                                                <DateText
+                                                                    date={
+                                                                        roomType.pricedUntil
+                                                                    }
+                                                                />
+                                                            </span>
+                                                        ) : (
+                                                            <Badge variant="outline">
+                                                                No prices yet
+                                                            </Badge>
+                                                        )}
+                                                    </div>
+                                                    <div className="flex flex-wrap items-center gap-4">
+                                                        {grid.rows.some(
+                                                            (row) =>
+                                                                row.kind ===
+                                                                'occupancy',
+                                                        ) && (
+                                                            <AutoFill
+                                                                roomType={
+                                                                    roomType
                                                                 }
-                                                                onCheckedChange={(
-                                                                    checked,
+                                                                basis={basis}
+                                                                rows={grid.rows}
+                                                                currency={
+                                                                    currency
+                                                                }
+                                                                onApply={(
+                                                                    fill,
                                                                 ) =>
-                                                                    toggleByAdults(
-                                                                        roomType,
-                                                                        checked,
+                                                                    changeRows(
+                                                                        roomType.id,
+                                                                        fill,
                                                                     )
                                                                 }
                                                             />
-                                                            <FieldContent className="flex-none">
-                                                                <FieldLabel
-                                                                    htmlFor={`by-adults-${roomType.id}`}
-                                                                >
-                                                                    Different
-                                                                    price by
-                                                                    adults
-                                                                </FieldLabel>
-                                                            </FieldContent>
-                                                        </Field>
-                                                    )}
+                                                        )}
+                                                        {basis ===
+                                                            'per_room' && (
+                                                            <Field
+                                                                orientation="horizontal"
+                                                                className="w-auto"
+                                                            >
+                                                                <Switch
+                                                                    id={`by-adults-${roomType.id}`}
+                                                                    checked={
+                                                                        grid.byAdults
+                                                                    }
+                                                                    onCheckedChange={(
+                                                                        checked,
+                                                                    ) =>
+                                                                        toggleByAdults(
+                                                                            roomType,
+                                                                            checked,
+                                                                        )
+                                                                    }
+                                                                />
+                                                                <FieldContent className="flex-none">
+                                                                    <FieldLabel
+                                                                        htmlFor={`by-adults-${roomType.id}`}
+                                                                    >
+                                                                        Different
+                                                                        price by
+                                                                        adults
+                                                                    </FieldLabel>
+                                                                </FieldContent>
+                                                            </Field>
+                                                        )}
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        </TableCell>
-                                    </TableRow>
-                                    {open &&
-                                        grid.rows.map((row) => (
-                                            <TableRow key={row.id}>
-                                                <TableCell className="pl-6 font-medium">
-                                                    {row.label}
-                                                </TableCell>
-                                                {columns.map((column) => (
-                                                    <TableCell
-                                                        key={column.label}
-                                                    >
-                                                        <InputGroup className="w-36 min-w-32">
-                                                            <InputGroupAddon>
-                                                                {currency}
-                                                            </InputGroupAddon>
-                                                            <InputGroupInput
-                                                                aria-label={`${roomType.name} ${row.label} ${column.label}`}
-                                                                placeholder="0.00"
-                                                                type="number"
-                                                                min="0"
-                                                                max="9999999999.99"
-                                                                step="0.01"
-                                                                inputMode="decimal"
+                                            </TableCell>
+                                        </TableRow>
+                                        {open &&
+                                            grid.rows.map((row) => (
+                                                <TableRow key={row.id}>
+                                                    <TableCell className="pl-6 font-medium">
+                                                        {row.label}
+                                                    </TableCell>
+                                                    {columns.map((column) => (
+                                                        <TableCell
+                                                            key={column.label}
+                                                        >
+                                                            <InputGroup className="w-36 min-w-32">
+                                                                <InputGroupAddon>
+                                                                    {currency}
+                                                                </InputGroupAddon>
+                                                                <InputGroupInput
+                                                                    aria-label={`${roomType.name} ${row.label} ${column.label}`}
+                                                                    placeholder="0.00"
+                                                                    type="number"
+                                                                    min="0"
+                                                                    max="9999999999.99"
+                                                                    step="0.01"
+                                                                    inputMode="decimal"
+                                                                    value={cellValue(
+                                                                        row,
+                                                                        column,
+                                                                    )}
+                                                                    onChange={(
+                                                                        event,
+                                                                    ) =>
+                                                                        changeCell(
+                                                                            roomType.id,
+                                                                            row.id,
+                                                                            column,
+                                                                            event
+                                                                                .target
+                                                                                .value,
+                                                                        )
+                                                                    }
+                                                                />
+                                                            </InputGroup>
+                                                            <PerPersonHint
+                                                                basis={basis}
+                                                                row={row}
                                                                 value={cellValue(
                                                                     row,
                                                                     column,
                                                                 )}
-                                                                onChange={(
-                                                                    event,
-                                                                ) =>
-                                                                    changeCell(
-                                                                        roomType.id,
-                                                                        row.id,
-                                                                        column,
-                                                                        event
-                                                                            .target
-                                                                            .value,
-                                                                    )
-                                                                }
                                                             />
-                                                        </InputGroup>
-                                                        <PerPersonHint
-                                                            basis={basis}
-                                                            row={row}
-                                                            value={cellValue(
-                                                                row,
-                                                                column,
-                                                            )}
-                                                        />
-                                                    </TableCell>
-                                                ))}
-                                            </TableRow>
-                                        ))}
-                                </Fragment>
-                            );
-                        })}
-                    </TableBody>
-                    <TableFooter>
-                        <TableRow>
-                            <TableCell colSpan={columns.length + 1}>
-                                <div className="flex flex-wrap items-center justify-between gap-3">
-                                    <p className="text-sm font-normal whitespace-normal text-muted-foreground">
-                                        Leave a price blank to keep what is
-                                        saved for that day.
-                                        {basis === 'per_guest' &&
-                                            ' The 1 adult price is per adult. Prices for more adults are optional totals for that many adults.'}
-                                    </p>
-                                    <Button
-                                        type="submit"
-                                        disabled={form.processing}
-                                        focusableWhenDisabled
-                                    >
-                                        {form.processing && (
-                                            <Spinner data-icon="inline-start" />
+                                                        </TableCell>
+                                                    ))}
+                                                </TableRow>
+                                            ))}
+                                    </Fragment>
+                                );
+                            })}
+                        </TableBody>
+                        <TableFooter>
+                            <TableRow>
+                                <TableCell colSpan={columns.length + 1}>
+                                    <div className="flex flex-wrap items-center justify-between gap-3">
+                                        <p className="text-sm font-normal whitespace-normal text-muted-foreground">
+                                            Leave a price blank to keep what is
+                                            saved for that day.
+                                            {basis === 'per_guest' &&
+                                                ' The 1 adult price is per adult. Prices for more adults are optional totals for that many adults.'}
+                                        </p>
+                                        {!restrictions && (
+                                            <Button
+                                                type="submit"
+                                                disabled={form.processing}
+                                                focusableWhenDisabled
+                                            >
+                                                {form.processing && (
+                                                    <Spinner data-icon="inline-start" />
+                                                )}
+                                                {submitLabel}
+                                            </Button>
                                         )}
-                                        Save prices
-                                    </Button>
-                                </div>
-                            </TableCell>
-                        </TableRow>
-                    </TableFooter>
-                </Table>
-            </div>
+                                    </div>
+                                </TableCell>
+                            </TableRow>
+                        </TableFooter>
+                    </Table>
+                </div>
+            )}
+            {restrictions && (
+                <>
+                    <RestrictionsSection
+                        choices={choices}
+                        onChange={setChoices}
+                        errors={errors}
+                    />
+                    <div className="flex justify-end">
+                        <Button
+                            type="submit"
+                            disabled={form.processing || cannotSave}
+                            focusableWhenDisabled
+                        >
+                            {form.processing && (
+                                <Spinner data-icon="inline-start" />
+                            )}
+                            {submitLabel}
+                        </Button>
+                    </div>
+                </>
+            )}
             {gridErrors.map((message) => (
                 <FieldError key={message}>{message}</FieldError>
             ))}

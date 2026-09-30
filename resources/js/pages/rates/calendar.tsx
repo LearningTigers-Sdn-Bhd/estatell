@@ -67,6 +67,7 @@ export default function RateCalendar({
                             planOptions={planOptions(calendar.roomTypes)}
                             filters={filters}
                             onFiltersChange={setFilters}
+                            canManage={canManage}
                         />
                     </div>
                     <RateCalendarGrid

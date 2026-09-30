@@ -107,7 +107,7 @@ import { stayView } from '@/routes/front-desk';
 
 - **Configuration** lives under `/p/{code}/settings/...` with names `settings.*`: property details, room types, rooms and beds, room groups, rate plans, packages, taxes, charge items, payment methods, discounts, meal periods, age groups, terms documents, registration card fields, staff and roles, notification settings.
 - **Daily operations** live under module prefixes: front desk, reservations, guests, housekeeping, night audit, finance (folios, payments, city ledger), reports, channels.
-- **Exception:** the rate calendar is used daily, so it lives at `/p/{code}/rates/calendar` (`rates.calendar`).
+- **Exception:** the rate calendar is used daily, so it lives at `/p/{code}/rates/calendar` (`rates.calendar`, with `rates.calendar.bulk` for bulk edit).
 - Onboarding steps render the same settings forms in the wizard layout.
 - Guest links outside `/p`: staff invitations at `/invitations/{token}` (`invitations.*`, `routes/staff.php`, guest only). See [Staff and invitations](03-staff/01-staff-and-invitations.md).
 - Owner setup uses signed guest GET and POST routes under `/g/owners/{user}/setup`. Both are guest-only. The POST is throttled, and the GET supplies the exact signed POST URL because the browser must not reconstruct its signature. Links expire after seven days.
@@ -122,12 +122,12 @@ import { stayView } from '@/routes/front-desk';
 
 The staff sidebar has four contexts, chosen with a switcher at the top. Each context maps to route groups, so navigation follows the routes.
 
-| Context        | Route groups                                                                                                   | Items                                                                                                       |
-| -------------- | -------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| **Front desk** | `dashboard`, `front-desk.*`, `reservations.*`, `guests.*`, `housekeeping.*`, `rates.calendar`, `night-audit.*` | Dashboard, Stay View, Reservations, Guests, Housekeeping, Rate calendar, Night audit                        |
-| **Finance**    | `finance.*`                                                                                                    | Folios, Payments, City ledger (Companies, Invoices, Payments received, Statements, Aging)                   |
-| **Reports**    | `reports.*`                                                                                                    | Daily summary, Revenue, Payments by method, Tax, Kitchen meals, Night audit history, Activity log           |
-| **Settings**   | `settings.*`, `channels.*`                                                                                     | Property, Rooms, Rates, Billing setup, Guests, Team, Notifications, Channels (feature flag), Support access |
+| Context        | Route groups                                                                                            | Items                                                                                                       |
+| -------------- | ------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| **Front desk** | `dashboard`, `front-desk.*`, `reservations.*`, `guests.*`, `housekeeping.*`, `rates.*`, `night-audit.*` | Dashboard, Stay View, Reservations, Guests, Housekeeping, Rate calendar, Night audit                        |
+| **Finance**    | `finance.*`                                                                                             | Folios, Payments, City ledger (Companies, Invoices, Payments received, Statements, Aging)                   |
+| **Reports**    | `reports.*`                                                                                             | Daily summary, Revenue, Payments by method, Tax, Kitchen meals, Night audit history, Activity log           |
+| **Settings**   | `settings.*`, `channels.*`                                                                              | Property, Rooms, Rates, Billing setup, Guests, Team, Notifications, Channels (feature flag), Support access |
 
 - The active context is derived from the current route name.
 - Account is not a context. It lives in the user menu.

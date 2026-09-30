@@ -269,6 +269,14 @@ sellUnit: App.Enums.SellUnit,
 sellUnitLabel: string,
 fitsBases: App.Enums.PricingBasis[],
 };
+export type RateBulkPlanData = {
+id: number,
+name: string,
+pricingBasis: App.Enums.PricingBasis,
+derived: boolean,
+followsName: string | null,
+hasOwnPrices: boolean,
+};
 export type RateCalendarCellData = {
 date: string,
 amount: string | null,

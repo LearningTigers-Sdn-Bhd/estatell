@@ -58,7 +58,7 @@ enum NavigationContext: string
     public function routePatterns(): array
     {
         return match ($this) {
-            self::FrontDesk => ['dashboard', 'front-desk.*', 'reservations.*', 'guests.*', 'housekeeping.*', 'rates.calendar', 'night-audit.*'],
+            self::FrontDesk => ['dashboard', 'front-desk.*', 'reservations.*', 'guests.*', 'housekeeping.*', 'rates.*', 'night-audit.*'],
             self::Finance => ['finance.*'],
             self::Reports => ['reports.*'],
             self::Settings => ['settings.*', 'channels.*'],

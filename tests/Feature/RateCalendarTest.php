@@ -489,3 +489,199 @@ test('saving from the calendar needs rates.manage and stays inside the property'
 
     expect(Rate::query()->count())->toBe(0);
 });
+
+/**
+ * The request the bulk edit page sends: a date range, one room type and the same price for every weekday.
+ *
+ * @param  array<string, mixed>  $restrictions
+ * @return array<string, mixed>
+ */
+function bulkSave(RoomType $roomType, string $from, string $to, ?string $amount, array $restrictions = []): array
+{
+    return [
+        'from' => $from,
+        'to' => $to,
+        'room_types' => [[
+            'room_type_id' => $roomType->id,
+            'days' => $amount === null ? [] : array_map(fn (int $weekday): array => ['weekday' => $weekday, 'amount' => $amount, 'occupancy' => []], range(1, 7)),
+        ]],
+        'restrictions' => $restrictions,
+    ];
+}
+
+test('the bulk edit page lists the plans and picks the first by default', function () {
+    [$owner, $property, $plan, $roomType] = calendarSetup();
+    $second = RatePlan::factory()->for($property)->create(['name' => 'Breakfast']);
+    $second->roomTypes()->attach($roomType);
+    RatePlan::factory()->for($property)->archived()->create(['name' => 'Old']);
+
+    $this->actingAs($owner)
+        ->get(route('rates.calendar.bulk', $property->code))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('rates/bulk')
+            ->has('plans', 2)
+            ->where('plans.0.name', 'Basic')
+            ->where('plans.0.hasOwnPrices', true)
+            ->where('ratePlan.id', $plan->id)
+            ->has('roomTypes', 1)
+            ->where('roomTypes.0.id', $roomType->id)
+            ->where('from', '')
+            ->where('to', '')
+            ->has('weekendNightsOptions', 2)
+        );
+
+    $this->get(route('rates.calendar.bulk', [$property->code, 'plan' => $second->id, 'from' => '2026-10-05', 'to' => '2026-10-18']))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('ratePlan.id', $second->id)
+            ->where('from', '2026-10-05')
+            ->where('to', '2026-10-18')
+        );
+});
+
+test('the bulk edit page ignores a plan of another property and one that is archived', function () {
+    [$owner, $property, $plan] = calendarSetup();
+    $theirs = RatePlan::factory()->create();
+    $archived = RatePlan::factory()->for($property)->archived()->create();
+
+    $this->actingAs($owner)
+        ->get(route('rates.calendar.bulk', [$property->code, 'plan' => $theirs->id]))
+        ->assertInertia(fn (Assert $page) => $page->where('ratePlan.id', $plan->id));
+
+    $this->get(route('rates.calendar.bulk', [$property->code, 'plan' => $archived->id]))
+        ->assertInertia(fn (Assert $page) => $page->where('ratePlan.id', $plan->id));
+});
+
+test('the bulk edit page says which plans have prices of their own', function () {
+    [$owner, $property, $parent, $roomType] = calendarSetup();
+    $derived = RatePlan::factory()->for($property)->create(['name' => 'Member', 'parent_rate_plan_id' => $parent->id, 'derivation' => RateDerivation::Percent, 'derivation_value' => '-10']);
+    $package = RatePlan::factory()->for($property)->create(['name' => 'Honeymoon', 'pricing_basis' => PricingBasis::Package]);
+    $derived->roomTypes()->attach($roomType);
+    $package->roomTypes()->attach($roomType);
+
+    $this->actingAs($owner)
+        ->get(route('rates.calendar.bulk', [$property->code, 'plan' => $derived->id]))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('plans.1.name', 'Member')
+            ->where('plans.1.derived', true)
+            ->where('plans.1.followsName', 'Basic')
+            ->where('plans.1.hasOwnPrices', false)
+            ->where('plans.2.hasOwnPrices', false)
+            ->where('ratePlan.id', $derived->id)
+        );
+});
+
+test('the bulk edit page starts empty when there are no plans', function () {
+    $owner = User::factory()->owner()->create();
+    PropertySetting::factory()->for($owner->property)->create();
+
+    $this->actingAs($owner)
+        ->get(route('rates.calendar.bulk', $owner->property->code))
+        ->assertInertia(fn (Assert $page) => $page->has('plans', 0)->where('ratePlan', null)->has('roomTypes', 0));
+});
+
+test('a bulk edit saves prices and restrictions over the whole range, then shows the range in the calendar', function () {
+    [$owner, $property, $plan, $roomType] = calendarSetup();
+
+    $this->actingAs($owner)
+        ->put(route('rates.calendar.bulk.update', [$property->code, $plan]), bulkSave($roomType, '2026-10-05', '2026-10-11', '210', ['closed_to_arrival' => true, 'min_stay' => 2]))
+        ->assertRedirect(route('rates.calendar', [$property->code, 'from' => '2026-10-05', 'to' => '2026-10-11']))
+        ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Rates saved for 7 dates.']);
+
+    $rates = Rate::query()->where('rate_plan_id', $plan->id)->orderBy('date')->get();
+
+    expect($rates)->toHaveCount(7)
+        ->and($rates->pluck('amount')->unique()->all())->toBe(['210.00'])
+        ->and($rates->every(fn (Rate $rate): bool => $rate->closed_to_arrival && $rate->min_stay === 2 && ! $rate->stop_sell))->toBeTrue();
+});
+
+test('a bulk edit with only restrictions keeps the saved prices and other restrictions', function () {
+    [$owner, $property, $plan, $roomType] = calendarSetup();
+    $kept = calendarRate($plan, $roomType, '2026-10-06', ['amount' => '333.00', 'min_stay' => 4, 'closed_to_departure' => true]);
+
+    $this->actingAs($owner)
+        ->put(route('rates.calendar.bulk.update', [$property->code, $plan]), bulkSave($roomType, '2026-10-05', '2026-10-07', null, ['stop_sell' => true]))
+        ->assertRedirect();
+
+    expect(Rate::query()->where('rate_plan_id', $plan->id)->count())->toBe(3)
+        ->and(Rate::query()->where('rate_plan_id', $plan->id)->where('stop_sell', true)->count())->toBe(3)
+        ->and($kept->refresh())
+        ->amount->toBe('333.00')
+        ->min_stay->toBe(4)
+        ->closed_to_departure->toBeTrue();
+});
+
+test('a bulk edit longer than the calendar shows lets the calendar open on its first 62 days', function () {
+    [$owner, $property, $plan, $roomType] = calendarSetup();
+
+    $this->actingAs($owner)
+        ->put(route('rates.calendar.bulk.update', [$property->code, $plan]), bulkSave($roomType, '2026-10-01', '2027-03-31', null, ['stop_sell' => true]))
+        ->assertRedirect(route('rates.calendar', [$property->code, 'from' => '2026-10-01', 'to' => '2026-12-01']));
+
+    $this->get(route('rates.calendar', [$property->code, 'from' => '2026-10-01', 'to' => '2026-12-01']))->assertOk();
+});
+
+test('a bulk edit gives a derived plan restrictions but never a price', function () {
+    [$owner, $property, $parent, $roomType] = calendarSetup();
+    $derived = RatePlan::factory()->for($property)->create(['parent_rate_plan_id' => $parent->id, 'derivation' => RateDerivation::Percent, 'derivation_value' => '-10']);
+    $derived->roomTypes()->attach($roomType);
+
+    $this->actingAs($owner)
+        ->put(route('rates.calendar.bulk.update', [$property->code, $derived]), bulkSave($roomType, '2026-10-05', '2026-10-06', null, ['closed_to_arrival' => true]))
+        ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Rates saved for 2 dates.']);
+
+    expect(Rate::query()->where('rate_plan_id', $derived->id)->whereNull('amount')->where('closed_to_arrival', true)->count())->toBe(2);
+
+    $this->put(route('rates.calendar.bulk.update', [$property->code, $derived]), bulkSave($roomType, '2026-10-07', '2026-10-08', '90', ['closed_to_arrival' => true]))
+        ->assertInertiaFlash('toast', ['type' => 'error', 'message' => 'The rate plan or room types changed. Reload the page and try again.']);
+
+    expect(Rate::query()->where('rate_plan_id', $derived->id)->count())->toBe(2);
+});
+
+test('a bad bulk edit is refused with its field errors', function (array $overrides, string $field) {
+    [$owner, $property, $plan, $roomType] = calendarSetup();
+
+    $this->actingAs($owner)
+        ->put(route('rates.calendar.bulk.update', [$property->code, $plan]), [...bulkSave($roomType, '2026-10-05', '2026-10-11', '100'), ...$overrides])
+        ->assertSessionHasErrors($field);
+
+    expect(Rate::query()->count())->toBe(0);
+})->with([
+    'an end before the start' => [['to' => '2026-10-01'], 'to'],
+    'a range over two years' => [['to' => '2028-10-20'], 'to'],
+    'no dates' => [['from' => null, 'to' => null], 'from'],
+    'a max stay below the min stay' => [['restrictions' => ['min_stay' => 5, 'max_stay' => 2]], 'restrictions.max_stay'],
+]);
+
+test('bulk edit needs rates.manage and stays inside the property', function () {
+    $frontDesk = User::factory()->withRole(DefaultRoleEnum::FrontDesk)->create();
+    PropertySetting::factory()->for($frontDesk->property)->create();
+    $plan = RatePlan::factory()->for($frontDesk->property)->create();
+    $roomType = RoomType::factory()->for($frontDesk->property)->create();
+    $plan->roomTypes()->attach($roomType);
+
+    $this->actingAs($frontDesk)->get(route('rates.calendar.bulk', $frontDesk->property->code))->assertForbidden();
+    $this->put(route('rates.calendar.bulk.update', [$frontDesk->property->code, $plan]), bulkSave($roomType, '2026-10-05', '2026-10-06', '100'))->assertForbidden();
+
+    [$owner, $property] = calendarSetup();
+    $theirs = RatePlan::factory()->create();
+
+    $this->actingAs($owner)
+        ->put(route('rates.calendar.bulk.update', [$property->code, $theirs]), bulkSave($roomType, '2026-10-05', '2026-10-06', '100'))
+        ->assertNotFound();
+
+    expect(Rate::query()->count())->toBe(0);
+});
+
+test('the rate calendar and its bulk edit page both sit in the front desk sidebar', function (string $routeName) {
+    [$owner, $property] = calendarSetup();
+
+    $this->actingAs($owner)
+        ->get(route($routeName, $property->code))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('navigation.active', 'front-desk')
+            ->where('navigation.contexts.0.groups.2.label', 'Operations')
+            ->where('navigation.contexts.0.groups.2.items.0.title', 'Rate calendar')
+            ->where('navigation.contexts.0.groups.2.items.0.active', true)
+        );
+})->with(['rates.calendar', 'rates.calendar.bulk']);

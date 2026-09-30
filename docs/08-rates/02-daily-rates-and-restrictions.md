@@ -96,15 +96,15 @@ One form fills `rates` for a date range. The rate plan editor's Pricing tab ("Se
 | PerBed        | Weekdays and Weekend per room type                                                          | 7 columns per room type                                        |
 | Package       | Not used. Package plans use [package prices](../09-packages/02-package-prices.md).          | Not used                                                       |
 
-Bulk edit adds the restriction fields to the same form (not built yet).
+Bulk edit adds the restriction fields to the same form (see [Bulk edit](#bulk-edit)).
 
 ## UI
 
-Built now: the rate plan editor's **Pricing** tab (`settings.rate-plans.pricing.edit`). It has the rates ending warning with **Extend 12 months**, then one table. Each room type is a collapsible group row that shows how far it is priced, its **Auto** button and its "Different price by adults" switch, with its price rows underneath. On a PerGuest plan in By day view, only one group is open at a time. The form starts empty for each save. It does not preload saved prices. Bulk edit restrictions arrive with the bulk edit item.
+Built now: the rate plan editor's **Pricing** tab (`settings.rate-plans.pricing.edit`). It has the rates ending warning with **Extend 12 months**, then one table. Each room type is a collapsible group row that shows how far it is priced, its **Auto** button and its "Different price by adults" switch, with its price rows underneath. On a PerGuest plan in By day view, only one group is open at a time. The form starts empty for each save. It does not preload saved prices. Bulk edit restrictions are on the calendar's Bulk edit page.
 
 ## The rate calendar
 
-Route: `rates.calendar` at `/p/{code}/rates/calendar` (`rates.view`). It is in the Front desk context under Operations. `rates.calendar.update` (`PUT`, `rates.manage`) saves one plan and returns to the calendar. `rates.calendar.extend` (`rates.manage`) extends one plan and returns to the calendar.
+Route: `rates.calendar` at `/p/{code}/rates/calendar` (`rates.view`). It is in the Front desk context under Operations. `rates.calendar.update` (`PUT`, `rates.manage`) saves one plan and returns to the calendar. `rates.calendar.extend` (`rates.manage`) extends one plan and returns to the calendar. `rates.calendar.bulk` and `rates.calendar.bulk.update` (`rates.manage`) are the Bulk edit page and its save.
 
 **Built (read only):**
 
@@ -135,7 +135,16 @@ Route: `rates.calendar` at `/p/{code}/rates/calendar` (`rates.view`). It is in t
 - **Limits.** A price cannot be removed here, because `SaveRates` leaves a blank price alone. To stop selling a date, turn on stop sell. A price by adults needs a price first.
 - **Data.** Each cell carries its prices by adult count, and each room type carries `baseOccupancy` and `maxAdults`, from one extra query for the month.
 
-**Next:** Bulk edit uses the pricing form with the restriction fields (`SaveRates` already takes them).
+### Bulk edit
+
+`rates.calendar.bulk` at `/p/{code}/rates/calendar/bulk` (`rates.manage`). A **Bulk edit** link in the calendar toolbar opens it with the visible range and the plan filter. It is a full page, because it has repeating price rows.
+
+- **Plan.** A picker of active plans. `?plan=` picks one and defaults to the first. An archived plan or one of another property is ignored.
+- **Dates.** A date range picker, up to 731 days. `?from=` and `?to=` prefill it.
+- **Prices.** The same form as the plan editor's Pricing tab: Simple or By day, Auto fill and prices by adults. It is shown only for a plan with its own prices. A derived plan and a package plan show a note, and only restrictions can change.
+- **Restrictions.** Stop sell, closed to arrival and closed to departure are each Leave as is, Turn on or Turn off. Min and max stay are Leave as is, Set to a number, or No limit. Only the restrictions you change are sent, so the others keep what is saved on each date.
+- **Save.** `rates.calendar.bulk.update` calls `SaveRates` for the whole range, then opens the calendar at the start of the range. If the range is longer than the calendar's 62 days, the calendar shows the first 62. Save stays off until there are dates and something to change.
+- **Reuse.** `PricingForm` takes a save route, a start range, a `restrictions` switch and a `prices` switch. The plan editor's Pricing tab uses the defaults and behaves as before.
 
 ## Lessons from wastays
 

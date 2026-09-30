@@ -41,7 +41,7 @@ class FrontDeskNavigation
                     title: __('Rate calendar'),
                     href: route('rates.calendar', ['property' => $property->code], absolute: false),
                     icon: 'calendar-range',
-                    active: request()->routeIs('rates.calendar'),
+                    active: request()->routeIs('rates.*'),
                 ) : null,
             ]))),
         ];
