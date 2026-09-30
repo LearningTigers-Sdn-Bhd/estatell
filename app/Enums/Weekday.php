@@ -2,6 +2,9 @@
 
 namespace App\Enums;
 
+use Carbon\CarbonInterface;
+use LogicException;
+
 enum Weekday: string
 {
     case Monday = 'monday';
@@ -36,6 +39,18 @@ enum Weekday: string
             self::Saturday => __('Sat'),
             self::Sunday => __('Sun'),
         };
+    }
+
+    /** The weekday of a date. */
+    public static function forDate(CarbonInterface $date): self
+    {
+        foreach (self::cases() as $case) {
+            if ($case->isoNumber() === $date->dayOfWeekIso) {
+                return $case;
+            }
+        }
+
+        throw new LogicException('A date always has an ISO weekday from 1 to 7.');
     }
 
     /** The ISO weekday number, 1 = Monday to 7 = Sunday. */

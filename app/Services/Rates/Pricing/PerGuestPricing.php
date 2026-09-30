@@ -13,9 +13,9 @@ use Brick\Money\Money;
  * The occupancy price for the adults if set, else the adult rate times the adults, plus the single supplement for
  * one adult without an occupancy price. Each child pays by age group.
  */
-class PerGuestPricing implements StayPricing
+class PerGuestPricing extends NightlyPricing
 {
-    public function priceNight(StayContext $stay, Rate $rate): NightPrice
+    protected function priceNight(StayContext $stay, Rate $rate): NightPrice
     {
         $currency = $stay->currency;
         $plan = $stay->ratePlan;

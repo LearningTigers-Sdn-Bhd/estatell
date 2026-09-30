@@ -8,9 +8,9 @@ use Brick\Money\Money;
 /**
  * The bed rate times the number of beds.
  */
-class PerBedPricing implements StayPricing
+class PerBedPricing extends NightlyPricing
 {
-    public function priceNight(StayContext $stay, Rate $rate): NightPrice
+    protected function priceNight(StayContext $stay, Rate $rate): NightPrice
     {
         $currency = $stay->currency;
         $base = Money::of($rate->amount, $currency)->multipliedBy($stay->beds);

@@ -9,9 +9,9 @@ use Brick\Money\Money;
  * The occupancy price for the adult count if set, else the room price plus extra adults above the base occupancy.
  * Children pay the plan's flat child amount either way.
  */
-class PerRoomPricing implements StayPricing
+class PerRoomPricing extends NightlyPricing
 {
-    public function priceNight(StayContext $stay, Rate $rate): NightPrice
+    protected function priceNight(StayContext $stay, Rate $rate): NightPrice
     {
         $currency = $stay->currency;
         $plan = $stay->ratePlan;

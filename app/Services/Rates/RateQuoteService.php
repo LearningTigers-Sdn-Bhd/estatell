@@ -3,7 +3,6 @@
 namespace App\Services\Rates;
 
 use App\Models\PropertyAgeGroup;
-use App\Models\Rate;
 use App\Services\Rates\Pricing\PricedNights;
 use App\Services\Rates\Pricing\QuoteRefused;
 use App\Services\Rates\Pricing\StayContext;
@@ -65,12 +64,6 @@ class RateQuoteService
             throw new QuoteRefused(RateQuote::REFUSAL_PLAN_ARCHIVED);
         }
 
-        $strategyClass = $pricingPlan->pricing_basis->strategy();
-
-        if ($strategyClass === null) {
-            throw new QuoteRefused(RateQuote::REFUSAL_BASIS_UNSUPPORTED);
-        }
-
         if (! $plan->roomTypes()->whereKey($roomType->id)->exists()) {
             throw new QuoteRefused(RateQuote::REFUSAL_ROOM_TYPE_NOT_SOLD);
         }
@@ -81,28 +74,12 @@ class RateQuoteService
         $pricingPlan->loadMissing('childPrices');
         [$adults, $childAgeGroupIds] = $this->splitGuests($request);
         $stay = new StayContext($pricingPlan, $roomType, $adults, $childAgeGroupIds, $request->beds, $currency);
-        $strategy = app($strategyClass);
+        $strategy = app($pricingPlan->pricing_basis->strategy());
+        $nights = $strategy->priceStay($stay, $arrival, $departure);
 
-        $rates = Rate::query()
-            ->with('occupancyPrices')
-            ->where('rate_plan_id', $pricingPlan->id)
-            ->where('room_type_id', $roomType->id)
-            ->where('date', '>=', $arrival->toDateString())
-            ->where('date', '<', $departure->toDateString())
-            ->get()
-            ->keyBy(fn (Rate $rate): string => $rate->date->toDateString());
-
-        $nights = [];
-
-        for ($date = $arrival; $date->lt($departure); $date = $date->addDay()) {
-            $rate = $rates->get($date->toDateString());
-
-            if ($rate === null || $rate->amount === null) {
-                throw new QuoteRefused(RateQuote::REFUSAL_RATE_MISSING, $date);
-            }
-
-            $night = $strategy->priceNight($stay, $rate);
-            $nights[] = $pricingPlan === $plan ? $night : $this->derivedRateResolver->resolve($night, $plan, $strategy->discountUnits($stay));
+        if ($pricingPlan !== $plan) {
+            $units = $strategy->discountUnits($stay);
+            $nights = array_map(fn ($night) => $this->derivedRateResolver->resolve($night, $plan, $units), $nights);
         }
 
         return new PricedNights($nights, $strategy->discountUnits($stay));

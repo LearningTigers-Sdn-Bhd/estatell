@@ -21,7 +21,9 @@ class RateQuote
 
     public const REFUSAL_ROOM_TYPE_NOT_SOLD = 'room_type_not_sold';
 
-    public const REFUSAL_BASIS_UNSUPPORTED = 'basis_unsupported';
+    public const REFUSAL_PACKAGE_PRICE_MISSING = 'package_price_missing';
+
+    public const REFUSAL_STAY_LENGTH_MISMATCH = 'stay_length_mismatch';
 
     public const REFUSAL_RATE_MISSING = 'rate_missing';
 

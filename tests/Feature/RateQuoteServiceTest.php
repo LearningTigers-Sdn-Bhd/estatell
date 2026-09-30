@@ -174,15 +174,12 @@ test('a night without a price refuses the quote', function () {
         ->and($quote->refusalDate->toDateString())->toBe('2026-11-03');
 });
 
-test('an archived plan, an unlinked room type and a package plan are refused', function () {
+test('an archived plan and an unlinked room type are refused', function () {
     [$property, $plan, $roomType] = quoteSetup();
     quoteRate($plan, $roomType, '2026-11-02');
     $other = RoomType::factory()->for($property)->create();
-    $package = RatePlan::factory()->for($property)->package()->create();
-    $package->roomTypes()->attach($roomType);
 
-    expect(quoteFor($plan, $other)->refusal)->toBe(RateQuote::REFUSAL_ROOM_TYPE_NOT_SOLD)
-        ->and(quoteFor($package, $roomType)->refusal)->toBe(RateQuote::REFUSAL_BASIS_UNSUPPORTED);
+    expect(quoteFor($plan, $other)->refusal)->toBe(RateQuote::REFUSAL_ROOM_TYPE_NOT_SOLD);
 
     $plan->update(['archived_at' => now()]);
 

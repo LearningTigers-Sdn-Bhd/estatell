@@ -2,17 +2,21 @@
 
 namespace App\Services\Rates\Pricing;
 
-use App\Models\Rate;
+use Carbon\CarbonImmutable;
 
 /**
- * Prices one night of a stay for one pricing basis. Strategies are chosen by `PricingBasis::strategy()`.
+ * Prices the nights of a stay for one pricing basis. Strategies are chosen by `PricingBasis::strategy()`.
  */
 interface StayPricing
 {
     /**
-     * @throws QuoteRefused when the night cannot be priced
+     * One `NightPrice` for each night from arrival up to, not including, departure.
+     *
+     * @return non-empty-list<NightPrice>
+     *
+     * @throws QuoteRefused when the stay cannot be priced
      */
-    public function priceNight(StayContext $stay, Rate $rate): NightPrice;
+    public function priceStay(StayContext $stay, CarbonImmutable $arrival, CarbonImmutable $departure): array;
 
     /**
      * How many units a long-stay discount amount is taken off each night: guests, beds or rooms.

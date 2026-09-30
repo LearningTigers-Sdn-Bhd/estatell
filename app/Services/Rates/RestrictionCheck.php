@@ -2,7 +2,9 @@
 
 namespace App\Services\Rates;
 
+use App\Enums\Weekday;
 use App\Models\Rate;
+use App\Models\RatePlanArrivalWeekday;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\Date;
 
@@ -44,6 +46,16 @@ class RestrictionCheck
         }
 
         $arrivalRate = $rates->get($arrival->toDateString());
+        $allowedDays = RatePlanArrivalWeekday::query()->where('rate_plan_id', $ratePlanId)->get()
+            ->map(fn (RatePlanArrivalWeekday $row): Weekday => $row->weekday)
+            ->sortBy(fn (Weekday $day): int => $day->isoNumber());
+
+        if ($allowedDays->isNotEmpty() && ! $allowedDays->contains(Weekday::forDate($arrival))) {
+            $violations[] = __('Arrival on :day is not allowed. Allowed days: :days.', [
+                'day' => Weekday::forDate($arrival)->label(),
+                'days' => $allowedDays->map(fn (Weekday $day): string => $day->label())->implode(', '),
+            ]);
+        }
 
         if ($arrivalRate?->closed_to_arrival) {
             $violations[] = __('Closed to arrival on :date.', ['date' => $arrival->format('d M Y')]);

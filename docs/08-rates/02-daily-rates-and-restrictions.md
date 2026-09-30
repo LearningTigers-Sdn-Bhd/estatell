@@ -36,7 +36,7 @@ rate_occupancy_prices     id, rate_id, adults, amount
     - PerGuest: starts from the 1 adult price, which is per person. "Per person, each extra adult" is Same price, Less or More, by an amount or %. The per person price moves one step for each adult after the first, and each row gets the room total. Example, 1 adult RM475, Less RM25: 2 adults = 2 × 450 = 900, 3 adults = 3 × 425 = 1,275.
     - PerBed has one price row, so it has no Auto.
 - On a PerGuest plan, each adult-count price shows its share per person under the field ("475.00 each"). It is display only. The field stays a room total, so a per person price typed there shows up as half.
-- Restrictions (`stop_sell`, `closed_to_arrival`, `closed_to_departure`, `min_stay`, `max_stay`) are checked by one service, `RestrictionCheck`, for every channel.
+- Restrictions (`stop_sell`, `closed_to_arrival`, `closed_to_departure`, `min_stay`, `max_stay`, and a package's arrival weekdays) are checked by one service, `RestrictionCheck`, for every channel.
 
 | Channel                   | When a restriction fails                                                                                                           |
 | ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
