@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Rates;
 
 use App\Models\RatePlan;
+use App\Services\Rates\DerivedRatePlans;
 use App\Services\Rates\RatePlanCoverage;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -58,7 +59,18 @@ class RatePlanRoomTypesRequest extends FormRequest
                     return;
                 }
 
-                $message = $coverage->message($ratePlan, $ids);
+                if ($ratePlan->parent_rate_plan_id !== null) {
+                    $parent = $ratePlan->parent;
+
+                    if (array_diff($ids, $parent->roomTypes()->pluck('room_types.id')->all()) !== []) {
+                        $validator->errors()->add('room_type_ids', __('This plan can sell only the room types of :parent, the plan it follows.', ['parent' => $parent->name]));
+
+                        return;
+                    }
+                }
+
+                $removed = array_diff($ratePlan->roomTypes()->active()->pluck('room_types.id')->all(), $ids);
+                $message = app(DerivedRatePlans::class)->unlinkMessage($ratePlan, array_values($removed)) ?? $coverage->message($ratePlan, $ids);
 
                 if ($message !== null) {
                     $validator->errors()->add('room_type_ids', $message);

@@ -5,18 +5,20 @@ namespace App\Actions\Rates;
 use App\Models\Property;
 use App\Models\RatePlan;
 use App\Models\User;
+use App\Services\Rates\DerivedRatePlans;
 use App\Services\Rates\RatePlanCoverage;
 use Illuminate\Support\Facades\DB;
 
 class SyncRatePlanRoomTypes
 {
-    public function __construct(private RatePlanCoverage $coverage) {}
+    public function __construct(private RatePlanCoverage $coverage, private DerivedRatePlans $derivedRatePlans) {}
 
     /**
      * Set which active room types the plan sells. Links to archived room types are left alone.
      *
      * Returns false for an archived plan, for a room type that is not an active room type of the property whose sell unit
-     * fits the plan's pricing basis, or when unlinking would leave an active room type with no active plan.
+     * fits the plan's pricing basis, when unlinking would leave an active room type with no active plan,
+     * when unlinking a room type that an active follower sells, or when a derived plan adds a room type its parent does not sell.
      * A save that changes nothing is not logged.
      *
      * @param  list<int>  $roomTypeIds
@@ -41,6 +43,14 @@ class SyncRatePlanRoomTypes
             $current = $ratePlan->roomTypes()->active()->pluck('room_types.id')->all();
             $added = array_values(array_diff($wanted, $current));
             $removed = array_values(array_diff($current, $wanted));
+
+            if ($this->derivedRatePlans->unlinkMessage($ratePlan, $removed) !== null) {
+                return false;
+            }
+
+            if ($ratePlan->parent_rate_plan_id !== null && array_diff($added, $ratePlan->parent->roomTypes()->pluck('room_types.id')->all()) !== []) {
+                return false;
+            }
 
             if ($added === [] && $removed === []) {
                 return true;

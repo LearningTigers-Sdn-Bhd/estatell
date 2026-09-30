@@ -130,6 +130,8 @@ Route::prefix('settings')->name('settings.')->group(function () {
         Route::post('{ratePlan}/discounts/preview', [RatePlanController::class, 'previewDiscounts'])->name('discounts.preview');
         Route::get('{ratePlan}/pricing', [RatePlanController::class, 'editPricing'])->name('pricing.edit');
         Route::put('{ratePlan}/pricing', [RatePlanController::class, 'updatePricing'])->name('pricing.update');
+        Route::put('{ratePlan}/pricing/derivation', [RatePlanController::class, 'updateDerivation'])->name('pricing.derivation.update');
+        Route::post('{ratePlan}/pricing/derivation/preview', [RatePlanController::class, 'previewDerivation'])->name('pricing.derivation.preview');
         Route::post('{ratePlan}/pricing/extend', [RatePlanController::class, 'extendPricing'])->name('pricing.extend');
         Route::post('{ratePlan}/archive', [RatePlanController::class, 'archive'])->name('archive');
         Route::post('{ratePlan}/restore', [RatePlanController::class, 'restore'])->name('restore');

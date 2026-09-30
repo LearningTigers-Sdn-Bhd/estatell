@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Rates;
 
 use App\Models\RatePlan;
+use App\Services\Rates\DerivedRatePlans;
 use App\Services\Rates\RatePlanCoverage;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -27,7 +28,7 @@ class ArchiveRatePlanRequest extends FormRequest
     }
 
     /**
-     * A plan cannot be archived while an active room type would be left with no active plan.
+     * A plan cannot be archived while an active room type would be left with no active plan, or while active plans follow it.
      *
      * @return array<int, callable(Validator): void>
      */
@@ -37,7 +38,7 @@ class ArchiveRatePlanRequest extends FormRequest
             function (Validator $validator): void {
                 /** @var RatePlan $ratePlan */
                 $ratePlan = $this->route('ratePlan');
-                $message = app(RatePlanCoverage::class)->message($ratePlan);
+                $message = app(DerivedRatePlans::class)->followersMessage($ratePlan) ?? app(RatePlanCoverage::class)->message($ratePlan);
 
                 if ($message !== null) {
                     $validator->errors()->add('rate_plan', $message);

@@ -10,12 +10,13 @@ use App\Services\Rates\Pricing\StayContext;
 use InvalidArgumentException;
 
 /**
- * Prices a stay night by night with the strategy of the plan's pricing basis. It reads only. Restrictions are
+ * Prices a stay night by night with the strategy of the plan's pricing basis. A derived plan is priced as its parent,
+ * then adjusted by `DerivedRateResolver`. It reads only. Restrictions are
  * checked by `RestrictionCheck`, not here.
  */
 class RateQuoteService
 {
-    public function __construct(private StayDiscount $stayDiscount) {}
+    public function __construct(private StayDiscount $stayDiscount, private DerivedRateResolver $derivedRateResolver) {}
 
     public function quote(RateQuoteRequest $request): RateQuote
     {
@@ -58,7 +59,13 @@ class RateQuoteService
             throw new QuoteRefused(RateQuote::REFUSAL_PLAN_ARCHIVED);
         }
 
-        $strategyClass = $plan->pricing_basis->strategy();
+        $pricingPlan = $plan->parent_rate_plan_id === null ? $plan : $plan->loadMissing('parent')->parent;
+
+        if ($pricingPlan->archived_at !== null) {
+            throw new QuoteRefused(RateQuote::REFUSAL_PLAN_ARCHIVED);
+        }
+
+        $strategyClass = $pricingPlan->pricing_basis->strategy();
 
         if ($strategyClass === null) {
             throw new QuoteRefused(RateQuote::REFUSAL_BASIS_UNSUPPORTED);
@@ -71,14 +78,14 @@ class RateQuoteService
         $currency = $plan->property->settings?->currency->value
             ?? throw new InvalidArgumentException('The property needs settings with a currency to quote a stay.');
 
-        $plan->loadMissing('childPrices');
+        $pricingPlan->loadMissing('childPrices');
         [$adults, $childAgeGroupIds] = $this->splitGuests($request);
-        $stay = new StayContext($plan, $roomType, $adults, $childAgeGroupIds, $request->beds, $currency);
+        $stay = new StayContext($pricingPlan, $roomType, $adults, $childAgeGroupIds, $request->beds, $currency);
         $strategy = app($strategyClass);
 
         $rates = Rate::query()
             ->with('occupancyPrices')
-            ->where('rate_plan_id', $plan->id)
+            ->where('rate_plan_id', $pricingPlan->id)
             ->where('room_type_id', $roomType->id)
             ->where('date', '>=', $arrival->toDateString())
             ->where('date', '<', $departure->toDateString())
@@ -94,7 +101,8 @@ class RateQuoteService
                 throw new QuoteRefused(RateQuote::REFUSAL_RATE_MISSING, $date);
             }
 
-            $nights[] = $strategy->priceNight($stay, $rate);
+            $night = $strategy->priceNight($stay, $rate);
+            $nights[] = $pricingPlan === $plan ? $night : $this->derivedRateResolver->resolve($night, $plan, $strategy->discountUnits($stay));
         }
 
         return new PricedNights($nights, $strategy->discountUnits($stay));

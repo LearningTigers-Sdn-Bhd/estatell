@@ -292,6 +292,24 @@ checkChildPrices: boolean,
 roomTypeIds: number[],
 roomTypeNames: string[],
 };
+export type RatePlanDerivationData = {
+parentRatePlanId: number | null,
+derivation: App.Enums.RateDerivation | null,
+direction: string | null,
+value: string | null,
+parents: App.Data.Rates.RatePlanParentOptionData[],
+cannotFollowReason: string | null,
+};
+export type RatePlanDerivationPreviewRowData = {
+roomTypeId: number,
+name: string,
+parentAmount: string | null,
+derivedAmount: string | null,
+};
+export type RatePlanParentOptionData = {
+id: number,
+name: string,
+};
 export type RatePlanRoomTypeChoiceData = {
 id: number,
 name: string,
@@ -483,6 +501,7 @@ export type PlatformFeature = 'channel-manager';
 export type PricingBasis = 'per_room' | 'per_guest' | 'per_bed' | 'package';
 export type PropertyStatus = 'onboarding' | 'pending_approval' | 'live' | 'suspended';
 export type PropertyType = 'hotel' | 'hostel' | 'resort' | 'serviced_apartment' | 'homestay';
+export type RateDerivation = 'percent' | 'amount';
 export type RegistrationCardScope = 'primary_only' | 'every_adult';
 export type RoomBlockReason = 'maintenance' | 'owner_use' | 'out_of_order' | 'other';
 export type SellUnit = 'room' | 'bed';

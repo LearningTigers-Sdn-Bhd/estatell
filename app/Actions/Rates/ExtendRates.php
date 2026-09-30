@@ -21,14 +21,14 @@ class ExtendRates
      * Stop sell and closed-to-arrival/departure are date-specific and are not copied. Existing ones on
      * the new dates stay. A room type with no price yet is skipped.
      *
-     * Returns the number of dates written, or false for an archived or package plan.
+     * Returns the number of dates written, or false for an archived, package or derived plan.
      */
     public function __invoke(User $actor, RatePlan $ratePlan, CarbonInterface $today): int|false
     {
         return DB::transaction(function () use ($actor, $ratePlan, $today): int|false {
             $ratePlan = RatePlan::query()->lockForUpdate()->findOrFail($ratePlan->id);
 
-            if ($ratePlan->archived_at !== null || $ratePlan->pricing_basis === PricingBasis::Package) {
+            if ($ratePlan->archived_at !== null || $ratePlan->pricing_basis === PricingBasis::Package || $ratePlan->parent_rate_plan_id !== null) {
                 return false;
             }
 

@@ -22,7 +22,7 @@ class SaveRates
      * and dates with no rate row yet get one.
      *
      * Returns the number of dates written, or false for an archived plan, a room type the plan does not sell,
-     * an amount on a package plan, or a range or restriction set that would leave a min stay above a max stay.
+     * an amount on a package plan or a derived plan, or a range or restriction set that would leave a min stay above a max stay.
      *
      * @param  list<array{room_type_id: int, days: array<int, array{amount: string|null, occupancy: list<array{adults: int, amount: string}>}>}>  $roomTypes
      * @param  array{min_stay?: int|null, max_stay?: int|null, closed_to_arrival?: bool, closed_to_departure?: bool, stop_sell?: bool}  $restrictions
@@ -64,7 +64,7 @@ class SaveRates
                         continue;
                     }
 
-                    if ($amount !== null && $ratePlan->pricing_basis === PricingBasis::Package) {
+                    if ($amount !== null && ($ratePlan->pricing_basis === PricingBasis::Package || $ratePlan->parent_rate_plan_id !== null)) {
                         return false;
                     }
 

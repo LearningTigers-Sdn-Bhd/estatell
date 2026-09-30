@@ -29,7 +29,7 @@ Interface `StayPricing`: returns one amount breakdown per night (base, extra, su
 - **PerRoom:** a price for the adult count in `rate_occupancy_prices` wins. Otherwise the room price plus `extra_adult_amount` for each adult above the room type's `base_occupancy`. Children never count toward `base_occupancy`. Each child pays `extra_child_amount` flat, with or without an occupancy price.
 - **PerGuest:** the occupancy price for the adult count, else adult rate x adults. `extra_adult_amount` is not used. The `single_supplement` is added for one adult with no occupancy price for 1 adult. A Percent child price is a percent of the 1-adult price for the night (its occupancy price if set, else the rate), rounded half up to 2 decimals.
 - **PerBed:** bed rate x `beds`.
-- **Derived plans:** a plan with no own `amount` is refused as "no price" until [derived rate plans](04-derived-rate-plans.md) are built.
+- **Derived plans:** `RateQuoteService` prices a derived plan with its parent's strategy and rates, then `DerivedRateResolver` adjusts each night (see [derived rate plans](04-derived-rate-plans.md)). A missing parent rate is refused as `rate_missing`, and an archived parent as `plan_archived`.
 
 ## Quote steps
 

@@ -8,6 +8,7 @@ use App\Actions\Rates\ExtendRates;
 use App\Actions\Rates\ReorderRatePlans;
 use App\Actions\Rates\RestoreRatePlan;
 use App\Actions\Rates\SaveRatePlanChildPrices;
+use App\Actions\Rates\SaveRatePlanDerivation;
 use App\Actions\Rates\SaveRatePlanStayDiscounts;
 use App\Actions\Rates\SaveRates;
 use App\Actions\Rates\SyncRatePlanRoomTypes;
@@ -17,12 +18,15 @@ use App\Data\Property\WeekendNightsOptionData;
 use App\Data\Rates\NewRatePlanRoomTypeData;
 use App\Data\Rates\RatePlanChildPriceData;
 use App\Data\Rates\RatePlanData;
+use App\Data\Rates\RatePlanDerivationData;
+use App\Data\Rates\RatePlanDerivationPreviewRowData;
 use App\Data\Rates\RatePlanRoomTypeChoiceData;
 use App\Data\Rates\RatePlanStayDiscountData;
 use App\Data\Rates\RatePricingRoomTypeData;
 use App\Data\Rates\StayDiscountPreviewData;
 use App\Enums\AgeBandPricing;
 use App\Enums\PricingBasis;
+use App\Enums\RateDerivation;
 use App\Enums\SellUnit;
 use App\Enums\StayDiscountType;
 use App\Enums\WeekendNights;
@@ -30,6 +34,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Rates\ArchiveRatePlanRequest;
 use App\Http\Requests\Rates\CreateRatePlanRequest;
 use App\Http\Requests\Rates\RatePlanChildPricesRequest;
+use App\Http\Requests\Rates\RatePlanDerivationRequest;
 use App\Http\Requests\Rates\RatePlanDiscountsPreviewRequest;
 use App\Http\Requests\Rates\RatePlanRequest;
 use App\Http\Requests\Rates\RatePlanRoomTypesRequest;
@@ -41,6 +46,8 @@ use App\Models\RatePlan;
 use App\Models\RatePlanChildPrice;
 use App\Models\RatePlanStayDiscount;
 use App\Models\RoomType;
+use App\Services\Rates\DerivedRatePlans;
+use App\Services\Rates\DerivedRatePreview;
 use App\Services\Rates\RatesEndingCheck;
 use App\Services\Rates\StayDiscountPreview;
 use Illuminate\Http\JsonResponse;
@@ -58,7 +65,7 @@ class RatePlanController extends Controller
     {
         return Inertia::render('settings/rate-plans/index', [
             'ratePlans' => $property->ratePlans()
-                ->with('roomTypes')
+                ->with('roomTypes', 'parent')
                 ->orderByRaw('archived_at IS NOT NULL')
                 ->ordered()
                 ->get()
@@ -181,7 +188,7 @@ class RatePlanController extends Controller
     /**
      * The Pricing tab, for plans that carry their own prices. Package plans use package prices instead.
      */
-    public function editPricing(Property $property, RatePlan $ratePlan, RatesEndingCheck $ratesEndingCheck): Response
+    public function editPricing(Property $property, RatePlan $ratePlan, RatesEndingCheck $ratesEndingCheck, DerivedRatePlans $derivedRatePlans): Response
     {
         abort_if($ratePlan->pricing_basis === PricingBasis::Package, 404);
 
@@ -190,6 +197,8 @@ class RatePlanController extends Controller
 
         return Inertia::render('settings/rate-plans/pricing', [
             'ratePlan' => RatePlanData::fromModel($ratePlan->load('roomTypes')),
+            'derivation' => RatePlanDerivationData::forPlan($ratePlan, $derivedRatePlans),
+            'derivations' => RateDerivation::options(),
             'roomTypes' => $ratePlan->roomTypes()->whereNull('room_types.archived_at')->orderBy('room_types.position')->orderBy('room_types.id')->get()
                 ->map(fn (RoomType $roomType): RatePricingRoomTypeData => RatePricingRoomTypeData::fromModel(
                     $roomType,
@@ -254,6 +263,38 @@ class RatePlanController extends Controller
         return to_route('settings.rate-plans.pricing.edit', ['property' => $property, 'ratePlan' => $ratePlan]);
     }
 
+    public function updateDerivation(RatePlanDerivationRequest $request, Property $property, RatePlan $ratePlan, SaveRatePlanDerivation $saveRatePlanDerivation): RedirectResponse
+    {
+        abort_if($ratePlan->pricing_basis === PricingBasis::Package, 404);
+
+        Inertia::flash('toast', $saveRatePlanDerivation($request->user(), $ratePlan, $request->parentId(), $request->derivation(), $request->signedValue())
+            ? ['type' => 'success', 'message' => $request->parentId() === null ? __('This plan sets its own prices.') : __('Pricing saved.')]
+            : ['type' => 'error', 'message' => __('The rate plan changed. Reload the page and try again.')]);
+
+        return to_route('settings.rate-plans.pricing.edit', ['property' => $property, 'ratePlan' => $ratePlan]);
+    }
+
+    /**
+     * Shows today's price per room type with an unsaved derivation. Nothing is saved.
+     */
+    public function previewDerivation(RatePlanDerivationRequest $request, Property $property, RatePlan $ratePlan, DerivedRatePlans $derivedRatePlans, DerivedRatePreview $derivedRatePreview): JsonResponse
+    {
+        abort_if($ratePlan->pricing_basis === PricingBasis::Package, 404);
+
+        $parent = $request->parentId() === null
+            ? null
+            : $derivedRatePlans->eligibleParents($ratePlan)->firstWhere('id', $request->parentId());
+
+        if ($parent === null || $request->derivation() === null || $request->signedValue() === null) {
+            return response()->json([]);
+        }
+
+        return response()->json(array_map(
+            fn (array $row): RatePlanDerivationPreviewRowData => new RatePlanDerivationPreviewRowData($row['room_type_id'], $row['name'], $row['parent_amount'], $row['derived_amount']),
+            $derivedRatePreview->preview($ratePlan, $parent, $request->derivation(), $request->signedValue(), now($property->settings->time_zone)->startOfDay(), $property->settings->currency->value),
+        ));
+    }
+
     public function extendPricing(Request $request, Property $property, RatePlan $ratePlan, ExtendRates $extendRates): RedirectResponse
     {
         $written = $extendRates($request->user(), $ratePlan, now($property->settings->time_zone));
@@ -276,11 +317,11 @@ class RatePlanController extends Controller
         return to_route('settings.rate-plans.index', $property);
     }
 
-    public function archive(ArchiveRatePlanRequest $request, Property $property, RatePlan $ratePlan, ArchiveRatePlan $archiveRatePlan): RedirectResponse
+    public function archive(ArchiveRatePlanRequest $request, Property $property, RatePlan $ratePlan, ArchiveRatePlan $archiveRatePlan, DerivedRatePlans $derivedRatePlans): RedirectResponse
     {
         Inertia::flash('toast', $archiveRatePlan($request->user(), $ratePlan)
             ? ['type' => 'success', 'message' => __(':name archived.', ['name' => $ratePlan->name])]
-            : ['type' => 'error', 'message' => __(':name cannot be archived. Reload the page and try again.', ['name' => $ratePlan->name])]);
+            : ['type' => 'error', 'message' => $derivedRatePlans->followersMessage($ratePlan) ?? __(':name cannot be archived. Reload the page and try again.', ['name' => $ratePlan->name])]);
 
         return to_route('settings.rate-plans.index', $property);
     }

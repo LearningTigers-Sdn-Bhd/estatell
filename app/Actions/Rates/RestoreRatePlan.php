@@ -12,7 +12,7 @@ class RestoreRatePlan
     /**
      * Bring an archived plan back at the end of the list.
      *
-     * Returns false when it is not archived, or an active plan already has the same name.
+     * Returns false when it is not archived, an active plan already has the same name, or the plan it follows is archived.
      */
     public function __invoke(User $actor, RatePlan $ratePlan): bool
     {
@@ -21,6 +21,10 @@ class RestoreRatePlan
             $ratePlan = RatePlan::query()->lockForUpdate()->findOrFail($ratePlan->id);
 
             if ($ratePlan->archived_at === null) {
+                return false;
+            }
+
+            if ($ratePlan->parent_rate_plan_id !== null && $ratePlan->parent->archived_at !== null) {
                 return false;
             }
 

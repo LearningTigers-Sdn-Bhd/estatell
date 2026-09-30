@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\EarlyDeparturePolicy;
 use App\Enums\PricingBasis;
+use App\Enums\RateDerivation;
 use Database\Factories\RatePlanFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
@@ -25,6 +26,9 @@ use Illuminate\Support\Carbon;
  * @property string $extra_adult_amount
  * @property string $extra_child_amount
  * @property string $single_supplement
+ * @property int|null $parent_rate_plan_id
+ * @property RateDerivation|null $derivation
+ * @property string|null $derivation_value
  * @property EarlyDeparturePolicy $early_departure_policy
  * @property bool $needs_child_price_review
  * @property int $position
@@ -34,7 +38,7 @@ use Illuminate\Support\Carbon;
  */
 #[Fillable([
     'name', 'description', 'pricing_basis', 'extra_adult_amount', 'extra_child_amount', 'single_supplement',
-    'early_departure_policy', 'needs_child_price_review', 'position', 'archived_at',
+    'parent_rate_plan_id', 'derivation', 'derivation_value', 'early_departure_policy', 'needs_child_price_review', 'position', 'archived_at',
 ])]
 class RatePlan extends Model
 {
@@ -48,6 +52,8 @@ class RatePlan extends Model
     {
         return [
             'pricing_basis' => PricingBasis::class,
+            'derivation' => RateDerivation::class,
+            'derivation_value' => 'decimal:2',
             'early_departure_policy' => EarlyDeparturePolicy::class,
             'extra_adult_amount' => 'decimal:2',
             'extra_child_amount' => 'decimal:2',
@@ -63,6 +69,22 @@ class RatePlan extends Model
     public function property(): BelongsTo
     {
         return $this->belongsTo(Property::class);
+    }
+
+    /**
+     * @return BelongsTo<RatePlan, $this>
+     */
+    public function parent(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'parent_rate_plan_id');
+    }
+
+    /**
+     * @return HasMany<RatePlan, $this>
+     */
+    public function derivedPlans(): HasMany
+    {
+        return $this->hasMany(self::class, 'parent_rate_plan_id');
     }
 
     /**

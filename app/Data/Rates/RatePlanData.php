@@ -3,6 +3,7 @@
 namespace App\Data\Rates;
 
 use App\Enums\PricingBasis;
+use App\Enums\RateDerivation;
 use App\Models\RatePlan;
 use Spatie\LaravelData\Data;
 
@@ -30,7 +31,7 @@ class RatePlanData extends Data
     ) {}
 
     /**
-     * Load the plan's `roomTypes` first. Archived room types are left out.
+     * Load the plan's `roomTypes` first, and `parent` to show what a derived plan follows. Archived room types are left out.
      */
     public static function fromModel(RatePlan $ratePlan): self
     {
@@ -42,7 +43,7 @@ class RatePlanData extends Data
             description: $ratePlan->description,
             pricingBasis: $ratePlan->pricing_basis,
             family: $ratePlan->pricing_basis->family(),
-            pricingLabel: $ratePlan->pricing_basis->label(),
+            pricingLabel: self::pricingLabel($ratePlan),
             extraAdultAmount: $ratePlan->extra_adult_amount,
             extraChildAmount: $ratePlan->extra_child_amount,
             singleSupplement: $ratePlan->single_supplement,
@@ -51,5 +52,18 @@ class RatePlanData extends Data
             roomTypeIds: $roomTypes->pluck('id')->all(),
             roomTypeNames: $roomTypes->pluck('name')->all(),
         );
+    }
+
+    private static function pricingLabel(RatePlan $ratePlan): string
+    {
+        if ($ratePlan->parent_rate_plan_id === null || ! $ratePlan->relationLoaded('parent') || $ratePlan->derivation === null) {
+            return $ratePlan->pricing_basis->label();
+        }
+
+        $value = (float) $ratePlan->derivation_value;
+        $change = ($value < 0 ? '-' : '+').rtrim(rtrim(number_format(abs($value), 2, '.', ''), '0'), '.')
+            .($ratePlan->derivation === RateDerivation::Percent ? '%' : '');
+
+        return __('Follows :parent :change', ['parent' => $ratePlan->parent->name, 'change' => $change]);
     }
 }
