@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
 use Spatie\MediaLibrary\HasMedia;
@@ -69,6 +70,14 @@ class RoomType extends Model implements HasMedia
     public function rooms(): HasMany
     {
         return $this->hasMany(Room::class);
+    }
+
+    /**
+     * @return BelongsToMany<RatePlan, $this>
+     */
+    public function ratePlans(): BelongsToMany
+    {
+        return $this->belongsToMany(RatePlan::class, 'rate_plan_room_types')->withTimestamps();
     }
 
     /**

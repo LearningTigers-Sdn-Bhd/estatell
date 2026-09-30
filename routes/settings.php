@@ -10,6 +10,7 @@ use App\Http\Controllers\Meals\MealPeriodController;
 use App\Http\Controllers\Property\AgeGroupController;
 use App\Http\Controllers\Property\NotificationSettingController;
 use App\Http\Controllers\Property\PropertySettingsController;
+use App\Http\Controllers\Rates\RatePlanController;
 use App\Http\Controllers\Rooms\BedController;
 use App\Http\Controllers\Rooms\RoomController;
 use App\Http\Controllers\Rooms\RoomGroupController;
@@ -112,6 +113,20 @@ Route::prefix('settings')->name('settings.')->group(function () {
         Route::get('/', [MealPeriodController::class, 'index'])->name('index');
         Route::post('/', [MealPeriodController::class, 'store'])->name('store');
         Route::put('{mealPeriod}', [MealPeriodController::class, 'update'])->name('update');
+    });
+
+    Route::prefix('rate-plans')->name('rate-plans.')->middleware('can:'.PermissionEnum::SettingsManage->value)->scopeBindings()->group(function () {
+        Route::get('/', [RatePlanController::class, 'index'])->name('index');
+        Route::post('/', [RatePlanController::class, 'store'])->name('store');
+        Route::put('order', [RatePlanController::class, 'reorder'])->name('reorder');
+        Route::get('{ratePlan}', [RatePlanController::class, 'edit'])->name('edit');
+        Route::put('{ratePlan}', [RatePlanController::class, 'update'])->name('update');
+        Route::get('{ratePlan}/room-types', [RatePlanController::class, 'editRoomTypes'])->name('room-types.edit');
+        Route::put('{ratePlan}/room-types', [RatePlanController::class, 'updateRoomTypes'])->name('room-types.update');
+        Route::get('{ratePlan}/child-prices', [RatePlanController::class, 'editChildPrices'])->name('child-prices.edit');
+        Route::put('{ratePlan}/child-prices', [RatePlanController::class, 'updateChildPrices'])->name('child-prices.update');
+        Route::post('{ratePlan}/archive', [RatePlanController::class, 'archive'])->name('archive');
+        Route::post('{ratePlan}/restore', [RatePlanController::class, 'restore'])->name('restore');
     });
 
     Route::prefix('age-groups')->name('age-groups.')->middleware('can:'.PermissionEnum::SettingsManage->value)->scopeBindings()->group(function () {

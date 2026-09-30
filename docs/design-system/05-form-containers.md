@@ -109,3 +109,12 @@ Room types / New room type
 | Dialog      | Invite staff, guest note, tag, record payment or refund, post charge, apply discount, guest quick-add, block room (from a detail page)            |
 | Sheet       | Block room (from Stay View), housekeeping assign and status, transfer folio lines (`lg`), charge item, payment method, tax, discount, meal period |
 | Full page   | Company, guest profile, room type, rate plan, booking form, registration card, terms editor, property settings, onboarding steps                  |
+
+## Unsaved changes
+
+A full-page form whose tabs or links lead to other pages guards its unsaved changes with `useUnsavedChanges(form.isDirty)` and `UnsavedChangesDialog`.
+
+- In-app navigation is blocked while the form is dirty. An AlertDialog offers **Cancel** (stay), **Discard** (leave) and **Save** (save, then leave).
+- Prefetches, non-GET requests and visits to the current URL are not blocked. A browser reload or tab close asks the browser to confirm.
+- After a successful save the form calls `form.setDefaults()`, so it is clean again.
+- Built for the rate plan editor. Use it for any other full-page editor with several tab pages.

@@ -44,6 +44,12 @@ class SettingsNavigation
             ]))),
             new NavGroupData(label: __('Rates'), items: array_values(array_filter([
                 $user->can(PermissionEnum::SettingsManage->value) ? new NavItemData(
+                    title: __('Rate plans'),
+                    href: route('settings.rate-plans.index', ['property' => $property->code], absolute: false),
+                    icon: 'tag',
+                    active: request()->routeIs('settings.rate-plans.*'),
+                ) : null,
+                $user->can(PermissionEnum::SettingsManage->value) ? new NavItemData(
                     title: __('Meal periods'),
                     href: route('settings.meal-periods.index', ['property' => $property->code], absolute: false),
                     icon: 'utensils',

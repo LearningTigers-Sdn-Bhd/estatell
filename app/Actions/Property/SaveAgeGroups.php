@@ -2,6 +2,8 @@
 
 namespace App\Actions\Property;
 
+use App\Enums\AgeBandPricing;
+use App\Enums\PricingBasis;
 use App\Models\Property;
 use App\Models\PropertyAgeGroup;
 use App\Models\User;
@@ -14,7 +16,8 @@ class SaveAgeGroups
      *
      * The first group starts at age 0 and each next group starts one year after the previous group ends,
      * so ranges never have gaps or overlaps. A row with an id keeps that id. A row without one is new.
-     * An existing group missing from the list is deleted.
+     * An existing group missing from the list is deleted, and its child prices go with it.
+     * A new group gets a Free child price on every per-guest rate plan, and those plans are flagged "Check child prices".
      *
      * Returns false, without writing, when a row id is not one of the property's current groups.
      * A save that changes nothing is not logged.
@@ -64,7 +67,7 @@ class SaveAgeGroups
                 $attributes = ['label' => $row['label'], 'min_age' => $row['min_age'], 'max_age' => $row['max_age']];
 
                 if ($row['id'] === null) {
-                    $property->ageGroups()->create($attributes);
+                    $this->addChildPrices($property, $property->ageGroups()->create($attributes));
                 } else {
                     $property->ageGroups()->whereKey($row['id'])->update($attributes);
                 }
@@ -79,5 +82,19 @@ class SaveAgeGroups
 
             return true;
         });
+    }
+
+    private function addChildPrices(Property $property, PropertyAgeGroup $ageGroup): void
+    {
+        $ratePlans = $property->ratePlans()->where('pricing_basis', PricingBasis::PerGuest)->get();
+
+        foreach ($ratePlans as $ratePlan) {
+            $ratePlan->childPrices()->create([
+                'property_age_group_id' => $ageGroup->id,
+                'pricing' => AgeBandPricing::Free,
+                'value' => null,
+            ]);
+            $ratePlan->forceFill(['needs_child_price_review' => true])->save();
+        }
     }
 }

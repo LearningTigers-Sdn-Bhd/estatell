@@ -2,6 +2,7 @@
 
 namespace App\Actions\Rooms;
 
+use App\Actions\Rates\ReconcileRoomTypeRatePlans;
 use App\Models\Property;
 use App\Models\RoomType;
 use App\Models\User;
@@ -9,8 +10,10 @@ use Illuminate\Support\Facades\DB;
 
 class CreateRoomType
 {
+    public function __construct(private ReconcileRoomTypeRatePlans $reconcileRatePlans) {}
+
     /**
-     * Add a room type at the end of the list.
+     * Add a room type at the end of the list. It is linked to the first active rate plan whose pricing basis fits.
      *
      * @param  array<string, mixed>  $attributes  Validated room type fields.
      */
@@ -23,6 +26,8 @@ class CreateRoomType
             $roomType->property_id = $property->id;
             $roomType->position = ((int) $property->roomTypes()->max('position')) + 1;
             $roomType->save();
+
+            ($this->reconcileRatePlans)($roomType);
 
             activity()
                 ->performedOn($roomType)

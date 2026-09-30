@@ -14,6 +14,7 @@ import {
     Percent,
     Settings,
     Shield,
+    Tag,
     Users,
     Utensils,
     Wallet,
@@ -41,6 +42,7 @@ const icons: Record<string, LucideIcon> = {
     'chart-column': ChartColumn,
     users: Users,
     shield: Shield,
+    tag: Tag,
 };
 
 export function navIcon(name: string): LucideIcon | undefined {

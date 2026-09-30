@@ -255,6 +255,44 @@ name: string,
 status: App.Enums.PropertyStatus,
 };
 }
+namespace Rates {
+export type NewRatePlanRoomTypeData = {
+id: number,
+name: string,
+sellUnit: App.Enums.SellUnit,
+sellUnitLabel: string,
+fitsBases: App.Enums.PricingBasis[],
+};
+export type RatePlanChildPriceData = {
+ageGroupId: number,
+label: string,
+minAge: number,
+maxAge: number,
+pricing: App.Enums.AgeBandPricing,
+value: string | null,
+};
+export type RatePlanData = {
+id: number,
+name: string,
+description: string | null,
+pricingBasis: App.Enums.PricingBasis,
+family: string,
+pricingLabel: string,
+extraAdultAmount: string,
+extraChildAmount: string,
+singleSupplement: string,
+archived: boolean,
+checkChildPrices: boolean,
+roomTypeIds: number[],
+roomTypeNames: string[],
+};
+export type RatePlanRoomTypeChoiceData = {
+id: number,
+name: string,
+sellUnit: App.Enums.SellUnit,
+fits: boolean,
+};
+}
 namespace Rooms {
 export type BedData = {
 id: number,
@@ -365,6 +403,7 @@ deactivatedAt: string | null,
 }
 }
 namespace Enums {
+export type AgeBandPricing = 'free' | 'percent' | 'fixed';
 export type ChargingUnit = 'per_item' | 'per_night' | 'per_stay' | 'per_guest_night' | 'per_guest';
 export type Currency = 'MYR';
 export type DefaultMealPeriod = 'breakfast' | 'lunch' | 'dinner';
@@ -372,6 +411,7 @@ export type DefaultRoleEnum = 'owner' | 'manager' | 'front_desk' | 'housekeeping
 export type DiscountScope = 'room_only' | 'all_charges' | 'selected';
 export type DiscountType = 'percent' | 'fixed' | 'open';
 export type DormStrategy = 'bed_as_unit' | 'native_dorm';
+export type EarlyDeparturePolicy = 'charge_full' | 'charge_used_nights';
 export type HousekeepingStatus = 'clean' | 'dirty' | 'inspected';
 export type InclusionEnd = 'departure_day' | 'night_before_departure';
 export type InclusionStart = 'arrival_day' | 'day_after_arrival';
@@ -387,6 +427,7 @@ export type OwnerSetupMethod = 'email_link' | 'initial_password';
 export type PaymentMethodType = 'cash' | 'card' | 'bank_transfer' | 'e_wallet' | 'ota_collected' | 'direct_bill';
 export type PermissionEnum = 'settings.manage' | 'staff.view' | 'staff.manage' | 'roles.manage' | 'rooms.view' | 'rooms.manage' | 'rooms.block' | 'notification.manage';
 export type PlatformFeature = 'channel-manager';
+export type PricingBasis = 'per_room' | 'per_guest' | 'per_bed' | 'package';
 export type PropertyStatus = 'onboarding' | 'pending_approval' | 'live' | 'suspended';
 export type PropertyType = 'hotel' | 'hostel' | 'resort' | 'serviced_apartment' | 'homestay';
 export type RegistrationCardScope = 'primary_only' | 'every_adult';

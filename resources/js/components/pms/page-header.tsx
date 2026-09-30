@@ -2,6 +2,7 @@ import { Link } from '@inertiajs/react';
 import type { InertiaLinkProps } from '@inertiajs/react';
 import { ChevronLeft } from 'lucide-react';
 import type { ReactNode } from 'react';
+import { buttonVariants } from '@/components/ui/button';
 
 type Props = {
     title: string;
@@ -12,7 +13,8 @@ type Props = {
 };
 
 /**
- * Page title row: optional back link, Geist heading, badge and actions.
+ * Page title row: optional icon-only back link, then a column with the Geist heading and description,
+ * then badge and actions.
  */
 export function PageHeader({
     title,
@@ -22,17 +24,20 @@ export function PageHeader({
     actions,
 }: Props) {
     return (
-        <header className="flex flex-col gap-2">
-            {back && (
-                <Link
-                    href={back.href}
-                    className="flex w-fit items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-                >
-                    <ChevronLeft className="size-4" />
-                    {back.label}
-                </Link>
-            )}
-            <div className="flex flex-wrap items-center justify-between gap-3">
+        <header className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex min-w-0 items-center gap-3">
+                {back && (
+                    <Link
+                        href={back.href}
+                        aria-label={`Back to ${back.label}`}
+                        className={buttonVariants({
+                            variant: 'outline',
+                            size: 'icon',
+                        })}
+                    >
+                        <ChevronLeft />
+                    </Link>
+                )}
                 <div className="flex min-w-0 flex-col gap-1">
                     <div className="flex min-w-0 items-center gap-2">
                         <h1 className="truncate font-heading text-xl font-semibold tracking-tight">
@@ -46,10 +51,10 @@ export function PageHeader({
                         </p>
                     )}
                 </div>
-                {actions && (
-                    <div className="flex items-center gap-2">{actions}</div>
-                )}
             </div>
+            {actions && (
+                <div className="flex items-center gap-2">{actions}</div>
+            )}
         </header>
     );
 }

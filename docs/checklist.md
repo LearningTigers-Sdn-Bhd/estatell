@@ -130,7 +130,7 @@ Smaller fixes and reverts are in `git log`.
 ### 08 Rates
 
 - [x] `feat(property): add age groups` — seeded Infant 0–3, Child 4–11. Docs: [Age groups](02-property/04-age-groups.md).
-- [ ] `feat(rates): add rate plans` — with child prices. Docs: [Rate plans](08-rates/01-rate-plans.md).
+- [x] `feat(rates): add rate plans` — with child prices. Docs: [Rate plans](08-rates/01-rate-plans.md).
 - [ ] `feat(rates): add daily rates and restrictions` — Docs: [Daily rates and restrictions](08-rates/02-daily-rates-and-restrictions.md).
 - [ ] `feat(rates): add pricing strategies and rate quotes` — `RateQuoteService`. Docs: [Pricing strategies](08-rates/03-pricing-strategies.md).
 - [ ] `feat(rates): add derived rate plans` — Docs: [Derived rate plans](08-rates/04-derived-rate-plans.md).

@@ -2,14 +2,17 @@
 
 namespace App\Actions\Rooms;
 
+use App\Actions\Rates\ReconcileRoomTypeRatePlans;
 use App\Models\RoomType;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 
 class UpdateRoomType
 {
+    public function __construct(private ReconcileRoomTypeRatePlans $reconcileRatePlans) {}
+
     /**
-     * Save changes to an active room type.
+     * Save changes to an active room type. A new sell unit re-checks its rate plan links.
      *
      * Returns false for an archived room type.
      *
@@ -32,6 +35,10 @@ class UpdateRoomType
             }
 
             $roomType->save();
+
+            if ($roomType->wasChanged('sell_unit')) {
+                ($this->reconcileRatePlans)($roomType);
+            }
 
             activity()
                 ->performedOn($roomType)

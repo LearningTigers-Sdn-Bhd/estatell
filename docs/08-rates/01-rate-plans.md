@@ -30,6 +30,23 @@ rate_plan_stay_discounts
 - The number of guests a price covers is the room type's `base_occupancy` ("Guests included"), not a plan column (see [Room types](../05-rooms/01-room-types.md)).
 - There is no default plan flag. `position` sets the order.
 
+## Built first slice
+
+Staff with `settings.manage` use Settings, Rates, Rate plans (`settings.rate-plans.*`, `RatePlanController`). Every write is an Action in `app/Actions/Rates/`.
+
+- **Tables built:** `rate_plans`, `rate_plan_room_types`, `rate_plan_child_prices`. `rate_plans` has no `parent_rate_plan_id`, `derivation`, `derivation_value`, `is_package`, `fixed_nights` or `agent_access` yet. Each arrives with its own item (derived plans, package prices, agent portal).
+- **Extra column:** `needs_child_price_review` (boolean) stores the "Check child prices" flag. [Age groups](../02-property/04-age-groups.md) sets it when a group is added. Saving the Children tab clears it.
+- **Enums built:** `PricingBasis`, `EarlyDeparturePolicy`, `AgeBandPricing`. `PricingBasis::fits(SellUnit)` holds the sell unit table below.
+- **Package plans** cannot be created yet. The Package case exists and fits both families. The new plan Sheet and `CreateRatePlanRequest` leave it out until package prices exist.
+- **New plan:** a Sheet with name, pricing basis and optional room types. Package is not offered yet. The room type checkbox item is shared with the Room types tab.
+- **Editor:** a full page with `TabLinks`. Each tab is its own URL, controller method and page, and loads only its own data: Details (`settings.rate-plans.edit`), Room types (`settings.rate-plans.room-types.edit`) and Children (`settings.rate-plans.child-prices.edit`, PerGuest plans only, 404 otherwise). Each tab is its own form. Leaving a tab with unsaved changes asks Cancel, Discard or Save (see [Form containers](../design-system/05-form-containers.md#unsaved-changes)). The Pricing, Discounts and Agents tabs arrive with their items. `early_departure_policy` has a column and a default (ChargeFull) but no field yet.
+- **List:** name, family, pricing, linked room types, reorder, archive and restore. A new plan opens on its Room types tab.
+- **Guard built:** a room type keeps at least one active linked plan. It is checked on unlinking and archiving by `RatePlanCoverage`, and re-checked in the Action under a lock.
+- **Guards not built yet:** parent archiving needs derived plans. Deleting a used plan and unlinking a room type with future reservations need reservations. No delete path exists yet, so plans are archived only.
+- **Seeding:** `SeedRatePlans` runs in `SeedPropertyDefaults` and creates "Basic Rate", always PerRoom. The property type is not known to be dorm-only at this point, so a Bed room type has no plan until staff add a PerBed plan. The migration backfilled "Basic Rate" for existing properties.
+- **Room type links:** `ReconcileRoomTypeRatePlans` links new and restored room types and re-checks links when the sell unit changes (see [Room types](../05-rooms/01-room-types.md)).
+- **Permission:** no `rates.*` permission exists yet, so all routes use `settings.manage`.
+
 ## Enums
 
 - `PricingBasis`: PerRoom, PerGuest, PerBed, Package.
@@ -105,15 +122,11 @@ A table with name, family (Room or Bed), pricing summary ("Per room", "Basic Rat
 
 ### New plan
 
-One question per step, then the editor opens on the Room types tab.
-
-1. Rooms or beds?
-2. How is it priced? Only the bases for that family are offered.
-3. Name.
+A right-side Sheet with one short form, not a wizard: a name, how it is priced (Per room, Per guest or Per bed) and, optionally, the room types it sells. The family follows from the basis. Each room type is a checkbox item (name, description). It is disabled, with the reason, when the chosen basis cannot sell it, and changing the basis unticks room types that no longer fit. Saving opens the Details tab, or the Room types tab when none were chosen.
 
 ### Editor
 
-A full page with tabs: **Details · Room types · Pricing · Children · Discounts · Agents**. Background text goes in info tooltips, not paragraphs under each heading.
+A full page with tab links (one URL per tab): **Details · Room types · Pricing · Children · Discounts · Agents**. Background text goes in info tooltips, not paragraphs under each heading.
 
 | Tab        | Content                                                                                                    |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |

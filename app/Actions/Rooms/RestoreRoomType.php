@@ -2,14 +2,17 @@
 
 namespace App\Actions\Rooms;
 
+use App\Actions\Rates\ReconcileRoomTypeRatePlans;
 use App\Models\RoomType;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 
 class RestoreRoomType
 {
+    public function __construct(private ReconcileRoomTypeRatePlans $reconcileRatePlans) {}
+
     /**
-     * Bring an archived room type back at the end of the list.
+     * Bring an archived room type back at the end of the list. It is linked to a rate plan again when it has no active one.
      *
      * Returns false when it is not archived, or an active room type already has the same name.
      */
@@ -36,6 +39,8 @@ class RestoreRoomType
                 'archived_at' => null,
                 'position' => ((int) RoomType::query()->where('property_id', $roomType->property_id)->max('position')) + 1,
             ])->save();
+
+            ($this->reconcileRatePlans)($roomType);
 
             activity()
                 ->performedOn($roomType)

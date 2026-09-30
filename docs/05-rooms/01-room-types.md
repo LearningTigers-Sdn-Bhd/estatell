@@ -23,7 +23,8 @@ room_types    id, property_id, name, description, sell_unit (SellUnit),
 - A Bed room type has rooms with [beds](03-beds.md). Inventory is counted in beds.
 - `base_occupancy` is "Guests included": the number of guests a PerRoom price covers. It lives only on the room type, because a villa and a standard room differ.
 - A room type sells many rate plans through `rate_plan_room_types`. A Bed room type links only PerBed and Package plans (see [Rate plans](../08-rates/01-rate-plans.md)).
-- A new room type is linked to "Basic Rate" when the sell unit fits. It must keep at least one active linked plan. Not built yet: `rate_plan_room_types` arrives with the [rate plans](../08-rates/01-rate-plans.md) item, which adds the link and this guard.
+- A new room type is linked to the first active rate plan (by position) whose pricing basis fits its sell unit, normally "Basic Rate". If none fits, it stays unlinked. Changing the sell unit removes links that no longer fit and links the first plan that does. Restoring an archived room type links it again when it has no active plan.
+- A room type must keep at least one active linked plan. The [rate plan guards](../08-rates/01-rate-plans.md#guards) enforce this when a plan unlinks the room type or is archived.
 - A room type has no base price. Prices live only in [daily rates](../08-rates/02-daily-rates-and-restrictions.md).
 - `terms_document_id` selects the registration terms for guests in this room type. Null means the property default (see [Terms resolution](../16-registration/03-terms-resolution-and-locales.md)).
 - Photos use media library. No `photo_order` array columns. The `photos` collection is registered on the model; the upload UI is not built yet.
@@ -38,7 +39,7 @@ room_types    id, property_id, name, description, sell_unit (SellUnit),
 
 ## UI
 
-Settings > Room types (`settings.room-types.index`) lists active room types with sell unit, guests included and capacity, with archived ones below. A right-side Sheet creates and edits. Up and down buttons reorder. Inventory and the "N rate plans" link are added with the rooms and rate plans items. It has no price fields.
+Settings > Room types (`settings.room-types.index`) lists active room types with sell unit, guests included and capacity, with archived ones below. A right-side Sheet creates and edits. Up and down buttons reorder. The "N rate plans" link is not built yet; it needs the rate calendar. It has no price fields.
 
 ## Lessons from wastays
 
