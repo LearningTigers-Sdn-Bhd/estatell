@@ -15,11 +15,13 @@ import { calendar as calendarRoute } from '@/routes/rates';
  */
 export default function RateCalendar({
     calendar,
+    currency,
     today,
     weekendDays,
     canManage,
 }: {
     calendar: App.Data.Rates.RateCalendarData;
+    currency: App.Enums.Currency;
     today: string;
     weekendDays: number[];
     canManage: boolean;
@@ -74,6 +76,8 @@ export default function RateCalendar({
                         today={today}
                         weekendDays={weekendDays}
                         filters={filters}
+                        canManage={canManage}
+                        currency={currency}
                     />
                 </>
             )}

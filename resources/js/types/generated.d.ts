@@ -277,6 +277,7 @@ maxStay: number | null,
 closedToArrival: boolean,
 closedToDeparture: boolean,
 stopSell: boolean,
+occupancy: App.Data.Rates.RateCalendarOccupancyData[],
 };
 export type RateCalendarData = {
 from: string,
@@ -290,6 +291,10 @@ ratePlanId: number,
 ratePlanName: string,
 roomTypeNames: string[],
 };
+export type RateCalendarOccupancyData = {
+adults: number,
+amount: string,
+};
 export type RateCalendarPlanData = {
 id: number,
 name: string,
@@ -301,6 +306,8 @@ cells: App.Data.Rates.RateCalendarCellData[],
 export type RateCalendarRoomTypeData = {
 id: number,
 name: string,
+baseOccupancy: number,
+maxAdults: number,
 plans: App.Data.Rates.RateCalendarPlanData[],
 };
 export type RatePlanChildPriceData = {

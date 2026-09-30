@@ -81,6 +81,7 @@ Legend: **Needs** lists items that must be done first.
 | `c87f55a` | fix(ui): fit the date grid to the window and stop bounce               |
 | `8d5dcec` | feat(rates): choose the rate calendar date range                       |
 | `ae8dbdf` | fix(rates): polish the rate calendar toolbar and grid                  |
+| `dc55333` | feat(rates): collapse room type groups in the rate calendar            |
 
 Smaller fixes and reverts are in `git log`.
 
@@ -152,7 +153,8 @@ Smaller fixes and reverts are in `git log`.
 - [x] `feat(rates): add derived rate plans` — Docs: [Derived rate plans](08-rates/04-derived-rate-plans.md).
 - [x] `feat(rates): add the read-only rate calendar` — first use of the `pms/grid` engine, `rates.view` and `rates.manage`, month window, room type and plan filters, derived rows, rates ending alert with Extend. Docs: [Daily rates and restrictions](08-rates/02-daily-rates-and-restrictions.md#the-rate-calendar), [Data loading and grids](design-system/08-data-loading-and-grids.md).
 - [x] `feat(rates): choose the rate calendar date range` — date range picker, Today, 14 and 21 day and Month presets, wider plan column, no page header. Docs: [Daily rates and restrictions](08-rates/02-daily-rates-and-restrictions.md#the-rate-calendar).
-- [ ] `feat(rates): edit rates from the calendar` — cell edit popover and Bulk edit with the pricing form plus restriction fields, behind `rates.manage`. Needs: the read-only calendar. Docs: [Daily rates and restrictions](08-rates/02-daily-rates-and-restrictions.md#the-rate-calendar).
+- [x] `feat(rates): edit rates from the calendar` — date editor sheet from a calendar cell, `rates.calendar.update`, prices by adult count in the cell data. Docs: [Daily rates and restrictions](08-rates/02-daily-rates-and-restrictions.md#the-rate-calendar).
+- [ ] `feat(rates): bulk edit rates and restrictions` — a full page with a plan picker that reuses the pricing form and adds the restriction fields, behind `rates.manage`. Needs: the date editor. Docs: [Daily rates and restrictions](08-rates/02-daily-rates-and-restrictions.md#pricing-form).
 
 ### 09 Packages and 10 Availability
 

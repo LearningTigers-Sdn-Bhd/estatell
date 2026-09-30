@@ -5,6 +5,8 @@ import { buildDateColumns } from '@/components/pms/grid/date-columns';
 import { DateGrid } from '@/components/pms/grid/date-grid';
 import type { DateGridHandle } from '@/components/pms/grid/date-grid';
 import { cn } from '@/lib/utils';
+import { RateCellSheet } from './rate-cell-sheet';
+import type { EditingCell } from './rate-cell-sheet';
 import {
     buildRows,
     cellFlags,
@@ -23,7 +25,7 @@ const FLAG_LABELS = {
     'closed-departure': 'Closed to departure',
 } as const;
 
-function cellTitle(cell: Cell, derived: boolean): string {
+export function cellTitle(cell: Cell, derived: boolean): string {
     const parts = [
         cell.amount === null
             ? null
@@ -108,6 +110,8 @@ export function RateCalendarGrid({
     today,
     weekendDays,
     filters,
+    canManage,
+    currency,
 }: {
     gridRef: Ref<DateGridHandle>;
     roomTypes: App.Data.Rates.RateCalendarRoomTypeData[];
@@ -116,6 +120,9 @@ export function RateCalendarGrid({
     /** ISO weekdays whose nights are weekend nights, from the property settings. */
     weekendDays: number[];
     filters: CalendarFilters;
+    /** Whether a click on a cell opens the date editor. */
+    canManage: boolean;
+    currency: string;
 }) {
     const columns = useMemo(
         () => buildDateColumns(dates, today, weekendDays),
@@ -124,6 +131,7 @@ export function RateCalendarGrid({
     const [collapsedIds, setCollapsedIds] = useState<ReadonlySet<number>>(
         new Set(),
     );
+    const [editing, setEditing] = useState<EditingCell | null>(null);
     const rows = useMemo(
         () => buildRows(roomTypes, filters, collapsedIds),
         [roomTypes, filters, collapsedIds],
@@ -141,71 +149,109 @@ export function RateCalendarGrid({
     }, [roomTypes]);
 
     return (
-        <DateGrid<CalendarRow>
-            ref={gridRef}
-            aria-label="Rate calendar"
-            className="rounded-none border-x-0 border-b-0"
-            labelWidth={288}
-            bottomGap={0}
-            rows={rows}
-            columns={columns}
-            renderLabel={(row) =>
-                row.kind === 'group' ? (
-                    <button
-                        type="button"
-                        aria-expanded={!row.collapsed}
-                        title={row.collapsed ? 'Expand' : 'Collapse'}
-                        className="flex w-full min-w-0 items-center gap-2 rounded-md text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
-                        onClick={() =>
-                            setCollapsedIds((current) =>
-                                toggleCollapsed(current, row.roomType.id),
-                            )
-                        }
-                    >
-                        {row.collapsed ? (
-                            <ChevronRight
-                                aria-hidden
-                                className="size-4 shrink-0"
-                            />
-                        ) : (
-                            <ChevronDown
-                                aria-hidden
-                                className="size-4 shrink-0"
-                            />
-                        )}
-                        <span className="truncate text-sm font-semibold">
-                            {row.roomType.name}
-                        </span>
-                        {row.collapsed && (
-                            <span className="ml-auto shrink-0 text-xs text-grid-muted-foreground">
-                                {row.planCount}{' '}
-                                {row.planCount === 1 ? 'plan' : 'plans'}
+        <>
+            <DateGrid<CalendarRow>
+                ref={gridRef}
+                aria-label="Rate calendar"
+                className="rounded-none border-x-0 border-b-0"
+                labelWidth={288}
+                bottomGap={0}
+                rows={rows}
+                columns={columns}
+                renderLabel={(row) =>
+                    row.kind === 'group' ? (
+                        <button
+                            type="button"
+                            aria-expanded={!row.collapsed}
+                            title={row.collapsed ? 'Expand' : 'Collapse'}
+                            className="flex w-full min-w-0 items-center gap-2 rounded-md text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+                            onClick={() =>
+                                setCollapsedIds((current) =>
+                                    toggleCollapsed(current, row.roomType.id),
+                                )
+                            }
+                        >
+                            {row.collapsed ? (
+                                <ChevronRight
+                                    aria-hidden
+                                    className="size-4 shrink-0"
+                                />
+                            ) : (
+                                <ChevronDown
+                                    aria-hidden
+                                    className="size-4 shrink-0"
+                                />
+                            )}
+                            <span className="truncate text-sm font-semibold">
+                                {row.roomType.name}
                             </span>
-                        )}
-                    </button>
-                ) : (
-                    <span className="flex min-w-0 flex-col">
-                        <span className="truncate text-sm">
-                            {row.plan.name}
-                        </span>
-                        {row.plan.derived && (
-                            <span className="truncate text-xs text-grid-muted-foreground">
-                                Follows {row.plan.followsName}
+                            {row.collapsed && (
+                                <span className="ml-auto shrink-0 text-xs text-grid-muted-foreground">
+                                    {row.planCount}{' '}
+                                    {row.planCount === 1 ? 'plan' : 'plans'}
+                                </span>
+                            )}
+                        </button>
+                    ) : (
+                        <span className="flex min-w-0 flex-col">
+                            <span className="truncate text-sm">
+                                {row.plan.name}
                             </span>
-                        )}
-                    </span>
-                )
-            }
-            renderCell={(row, column) =>
-                row.kind === 'row' ? (
-                    <RateCell
-                        cell={cellsByPlan
-                            .get(`${row.roomType.id}-${row.plan.id}`)
-                            ?.get(column.date)}
-                        derived={row.plan.derived}
-                    />
-                ) : null
-            }
-        />
+                            {row.plan.derived && (
+                                <span className="truncate text-xs text-grid-muted-foreground">
+                                    Follows {row.plan.followsName}
+                                </span>
+                            )}
+                        </span>
+                    )
+                }
+                renderCell={(row, column) => {
+                    if (row.kind !== 'row') {
+                        return null;
+                    }
+
+                    const cell = cellsByPlan
+                        .get(`${row.roomType.id}-${row.plan.id}`)
+                        ?.get(column.date);
+                    const content = (
+                        <RateCell cell={cell} derived={row.plan.derived} />
+                    );
+
+                    if (!canManage) {
+                        return content;
+                    }
+
+                    return (
+                        <button
+                            type="button"
+                            aria-label={`Edit ${row.roomType.name}, ${row.plan.name}, ${column.date}: ${cell ? cellTitle(cell, row.plan.derived) || 'no price' : 'no rate'}`}
+                            className="block h-full w-full cursor-pointer outline-none focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:ring-inset"
+                            onClick={() =>
+                                setEditing({
+                                    roomType: row.roomType,
+                                    plan: row.plan,
+                                    cell,
+                                    target: {
+                                        ratePlanId: row.plan.id,
+                                        roomTypeId: row.roomType.id,
+                                        date: column.date,
+                                        isoWeekday: column.isoWeekday,
+                                    },
+                                })
+                            }
+                        >
+                            {content}
+                        </button>
+                    );
+                }}
+            />
+            {canManage && (
+                <RateCellSheet
+                    editing={editing}
+                    currency={currency}
+                    onClose={() => setEditing(null)}
+                />
+            )}
+        </>
     );
 }

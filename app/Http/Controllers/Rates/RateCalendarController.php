@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Rates;
 
 use App\Actions\Rates\ExtendRates;
+use App\Actions\Rates\SaveRates;
 use App\Enums\PermissionEnum;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Rates\RateCalendarRequest;
+use App\Http\Requests\Rates\SaveRatesRequest;
 use App\Models\Property;
 use App\Models\RatePlan;
 use App\Services\Property\PropertyToday;
@@ -28,10 +30,25 @@ class RateCalendarController extends Controller
 
         return Inertia::render('rates/calendar', [
             'calendar' => $rateCalendarService->forRange($property, $from, $to, $today, $property->settings->currency->value),
+            'currency' => $property->settings->currency,
             'today' => $today->toDateString(),
             'weekendDays' => $property->settings->weekend_nights->isoWeekdays(),
             'canManage' => $request->user()->can(PermissionEnum::RatesManage->value),
         ]);
+    }
+
+    /**
+     * Save prices and restrictions for one plan from the calendar: one date from the cell editor, or a range.
+     */
+    public function update(SaveRatesRequest $request, Property $property, RatePlan $ratePlan, SaveRates $saveRates): RedirectResponse
+    {
+        $written = $saveRates($request->user(), $ratePlan, $request->string('from')->toString(), $request->string('to')->toString(), $request->roomTypes(), $request->restrictions());
+
+        Inertia::flash('toast', $written === false
+            ? ['type' => 'error', 'message' => __('The rate plan or room types changed. Reload the page and try again.')]
+            : ['type' => 'success', 'message' => trans_choice('Rates saved for :count date.|Rates saved for :count dates.', $written)]);
+
+        return back();
     }
 
     public function extend(Request $request, Property $property, RatePlan $ratePlan, PropertyToday $propertyToday, ExtendRates $extendRates): RedirectResponse

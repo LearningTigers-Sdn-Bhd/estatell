@@ -26,6 +26,7 @@ const cell = (overrides: Partial<Cell> = {}): Cell => ({
     closedToArrival: false,
     closedToDeparture: false,
     stopSell: false,
+    occupancy: [],
     ...overrides,
 });
 
@@ -42,9 +43,17 @@ const roomTypes: RoomType[] = [
     {
         id: 1,
         name: 'Deluxe',
+        baseOccupancy: 2,
+        maxAdults: 3,
         plans: [plan(10, 'Basic'), plan(11, 'Breakfast')],
     },
-    { id: 2, name: 'Suite', plans: [plan(10, 'Basic')] },
+    {
+        id: 2,
+        name: 'Suite',
+        baseOccupancy: 2,
+        maxAdults: 3,
+        plans: [plan(10, 'Basic')],
+    },
 ];
 
 test('builds a heading and a row for each plan', () => {

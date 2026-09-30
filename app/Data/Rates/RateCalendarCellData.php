@@ -8,6 +8,9 @@ use Spatie\LaravelData\Data;
 /** One date of one plan row in the rate calendar: the price shown and the selling restrictions. */
 class RateCalendarCellData extends Data
 {
+    /**
+     * @param  list<RateCalendarOccupancyData>  $occupancy  Explicit prices by adult count, by adults. Empty for a derived plan.
+     */
     public function __construct(
         public string $date,
         public ?string $amount,
@@ -16,9 +19,12 @@ class RateCalendarCellData extends Data
         public bool $closedToArrival,
         public bool $closedToDeparture,
         public bool $stopSell,
+        public array $occupancy = [],
     ) {}
 
     /**
+     * Load the rate's `occupancyPrices` first.
+     *
      * @param  string|null  $amount  The price to show. A derived plan passes its calculated price.
      */
     public static function fromRate(Rate $rate, ?string $amount): self
@@ -31,6 +37,7 @@ class RateCalendarCellData extends Data
             closedToArrival: $rate->closed_to_arrival,
             closedToDeparture: $rate->closed_to_departure,
             stopSell: $rate->stop_sell,
+            occupancy: $rate->occupancyPrices->sortBy('adults')->map(RateCalendarOccupancyData::fromModel(...))->values()->all(),
         );
     }
 

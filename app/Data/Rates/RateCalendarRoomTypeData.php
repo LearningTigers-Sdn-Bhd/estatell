@@ -14,6 +14,8 @@ class RateCalendarRoomTypeData extends Data
     public function __construct(
         public int $id,
         public string $name,
+        public int $baseOccupancy,
+        public int $maxAdults,
         public array $plans,
     ) {}
 
@@ -22,6 +24,12 @@ class RateCalendarRoomTypeData extends Data
      */
     public static function fromModel(RoomType $roomType, array $plans): self
     {
-        return new self(id: $roomType->id, name: $roomType->name, plans: $plans);
+        return new self(
+            id: $roomType->id,
+            name: $roomType->name,
+            baseOccupancy: $roomType->base_occupancy,
+            maxAdults: $roomType->max_adults,
+            plans: $plans,
+        );
     }
 }

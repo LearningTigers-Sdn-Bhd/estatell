@@ -100,11 +100,11 @@ Bulk edit adds the restriction fields to the same form (not built yet).
 
 ## UI
 
-Built now: the rate plan editor's **Pricing** tab (`settings.rate-plans.pricing.edit`). It has the rates ending warning with **Extend 12 months**, then one table. Each room type is a collapsible group row that shows how far it is priced, its **Auto** button and its "Different price by adults" switch, with its price rows underneath. On a PerGuest plan in By day view, only one group is open at a time. The form starts empty for each save. It does not preload saved prices. Bulk edit restrictions and cell editing arrive with the calendar edit item.
+Built now: the rate plan editor's **Pricing** tab (`settings.rate-plans.pricing.edit`). It has the rates ending warning with **Extend 12 months**, then one table. Each room type is a collapsible group row that shows how far it is priced, its **Auto** button and its "Different price by adults" switch, with its price rows underneath. On a PerGuest plan in By day view, only one group is open at a time. The form starts empty for each save. It does not preload saved prices. Bulk edit restrictions arrive with the bulk edit item.
 
 ## The rate calendar
 
-Route: `rates.calendar` at `/p/{code}/rates/calendar` (`rates.view`). It is in the Front desk context under Operations. `rates.calendar.extend` (`rates.manage`) extends one plan and returns to the calendar.
+Route: `rates.calendar` at `/p/{code}/rates/calendar` (`rates.view`). It is in the Front desk context under Operations. `rates.calendar.update` (`PUT`, `rates.manage`) saves one plan and returns to the calendar. `rates.calendar.extend` (`rates.manage`) extends one plan and returns to the calendar.
 
 **Built (read only):**
 
@@ -126,7 +126,16 @@ Route: `rates.calendar` at `/p/{code}/rates/calendar` (`rates.view`). It is in t
 - **Hover.** The row and the column under the pointer are highlighted, on the cells and on the plan label and date header. It makes no request.
 - **Engine.** The grid is the shared `pms/grid` engine (`DateGrid`): a sticky label column and date header, fixed row and column sizes, and virtualized rows and columns with `@tanstack/react-virtual`. Its scroll area has no overscroll bounce, and it sizes itself to the space left in the window, so only the grid scrolls. Stay View reuses it.
 
-**Next (edit):** click a cell to change one date. Bulk edit uses the pricing form with the restriction fields (`SaveRates` already takes them).
+**Edit one date (built):** staff with `rates.manage` click a cell, or focus it and press Enter, to open a side sheet for that plan, room type and date. Empty dates open it too, so a new date can be priced.
+
+- **Price.** The label follows the pricing basis: Room price, Price per adult or Price per bed. A room or guest plan can also set a price for each adult count from 1 up to what the room type sleeps. A blank field uses the default price.
+- **Restrictions.** Stop sell, closed to arrival, closed to departure, min stay and max stay. A blank stay limit clears it.
+- **Derived and package plans.** The sheet shows the calculated price or a note, and only the restrictions can change.
+- **Save.** It sends one date to `SaveRates` through `rates.calendar.update`. The price and prices by adults are sent only when they changed, because saving a price replaces that date's prices by adults. Every restriction is sent. Save is off until something changed.
+- **Limits.** A price cannot be removed here, because `SaveRates` leaves a blank price alone. To stop selling a date, turn on stop sell. A price by adults needs a price first.
+- **Data.** Each cell carries its prices by adult count, and each room type carries `baseOccupancy` and `maxAdults`, from one extra query for the month.
+
+**Next:** Bulk edit uses the pricing form with the restriction fields (`SaveRates` already takes them).
 
 ## Lessons from wastays
 

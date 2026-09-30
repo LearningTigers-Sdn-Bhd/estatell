@@ -40,6 +40,7 @@ class RateCalendarService
             ->whereIn('rate_plan_id', $plans->modelKeys())
             ->whereIn('room_type_id', $roomTypes->modelKeys())
             ->whereBetween('date', [$start->toDateString(), $end->toDateString()])
+            ->with('occupancyPrices')
             ->orderBy('date')
             ->get()
             ->groupBy(fn (Rate $rate): string => $rate->rate_plan_id.'-'.$rate->room_type_id);

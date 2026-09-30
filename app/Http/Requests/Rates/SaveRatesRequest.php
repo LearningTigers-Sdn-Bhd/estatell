@@ -16,7 +16,8 @@ class SaveRatesRequest extends FormRequest
     private const RESTRICTION_KEYS = ['min_stay', 'max_stay', 'closed_to_arrival', 'closed_to_departure', 'stop_sell'];
 
     /**
-     * The `can:settings.manage` route middleware authorizes this request.
+     * The route middleware authorizes this request: `can:settings.manage` on the plan editor and `can:rates.manage`
+     * on the rate calendar.
      */
     public function authorize(): bool
     {
