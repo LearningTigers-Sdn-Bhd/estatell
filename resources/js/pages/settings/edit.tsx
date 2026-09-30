@@ -1,12 +1,19 @@
 import { Head, Link } from '@inertiajs/react';
-import { IdCard, LifeBuoy, MoonStar, SlidersHorizontal } from 'lucide-react';
+import {
+    Baby,
+    IdCard,
+    LifeBuoy,
+    MoonStar,
+    SlidersHorizontal,
+} from 'lucide-react';
 import PropertySettingsController from '@/actions/App/Http/Controllers/Property/PropertySettingsController';
 import Heading from '@/components/heading';
 import type { EnumOption } from '@/components/pms/enum-select';
+import { AgeGroupsForm } from '@/components/pms/settings/age-groups-form';
 import { SettingsSection } from '@/components/pms/settings-section';
 import { TabLinks } from '@/components/pms/tab-links';
 import {
-    SettingsCheckbox,
+    SettingsSwitch,
     SettingsInput,
     SettingsSelect,
 } from '@/components/pms/settings/form-fields';
@@ -20,13 +27,19 @@ import {
 } from '@/components/ui/card';
 import { edit as basicsEdit } from '@/routes/onboarding/basics';
 import {
+    ageGroups as ageGroupsTab,
     edit as general,
     operations,
     registration,
     support,
 } from '@/routes/settings';
 
-type Section = 'general' | 'operations' | 'registration' | 'support';
+type Section =
+    | 'general'
+    | 'operations'
+    | 'registration'
+    | 'support'
+    | 'age-groups';
 
 const form = (section: Section) =>
     PropertySettingsController.update.form({ section });
@@ -40,6 +53,8 @@ export default function PropertySettings({
     overdueDeparturePolicies = [],
     noShowCharges = [],
     registrationCardScopes = [],
+    ageGroups = [],
+    maxAge = 17,
 }: {
     settings: App.Data.Property.PropertySettingsData | null;
     tab: Section;
@@ -49,6 +64,8 @@ export default function PropertySettings({
     overdueDeparturePolicies?: EnumOption[];
     noShowCharges?: EnumOption[];
     registrationCardScopes?: EnumOption[];
+    ageGroups?: App.Data.Property.PropertyAgeGroupData[];
+    maxAge?: number;
 }) {
     if (!settings) {
         return (
@@ -88,10 +105,11 @@ export default function PropertySettings({
     return (
         <>
             <Head title="Property settings" />
-            <div className="flex flex-col gap-6 p-4">
+            <div className="flex flex-col gap-4 p-4">
                 <Heading
                     title="Property settings"
                     description="Review and save each section separately."
+                    className="mb-0"
                 />
                 <TabLinks
                     activeTab={tab}
@@ -114,6 +132,12 @@ export default function PropertySettings({
                             label: 'Registration card',
                             icon: IdCard,
                             href: registration(),
+                        },
+                        {
+                            value: 'age-groups',
+                            label: 'Age groups',
+                            icon: Baby,
+                            href: ageGroupsTab(),
                         },
                         {
                             value: 'support',
@@ -185,9 +209,10 @@ export default function PropertySettings({
                                         value={settings.checkOutTime}
                                         error={errors.check_out_time}
                                     />
-                                    <SettingsCheckbox
+                                    <SettingsSwitch
                                         name="auto_assign_rooms"
                                         label="Assign rooms automatically"
+                                        description="On: the system assigns a free, clean room to each arrival. Off: staff assign rooms by hand."
                                         checked={settings.autoAssignRooms}
                                         error={errors.auto_assign_rooms}
                                     />
@@ -231,9 +256,10 @@ export default function PropertySettings({
                                         options={noShowCharges}
                                         error={errors.no_show_charge}
                                     />
-                                    <SettingsCheckbox
+                                    <SettingsSwitch
                                         name="auto_audit_enabled"
                                         label="Run night audit automatically"
+                                        description="On: the night audit runs by itself after the audit time. Off: staff start it by hand."
                                         checked={settings.autoAuditEnabled}
                                         error={errors.auto_audit_enabled}
                                     />
@@ -277,9 +303,10 @@ export default function PropertySettings({
                                         value={settings.securityDepositAmount}
                                         error={errors.security_deposit_amount}
                                     />
-                                    <SettingsCheckbox
+                                    <SettingsSwitch
                                         name="card_required_for_check_in"
                                         label="Require card before check-in"
+                                        description="On: a guest cannot check in until the registration card is complete. Off: staff can check guests in without a card."
                                         checked={
                                             settings.cardRequiredForCheckIn
                                         }
@@ -291,6 +318,9 @@ export default function PropertySettings({
                             )}
                         </SettingsSection>
                     )}
+                    {tab === 'age-groups' && (
+                        <AgeGroupsForm ageGroups={ageGroups} maxAge={maxAge} />
+                    )}
                     {tab === 'support' && (
                         <SettingsSection
                             form={form('support')}
@@ -299,9 +329,10 @@ export default function PropertySettings({
                             contentClassName=""
                         >
                             {(errors) => (
-                                <SettingsCheckbox
+                                <SettingsSwitch
                                     name="allow_support_access"
                                     label="Allow platform support access"
+                                    description="On: platform support can view this property as its owner to help you. Off: support cannot open this property."
                                     checked={settings.allowSupportAccess}
                                     error={errors.allow_support_access}
                                 />

@@ -1,13 +1,14 @@
 import { EnumSelect } from '@/components/pms/enum-select';
 import type { EnumOption } from '@/components/pms/enum-select';
-import { Checkbox } from '@/components/ui/checkbox';
 import {
     Field,
+    FieldContent,
     FieldDescription,
     FieldError,
     FieldLabel,
 } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
+import { Switch } from '@/components/ui/switch';
 
 export function SettingsInput({
     name,
@@ -86,7 +87,10 @@ export function SettingsSelect({
     );
 }
 
-export function SettingsCheckbox({
+/**
+ * On/off setting. The description says what happens when it is on and when it is off.
+ */
+export function SettingsSwitch({
     name,
     label,
     checked,
@@ -97,21 +101,25 @@ export function SettingsCheckbox({
     label: string;
     checked: boolean;
     error?: string;
-    description?: string;
+    description: string;
 }) {
     return (
-        <Field>
-            <div className="flex items-center gap-3">
-                <Checkbox
-                    id={name}
-                    name={name}
-                    defaultChecked={checked}
-                    aria-invalid={!!error}
-                />
+        <Field
+            orientation="horizontal"
+            className="items-start justify-start md:col-span-2"
+        >
+            <Switch
+                id={name}
+                name={name}
+                defaultChecked={checked}
+                aria-invalid={!!error}
+                className="mt-0.5"
+            />
+            <FieldContent className="flex-none">
                 <FieldLabel htmlFor={name}>{label}</FieldLabel>
-            </div>
-            {description && <FieldDescription>{description}</FieldDescription>}
-            <FieldError>{error}</FieldError>
+                <FieldDescription>{description}</FieldDescription>
+                <FieldError>{error}</FieldError>
+            </FieldContent>
         </Field>
     );
 }

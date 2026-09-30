@@ -26,7 +26,7 @@ type Props = {
 export function TabLinks({ tabs, activeTab, className, children }: Props) {
     return (
         <Tabs value={activeTab} className={className}>
-            <TabsList>
+            <TabsList variant="line">
                 {tabs.map((tab) => (
                     <TabsTrigger
                         key={tab.value}
@@ -47,7 +47,9 @@ export function TabLinks({ tabs, activeTab, className, children }: Props) {
                     </TabsTrigger>
                 ))}
             </TabsList>
-            <div role="tabpanel">{children}</div>
+            <div role="tabpanel" className="w-full md:w-4/5">
+                {children}
+            </div>
         </Tabs>
     );
 }

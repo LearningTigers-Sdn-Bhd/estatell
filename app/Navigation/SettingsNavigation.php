@@ -25,7 +25,7 @@ class SettingsNavigation
                     title: __('Details'),
                     href: route('settings.edit', ['property' => $property->code], absolute: false),
                     icon: 'building',
-                    active: request()->routeIs('settings.edit', 'settings.operations', 'settings.registration', 'settings.support'),
+                    active: request()->routeIs('settings.edit', 'settings.operations', 'settings.registration', 'settings.support', 'settings.age-groups'),
                 ) : null,
             ]))),
             new NavGroupData(label: __('Rooms'), items: array_values(array_filter([
@@ -80,14 +80,6 @@ class SettingsNavigation
                     href: route('settings.discounts.index', ['property' => $property->code], absolute: false),
                     icon: 'percent',
                     active: request()->routeIs('settings.discounts.*'),
-                ) : null,
-            ]))),
-            new NavGroupData(label: __('Guests'), items: array_values(array_filter([
-                $user->can(PermissionEnum::SettingsManage->value) ? new NavItemData(
-                    title: __('Age groups'),
-                    href: route('settings.age-groups.index', ['property' => $property->code], absolute: false),
-                    icon: 'baby',
-                    active: request()->routeIs('settings.age-groups.*'),
                 ) : null,
             ]))),
             new NavGroupData(label: __('Team'), items: array_values(array_filter([

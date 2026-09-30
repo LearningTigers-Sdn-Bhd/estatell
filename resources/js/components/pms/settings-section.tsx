@@ -1,14 +1,6 @@
 import { Form } from '@inertiajs/react';
 import type { ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardFooter,
-    CardHeader,
-    CardTitle,
-} from '@/components/ui/card';
 import { Spinner } from '@/components/ui/spinner';
 import type { RouteFormDefinition } from '@/wayfinder';
 
@@ -21,7 +13,7 @@ function focusFirstError(errors: Record<string, string>) {
 }
 
 /**
- * One settings card = one form, saved on its own. Field ids must match field names so the first error gets focus.
+ * One settings section = one form, saved on its own. Field ids must match field names so the first error gets focus.
  */
 export function SettingsSection({
     form,
@@ -45,15 +37,15 @@ export function SettingsSection({
             onError={focusFirstError}
         >
             {({ processing, errors }) => (
-                <Card>
-                    <CardHeader>
-                        <CardTitle>{title}</CardTitle>
-                        <CardDescription>{description}</CardDescription>
-                    </CardHeader>
-                    <CardContent className={contentClassName}>
-                        {children(errors)}
-                    </CardContent>
-                    <CardFooter className="justify-end">
+                <section className="flex flex-col gap-5">
+                    <header className="space-y-1">
+                        <h3 className="text-base font-medium">{title}</h3>
+                        <p className="text-sm text-muted-foreground">
+                            {description}
+                        </p>
+                    </header>
+                    <div className={contentClassName}>{children(errors)}</div>
+                    <footer className="flex justify-end">
                         <Button
                             type="submit"
                             disabled={processing}
@@ -62,8 +54,8 @@ export function SettingsSection({
                             {processing && <Spinner />}
                             {submitLabel}
                         </Button>
-                    </CardFooter>
-                </Card>
+                    </footer>
+                </section>
             )}
         </Form>
     );

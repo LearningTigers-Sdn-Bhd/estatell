@@ -48,22 +48,22 @@ test('unsupported countries receive no age group presets', function () {
     expect($property->ageGroups()->count())->toBe(0);
 });
 
-test('the page lists this property\'s groups by minimum age and shows the navigation entry', function () {
+test('the page lists this property\'s groups by minimum age and opens under the property settings navigation entry', function () {
     [$owner, $property] = seededAgeGroupProperty();
     PropertyAgeGroup::factory()->create(['label' => 'Other property']);
 
     $this->actingAs($owner)
-        ->get(route('settings.age-groups.index', $property->code))
+        ->get(route('settings.age-groups', $property->code))
         ->assertInertia(fn (Assert $page) => $page
-            ->component('settings/age-groups/index')
+            ->component('settings/edit')
+            ->where('tab', 'age-groups')
             ->has('ageGroups', 2)
             ->where('ageGroups.0.label', 'Infant')
             ->where('ageGroups.1.minAge', 4)
             ->where('ageGroups.1.maxAge', 11)
             ->where('maxAge', 17)
-            ->where('navigation.contexts.1.groups.4.label', 'Guests')
-            ->where('navigation.contexts.1.groups.4.items.0.title', 'Age groups')
-            ->where('navigation.contexts.1.groups.4.items.0.active', true));
+            ->where('navigation.contexts.1.groups.0.items.0.title', 'Details')
+            ->where('navigation.contexts.1.groups.0.items.0.active', true));
 });
 
 test('saving renames and re-ranges groups and keeps their ids', function () {
@@ -201,12 +201,12 @@ test('routes enforce settings permission and property scoping', function () {
     $owner = User::factory()->owner()->create();
 
     $this->actingAs($frontDesk)
-        ->get(route('settings.age-groups.index', $frontDesk->property->code))
+        ->get(route('settings.age-groups', $frontDesk->property->code))
         ->assertForbidden();
     $this->put(route('settings.age-groups.update', $frontDesk->property->code), ['groups' => []])
         ->assertForbidden();
     $this->actingAs($owner)
-        ->get(route('settings.age-groups.index', 'no-such-property'))
+        ->get(route('settings.age-groups', 'no-such-property'))
         ->assertNotFound();
 });
 

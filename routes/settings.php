@@ -32,6 +32,7 @@ Route::prefix('settings')->name('settings.')->group(function () {
         Route::get('operations', [PropertySettingsController::class, 'operations'])->name('operations');
         Route::get('registration', [PropertySettingsController::class, 'registration'])->name('registration');
         Route::get('support', [PropertySettingsController::class, 'support'])->name('support');
+        Route::get('age-groups', [PropertySettingsController::class, 'ageGroups'])->name('age-groups');
         Route::put('{section}', [PropertySettingsController::class, 'update'])
             ->whereIn('section', ['general', 'operations', 'registration', 'support'])
             ->name('update');
@@ -114,7 +115,6 @@ Route::prefix('settings')->name('settings.')->group(function () {
     });
 
     Route::prefix('age-groups')->name('age-groups.')->middleware('can:'.PermissionEnum::SettingsManage->value)->scopeBindings()->group(function () {
-        Route::get('/', [AgeGroupController::class, 'index'])->name('index');
         Route::put('/', [AgeGroupController::class, 'update'])->name('update');
     });
 
