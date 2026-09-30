@@ -1,5 +1,5 @@
 import { useForm } from '@inertiajs/react';
-import { Plus, Trash2 } from 'lucide-react';
+import { Copy, Plus, Trash2 } from 'lucide-react';
 import { EmptyState } from '@/components/pms/empty-state';
 import { EnumSelect } from '@/components/pms/enum-select';
 import { DiscountPreview } from '@/components/pms/rate-plans/discount-preview';
@@ -47,6 +47,7 @@ export function DiscountsForm({
     ratePlan,
     discounts,
     types,
+    parentDiscounts,
     currency,
     ageGroups,
     preview,
@@ -54,6 +55,7 @@ export function DiscountsForm({
     ratePlan: RatePlan;
     discounts: Discount[];
     types: Option[];
+    parentDiscounts: App.Data.Rates.RatePlanParentDiscountsData | null;
     currency: App.Enums.Currency;
     ageGroups: App.Data.Property.PropertyAgeGroupData[];
     preview: App.Data.Rates.StayDiscountPreviewData;
@@ -99,11 +101,35 @@ export function DiscountsForm({
         );
     };
 
+    const copyParentRows = () => {
+        form.setData(
+            'discounts',
+            (parentDiscounts?.discounts ?? []).map((discount) => ({
+                min_nights: String(discount.minNights),
+                discount_type: discount.discountType,
+                value: discount.value,
+                from_night: String(discount.fromNight),
+            })),
+        );
+    };
+
     const addButton = (
-        <Button type="button" variant="outline" onClick={addRow}>
-            <Plus data-icon="inline-start" />
-            Add long-stay discount
-        </Button>
+        <div className="flex flex-wrap justify-center gap-2">
+            <Button type="button" variant="outline" onClick={addRow}>
+                <Plus data-icon="inline-start" />
+                Add long-stay discount
+            </Button>
+            {parentDiscounts && (
+                <Button
+                    type="button"
+                    variant="outline"
+                    onClick={copyParentRows}
+                >
+                    <Copy data-icon="inline-start" />
+                    Copy discounts from {parentDiscounts.parentName}
+                </Button>
+            )}
+        </div>
     );
 
     const save = (onSaved?: () => void) => {

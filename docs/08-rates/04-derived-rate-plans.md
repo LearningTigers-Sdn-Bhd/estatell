@@ -19,6 +19,7 @@ Columns on `rate_plans`: `parent_rate_plan_id`, `derivation` (`RateDerivation`),
 - **Percent** scales the base, the extra guests and children, and the supplement.
 - **Amount** is added per unit of the pricing basis (guest, bed or room) to the base. A drop that empties the base takes the rest from the extras, then the supplement.
 - The plan's **own long-stay discounts** apply after the derivation. The parent's discounts are ignored.
+- The Discounts tab of a derived plan shows "Copy discounts from {parent}" beside "Add long-stay discount" when the parent has rules. It fills the rows on screen with the parent's rules, replacing the rows there. Nothing is saved until staff press Save, and the copy does not stay linked.
 - Room types, restrictions, name and early departure policy belong to the derived plan.
 
 ## Rules

@@ -20,6 +20,7 @@ use App\Data\Rates\RatePlanChildPriceData;
 use App\Data\Rates\RatePlanData;
 use App\Data\Rates\RatePlanDerivationData;
 use App\Data\Rates\RatePlanDerivationPreviewRowData;
+use App\Data\Rates\RatePlanParentDiscountsData;
 use App\Data\Rates\RatePlanRoomTypeChoiceData;
 use App\Data\Rates\RatePlanStayDiscountData;
 use App\Data\Rates\RatePricingRoomTypeData;
@@ -50,6 +51,7 @@ use App\Services\Rates\DerivedRatePlans;
 use App\Services\Rates\DerivedRatePreview;
 use App\Services\Rates\RatesEndingCheck;
 use App\Services\Rates\StayDiscountPreview;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -147,11 +149,20 @@ class RatePlanController extends Controller
         $today = now($property->settings->time_zone)->startOfDay();
         $discounts = $ratePlan->stayDiscounts()->orderBy('min_nights')->get();
         $nights = $stayDiscountPreview->defaultNights($discounts);
+        $parentDiscounts = $ratePlan->parent_rate_plan_id === null
+            ? new Collection
+            : $ratePlan->parent->stayDiscounts()->orderBy('min_nights')->get();
 
         return Inertia::render('settings/rate-plans/discounts', [
             'ratePlan' => RatePlanData::fromModel($ratePlan->load('roomTypes')),
             'discounts' => $discounts->map(fn (RatePlanStayDiscount $discount): RatePlanStayDiscountData => RatePlanStayDiscountData::fromModel($discount)),
             'discountTypes' => StayDiscountType::options(),
+            'parentDiscounts' => $ratePlan->parent_rate_plan_id === null || $parentDiscounts->isEmpty()
+                ? null
+                : new RatePlanParentDiscountsData(
+                    $ratePlan->parent->name,
+                    $parentDiscounts->map(fn (RatePlanStayDiscount $discount): RatePlanStayDiscountData => RatePlanStayDiscountData::fromModel($discount))->all(),
+                ),
             'currency' => $property->settings->currency,
             'ageGroups' => $ratePlan->pricing_basis === PricingBasis::PerGuest
                 ? $property->ageGroups()->orderBy('min_age')->get()->map(PropertyAgeGroupData::fromModel(...))

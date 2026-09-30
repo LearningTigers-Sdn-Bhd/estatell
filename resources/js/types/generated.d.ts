@@ -306,6 +306,10 @@ name: string,
 parentAmount: string | null,
 derivedAmount: string | null,
 };
+export type RatePlanParentDiscountsData = {
+parentName: string,
+discounts: App.Data.Rates.RatePlanStayDiscountData[],
+};
 export type RatePlanParentOptionData = {
 id: number,
 name: string,

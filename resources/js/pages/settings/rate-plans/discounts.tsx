@@ -11,6 +11,7 @@ export default function RatePlanDiscounts({
     ratePlan,
     discounts,
     discountTypes,
+    parentDiscounts,
     currency,
     ageGroups,
     preview,
@@ -18,6 +19,7 @@ export default function RatePlanDiscounts({
     ratePlan: RatePlan;
     discounts: App.Data.Rates.RatePlanStayDiscountData[];
     discountTypes: { value: string; label: string }[];
+    parentDiscounts: App.Data.Rates.RatePlanParentDiscountsData | null;
     currency: App.Enums.Currency;
     ageGroups: App.Data.Property.PropertyAgeGroupData[];
     preview: App.Data.Rates.StayDiscountPreviewData;
@@ -34,6 +36,7 @@ export default function RatePlanDiscounts({
                     ratePlan={ratePlan}
                     discounts={discounts}
                     types={discountTypes}
+                    parentDiscounts={parentDiscounts}
                     currency={currency}
                     ageGroups={ageGroups}
                     preview={preview}

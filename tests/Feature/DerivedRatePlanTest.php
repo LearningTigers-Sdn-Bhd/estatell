@@ -363,3 +363,22 @@ test('the list says which plan a derived plan follows', function () {
             ->where('ratePlans.0.pricingLabel', 'Per room')
             ->where('ratePlans.1.pricingLabel', 'Follows Basic Rate +50'));
 });
+
+test('the discounts tab offers the parent rules to copy only for a derived plan whose parent has some', function () {
+    [$owner, $property, $parent, $roomType] = derivedSetup();
+    $child = derivedPlan($property, $parent, $roomType, RateDerivation::Percent, '-10.00');
+    $url = route('settings.rate-plans.discounts.edit', [$property->code, $child]);
+
+    $this->actingAs($owner)->get($url)->assertInertia(fn (Assert $page) => $page->where('parentDiscounts', null));
+
+    RatePlanStayDiscount::factory()->create(['rate_plan_id' => $parent->id, 'min_nights' => 3, 'discount_type' => StayDiscountType::Percent, 'value' => '20.00', 'from_night' => 2]);
+
+    $this->actingAs($owner)->get($url)->assertInertia(fn (Assert $page) => $page
+        ->where('parentDiscounts.parentName', 'Basic Rate')
+        ->where('parentDiscounts.discounts.0.minNights', 3)
+        ->where('parentDiscounts.discounts.0.value', '20.00'));
+
+    $this->actingAs($owner)
+        ->get(route('settings.rate-plans.discounts.edit', [$property->code, $parent]))
+        ->assertInertia(fn (Assert $page) => $page->where('parentDiscounts', null));
+});
