@@ -4,6 +4,7 @@ use App\Actions\Onboarding\RegisterPropertyOwner;
 use App\Enums\Currency;
 use App\Enums\Locale;
 use App\Enums\PropertyType;
+use App\Enums\WeekendNights;
 use App\Models\Property;
 use App\Models\PropertySetting;
 use App\Models\User;
@@ -95,7 +96,7 @@ test('settings sections save independently', function () {
     $this->put(route('settings.update', [$property->code, 'operations']), [
         'audit_time' => '03:30', 'auto_audit_enabled' => 'on',
         'missed_arrival_policy' => 'mark_no_show', 'overdue_departure_policy' => 'extend_one_night',
-        'no_show_charge' => 'first_night',
+        'no_show_charge' => 'first_night', 'weekend_nights' => 'sat_sun',
     ])->assertRedirect(route('settings.operations', $property->code))->assertSessionHasNoErrors();
     $this->put(route('settings.update', [$property->code, 'registration']), [
         'registration_card_scope' => 'every_adult', 'card_required_for_check_in' => 'on',
@@ -108,6 +109,7 @@ test('settings sections save independently', function () {
         ->and($settings->check_in_time)->toBe('14:00:00')
         ->and($settings->auto_assign_rooms)->toBeTrue()
         ->and($settings->audit_time)->toBe('03:30:00')
+        ->and($settings->weekend_nights)->toBe(WeekendNights::SatSun)
         ->and($settings->auto_audit_enabled)->toBeTrue()
         ->and($settings->registration_card_scope->value)->toBe('every_adult')
         ->and($settings->security_deposit_amount)->toBe('150.00')

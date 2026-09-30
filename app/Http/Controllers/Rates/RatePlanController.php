@@ -4,18 +4,23 @@ namespace App\Http\Controllers\Rates;
 
 use App\Actions\Rates\ArchiveRatePlan;
 use App\Actions\Rates\CreateRatePlan;
+use App\Actions\Rates\ExtendRates;
 use App\Actions\Rates\ReorderRatePlans;
 use App\Actions\Rates\RestoreRatePlan;
 use App\Actions\Rates\SaveRatePlanChildPrices;
+use App\Actions\Rates\SaveRates;
 use App\Actions\Rates\SyncRatePlanRoomTypes;
 use App\Actions\Rates\UpdateRatePlan;
+use App\Data\Property\WeekendNightsOptionData;
 use App\Data\Rates\NewRatePlanRoomTypeData;
 use App\Data\Rates\RatePlanChildPriceData;
 use App\Data\Rates\RatePlanData;
 use App\Data\Rates\RatePlanRoomTypeChoiceData;
+use App\Data\Rates\RatePricingRoomTypeData;
 use App\Enums\AgeBandPricing;
 use App\Enums\PricingBasis;
 use App\Enums\SellUnit;
+use App\Enums\WeekendNights;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Rates\ArchiveRatePlanRequest;
 use App\Http\Requests\Rates\CreateRatePlanRequest;
@@ -23,10 +28,12 @@ use App\Http\Requests\Rates\RatePlanChildPricesRequest;
 use App\Http\Requests\Rates\RatePlanRequest;
 use App\Http\Requests\Rates\RatePlanRoomTypesRequest;
 use App\Http\Requests\Rates\ReorderRatePlansRequest;
+use App\Http\Requests\Rates\SaveRatesRequest;
 use App\Models\Property;
 use App\Models\RatePlan;
 use App\Models\RatePlanChildPrice;
 use App\Models\RoomType;
+use App\Services\Rates\RatesEndingCheck;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -113,6 +120,31 @@ class RatePlanController extends Controller
         ]);
     }
 
+    /**
+     * The Pricing tab, for plans that carry their own prices. Package plans use package prices instead.
+     */
+    public function editPricing(Property $property, RatePlan $ratePlan, RatesEndingCheck $ratesEndingCheck): Response
+    {
+        abort_if($ratePlan->pricing_basis === PricingBasis::Package, 404);
+
+        $today = now($property->settings->time_zone);
+        $pricedUntil = $ratesEndingCheck->pricedUntil($ratePlan);
+
+        return Inertia::render('settings/rate-plans/pricing', [
+            'ratePlan' => RatePlanData::fromModel($ratePlan->load('roomTypes')),
+            'roomTypes' => $ratePlan->roomTypes()->whereNull('room_types.archived_at')->orderBy('room_types.position')->orderBy('room_types.id')->get()
+                ->map(fn (RoomType $roomType): RatePricingRoomTypeData => RatePricingRoomTypeData::fromModel(
+                    $roomType,
+                    $pricedUntil[$roomType->id] ?? null,
+                    $ratesEndingCheck->isEnding($pricedUntil[$roomType->id] ?? null, $today),
+                )),
+            'currency' => $property->settings->currency,
+            'weekendNights' => $property->settings->weekend_nights,
+            'weekendNightsOptions' => array_map(WeekendNightsOptionData::fromEnum(...), WeekendNights::cases()),
+            'today' => $today->toDateString(),
+        ]);
+    }
+
     public function update(RatePlanRequest $request, Property $property, RatePlan $ratePlan, UpdateRatePlan $updateRatePlan): RedirectResponse
     {
         Inertia::flash('toast', $updateRatePlan($request->user(), $ratePlan, $request->validated())
@@ -138,6 +170,32 @@ class RatePlanController extends Controller
             : ['type' => 'error', 'message' => __('The rate plan or age groups changed. Reload the page and try again.')]);
 
         return to_route('settings.rate-plans.child-prices.edit', ['property' => $property, 'ratePlan' => $ratePlan]);
+    }
+
+    public function updatePricing(SaveRatesRequest $request, Property $property, RatePlan $ratePlan, SaveRates $saveRates): RedirectResponse
+    {
+        abort_if($ratePlan->pricing_basis === PricingBasis::Package, 404);
+
+        $written = $saveRates($request->user(), $ratePlan, $request->string('from')->toString(), $request->string('to')->toString(), $request->roomTypes(), $request->restrictions());
+
+        Inertia::flash('toast', $written === false
+            ? ['type' => 'error', 'message' => __('The rate plan or room types changed. Reload the page and try again.')]
+            : ['type' => 'success', 'message' => trans_choice('Prices saved for :count date.|Prices saved for :count dates.', $written)]);
+
+        return to_route('settings.rate-plans.pricing.edit', ['property' => $property, 'ratePlan' => $ratePlan]);
+    }
+
+    public function extendPricing(Request $request, Property $property, RatePlan $ratePlan, ExtendRates $extendRates): RedirectResponse
+    {
+        $written = $extendRates($request->user(), $ratePlan, now($property->settings->time_zone));
+
+        Inertia::flash('toast', match (true) {
+            $written === false => ['type' => 'error', 'message' => __(':name cannot extend its prices. Reload the page and try again.', ['name' => $ratePlan->name])],
+            $written === 0 => ['type' => 'error', 'message' => __('There are no prices to copy yet. Set prices first.')],
+            default => ['type' => 'success', 'message' => trans_choice('Prices extended by :count date.|Prices extended by :count dates.', $written)],
+        });
+
+        return to_route('settings.rate-plans.pricing.edit', ['property' => $property, 'ratePlan' => $ratePlan]);
     }
 
     public function reorder(ReorderRatePlansRequest $request, Property $property, ReorderRatePlans $reorderRatePlans): RedirectResponse

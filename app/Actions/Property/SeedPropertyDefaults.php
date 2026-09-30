@@ -17,6 +17,7 @@ use App\Enums\NoShowCharge;
 use App\Enums\OverdueDeparturePolicy;
 use App\Enums\PropertyType;
 use App\Enums\RegistrationCardScope;
+use App\Enums\WeekendNights;
 use App\Models\Property;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
@@ -88,6 +89,7 @@ class SeedPropertyDefaults
                 'id_document_retention_days' => null,
                 'security_deposit_amount' => '0.00',
                 'allow_support_access' => true,
+                'weekend_nights' => WeekendNights::FriSat,
             ],
         };
     }

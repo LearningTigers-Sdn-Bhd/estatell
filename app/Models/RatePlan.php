@@ -82,6 +82,14 @@ class RatePlan extends Model
     }
 
     /**
+     * @return HasMany<Rate, $this>
+     */
+    public function rates(): HasMany
+    {
+        return $this->hasMany(Rate::class);
+    }
+
+    /**
      * @param  Builder<RatePlan>  $query
      */
     public function scopeActive(Builder $query): void

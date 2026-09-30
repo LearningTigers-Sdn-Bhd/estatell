@@ -8,6 +8,7 @@ use App\Enums\MissedArrivalPolicy;
 use App\Enums\NoShowCharge;
 use App\Enums\OverdueDeparturePolicy;
 use App\Enums\RegistrationCardScope;
+use App\Enums\WeekendNights;
 use Database\Factories\PropertySettingFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -34,13 +35,14 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int|null $id_document_retention_days
  * @property string $security_deposit_amount
  * @property bool $allow_support_access
+ * @property WeekendNights $weekend_nights
  */
 #[Fillable([
     'currency', 'time_zone', 'default_locale', 'check_in_time', 'check_out_time',
     'arrival_grace_minutes', 'auto_assign_rooms', 'audit_time', 'auto_audit_enabled',
     'missed_arrival_policy', 'overdue_departure_policy', 'no_show_charge',
     'registration_card_scope', 'card_required_for_check_in', 'id_document_retention_days',
-    'security_deposit_amount', 'allow_support_access',
+    'security_deposit_amount', 'allow_support_access', 'weekend_nights',
 ])]
 class PropertySetting extends Model
 {
@@ -63,6 +65,7 @@ class PropertySetting extends Model
             'id_document_retention_days' => 'integer',
             'security_deposit_amount' => 'decimal:2',
             'allow_support_access' => 'boolean',
+            'weekend_nights' => WeekendNights::class,
         ];
     }
 

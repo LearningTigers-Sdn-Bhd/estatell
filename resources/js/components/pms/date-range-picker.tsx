@@ -1,6 +1,5 @@
 import { CalendarDays } from 'lucide-react';
 import { useState } from 'react';
-import type { DateRange } from 'react-day-picker';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import {
@@ -8,6 +7,7 @@ import {
     PopoverContent,
     PopoverTrigger,
 } from '@/components/ui/popover';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 /** Parse `2026-09-12` as a local date so it never shifts a day. */
 function toDate(value: string): Date | undefined {
@@ -45,6 +45,8 @@ type Props = {
     min?: string;
     /** Keep `from` fixed and pick only the last date, for example on a block that has started. */
     fromLocked?: boolean;
+    /** Months shown side by side. Two falls back to one on a phone. */
+    months?: 1 | 2;
     /** Longest range, counting both ends. */
     maxDays?: number;
     /** Unit shown after the count, for example "night". */
@@ -64,12 +66,16 @@ export function DateRangePicker({
     min,
     fromLocked = false,
     maxDays,
+    months = 1,
     unit = 'day',
     placeholder = 'Pick dates',
     id,
     ...props
 }: Props) {
     const [open, setOpen] = useState(false);
+    const isMobile = useIsMobile();
+    const [picking, setPicking] = useState(false);
+    const [hovered, setHovered] = useState<Date>();
     const fromDate = toDate(from);
     const toDateValue = toDate(to);
     const minDate = toDate(min ?? '');
@@ -84,25 +90,53 @@ export function DateRangePicker({
               ) + 1
             : 0;
 
-    const select = (range: DateRange | undefined, triggerDate: Date) => {
+    const changeOpen = (next: boolean) => {
+        setOpen(next);
+        setPicking(false);
+        setHovered(undefined);
+    };
+
+    const select = (triggerDate: Date) => {
+        setHovered(undefined);
+
         if (fromLocked) {
             onChange(from, toValue(triggerDate));
-            setOpen(false);
+            changeOpen(false);
 
             return;
         }
 
-        const first = range?.from ?? triggerDate;
-        const last = range?.to ?? first;
-        onChange(toValue(first), toValue(last));
+        if (picking && fromDate && triggerDate > fromDate) {
+            onChange(from, toValue(triggerDate));
+            changeOpen(false);
 
-        if (range?.from && range.to && range.from < range.to) {
-            setOpen(false);
+            return;
         }
+
+        onChange(toValue(triggerDate), toValue(triggerDate));
+        setPicking(true);
     };
 
+    const lastAllowed =
+        maxDays && fromDate && (picking || fromLocked)
+            ? new Date(
+                  fromDate.getFullYear(),
+                  fromDate.getMonth(),
+                  fromDate.getDate() + maxDays - 1,
+              )
+            : undefined;
+    const disabledDays = [
+        ...(earliest ? [{ before: earliest }] : []),
+        ...(lastAllowed ? [{ after: lastAllowed }] : []),
+    ];
+    const previewing = fromLocked || picking;
+    const preview =
+        previewing && fromDate && hovered && hovered > fromDate
+            ? { from: fromDate, to: hovered }
+            : { from: fromDate, to: toDateValue };
+
     return (
-        <Popover open={open} onOpenChange={setOpen}>
+        <Popover open={open} onOpenChange={changeOpen}>
             <PopoverTrigger
                 render={
                     <Button
@@ -130,11 +164,15 @@ export function DateRangePicker({
             <PopoverContent className="w-auto" align="start">
                 <Calendar
                     mode="range"
-                    selected={{ from: fromDate, to: toDateValue }}
-                    onSelect={select}
+                    selected={preview}
+                    onSelect={(_, day) => select(day)}
+                    onDayMouseEnter={(day, modifiers) =>
+                        setHovered(modifiers.disabled ? undefined : day)
+                    }
+                    onDayMouseLeave={() => setHovered(undefined)}
                     defaultMonth={fromDate ?? earliest}
-                    disabled={earliest ? { before: earliest } : undefined}
-                    max={maxDays ? maxDays - 1 : undefined}
+                    disabled={disabledDays}
+                    numberOfMonths={isMobile ? 1 : months}
                 />
             </PopoverContent>
         </Popover>

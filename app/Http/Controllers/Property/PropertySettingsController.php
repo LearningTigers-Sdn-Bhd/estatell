@@ -11,6 +11,7 @@ use App\Enums\MissedArrivalPolicy;
 use App\Enums\NoShowCharge;
 use App\Enums\OverdueDeparturePolicy;
 use App\Enums\RegistrationCardScope;
+use App\Enums\WeekendNights;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Property\SaveAgeGroupsRequest;
 use App\Http\Requests\Property\UpdatePropertySettingsRequest;
@@ -43,6 +44,7 @@ class PropertySettingsController extends Controller
             'missedArrivalPolicies' => MissedArrivalPolicy::options(),
             'overdueDeparturePolicies' => OverdueDeparturePolicy::options(),
             'noShowCharges' => NoShowCharge::options(),
+            'weekendNightsOptions' => WeekendNights::options(),
         ]);
     }
 

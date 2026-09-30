@@ -37,12 +37,12 @@ test('owners see every role as a column with its permissions', function () {
                 'isDefault' => true,
                 'isLocked' => true,
                 'staffCount' => 1,
-                'permissions' => ['notification.manage', 'roles.manage', 'rooms.block', 'rooms.manage', 'rooms.view', 'settings.manage', 'staff.manage', 'staff.view'],
+                'permissions' => ['notification.manage', 'rates.override-restrictions', 'roles.manage', 'rooms.block', 'rooms.manage', 'rooms.view', 'settings.manage', 'staff.manage', 'staff.view'],
             ])
             ->where('roles.1.name', 'Manager')
             ->where('roles.1.staffCount', 0)
-            ->where('roles.1.permissions', ['rooms.block', 'rooms.manage', 'rooms.view', 'settings.manage', 'staff.manage', 'staff.view'])
-            ->has('permissions', 8)
+            ->where('roles.1.permissions', ['rates.override-restrictions', 'rooms.block', 'rooms.manage', 'rooms.view', 'settings.manage', 'staff.manage', 'staff.view'])
+            ->has('permissions', 9)
             ->where('permissions.0', ['value' => 'settings.manage', 'label' => 'Manage property settings', 'group' => 'Property']));
 });
 
@@ -85,7 +85,7 @@ test('saving the grid updates only changed roles and gives the role holders acce
     $this->actingAs($owner)
         ->put(route('settings.roles.update', $property->code), ['roles' => [
             $role->id => ['staff.view'],
-            $manager->id => ['rooms.block', 'rooms.manage', 'rooms.view', 'settings.manage', 'staff.manage', 'staff.view'],
+            $manager->id => ['rates.override-restrictions', 'rooms.block', 'rooms.manage', 'rooms.view', 'settings.manage', 'staff.manage', 'staff.view'],
             roleOf($property, DefaultRoleEnum::FrontDesk)->id => ['rooms.block'],
         ]])
         ->assertRedirect(route('settings.roles.index', $property->code))
@@ -122,8 +122,8 @@ test('the owner column is skipped, and unknown permissions or other properties\'
     $this->put($update, ['roles' => [roleOf($other, DefaultRoleEnum::Manager)->id => []]])
         ->assertSessionHasErrors('roles');
 
-    expect($ownerRole->permissions()->count())->toBe(8)
-        ->and(roleOf($other, DefaultRoleEnum::Manager)->permissions()->count())->toBe(6)
+    expect($ownerRole->permissions()->count())->toBe(9)
+        ->and(roleOf($other, DefaultRoleEnum::Manager)->permissions()->count())->toBe(7)
         ->and(Activity::query()->count())->toBe(0);
 });
 

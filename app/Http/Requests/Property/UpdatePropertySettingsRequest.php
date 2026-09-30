@@ -8,6 +8,7 @@ use App\Enums\MissedArrivalPolicy;
 use App\Enums\NoShowCharge;
 use App\Enums\OverdueDeparturePolicy;
 use App\Enums\RegistrationCardScope;
+use App\Enums\WeekendNights;
 use App\Models\Property;
 use App\Services\Property\SettingsLock;
 use Illuminate\Contracts\Validation\ValidationRule;
@@ -66,6 +67,7 @@ class UpdatePropertySettingsRequest extends FormRequest
                 'missed_arrival_policy' => ['required', Rule::enum(MissedArrivalPolicy::class)],
                 'overdue_departure_policy' => ['required', Rule::enum(OverdueDeparturePolicy::class)],
                 'no_show_charge' => ['required', Rule::enum(NoShowCharge::class)],
+                'weekend_nights' => ['required', Rule::enum(WeekendNights::class)],
             ],
             'registration' => [
                 'registration_card_scope' => ['required', Rule::enum(RegistrationCardScope::class)],

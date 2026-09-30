@@ -41,13 +41,28 @@ rate_occupancy_prices     id, rate_id, adults, amount
 | Channel bookings          | Accepted. The OTA already checked its own copy of the restrictions.                                                                |
 
 - Weekend and holiday prices are daily rates edited in bulk with the pricing form. No weekday arrays.
-- Any change records a channel sync range (see [ARI sync](../21-channels/04-ari-sync.md)).
+- Any change records a channel sync range (see [ARI sync](../21-channels/04-ari-sync.md)). Not built yet: `SaveRates` and `ExtendRates` are the places to hook it when channels arrive.
+- A room type stays in the `rates` table when a plan stops selling it. The rows return if the link is restored. Readers use only linked room types.
+
+## Writing rates
+
+| Piece              | Job                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `SaveRates`        | Saves a date range for one plan. Per room type, the request sends one entry per ISO weekday (1 = Monday), so the server applies each weekday to every date in the range. A weekday with no amount leaves its price alone. A weekday with an amount replaces that date's occupancy prices. A `restrictions` array (only the keys sent) is applied to every date of the range, and creates rows that have no price yet. Returns false for an archived plan, a room type the plan does not sell, an amount on a package plan, or a merged min stay above the max stay. |
+| `ExtendRates`      | Copies the last 7 priced days of each room type forward 12 months, from the day after its last price or today, whichever is later. Copies `amount`, occupancy prices, `min_stay` and `max_stay`. Keeps date-specific flags already on the new dates.                                                                                                                                                                                                                                                                                                                |
+| `UpsertRates`      | The shared bulk upsert for both.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| `RestrictionCheck` | Lists what a stay breaks: stop sell on any night, closed to arrival on the arrival date, closed to departure on the departure date, min and max stay from the arrival date's row. The caller decides to block, warn or accept.                                                                                                                                                                                                                                                                                                                                      |
+| `RatesEndingCheck` | Finds the last priced date per room type. Prices are "ending" when that is missing or earlier than today + 60 days.                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+
+Routes: `settings.rate-plans.pricing.edit`, `.update` and `.extend` (all `settings.manage`). Package plans get 404.
 
 ## Permissions
 
 | Permission                    | Guards                                    | Default roles  |
 | ----------------------------- | ----------------------------------------- | -------------- |
 | `rates.override-restrictions` | Book past a restriction at the front desk | Owner, Manager |
+
+The permission exists now. The front desk override arrives with the booking form.
 
 ## Rates ending
 
@@ -65,7 +80,7 @@ One form fills `rates` for a date range. The rate plan editor's Pricing tab ("Se
 - **By day**: seven columns, Mon to Sun.
 - Simple to By day carries the values over. By day to Simple works only when the prices match a weekday and weekend pattern. Otherwise the form asks to stay on By day.
 - The mode and the form's weekend choice are not stored. Only `rates` and `rate_occupancy_prices` are written.
-- On a phone, By day stacks one card per room type.
+- On a phone, By day scrolls sideways inside a table for now.
 
 | Pricing basis | Simple                                                                                      | By day                                                         |
 | ------------- | ------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
@@ -77,6 +92,10 @@ One form fills `rates` for a date range. The rate plan editor's Pricing tab ("Se
 Bulk edit adds the restriction fields to the same form.
 
 ## UI
+
+Built now: the rate plan editor's **Pricing** tab (`settings.rate-plans.pricing.edit`). It has the rates ending warning with **Extend 12 months**, then one table. Each room type is a collapsible group row that shows how far it is priced, its **Auto** button and its "Different price by adults" switch, with its price rows underneath. On a PerGuest plan in By day view, only one group is open at a time. The form starts empty for each save. It does not preload saved prices. Bulk edit restrictions and the calendar grid arrive with the rate calendar item.
+
+The calendar grid:
 
 - A calendar grid grouped by room type, with each linked plan as a row under it. Virtualized with `@tanstack/react-virtual`.
 - Filters: month, room type and plan.

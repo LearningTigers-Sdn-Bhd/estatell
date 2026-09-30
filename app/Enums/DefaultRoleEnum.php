@@ -31,7 +31,7 @@ enum DefaultRoleEnum: string
     {
         return match ($this) {
             self::Owner => PermissionEnum::cases(),
-            self::Manager => [PermissionEnum::SettingsManage, PermissionEnum::StaffView, PermissionEnum::StaffManage, PermissionEnum::RoomsView, PermissionEnum::RoomsManage, PermissionEnum::RoomsBlock],
+            self::Manager => [PermissionEnum::SettingsManage, PermissionEnum::StaffView, PermissionEnum::StaffManage, PermissionEnum::RoomsView, PermissionEnum::RoomsManage, PermissionEnum::RoomsBlock, PermissionEnum::RatesOverrideRestrictions],
             self::FrontDesk => [PermissionEnum::RoomsBlock],
             self::Housekeeping, self::Finance => [],
         };

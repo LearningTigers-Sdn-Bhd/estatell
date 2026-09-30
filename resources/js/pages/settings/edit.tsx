@@ -52,6 +52,7 @@ export default function PropertySettings({
     missedArrivalPolicies = [],
     overdueDeparturePolicies = [],
     noShowCharges = [],
+    weekendNightsOptions = [],
     registrationCardScopes = [],
     ageGroups = [],
     maxAge = 17,
@@ -63,6 +64,7 @@ export default function PropertySettings({
     missedArrivalPolicies?: EnumOption[];
     overdueDeparturePolicies?: EnumOption[];
     noShowCharges?: EnumOption[];
+    weekendNightsOptions?: EnumOption[];
     registrationCardScopes?: EnumOption[];
     ageGroups?: App.Data.Property.PropertyAgeGroupData[];
     maxAge?: number;
@@ -255,6 +257,13 @@ export default function PropertySettings({
                                         value={settings.noShowCharge}
                                         options={noShowCharges}
                                         error={errors.no_show_charge}
+                                    />
+                                    <SettingsSelect
+                                        name="weekend_nights"
+                                        label="Weekend nights"
+                                        value={settings.weekendNights}
+                                        options={weekendNightsOptions}
+                                        error={errors.weekend_nights}
                                     />
                                     <SettingsSwitch
                                         name="auto_audit_enabled"

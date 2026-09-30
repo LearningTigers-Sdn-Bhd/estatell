@@ -242,6 +242,7 @@ autoAuditEnabled: boolean,
 missedArrivalPolicy: App.Enums.MissedArrivalPolicy,
 overdueDeparturePolicy: App.Enums.OverdueDeparturePolicy,
 noShowCharge: App.Enums.NoShowCharge,
+weekendNights: App.Enums.WeekendNights,
 registrationCardScope: App.Enums.RegistrationCardScope,
 cardRequiredForCheckIn: boolean,
 idDocumentRetentionDays: number | null,
@@ -253,6 +254,11 @@ export type PropertySummaryData = {
 code: number,
 name: string,
 status: App.Enums.PropertyStatus,
+};
+export type WeekendNightsOptionData = {
+value: string,
+label: string,
+isoWeekdays: number[],
 };
 }
 namespace Rates {
@@ -291,6 +297,14 @@ id: number,
 name: string,
 sellUnit: App.Enums.SellUnit,
 fits: boolean,
+};
+export type RatePricingRoomTypeData = {
+id: number,
+name: string,
+baseOccupancy: number,
+maxAdults: number,
+pricedUntil: string | null,
+ending: boolean,
 };
 }
 namespace Rooms {
@@ -425,7 +439,7 @@ export type NotificationType = 'night_audit_completed' | 'night_audit_exceptions
 export type OverdueDeparturePolicy = 'extend_one_night' | 'block';
 export type OwnerSetupMethod = 'email_link' | 'initial_password';
 export type PaymentMethodType = 'cash' | 'card' | 'bank_transfer' | 'e_wallet' | 'ota_collected' | 'direct_bill';
-export type PermissionEnum = 'settings.manage' | 'staff.view' | 'staff.manage' | 'roles.manage' | 'rooms.view' | 'rooms.manage' | 'rooms.block' | 'notification.manage';
+export type PermissionEnum = 'settings.manage' | 'staff.view' | 'staff.manage' | 'roles.manage' | 'rooms.view' | 'rooms.manage' | 'rooms.block' | 'notification.manage' | 'rates.override-restrictions';
 export type PlatformFeature = 'channel-manager';
 export type PricingBasis = 'per_room' | 'per_guest' | 'per_bed' | 'package';
 export type PropertyStatus = 'onboarding' | 'pending_approval' | 'live' | 'suspended';
@@ -439,6 +453,7 @@ export type TaxRateType = 'percent' | 'flat';
 export type Tone = 'neutral' | 'info' | 'success' | 'warning' | 'danger';
 export type TransactionCategory = 'room' | 'food_and_beverage' | 'laundry' | 'minibar' | 'fee' | 'tax' | 'discount' | 'cash' | 'card' | 'bank_transfer' | 'e_wallet' | 'ota_collected' | 'direct_bill' | 'deposit' | 'refund' | 'adjustment' | 'other';
 export type TransactionKind = 'charge' | 'payment' | 'adjustment' | 'tax';
+export type WeekendNights = 'fri_sat' | 'sat_sun';
 }
 }
 declare namespace Illuminate {

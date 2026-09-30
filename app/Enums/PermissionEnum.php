@@ -16,6 +16,7 @@ enum PermissionEnum: string
     case RoomsManage = 'rooms.manage';
     case RoomsBlock = 'rooms.block';
     case NotificationManage = 'notification.manage';
+    case RatesOverrideRestrictions = 'rates.override-restrictions';
 
     public function label(): string
     {
@@ -28,6 +29,7 @@ enum PermissionEnum: string
             self::RoomsManage => __('Manage rooms and room types'),
             self::RoomsBlock => __('Block rooms and beds'),
             self::NotificationManage => __('Manage notification settings'),
+            self::RatesOverrideRestrictions => __('Book past rate restrictions'),
         };
     }
 
@@ -41,6 +43,7 @@ enum PermissionEnum: string
             self::StaffView, self::StaffManage, self::RolesManage => __('Team'),
             self::RoomsView, self::RoomsManage, self::RoomsBlock => __('Rooms'),
             self::NotificationManage => __('System'),
+            self::RatesOverrideRestrictions => __('Rates'),
         };
     }
 
