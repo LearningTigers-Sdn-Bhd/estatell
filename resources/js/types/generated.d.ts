@@ -209,6 +209,15 @@ active: App.Enums.NavigationContext | null,
 contexts: App.Data.Navigation.NavContextData[],
 };
 }
+namespace NightAudit {
+export type BusinessDateData = {
+date: string,
+status: App.Enums.BusinessDateStatus,
+timeZone: string,
+auditTime: string,
+serverNow: string,
+};
+}
 namespace Notifications {
 export type NotificationChannelPreferenceData = {
 channel: App.Enums.NotificationChannel,
@@ -659,12 +668,14 @@ deactivatedAt: string | null,
 }
 namespace Enums {
 export type AgeBandPricing = 'free' | 'percent' | 'fixed';
+export type BusinessDateStatus = 'open' | 'auditing' | 'closed';
 export type ChargingUnit = 'per_item' | 'per_night' | 'per_stay' | 'per_guest_night' | 'per_guest';
 export type Currency = 'MYR';
 export type DefaultMealPeriod = 'breakfast' | 'lunch' | 'dinner';
 export type DefaultRoleEnum = 'owner' | 'manager' | 'front_desk' | 'housekeeping' | 'finance';
 export type DiscountScope = 'room_only' | 'all_charges' | 'selected';
 export type DiscountType = 'percent' | 'fixed' | 'open';
+export type DocumentType = 'reservation' | 'folio' | 'invoice' | 'credit_note' | 'receipt' | 'registration_card';
 export type DormStrategy = 'bed_as_unit' | 'native_dorm';
 export type EarlyDeparturePolicy = 'charge_full' | 'charge_used_nights';
 export type Gender = 'male' | 'female';

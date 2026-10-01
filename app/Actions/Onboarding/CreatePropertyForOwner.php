@@ -2,6 +2,7 @@
 
 namespace App\Actions\Onboarding;
 
+use App\Actions\Property\GenerateDocumentPrefix;
 use App\Actions\Property\SeedPropertyDefaults;
 use App\Actions\Staff\AssignOwnerRole;
 use App\Enums\OwnerSetupMethod;
@@ -19,6 +20,7 @@ class CreatePropertyForOwner
 {
     public function __construct(
         private SeedPropertyDefaults $seedPropertyDefaults,
+        private GenerateDocumentPrefix $generateDocumentPrefix,
         private AssignOwnerRole $assignOwnerRole,
     ) {}
 
@@ -42,6 +44,8 @@ class CreatePropertyForOwner
                 'country_code' => 'MY',
                 'onboarding_started_at' => now(),
             ]);
+
+            ($this->generateDocumentPrefix)($property);
 
             $owner = $property->users()->create([
                 'name' => $input['owner_name'],

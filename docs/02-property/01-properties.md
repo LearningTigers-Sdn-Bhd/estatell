@@ -7,7 +7,7 @@ A property is the tenant. Every domain record belongs to exactly one property. w
 ## Data model
 
 ```
-properties    id, code (bigint, unique), name, type (PropertyType, nullable), status (PropertyStatus),
+properties    id, code (bigint, unique), document_prefix (unique, nullable), name, type (PropertyType, nullable), status (PropertyStatus),
               address_line1, address_line2, city, state_code, postal_code, country_code (char 2, nullable),
               contact_email, contact_phone, registration_number, tin,
               onboarding_started_at, went_live_at, suspended_at, suspended_from_status, timestamps
@@ -24,6 +24,12 @@ properties    id, code (bigint, unique), name, type (PropertyType, nullable), st
 - Easy to say on the phone. Admin ⌘K searches by code, name or city.
 - Not a secret. Access is always checked by `EnsurePropertyAccess`; a code that does not belong to the user returns `404`.
 - `slug` is added later, only when the public booking engine needs it.
+
+## Document prefix
+
+- `document_prefix` starts every document reference of the property (for example `GRH-26500042`). It is built from the name when the property is created and does not change when the name changes.
+- Every prefix is kept in `property_document_prefix_histories`, so a retired prefix is never reused.
+- Details: [Business dates](../20-night-audit/01-business-dates.md#document-references).
 
 ## Enums
 

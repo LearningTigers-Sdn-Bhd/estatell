@@ -20,6 +20,7 @@ use Laravel\Pennant\Contracts\FeatureScopeSerializeable;
  *
  * @property int $id
  * @property int $code
+ * @property string|null $document_prefix
  * @property string $name
  * @property PropertyType|null $type
  * @property PropertyStatus $status
@@ -209,6 +210,24 @@ class Property extends Model implements FeatureScopeSerializeable
     public function notificationSettings(): HasMany
     {
         return $this->hasMany(PropertyNotificationSetting::class);
+    }
+
+    /** @return HasMany<BusinessDate, $this> */
+    public function businessDates(): HasMany
+    {
+        return $this->hasMany(BusinessDate::class);
+    }
+
+    /** @return HasMany<DocumentSequence, $this> */
+    public function documentSequences(): HasMany
+    {
+        return $this->hasMany(DocumentSequence::class);
+    }
+
+    /** @return HasMany<PropertyDocumentPrefixHistory, $this> */
+    public function documentPrefixHistories(): HasMany
+    {
+        return $this->hasMany(PropertyDocumentPrefixHistory::class);
     }
 
     /** @return HasOne<PropertySetting, $this> */

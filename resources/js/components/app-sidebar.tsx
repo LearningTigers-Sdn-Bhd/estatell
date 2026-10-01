@@ -1,5 +1,6 @@
 import { Link, usePage } from '@inertiajs/react';
 import AppLogo from '@/components/app-logo';
+import { BusinessDateIndicator } from '@/components/business-date-indicator';
 import { ContextSwitcher } from '@/components/context-switcher';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
@@ -84,6 +85,7 @@ export function AppSidebar() {
             </SidebarContent>
 
             <SidebarFooter>
+                <BusinessDateIndicator />
                 <NavUser />
             </SidebarFooter>
         </Sidebar>

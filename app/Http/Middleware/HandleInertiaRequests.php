@@ -3,11 +3,13 @@
 namespace App\Http\Middleware;
 
 use App\Data\Navigation\StaffNavigationData;
+use App\Data\NightAudit\BusinessDateData;
 use App\Data\Property\PropertySummaryData;
 use App\Enums\PropertyStatus;
 use App\Models\Property;
 use App\Navigation\AdminNavigation;
 use App\Navigation\StaffNavigation;
+use App\Services\NightAudit\CurrentBusinessDate;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -49,6 +51,7 @@ class HandleInertiaRequests extends Middleware
             ],
             'adminNeedsTwoFactor' => RequireAdminTwoFactor::isMissingFor($request->user()),
             'property' => fn () => $this->currentProperty($request),
+            'businessDate' => fn () => $this->businessDate($request),
             'adminNavigation' => fn () => $request->user()?->is_admin ? app(AdminNavigation::class)->items() : null,
             'navigation' => fn () => $this->staffNavigation($request),
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
@@ -90,12 +93,35 @@ class HandleInertiaRequests extends Middleware
      */
     private function currentProperty(Request $request): ?PropertySummaryData
     {
+        $property = $this->resolveProperty($request);
+
+        return $property === null ? null : PropertySummaryData::fromModel($property);
+    }
+
+    /**
+     * The current business date of that property. Null until the property goes live, and for admins.
+     */
+    private function businessDate(Request $request): ?BusinessDateData
+    {
+        $property = $this->resolveProperty($request);
+
+        if ($property === null || $request->user()?->is_admin || $property->status === PropertyStatus::Suspended) {
+            return null;
+        }
+
+        $businessDate = app(CurrentBusinessDate::class)->get($property);
+
+        return $businessDate === null ? null : BusinessDateData::fromBusinessDate($businessDate, $property);
+    }
+
+    private function resolveProperty(Request $request): ?Property
+    {
         $property = $request->route('property');
 
         if (! $property instanceof Property) {
             $property = $request->user()?->property;
         }
 
-        return $property instanceof Property ? PropertySummaryData::fromModel($property) : null;
+        return $property instanceof Property ? $property : null;
     }
 }

@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Actions\Property\GenerateDocumentPrefix;
 use App\Enums\PropertyStatus;
 use App\Enums\PropertyType;
 use App\Models\Property;
@@ -30,11 +31,14 @@ class PropertyFactory extends Factory
     }
 
     /**
-     * Load the sequence-issued code after the row is inserted.
+     * Issue the document prefix and load the sequence-issued code after the row is inserted.
      */
     public function configure(): static
     {
-        return $this->afterCreating(fn (Property $property) => $property->refresh());
+        return $this->afterCreating(function (Property $property): void {
+            app(GenerateDocumentPrefix::class)($property);
+            $property->refresh();
+        });
     }
 
     public function live(): static

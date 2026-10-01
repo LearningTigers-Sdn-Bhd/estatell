@@ -174,7 +174,7 @@ Smaller fixes and reverts are in `git log`.
 
 ### 20 Night audit (business dates, built early)
 
-- [ ] `feat(night-audit): add business dates and document numbers` — `CurrentBusinessDate`, `NextDocumentNumber`, business date indicator in the shell. Build before folio posting. Docs: [Business dates](20-night-audit/01-business-dates.md).
+- [x] `feat(night-audit): add business dates and document numbers` — `CurrentBusinessDate`, `NextDocumentNumber`, per-property `document_prefix`, business date indicator in the shell. `OpenBusinessDate` waits for `GoLive`; room blocks switch from `PropertyToday` with the first folio posting. Docs: [Business dates](20-night-audit/01-business-dates.md).
 
 ### 12 Reservations
 

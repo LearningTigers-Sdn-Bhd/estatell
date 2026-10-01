@@ -13,6 +13,7 @@ declare module '@inertiajs/core' {
             auth: Auth;
             adminNeedsTwoFactor: boolean;
             property: App.Data.Property.PropertySummaryData | null;
+            businessDate: App.Data.NightAudit.BusinessDateData | null;
             adminNavigation: App.Data.Navigation.NavItemData[] | null;
             navigation: App.Data.Navigation.StaffNavigationData | null;
             sidebarOpen: boolean;

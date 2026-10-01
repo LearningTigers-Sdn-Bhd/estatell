@@ -96,7 +96,7 @@ Front desk staff must always know which business date they are posting to. After
 
 - **Business date**: shared Inertia prop `businessDate` with `date`, `status`, `timeZone`, `auditTime` and `serverNow`. Built from `CurrentBusinessDate` for the current property.
 - **System date and time**: calculated in the browser in the **property time zone** (`@date-fns/tz`), ticking every minute. Uses `serverNow` to correct a wrong device clock (common on front desk PCs), so it never trusts the device time alone.
-- **Refresh**: the prop updates on every page visit. While in Audit pending or Auditing, a small `useHttp` check (`/p/{code}/business-date`) runs every 5 minutes so the indicator changes when the audit finishes. The night audit page updates it immediately after closing.
+- **Refresh**: the prop updates on every page visit. While in Audit pending, Overdue or Auditing, a small `useHttp` check (`/p/{code}/business-date`) runs every 5 minutes so the indicator changes when the audit finishes. The night audit page updates it immediately after closing.
 
 ### Placement
 
@@ -116,14 +116,14 @@ Front desk staff must always know which business date they are posting to. After
 
 ### Build status
 
-| Part                       | Status                                                                                                          |
-| -------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| r1, r2, r3, r5             | Built.                                                                                                          |
-| Front desk, Settings       | Built with the items that have routes (Dashboard; Details). Each module adds its items.                         |
-| Finance, Reports           | No navigation classes yet. They come with their modules and stay hidden until then.                             |
-| Permission filtering       | Built. Each context class leaves out items the user lacks the permission for (Details needs `settings.manage`). |
-| r4 `BusinessDateIndicator` | Comes with [Business dates](../20-night-audit/01-business-dates.md).                                            |
-| ⌘K palette                 | Not built.                                                                                                      |
+| Part                       | Status                                                                                                                                              |
+| -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| r1, r2, r3, r5             | Built.                                                                                                                                              |
+| Front desk, Settings       | Built with the items that have routes (Dashboard; Details). Each module adds its items.                                                             |
+| Finance, Reports           | No navigation classes yet. They come with their modules and stay hidden until then.                                                                 |
+| Permission filtering       | Built. Each context class leaves out items the user lacks the permission for (Details needs `settings.manage`).                                     |
+| r4 `BusinessDateIndicator` | Built with [Business dates](../20-night-audit/01-business-dates.md). The pending, running and overdue texts become links with the night audit page. |
+| ⌘K palette                 | Not built.                                                                                                                                          |
 
 - Labels are plain words. Section names match the table above.
 - Admin pages use `layouts/admin-layout.tsx` with `AdminSidebar`. Its items come from `App\Navigation\AdminNavigation`, shared as `adminNavigation` with admins only (null for staff). Account pages use the admin layout when this prop is present, so admins keep their sidebar there. Items marked `external` (Horizon) open in a new tab. The admin two-factor banner lives in this layout.
