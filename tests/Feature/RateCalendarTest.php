@@ -70,7 +70,7 @@ test('the calendar shows the range of prices and restrictions for each room type
 
 test('the calendar opens on today and the next 13 days in the property time zone', function () {
     [$owner, $property] = calendarSetup();
-    $this->travelTo(now()->setDate(2026, 12, 20));
+    $this->travelTo(now()->setDate(2026, 12, 20)->setTime(12, 0));
 
     $this->actingAs($owner)
         ->get(route('rates.calendar', $property->code))
@@ -687,9 +687,14 @@ test('the rate calendar and its bulk edit page both sit in the front desk sideba
         ->get(route($routeName, $property->code))
         ->assertInertia(fn (Assert $page) => $page
             ->where('navigation.active', 'front-desk')
-            ->where('navigation.contexts.0.groups.2.label', 'Operations')
-            ->where('navigation.contexts.0.groups.2.items.0.title', 'Rate calendar')
-            ->where('navigation.contexts.0.groups.2.items.0.active', true)
+            ->where('navigation.contexts.0.groups', function ($groups) {
+                $operations = collect($groups)->firstWhere('label', 'Operations');
+                $item = collect($operations['items'] ?? [])->firstWhere('title', 'Rate calendar');
+
+                expect($item['active'] ?? null)->toBeTrue();
+
+                return true;
+            })
         );
 })->with(['rates.calendar', 'rates.calendar.bulk']);
 
