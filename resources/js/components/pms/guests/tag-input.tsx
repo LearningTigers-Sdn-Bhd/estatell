@@ -1,15 +1,25 @@
-import { X } from 'lucide-react';
 import { useState } from 'react';
-import type { KeyboardEvent } from 'react';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import {
+    Combobox,
+    ComboboxChip,
+    ComboboxChips,
+    ComboboxChipsInput,
+    ComboboxContent,
+    ComboboxEmpty,
+    ComboboxItem,
+    ComboboxList,
+    ComboboxValue,
+    useComboboxAnchor,
+} from '@/components/ui/combobox';
+
+type TagOption = { value: string; label: string };
 
 type Props = {
     id: string;
+    name?: string;
     value: string[];
     onChange: (value: string[]) => void;
-    /** Names of the property's existing tags, offered as one-click additions. */
+    /** Names of the property's existing tags. */
     suggestions: string[];
     invalid?: boolean;
 };
@@ -17,90 +27,85 @@ type Props = {
 const MAX_LENGTH = 50;
 
 /**
- * Chips for a guest's tags. Type a name and press Enter to add it, or click an existing tag.
- * A new name creates the tag when the guest is saved.
+ * A multi-select combobox for a guest's tags. Pick an existing tag, or type a new name and choose
+ * "Create". A new name creates the tag when the guest is saved.
  */
-export function TagInput({ id, value, onChange, suggestions, invalid }: Props) {
-    const [draft, setDraft] = useState('');
+export function TagInput({
+    id,
+    name,
+    value,
+    onChange,
+    suggestions,
+    invalid,
+}: Props) {
+    const anchor = useComboboxAnchor();
+    const [query, setQuery] = useState('');
 
-    const has = (name: string) =>
-        value.some((tag) => tag.toLowerCase() === name.toLowerCase());
-
-    const add = (raw: string) => {
-        const name = raw.trim().slice(0, MAX_LENGTH);
-
-        if (name !== '' && !has(name)) {
-            onChange([...value, name]);
-        }
-
-        setDraft('');
-    };
-
-    const onKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
-        if (event.key === 'Enter' || event.key === ',') {
-            event.preventDefault();
-            add(draft);
-        } else if (event.key === 'Backspace' && draft === '' && value.length) {
-            onChange(value.slice(0, -1));
-        }
-    };
-
-    const remaining = suggestions.filter((name) => !has(name));
+    const known = new Set(
+        [...suggestions, ...value].map((tag) => tag.toLowerCase()),
+    );
+    const typed = query.trim().slice(0, MAX_LENGTH);
+    const items: TagOption[] = [
+        ...[...new Set([...suggestions, ...value])].map((tag) => ({
+            value: tag,
+            label: tag,
+        })),
+        ...(typed !== '' && !known.has(typed.toLowerCase())
+            ? [{ value: typed, label: `Create "${typed}"` }]
+            : []),
+    ];
+    const selected = value.map((tag) => ({ value: tag, label: tag }));
 
     return (
-        <div className="flex flex-col gap-2">
-            <Input
-                id={id}
-                value={draft}
-                maxLength={MAX_LENGTH}
-                onChange={(event) => setDraft(event.target.value)}
-                onKeyDown={onKeyDown}
-                onBlur={() => add(draft)}
-                placeholder="Type a tag and press Enter"
-                aria-invalid={invalid}
-            />
-            {value.length > 0 && (
-                <ul
-                    className="flex flex-wrap gap-1.5"
-                    aria-label="Selected tags"
-                >
-                    {value.map((tag) => (
-                        <li key={tag}>
-                            <Badge variant="secondary">
-                                {tag}
-                                <button
-                                    type="button"
-                                    aria-label={`Remove ${tag}`}
-                                    className="-me-1 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                                    onClick={() =>
-                                        onChange(value.filter((t) => t !== tag))
-                                    }
-                                >
-                                    <X aria-hidden />
-                                </button>
-                            </Badge>
-                        </li>
-                    ))}
-                </ul>
-            )}
-            {remaining.length > 0 && (
-                <div className="flex flex-wrap items-center gap-1.5">
-                    <span className="text-xs text-muted-foreground">
-                        Existing:
-                    </span>
-                    {remaining.map((name) => (
-                        <Button
-                            key={name}
-                            type="button"
-                            size="xs"
-                            variant="outline"
-                            onClick={() => add(name)}
-                        >
-                            {name}
-                        </Button>
-                    ))}
-                </div>
-            )}
-        </div>
+        <Combobox
+            items={items}
+            multiple
+            autoHighlight
+            name={name}
+            value={selected}
+            inputValue={query}
+            onInputValueChange={setQuery}
+            onValueChange={(next) => {
+                onChange((next as TagOption[]).map((item) => item.value));
+                setQuery('');
+            }}
+            isItemEqualToValue={(a, b) => a.value === b.value}
+            itemToStringLabel={(item) => item.label}
+            itemToStringValue={(item) => item.value}
+        >
+            <ComboboxValue>
+                {(selectedItems: TagOption[]) => (
+                    <ComboboxChips ref={anchor} aria-invalid={invalid}>
+                        {selectedItems.map((item) => (
+                            <ComboboxChip
+                                key={item.value}
+                                aria-label={item.label}
+                            >
+                                {item.label}
+                            </ComboboxChip>
+                        ))}
+                        <ComboboxChipsInput
+                            id={id}
+                            maxLength={MAX_LENGTH}
+                            placeholder={
+                                selectedItems.length === 0
+                                    ? 'Search or create tags'
+                                    : ''
+                            }
+                        />
+                    </ComboboxChips>
+                )}
+            </ComboboxValue>
+            <ComboboxContent anchor={anchor}>
+                <ComboboxEmpty>Type a name to create a tag.</ComboboxEmpty>
+                <ComboboxList>
+                    {(item: TagOption) => (
+                        <ComboboxItem key={item.value} value={item}>
+                            {item.label}
+                        </ComboboxItem>
+                    )}
+                </ComboboxList>
+            </ComboboxContent>
+        </Combobox>
     );
 }
