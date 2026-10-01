@@ -40,6 +40,7 @@ use App\Enums\InclusionStart;
 use App\Enums\PackageUnit;
 use App\Enums\PricingBasis;
 use App\Enums\RateDerivation;
+use App\Enums\RatePlanStatus;
 use App\Enums\SellUnit;
 use App\Enums\StayDiscountType;
 use App\Enums\Weekday;
@@ -91,6 +92,7 @@ class RatePlanController extends Controller
                 ->ordered()
                 ->get()
                 ->map(fn (RatePlan $ratePlan): RatePlanData => RatePlanData::fromModel($ratePlan)),
+            'statuses' => RatePlanStatus::options(),
             'pricingBases' => PricingBasis::options(),
             'packageUnits' => PackageUnit::options(),
             'roomTypes' => $property->roomTypes()->active()->ordered()->get()

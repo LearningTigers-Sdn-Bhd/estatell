@@ -364,10 +364,14 @@ packageUnit: App.Enums.PackageUnit | null,
 usesChildPrices: boolean,
 family: string,
 pricingLabel: string,
+familyTone: App.Enums.Tone,
+pricingTone: App.Enums.Tone,
 extraAdultAmount: string,
 extraChildAmount: string,
 singleSupplement: string,
 archived: boolean,
+status: App.Data.Shared.BadgeData,
+isDerived: boolean,
 checkChildPrices: boolean,
 roomTypeIds: number[],
 roomTypeNames: string[],
@@ -610,6 +614,7 @@ export type PricingBasis = 'per_room' | 'per_guest' | 'per_bed' | 'package';
 export type PropertyStatus = 'onboarding' | 'pending_approval' | 'live' | 'suspended';
 export type PropertyType = 'hotel' | 'hostel' | 'resort' | 'serviced_apartment' | 'homestay';
 export type RateDerivation = 'percent' | 'amount';
+export type RatePlanStatus = 'active' | 'archived';
 export type RegistrationCardScope = 'primary_only' | 'every_adult';
 export type RoomBlockReason = 'maintenance' | 'owner_use' | 'out_of_order' | 'other';
 export type SellUnit = 'room' | 'bed';

@@ -40,7 +40,7 @@ Staff with `settings.manage` use Settings, Rates, Rate plans (`settings.rate-pla
 - **Package plans** are created like any plan. The Package case fits both families. A database CHECK keeps `fixed_nights` (1 to 30) and `package_unit` set on a package and empty on every other plan. There is no `is_package` column, `pricing_basis = Package` says it.
 - **New plan:** a Sheet with name, pricing basis and optional room types. Choosing Package adds Nights and Charged (per guest or per room). The room type checkbox item is shared with the Room types tab.
 - **Editor:** a full page with `TabLinks`. Each tab is its own URL, controller method and page, and loads only its own data: Details (`settings.rate-plans.edit`), Room types (`settings.rate-plans.room-types.edit`), Pricing (`settings.rate-plans.pricing.edit`, a stay price grid for Package plans, see [Package prices](../09-packages/02-package-prices.md#ui), and [Daily rates](02-daily-rates-and-restrictions.md#ui) for the others) Children (`settings.rate-plans.child-prices.edit`, PerGuest plans and per-guest packages only, 404 otherwise) and Discounts (`settings.rate-plans.discounts.edit`, 404 for Package plans). Each tab is its own form. Leaving a tab with unsaved changes asks Cancel, Discard or Save (see [Form containers](../design-system/05-form-containers.md#unsaved-changes)). The Inclusions tab (`settings.rate-plans.inclusions.edit`) is open to every plan, see [Inclusions](../09-packages/01-inclusions.md). The Agents tab arrives with its item. `early_departure_policy` has a column and a default (ChargeFull) but no field yet.
-- **List:** name, family, pricing, linked room types, reorder, archive and restore. A new plan opens on its Room types tab.
+- **List:** one table with name, family, pricing, room types, status and a row menu (Edit, Move up, Move down, Archive or Restore). A search box and a status filter (Active by default, Archived, All) filter the loaded list in the browser, and the choice is kept in `?status=`. Archived plans show in the same table, so there is no archived section. Reorder shows only on the Active filter with no search. Badges: status (`RatePlanStatus`), sells (tone only, no dot, from `PricingBasis::familyTone()`), pricing (icon and tone, from `PricingBasis::tone()`; a derived plan shows a branch icon and its "Follows" label), and "Check child prices". Room types show as up to 3 pills and one "+X" pill, whose tooltip lists the rest. A new plan opens on its Room types tab.
 - **Guard built:** a room type keeps at least one active linked plan. It is checked on unlinking and archiving by `RatePlanCoverage`, and re-checked in the Action under a lock.
 - **Guards built for derived plans:** a parent is not archived while active plans follow it, a room type is not unlinked from a parent while a follower sells it, and a follower is not restored under an archived parent.
 - **Guards not built yet:** Deleting a used plan and unlinking a room type with future reservations need reservations. No delete path exists yet, so plans are archived only.
@@ -50,7 +50,8 @@ Staff with `settings.manage` use Settings, Rates, Rate plans (`settings.rate-pla
 
 ## Enums
 
-- `PricingBasis`: PerRoom, PerGuest, PerBed, Package.
+- `PricingBasis`: PerRoom, PerGuest, PerBed, Package. It has `tone()` and `familyTone()` for the list badges.
+- `RatePlanStatus`: Active, Archived. Derived from `archived_at`, used for the list badge and filter.
 - `RateDerivation`: Percent, Amount. See [Derived rate plans](04-derived-rate-plans.md).
 - `EarlyDeparturePolicy`: ChargeFull, ChargeUsedNights.
 - `PackageUnit`: PerGuest, PerRoom. See [Package prices](../09-packages/02-package-prices.md).

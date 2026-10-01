@@ -417,3 +417,13 @@ test('copying is refused for a plan that has discounts, follows nothing or has a
     expect($action($owner, $child))->toBeFalse()
         ->and($child->stayDiscounts()->count())->toBe(1);
 });
+
+test('the rate plans list marks a derived plan', function () {
+    [$owner, $property, $parent, $roomType] = derivedSetup();
+    derivedPlan($property, $parent, $roomType, RateDerivation::Percent, '10.00');
+
+    $this->actingAs($owner)
+        ->get(route('settings.rate-plans.index', $property->code))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('ratePlans', fn ($plans) => collect($plans)->pluck('isDerived', 'name')->all() === ['Basic Rate' => false, 'Breakfast' => true]));
+});

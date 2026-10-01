@@ -74,6 +74,13 @@ test('the list shows active plans in order with their room types, then archived 
             ->where('ratePlans.0.family', 'Room')
             ->where('ratePlans.1.pricingBasis', 'per_guest')
             ->where('ratePlans.2.archived', true)
+            ->where('ratePlans.0.status', ['value' => 'active', 'label' => 'Active', 'tone' => 'success'])
+            ->where('ratePlans.2.status', ['value' => 'archived', 'label' => 'Archived', 'tone' => 'neutral'])
+            ->where('ratePlans.0.isDerived', false)
+            ->where('ratePlans.0.familyTone', 'info')
+            ->where('ratePlans.0.pricingTone', 'info')
+            ->where('ratePlans.1.pricingTone', 'success')
+            ->where('statuses', fn ($statuses) => collect($statuses)->pluck('value')->all() === ['active', 'archived'])
             ->where('pricingBases', fn ($bases) => collect($bases)->pluck('value')->all() === ['per_room', 'per_guest', 'per_bed', 'package']));
 });
 

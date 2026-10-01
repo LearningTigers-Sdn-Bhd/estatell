@@ -1,9 +1,25 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { ArrowDown, ArrowUp, Tag } from 'lucide-react';
+import {
+    ArrowDown,
+    ArrowUp,
+    BedDouble,
+    BedSingle,
+    Ellipsis,
+    GitBranch,
+    Package,
+    Tag,
+    Users,
+} from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { useState } from 'react';
 import { EmptyState } from '@/components/pms/empty-state';
+import { EnumSelect } from '@/components/pms/enum-select';
+import type { EnumOption } from '@/components/pms/enum-select';
+import { FilterBar } from '@/components/pms/filter-bar';
 import { PageHeader } from '@/components/pms/page-header';
 import { NewRatePlanSheet } from '@/components/pms/rate-plans/new-rate-plan-sheet';
+import { RoomTypePills } from '@/components/pms/rate-plans/room-type-pills';
+import { StatusBadge } from '@/components/pms/status-badge';
 import {
     AlertDialog,
     AlertDialogCancel,
@@ -12,10 +28,15 @@ import {
     AlertDialogFooter,
     AlertDialogHeader,
     AlertDialogTitle,
-    AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { Badge } from '@/components/ui/badge';
-import { Button, buttonVariants } from '@/components/ui/button';
+import { Button } from '@/components/ui/button';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { FieldError } from '@/components/ui/field';
 import { Spinner } from '@/components/ui/spinner';
 import {
@@ -35,10 +56,29 @@ import {
 } from '@/routes/settings/rate-plans';
 
 type RatePlan = App.Data.Rates.RatePlanData;
-type Option = { value: string; label: string };
 
-function ArchiveRatePlan({ ratePlan }: { ratePlan: RatePlan }) {
-    const [open, setOpen] = useState(false);
+const CHECK_CHILD_PRICES: App.Data.Shared.BadgeData = {
+    value: 'check_child_prices',
+    label: 'Check child prices',
+    tone: 'warning',
+};
+
+const pricingIcons: Record<string, LucideIcon> = {
+    per_room: BedDouble,
+    per_guest: Users,
+    per_bed: BedSingle,
+    package: Package,
+};
+
+function ArchiveRatePlan({
+    ratePlan,
+    open,
+    onOpenChange,
+}: {
+    ratePlan: RatePlan;
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+}) {
     const [processing, setProcessing] = useState(false);
     const [error, setError] = useState<string | undefined>();
 
@@ -46,13 +86,10 @@ function ArchiveRatePlan({ ratePlan }: { ratePlan: RatePlan }) {
         <AlertDialog
             open={open}
             onOpenChange={(next) => {
-                setOpen(next);
+                onOpenChange(next);
                 setError(undefined);
             }}
         >
-            <AlertDialogTrigger render={<Button variant="ghost" size="sm" />}>
-                Archive
-            </AlertDialogTrigger>
             <AlertDialogContent>
                 <AlertDialogHeader>
                     <AlertDialogTitle>
@@ -80,7 +117,7 @@ function ArchiveRatePlan({ ratePlan }: { ratePlan: RatePlan }) {
                                     onFinish: () => setProcessing(false),
                                     onError: (errors) =>
                                         setError(errors.rate_plan),
-                                    onSuccess: () => setOpen(false),
+                                    onSuccess: () => onOpenChange(false),
                                 },
                             )
                         }
@@ -94,21 +131,143 @@ function ArchiveRatePlan({ ratePlan }: { ratePlan: RatePlan }) {
     );
 }
 
+function RatePlanActions({
+    ratePlan,
+    position,
+    count,
+    canReorder,
+    onMove,
+}: {
+    ratePlan: RatePlan;
+    position: number;
+    count: number;
+    canReorder: boolean;
+    onMove: (from: number, to: number) => void;
+}) {
+    const [archiving, setArchiving] = useState(false);
+
+    return (
+        <>
+            <DropdownMenu>
+                <DropdownMenuTrigger
+                    render={<Button variant="ghost" size="icon-sm" />}
+                    aria-label={`Actions for ${ratePlan.name}`}
+                >
+                    <Ellipsis />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-44">
+                    <DropdownMenuItem
+                        render={
+                            <Link href={edit.url({ ratePlan: ratePlan.id })} />
+                        }
+                    >
+                        Edit
+                    </DropdownMenuItem>
+                    {canReorder && !ratePlan.archived && (
+                        <>
+                            <DropdownMenuItem
+                                disabled={position === 0}
+                                onClick={() => onMove(position, position - 1)}
+                            >
+                                <ArrowUp />
+                                Move up
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                                disabled={position === count - 1}
+                                onClick={() => onMove(position, position + 1)}
+                            >
+                                <ArrowDown />
+                                Move down
+                            </DropdownMenuItem>
+                        </>
+                    )}
+                    <DropdownMenuSeparator />
+                    {ratePlan.archived ? (
+                        <DropdownMenuItem
+                            onClick={() =>
+                                router.post(
+                                    restore.url({ ratePlan: ratePlan.id }),
+                                    {},
+                                    { preserveScroll: true },
+                                )
+                            }
+                        >
+                            Restore
+                        </DropdownMenuItem>
+                    ) : (
+                        <DropdownMenuItem
+                            variant="destructive"
+                            onClick={() => setArchiving(true)}
+                        >
+                            Archive
+                        </DropdownMenuItem>
+                    )}
+                </DropdownMenuContent>
+            </DropdownMenu>
+            {!ratePlan.archived && (
+                <ArchiveRatePlan
+                    ratePlan={ratePlan}
+                    open={archiving}
+                    onOpenChange={setArchiving}
+                />
+            )}
+        </>
+    );
+}
+
+/** `active` by default, `''` for all. Read from and written to `?status=` without a request. */
+function initialStatus(): string {
+    const status = new URLSearchParams(window.location.search).get('status');
+
+    return status === 'all' ? '' : (status ?? 'active');
+}
+
+function writeStatus(status: string) {
+    const url = new URL(window.location.href);
+
+    if (status === 'active') {
+        url.searchParams.delete('status');
+    } else {
+        url.searchParams.set('status', status === '' ? 'all' : status);
+    }
+
+    window.history.replaceState(window.history.state, '', url);
+}
+
 export default function RatePlansIndex({
     ratePlans,
+    statuses,
     pricingBases,
     packageUnits,
     roomTypes,
 }: {
     ratePlans: RatePlan[];
-    pricingBases: Option[];
-    packageUnits: Option[];
+    statuses: EnumOption[];
+    pricingBases: EnumOption[];
+    packageUnits: EnumOption[];
     roomTypes: App.Data.Rates.NewRatePlanRoomTypeData[];
 }) {
+    const [status, setStatus] = useState(initialStatus);
+    const [search, setSearch] = useState('');
+
     const active = ratePlans.filter((ratePlan) => !ratePlan.archived);
-    const archived = ratePlans.filter((ratePlan) => ratePlan.archived);
-    const basisLabel = (value: string) =>
-        pricingBases.find((option) => option.value === value)?.label ?? value;
+    const term = search.trim().toLowerCase();
+    const visible = ratePlans.filter(
+        (ratePlan) =>
+            (status === '' || ratePlan.status.value === status) &&
+            ratePlan.name.toLowerCase().includes(term),
+    );
+    const canReorder = status === 'active' && term === '';
+
+    const changeStatus = (next: string) => {
+        setStatus(next);
+        writeStatus(next);
+    };
+
+    const clearFilters = () => {
+        setSearch('');
+        changeStatus('active');
+    };
 
     const move = (from: number, to: number) => {
         const order = active.map((ratePlan) => ratePlan.id);
@@ -116,6 +275,14 @@ export default function RatePlansIndex({
 
         router.put(reorder.url(), { order }, { preserveScroll: true });
     };
+
+    const newRatePlan = (
+        <NewRatePlanSheet
+            pricingBases={pricingBases}
+            packageUnits={packageUnits}
+            roomTypes={roomTypes}
+        />
+    );
 
     return (
         <>
@@ -125,172 +292,159 @@ export default function RatePlansIndex({
                 <PageHeader
                     title="Rate plans"
                     description="How room types are priced and sold. Prices are set per date on the rate calendar."
-                    actions={
-                        <NewRatePlanSheet
-                            pricingBases={pricingBases}
-                            packageUnits={packageUnits}
-                            roomTypes={roomTypes}
-                        />
-                    }
+                    actions={newRatePlan}
                 />
 
-                {active.length === 0 ? (
+                {ratePlans.length === 0 ? (
                     <EmptyState
                         icon={Tag}
                         title="No rate plans yet"
                         description="A rate plan is how you sell a room type, such as Basic Rate or Breakfast."
-                        action={
-                            <NewRatePlanSheet
-                                pricingBases={pricingBases}
-                                packageUnits={packageUnits}
-                                roomTypes={roomTypes}
-                            />
-                        }
+                        action={newRatePlan}
                     />
                 ) : (
-                    <div className="overflow-auto rounded-lg border">
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Name</TableHead>
-                                    <TableHead>Sells</TableHead>
-                                    <TableHead>Pricing</TableHead>
-                                    <TableHead>Room types</TableHead>
-                                    <TableHead>
-                                        <span className="sr-only">Actions</span>
-                                    </TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {active.map((ratePlan, position) => (
-                                    <TableRow key={ratePlan.id}>
-                                        <TableCell className="font-medium">
-                                            {ratePlan.name}{' '}
-                                            {ratePlan.checkChildPrices && (
-                                                <Badge variant="outline">
-                                                    Check child prices
-                                                </Badge>
-                                            )}
-                                        </TableCell>
-                                        <TableCell>{ratePlan.family}</TableCell>
-                                        <TableCell>
-                                            {basisLabel(ratePlan.pricingBasis)}
-                                        </TableCell>
-                                        <TableCell className="whitespace-normal">
-                                            {ratePlan.roomTypeNames.length >
-                                            0 ? (
-                                                ratePlan.roomTypeNames.join(
-                                                    ', ',
-                                                )
-                                            ) : (
-                                                <span className="text-muted-foreground">
-                                                    None yet
-                                                </span>
-                                            )}
-                                        </TableCell>
-                                        <TableCell>
-                                            <div className="flex justify-end gap-1">
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon-sm"
-                                                    aria-label={`Move ${ratePlan.name} up`}
-                                                    disabled={position === 0}
-                                                    onClick={() =>
-                                                        move(
-                                                            position,
-                                                            position - 1,
-                                                        )
-                                                    }
-                                                >
-                                                    <ArrowUp />
-                                                </Button>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon-sm"
-                                                    aria-label={`Move ${ratePlan.name} down`}
-                                                    disabled={
-                                                        position ===
-                                                        active.length - 1
-                                                    }
-                                                    onClick={() =>
-                                                        move(
-                                                            position,
-                                                            position + 1,
-                                                        )
-                                                    }
-                                                >
-                                                    <ArrowDown />
-                                                </Button>
-                                                <Link
-                                                    href={edit.url({
-                                                        ratePlan: ratePlan.id,
-                                                    })}
-                                                    className={buttonVariants({
-                                                        variant: 'ghost',
-                                                        size: 'sm',
-                                                    })}
-                                                >
-                                                    Edit
-                                                </Link>
-                                                <ArchiveRatePlan
-                                                    ratePlan={ratePlan}
-                                                />
-                                            </div>
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                    </div>
-                )}
+                    <>
+                        <FilterBar
+                            search={search}
+                            onSearchChange={setSearch}
+                            searchPlaceholder="Search rate plans"
+                        >
+                            <EnumSelect
+                                options={statuses}
+                                value={status}
+                                onValueChange={changeStatus}
+                                allLabel="All"
+                                aria-label="Status"
+                                className="w-40"
+                            />
+                        </FilterBar>
 
-                {archived.length > 0 && (
-                    <section className="flex flex-col gap-2">
-                        <h2 className="font-heading text-sm font-medium">
-                            Archived
-                        </h2>
                         <div className="overflow-auto rounded-lg border">
                             <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Name</TableHead>
+                                        <TableHead>Sells</TableHead>
+                                        <TableHead>Pricing</TableHead>
+                                        <TableHead>Room types</TableHead>
+                                        <TableHead>Status</TableHead>
+                                        <TableHead>
+                                            <span className="sr-only">
+                                                Actions
+                                            </span>
+                                        </TableHead>
+                                    </TableRow>
+                                </TableHeader>
                                 <TableBody>
-                                    {archived.map((ratePlan) => (
-                                        <TableRow key={ratePlan.id}>
-                                            <TableCell className="font-medium">
-                                                {ratePlan.name}{' '}
-                                                <Badge variant="secondary">
-                                                    Archived
-                                                </Badge>
-                                            </TableCell>
-                                            <TableCell>
-                                                {basisLabel(
-                                                    ratePlan.pricingBasis,
-                                                )}
-                                            </TableCell>
-                                            <TableCell className="text-right">
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    onClick={() =>
-                                                        router.post(
-                                                            restore.url({
-                                                                ratePlan:
-                                                                    ratePlan.id,
-                                                            }),
-                                                            {},
-                                                            {
-                                                                preserveScroll: true,
-                                                            },
-                                                        )
+                                    {visible.length === 0 ? (
+                                        <TableRow>
+                                            <TableCell colSpan={6}>
+                                                <EmptyState
+                                                    icon={Tag}
+                                                    title="No rate plans match these filters"
+                                                    action={
+                                                        <Button
+                                                            variant="outline"
+                                                            onClick={
+                                                                clearFilters
+                                                            }
+                                                        >
+                                                            Clear filters
+                                                        </Button>
                                                     }
-                                                >
-                                                    Restore
-                                                </Button>
+                                                />
                                             </TableCell>
                                         </TableRow>
-                                    ))}
+                                    ) : (
+                                        visible.map((ratePlan) => (
+                                            <TableRow key={ratePlan.id}>
+                                                <TableCell>
+                                                    <div className="flex flex-col items-start gap-1">
+                                                        <Link
+                                                            href={edit.url({
+                                                                ratePlan:
+                                                                    ratePlan.id,
+                                                            })}
+                                                            className="font-medium hover:underline"
+                                                        >
+                                                            {ratePlan.name}
+                                                        </Link>
+                                                        {ratePlan.checkChildPrices && (
+                                                            <StatusBadge
+                                                                size="lg"
+                                                                status={
+                                                                    CHECK_CHILD_PRICES
+                                                                }
+                                                            />
+                                                        )}
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <StatusBadge
+                                                        size="lg"
+                                                        status={{
+                                                            value: ratePlan.family,
+                                                            label: ratePlan.family,
+                                                            tone: ratePlan.familyTone,
+                                                        }}
+                                                        dot={false}
+                                                    />
+                                                </TableCell>
+                                                <TableCell>
+                                                    <StatusBadge
+                                                        size="lg"
+                                                        status={{
+                                                            value: ratePlan.pricingBasis,
+                                                            label: ratePlan.pricingLabel,
+                                                            tone: ratePlan.pricingTone,
+                                                        }}
+                                                        icon={
+                                                            ratePlan.isDerived
+                                                                ? GitBranch
+                                                                : pricingIcons[
+                                                                      ratePlan
+                                                                          .pricingBasis
+                                                                  ]
+                                                        }
+                                                    />
+                                                </TableCell>
+                                                <TableCell>
+                                                    <RoomTypePills
+                                                        names={
+                                                            ratePlan.roomTypeNames
+                                                        }
+                                                    />
+                                                </TableCell>
+                                                <TableCell>
+                                                    <StatusBadge
+                                                        size="lg"
+                                                        status={ratePlan.status}
+                                                    />
+                                                </TableCell>
+                                                <TableCell>
+                                                    <div className="flex justify-end">
+                                                        <RatePlanActions
+                                                            ratePlan={ratePlan}
+                                                            position={active.indexOf(
+                                                                ratePlan,
+                                                            )}
+                                                            count={
+                                                                active.length
+                                                            }
+                                                            canReorder={
+                                                                canReorder
+                                                            }
+                                                            onMove={move}
+                                                        />
+                                                    </div>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))
+                                    )}
                                 </TableBody>
                             </Table>
                         </div>
-                    </section>
+                    </>
                 )}
             </div>
         </>

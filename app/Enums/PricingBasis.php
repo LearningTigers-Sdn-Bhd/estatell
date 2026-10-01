@@ -41,6 +41,31 @@ enum PricingBasis: string
     }
 
     /**
+     * The tone of the basis badge in the rate plans list.
+     */
+    public function tone(): Tone
+    {
+        return match ($this) {
+            self::PerRoom => Tone::Info,
+            self::PerGuest => Tone::Success,
+            self::PerBed => Tone::Warning,
+            self::Package => Tone::Neutral,
+        };
+    }
+
+    /**
+     * The tone of the "sells" badge: rooms, beds, or either.
+     */
+    public function familyTone(): Tone
+    {
+        return match ($this) {
+            self::PerRoom, self::PerGuest => Tone::Info,
+            self::PerBed => Tone::Warning,
+            self::Package => Tone::Neutral,
+        };
+    }
+
+    /**
      * Whether a plan with this basis can sell a room type with the given sell unit.
      * Package is the only basis that fits both.
      */
