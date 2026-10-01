@@ -92,7 +92,12 @@ export function GuestForm({
     const text = (
         name: TextField,
         label: string,
-        props: { maxLength: number; type?: string; autoComplete?: string },
+        props: {
+            maxLength: number;
+            placeholder: string;
+            type?: string;
+            autoComplete?: string;
+        },
     ) => (
         <Field data-invalid={!!errors[name]}>
             <FieldLabel htmlFor={name}>{label}</FieldLabel>
@@ -111,13 +116,14 @@ export function GuestForm({
         name: 'gender' | 'preferred_locale',
         label: string,
         options: EnumOption[],
+        placeholder: string,
     ) => (
         <Field data-invalid={!!errors[name]}>
             <FieldLabel htmlFor={name}>{label}</FieldLabel>
             <EnumSelect
                 id={name}
                 options={options}
-                allLabel="Not set"
+                allLabel={placeholder}
                 value={data[name]}
                 onValueChange={(value) => form.setData(name, value)}
                 aria-invalid={!!errors[name]}
@@ -157,11 +163,13 @@ export function GuestForm({
                 <FieldGroup>
                     {text('full_name', 'Full name', {
                         maxLength: 150,
+                        placeholder: 'Aisyah binti Rahman',
                         autoComplete: 'off',
                     })}
                     <div className="grid gap-4 sm:grid-cols-2">
                         {text('email', 'Email', {
                             maxLength: 255,
+                            placeholder: 'guest@example.com',
                             type: 'email',
                             autoComplete: 'off',
                         })}
@@ -192,13 +200,15 @@ export function GuestForm({
                         {country('nationality_code', 'Nationality')}
                         {text('date_of_birth', 'Date of birth', {
                             maxLength: 10,
+                            placeholder: 'YYYY-MM-DD',
                             type: 'date',
                         })}
-                        {select('gender', 'Gender', genders)}
+                        {select('gender', 'Gender', genders, 'Select gender')}
                         {select(
                             'preferred_locale',
                             'Preferred language',
                             locales,
+                            'Select language',
                         )}
                     </div>
                 </FieldGroup>
@@ -209,16 +219,27 @@ export function GuestForm({
                 <FieldGroup>
                     {text('address_line1', 'Address line 1', {
                         maxLength: 150,
+                        placeholder: 'Street and number',
                         autoComplete: 'off',
                     })}
                     {text('address_line2', 'Address line 2', {
                         maxLength: 150,
+                        placeholder: 'Apartment, unit or building',
                         autoComplete: 'off',
                     })}
                     <div className="grid gap-4 sm:grid-cols-2">
-                        {text('city', 'City', { maxLength: 100 })}
-                        {text('state', 'State', { maxLength: 100 })}
-                        {text('postal_code', 'Postal code', { maxLength: 20 })}
+                        {text('city', 'City', {
+                            maxLength: 100,
+                            placeholder: 'Kuala Lumpur',
+                        })}
+                        {text('state', 'State', {
+                            maxLength: 100,
+                            placeholder: 'Selangor',
+                        })}
+                        {text('postal_code', 'Postal code', {
+                            maxLength: 20,
+                            placeholder: '50450',
+                        })}
                         {country('country_code', 'Country')}
                     </div>
                 </FieldGroup>

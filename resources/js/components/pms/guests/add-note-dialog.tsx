@@ -61,6 +61,7 @@ export function AddNoteDialog({ guest }: { guest: App.Data.Guests.GuestData }) {
                                         id="note-body"
                                         name="body"
                                         maxLength={2000}
+                                        placeholder="Prefers a quiet room on a high floor"
                                         autoFocus
                                         aria-invalid={!!errors.body}
                                     />

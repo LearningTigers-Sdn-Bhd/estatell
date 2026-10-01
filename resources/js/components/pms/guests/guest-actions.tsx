@@ -114,6 +114,7 @@ function BlacklistDialog({ guest }: { guest: Guest }) {
                                         id="blacklist-reason"
                                         name="reason"
                                         maxLength={500}
+                                        placeholder="Why is this guest being blacklisted?"
                                         autoFocus
                                         aria-invalid={!!errors.reason}
                                     />
