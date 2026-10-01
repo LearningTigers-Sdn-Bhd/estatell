@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Property;
 
 use App\Actions\Property\UpdatePropertySettings;
+use App\Data\Meals\MealPeriodData;
 use App\Data\Property\PropertyAgeGroupData;
 use App\Data\Property\PropertySettingsData;
 use App\Enums\Currency;
@@ -13,8 +14,10 @@ use App\Enums\OverdueDeparturePolicy;
 use App\Enums\RegistrationCardScope;
 use App\Enums\WeekendNights;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Meals\SaveMealPeriodsRequest;
 use App\Http\Requests\Property\SaveAgeGroupsRequest;
 use App\Http\Requests\Property\UpdatePropertySettingsRequest;
+use App\Models\MealPeriod;
 use App\Models\Property;
 use App\Models\PropertyAgeGroup;
 use App\Services\Property\SettingsLock;
@@ -80,6 +83,20 @@ class PropertySettingsController extends Controller
         ]);
     }
 
+    /**
+     * Settings page, Meal periods tab. Saved by `MealPeriodController::update`.
+     */
+    public function mealPeriods(Property $property, SettingsLock $settingsLock): Response
+    {
+        return $this->renderTab($property, $settingsLock, 'meal-periods', [
+            'mealPeriods' => $property->mealPeriods()
+                ->ordered()
+                ->get()
+                ->map(fn (MealPeriod $mealPeriod): MealPeriodData => MealPeriodData::fromModel($mealPeriod)),
+            'maxMealPeriods' => SaveMealPeriodsRequest::MAX_PERIODS,
+        ]);
+    }
+
     public function update(UpdatePropertySettingsRequest $request, Property $property, string $section, UpdatePropertySettings $updatePropertySettings): RedirectResponse
     {
         abort_if($property->settings === null, 404);
@@ -94,7 +111,7 @@ class PropertySettingsController extends Controller
     /**
      * Each tab has its own URL, so the open tab survives a refresh. Only the open tab's options are sent.
      *
-     * @param  'general'|'operations'|'registration'|'support'|'age-groups'  $tab
+     * @param  'general'|'operations'|'registration'|'support'|'age-groups'|'meal-periods'  $tab
      * @param  array<string, mixed>  $tabProps
      */
     private function renderTab(Property $property, SettingsLock $settingsLock, string $tab, array $tabProps = []): Response

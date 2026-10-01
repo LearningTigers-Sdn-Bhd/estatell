@@ -25,7 +25,7 @@ class SettingsNavigation
                     title: __('Details'),
                     href: route('settings.edit', ['property' => $property->code], absolute: false),
                     icon: 'building',
-                    active: request()->routeIs('settings.edit', 'settings.operations', 'settings.registration', 'settings.support', 'settings.age-groups'),
+                    active: request()->routeIs('settings.edit', 'settings.operations', 'settings.registration', 'settings.support', 'settings.age-groups', 'settings.meal-periods'),
                 ) : null,
             ]))),
             new NavGroupData(label: __('Rooms'), items: array_values(array_filter([
@@ -48,12 +48,6 @@ class SettingsNavigation
                     href: route('settings.rate-plans.index', ['property' => $property->code], absolute: false),
                     icon: 'tag',
                     active: request()->routeIs('settings.rate-plans.*'),
-                ) : null,
-                $user->can(PermissionEnum::SettingsManage->value) ? new NavItemData(
-                    title: __('Meal periods'),
-                    href: route('settings.meal-periods.index', ['property' => $property->code], absolute: false),
-                    icon: 'utensils',
-                    active: request()->routeIs('settings.meal-periods.*'),
                 ) : null,
             ]))),
             new NavGroupData(label: __('Billing setup'), items: array_values(array_filter([

@@ -5,11 +5,13 @@ import {
     LifeBuoy,
     MoonStar,
     SlidersHorizontal,
+    Utensils,
 } from 'lucide-react';
 import PropertySettingsController from '@/actions/App/Http/Controllers/Property/PropertySettingsController';
 import Heading from '@/components/heading';
 import type { EnumOption } from '@/components/pms/enum-select';
 import { AgeGroupsForm } from '@/components/pms/settings/age-groups-form';
+import { MealPeriodsForm } from '@/components/pms/settings/meal-periods-form';
 import { SettingsSection } from '@/components/pms/settings-section';
 import { TabLinks } from '@/components/pms/tab-links';
 import {
@@ -29,6 +31,7 @@ import { edit as basicsEdit } from '@/routes/onboarding/basics';
 import {
     ageGroups as ageGroupsTab,
     edit as general,
+    mealPeriods as mealPeriodsTab,
     operations,
     registration,
     support,
@@ -39,7 +42,8 @@ type Section =
     | 'operations'
     | 'registration'
     | 'support'
-    | 'age-groups';
+    | 'age-groups'
+    | 'meal-periods';
 
 const form = (section: Section) =>
     PropertySettingsController.update.form({ section });
@@ -56,6 +60,8 @@ export default function PropertySettings({
     registrationCardScopes = [],
     ageGroups = [],
     maxAge = 17,
+    mealPeriods = [],
+    maxMealPeriods = 12,
 }: {
     settings: App.Data.Property.PropertySettingsData | null;
     tab: Section;
@@ -68,6 +74,8 @@ export default function PropertySettings({
     registrationCardScopes?: EnumOption[];
     ageGroups?: App.Data.Property.PropertyAgeGroupData[];
     maxAge?: number;
+    mealPeriods?: App.Data.Meals.MealPeriodData[];
+    maxMealPeriods?: number;
 }) {
     if (!settings) {
         return (
@@ -140,6 +148,12 @@ export default function PropertySettings({
                             label: 'Age groups',
                             icon: Baby,
                             href: ageGroupsTab(),
+                        },
+                        {
+                            value: 'meal-periods',
+                            label: 'Meal periods',
+                            icon: Utensils,
+                            href: mealPeriodsTab(),
                         },
                         {
                             value: 'support',
@@ -329,6 +343,13 @@ export default function PropertySettings({
                     )}
                     {tab === 'age-groups' && (
                         <AgeGroupsForm ageGroups={ageGroups} maxAge={maxAge} />
+                    )}
+                    {tab === 'meal-periods' && (
+                        <MealPeriodsForm
+                            key={JSON.stringify(mealPeriods)}
+                            mealPeriods={mealPeriods}
+                            maxPeriods={maxMealPeriods}
+                        />
                     )}
                     {tab === 'support' && (
                         <SettingsSection

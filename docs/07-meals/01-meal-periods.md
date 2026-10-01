@@ -8,7 +8,7 @@ Define when meals are served. Used by package inclusions and the kitchen meal co
 
 Every Malaysian property receives Breakfast, Lunch and Dinner through `SeedMealPeriods`. Repeated seeding does nothing once the property has any meal period, so owner changes stay.
 
-Staff with `settings.manage` use `/p/{code}/settings/meal-periods` (Settings, Rates, Meal periods). They can add a period, edit its name and times, and turn it on or off. A Sheet holds the form.
+Staff with `settings.manage` use `/p/{code}/settings/meal-periods` (`settings.meal-periods`), the Meal periods tab of the property settings page (Settings, Property, Details). It works like the [Age groups](../02-property/04-age-groups.md) tab: one table holds every period (Served, Name, Starts at, Ends at) and one Save button. `MealPeriodController::update` saves with `PUT` on the same URL (`settings.meal-periods.update`). `SaveMealPeriods` saves the whole list in one transaction. Staff can add a period, edit its name and times, and turn it on or off. A row that is not saved yet can be removed from the form.
 
 ## Data model
 
@@ -29,8 +29,12 @@ meal_periods    id, property_id, name, starts_at, ends_at, active, timestamps
 - A period ends after it starts. It cannot cross midnight.
 - Names are unique per property, ignoring case.
 - Time ranges must not overlap another **active** period of the property. Ranges that only touch (10:00 end, 10:00 start) are allowed. Inactive periods are ignored, so turning a period on again runs the check again.
-- The Form Request checks overlap for field errors. The Action checks it again under a property lock, so two owners cannot save overlapping periods at the same time.
-- Periods are never deleted. Historical inclusions and the kitchen report keep their reference. Turn a period off instead.
+- A property may have at most 12 periods.
+- The Form Request checks every row of the list (names, times, overlap) for field errors. The Action checks overlap again under a property lock.
+- The list must contain every saved period. If another owner added a period meanwhile, the save does nothing and shows an error toast.
+- Rows keep their ids, so inclusions and the kitchen report keep their reference. Names can move between rows in one save.
+- Periods are never deleted. Turn a period off instead.
+- A save that changes nothing is not logged. A real change logs `meal_periods.updated` with the before and after lists.
 
 ## Lessons from wastays
 

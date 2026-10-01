@@ -34,6 +34,7 @@ Route::prefix('settings')->name('settings.')->group(function () {
         Route::get('registration', [PropertySettingsController::class, 'registration'])->name('registration');
         Route::get('support', [PropertySettingsController::class, 'support'])->name('support');
         Route::get('age-groups', [PropertySettingsController::class, 'ageGroups'])->name('age-groups');
+        Route::get('meal-periods', [PropertySettingsController::class, 'mealPeriods'])->name('meal-periods');
         Route::put('{section}', [PropertySettingsController::class, 'update'])
             ->whereIn('section', ['general', 'operations', 'registration', 'support'])
             ->name('update');
@@ -109,12 +110,6 @@ Route::prefix('settings')->name('settings.')->group(function () {
         Route::put('{discount}', [DiscountController::class, 'update'])->name('update');
     });
 
-    Route::prefix('meal-periods')->name('meal-periods.')->middleware('can:'.PermissionEnum::SettingsManage->value)->scopeBindings()->group(function () {
-        Route::get('/', [MealPeriodController::class, 'index'])->name('index');
-        Route::post('/', [MealPeriodController::class, 'store'])->name('store');
-        Route::put('{mealPeriod}', [MealPeriodController::class, 'update'])->name('update');
-    });
-
     Route::prefix('rate-plans')->name('rate-plans.')->middleware('can:'.PermissionEnum::SettingsManage->value)->scopeBindings()->group(function () {
         Route::get('/', [RatePlanController::class, 'index'])->name('index');
         Route::post('/', [RatePlanController::class, 'store'])->name('store');
@@ -139,6 +134,10 @@ Route::prefix('settings')->name('settings.')->group(function () {
         Route::post('{ratePlan}/pricing/extend', [RatePlanController::class, 'extendPricing'])->name('pricing.extend');
         Route::post('{ratePlan}/archive', [RatePlanController::class, 'archive'])->name('archive');
         Route::post('{ratePlan}/restore', [RatePlanController::class, 'restore'])->name('restore');
+    });
+
+    Route::prefix('meal-periods')->name('meal-periods.')->middleware('can:'.PermissionEnum::SettingsManage->value)->group(function () {
+        Route::put('/', [MealPeriodController::class, 'update'])->name('update');
     });
 
     Route::prefix('age-groups')->name('age-groups.')->middleware('can:'.PermissionEnum::SettingsManage->value)->scopeBindings()->group(function () {

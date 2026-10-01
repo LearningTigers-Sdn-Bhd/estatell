@@ -11,23 +11,40 @@ use Illuminate\Support\Facades\DB;
 use Inertia\Testing\AssertableInertia as Assert;
 use Spatie\Activitylog\Models\Activity;
 
-/** @param array<string, mixed> $overrides */
-function mealPeriodPayload(array $overrides = []): array
-{
-    return array_merge([
-        'name' => 'Hi-tea',
-        'starts_at' => '15:30',
-        'ends_at' => '17:00',
-        'active' => true,
-    ], $overrides);
-}
-
 function seededMealPeriodProperty(): array
 {
     $owner = User::factory()->owner()->create();
     app(SeedMealPeriods::class)($owner->property, 'MY');
 
     return [$owner, $owner->property];
+}
+
+/**
+ * The form payload for the property's saved periods, with the given changes applied by name.
+ *
+ * @param  array<string, array<string, mixed>>  $changes  Keyed by the period's current name.
+ * @param  list<array<string, mixed>>  $extra  New rows to append.
+ * @return array{meal_periods: list<array<string, mixed>>}
+ */
+function mealPeriodsPayload(Property $property, array $changes = [], array $extra = []): array
+{
+    $rows = $property->mealPeriods()->ordered()->get()
+        ->map(fn (MealPeriod $period): array => array_merge([
+            'id' => $period->id,
+            'name' => $period->name,
+            'starts_at' => substr($period->starts_at, 0, 5),
+            'ends_at' => substr($period->ends_at, 0, 5),
+            'active' => $period->active,
+        ], $changes[$period->name] ?? []))
+        ->all();
+
+    return ['meal_periods' => [...$rows, ...$extra]];
+}
+
+/** @return array<string, mixed> */
+function newMealPeriod(array $overrides = []): array
+{
+    return array_merge(['id' => null, 'name' => 'Hi-tea', 'starts_at' => '15:30', 'ends_at' => '17:00', 'active' => true], $overrides);
 }
 
 test('default meal periods expose their names and times', function () {
@@ -63,54 +80,56 @@ test('unsupported countries receive no meal period presets', function () {
     expect($property->mealPeriods()->count())->toBe(0);
 });
 
-test('the page lists this property\'s periods by start time', function () {
+test('the tab lists this property\'s periods by start time and opens under the property settings navigation entry', function () {
     [$owner, $property] = seededMealPeriodProperty();
     MealPeriod::factory()->for($property)->inactive()->create(['name' => 'Supper', 'starts_at' => '22:30', 'ends_at' => '23:30']);
     MealPeriod::factory()->create(['name' => 'Other property']);
 
     $this->actingAs($owner)
-        ->get(route('settings.meal-periods.index', $property->code))
+        ->get(route('settings.meal-periods', $property->code))
         ->assertInertia(fn (Assert $page) => $page
-            ->component('settings/meal-periods/index')
+            ->component('settings/edit')
+            ->where('tab', 'meal-periods')
             ->has('mealPeriods', 4)
             ->where('mealPeriods.0.name', 'Breakfast')
             ->where('mealPeriods.0.startsAt', '07:00')
             ->where('mealPeriods.0.endsAt', '10:00')
             ->where('mealPeriods.3.name', 'Supper')
+            ->where('navigation.contexts.1.groups.0.items.0.title', 'Details')
+            ->where('navigation.contexts.1.groups.0.items.0.active', true)
             ->where('navigation.contexts.1.groups.2.label', 'Rates')
-            ->where('navigation.contexts.1.groups.2.items.1.title', 'Meal periods')
-            ->where('navigation.contexts.1.groups.2.items.1.active', true));
+            ->missing('navigation.contexts.1.groups.2.items.1'));
 });
 
 test('a new period lands between lunch and dinner by its start time', function () {
     [$owner, $property] = seededMealPeriodProperty();
 
     $this->actingAs($owner)
-        ->post(route('settings.meal-periods.store', $property->code), mealPeriodPayload(['name' => ' Hi-tea ']))
-        ->assertRedirect(route('settings.meal-periods.index', $property->code))
-        ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Hi-tea created.']);
+        ->put(route('settings.meal-periods.update', $property->code), mealPeriodsPayload($property, extra: [newMealPeriod(['name' => ' Hi-tea '])]))
+        ->assertRedirect(route('settings.meal-periods', $property->code))
+        ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Meal periods saved.']);
 
     expect($property->mealPeriods()->ordered()->pluck('name')->all())
         ->toBe(['Breakfast', 'Lunch', 'Hi-tea', 'Dinner'])
-        ->and(Activity::query()->where('event', 'meal_period.created')->count())->toBe(1);
+        ->and(Activity::query()->where('event', 'meal_periods.updated')->count())->toBe(1);
 });
 
 test('periods that only touch another period are accepted', function () {
     [$owner, $property] = seededMealPeriodProperty();
 
     $this->actingAs($owner)
-        ->post(route('settings.meal-periods.store', $property->code), mealPeriodPayload(['starts_at' => '14:30', 'ends_at' => '19:00']))
+        ->put(route('settings.meal-periods.update', $property->code), mealPeriodsPayload($property, extra: [newMealPeriod(['starts_at' => '14:30', 'ends_at' => '19:00'])]))
         ->assertSessionHasNoErrors();
 
     expect($property->mealPeriods()->count())->toBe(4);
 });
 
-test('new periods are validated', function (array $overrides, string $field) {
+test('the list is validated', function (array $overrides, string $field) {
     [$owner, $property] = seededMealPeriodProperty();
 
     $this->actingAs($owner)
-        ->post(route('settings.meal-periods.store', $property->code), mealPeriodPayload($overrides))
-        ->assertSessionHasErrors($field);
+        ->put(route('settings.meal-periods.update', $property->code), mealPeriodsPayload($property, extra: [newMealPeriod($overrides)]))
+        ->assertSessionHasErrors("meal_periods.3.{$field}");
 
     expect($property->mealPeriods()->count())->toBe(3);
 })->with([
@@ -126,12 +145,28 @@ test('new periods are validated', function (array $overrides, string $field) {
     'contains breakfast' => [['starts_at' => '06:00', 'ends_at' => '11:00'], 'ends_at'],
 ]);
 
-test('an inactive period does not block an overlapping one', function () {
+test('two new periods that overlap each other are refused', function () {
     [$owner, $property] = seededMealPeriodProperty();
-    $property->mealPeriods()->where('name', 'Lunch')->update(['active' => false]);
 
     $this->actingAs($owner)
-        ->post(route('settings.meal-periods.store', $property->code), mealPeriodPayload(['starts_at' => '12:30', 'ends_at' => '13:30']))
+        ->put(route('settings.meal-periods.update', $property->code), mealPeriodsPayload($property, extra: [
+            newMealPeriod(['name' => 'Tea', 'starts_at' => '15:00', 'ends_at' => '16:00']),
+            newMealPeriod(['name' => 'Hi-tea', 'starts_at' => '15:30', 'ends_at' => '17:00']),
+        ]))
+        ->assertSessionHasErrors('meal_periods.4.ends_at');
+
+    expect($property->mealPeriods()->count())->toBe(3);
+});
+
+test('an inactive period does not block an overlapping one', function () {
+    [$owner, $property] = seededMealPeriodProperty();
+
+    $this->actingAs($owner)
+        ->put(route('settings.meal-periods.update', $property->code), mealPeriodsPayload(
+            $property,
+            ['Lunch' => ['active' => false]],
+            [newMealPeriod(['starts_at' => '12:30', 'ends_at' => '13:30'])],
+        ))
         ->assertSessionHasNoErrors();
 
     expect($property->mealPeriods()->count())->toBe(4);
@@ -141,27 +176,27 @@ test('an inactive period may overlap when it is saved inactive', function () {
     [$owner, $property] = seededMealPeriodProperty();
 
     $this->actingAs($owner)
-        ->post(route('settings.meal-periods.store', $property->code), mealPeriodPayload(['starts_at' => '12:30', 'ends_at' => '13:30', 'active' => false]))
+        ->put(route('settings.meal-periods.update', $property->code), mealPeriodsPayload($property, extra: [newMealPeriod(['starts_at' => '12:30', 'ends_at' => '13:30', 'active' => false])]))
         ->assertSessionHasNoErrors();
 
     expect($property->mealPeriods()->where('active', false)->count())->toBe(1);
 });
 
-test('owners edit a period and are not blocked by its own old times', function () {
+test('owners edit a period, keep its id and are not blocked by its own old times', function () {
     [$owner, $property] = seededMealPeriodProperty();
     $lunch = $property->mealPeriods()->where('name', 'Lunch')->sole();
 
     $this->actingAs($owner)
-        ->put(route('settings.meal-periods.update', [$property->code, $lunch]), mealPeriodPayload([
-            'name' => ' Midday meal ', 'starts_at' => '12:30', 'ends_at' => '15:00',
+        ->put(route('settings.meal-periods.update', $property->code), mealPeriodsPayload($property, [
+            'Lunch' => ['name' => ' Midday meal ', 'starts_at' => '12:30', 'ends_at' => '15:00'],
         ]))
-        ->assertSessionHasNoErrors()
-        ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Midday meal saved.']);
+        ->assertSessionHasNoErrors();
 
     expect($lunch->refresh()->name)->toBe('Midday meal')
         ->and($lunch->starts_at)->toBe('12:30:00')
         ->and($lunch->ends_at)->toBe('15:00:00')
-        ->and(Activity::query()->where('event', 'meal_period.updated')->count())->toBe(1);
+        ->and($property->mealPeriods()->count())->toBe(3)
+        ->and(Activity::query()->where('event', 'meal_periods.updated')->count())->toBe(1);
 });
 
 test('editing times into another active period is refused', function () {
@@ -169,10 +204,8 @@ test('editing times into another active period is refused', function () {
     $lunch = $property->mealPeriods()->where('name', 'Lunch')->sole();
 
     $this->actingAs($owner)
-        ->put(route('settings.meal-periods.update', [$property->code, $lunch]), mealPeriodPayload([
-            'name' => 'Lunch', 'starts_at' => '12:00', 'ends_at' => '19:30',
-        ]))
-        ->assertSessionHasErrors('ends_at');
+        ->put(route('settings.meal-periods.update', $property->code), mealPeriodsPayload($property, ['Lunch' => ['ends_at' => '19:30']]))
+        ->assertSessionHasErrors('meal_periods.2.ends_at');
 
     expect($lunch->refresh()->ends_at)->toBe('14:30:00');
 });
@@ -184,46 +217,67 @@ test('reactivating a period into an overlap is refused', function () {
     $lunch = $property->mealPeriods()->where('name', 'Lunch')->sole();
 
     $this->actingAs($owner)
-        ->put(route('settings.meal-periods.update', [$property->code, $lunch]), mealPeriodPayload([
-            'name' => 'Lunch', 'starts_at' => '12:00', 'ends_at' => '14:30', 'active' => true,
-        ]))
-        ->assertSessionHasErrors('ends_at');
+        ->put(route('settings.meal-periods.update', $property->code), mealPeriodsPayload($property, ['Lunch' => ['active' => true]]))
+        ->assertSessionHasErrors();
 
     expect($lunch->refresh()->active)->toBeFalse();
+});
+
+test('periods can swap names in one save', function () {
+    [$owner, $property] = seededMealPeriodProperty();
+
+    $this->actingAs($owner)
+        ->put(route('settings.meal-periods.update', $property->code), mealPeriodsPayload($property, [
+            'Lunch' => ['name' => 'Dinner'],
+            'Dinner' => ['name' => 'Lunch'],
+        ]))
+        ->assertSessionHasNoErrors();
+
+    expect($property->mealPeriods()->ordered()->pluck('name')->all())->toBe(['Breakfast', 'Dinner', 'Lunch']);
 });
 
 test('owners deactivate a period and no-op saves are not logged', function () {
     [$owner, $property] = seededMealPeriodProperty();
     $lunch = $property->mealPeriods()->where('name', 'Lunch')->sole();
-    $url = route('settings.meal-periods.update', [$property->code, $lunch]);
-    $payload = mealPeriodPayload(['name' => 'Lunch', 'starts_at' => '12:00', 'ends_at' => '14:30']);
+    $url = route('settings.meal-periods.update', $property->code);
 
-    $this->actingAs($owner)->put($url, $payload);
-    expect(Activity::query()->where('event', 'meal_period.updated')->count())->toBe(0);
+    $this->actingAs($owner)->put($url, mealPeriodsPayload($property));
+    expect(Activity::query()->where('event', 'meal_periods.updated')->count())->toBe(0);
 
-    $this->put($url, [...$payload, 'active' => false]);
-    $this->put($url, [...$payload, 'active' => false]);
+    $this->put($url, mealPeriodsPayload($property, ['Lunch' => ['active' => false]]));
+    $this->put($url, mealPeriodsPayload($property, ['Lunch' => ['active' => false]]));
 
     expect($lunch->refresh()->active)->toBeFalse()
-        ->and(Activity::query()->where('event', 'meal_period.updated')->count())->toBe(1);
+        ->and(Activity::query()->where('event', 'meal_periods.updated')->count())->toBe(1);
+});
+
+test('a list that leaves out a saved period is refused', function () {
+    [$owner, $property] = seededMealPeriodProperty();
+    $payload = mealPeriodsPayload($property);
+    array_pop($payload['meal_periods']);
+
+    $this->actingAs($owner)
+        ->put(route('settings.meal-periods.update', $property->code), $payload)
+        ->assertSessionHasNoErrors()
+        ->assertInertiaFlash('toast', ['type' => 'error', 'message' => 'The meal periods changed. Reload the page and try again.']);
+
+    expect($property->mealPeriods()->count())->toBe(3)
+        ->and(Activity::query()->where('event', 'meal_periods.updated')->count())->toBe(0);
 });
 
 test('routes enforce settings permission and property scoping', function () {
     $frontDesk = User::factory()->withRole(DefaultRoleEnum::FrontDesk)->create();
     $owner = User::factory()->owner()->create();
     $otherPeriod = MealPeriod::factory()->create();
-    $ownerPeriod = MealPeriod::factory()->for($owner->property)->create();
 
     $this->actingAs($frontDesk)
-        ->get(route('settings.meal-periods.index', $frontDesk->property->code))
+        ->get(route('settings.meal-periods', $frontDesk->property->code))
         ->assertForbidden();
-    $this->post(route('settings.meal-periods.store', $frontDesk->property->code), mealPeriodPayload())
+    $this->put(route('settings.meal-periods.update', $frontDesk->property->code), ['meal_periods' => []])
         ->assertForbidden();
     $this->actingAs($owner)
-        ->put(route('settings.meal-periods.update', [$owner->property->code, $otherPeriod]), mealPeriodPayload())
-        ->assertNotFound();
-    $this->put(route('settings.meal-periods.update', [$owner->property->code, $ownerPeriod]), mealPeriodPayload(['name' => 'Tea']))
-        ->assertSessionHasNoErrors();
+        ->put(route('settings.meal-periods.update', $owner->property->code), ['meal_periods' => [newMealPeriod(['id' => $otherPeriod->id])]])
+        ->assertSessionHasErrors('meal_periods.0.id');
 });
 
 test('the database enforces meal period invariants', function (array $attributes) {

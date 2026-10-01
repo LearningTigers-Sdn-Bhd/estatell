@@ -5,7 +5,7 @@ namespace App\Data\Meals;
 use App\Models\MealPeriod;
 use Spatie\LaravelData\Data;
 
-/** One row of the meal-period list and the values of its edit form. */
+/** One row of the meal periods form. */
 class MealPeriodData extends Data
 {
     public function __construct(
