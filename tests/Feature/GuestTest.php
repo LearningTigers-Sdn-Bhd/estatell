@@ -41,6 +41,27 @@ test('a guest is added with the phone number saved in E.164', function () {
         ->and(Activity::query()->where('event', 'guest.created')->count())->toBe(1);
 });
 
+test('a guest can be added with only a name and lands on the guest page', function () {
+    $owner = User::factory()->owner()->create();
+
+    $response = $this->actingAs($owner)->post(route('guests.store', $owner->property->code), ['full_name' => 'Sara Lim']);
+
+    $guest = Guest::query()->sole();
+
+    $response->assertRedirect(route('guests.show', [$owner->property->code, $guest]));
+    expect($guest->phone)->toBeNull()->and($guest->tags)->toBeEmpty();
+});
+
+test('the guest list sends the country options only to staff who can manage guests', function () {
+    $frontDesk = User::factory()->withRole(DefaultRoleEnum::FrontDesk)->create();
+    $finance = User::factory()->withRole(DefaultRoleEnum::Finance)->create();
+
+    $this->actingAs($frontDesk)->get(route('guests.index', $frontDesk->property->code))
+        ->assertInertia(fn (Assert $page) => $page->where('canManage', true)->where('countries', fn ($countries) => collect($countries)->contains('value', 'MY')));
+    $this->actingAs($finance)->get(route('guests.index', $finance->property->code))
+        ->assertInertia(fn (Assert $page) => $page->where('canManage', false)->where('countries', []));
+});
+
 test('a foreign phone number with a country code is accepted and a bad one is rejected', function () {
     $owner = User::factory()->owner()->create();
     $url = route('guests.store', $owner->property->code);
@@ -68,6 +89,21 @@ test('updating a guest saves the profile, replaces the tags and logs which field
     expect($guest->refresh()->full_name)->toBe('New Name')
         ->and($guest->tags()->pluck('name')->all())->toBe(['Regular'])
         ->and(Activity::query()->where('event', 'guest.updated')->sole()->properties['changed'])->toContain('full_name');
+});
+
+test('the guest page sends the edit form options only to staff who can edit a guest that is not anonymized', function () {
+    $frontDesk = User::factory()->withRole(DefaultRoleEnum::FrontDesk)->create();
+    $finance = User::factory()->withRole(DefaultRoleEnum::Finance)->create();
+    $guest = Guest::factory()->for($frontDesk->property)->create();
+    $anonymized = Guest::factory()->for($frontDesk->property)->create(['anonymized_at' => now()]);
+    $financeGuest = Guest::factory()->for($finance->property)->create();
+
+    $this->actingAs($frontDesk)->get(route('guests.show', [$frontDesk->property->code, $guest]))
+        ->assertInertia(fn (Assert $page) => $page->has('formOptions.countries')->has('formOptions.genders')->has('formOptions.locales')->has('formOptions.tags'));
+    $this->get(route('guests.show', [$frontDesk->property->code, $anonymized]))
+        ->assertInertia(fn (Assert $page) => $page->where('formOptions', null));
+    $this->actingAs($finance)->get(route('guests.show', [$finance->property->code, $financeGuest]))
+        ->assertInertia(fn (Assert $page) => $page->where('formOptions', null));
 });
 
 test('a merged or anonymized guest cannot be edited', function () {
@@ -225,7 +261,7 @@ test('each guest permission is enforced and the default roles hold the right one
 
     $this->actingAs($frontDesk);
     $this->get(route('guests.index', $code))->assertOk();
-    $this->get(route('guests.create', $code))->assertOk();
+    $this->post(route('guests.store', $code), ['full_name' => 'Sara Lim'])->assertRedirect();
     $this->post(route('guests.vip.store', [$code, $guest]))->assertRedirect();
     $this->post(route('guests.blacklist.store', [$code, $guest]), ['reason' => 'x'])->assertForbidden();
     $this->delete(route('guests.blacklist.destroy', [$code, $guest]))->assertForbidden();
@@ -233,7 +269,7 @@ test('each guest permission is enforced and the default roles hold the right one
     $financeGuest = Guest::factory()->for($finance->property)->create();
     $this->actingAs($finance);
     $this->get(route('guests.show', [$finance->property->code, $financeGuest]))->assertOk();
-    $this->get(route('guests.create', $finance->property->code))->assertForbidden();
+    $this->post(route('guests.store', $finance->property->code), ['full_name' => 'Sara Lim'])->assertForbidden();
     $this->post(route('guests.notes.store', [$finance->property->code, $financeGuest]), ['body' => 'x'])->assertForbidden();
 
     $this->actingAs($housekeeping)->get(route('guests.index', $housekeeping->property->code))->assertForbidden();
@@ -249,7 +285,6 @@ test('another property\'s guest returns 404 on every guest route', function () {
 
     $this->actingAs($owner);
     $this->get(route('guests.show', [$code, $foreign]))->assertNotFound();
-    $this->get(route('guests.edit', [$code, $foreign]))->assertNotFound();
     $this->put(route('guests.update', [$code, $foreign]), guestPayload())->assertNotFound();
     $this->post(route('guests.vip.store', [$code, $foreign]))->assertNotFound();
     $this->post(route('guests.blacklist.store', [$code, $foreign]), ['reason' => 'x'])->assertNotFound();

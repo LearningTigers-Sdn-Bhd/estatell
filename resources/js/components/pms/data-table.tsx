@@ -170,7 +170,8 @@ export function DataTable<TData extends RowData>({
                                             : undefined
                                     }
                                     className={cn(
-                                        onRowClick && 'cursor-pointer',
+                                        onRowClick &&
+                                            'group/row cursor-pointer',
                                     )}
                                 >
                                     {row.getAllCells().map((cell) => (

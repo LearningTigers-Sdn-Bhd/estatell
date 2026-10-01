@@ -140,7 +140,7 @@ test('a merged guest\'s pages redirect to the survivor and other requests are 40
     $this->actingAs($owner);
     $this->get(route('guests.notes.index', [$code, $merged]))->assertRedirect(route('guests.notes.index', [$code, $survivor]));
     $this->get(route('guests.documents.index', [$code, $merged]))->assertRedirect(route('guests.documents.index', [$code, $survivor]));
-    $this->get(route('guests.edit', [$code, $merged]))->assertRedirect(route('guests.edit', [$code, $survivor]));
+    $this->get(route('guests.show', [$code, $merged]))->assertRedirect(route('guests.show', [$code, $survivor]));
     $this->post(route('guests.vip.store', [$code, $merged]))->assertNotFound();
     $this->put(route('guests.update', [$code, $merged]), ['full_name' => 'X'])->assertNotFound();
     $this->post(route('guests.notes.store', [$code, $merged]), ['body' => 'x'])->assertNotFound();

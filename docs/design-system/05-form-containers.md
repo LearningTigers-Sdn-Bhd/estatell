@@ -20,7 +20,7 @@ For 4–5 fields: use a Dialog when opened from a detail page, and a Sheet when 
 ## Always a full page, whatever the count
 
 1. Repeating rows (unit lines, age bands, inclusions).
-2. File uploads or media (photos). The ID scan step inside the registration card is part of that full page.
+2. File uploads or media (photos). The ID scan step inside the registration card is part of that full page. Exception: a small form of up to 12 fields in one section whose only uploads are one or two documents, such as the guest ID document form, may use a Sheet.
 3. Multiple steps (wizard, registration card).
 4. Needs its own URL (share, back button, bookmark).
 5. Long editing sessions (terms editor, rate plan setup).

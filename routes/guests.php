@@ -16,7 +16,6 @@ Route::prefix('guests')->name('guests.')->group(function () {
     Route::post('matches', GuestMatchController::class)->middleware('can:'.PermissionEnum::GuestsView->value)->name('matches');
 
     Route::middleware('can:'.PermissionEnum::GuestsManage->value)->group(function () {
-        Route::get('create', [GuestController::class, 'create'])->name('create');
         Route::post('/', [GuestController::class, 'store'])->name('store');
     });
 
@@ -27,7 +26,6 @@ Route::prefix('guests')->name('guests.')->group(function () {
         });
 
         Route::middleware('can:'.PermissionEnum::GuestsManage->value)->group(function () {
-            Route::get('edit', [GuestController::class, 'edit'])->name('edit');
             Route::put('/', [GuestController::class, 'update'])->name('update');
             Route::post('vip', [GuestController::class, 'markVip'])->name('vip.store');
             Route::delete('vip', [GuestController::class, 'unmarkVip'])->name('vip.destroy');
@@ -40,9 +38,7 @@ Route::prefix('guests')->name('guests.')->group(function () {
             Route::post('{document}/reveal', [GuestIdentityDocumentController::class, 'reveal'])->name('reveal');
 
             Route::middleware('can:'.PermissionEnum::GuestsManage->value)->group(function () {
-                Route::get('create', [GuestIdentityDocumentController::class, 'create'])->name('create');
                 Route::post('/', [GuestIdentityDocumentController::class, 'store'])->name('store');
-                Route::get('{document}/edit', [GuestIdentityDocumentController::class, 'edit'])->name('edit');
                 Route::put('{document}', [GuestIdentityDocumentController::class, 'update'])->name('update');
                 Route::delete('{document}', [GuestIdentityDocumentController::class, 'destroy'])->name('destroy');
             });

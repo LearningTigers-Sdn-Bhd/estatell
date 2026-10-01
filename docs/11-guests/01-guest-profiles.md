@@ -48,15 +48,15 @@ guest_tag      guest_id, tag_id
 
 Routes under `/p/{code}/guests` (`guests.*`, route file `guests.php`). They are in the Front desk context under Guests.
 
-| Route                                    | Permission         | Page                                                                           |
-| ---------------------------------------- | ------------------ | ------------------------------------------------------------------------------ |
-| `guests.index`                           | `guests.view`      | Index: search, status and tag filters, sort, pages. Filters are in the URL.    |
-| `guests.create`, `guests.store`          | `guests.manage`    | Full-page form (see [form containers](../design-system/05-form-containers.md)) |
-| `guests.show`, `guests.notes.index`      | `guests.view`      | Detail with Details and Notes tabs, each its own URL, and a side summary card  |
-| `guests.edit`, `guests.update`           | `guests.manage`    | The same form                                                                  |
-| `guests.vip.store`, `guests.vip.destroy` | `guests.manage`    | Mark or unmark VIP                                                             |
-| `guests.notes.store`                     | `guests.manage`    | Add a note (dialog on the Notes tab)                                           |
-| `guests.blacklist.store`, `.destroy`     | `guests.blacklist` | Blacklist with a reason (dialog), or remove from the blacklist (confirm)       |
+| Route                                    | Permission         | Page                                                                                                                                                                                                                                                                                     |
+| ---------------------------------------- | ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `guests.index`                           | `guests.view`      | Index: search, status and tag filters, sort, pages. Filters are in the URL.                                                                                                                                                                                                              |
+| `guests.store`                           | `guests.manage`    | Add guest: a Sheet on the index with 4 fields (name required, phone, email, nationality). No tags. Redirects to `guests.show`.                                                                                                                                                           |
+| `guests.show`, `guests.notes.index`      | `guests.view`      | Detail with Details and Notes tabs, each its own URL. The flag icons and the added date sit in the page header, with no side card. For staff with `guests.manage` the Details tab is the always-open edit form (all fields and tags). Others, and anonymized guests, see read-only text. |
+| `guests.update`                          | `guests.manage`    | Saves the Details form, then returns to the Details tab with a toast. There is no separate edit page.                                                                                                                                                                                    |
+| `guests.vip.store`, `guests.vip.destroy` | `guests.manage`    | Mark or unmark VIP                                                                                                                                                                                                                                                                       |
+| `guests.notes.store`                     | `guests.manage`    | Add a note (dialog on the Notes tab)                                                                                                                                                                                                                                                     |
+| `guests.blacklist.store`, `.destroy`     | `guests.blacklist` | Blacklist with a reason (dialog), or remove from the blacklist (confirm)                                                                                                                                                                                                                 |
 
 ## Rules
 
@@ -65,7 +65,7 @@ Routes under `/p/{code}/guests` (`guests.*`, route file `guests.php`). They are 
 - Email and phone stay plaintext for search and notifications. Rely on database encryption at rest.
 - ID documents have their own Documents tab. See [Identity documents](02-identity-documents.md).
 - A guest merged into another guest is hidden from the list and redirects to the survivor. See [Matching and merging](03-matching-and-merging.md).
-- Left for later: guest quick-add and `GuestPicker` (with the booking form), a settings page for tags, `marketing_consent_at` (captured on the registration card).
+- Left for later: `GuestPicker` (with the booking form), a settings page for tags, `marketing_consent_at` (captured on the registration card).
 
 ## Permissions
 

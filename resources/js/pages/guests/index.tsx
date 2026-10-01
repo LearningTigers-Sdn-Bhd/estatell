@@ -1,17 +1,18 @@
-import { Head, Link, router } from '@inertiajs/react';
-import { Plus, Star, Users } from 'lucide-react';
-import { useCallback } from 'react';
+import { Head, router } from '@inertiajs/react';
+import { Plus, Users } from 'lucide-react';
+import { useCallback, useState } from 'react';
+import { AddGuestSheet } from '@/components/pms/guests/add-guest-sheet';
 import { DataTable, dataTableColumns } from '@/components/pms/data-table';
 import { DateText } from '@/components/pms/date-text';
 import { EmptyState } from '@/components/pms/empty-state';
 import { EnumSelect } from '@/components/pms/enum-select';
 import type { EnumOption } from '@/components/pms/enum-select';
 import { FilterBar } from '@/components/pms/filter-bar';
+import { GuestFlags } from '@/components/pms/guests/guest-flags';
 import { PageHeader } from '@/components/pms/page-header';
-import { StatusBadge } from '@/components/pms/status-badge';
 import { Badge } from '@/components/ui/badge';
-import { Button, buttonVariants } from '@/components/ui/button';
-import { create, index, show } from '@/routes/guests';
+import { Button } from '@/components/ui/button';
+import { index, show } from '@/routes/guests';
 
 type Row = App.Data.Guests.GuestRowData;
 type Filters = { search: string; status: string; tag: string };
@@ -22,6 +23,7 @@ type Props = {
     sort: string;
     statuses: EnumOption[];
     tags: App.Data.Guests.TagData[];
+    countries: EnumOption[];
     canManage: boolean;
 };
 
@@ -33,31 +35,14 @@ const columns = [
         header: 'Name',
         cell: (info) => (
             <span className="flex items-center gap-2">
-                <span className="font-medium">{info.getValue()}</span>
-                {info.row.original.isVip && (
-                    <Star
-                        aria-label="VIP"
-                        className="size-3.5 fill-current text-warning"
-                    />
-                )}
-                {info.row.original.isAnonymized && (
-                    <StatusBadge
-                        status={{
-                            value: 'anonymized',
-                            label: 'Anonymized',
-                            tone: 'neutral',
-                        }}
-                    />
-                )}
-                {info.row.original.isBlacklisted && (
-                    <StatusBadge
-                        status={{
-                            value: 'blacklisted',
-                            label: 'Blacklisted',
-                            tone: 'danger',
-                        }}
-                    />
-                )}
+                <span className="font-medium group-hover/row:underline">
+                    {info.getValue()}
+                </span>
+                <GuestFlags
+                    isVip={info.row.original.isVip}
+                    isAnonymized={info.row.original.isAnonymized}
+                    isBlacklisted={info.row.original.isBlacklisted}
+                />
             </span>
         ),
     }),
@@ -71,7 +56,7 @@ const columns = [
         enableSorting: false,
         cell: (info) => info.getValue() ?? '—',
     }),
-    column.accessor('nationalityCode', {
+    column.accessor('nationalityName', {
         header: 'Nationality',
         enableSorting: false,
         cell: (info) => info.getValue() ?? '—',
@@ -102,8 +87,10 @@ export default function GuestsIndex({
     sort,
     statuses,
     tags,
+    countries,
     canManage,
 }: Props) {
+    const [adding, setAdding] = useState(false);
     const visit = useCallback(
         (changes: Partial<Filters & { sort: string }>) => {
             const next = { ...filters, sort, ...changes };
@@ -136,10 +123,10 @@ export default function GuestsIndex({
     }));
 
     const addGuest = canManage ? (
-        <Link href={create.url()} className={buttonVariants()}>
+        <Button onClick={() => setAdding(true)}>
             <Plus data-icon="inline-start" />
             Add guest
-        </Link>
+        </Button>
     ) : undefined;
 
     return (
@@ -223,6 +210,14 @@ export default function GuestsIndex({
                     }
                 />
             </div>
+
+            {canManage && (
+                <AddGuestSheet
+                    open={adding}
+                    onOpenChange={setAdding}
+                    countries={countries}
+                />
+            )}
         </>
     );
 }

@@ -9,8 +9,8 @@ import {
     AlertDialogFooter,
     AlertDialogHeader,
     AlertDialogTitle,
-    AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import { HeaderActionButton } from '@/components/pms/guests/header-action-button';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -20,7 +20,6 @@ import {
     DialogFooter,
     DialogHeader,
     DialogTitle,
-    DialogTrigger,
 } from '@/components/ui/dialog';
 import {
     Field,
@@ -50,19 +49,14 @@ export function VipButton({ guest }: { guest: Guest }) {
     return (
         <Form {...route} options={{ preserveScroll: true }}>
             {({ processing }) => (
-                <Button
+                <HeaderActionButton
                     type="submit"
-                    variant="outline"
+                    label={guest.isVip ? 'Remove VIP' : 'Mark as VIP'}
+                    icon={Icon}
+                    iconClassName="text-warning"
+                    loading={processing}
                     disabled={processing}
-                    focusableWhenDisabled
-                >
-                    {processing ? (
-                        <Spinner data-icon="inline-start" />
-                    ) : (
-                        <Icon data-icon="inline-start" />
-                    )}
-                    {guest.isVip ? 'Remove VIP' : 'Mark as VIP'}
-                </Button>
+                />
             )}
         </Form>
     );
@@ -84,10 +78,12 @@ function BlacklistDialog({ guest }: { guest: Guest }) {
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger render={<Button variant="outline" />}>
-                <Ban data-icon="inline-start" />
-                Blacklist
-            </DialogTrigger>
+            <HeaderActionButton
+                label="Blacklist"
+                icon={Ban}
+                iconClassName="text-destructive"
+                onClick={() => setOpen(true)}
+            />
             <DialogContent>
                 <DialogHeader>
                     <DialogTitle>Blacklist {guest.fullName}</DialogTitle>
@@ -152,10 +148,12 @@ function UnblacklistDialog({ guest }: { guest: Guest }) {
 
     return (
         <AlertDialog open={open} onOpenChange={setOpen}>
-            <AlertDialogTrigger render={<Button variant="outline" />}>
-                <ShieldCheck data-icon="inline-start" />
-                Remove from blacklist
-            </AlertDialogTrigger>
+            <HeaderActionButton
+                label="Remove from blacklist"
+                icon={ShieldCheck}
+                iconClassName="text-success"
+                onClick={() => setOpen(true)}
+            />
             <AlertDialogContent>
                 <AlertDialogHeader>
                     <AlertDialogTitle>

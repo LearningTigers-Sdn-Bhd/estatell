@@ -206,14 +206,19 @@ test('revealing a number and opening a scan are logged', function () {
     expect(Activity::query()->where('event', 'guest.document_scan_viewed')->count())->toBe(1);
 });
 
-test('the edit form shows the full number and logs it', function () {
+test('the documents tab never carries the full number and sends the sheet form options only to staff who can manage', function () {
     $owner = User::factory()->owner()->create();
     [$guest, $document] = guestWithDocument($owner);
+    $url = route('guests.documents.index', [$owner->property->code, $guest]);
 
-    $this->actingAs($owner)->get(route('guests.documents.edit', [$owner->property->code, $guest, $document]))
-        ->assertInertia(fn (Assert $page) => $page->component('guests/documents/form')->where('document.number', '900101-14-1234'));
+    $this->actingAs($owner)->get($url)
+        ->assertInertia(fn (Assert $page) => $page->where('documents.0.number', null)
+            ->where('documents.0.maskedNumber', fn ($masked) => $masked !== '900101-14-1234')
+            ->has('documentFormOptions.types')
+            ->has('documentFormOptions.countries'));
 
-    expect(Activity::query()->where('event', 'guest.document_number_viewed')->count())->toBe(1);
+    $this->actingAs(staffWithOnly($owner->property, ['guests.view-documents']))->get($url)
+        ->assertInertia(fn (Assert $page) => $page->where('documentFormOptions', null));
 });
 
 test('new scans go to the disk chosen in platform settings and older files keep theirs', function () {
@@ -260,9 +265,7 @@ test('each document permission is enforced', function () {
         ['get', route('guests.documents.index', [$property->code, $guest])],
         ['post', route('guests.documents.reveal', [$property->code, $guest, $document])],
         ['get', route('guests.documents.scan', [$property->code, $guest, $document, 'front'])],
-        ['get', route('guests.documents.create', [$property->code, $guest])],
         ['post', route('guests.documents.store', [$property->code, $guest])],
-        ['get', route('guests.documents.edit', [$property->code, $guest, $document])],
         ['put', route('guests.documents.update', [$property->code, $guest, $document])],
         ['delete', route('guests.documents.destroy', [$property->code, $guest, $document])],
     ];
@@ -283,7 +286,8 @@ test('each document permission is enforced', function () {
     }
 
     $frontDesk = User::factory()->for($property)->withRole(DefaultRoleEnum::FrontDesk)->create();
-    $this->actingAs($frontDesk)->get(route('guests.documents.create', [$property->code, $guest]))->assertOk();
+    $this->actingAs($frontDesk)->get(route('guests.documents.index', [$property->code, $guest]))
+        ->assertInertia(fn (Assert $page) => $page->has('documentFormOptions.types'));
 });
 
 test('another property\'s guest or document returns 404', function () {
@@ -297,7 +301,6 @@ test('another property\'s guest or document returns 404', function () {
     $this->actingAs($owner);
     $this->get(route('guests.documents.index', [$code, $foreign]))->assertNotFound();
     $this->post(route('guests.documents.store', [$code, $foreign]), documentPayload())->assertNotFound();
-    $this->get(route('guests.documents.edit', [$code, $foreign, $foreignDocument]))->assertNotFound();
     $this->postJson(route('guests.documents.reveal', [$code, $mine, $foreignDocument]))->assertNotFound();
     $this->delete(route('guests.documents.destroy', [$code, $mine, $foreignDocument]))->assertNotFound();
     $this->get(route('guests.documents.scan', [$code, $foreign, $foreignDocument, 'front']))->assertNotFound();

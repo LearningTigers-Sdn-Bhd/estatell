@@ -4,6 +4,7 @@ namespace App\Data\Guests;
 
 use App\Models\Guest;
 use App\Models\Tag;
+use App\Services\Guests\CountryOptions;
 use Spatie\LaravelData\Data;
 
 /**
@@ -19,7 +20,7 @@ class GuestRowData extends Data
         public string $fullName,
         public ?string $email,
         public ?string $phone,
-        public ?string $nationalityCode,
+        public ?string $nationalityName,
         public bool $isVip,
         public bool $isBlacklisted,
         public bool $isAnonymized,
@@ -34,7 +35,7 @@ class GuestRowData extends Data
             fullName: $guest->full_name,
             email: $guest->email,
             phone: $guest->phone,
-            nationalityCode: $guest->nationality_code,
+            nationalityName: app(CountryOptions::class)->name($guest->nationality_code),
             isVip: $guest->is_vip,
             isBlacklisted: $guest->blacklisted_at !== null,
             isAnonymized: $guest->anonymized_at !== null,

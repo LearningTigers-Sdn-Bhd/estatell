@@ -6,7 +6,7 @@ import { buttonVariants } from '@/components/ui/button';
 
 type Props = {
     title: string;
-    description?: string;
+    description?: ReactNode;
     back?: { href: NonNullable<InertiaLinkProps['href']>; label: string };
     badge?: ReactNode;
     actions?: ReactNode;

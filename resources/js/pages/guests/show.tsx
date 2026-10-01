@@ -1,27 +1,25 @@
-import { Head, Link } from '@inertiajs/react';
-import { FileText, IdCard, Pencil, Plus, StickyNote } from 'lucide-react';
+import { Head } from '@inertiajs/react';
+import { FileText, IdCard, StickyNote } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { DateText } from '@/components/pms/date-text';
 import { DetailLayout } from '@/components/pms/detail-layout';
-import { EmptyState } from '@/components/pms/empty-state';
-import { AddNoteDialog } from '@/components/pms/guests/add-note-dialog';
 import { AnonymizeGuestDialog } from '@/components/pms/guests/anonymize-guest-dialog';
+import type { DocumentFormOptions } from '@/components/pms/guests/document-sheet';
 import { DocumentsTab } from '@/components/pms/guests/documents-tab';
+import { GuestForm, guestFormKey } from '@/components/pms/guests/guest-form';
+import { NotesTab } from '@/components/pms/guests/notes-tab';
 import { PossibleDuplicates } from '@/components/pms/guests/possible-duplicates';
+import type { EnumOption } from '@/components/pms/enum-select';
+import { GuestFlags } from '@/components/pms/guests/guest-flags';
 import {
     BlacklistButton,
     VipButton,
 } from '@/components/pms/guests/guest-actions';
 import { PageHeader } from '@/components/pms/page-header';
-import { StatusBadge } from '@/components/pms/status-badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { buttonVariants } from '@/components/ui/button';
-import { edit, index, show } from '@/routes/guests';
-import {
-    create as createDocument,
-    index as documentsTab,
-} from '@/routes/guests/documents';
+import { index, show } from '@/routes/guests';
+import { index as documentsTab } from '@/routes/guests/documents';
 import { index as notesTab } from '@/routes/guests/notes';
 
 type Guest = App.Data.Guests.GuestData;
@@ -36,6 +34,15 @@ type Props = {
     documents?: Document[];
     duplicates?: App.Data.Guests.GuestMatchData[];
     retentionDays?: number | null;
+    /** Set when the user can add and edit ID documents. */
+    documentFormOptions?: DocumentFormOptions | null;
+    /** Set when the guest can be edited here, otherwise the Details tab is read-only. */
+    formOptions?: {
+        countries: EnumOption[];
+        genders: EnumOption[];
+        locales: EnumOption[];
+        tags: App.Data.Guests.TagData[];
+    } | null;
     canManage: boolean;
     canBlacklist: boolean;
     canViewDocuments: boolean;
@@ -71,6 +78,21 @@ function Details({ guest }: { guest: Guest }) {
 
     return (
         <div className="flex flex-col gap-5">
+            <Section title="Email">{guest.email ?? NOT_SET}</Section>
+            <Section title="Phone">{guest.phone ?? NOT_SET}</Section>
+            <Section title="Tags">
+                {guest.tags.length ? (
+                    <span className="flex flex-wrap gap-1">
+                        {guest.tags.map((tag) => (
+                            <Badge key={tag.id} variant="outline">
+                                {tag.name}
+                            </Badge>
+                        ))}
+                    </span>
+                ) : (
+                    NOT_SET
+                )}
+            </Section>
             <Section title="Address">
                 {address.length
                     ? address.map((line) => <p key={line}>{line}</p>)
@@ -90,90 +112,6 @@ function Details({ guest }: { guest: Guest }) {
     );
 }
 
-function Notes({ notes }: { notes: Note[] }) {
-    if (notes.length === 0) {
-        return (
-            <EmptyState
-                icon={StickyNote}
-                title="No notes yet"
-                description="Notes about preferences or past stays show here."
-            />
-        );
-    }
-
-    return (
-        <ul className="flex flex-col gap-4">
-            {notes.map((note) => (
-                <li key={note.id} className="flex flex-col gap-1">
-                    <p className="text-sm whitespace-pre-wrap">{note.body}</p>
-                    <p className="text-xs text-muted-foreground">
-                        {note.authorName ?? 'Former staff member'} ·{' '}
-                        <time dateTime={note.createdAt}>
-                            {new Date(note.createdAt).toLocaleString('en-GB', {
-                                day: '2-digit',
-                                month: 'short',
-                                year: 'numeric',
-                                hour: '2-digit',
-                                minute: '2-digit',
-                            })}
-                        </time>
-                    </p>
-                </li>
-            ))}
-        </ul>
-    );
-}
-
-function Summary({ guest }: { guest: Guest }) {
-    return (
-        <div className="flex flex-col gap-4">
-            <div className="flex flex-wrap gap-1.5">
-                {guest.isVip && (
-                    <StatusBadge
-                        status={{ value: 'vip', label: 'VIP', tone: 'info' }}
-                    />
-                )}
-                {guest.anonymizedAt && (
-                    <StatusBadge
-                        status={{
-                            value: 'anonymized',
-                            label: 'Anonymized',
-                            tone: 'neutral',
-                        }}
-                    />
-                )}
-                {guest.blacklistedAt && (
-                    <StatusBadge
-                        status={{
-                            value: 'blacklisted',
-                            label: 'Blacklisted',
-                            tone: 'danger',
-                        }}
-                    />
-                )}
-            </div>
-            <Section title="Email">{guest.email ?? NOT_SET}</Section>
-            <Section title="Phone">{guest.phone ?? NOT_SET}</Section>
-            <Section title="Tags">
-                {guest.tags.length ? (
-                    <span className="flex flex-wrap gap-1">
-                        {guest.tags.map((tag) => (
-                            <Badge key={tag.id} variant="outline">
-                                {tag.name}
-                            </Badge>
-                        ))}
-                    </span>
-                ) : (
-                    NOT_SET
-                )}
-            </Section>
-            <Section title="Added">
-                <DateText date={guest.createdAt} />
-            </Section>
-        </div>
-    );
-}
-
 export default function GuestShow({
     guest,
     tab,
@@ -181,6 +119,8 @@ export default function GuestShow({
     documents = [],
     duplicates = [],
     retentionDays = null,
+    documentFormOptions = null,
+    formOptions = null,
     canManage,
     canBlacklist,
     canViewDocuments,
@@ -220,37 +160,23 @@ export default function GuestShow({
             <div className="flex flex-1 flex-col gap-6 p-4">
                 <PageHeader
                     title={guest.fullName}
+                    description={
+                        <>
+                            Added <DateText date={guest.createdAt} />
+                        </>
+                    }
+                    badge={
+                        <GuestFlags
+                            isVip={guest.isVip}
+                            isAnonymized={isAnonymized}
+                            isBlacklisted={guest.blacklistedAt !== null}
+                        />
+                    }
                     back={{ href: index.url(), label: 'Guests' }}
                     actions={
                         <>
                             {canManage && !isAnonymized && (
-                                <>
-                                    <VipButton guest={guest} />
-                                    {tab === 'notes' && (
-                                        <AddNoteDialog guest={guest} />
-                                    )}
-                                    {tab === 'documents' &&
-                                        canViewDocuments && (
-                                            <Link
-                                                href={createDocument.url({
-                                                    guest: guest.id,
-                                                })}
-                                                className={buttonVariants()}
-                                            >
-                                                <Plus data-icon="inline-start" />
-                                                Add document
-                                            </Link>
-                                        )}
-                                    <Link
-                                        href={edit.url({ guest: guest.id })}
-                                        className={buttonVariants({
-                                            variant: 'outline',
-                                        })}
-                                    >
-                                        <Pencil data-icon="inline-start" />
-                                        Edit
-                                    </Link>
-                                </>
+                                <VipButton guest={guest} />
                             )}
                             {canBlacklist && !isAnonymized && (
                                 <BlacklistButton guest={guest} />
@@ -285,20 +211,32 @@ export default function GuestShow({
                 <DetailLayout
                     tabs={tabs}
                     activeTab={tab}
-                    summary={<Summary guest={guest} />}
+                    panelWidth={tab === 'notes' ? 'full' : 'default'}
                 >
                     {tab === 'notes' ? (
-                        <Notes notes={notes} />
+                        <NotesTab
+                            guest={guest}
+                            notes={notes}
+                            canAdd={canManage && !isAnonymized}
+                        />
                     ) : tab === 'documents' ? (
                         <DocumentsTab
                             guest={guest}
                             documents={documents}
-                            canManage={canManage}
+                            formOptions={documentFormOptions}
                             retentionDays={retentionDays}
                         />
                     ) : (
                         <div className="flex flex-col gap-6">
-                            <Details guest={guest} />
+                            {formOptions ? (
+                                <GuestForm
+                                    key={guestFormKey(guest)}
+                                    guest={guest}
+                                    {...formOptions}
+                                />
+                            ) : (
+                                <Details guest={guest} />
+                            )}
                             <PossibleDuplicates
                                 guest={guest}
                                 duplicates={duplicates}

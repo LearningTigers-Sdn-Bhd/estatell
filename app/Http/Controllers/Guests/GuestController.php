@@ -14,6 +14,7 @@ use App\Data\Guests\GuestNoteData;
 use App\Data\Guests\GuestRowData;
 use App\Data\Guests\TagData;
 use App\Enums\Gender;
+use App\Enums\IdentityDocumentType;
 use App\Enums\Locale;
 use App\Enums\PermissionEnum;
 use App\Http\Controllers\Controller;
@@ -42,6 +43,8 @@ class GuestController extends Controller
      */
     public function index(Request $request, Property $property, GuestDirectory $guestDirectory): Response
     {
+        $canManage = $request->user()->can(PermissionEnum::GuestsManage->value);
+
         return Inertia::render('guests/index', [
             'guests' => GuestRowData::collect($guestDirectory->paginate($property, $request, $request->user()->can(PermissionEnum::GuestsViewDocuments->value)), PaginatedDataCollection::class),
             'filters' => [
@@ -56,15 +59,8 @@ class GuestController extends Controller
                 ['value' => GuestDirectory::STATUS_ANONYMIZED, 'label' => __('Anonymized')],
             ],
             'tags' => $this->tags($property),
-            'canManage' => $request->user()->can(PermissionEnum::GuestsManage->value),
-        ]);
-    }
-
-    public function create(Property $property): Response
-    {
-        return Inertia::render('guests/form', [
-            'guest' => null,
-            ...$this->formOptions($property),
+            'countries' => $canManage ? app(CountryOptions::class)->options() : [],
+            'canManage' => $canManage,
         ]);
     }
 
@@ -84,7 +80,10 @@ class GuestController extends Controller
     {
         $withIdNumbers = $request->user()->can(PermissionEnum::GuestsViewDocuments->value);
 
+        $canEdit = $request->user()->can(PermissionEnum::GuestsManage->value) && $guest->anonymized_at === null;
+
         return $this->renderTab($request->user(), $guest, 'details', [
+            'formOptions' => $canEdit ? $this->formOptions($property) : null,
             'duplicates' => array_map(
                 fn (array $match): GuestMatchData => GuestMatchData::fromMatch($match),
                 $guestMatcher->forGuest($guest->load('documents'), $withIdNumbers),
@@ -105,33 +104,23 @@ class GuestController extends Controller
     }
 
     /**
-     * Guest page, Documents tab. Documents load only here, with masked numbers.
+     * Guest page, Documents tab. Documents load only here, with masked numbers. The sheet form gets the full number
+     * from the logged `reveal` request, never from page props.
      */
     public function documents(Request $request, Property $property, Guest $guest, PropertyToday $propertyToday): Response
     {
         $today = $propertyToday->date($property)->toDateString();
+        $canManage = $request->user()->can(PermissionEnum::GuestsManage->value);
 
         return $this->renderTab($request->user(), $guest, 'documents', [
+            'documentFormOptions' => $canManage ? [
+                'types' => IdentityDocumentType::options(),
+                'countries' => app(CountryOptions::class)->options(),
+            ] : null,
             'retentionDays' => $property->settings?->id_document_retention_days,
             'documents' => $guest->documents()->with('media')->orderBy('id')->get()
                 ->map(fn (GuestIdentityDocument $document): GuestIdentityDocumentData => GuestIdentityDocumentData::fromModel($document, $today))
                 ->all(),
-        ]);
-    }
-
-    public function edit(Property $property, Guest $guest): Response|RedirectResponse
-    {
-        if ($guest->anonymized_at !== null) {
-            Inertia::flash('toast', ['type' => 'error', 'message' => __(':name cannot be edited.', ['name' => $guest->full_name])]);
-
-            return to_route('guests.show', ['property' => $property, 'guest' => $guest]);
-        }
-
-        $guest->load('tags');
-
-        return Inertia::render('guests/form', [
-            'guest' => GuestData::fromModel($guest),
-            ...$this->formOptions($property),
         ]);
     }
 
@@ -215,7 +204,6 @@ class GuestController extends Controller
             'genders' => Gender::options(),
             'locales' => Locale::options(),
             'tags' => $this->tags($property),
-            'defaultCountryCode' => $property->country_code,
         ];
     }
 

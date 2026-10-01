@@ -33,8 +33,8 @@ Meet Malaysian PDPA expectations for guest data.
 
 An anonymized guest:
 
-- Shows an Anonymized notice and badge on the guest page. The Edit, VIP, Blacklist, Add note, Add document, Merge and Anonymize buttons and the Documents tab are hidden.
-- Is refused by every write Action (`UpdateGuest`, `SetVip`, `BlacklistGuest`, `AddGuestNote`, `AddIdentityDocument`, `MergeGuests`). The edit and add-document form pages go back to the guest page with an error toast.
+- Shows an Anonymized notice and badge on the guest page. The VIP, Blacklist, Merge and Anonymize buttons, the Add note card, the Details form and the Documents tab are hidden.
+- Is refused by every write Action (`UpdateGuest`, `SetVip`, `BlacklistGuest`, `AddGuestNote`, `AddIdentityDocument`, `MergeGuests`). The Details tab shows read-only text for an anonymized guest, and the add-document request returns an error toast.
 - Is left out of the guest list unless the `Anonymized` status filter is chosen, and never matches in [duplicate matching](03-matching-and-merging.md).
 - Stays reachable by its URL, because later reservations and folios link to it.
 

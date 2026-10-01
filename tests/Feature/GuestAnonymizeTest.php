@@ -121,8 +121,7 @@ test('an anonymized guest cannot be changed', function () {
     $this->post(route('guests.blacklist.store', [$code, $guest]), ['reason' => 'x'])->assertInertiaFlash('toast.type', 'error');
     $this->post(route('guests.notes.store', [$code, $guest]), ['body' => 'x'])->assertInertiaFlash('toast.type', 'error');
     $this->post(route('guests.documents.store', [$code, $guest]), ['type' => 'passport', 'number' => 'A1234567'])->assertInertiaFlash('toast.type', 'error');
-    $this->get(route('guests.edit', [$code, $guest]))->assertRedirect(route('guests.show', [$code, $guest]))->assertInertiaFlash('toast.type', 'error');
-    $this->get(route('guests.documents.create', [$code, $guest]))->assertRedirect(route('guests.show', [$code, $guest]));
+    $this->get(route('guests.show', [$code, $guest]))->assertInertia(fn ($page) => $page->where('formOptions', null));
 
     expect(app(AddGuestNote::class)($owner, $guest, 'x'))->toBeNull()
         ->and($guest->notes()->count())->toBe(0)

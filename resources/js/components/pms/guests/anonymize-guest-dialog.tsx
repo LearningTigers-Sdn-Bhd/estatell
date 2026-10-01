@@ -9,8 +9,8 @@ import {
     AlertDialogFooter,
     AlertDialogHeader,
     AlertDialogTitle,
-    AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import { HeaderActionButton } from '@/components/pms/guests/header-action-button';
 import { Button } from '@/components/ui/button';
 import { Field, FieldDescription, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
@@ -37,10 +37,12 @@ export function AnonymizeGuestDialog({
                 setTyped('');
             }}
         >
-            <AlertDialogTrigger render={<Button variant="outline" />}>
-                <UserX data-icon="inline-start" />
-                Anonymize
-            </AlertDialogTrigger>
+            <HeaderActionButton
+                label="Anonymize"
+                icon={UserX}
+                iconClassName="text-destructive"
+                onClick={() => setOpen(true)}
+            />
             <AlertDialogContent>
                 <AlertDialogHeader>
                     <AlertDialogTitle>

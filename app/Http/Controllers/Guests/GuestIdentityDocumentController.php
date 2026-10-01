@@ -6,21 +6,15 @@ use App\Actions\Guests\AddIdentityDocument;
 use App\Actions\Guests\RecordIdentityDocumentAccess;
 use App\Actions\Guests\RemoveIdentityDocument;
 use App\Actions\Guests\UpdateIdentityDocument;
-use App\Data\Guests\GuestData;
-use App\Data\Guests\GuestIdentityDocumentData;
-use App\Enums\IdentityDocumentType;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Guests\IdentityDocumentRequest;
 use App\Models\Guest;
 use App\Models\GuestIdentityDocument;
 use App\Models\Property;
-use App\Services\Guests\CountryOptions;
-use App\Services\Property\PropertyToday;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
-use Inertia\Response;
 
 class GuestIdentityDocumentController extends Controller
 {
@@ -28,11 +22,6 @@ class GuestIdentityDocumentController extends Controller
      * How long a scan link works, in minutes.
      */
     private const int SCAN_LINK_MINUTES = 5;
-
-    public function create(Property $property, Guest $guest): Response|RedirectResponse
-    {
-        return $this->closedGuestRedirect($property, $guest) ?? $this->form($guest, null);
-    }
 
     public function store(IdentityDocumentRequest $request, Property $property, Guest $guest, AddIdentityDocument $addIdentityDocument): RedirectResponse
     {
@@ -43,20 +32,6 @@ class GuestIdentityDocumentController extends Controller
             : ['type' => 'error', 'message' => __(':name cannot be edited.', ['name' => $guest->full_name])]);
 
         return to_route('guests.documents.index', ['property' => $property, 'guest' => $guest]);
-    }
-
-    /**
-     * The form shows the full number, so opening it is logged like a reveal.
-     */
-    public function edit(Request $request, Property $property, Guest $guest, GuestIdentityDocument $document, RecordIdentityDocumentAccess $recordAccess, PropertyToday $propertyToday): Response|RedirectResponse
-    {
-        if ($redirect = $this->closedGuestRedirect($property, $guest)) {
-            return $redirect;
-        }
-
-        $recordAccess($request->user(), $document);
-
-        return $this->form($guest, GuestIdentityDocumentData::fromModel($document->load('media'), $propertyToday->date($property)->toDateString(), withNumber: true));
     }
 
     public function update(IdentityDocumentRequest $request, Property $property, Guest $guest, GuestIdentityDocument $document, UpdateIdentityDocument $updateIdentityDocument): RedirectResponse
@@ -78,7 +53,7 @@ class GuestIdentityDocumentController extends Controller
     }
 
     /**
-     * The full number for the Reveal button. The request is logged.
+     * The full number for the Reveal button and the edit sheet. The request is logged.
      */
     public function reveal(Request $request, Property $property, Guest $guest, GuestIdentityDocument $document, RecordIdentityDocumentAccess $recordAccess): JsonResponse
     {
@@ -102,29 +77,5 @@ class GuestIdentityDocumentController extends Controller
         $recordAccess($request->user(), $document, $collection);
 
         return redirect()->away($media->getTemporaryUrl(now()->addMinutes(self::SCAN_LINK_MINUTES)));
-    }
-
-    /**
-     * A merged or anonymized guest cannot get or change documents, so the form pages go back with an error toast.
-     */
-    private function closedGuestRedirect(Property $property, Guest $guest): ?RedirectResponse
-    {
-        if ($guest->merged_into_id === null && $guest->anonymized_at === null) {
-            return null;
-        }
-
-        Inertia::flash('toast', ['type' => 'error', 'message' => __(':name cannot be edited.', ['name' => $guest->full_name])]);
-
-        return to_route('guests.show', ['property' => $property, 'guest' => $guest]);
-    }
-
-    private function form(Guest $guest, ?GuestIdentityDocumentData $document): Response
-    {
-        return Inertia::render('guests/documents/form', [
-            'guest' => GuestData::fromModel($guest->load('tags')),
-            'document' => $document,
-            'types' => IdentityDocumentType::options(),
-            'countries' => app(CountryOptions::class)->options(),
-        ]);
     }
 }

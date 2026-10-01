@@ -1,8 +1,10 @@
-import { Link, useHttp } from '@inertiajs/react';
-import { Eye, EyeOff, IdCard, Pencil, Trash2 } from 'lucide-react';
+import { useHttp } from '@inertiajs/react';
+import { Eye, EyeOff, IdCard, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { DateText } from '@/components/pms/date-text';
 import { EmptyState } from '@/components/pms/empty-state';
+import { DocumentSheet } from '@/components/pms/guests/document-sheet';
+import type { DocumentFormOptions } from '@/components/pms/guests/document-sheet';
 import { StatusBadge } from '@/components/pms/status-badge';
 import {
     AlertDialog,
@@ -18,7 +20,7 @@ import { Button, buttonVariants } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Spinner } from '@/components/ui/spinner';
 import { Form } from '@inertiajs/react';
-import { destroy, edit, reveal, scan } from '@/routes/guests/documents';
+import { destroy, reveal, scan } from '@/routes/guests/documents';
 
 type Guest = App.Data.Guests.GuestData;
 type Document = App.Data.Guests.GuestIdentityDocumentData;
@@ -167,33 +169,72 @@ function ScanLink({
 export function DocumentsTab({
     guest,
     documents,
-    canManage,
+    formOptions,
     retentionDays,
 }: {
     guest: Guest;
     documents: Document[];
-    canManage: boolean;
+    /** Set when the user can add and edit documents, otherwise the tab is read-only. */
+    formOptions: DocumentFormOptions | null;
     retentionDays: number | null;
 }) {
+    const [sheetOpen, setSheetOpen] = useState(false);
+    const [editing, setEditing] = useState<Document | null>(null);
+    const canManage = formOptions !== null;
+
+    const openSheet = (document: Document | null) => {
+        setEditing(document);
+        setSheetOpen(true);
+    };
+
+    const addButton = canManage ? (
+        <Button onClick={() => openSheet(null)}>
+            <Plus data-icon="inline-start" />
+            Add document
+        </Button>
+    ) : undefined;
+
+    const sheet = formOptions && (
+        <DocumentSheet
+            open={sheetOpen}
+            onOpenChange={setSheetOpen}
+            guest={guest}
+            document={editing}
+            options={formOptions}
+        />
+    );
+
     if (documents.length === 0) {
         return (
-            <EmptyState
-                icon={IdCard}
-                title="No ID documents yet"
-                description="Add a MyKad or passport with its number and scans."
-            />
+            <>
+                <EmptyState
+                    icon={IdCard}
+                    title="No ID documents yet"
+                    description="Add a MyKad or passport with its number and scans."
+                    action={addButton}
+                />
+                {sheet}
+            </>
         );
     }
 
     return (
         <div className="flex flex-col gap-4">
-            {retentionDays !== null && (
-                <p className="text-sm text-muted-foreground">
-                    Scans are deleted {retentionDays}{' '}
-                    {retentionDays === 1 ? 'day' : 'days'} after they are
-                    uploaded. The number stays.
-                </p>
-            )}
+            <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="flex flex-col gap-1">
+                    <h2 className="font-heading text-base font-medium">
+                        ID documents
+                    </h2>
+                    {retentionDays !== null && (
+                        <p className="text-sm text-muted-foreground">
+                            Scans are deleted {retentionDays}{' '}
+                            {retentionDays === 1 ? 'day' : 'days'} after they
+                            are uploaded. The number stays.
+                        </p>
+                    )}
+                </div>
+                {addButton}
+            </div>
             <ul className="flex flex-col gap-4">
                 {documents.map((document) => (
                     <li key={document.id}>
@@ -257,19 +298,16 @@ export function DocumentsTab({
                                         )}
                                     {canManage && (
                                         <span className="ms-auto flex gap-2">
-                                            <Link
-                                                href={edit.url({
-                                                    guest: guest.id,
-                                                    document: document.id,
-                                                })}
-                                                className={buttonVariants({
-                                                    size: 'sm',
-                                                    variant: 'outline',
-                                                })}
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                onClick={() =>
+                                                    openSheet(document)
+                                                }
                                             >
                                                 <Pencil data-icon="inline-start" />
                                                 Edit
-                                            </Link>
+                                            </Button>
                                             <RemoveDocument
                                                 guest={guest}
                                                 document={document}
@@ -282,6 +320,7 @@ export function DocumentsTab({
                     </li>
                 ))}
             </ul>
+            {sheet}
         </div>
     );
 }
