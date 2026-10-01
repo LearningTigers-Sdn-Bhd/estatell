@@ -42,7 +42,7 @@ guest_tag      guest_id, tag_id
 
 - `GuestDirectory`: the server-paginated list (25 per page). Search matches name, email and phone. Filters: `status` (`vip` or `blacklisted`) and `tag`. Sorts: `full_name`, `created_at`. Merged guests are left out.
 - `CountryOptions`: country names from the PHP `intl` extension.
-- `GuestStayHistory` (stays, nights, revenue, last stay and no-shows, calculated from `unit_guests`, `unit_nights` and `folio_lines`, not stored) is **deferred** to modules 12 and 13, because those tables do not exist yet.
+- `GuestStayHistory` (stays, nights, revenue, last stay and no-shows, calculated from `unit_guests`, `unit_nights` and `folio_lines`, not stored) is **deferred** to module 13, because the folio tables do not exist yet. The reservation tables exist since module 12.
 
 ## Pages
 

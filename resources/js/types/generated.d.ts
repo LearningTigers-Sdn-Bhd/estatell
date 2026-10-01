@@ -668,6 +668,7 @@ deactivatedAt: string | null,
 }
 namespace Enums {
 export type AgeBandPricing = 'free' | 'percent' | 'fixed';
+export type BillingMode = 'master_pays' | 'each_pays';
 export type BusinessDateStatus = 'open' | 'auditing' | 'closed';
 export type ChargingUnit = 'per_item' | 'per_night' | 'per_stay' | 'per_guest_night' | 'per_guest';
 export type Currency = 'MYR';
@@ -703,6 +704,8 @@ export type PropertyType = 'hotel' | 'hostel' | 'resort' | 'serviced_apartment' 
 export type RateDerivation = 'percent' | 'amount';
 export type RatePlanStatus = 'active' | 'archived';
 export type RegistrationCardScope = 'primary_only' | 'every_adult';
+export type ReservationSource = 'direct' | 'walk_in' | 'phone' | 'channel' | 'agent';
+export type ReservationStatus = 'confirmed' | 'in_house' | 'completed' | 'cancelled';
 export type RoomBlockReason = 'maintenance' | 'owner_use' | 'out_of_order' | 'other';
 export type SellUnit = 'room' | 'bed';
 export type StayDiscountType = 'percent' | 'amount';
@@ -712,6 +715,7 @@ export type TaxRateType = 'percent' | 'flat';
 export type Tone = 'neutral' | 'info' | 'success' | 'warning' | 'danger';
 export type TransactionCategory = 'room' | 'food_and_beverage' | 'laundry' | 'minibar' | 'fee' | 'tax' | 'discount' | 'cash' | 'card' | 'bank_transfer' | 'e_wallet' | 'ota_collected' | 'direct_bill' | 'deposit' | 'refund' | 'adjustment' | 'other';
 export type TransactionKind = 'charge' | 'payment' | 'adjustment' | 'tax';
+export type UnitStatus = 'confirmed' | 'checked_in' | 'checked_out' | 'cancelled' | 'no_show';
 export type Weekday = 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday';
 export type WeekendNights = 'fri_sat' | 'sat_sun';
 }

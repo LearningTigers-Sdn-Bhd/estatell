@@ -46,7 +46,8 @@ The forms use `POST guests/matches` (`guests.matches`, `guests.view`, JSON). It 
 - It returns `false` and writes nothing when A and B are the same guest, belong to different properties, or either one was already merged or anonymized. The controller shows an error toast.
 - One `guest.merged` entry is logged on A: the merged guest's id, the counts moved, the field names filled, and whether VIP and blacklist moved. No personal values are logged.
 - `EnsureGuestIsNotMerged` is on the guest routes. A GET to a merged guest's page redirects to the guest it was merged into, with a toast. Any other request to a merged guest returns 404.
-- **Reservations and folios are not moved yet.** Their tables arrive with modules 12 and 13. Each module adds its own re-pointing to `MergeGuests` by calling its own Action: unit guests and bookings (booker) in module 12, folios (payer) in module 13. Modules never reach into each other's models.
+- **Reservations are re-pointed.** `MergeGuests` calls `RepointGuestReservations` (module 12) inside its transaction. B's `reservations.booker_guest_id` and B's `unit_guests` rows move to A. When A and B are both occupants of one unit, B's row is removed, and A's row becomes primary if B's was. The log entry adds `reservations_moved`, `unit_guests_moved` and `unit_guest_duplicates_removed`.
+- **Folios are not moved yet.** The folio tables arrive with module 13, which adds its own re-pointing (payer) by calling its own Action. Modules never reach into each other's models.
 
 ## Routes
 

@@ -3,10 +3,12 @@
 namespace App\Services\Availability;
 
 use App\Enums\SellUnit;
+use App\Enums\UnitStatus;
 use App\Models\Bed;
 use App\Models\Room;
 use App\Models\RoomBlock;
 use App\Models\RoomType;
+use App\Models\UnitNight;
 use Carbon\CarbonInterface;
 use Spatie\Period\Boundaries;
 use Spatie\Period\Period;
@@ -19,7 +21,9 @@ use Spatie\Period\Precision;
  * - A Room room type counts its active rooms. A Bed room type counts the active beds of its active rooms.
  * - An open room block takes its nights off. A whole-room block removes the room, or every active bed of it. A bed
  *   block removes that bed. A unit blocked twice on one night counts once.
- * - Booked units are not counted yet: `bookedUnits()` returns none until reservations exist.
+ * - A booked unit takes its room or bed off sale on each of its nights while it is Confirmed, CheckedIn or CheckedOut.
+ *   One unit is one room or one bed, so each night row counts once for both sell units. Cancelled and no-show units
+ *   release their nights.
  *
  * Stop-sell and the other selling restrictions belong to a plan, so `RestrictionCheck` reports them.
  */
@@ -132,12 +136,22 @@ class AvailabilityService
     }
 
     /**
-     * The units booked on each night of the stay. Reservations arrive with module 12, so none are counted yet.
+     * The units booked on each night of the stay: one per `unit_nights` row of a unit that holds inventory.
      *
      * @return array<string, int> Booked units by date
      */
     private function bookedUnits(RoomType $roomType, Period $stay): array
     {
-        return [];
+        return UnitNight::query()
+            ->join('reservation_units', 'reservation_units.id', '=', 'unit_nights.reservation_unit_id')
+            ->where('reservation_units.property_id', $roomType->property_id)
+            ->where('reservation_units.room_type_id', $roomType->id)
+            ->whereIn('reservation_units.status', array_map(fn (UnitStatus $status): string => $status->value, UnitStatus::holdingInventory()))
+            ->whereBetween('unit_nights.date', [$stay->includedStart()->format('Y-m-d'), $stay->includedEnd()->format('Y-m-d')])
+            ->groupBy('unit_nights.date')
+            ->selectRaw('unit_nights.date as night, count(*) as booked')
+            ->pluck('booked', 'night')
+            ->map(fn (mixed $booked): int => (int) $booked)
+            ->all();
     }
 }

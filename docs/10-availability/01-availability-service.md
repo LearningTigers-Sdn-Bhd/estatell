@@ -10,7 +10,7 @@ Answer "how many units can we still sell for this room type on this date?" from 
 
 - Room types with `sell_unit = Room`: count active rooms.
 - Room types with `sell_unit = Bed`: count active beds.
-- Subtract overlapping `unit_nights` of active reservation units (not built yet, see below).
+- Subtract the `unit_nights` of reservation units that hold inventory (Confirmed, CheckedIn, CheckedOut).
 - Subtract overlapping open `room_blocks` (`completed_at` null). A whole-room block removes the room, or all its beds for a Bed room type. A bed block removes that bed.
 - Stop-sell and restrictions come from `rates`, through `RestrictionCheck`.
 
@@ -24,9 +24,9 @@ Date overlap uses `spatie/period`.
 - **Blocks:** an open block (`completed_at` null) takes its nights off, both ends included. A whole-room block removes the room, or every active bed of it. A bed block removes that bed. A unit blocked twice on one night counts once. A bed block on a room type that sells rooms is ignored, and so is a block on an archived bed.
 - **Overlap:** `spatie/period` (day precision, both ends included) finds the nights a block shares with the stay.
 - **`available`** never goes below zero. `booked` above the free units is an overbooking, which the night audit readiness panel will flag.
-- **Booked units are not counted yet.** `bookedUnits()` returns none until reservations exist. Module 12 replaces it with the `unit_nights` query. Nothing calls the service before then.
+- **Booked units** are counted by `bookedUnits()`: one `unit_nights` row is one booked unit on that date. One reservation unit is one room or one bed, so the count is the same for Room and Bed room types. The query joins `reservation_units` (scoped by `property_id` and `room_type_id`) and groups by date. Confirmed, CheckedIn and CheckedOut units hold their nights, so past nights stay sold. Cancelled and NoShow units release theirs (`UnitStatus::holdsInventory()`). A unit that leaves early must lose its later `unit_nights` rows, which `ProcessEarlyDeparture` does in module 18.
 - **Not here:** stop-sell and the other restrictions belong to a plan and a room type, so `RestrictionCheck` reports them. Availability counts units per room type.
-- **Queries:** a fixed number, however many rooms and blocks there are.
+- **Queries:** a fixed number, however many rooms, blocks and bookings there are: units, blocks and bookings are one query each.
 - **Used by:** the [rate calendar](../08-rates/02-daily-rates-and-restrictions.md#the-rate-calendar) calls `nights()` once for each room type to show open and sold units and the occupancy rate.
 
 ## Rules

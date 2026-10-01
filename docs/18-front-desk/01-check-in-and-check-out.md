@@ -11,6 +11,8 @@ Move a unit through its stay.
 - `ProcessEarlyDeparture`: applies the rate plan's `early_departure_policy`.
 - `ExtendStay`, `ChangeUnitDates`.
 - `MarkNoShow`, `CancelUnit`.
+- `ReinstateUnit`: moves a Cancelled or NoShow unit back to Confirmed and re-prices it from `reservation_unit_children`.
+- Each of these Actions calls `SyncReservationStatus` (module 12) after it changes a unit, so the reservation status follows its units. `ResolveMissedArrivals` in the night audit calls `MarkNoShow` for each unit its policy marks.
 
 ## Rules
 

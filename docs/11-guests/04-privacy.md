@@ -22,12 +22,14 @@ Meet Malaysian PDPA expectations for guest data.
 | Name, replaced with `Anonymized guest #<id>`                                                                | The `guests` row, its id and its property                        |
 | Email, phone, nationality, date of birth, gender, language, address and country                             | `created_at`                                                     |
 | VIP mark, blacklist and its reason, marketing consent                                                       | `anonymized_at`, now set                                         |
-| All notes, all tag links (the tags stay), all ID documents with their numbers, blind indexes and scan files | Later: reservations, folios and payments that point to the guest |
+| All notes, all tag links (the tags stay), all ID documents with their numbers, blind indexes and scan files | Reservations that point to the guest. Later: folios and payments |
 | The blacklist `reason` inside earlier activity log entries for the guest (it can name people)               |                                                                  |
 
-- It returns `false` and writes nothing when the guest is already anonymized or was merged into another guest. The controller shows an error toast.
+- It returns `false` and writes nothing when the guest is already anonymized, was merged into another guest, or is in house. The controller shows an error toast.
+- **In house** means the guest is an occupant (`unit_guests`) of a reservation unit with status CheckedIn. `GuestInHouse` (module 12) answers it. A booker who does not stay is not in house.
+- **Known gap:** a guest with only upcoming Confirmed stays can still be anonymized. The stay keeps working, but the name on it becomes `Anonymized guest #id`. Review this when the front desk module (18) is built.
 - One `guest.anonymized` entry is logged: the counts of notes and documents removed. No personal values.
-- Modules that keep stays or balances add their own refusal here, for example a guest who is in-house or has an open balance (reservations in module 12, folios in module 13).
+- Modules that keep balances add their own refusal here, for example a guest with an open balance (folios, module 13). Reservations added the in-house refusal in module 12.
 - Permission: `guests.anonymize`. Only the Owner role has it by default.
 - The guest page asks the staff member to type the guest's name before the button turns on. The check is in the browser only.
 

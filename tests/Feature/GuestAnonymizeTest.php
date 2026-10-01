@@ -6,7 +6,10 @@ use App\Enums\DefaultRoleEnum;
 use App\Models\Guest;
 use App\Models\GuestIdentityDocument;
 use App\Models\GuestNote;
+use App\Models\Reservation;
+use App\Models\ReservationUnit;
 use App\Models\Tag;
+use App\Models\UnitGuest;
 use App\Models\User;
 use App\Services\Guests\GuestName;
 use Illuminate\Http\UploadedFile;
@@ -160,4 +163,44 @@ test('only the Owner can anonymize and another property\'s guest returns 404', f
     expect($guest->refresh()->anonymized_at)->toBeNull();
 
     $this->actingAs($owner)->post(route('guests.anonymize.store', [$property->code, Guest::factory()->create()]))->assertNotFound();
+});
+
+test('an in-house guest cannot be anonymized and nothing is written', function () {
+    $owner = User::factory()->owner()->create();
+    $property = $owner->property;
+    $guest = personalGuest($owner);
+    $unit = ReservationUnit::factory()->for(Reservation::factory()->for($property))->checkedIn()->create();
+    UnitGuest::factory()->for($unit)->create(['guest_id' => $guest->id]);
+
+    $this->actingAs($owner)
+        ->post(route('guests.anonymize.store', [$property->code, $guest]))
+        ->assertInertiaFlash('toast', ['type' => 'error', 'message' => 'Aisyah binti Rahman cannot be anonymized.']);
+
+    expect($guest->refresh()->anonymized_at)->toBeNull()
+        ->and($guest->full_name)->toBe('Aisyah binti Rahman')
+        ->and($guest->notes()->count())->toBe(2)
+        ->and($guest->documents()->count())->toBe(1)
+        ->and(Activity::query()->where('event', 'guest.anonymized')->count())->toBe(0);
+});
+
+test('a guest who is not checked in can be anonymized', function (string $state) {
+    $owner = User::factory()->owner()->create();
+    $guest = Guest::factory()->for($owner->property)->create();
+    $unit = ReservationUnit::factory()->for(Reservation::factory()->for($owner->property))->{$state}()->create();
+    UnitGuest::factory()->for($unit)->create(['guest_id' => $guest->id]);
+
+    expect(app(AnonymizeGuest::class)($owner, $guest))->toBeTrue();
+})->with(['checkedOut', 'cancelled', 'noShow']);
+
+test('a booker who does not stay can be anonymized while the reservation is in house', function () {
+    $owner = User::factory()->owner()->create();
+    $property = $owner->property;
+    $booker = Guest::factory()->for($property)->create();
+    $occupant = Guest::factory()->for($property)->create();
+    $reservation = Reservation::factory()->for($property)->create(['booker_guest_id' => $booker->id]);
+    $unit = ReservationUnit::factory()->for($reservation)->checkedIn()->create();
+    UnitGuest::factory()->for($unit)->create(['guest_id' => $occupant->id]);
+
+    expect(app(AnonymizeGuest::class)($owner, $booker))->toBeTrue()
+        ->and(app(AnonymizeGuest::class)($owner, $occupant))->toBeFalse();
 });

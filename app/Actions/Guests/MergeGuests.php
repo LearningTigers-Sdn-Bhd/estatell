@@ -2,6 +2,7 @@
 
 namespace App\Actions\Guests;
 
+use App\Actions\Reservations\RepointGuestReservations;
 use App\Models\Guest;
 use App\Models\GuestIdentityDocument;
 use App\Models\GuestNote;
@@ -10,6 +11,8 @@ use Illuminate\Support\Facades\DB;
 
 class MergeGuests
 {
+    public function __construct(private RepointGuestReservations $repointGuestReservations) {}
+
     /**
      * Profile fields that are filled from the merged guest when the survivor has none. They are cleared on the merged guest.
      */
@@ -25,7 +28,8 @@ class MergeGuests
      * Returns false when nothing was merged: the two are the same guest, belong to different properties,
      * or either one was already merged into another guest or anonymized.
      *
-     * Modules that point at a guest (reservations, folios) add their own re-pointing here.
+     * Reservations re-point the booker and the unit occupants through `RepointGuestReservations`.
+     * Modules that point at a guest (folios) add their own re-pointing here.
      */
     public function __invoke(User $actor, Guest $survivor, Guest $merged): bool
     {
@@ -79,6 +83,8 @@ class MergeGuests
 
             $survivor->save();
 
+            $reservations = ($this->repointGuestReservations)($survivor, $merged);
+
             $merged->forceFill(array_fill_keys(self::PERSONAL_FIELDS, null))->forceFill([
                 'is_vip' => false,
                 'blacklisted_at' => null,
@@ -99,6 +105,9 @@ class MergeGuests
                     'notes_moved' => $notesMoved,
                     'documents_moved' => $documentsMoved,
                     'tags_added' => $tagsAdded,
+                    'reservations_moved' => $reservations['reservations'],
+                    'unit_guests_moved' => $reservations['unit_guests'],
+                    'unit_guest_duplicates_removed' => $reservations['duplicates_removed'],
                     'fields_filled' => $filled,
                     'vip_carried' => $vipCarried,
                     'blacklist_carried' => $blacklistCarried,

@@ -16,73 +16,94 @@ Legend: **Needs** lists items that must be done first.
 
 ## Done
 
-| Commit    | Subject                                                                |
-| --------- | ---------------------------------------------------------------------- |
-| `974ef88` | feat(init): initializes the docs and repo configuration                |
-| `ec4f3db` | chore(ai): commit Boost guidelines and agent MCP config                |
-| `7e9d13e` | ci(tests): add Postgres and Redis services                             |
-| `56c821b` | feat(deps): add approved Composer packages and R2 disk                 |
-| `f2766ea` | feat(types): generate TypeScript types from enums and data classes     |
-| `1be62c7` | feat(deps): add table, virtual, date, signature and confetti packages  |
-| `661ae06` | docs(setup): record package versions, media storage and deploy env     |
-| `f6d3751` | feat(ui): switch shadcn to Base UI with preset b3ZzDdiJy4              |
-| `91dfcde` | feat(auth): lower production minimum password length to 8              |
-| `d87fde1` | feat(platform): add users.is_admin, admin gate and admin seeder        |
-| `eb22aec` | feat(platform): redirect admins to /admin after login                  |
-| `66a6b8d` | feat(platform): add admin.2fa middleware and two-factor banner         |
-| `03993d1` | feat(platform): add admin layout and platform settings                 |
-| `9133cd9` | feat(property): add properties and link staff users to a property      |
-| `0eb10a4` | fix(platform): cache platform settings as raw attributes               |
-| `25d0639` | feat(property): add property routes and access middleware              |
-| `8167eb1` | feat(platform): add admin property list and detail pages               |
-| `52a336f` | fix(platform): keep the admin sidebar on account pages                 |
-| `252aab9` | feat(platform): add per-property feature flags with admin switches     |
-| `4f53837` | feat(platform): give property tabs their own URLs and icons            |
-| `e28f620` | fix(ui): pad select menus and let the filter search fill the row       |
-| `6383380` | feat(platform): suspend and reactivate properties from admin           |
-| `ef4ab1e` | feat(property): add property settings                                  |
-| `750ee76` | feat(ui): build staff sidebar contexts from PHP navigation             |
-| `7574bec` | feat(staff): add default roles and permission enum                     |
-| `d6f3393` | feat(staff): make the registering owner the Owner role                 |
-| `ccc3e9c` | feat(staff): invite staff and accept invitations                       |
-| `aa552df` | feat(staff): deactivate and reactivate staff                           |
-| `3c1bee4` | feat(staff): manage roles and assign them to staff                     |
-| `be237ae` | feat(staff): show roles as one permission matrix                       |
-| `a168d56` | feat(platform): show the owner on admin property pages                 |
-| `e010ed4` | feat(property): seed property defaults from type and country           |
-| `836b8a8` | feat(onboarding): let admins create a property for an owner            |
-| `e920679` | feat(notifications): add notification types and channels               |
-| `25f0145` | feat(notifications): add property and user notification preferences    |
-| `6d787fe` | feat(rooms): add room types                                            |
-| `ac1db1c` | feat(rooms): add rooms, room groups and number generator               |
-| `3cb75b7` | feat(rooms): add beds for dorm room types                              |
-| `c10cb2c` | feat(catalogues): add transaction codes                                |
-| `0d586aa` | feat(catalogues): add charge items                                     |
-| `7e015a9` | feat(catalogues): add quick charge item availability toggle            |
-| `96ac9d4` | feat(catalogues): add taxes and tax calculator                         |
-| `5f6e17a` | feat(catalogues): add payment methods                                  |
-| `cc78e80` | feat(catalogues): own codes per charge item and add room revenue taxes |
-| `fda168b` | feat(catalogues): add discounts                                        |
-| `d1e2d90` | feat(rooms): add room blocks and room statuses                         |
-| `9440d01` | feat(meals): add meal periods                                          |
-| `7eb53e8` | feat(meals): add meal entitlements                                     |
-| `3fb3f88` | feat(property): add age groups                                         |
-| `3cd50e5` | feat(settings): move age groups into settings tabs                     |
-| `b0a0989` | feat(rates): add rate plans                                            |
-| `f15004c` | feat(rates): add daily rates and restrictions                          |
-| `f562fb8` | feat(rates): add pricing strategies and rate quotes                    |
-| `3851160` | feat(rates): add long-stay discounts                                   |
-| `037b4c6` | feat(rates): preview long-stay discounts per room type                 |
-| `c12721b` | feat(rates): per-guest auto fill and per-person price hint             |
-| `855265d` | feat(rates): add derived rate plans                                    |
-| `a9499aa` | feat(rates): copy parent discounts onto a derived plan                 |
-| `15fd738` | feat(rates): save copied parent discounts at once                      |
-| `4f982f2` | feat(rates): add the read-only rate calendar                           |
-| `c87f55a` | fix(ui): fit the date grid to the window and stop bounce               |
-| `8d5dcec` | feat(rates): choose the rate calendar date range                       |
-| `ae8dbdf` | fix(rates): polish the rate calendar toolbar and grid                  |
-| `dc55333` | feat(rates): collapse room type groups in the rate calendar            |
-| `a5135ef` | feat(rates): edit rates from the calendar                              |
+| Commit    | Subject                                                                  |
+| --------- | ------------------------------------------------------------------------ |
+| `974ef88` | feat(init): initializes the docs and repo configuration                  |
+| `ec4f3db` | chore(ai): commit Boost guidelines and agent MCP config                  |
+| `7e9d13e` | ci(tests): add Postgres and Redis services                               |
+| `56c821b` | feat(deps): add approved Composer packages and R2 disk                   |
+| `f2766ea` | feat(types): generate TypeScript types from enums and data classes       |
+| `1be62c7` | feat(deps): add table, virtual, date, signature and confetti packages    |
+| `661ae06` | docs(setup): record package versions, media storage and deploy env       |
+| `f6d3751` | feat(ui): switch shadcn to Base UI with preset b3ZzDdiJy4                |
+| `91dfcde` | feat(auth): lower production minimum password length to 8                |
+| `d87fde1` | feat(platform): add users.is_admin, admin gate and admin seeder          |
+| `eb22aec` | feat(platform): redirect admins to /admin after login                    |
+| `66a6b8d` | feat(platform): add admin.2fa middleware and two-factor banner           |
+| `03993d1` | feat(platform): add admin layout and platform settings                   |
+| `9133cd9` | feat(property): add properties and link staff users to a property        |
+| `0eb10a4` | fix(platform): cache platform settings as raw attributes                 |
+| `25d0639` | feat(property): add property routes and access middleware                |
+| `8167eb1` | feat(platform): add admin property list and detail pages                 |
+| `52a336f` | fix(platform): keep the admin sidebar on account pages                   |
+| `252aab9` | feat(platform): add per-property feature flags with admin switches       |
+| `4f53837` | feat(platform): give property tabs their own URLs and icons              |
+| `e28f620` | fix(ui): pad select menus and let the filter search fill the row         |
+| `6383380` | feat(platform): suspend and reactivate properties from admin             |
+| `ef4ab1e` | feat(property): add property settings                                    |
+| `750ee76` | feat(ui): build staff sidebar contexts from PHP navigation               |
+| `7574bec` | feat(staff): add default roles and permission enum                       |
+| `d6f3393` | feat(staff): make the registering owner the Owner role                   |
+| `ccc3e9c` | feat(staff): invite staff and accept invitations                         |
+| `aa552df` | feat(staff): deactivate and reactivate staff                             |
+| `3c1bee4` | feat(staff): manage roles and assign them to staff                       |
+| `be237ae` | feat(staff): show roles as one permission matrix                         |
+| `a168d56` | feat(platform): show the owner on admin property pages                   |
+| `e010ed4` | feat(property): seed property defaults from type and country             |
+| `836b8a8` | feat(onboarding): let admins create a property for an owner              |
+| `e920679` | feat(notifications): add notification types and channels                 |
+| `25f0145` | feat(notifications): add property and user notification preferences      |
+| `6d787fe` | feat(rooms): add room types                                              |
+| `ac1db1c` | feat(rooms): add rooms, room groups and number generator                 |
+| `3cb75b7` | feat(rooms): add beds for dorm room types                                |
+| `c10cb2c` | feat(catalogues): add transaction codes                                  |
+| `0d586aa` | feat(catalogues): add charge items                                       |
+| `7e015a9` | feat(catalogues): add quick charge item availability toggle              |
+| `96ac9d4` | feat(catalogues): add taxes and tax calculator                           |
+| `5f6e17a` | feat(catalogues): add payment methods                                    |
+| `cc78e80` | feat(catalogues): own codes per charge item and add room revenue taxes   |
+| `fda168b` | feat(catalogues): add discounts                                          |
+| `d1e2d90` | feat(rooms): add room blocks and room statuses                           |
+| `9440d01` | feat(meals): add meal periods                                            |
+| `7eb53e8` | feat(meals): add meal entitlements                                       |
+| `3fb3f88` | feat(property): add age groups                                           |
+| `3cd50e5` | feat(settings): move age groups into settings tabs                       |
+| `b0a0989` | feat(rates): add rate plans                                              |
+| `f15004c` | feat(rates): add daily rates and restrictions                            |
+| `f562fb8` | feat(rates): add pricing strategies and rate quotes                      |
+| `3851160` | feat(rates): add long-stay discounts                                     |
+| `037b4c6` | feat(rates): preview long-stay discounts per room type                   |
+| `c12721b` | feat(rates): per-guest auto fill and per-person price hint               |
+| `855265d` | feat(rates): add derived rate plans                                      |
+| `a9499aa` | feat(rates): copy parent discounts onto a derived plan                   |
+| `15fd738` | feat(rates): save copied parent discounts at once                        |
+| `4f982f2` | feat(rates): add the read-only rate calendar                             |
+| `c87f55a` | fix(ui): fit the date grid to the window and stop bounce                 |
+| `8d5dcec` | feat(rates): choose the rate calendar date range                         |
+| `ae8dbdf` | fix(rates): polish the rate calendar toolbar and grid                    |
+| `dc55333` | feat(rates): collapse room type groups in the rate calendar              |
+| `a5135ef` | feat(rates): edit rates from the calendar                                |
+| `b99b3cf` | feat(rates): bulk edit rates and restrictions                            |
+| `9a098bb` | feat(packages): add inclusions                                           |
+| `1e841be` | feat(packages): add package prices                                       |
+| `8fd1dce` | feat(packages): add the package pricing strategy                         |
+| `9dcfa46` | feat(availability): add the availability service                         |
+| `e932e92` | feat(rates): show package prices and inclusions in the rate calendar     |
+| `bada335` | feat(rates): add availability, inclusions and tabs to the rate calendar  |
+| `5947b91` | feat(rates): redesign the rate plans list with filters and badges        |
+| `7ddb3b7` | feat(meals): move meal periods into the property details tabs            |
+| `0efcc0b` | feat(guests): add guest profiles                                         |
+| `b5bda3b` | fix(guests): use a searchable country picker in the guest form           |
+| `75dcd8e` | fix(guests): add a placeholder to every guest form field                 |
+| `fad6437` | feat(guests): pick and create guest tags in a combobox                   |
+| `37a2ca9` | feat(guests): add identity documents                                     |
+| `77ef278` | fix(guests): stay on the open tab after a note, VIP or blacklist change  |
+| `bc7d24a` | feat(guests): match and merge guests                                     |
+| `a8768df` | feat(guests): anonymize guests and purge expired ID scans                |
+| `962f86b` | feat(guests): rework guest pages with sheets, inline edit and icon flags |
+| `ccb116c` | feat(night-audit): add business dates and document numbers               |
+| `f1cef04` | docs(reservations): plan the booking form layout, rooms and guests       |
+| `907d4be` | fix(night-audit): show the audit state above the business date           |
 
 Smaller fixes and reverts are in `git log`.
 
@@ -178,7 +199,7 @@ Smaller fixes and reverts are in `git log`.
 
 ### 12 Reservations
 
-- [ ] `feat(reservations): add reservation, unit and status model` — also re-point unit guests and the booker in `MergeGuests`, and refuse `AnonymizeGuest` for an in-house guest; `AvailabilityService` starts counting booked units. Docs: [Reservation shape](12-reservations/01-reservation-shape.md).
+- [x] `feat(reservations): add reservation, unit and status model` — also re-point unit guests and the booker in `MergeGuests`, and refuse `AnonymizeGuest` for an in-house guest; `AvailabilityService` starts counting booked units. Docs: [Reservation shape](12-reservations/01-reservation-shape.md).
 - [ ] `feat(reservations): add group bookings` — Docs: [Group bookings](12-reservations/02-group-bookings.md).
 - [ ] `feat(reservations): add bed bookings` — Docs: [Bed bookings](12-reservations/03-bed-bookings.md).
 - [ ] `feat(reservations): add unit add-ons` — Docs: [Add-ons](12-reservations/04-add-ons.md).

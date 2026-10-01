@@ -1,8 +1,11 @@
 <?php
 
 use App\Enums\SellUnit;
+use App\Enums\UnitStatus;
 use App\Models\Bed;
 use App\Models\Property;
+use App\Models\Reservation;
+use App\Models\ReservationUnit;
 use App\Models\Room;
 use App\Models\RoomBlock;
 use App\Models\RoomType;
@@ -217,5 +220,76 @@ test('availability runs in a fixed number of queries however many rooms and bloc
     DB::enableQueryLog();
     app(AvailabilityService::class)->nights($roomType, Date::parse('2026-11-01'), Date::parse('2026-11-30'));
 
-    expect(count(DB::getQueryLog()))->toBeLessThanOrEqual(2);
+    expect(count(DB::getQueryLog()))->toBeLessThanOrEqual(3);
+});
+
+/**
+ * A unit of the room type with one night row for each night from arrival up to, not including, departure.
+ */
+function bookUnit(RoomType $roomType, string $arrival, string $departure, UnitStatus $status = UnitStatus::Confirmed): ReservationUnit
+{
+    $state = match ($status) {
+        UnitStatus::CheckedIn => 'checkedIn',
+        UnitStatus::CheckedOut => 'checkedOut',
+        UnitStatus::Cancelled => 'cancelled',
+        UnitStatus::NoShow => 'noShow',
+        default => null,
+    };
+    $factory = ReservationUnit::factory()
+        ->for(Reservation::factory()->for($roomType->property))
+        ->withNights();
+
+    return ($state === null ? $factory : $factory->{$state}())->create([
+        'room_type_id' => $roomType->id,
+        'arrival_date' => $arrival,
+        'departure_date' => $departure,
+    ]);
+}
+
+test('a booked unit takes one unit off each of its nights and the departure night stays free', function () {
+    [, $roomType] = availabilitySetup(3);
+    bookUnit($roomType, '2026-11-02', '2026-11-04');
+    bookUnit($roomType, '2026-11-03', '2026-11-05');
+
+    $nights = app(AvailabilityService::class)->nights($roomType, Date::parse('2026-11-01'), Date::parse('2026-11-06'));
+
+    expect(array_map(fn (NightAvailability $night): int => $night->booked, $nights))->toBe([0, 1, 2, 1, 0])
+        ->and(array_map(fn (NightAvailability $night): int => $night->available, $nights))->toBe([3, 2, 1, 2, 3]);
+});
+
+test('confirmed, checked-in and checked-out units hold inventory and cancelled and no-show units release it', function () {
+    [, $roomType] = availabilitySetup(5);
+
+    foreach ([UnitStatus::Confirmed, UnitStatus::CheckedIn, UnitStatus::CheckedOut, UnitStatus::Cancelled, UnitStatus::NoShow] as $status) {
+        bookUnit($roomType, '2026-11-02', '2026-11-03', $status);
+    }
+
+    expect(availableByNight($roomType, '2026-11-02', '2026-11-03'))->toBe([2]);
+});
+
+test('each bed unit counts once on a bed room type', function () {
+    [, $roomType] = dormSetup([4, 2]);
+    bookUnit($roomType, '2026-11-02', '2026-11-04');
+    bookUnit($roomType, '2026-11-02', '2026-11-03');
+    bookUnit($roomType, '2026-11-02', '2026-11-03', UnitStatus::Cancelled);
+
+    expect(availableByNight($roomType, '2026-11-02', '2026-11-04'))->toBe([4, 5]);
+});
+
+test('booked units and blocks are both taken off', function () {
+    [, $roomType] = availabilitySetup(3);
+    blockRoom(Room::query()->where('room_type_id', $roomType->id)->first(), '2026-11-02', '2026-11-02');
+    bookUnit($roomType, '2026-11-02', '2026-11-03');
+
+    expect(availableByNight($roomType, '2026-11-02', '2026-11-04'))->toBe([1, 3]);
+});
+
+test('units of another room type, another property or other dates are not counted', function () {
+    [, $roomType] = availabilitySetup(3);
+    [, $otherType] = availabilitySetup(3);
+    bookUnit($otherType, '2026-11-02', '2026-11-04');
+    bookUnit($roomType, '2026-12-02', '2026-12-04');
+    bookUnit(RoomType::factory()->for($roomType->property)->create(), '2026-11-02', '2026-11-04');
+
+    expect(availableByNight($roomType, '2026-11-02', '2026-11-04'))->toBe([3, 3]);
 });
