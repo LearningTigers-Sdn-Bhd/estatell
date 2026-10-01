@@ -167,7 +167,7 @@ Smaller fixes and reverts are in `git log`.
 
 ### 11 Guests
 
-- [ ] `feat(guests): add guest profiles` — Docs: [Guest profiles](11-guests/01-guest-profiles.md).
+- [x] `feat(guests): add guest profiles` — `guests.view`, `guests.manage` and `guests.blacklist`; `GuestStayHistory` waits for modules 12 and 13. Docs: [Guest profiles](11-guests/01-guest-profiles.md).
 - [ ] `feat(guests): add identity documents` — Docs: [Identity documents](11-guests/02-identity-documents.md).
 - [ ] `feat(guests): match and merge guests` — Docs: [Matching and merging](11-guests/03-matching-and-merging.md).
 - [ ] `feat(guests): anonymize guests and purge expired ID scans` — Docs: [Privacy](11-guests/04-privacy.md).

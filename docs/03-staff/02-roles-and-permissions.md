@@ -40,6 +40,9 @@ roles    spatie columns + property_id (NOT NULL, FK) + default_role (nullable)
 | `rates.view`                  | Rate calendar (view)                           | ✓     | ✓       | ✓                                 |
 | `rates.manage`                | Edit rates and restrictions in the calendar    | ✓     | ✓       | –                                 |
 | `rates.override-restrictions` | Book past a rate restriction at the front desk | ✓     | ✓       | –                                 |
+| `guests.view`                 | Guest list and guest page                      | ✓     | ✓       | Front desk, Finance               |
+| `guests.manage`               | Add and edit guests, tags, VIP mark, notes     | ✓     | ✓       | Front desk                        |
+| `guests.blacklist`            | Blacklist a guest, remove from the blacklist   | ✓     | ✓       | –                                 |
 
 Later modules add rows here. Their module docs list their permissions.
 

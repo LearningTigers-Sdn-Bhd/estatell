@@ -91,6 +91,54 @@ appliesTo: string[],
 postingTransactionCode: string,
 };
 }
+namespace Guests {
+export type GuestData = {
+id: number,
+fullName: string,
+email: string | null,
+phone: string | null,
+nationalityCode: string | null,
+nationalityName: string | null,
+dateOfBirth: string | null,
+gender: string | null,
+genderLabel: string | null,
+preferredLocale: string | null,
+preferredLocaleLabel: string | null,
+addressLine1: string | null,
+addressLine2: string | null,
+city: string | null,
+state: string | null,
+postalCode: string | null,
+countryCode: string | null,
+countryName: string | null,
+isVip: boolean,
+blacklistedAt: string | null,
+blacklistReason: string | null,
+tags: App.Data.Guests.TagData[],
+createdAt: string,
+};
+export type GuestNoteData = {
+id: number,
+body: string,
+authorName: string | null,
+createdAt: string,
+};
+export type GuestRowData = {
+id: number,
+fullName: string,
+email: string | null,
+phone: string | null,
+nationalityCode: string | null,
+isVip: boolean,
+isBlacklisted: boolean,
+tags: string[],
+createdAt: string,
+};
+export type TagData = {
+id: number,
+name: string,
+};
+}
 namespace Meals {
 export type MealEntitlementData = {
 date: string,
@@ -594,6 +642,7 @@ export type DiscountScope = 'room_only' | 'all_charges' | 'selected';
 export type DiscountType = 'percent' | 'fixed' | 'open';
 export type DormStrategy = 'bed_as_unit' | 'native_dorm';
 export type EarlyDeparturePolicy = 'charge_full' | 'charge_used_nights';
+export type Gender = 'male' | 'female';
 export type HousekeepingStatus = 'clean' | 'dirty' | 'inspected';
 export type InclusionEnd = 'departure_day' | 'night_before_departure';
 export type InclusionStart = 'arrival_day' | 'day_after_arrival';
@@ -608,7 +657,7 @@ export type OverdueDeparturePolicy = 'extend_one_night' | 'block';
 export type OwnerSetupMethod = 'email_link' | 'initial_password';
 export type PackageUnit = 'per_guest' | 'per_room';
 export type PaymentMethodType = 'cash' | 'card' | 'bank_transfer' | 'e_wallet' | 'ota_collected' | 'direct_bill';
-export type PermissionEnum = 'settings.manage' | 'staff.view' | 'staff.manage' | 'roles.manage' | 'rooms.view' | 'rooms.manage' | 'rooms.block' | 'notification.manage' | 'rates.view' | 'rates.manage' | 'rates.override-restrictions';
+export type PermissionEnum = 'settings.manage' | 'staff.view' | 'staff.manage' | 'roles.manage' | 'rooms.view' | 'rooms.manage' | 'rooms.block' | 'notification.manage' | 'rates.view' | 'rates.manage' | 'rates.override-restrictions' | 'guests.view' | 'guests.manage' | 'guests.blacklist';
 export type PlatformFeature = 'channel-manager';
 export type PricingBasis = 'per_room' | 'per_guest' | 'per_bed' | 'package';
 export type PropertyStatus = 'onboarding' | 'pending_approval' | 'live' | 'suspended';

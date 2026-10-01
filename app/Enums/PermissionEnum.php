@@ -19,6 +19,9 @@ enum PermissionEnum: string
     case RatesView = 'rates.view';
     case RatesManage = 'rates.manage';
     case RatesOverrideRestrictions = 'rates.override-restrictions';
+    case GuestsView = 'guests.view';
+    case GuestsManage = 'guests.manage';
+    case GuestsBlacklist = 'guests.blacklist';
 
     public function label(): string
     {
@@ -34,6 +37,9 @@ enum PermissionEnum: string
             self::RatesView => __('View the rate calendar'),
             self::RatesManage => __('Edit rates and restrictions'),
             self::RatesOverrideRestrictions => __('Book past rate restrictions'),
+            self::GuestsView => __('View guests'),
+            self::GuestsManage => __('Add and edit guests'),
+            self::GuestsBlacklist => __('Blacklist guests'),
         };
     }
 
@@ -48,6 +54,7 @@ enum PermissionEnum: string
             self::RoomsView, self::RoomsManage, self::RoomsBlock => __('Rooms'),
             self::NotificationManage => __('System'),
             self::RatesView, self::RatesManage, self::RatesOverrideRestrictions => __('Rates'),
+            self::GuestsView, self::GuestsManage, self::GuestsBlacklist => __('Guests'),
         };
     }
 
