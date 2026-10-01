@@ -1,7 +1,9 @@
 import { Link, useForm } from '@inertiajs/react';
+import { useState } from 'react';
 import { CountrySelect } from '@/components/pms/country-select';
 import { EnumSelect } from '@/components/pms/enum-select';
 import type { EnumOption } from '@/components/pms/enum-select';
+import { DuplicateWarning } from '@/components/pms/guests/duplicate-warning';
 import { TagInput } from '@/components/pms/guests/tag-input';
 import { PhoneInput } from '@/components/pms/phone-input';
 import { UnsavedChangesDialog } from '@/components/pms/unsaved-changes-dialog';
@@ -17,6 +19,7 @@ import {
 } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
+import type { GuestMatchCriteria } from '@/hooks/use-guest-matches';
 import { useUnsavedChanges } from '@/hooks/use-unsaved-changes';
 import { index, show, store, update } from '@/routes/guests';
 
@@ -73,6 +76,17 @@ export function GuestForm({
     });
     const guard = useUnsavedChanges(form.isDirty);
     const { data, errors } = form;
+    const [checked, setChecked] = useState<GuestMatchCriteria>({});
+
+    // Possible duplicates are looked up when a field is left, not on every key press.
+    const checkForDuplicates = () =>
+        setChecked({
+            name: data.full_name,
+            email: data.email,
+            phone: data.phone,
+            date_of_birth: data.date_of_birth,
+            exclude_guest_id: guest?.id,
+        });
 
     const save = (onSaved?: () => void) => {
         const options = {
@@ -105,6 +119,7 @@ export function GuestForm({
                 id={name}
                 value={data[name]}
                 onChange={(event) => form.setData(name, event.target.value)}
+                onBlur={checkForDuplicates}
                 aria-invalid={!!errors[name]}
                 {...props}
             />
@@ -181,6 +196,7 @@ export function GuestForm({
                                 onChange={(value) =>
                                     form.setData('phone', value)
                                 }
+                                onBlur={checkForDuplicates}
                                 invalid={!!errors.phone}
                             />
                             <FieldDescription>
@@ -190,6 +206,7 @@ export function GuestForm({
                             <FieldError>{errors.phone}</FieldError>
                         </Field>
                     </div>
+                    <DuplicateWarning criteria={checked} />
                 </FieldGroup>
             </FieldSet>
 

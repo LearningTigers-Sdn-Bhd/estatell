@@ -6,6 +6,7 @@ import { DetailLayout } from '@/components/pms/detail-layout';
 import { EmptyState } from '@/components/pms/empty-state';
 import { AddNoteDialog } from '@/components/pms/guests/add-note-dialog';
 import { DocumentsTab } from '@/components/pms/guests/documents-tab';
+import { PossibleDuplicates } from '@/components/pms/guests/possible-duplicates';
 import {
     BlacklistButton,
     VipButton,
@@ -32,9 +33,11 @@ type Props = {
     tab: Tab;
     notes?: Note[];
     documents?: Document[];
+    duplicates?: App.Data.Guests.GuestMatchData[];
     canManage: boolean;
     canBlacklist: boolean;
     canViewDocuments: boolean;
+    canMerge: boolean;
 };
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
@@ -164,9 +167,11 @@ export default function GuestShow({
     tab,
     notes = [],
     documents = [],
+    duplicates = [],
     canManage,
     canBlacklist,
     canViewDocuments,
+    canMerge,
 }: Props) {
     const tabs = [
         {
@@ -260,7 +265,14 @@ export default function GuestShow({
                             canManage={canManage}
                         />
                     ) : (
-                        <Details guest={guest} />
+                        <div className="flex flex-col gap-6">
+                            <Details guest={guest} />
+                            <PossibleDuplicates
+                                guest={guest}
+                                duplicates={duplicates}
+                                canMerge={canMerge}
+                            />
+                        </div>
                     )}
                 </DetailLayout>
             </div>

@@ -7,7 +7,7 @@ A simple guest CRM, scoped to one property.
 ## Data model
 
 ```
-guests         id, property_id, full_name, email, phone (E.164), nationality_code,
+guests         id, property_id, full_name, name_key, email, phone (E.164), nationality_code,
                date_of_birth, gender (Gender), preferred_locale (Locale),
                address_line1, address_line2, city, state, postal_code, country_code,
                is_vip, blacklisted_at, blacklist_reason, marketing_consent_at,
@@ -17,6 +17,7 @@ tags           id, property_id, name
 guest_tag      guest_id, tag_id
 ```
 
+- `name_key` is the normalized name used to find duplicates. See [Matching and merging](03-matching-and-merging.md). `CreateGuest` and `UpdateGuest` keep it in step.
 - `state` is free text, because guests come from any country. Country codes are ISO 3166-1 alpha-2.
 - Email and phone are not unique. Family members often share them. [Matching and merging](03-matching-and-merging.md) handles duplicates.
 - A blacklisted guest must have a reason (`CHECK`). `merged_into_id` cannot point to the guest itself.
@@ -63,6 +64,7 @@ Routes under `/p/{code}/guests` (`guests.*`, route file `guests.php`). They are 
 - Phone numbers are validated and normalized to E.164 with `propaganistas/laravel-phone`. A number typed without a country code is read as a number of the property's country (Malaysia if unset). A number with a country code is accepted from any country.
 - Email and phone stay plaintext for search and notifications. Rely on database encryption at rest.
 - ID documents have their own Documents tab. See [Identity documents](02-identity-documents.md).
+- A guest merged into another guest is hidden from the list and redirects to the survivor. See [Matching and merging](03-matching-and-merging.md).
 - Left for later: guest quick-add and `GuestPicker` (with the booking form), a settings page for tags, `marketing_consent_at` (captured on the registration card).
 
 ## Permissions

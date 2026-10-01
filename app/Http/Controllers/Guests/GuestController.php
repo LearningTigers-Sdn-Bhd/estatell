@@ -9,6 +9,7 @@ use App\Actions\Guests\UnblacklistGuest;
 use App\Actions\Guests\UpdateGuest;
 use App\Data\Guests\GuestData;
 use App\Data\Guests\GuestIdentityDocumentData;
+use App\Data\Guests\GuestMatchData;
 use App\Data\Guests\GuestNoteData;
 use App\Data\Guests\GuestRowData;
 use App\Data\Guests\TagData;
@@ -26,6 +27,7 @@ use App\Models\Tag;
 use App\Models\User;
 use App\Services\Guests\CountryOptions;
 use App\Services\Guests\GuestDirectory;
+use App\Services\Guests\GuestMatcher;
 use App\Services\Property\PropertyToday;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -77,9 +79,16 @@ class GuestController extends Controller
     /**
      * Guest page, Details tab.
      */
-    public function show(Request $request, Property $property, Guest $guest): Response
+    public function show(Request $request, Property $property, Guest $guest, GuestMatcher $guestMatcher): Response
     {
-        return $this->renderTab($request->user(), $guest, 'details');
+        $withIdNumbers = $request->user()->can(PermissionEnum::GuestsViewDocuments->value);
+
+        return $this->renderTab($request->user(), $guest, 'details', [
+            'duplicates' => array_map(
+                fn (array $match): GuestMatchData => GuestMatchData::fromMatch($match),
+                $guestMatcher->forGuest($guest->load('documents'), $withIdNumbers),
+            ),
+        ]);
     }
 
     /**
@@ -182,6 +191,7 @@ class GuestController extends Controller
             'canManage' => $user->can(PermissionEnum::GuestsManage->value),
             'canBlacklist' => $user->can(PermissionEnum::GuestsBlacklist->value),
             'canViewDocuments' => $user->can(PermissionEnum::GuestsViewDocuments->value),
+            'canMerge' => $user->can(PermissionEnum::GuestsMerge->value),
             ...$tabProps,
         ]);
     }

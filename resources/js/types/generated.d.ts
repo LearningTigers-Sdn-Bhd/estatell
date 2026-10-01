@@ -130,6 +130,16 @@ isExpired: boolean,
 hasFrontScan: boolean,
 hasBackScan: boolean,
 };
+export type GuestMatchData = {
+id: number,
+fullName: string,
+email: string | null,
+phone: string | null,
+isVip: boolean,
+isBlacklisted: boolean,
+reasons: string[],
+isStrong: boolean,
+};
 export type GuestNoteData = {
 id: number,
 body: string,
@@ -656,6 +666,7 @@ export type DiscountType = 'percent' | 'fixed' | 'open';
 export type DormStrategy = 'bed_as_unit' | 'native_dorm';
 export type EarlyDeparturePolicy = 'charge_full' | 'charge_used_nights';
 export type Gender = 'male' | 'female';
+export type GuestMatchReason = 'phone' | 'email' | 'id_number' | 'name_and_birth_date' | 'name';
 export type HousekeepingStatus = 'clean' | 'dirty' | 'inspected';
 export type IdentityDocumentType = 'mykad' | 'passport' | 'other';
 export type InclusionEnd = 'departure_day' | 'night_before_departure';
@@ -671,7 +682,7 @@ export type OverdueDeparturePolicy = 'extend_one_night' | 'block';
 export type OwnerSetupMethod = 'email_link' | 'initial_password';
 export type PackageUnit = 'per_guest' | 'per_room';
 export type PaymentMethodType = 'cash' | 'card' | 'bank_transfer' | 'e_wallet' | 'ota_collected' | 'direct_bill';
-export type PermissionEnum = 'settings.manage' | 'staff.view' | 'staff.manage' | 'roles.manage' | 'rooms.view' | 'rooms.manage' | 'rooms.block' | 'notification.manage' | 'rates.view' | 'rates.manage' | 'rates.override-restrictions' | 'guests.view' | 'guests.manage' | 'guests.blacklist' | 'guests.view-documents';
+export type PermissionEnum = 'settings.manage' | 'staff.view' | 'staff.manage' | 'roles.manage' | 'rooms.view' | 'rooms.manage' | 'rooms.block' | 'notification.manage' | 'rates.view' | 'rates.manage' | 'rates.override-restrictions' | 'guests.view' | 'guests.manage' | 'guests.blacklist' | 'guests.view-documents' | 'guests.merge';
 export type PlatformFeature = 'channel-manager';
 export type PricingBasis = 'per_room' | 'per_guest' | 'per_bed' | 'package';
 export type PropertyStatus = 'onboarding' | 'pending_approval' | 'live' | 'suspended';

@@ -4,11 +4,12 @@ namespace App\Actions\Guests;
 
 use App\Models\Guest;
 use App\Models\User;
+use App\Services\Guests\GuestName;
 use Illuminate\Support\Facades\DB;
 
 class UpdateGuest
 {
-    public function __construct(private SyncGuestTags $syncGuestTags) {}
+    public function __construct(private SyncGuestTags $syncGuestTags, private GuestName $guestName) {}
 
     /**
      * Save the guest's profile fields and tags. Returns false when the guest was merged into another guest
@@ -28,6 +29,7 @@ class UpdateGuest
 
             $guest->fill($attributes);
             $changed = array_keys($guest->getDirty());
+            $guest->name_key = $this->guestName->key($guest->full_name);
             $guest->save();
 
             ($this->syncGuestTags)($guest, $tagNames);

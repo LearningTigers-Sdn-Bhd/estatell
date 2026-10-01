@@ -44,6 +44,7 @@ roles    spatie columns + property_id (NOT NULL, FK) + default_role (nullable)
 | `guests.manage`               | Add and edit guests, tags, VIP mark, notes     | ✓     | ✓       | Front desk                        |
 | `guests.blacklist`            | Blacklist a guest, remove from the blacklist   | ✓     | ✓       | –                                 |
 | `guests.view-documents`       | See, add, edit guest ID documents and scans    | ✓     | ✓       | Front desk                        |
+| `guests.merge`                | Merge duplicate guests                         | ✓     | ✓       | –                                 |
 
 Later modules add rows here. Their module docs list their permissions.
 

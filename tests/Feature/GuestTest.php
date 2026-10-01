@@ -1,5 +1,6 @@
 <?php
 
+use App\Actions\Guests\UpdateGuest;
 use App\Enums\DefaultRoleEnum;
 use App\Models\Guest;
 use App\Models\GuestNote;
@@ -75,16 +76,17 @@ test('a merged or anonymized guest cannot be edited', function () {
     $survivor = Guest::factory()->for($property)->create();
     $merged = Guest::factory()->for($property)->create(['merged_into_id' => $survivor->id]);
     $anonymized = Guest::factory()->for($property)->create(['anonymized_at' => now()]);
+    $name = $anonymized->full_name;
 
-    foreach ([$merged, $anonymized] as $guest) {
-        $name = $guest->full_name;
-        $this->actingAs($owner)
-            ->put(route('guests.update', [$property->code, $guest]), guestPayload())
-            ->assertInertiaFlash('toast', ['type' => 'error', 'message' => "{$name} cannot be edited."]);
-        expect($guest->refresh()->full_name)->toBe($name);
-    }
+    $this->actingAs($owner)
+        ->put(route('guests.update', [$property->code, $anonymized]), guestPayload())
+        ->assertInertiaFlash('toast', ['type' => 'error', 'message' => "{$name} cannot be edited."]);
+    $this->put(route('guests.update', [$property->code, $merged]), guestPayload())->assertNotFound();
 
-    expect(Activity::query()->where('event', 'guest.updated')->count())->toBe(0);
+    expect(app(UpdateGuest::class)($owner, $merged, ['full_name' => 'New name']))->toBeFalse()
+        ->and($anonymized->refresh()->full_name)->toBe($name)
+        ->and($merged->refresh()->full_name)->not->toBe('New name')
+        ->and(Activity::query()->where('event', 'guest.updated')->count())->toBe(0);
 });
 
 test('tags are reused by name ignoring case and a property never sees another property\'s tags', function () {

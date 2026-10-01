@@ -3,18 +3,23 @@
 use App\Enums\PermissionEnum;
 use App\Http\Controllers\Guests\GuestController;
 use App\Http\Controllers\Guests\GuestIdentityDocumentController;
+use App\Http\Controllers\Guests\GuestMatchController;
+use App\Http\Controllers\Guests\GuestMergeController;
 use App\Http\Controllers\Guests\GuestNoteController;
+use App\Http\Middleware\EnsureGuestIsNotMerged;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('guests')->name('guests.')->group(function () {
     Route::get('/', [GuestController::class, 'index'])->middleware('can:'.PermissionEnum::GuestsView->value)->name('index');
+
+    Route::post('matches', GuestMatchController::class)->middleware('can:'.PermissionEnum::GuestsView->value)->name('matches');
 
     Route::middleware('can:'.PermissionEnum::GuestsManage->value)->group(function () {
         Route::get('create', [GuestController::class, 'create'])->name('create');
         Route::post('/', [GuestController::class, 'store'])->name('store');
     });
 
-    Route::scopeBindings()->prefix('{guest}')->group(function () {
+    Route::scopeBindings()->prefix('{guest}')->middleware(EnsureGuestIsNotMerged::class)->group(function () {
         Route::middleware('can:'.PermissionEnum::GuestsView->value)->group(function () {
             Route::get('/', [GuestController::class, 'show'])->name('show');
             Route::get('notes', [GuestController::class, 'notes'])->name('notes.index');
@@ -41,6 +46,8 @@ Route::prefix('guests')->name('guests.')->group(function () {
                 Route::delete('{document}', [GuestIdentityDocumentController::class, 'destroy'])->name('destroy');
             });
         });
+
+        Route::post('merge', [GuestMergeController::class, 'store'])->middleware('can:'.PermissionEnum::GuestsMerge->value)->name('merge.store');
 
         Route::middleware('can:'.PermissionEnum::GuestsBlacklist->value)->group(function () {
             Route::post('blacklist', [GuestController::class, 'blacklist'])->name('blacklist.store');

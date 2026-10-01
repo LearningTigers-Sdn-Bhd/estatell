@@ -4,6 +4,7 @@ namespace Database\Factories;
 
 use App\Models\Guest;
 use App\Models\Property;
+use App\Services\Guests\GuestName;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -20,7 +21,8 @@ class GuestFactory extends Factory
     {
         return [
             'property_id' => Property::factory(),
-            'full_name' => fake()->name(),
+            'full_name' => $name = fake()->name(),
+            'name_key' => fn (array $attributes): string => app(GuestName::class)->key($attributes['full_name'] ?? $name),
             'email' => fake()->unique()->safeEmail(),
             'phone' => '+60'.fake()->numerify('1#########'),
             'nationality_code' => 'MY',

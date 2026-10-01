@@ -10,6 +10,7 @@ type Props = {
     name?: string;
     value: string;
     onChange: (value: string) => void;
+    onBlur?: () => void;
     placeholder?: string;
     invalid?: boolean;
 };
@@ -22,6 +23,7 @@ export function PhoneInput({
     name,
     value,
     onChange,
+    onBlur,
     placeholder = '+60 12-345 6789',
     invalid,
 }: Props) {
@@ -39,6 +41,7 @@ export function PhoneInput({
                 maxLength={30}
                 value={value}
                 onChange={(event) => onChange(event.target.value)}
+                onBlur={onBlur}
                 placeholder={placeholder}
                 aria-invalid={invalid}
             />

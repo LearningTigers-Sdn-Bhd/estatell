@@ -1,7 +1,9 @@
 import { Link, useForm } from '@inertiajs/react';
+import { useState } from 'react';
 import { CountrySelect } from '@/components/pms/country-select';
 import { EnumSelect } from '@/components/pms/enum-select';
 import type { EnumOption } from '@/components/pms/enum-select';
+import { DuplicateWarning } from '@/components/pms/guests/duplicate-warning';
 import { UnsavedChangesDialog } from '@/components/pms/unsaved-changes-dialog';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -14,6 +16,7 @@ import {
 } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
+import type { GuestMatchCriteria } from '@/hooks/use-guest-matches';
 import { useUnsavedChanges } from '@/hooks/use-unsaved-changes';
 import { index, scan, store, update } from '@/routes/guests/documents';
 
@@ -53,6 +56,7 @@ export function DocumentForm({ guest, document, types, countries }: Props) {
     });
     const guard = useUnsavedChanges(form.isDirty);
     const { data, errors } = form;
+    const [checked, setChecked] = useState<GuestMatchCriteria>({});
 
     const save = (onSaved?: () => void) => {
         const options = {
@@ -162,6 +166,12 @@ export function DocumentForm({ guest, document, types, countries }: Props) {
                             onChange={(event) =>
                                 form.setData('number', event.target.value)
                             }
+                            onBlur={() =>
+                                setChecked({
+                                    id_numbers: [data.number],
+                                    exclude_guest_id: guest.id,
+                                })
+                            }
                             aria-invalid={!!errors.number}
                         />
                         <FieldDescription>
@@ -202,6 +212,7 @@ export function DocumentForm({ guest, document, types, countries }: Props) {
                         <FieldError>{errors.expires_on}</FieldError>
                     </Field>
                 </div>
+                <DuplicateWarning criteria={checked} />
                 <div className="grid gap-4 sm:grid-cols-2">
                     {scanField('front', 'Front scan', !!document?.hasFrontScan)}
                     {scanField('back', 'Back scan', !!document?.hasBackScan)}

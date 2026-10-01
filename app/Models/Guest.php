@@ -20,6 +20,7 @@ use Illuminate\Support\Carbon;
  * @property int $id
  * @property int $property_id
  * @property string $full_name
+ * @property string $name_key
  * @property string|null $email
  * @property string|null $phone
  * @property string|null $nationality_code

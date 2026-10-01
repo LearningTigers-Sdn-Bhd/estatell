@@ -5,11 +5,12 @@ namespace App\Actions\Guests;
 use App\Models\Guest;
 use App\Models\Property;
 use App\Models\User;
+use App\Services\Guests\GuestName;
 use Illuminate\Support\Facades\DB;
 
 class CreateGuest
 {
-    public function __construct(private SyncGuestTags $syncGuestTags) {}
+    public function __construct(private SyncGuestTags $syncGuestTags, private GuestName $guestName) {}
 
     /**
      * Add a guest to the property.
@@ -22,6 +23,7 @@ class CreateGuest
         return DB::transaction(function () use ($actor, $property, $attributes, $tagNames): Guest {
             $guest = new Guest($attributes);
             $guest->property_id = $property->id;
+            $guest->name_key = $this->guestName->key($guest->full_name);
             $guest->save();
 
             ($this->syncGuestTags)($guest, $tagNames);
