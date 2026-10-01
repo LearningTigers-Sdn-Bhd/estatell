@@ -1,4 +1,5 @@
 import { Link, useForm } from '@inertiajs/react';
+import { CountrySelect } from '@/components/pms/country-select';
 import { EnumSelect } from '@/components/pms/enum-select';
 import type { EnumOption } from '@/components/pms/enum-select';
 import { TagInput } from '@/components/pms/guests/tag-input';
@@ -107,11 +108,7 @@ export function GuestForm({
     );
 
     const select = (
-        name:
-            | 'nationality_code'
-            | 'gender'
-            | 'preferred_locale'
-            | 'country_code',
+        name: 'gender' | 'preferred_locale',
         label: string,
         options: EnumOption[],
     ) => (
@@ -125,6 +122,23 @@ export function GuestForm({
                 onValueChange={(value) => form.setData(name, value)}
                 aria-invalid={!!errors[name]}
                 className="w-full"
+            />
+            <FieldError>{errors[name]}</FieldError>
+        </Field>
+    );
+
+    const country = (
+        name: 'nationality_code' | 'country_code',
+        label: string,
+    ) => (
+        <Field data-invalid={!!errors[name]}>
+            <FieldLabel htmlFor={name}>{label}</FieldLabel>
+            <CountrySelect
+                id={name}
+                options={countries}
+                value={data[name]}
+                onValueChange={(value) => form.setData(name, value)}
+                invalid={!!errors[name]}
             />
             <FieldError>{errors[name]}</FieldError>
         </Field>
@@ -175,7 +189,7 @@ export function GuestForm({
                 <FieldLegend>Personal details</FieldLegend>
                 <FieldGroup>
                     <div className="grid gap-4 sm:grid-cols-2">
-                        {select('nationality_code', 'Nationality', countries)}
+                        {country('nationality_code', 'Nationality')}
                         {text('date_of_birth', 'Date of birth', {
                             maxLength: 10,
                             type: 'date',
@@ -205,7 +219,7 @@ export function GuestForm({
                         {text('city', 'City', { maxLength: 100 })}
                         {text('state', 'State', { maxLength: 100 })}
                         {text('postal_code', 'Postal code', { maxLength: 20 })}
-                        {select('country_code', 'Country', countries)}
+                        {country('country_code', 'Country')}
                     </div>
                 </FieldGroup>
             </FieldSet>
