@@ -1,10 +1,11 @@
 import { Head, Link } from '@inertiajs/react';
-import { FileText, Pencil, StickyNote } from 'lucide-react';
+import { FileText, IdCard, Pencil, Plus, StickyNote } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { DateText } from '@/components/pms/date-text';
 import { DetailLayout } from '@/components/pms/detail-layout';
 import { EmptyState } from '@/components/pms/empty-state';
 import { AddNoteDialog } from '@/components/pms/guests/add-note-dialog';
+import { DocumentsTab } from '@/components/pms/guests/documents-tab';
 import {
     BlacklistButton,
     VipButton,
@@ -15,18 +16,25 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { buttonVariants } from '@/components/ui/button';
 import { edit, index, show } from '@/routes/guests';
+import {
+    create as createDocument,
+    index as documentsTab,
+} from '@/routes/guests/documents';
 import { index as notesTab } from '@/routes/guests/notes';
 
 type Guest = App.Data.Guests.GuestData;
 type Note = App.Data.Guests.GuestNoteData;
-type Tab = 'details' | 'notes';
+type Document = App.Data.Guests.GuestIdentityDocumentData;
+type Tab = 'details' | 'notes' | 'documents';
 
 type Props = {
     guest: Guest;
     tab: Tab;
     notes?: Note[];
+    documents?: Document[];
     canManage: boolean;
     canBlacklist: boolean;
+    canViewDocuments: boolean;
 };
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
@@ -155,8 +163,10 @@ export default function GuestShow({
     guest,
     tab,
     notes = [],
+    documents = [],
     canManage,
     canBlacklist,
+    canViewDocuments,
 }: Props) {
     const tabs = [
         {
@@ -171,6 +181,16 @@ export default function GuestShow({
             icon: StickyNote,
             href: notesTab.url({ guest: guest.id }),
         },
+        ...(canViewDocuments
+            ? [
+                  {
+                      value: 'documents',
+                      label: 'Documents',
+                      icon: IdCard,
+                      href: documentsTab.url({ guest: guest.id }),
+                  },
+              ]
+            : []),
     ];
 
     return (
@@ -189,6 +209,18 @@ export default function GuestShow({
                                     {tab === 'notes' && (
                                         <AddNoteDialog guest={guest} />
                                     )}
+                                    {tab === 'documents' &&
+                                        canViewDocuments && (
+                                            <Link
+                                                href={createDocument.url({
+                                                    guest: guest.id,
+                                                })}
+                                                className={buttonVariants()}
+                                            >
+                                                <Plus data-icon="inline-start" />
+                                                Add document
+                                            </Link>
+                                        )}
                                     <Link
                                         href={edit.url({ guest: guest.id })}
                                         className={buttonVariants({
@@ -221,6 +253,12 @@ export default function GuestShow({
                 >
                     {tab === 'notes' ? (
                         <Notes notes={notes} />
+                    ) : tab === 'documents' ? (
+                        <DocumentsTab
+                            guest={guest}
+                            documents={documents}
+                            canManage={canManage}
+                        />
                     ) : (
                         <Details guest={guest} />
                     )}

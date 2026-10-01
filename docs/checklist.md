@@ -168,7 +168,7 @@ Smaller fixes and reverts are in `git log`.
 ### 11 Guests
 
 - [x] `feat(guests): add guest profiles` — `guests.view`, `guests.manage` and `guests.blacklist`; `GuestStayHistory` waits for modules 12 and 13. Docs: [Guest profiles](11-guests/01-guest-profiles.md).
-- [ ] `feat(guests): add identity documents` — Docs: [Identity documents](11-guests/02-identity-documents.md).
+- [x] `feat(guests): add identity documents` — `guests.view-documents`, masked numbers with a logged Reveal, scans on the chosen media disk. Docs: [Identity documents](11-guests/02-identity-documents.md).
 - [ ] `feat(guests): match and merge guests` — Docs: [Matching and merging](11-guests/03-matching-and-merging.md).
 - [ ] `feat(guests): anonymize guests and purge expired ID scans` — Docs: [Privacy](11-guests/04-privacy.md).
 
@@ -246,5 +246,5 @@ Needs the Channex staging checks in [Staging verification](21-channels/06-stagin
 
 ### Deferred items to pick up along the way
 
-- [ ] `feat(platform): store uploads on the chosen media disk` — with the first media collection (guest ID scans). Docs: [Platform settings](01-platform/02-platform-settings.md#media-storage).
+- [x] `feat(platform): store uploads on the chosen media disk` — with the first media collection (guest ID scans). Docs: [Platform settings](01-platform/02-platform-settings.md#media-storage).
 - [ ] `feat(ui): add the command palette` — ⌘K search across contexts; admin search by code, name, city. Docs: [Search patterns](design-system/07-search-patterns.md).

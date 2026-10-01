@@ -8,6 +8,7 @@ use App\Actions\Guests\SetVip;
 use App\Actions\Guests\UnblacklistGuest;
 use App\Actions\Guests\UpdateGuest;
 use App\Data\Guests\GuestData;
+use App\Data\Guests\GuestIdentityDocumentData;
 use App\Data\Guests\GuestNoteData;
 use App\Data\Guests\GuestRowData;
 use App\Data\Guests\TagData;
@@ -18,12 +19,14 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Guests\BlacklistGuestRequest;
 use App\Http\Requests\Guests\GuestRequest;
 use App\Models\Guest;
+use App\Models\GuestIdentityDocument;
 use App\Models\GuestNote;
 use App\Models\Property;
 use App\Models\Tag;
 use App\Models\User;
 use App\Services\Guests\CountryOptions;
 use App\Services\Guests\GuestDirectory;
+use App\Services\Property\PropertyToday;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -38,7 +41,7 @@ class GuestController extends Controller
     public function index(Request $request, Property $property, GuestDirectory $guestDirectory): Response
     {
         return Inertia::render('guests/index', [
-            'guests' => GuestRowData::collect($guestDirectory->paginate($property, $request), PaginatedDataCollection::class),
+            'guests' => GuestRowData::collect($guestDirectory->paginate($property, $request, $request->user()->can(PermissionEnum::GuestsViewDocuments->value)), PaginatedDataCollection::class),
             'filters' => [
                 'search' => $request->string('filter.search')->toString(),
                 'status' => $request->string('filter.status')->toString(),
@@ -87,6 +90,20 @@ class GuestController extends Controller
         return $this->renderTab($request->user(), $guest, 'notes', [
             'notes' => $guest->notes()->with('author')->latest()->latest('id')->get()
                 ->map(fn (GuestNote $note): GuestNoteData => GuestNoteData::fromModel($note))
+                ->all(),
+        ]);
+    }
+
+    /**
+     * Guest page, Documents tab. Documents load only here, with masked numbers.
+     */
+    public function documents(Request $request, Property $property, Guest $guest, PropertyToday $propertyToday): Response
+    {
+        $today = $propertyToday->date($property)->toDateString();
+
+        return $this->renderTab($request->user(), $guest, 'documents', [
+            'documents' => $guest->documents()->with('media')->orderBy('id')->get()
+                ->map(fn (GuestIdentityDocument $document): GuestIdentityDocumentData => GuestIdentityDocumentData::fromModel($document, $today))
                 ->all(),
         ]);
     }
@@ -152,7 +169,7 @@ class GuestController extends Controller
     /**
      * Each tab has its own URL, so the open tab survives a refresh. Only the open tab's data is sent.
      *
-     * @param  'details'|'notes'  $tab
+     * @param  'details'|'notes'|'documents'  $tab
      * @param  array<string, mixed>  $tabProps
      */
     private function renderTab(User $user, Guest $guest, string $tab, array $tabProps = []): Response
@@ -164,6 +181,7 @@ class GuestController extends Controller
             'tab' => $tab,
             'canManage' => $user->can(PermissionEnum::GuestsManage->value),
             'canBlacklist' => $user->can(PermissionEnum::GuestsBlacklist->value),
+            'canViewDocuments' => $user->can(PermissionEnum::GuestsViewDocuments->value),
             ...$tabProps,
         ]);
     }

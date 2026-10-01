@@ -83,6 +83,14 @@ class Guest extends Model
     }
 
     /**
+     * @return HasMany<GuestIdentityDocument, $this>
+     */
+    public function documents(): HasMany
+    {
+        return $this->hasMany(GuestIdentityDocument::class);
+    }
+
+    /**
      * @return BelongsToMany<Tag, $this>
      */
     public function tags(): BelongsToMany

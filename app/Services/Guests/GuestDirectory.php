@@ -3,6 +3,7 @@
 namespace App\Services\Guests;
 
 use App\Models\Guest;
+use App\Models\GuestIdentityDocument;
 use App\Models\Property;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
@@ -12,6 +13,7 @@ use Spatie\QueryBuilder\QueryBuilder;
 
 /**
  * The guest list of one property: search, filters, sorts and pagination from the URL.
+ * Search matches name, email and phone, and an exact ID number for staff who may view ID documents.
  */
 class GuestDirectory
 {
@@ -21,14 +23,17 @@ class GuestDirectory
 
     public const string STATUS_BLACKLISTED = 'blacklisted';
 
+    public function __construct(private IdentityNumber $identityNumber) {}
+
     /**
+     * @param  bool  $searchIdNumbers  Let the search also find an exact ID number. Only for staff who may view ID documents.
      * @return LengthAwarePaginator<int, Guest>
      */
-    public function paginate(Property $property, Request $request): LengthAwarePaginator
+    public function paginate(Property $property, Request $request, bool $searchIdNumbers = false): LengthAwarePaginator
     {
         return QueryBuilder::for(Guest::query()->where('guests.property_id', $property->id)->notMerged(), $request)
             ->allowedFilters(
-                AllowedFilter::callback('search', fn (Builder $query, string $search) => $this->search($query, $search)),
+                AllowedFilter::callback('search', fn (Builder $query, string $search) => $this->search($query, $search, $searchIdNumbers)),
                 AllowedFilter::callback('status', fn (Builder $query, string $status) => $this->status($query, $status)),
                 AllowedFilter::callback('tag', fn (Builder $query, string $tag) => $query->whereHas(
                     'tags',
@@ -45,14 +50,22 @@ class GuestDirectory
     /**
      * @param  Builder<Guest>  $query
      */
-    private function search(Builder $query, string $search): void
+    private function search(Builder $query, string $search, bool $searchIdNumbers): void
     {
         $search = trim($search);
+        $idNumber = $this->identityNumber->normalize($search);
 
-        $query->where(fn (Builder $query) => $query
-            ->whereLike('guests.full_name', "%{$search}%")
-            ->orWhereLike('guests.email', "%{$search}%")
-            ->orWhereLike('guests.phone', '%'.preg_replace('/[\s()-]+/', '', $search).'%'));
+        $query->where(function (Builder $query) use ($search, $idNumber, $searchIdNumbers): void {
+            $query->whereLike('guests.full_name', "%{$search}%")
+                ->orWhereLike('guests.email', "%{$search}%")
+                ->orWhereLike('guests.phone', '%'.preg_replace('/[\s()-]+/', '', $search).'%');
+
+            if ($searchIdNumbers && strlen($idNumber) >= 4) {
+                $query->orWhereIn('guests.id', GuestIdentityDocument::query()
+                    ->whereBlind('number', GuestIdentityDocument::NUMBER_INDEX, $idNumber)
+                    ->select('guest_identity_documents.guest_id'));
+            }
+        });
     }
 
     /**

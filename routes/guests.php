@@ -2,6 +2,7 @@
 
 use App\Enums\PermissionEnum;
 use App\Http\Controllers\Guests\GuestController;
+use App\Http\Controllers\Guests\GuestIdentityDocumentController;
 use App\Http\Controllers\Guests\GuestNoteController;
 use Illuminate\Support\Facades\Route;
 
@@ -25,6 +26,20 @@ Route::prefix('guests')->name('guests.')->group(function () {
             Route::post('vip', [GuestController::class, 'markVip'])->name('vip.store');
             Route::delete('vip', [GuestController::class, 'unmarkVip'])->name('vip.destroy');
             Route::post('notes', [GuestNoteController::class, 'store'])->name('notes.store');
+        });
+
+        Route::prefix('documents')->name('documents.')->middleware('can:'.PermissionEnum::GuestsViewDocuments->value)->group(function () {
+            Route::get('/', [GuestController::class, 'documents'])->name('index');
+            Route::get('{document}/scans/{scan}', [GuestIdentityDocumentController::class, 'scan'])->whereIn('scan', ['front', 'back'])->name('scan');
+            Route::post('{document}/reveal', [GuestIdentityDocumentController::class, 'reveal'])->name('reveal');
+
+            Route::middleware('can:'.PermissionEnum::GuestsManage->value)->group(function () {
+                Route::get('create', [GuestIdentityDocumentController::class, 'create'])->name('create');
+                Route::post('/', [GuestIdentityDocumentController::class, 'store'])->name('store');
+                Route::get('{document}/edit', [GuestIdentityDocumentController::class, 'edit'])->name('edit');
+                Route::put('{document}', [GuestIdentityDocumentController::class, 'update'])->name('update');
+                Route::delete('{document}', [GuestIdentityDocumentController::class, 'destroy'])->name('destroy');
+            });
         });
 
         Route::middleware('can:'.PermissionEnum::GuestsBlacklist->value)->group(function () {

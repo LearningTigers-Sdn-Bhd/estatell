@@ -43,6 +43,7 @@ roles    spatie columns + property_id (NOT NULL, FK) + default_role (nullable)
 | `guests.view`                 | Guest list and guest page                      | ✓     | ✓       | Front desk, Finance               |
 | `guests.manage`               | Add and edit guests, tags, VIP mark, notes     | ✓     | ✓       | Front desk                        |
 | `guests.blacklist`            | Blacklist a guest, remove from the blacklist   | ✓     | ✓       | –                                 |
+| `guests.view-documents`       | See, add, edit guest ID documents and scans    | ✓     | ✓       | Front desk                        |
 
 Later modules add rows here. Their module docs list their permissions.
 

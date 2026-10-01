@@ -62,6 +62,7 @@ Routes under `/p/{code}/guests` (`guests.*`, route file `guests.php`). They are 
 - Guests are never shared across properties. A guest of another property returns 404.
 - Phone numbers are validated and normalized to E.164 with `propaganistas/laravel-phone`. A number typed without a country code is read as a number of the property's country (Malaysia if unset). A number with a country code is accepted from any country.
 - Email and phone stay plaintext for search and notifications. Rely on database encryption at rest.
+- ID documents have their own Documents tab. See [Identity documents](02-identity-documents.md).
 - Left for later: guest quick-add and `GuestPicker` (with the booking form), a settings page for tags, `marketing_consent_at` (captured on the registration card).
 
 ## Permissions

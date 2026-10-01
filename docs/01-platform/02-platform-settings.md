@@ -49,6 +49,6 @@ Admins choose where new uploads (ID scans, signatures, photos, PDFs) are stored.
 
 - `MediaDisk` has `label()`, `options()`, `diskName()` and `isConfigured()`. R2 keys live in the environment only, never in the database.
 - The settings form shows R2 as disabled with "(not set up)" until its keys are set. `UpdatePlatformSettingsRequest` rejects an unconfigured disk with a validation error.
-- Media collections read the disk from `PlatformSettings` when a file is added. This wiring is built with the first media collection (guests or registration). Until then the setting is stored only. Each `media` row stores its own disk, so switching affects only new uploads. Old files stay readable.
+- Media collections read the disk from `PlatformSettings` when a file is added. This wiring is built: the ID scans of [Identity documents](../11-guests/02-identity-documents.md) are the first media collection, and later collections do the same. Each `media` row stores its own disk, so switching affects only new uploads. Old files stay readable.
 - Both disks are private. Files are shown through temporary URLs: presigned URLs on R2, Laravel's `serve` option on `local`.
 - Production needs the `media` volume for `Local`. See [Deployment](../overview.md#deployment).

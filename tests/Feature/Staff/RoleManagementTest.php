@@ -37,12 +37,12 @@ test('owners see every role as a column with its permissions', function () {
                 'isDefault' => true,
                 'isLocked' => true,
                 'staffCount' => 1,
-                'permissions' => ['guests.blacklist', 'guests.manage', 'guests.view', 'notification.manage', 'rates.manage', 'rates.override-restrictions', 'rates.view', 'roles.manage', 'rooms.block', 'rooms.manage', 'rooms.view', 'settings.manage', 'staff.manage', 'staff.view'],
+                'permissions' => ['guests.blacklist', 'guests.manage', 'guests.view', 'guests.view-documents', 'notification.manage', 'rates.manage', 'rates.override-restrictions', 'rates.view', 'roles.manage', 'rooms.block', 'rooms.manage', 'rooms.view', 'settings.manage', 'staff.manage', 'staff.view'],
             ])
             ->where('roles.1.name', 'Manager')
             ->where('roles.1.staffCount', 0)
-            ->where('roles.1.permissions', ['guests.blacklist', 'guests.manage', 'guests.view', 'rates.manage', 'rates.override-restrictions', 'rates.view', 'rooms.block', 'rooms.manage', 'rooms.view', 'settings.manage', 'staff.manage', 'staff.view'])
-            ->has('permissions', 14)
+            ->where('roles.1.permissions', ['guests.blacklist', 'guests.manage', 'guests.view', 'guests.view-documents', 'rates.manage', 'rates.override-restrictions', 'rates.view', 'rooms.block', 'rooms.manage', 'rooms.view', 'settings.manage', 'staff.manage', 'staff.view'])
+            ->has('permissions', 15)
             ->where('permissions.0', ['value' => 'settings.manage', 'label' => 'Manage property settings', 'group' => 'Property']));
 });
 
@@ -85,8 +85,8 @@ test('saving the grid updates only changed roles and gives the role holders acce
     $this->actingAs($owner)
         ->put(route('settings.roles.update', $property->code), ['roles' => [
             $role->id => ['staff.view'],
-            $manager->id => ['guests.blacklist', 'guests.manage', 'guests.view', 'rates.manage', 'rates.override-restrictions', 'rates.view', 'rooms.block', 'rooms.manage', 'rooms.view', 'settings.manage', 'staff.manage', 'staff.view'],
-            roleOf($property, DefaultRoleEnum::FrontDesk)->id => ['guests.manage', 'guests.view', 'rates.view', 'rooms.block'],
+            $manager->id => ['guests.blacklist', 'guests.manage', 'guests.view', 'guests.view-documents', 'rates.manage', 'rates.override-restrictions', 'rates.view', 'rooms.block', 'rooms.manage', 'rooms.view', 'settings.manage', 'staff.manage', 'staff.view'],
+            roleOf($property, DefaultRoleEnum::FrontDesk)->id => ['guests.manage', 'guests.view', 'guests.view-documents', 'rates.view', 'rooms.block'],
         ]])
         ->assertRedirect(route('settings.roles.index', $property->code))
         ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Permissions saved for 1 role.']);
@@ -122,8 +122,8 @@ test('the owner column is skipped, and unknown permissions or other properties\'
     $this->put($update, ['roles' => [roleOf($other, DefaultRoleEnum::Manager)->id => []]])
         ->assertSessionHasErrors('roles');
 
-    expect($ownerRole->permissions()->count())->toBe(14)
-        ->and(roleOf($other, DefaultRoleEnum::Manager)->permissions()->count())->toBe(12)
+    expect($ownerRole->permissions()->count())->toBe(15)
+        ->and(roleOf($other, DefaultRoleEnum::Manager)->permissions()->count())->toBe(13)
         ->and(Activity::query()->count())->toBe(0);
 });
 

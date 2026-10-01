@@ -117,6 +117,19 @@ blacklistReason: string | null,
 tags: App.Data.Guests.TagData[],
 createdAt: string,
 };
+export type GuestIdentityDocumentData = {
+id: number,
+type: string,
+typeLabel: string,
+maskedNumber: string,
+number: string | null,
+issuingCountryCode: string | null,
+issuingCountryName: string | null,
+expiresOn: string | null,
+isExpired: boolean,
+hasFrontScan: boolean,
+hasBackScan: boolean,
+};
 export type GuestNoteData = {
 id: number,
 body: string,
@@ -644,6 +657,7 @@ export type DormStrategy = 'bed_as_unit' | 'native_dorm';
 export type EarlyDeparturePolicy = 'charge_full' | 'charge_used_nights';
 export type Gender = 'male' | 'female';
 export type HousekeepingStatus = 'clean' | 'dirty' | 'inspected';
+export type IdentityDocumentType = 'mykad' | 'passport' | 'other';
 export type InclusionEnd = 'departure_day' | 'night_before_departure';
 export type InclusionStart = 'arrival_day' | 'day_after_arrival';
 export type Locale = 'en' | 'ms';
@@ -657,7 +671,7 @@ export type OverdueDeparturePolicy = 'extend_one_night' | 'block';
 export type OwnerSetupMethod = 'email_link' | 'initial_password';
 export type PackageUnit = 'per_guest' | 'per_room';
 export type PaymentMethodType = 'cash' | 'card' | 'bank_transfer' | 'e_wallet' | 'ota_collected' | 'direct_bill';
-export type PermissionEnum = 'settings.manage' | 'staff.view' | 'staff.manage' | 'roles.manage' | 'rooms.view' | 'rooms.manage' | 'rooms.block' | 'notification.manage' | 'rates.view' | 'rates.manage' | 'rates.override-restrictions' | 'guests.view' | 'guests.manage' | 'guests.blacklist';
+export type PermissionEnum = 'settings.manage' | 'staff.view' | 'staff.manage' | 'roles.manage' | 'rooms.view' | 'rooms.manage' | 'rooms.block' | 'notification.manage' | 'rates.view' | 'rates.manage' | 'rates.override-restrictions' | 'guests.view' | 'guests.manage' | 'guests.blacklist' | 'guests.view-documents';
 export type PlatformFeature = 'channel-manager';
 export type PricingBasis = 'per_room' | 'per_guest' | 'per_bed' | 'package';
 export type PropertyStatus = 'onboarding' | 'pending_approval' | 'live' | 'suspended';
