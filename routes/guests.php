@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\PermissionEnum;
+use App\Http\Controllers\Guests\GuestAnonymizeController;
 use App\Http\Controllers\Guests\GuestController;
 use App\Http\Controllers\Guests\GuestIdentityDocumentController;
 use App\Http\Controllers\Guests\GuestMatchController;
@@ -47,6 +48,7 @@ Route::prefix('guests')->name('guests.')->group(function () {
             });
         });
 
+        Route::post('anonymize', [GuestAnonymizeController::class, 'store'])->middleware('can:'.PermissionEnum::GuestsAnonymize->value)->name('anonymize.store');
         Route::post('merge', [GuestMergeController::class, 'store'])->middleware('can:'.PermissionEnum::GuestsMerge->value)->name('merge.store');
 
         Route::middleware('can:'.PermissionEnum::GuestsBlacklist->value)->group(function () {

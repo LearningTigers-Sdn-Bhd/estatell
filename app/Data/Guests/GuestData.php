@@ -37,6 +37,7 @@ class GuestData extends Data
         public bool $isVip,
         public ?string $blacklistedAt,
         public ?string $blacklistReason,
+        public ?string $anonymizedAt,
         public array $tags,
         public string $createdAt,
     ) {}
@@ -67,6 +68,7 @@ class GuestData extends Data
             isVip: $guest->is_vip,
             blacklistedAt: $guest->blacklisted_at?->toDateString(),
             blacklistReason: $guest->blacklist_reason,
+            anonymizedAt: $guest->anonymized_at?->toDateString(),
             tags: $guest->tags->sortBy(fn (Tag $tag): string => mb_strtolower($tag->name))->map(fn (Tag $tag): TagData => TagData::fromModel($tag))->values()->all(),
             createdAt: $guest->created_at->toDateString(),
         );

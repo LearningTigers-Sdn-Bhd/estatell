@@ -32,7 +32,7 @@ test('seeding creates the default roles with their default permissions', functio
     app(SeedDefaultRoles::class)($property);
 
     expect(Role::query()->where('property_id', $property->id)->count())->toBe(5)
-        ->and(roleNames(defaultRole($property, DefaultRoleEnum::Owner)))->toEqualCanonicalizing(['guests.blacklist', 'guests.manage', 'guests.merge', 'guests.view', 'guests.view-documents', 'notification.manage', 'rates.manage', 'rates.override-restrictions', 'rates.view', 'roles.manage', 'rooms.block', 'rooms.manage', 'rooms.view', 'settings.manage', 'staff.manage', 'staff.view'])
+        ->and(roleNames(defaultRole($property, DefaultRoleEnum::Owner)))->toEqualCanonicalizing(['guests.anonymize', 'guests.blacklist', 'guests.manage', 'guests.merge', 'guests.view', 'guests.view-documents', 'notification.manage', 'rates.manage', 'rates.override-restrictions', 'rates.view', 'roles.manage', 'rooms.block', 'rooms.manage', 'rooms.view', 'settings.manage', 'staff.manage', 'staff.view'])
         ->and(roleNames(defaultRole($property, DefaultRoleEnum::Manager)))->toEqualCanonicalizing(['guests.blacklist', 'guests.manage', 'guests.merge', 'guests.view', 'guests.view-documents', 'rates.manage', 'rates.override-restrictions', 'rates.view', 'rooms.block', 'rooms.manage', 'rooms.view', 'settings.manage', 'staff.manage', 'staff.view'])
         ->and(roleNames(defaultRole($property, DefaultRoleEnum::FrontDesk)))->toBe(['guests.manage', 'guests.view', 'guests.view-documents', 'rates.view', 'rooms.block'])
         ->and(roleNames(defaultRole($property, DefaultRoleEnum::Housekeeping)))->toBe(['rates.view'])

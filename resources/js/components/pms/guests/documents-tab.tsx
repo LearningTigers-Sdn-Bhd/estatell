@@ -168,10 +168,12 @@ export function DocumentsTab({
     guest,
     documents,
     canManage,
+    retentionDays,
 }: {
     guest: Guest;
     documents: Document[];
     canManage: boolean;
+    retentionDays: number | null;
 }) {
     if (documents.length === 0) {
         return (
@@ -184,91 +186,102 @@ export function DocumentsTab({
     }
 
     return (
-        <ul className="flex flex-col gap-4">
-            {documents.map((document) => (
-                <li key={document.id}>
-                    <Card>
-                        <CardContent className="flex flex-col gap-3">
-                            <div className="flex flex-wrap items-center justify-between gap-2">
-                                <span className="flex items-center gap-2">
-                                    <span className="text-sm font-medium">
-                                        {document.typeLabel}
-                                    </span>
-                                    {document.isExpired && (
-                                        <StatusBadge
-                                            status={{
-                                                value: 'expired',
-                                                label: 'Expired',
-                                                tone: 'warning',
-                                            }}
-                                        />
-                                    )}
-                                </span>
-                                <RevealNumber
-                                    guest={guest}
-                                    document={document}
-                                />
-                            </div>
-                            <p className="text-sm text-muted-foreground">
-                                {document.issuingCountryName ??
-                                    'Country not set'}
-                                {' · '}
-                                {document.expiresOn ? (
-                                    <>
-                                        Expires{' '}
-                                        <DateText date={document.expiresOn} />
-                                    </>
-                                ) : (
-                                    'No expiry date'
-                                )}
-                            </p>
-                            <div className="flex flex-wrap items-center gap-2">
-                                {document.hasFrontScan && (
-                                    <ScanLink
-                                        guest={guest}
-                                        document={document}
-                                        side="front"
-                                    />
-                                )}
-                                {document.hasBackScan && (
-                                    <ScanLink
-                                        guest={guest}
-                                        document={document}
-                                        side="back"
-                                    />
-                                )}
-                                {!document.hasFrontScan &&
-                                    !document.hasBackScan && (
-                                        <span className="text-sm text-muted-foreground">
-                                            No scans
+        <div className="flex flex-col gap-4">
+            {retentionDays !== null && (
+                <p className="text-sm text-muted-foreground">
+                    Scans are deleted {retentionDays}{' '}
+                    {retentionDays === 1 ? 'day' : 'days'} after they are
+                    uploaded. The number stays.
+                </p>
+            )}
+            <ul className="flex flex-col gap-4">
+                {documents.map((document) => (
+                    <li key={document.id}>
+                        <Card>
+                            <CardContent className="flex flex-col gap-3">
+                                <div className="flex flex-wrap items-center justify-between gap-2">
+                                    <span className="flex items-center gap-2">
+                                        <span className="text-sm font-medium">
+                                            {document.typeLabel}
                                         </span>
+                                        {document.isExpired && (
+                                            <StatusBadge
+                                                status={{
+                                                    value: 'expired',
+                                                    label: 'Expired',
+                                                    tone: 'warning',
+                                                }}
+                                            />
+                                        )}
+                                    </span>
+                                    <RevealNumber
+                                        guest={guest}
+                                        document={document}
+                                    />
+                                </div>
+                                <p className="text-sm text-muted-foreground">
+                                    {document.issuingCountryName ??
+                                        'Country not set'}
+                                    {' · '}
+                                    {document.expiresOn ? (
+                                        <>
+                                            Expires{' '}
+                                            <DateText
+                                                date={document.expiresOn}
+                                            />
+                                        </>
+                                    ) : (
+                                        'No expiry date'
                                     )}
-                                {canManage && (
-                                    <span className="ms-auto flex gap-2">
-                                        <Link
-                                            href={edit.url({
-                                                guest: guest.id,
-                                                document: document.id,
-                                            })}
-                                            className={buttonVariants({
-                                                size: 'sm',
-                                                variant: 'outline',
-                                            })}
-                                        >
-                                            <Pencil data-icon="inline-start" />
-                                            Edit
-                                        </Link>
-                                        <RemoveDocument
+                                </p>
+                                <div className="flex flex-wrap items-center gap-2">
+                                    {document.hasFrontScan && (
+                                        <ScanLink
                                             guest={guest}
                                             document={document}
+                                            side="front"
                                         />
-                                    </span>
-                                )}
-                            </div>
-                        </CardContent>
-                    </Card>
-                </li>
-            ))}
-        </ul>
+                                    )}
+                                    {document.hasBackScan && (
+                                        <ScanLink
+                                            guest={guest}
+                                            document={document}
+                                            side="back"
+                                        />
+                                    )}
+                                    {!document.hasFrontScan &&
+                                        !document.hasBackScan && (
+                                            <span className="text-sm text-muted-foreground">
+                                                No scans
+                                            </span>
+                                        )}
+                                    {canManage && (
+                                        <span className="ms-auto flex gap-2">
+                                            <Link
+                                                href={edit.url({
+                                                    guest: guest.id,
+                                                    document: document.id,
+                                                })}
+                                                className={buttonVariants({
+                                                    size: 'sm',
+                                                    variant: 'outline',
+                                                })}
+                                            >
+                                                <Pencil data-icon="inline-start" />
+                                                Edit
+                                            </Link>
+                                            <RemoveDocument
+                                                guest={guest}
+                                                document={document}
+                                            />
+                                        </span>
+                                    )}
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </li>
+                ))}
+            </ul>
+        </div>
     );
 }

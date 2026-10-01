@@ -53,6 +53,7 @@ class GuestController extends Controller
             'statuses' => [
                 ['value' => GuestDirectory::STATUS_VIP, 'label' => __('VIP')],
                 ['value' => GuestDirectory::STATUS_BLACKLISTED, 'label' => __('Blacklisted')],
+                ['value' => GuestDirectory::STATUS_ANONYMIZED, 'label' => __('Anonymized')],
             ],
             'tags' => $this->tags($property),
             'canManage' => $request->user()->can(PermissionEnum::GuestsManage->value),
@@ -111,14 +112,21 @@ class GuestController extends Controller
         $today = $propertyToday->date($property)->toDateString();
 
         return $this->renderTab($request->user(), $guest, 'documents', [
+            'retentionDays' => $property->settings?->id_document_retention_days,
             'documents' => $guest->documents()->with('media')->orderBy('id')->get()
                 ->map(fn (GuestIdentityDocument $document): GuestIdentityDocumentData => GuestIdentityDocumentData::fromModel($document, $today))
                 ->all(),
         ]);
     }
 
-    public function edit(Property $property, Guest $guest): Response
+    public function edit(Property $property, Guest $guest): Response|RedirectResponse
     {
+        if ($guest->anonymized_at !== null) {
+            Inertia::flash('toast', ['type' => 'error', 'message' => __(':name cannot be edited.', ['name' => $guest->full_name])]);
+
+            return to_route('guests.show', ['property' => $property, 'guest' => $guest]);
+        }
+
         $guest->load('tags');
 
         return Inertia::render('guests/form', [
@@ -192,6 +200,7 @@ class GuestController extends Controller
             'canBlacklist' => $user->can(PermissionEnum::GuestsBlacklist->value),
             'canViewDocuments' => $user->can(PermissionEnum::GuestsViewDocuments->value),
             'canMerge' => $user->can(PermissionEnum::GuestsMerge->value),
+            'canAnonymize' => $user->can(PermissionEnum::GuestsAnonymize->value),
             ...$tabProps,
         ]);
     }

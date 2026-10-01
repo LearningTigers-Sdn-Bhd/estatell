@@ -170,7 +170,7 @@ Smaller fixes and reverts are in `git log`.
 - [x] `feat(guests): add guest profiles` — `guests.view`, `guests.manage` and `guests.blacklist`; `GuestStayHistory` waits for modules 12 and 13. Docs: [Guest profiles](11-guests/01-guest-profiles.md).
 - [x] `feat(guests): add identity documents` — `guests.view-documents`, masked numbers with a logged Reveal, scans on the chosen media disk. Docs: [Identity documents](11-guests/02-identity-documents.md).
 - [x] `feat(guests): match and merge guests` — `guests.merge` (Owner, Manager); name matching through `name_key`; reservations and folios join `MergeGuests` in modules 12 and 13. Docs: [Matching and merging](11-guests/03-matching-and-merging.md).
-- [ ] `feat(guests): anonymize guests and purge expired ID scans` — Docs: [Privacy](11-guests/04-privacy.md).
+- [x] `feat(guests): anonymize guests and purge expired ID scans` — `guests.anonymize` (Owner only), nightly purge at 03:30; reservations and folios add their own refusals to `AnonymizeGuest` in modules 12 and 13. Docs: [Privacy](11-guests/04-privacy.md).
 
 ### 20 Night audit (business dates, built early)
 
@@ -178,7 +178,7 @@ Smaller fixes and reverts are in `git log`.
 
 ### 12 Reservations
 
-- [ ] `feat(reservations): add reservation, unit and status model` — also re-point unit guests and the booker in `MergeGuests`. Docs: [Reservation shape](12-reservations/01-reservation-shape.md).
+- [ ] `feat(reservations): add reservation, unit and status model` — also re-point unit guests and the booker in `MergeGuests`, and refuse `AnonymizeGuest` for an in-house guest. Docs: [Reservation shape](12-reservations/01-reservation-shape.md).
 - [ ] `feat(reservations): add group bookings` — Docs: [Group bookings](12-reservations/02-group-bookings.md).
 - [ ] `feat(reservations): add bed bookings` — Docs: [Bed bookings](12-reservations/03-bed-bookings.md).
 - [ ] `feat(reservations): add unit add-ons` — Docs: [Add-ons](12-reservations/04-add-ons.md).
@@ -186,7 +186,7 @@ Smaller fixes and reverts are in `git log`.
 
 ### 13 Folio and 14 Payments
 
-- [ ] `feat(folio): add folios and immutable ledger lines` — also re-point the payer in `MergeGuests`. Docs: [Folios and lines](13-folio/01-folios-and-lines.md).
+- [ ] `feat(folio): add folios and immutable ledger lines` — also re-point the payer in `MergeGuests`, and refuse `AnonymizeGuest` for a guest with an open balance. Docs: [Folios and lines](13-folio/01-folios-and-lines.md).
 - [ ] `feat(folio): post charges, reverse and transfer lines` — Needs: business dates. Docs: [Posting charges](13-folio/02-posting-charges.md).
 - [ ] `feat(folio): add folio routing` — Docs: [Routing](13-folio/03-routing.md).
 - [ ] `feat(folio): apply and remove folio discounts` — Docs: [Folio discounts](13-folio/04-folio-discounts.md).

@@ -37,12 +37,12 @@ test('owners see every role as a column with its permissions', function () {
                 'isDefault' => true,
                 'isLocked' => true,
                 'staffCount' => 1,
-                'permissions' => ['guests.blacklist', 'guests.manage', 'guests.merge', 'guests.view', 'guests.view-documents', 'notification.manage', 'rates.manage', 'rates.override-restrictions', 'rates.view', 'roles.manage', 'rooms.block', 'rooms.manage', 'rooms.view', 'settings.manage', 'staff.manage', 'staff.view'],
+                'permissions' => ['guests.anonymize', 'guests.blacklist', 'guests.manage', 'guests.merge', 'guests.view', 'guests.view-documents', 'notification.manage', 'rates.manage', 'rates.override-restrictions', 'rates.view', 'roles.manage', 'rooms.block', 'rooms.manage', 'rooms.view', 'settings.manage', 'staff.manage', 'staff.view'],
             ])
             ->where('roles.1.name', 'Manager')
             ->where('roles.1.staffCount', 0)
             ->where('roles.1.permissions', ['guests.blacklist', 'guests.manage', 'guests.merge', 'guests.view', 'guests.view-documents', 'rates.manage', 'rates.override-restrictions', 'rates.view', 'rooms.block', 'rooms.manage', 'rooms.view', 'settings.manage', 'staff.manage', 'staff.view'])
-            ->has('permissions', 16)
+            ->has('permissions', 17)
             ->where('permissions.0', ['value' => 'settings.manage', 'label' => 'Manage property settings', 'group' => 'Property']));
 });
 
@@ -122,7 +122,7 @@ test('the owner column is skipped, and unknown permissions or other properties\'
     $this->put($update, ['roles' => [roleOf($other, DefaultRoleEnum::Manager)->id => []]])
         ->assertSessionHasErrors('roles');
 
-    expect($ownerRole->permissions()->count())->toBe(16)
+    expect($ownerRole->permissions()->count())->toBe(17)
         ->and(roleOf($other, DefaultRoleEnum::Manager)->permissions()->count())->toBe(14)
         ->and(Activity::query()->count())->toBe(0);
 });

@@ -14,9 +14,9 @@ class GuestNoteController extends Controller
 {
     public function store(GuestNoteRequest $request, Property $property, Guest $guest, AddGuestNote $addGuestNote): RedirectResponse
     {
-        $addGuestNote($request->user(), $guest, $request->validated('body'));
-
-        Inertia::flash('toast', ['type' => 'success', 'message' => __('Note added.')]);
+        Inertia::flash('toast', $addGuestNote($request->user(), $guest, $request->validated('body')) !== null
+            ? ['type' => 'success', 'message' => __('Note added.')]
+            : ['type' => 'error', 'message' => __(':name cannot be edited.', ['name' => $guest->full_name])]);
 
         return to_route('guests.notes.index', ['property' => $property, 'guest' => $guest]);
     }

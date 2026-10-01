@@ -29,9 +29,9 @@ class GuestIdentityDocumentController extends Controller
      */
     private const int SCAN_LINK_MINUTES = 5;
 
-    public function create(Property $property, Guest $guest): Response
+    public function create(Property $property, Guest $guest): Response|RedirectResponse
     {
-        return $this->form($guest, null);
+        return $this->closedGuestRedirect($property, $guest) ?? $this->form($guest, null);
     }
 
     public function store(IdentityDocumentRequest $request, Property $property, Guest $guest, AddIdentityDocument $addIdentityDocument): RedirectResponse
@@ -48,8 +48,12 @@ class GuestIdentityDocumentController extends Controller
     /**
      * The form shows the full number, so opening it is logged like a reveal.
      */
-    public function edit(Request $request, Property $property, Guest $guest, GuestIdentityDocument $document, RecordIdentityDocumentAccess $recordAccess, PropertyToday $propertyToday): Response
+    public function edit(Request $request, Property $property, Guest $guest, GuestIdentityDocument $document, RecordIdentityDocumentAccess $recordAccess, PropertyToday $propertyToday): Response|RedirectResponse
     {
+        if ($redirect = $this->closedGuestRedirect($property, $guest)) {
+            return $redirect;
+        }
+
         $recordAccess($request->user(), $document);
 
         return $this->form($guest, GuestIdentityDocumentData::fromModel($document->load('media'), $propertyToday->date($property)->toDateString(), withNumber: true));
@@ -98,6 +102,20 @@ class GuestIdentityDocumentController extends Controller
         $recordAccess($request->user(), $document, $collection);
 
         return redirect()->away($media->getTemporaryUrl(now()->addMinutes(self::SCAN_LINK_MINUTES)));
+    }
+
+    /**
+     * A merged or anonymized guest cannot get or change documents, so the form pages go back with an error toast.
+     */
+    private function closedGuestRedirect(Property $property, Guest $guest): ?RedirectResponse
+    {
+        if ($guest->merged_into_id === null && $guest->anonymized_at === null) {
+            return null;
+        }
+
+        Inertia::flash('toast', ['type' => 'error', 'message' => __(':name cannot be edited.', ['name' => $guest->full_name])]);
+
+        return to_route('guests.show', ['property' => $property, 'guest' => $guest]);
     }
 
     private function form(Guest $guest, ?GuestIdentityDocumentData $document): Response

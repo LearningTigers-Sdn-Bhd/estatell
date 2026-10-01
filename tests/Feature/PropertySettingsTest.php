@@ -187,3 +187,18 @@ test('currency and time zone are fixed after the property goes live', function (
         ->and($settings->currency)->toBe(Currency::Myr)
         ->and($settings->default_locale)->toBe(Locale::Malay);
 });
+
+test('the ID document retention is blank or at least one day', function () {
+    $staff = User::factory()->owner()->create();
+    $property = $staff->property;
+    $settings = PropertySetting::factory()->for($property)->create();
+    $url = route('settings.update', [$property->code, 'registration']);
+    $payload = ['registration_card_scope' => 'primary_only', 'security_deposit_amount' => '0.00'];
+
+    $this->actingAs($staff)->put($url, [...$payload, 'id_document_retention_days' => 0])->assertSessionHasErrors('id_document_retention_days');
+    $this->put($url, [...$payload, 'id_document_retention_days' => 1])->assertSessionHasNoErrors();
+    expect($settings->refresh()->id_document_retention_days)->toBe(1);
+
+    $this->put($url, [...$payload, 'id_document_retention_days' => ''])->assertSessionHasNoErrors();
+    expect($settings->refresh()->id_document_retention_days)->toBeNull();
+});

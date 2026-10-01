@@ -22,6 +22,7 @@ class GuestRowData extends Data
         public ?string $nationalityCode,
         public bool $isVip,
         public bool $isBlacklisted,
+        public bool $isAnonymized,
         public array $tags,
         public string $createdAt,
     ) {}
@@ -36,6 +37,7 @@ class GuestRowData extends Data
             nationalityCode: $guest->nationality_code,
             isVip: $guest->is_vip,
             isBlacklisted: $guest->blacklisted_at !== null,
+            isAnonymized: $guest->anonymized_at !== null,
             tags: $guest->tags->map(fn (Tag $tag): string => $tag->name)->sortBy(fn (string $name): string => mb_strtolower($name))->values()->all(),
             createdAt: $guest->created_at->toDateString(),
         );

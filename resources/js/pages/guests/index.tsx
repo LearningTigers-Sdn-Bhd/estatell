@@ -40,6 +40,15 @@ const columns = [
                         className="size-3.5 fill-current text-warning"
                     />
                 )}
+                {info.row.original.isAnonymized && (
+                    <StatusBadge
+                        status={{
+                            value: 'anonymized',
+                            label: 'Anonymized',
+                            tone: 'neutral',
+                        }}
+                    />
+                )}
                 {info.row.original.isBlacklisted && (
                     <StatusBadge
                         status={{

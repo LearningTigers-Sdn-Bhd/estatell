@@ -72,7 +72,7 @@ class UpdatePropertySettingsRequest extends FormRequest
             'registration' => [
                 'registration_card_scope' => ['required', Rule::enum(RegistrationCardScope::class)],
                 'card_required_for_check_in' => ['required', 'boolean'],
-                'id_document_retention_days' => ['nullable', 'integer', 'min:0', 'max:3650'],
+                'id_document_retention_days' => ['nullable', 'integer', 'min:1', 'max:3650'],
                 'security_deposit_amount' => ['required', 'numeric', 'decimal:0,2', 'min:0', 'max:9999999999.99'],
             ],
             'support' => ['allow_support_access' => ['required', 'boolean']],

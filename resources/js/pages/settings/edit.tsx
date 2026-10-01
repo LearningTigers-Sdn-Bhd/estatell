@@ -309,13 +309,13 @@ export default function PropertySettings({
                                         name="id_document_retention_days"
                                         label="ID document retention (days)"
                                         type="number"
-                                        min={0}
+                                        min={1}
                                         max={3650}
                                         value={settings.idDocumentRetentionDays}
                                         error={
                                             errors.id_document_retention_days
                                         }
-                                        description="Leave blank until document capture is configured."
+                                        description="ID scans older than this many days are deleted every night. The number stays. Leave blank to keep scans."
                                     />
                                     <SettingsInput
                                         name="security_deposit_amount"

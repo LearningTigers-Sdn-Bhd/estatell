@@ -23,6 +23,8 @@ class GuestDirectory
 
     public const string STATUS_BLACKLISTED = 'blacklisted';
 
+    public const string STATUS_ANONYMIZED = 'anonymized';
+
     public function __construct(private IdentityNumber $identityNumber) {}
 
     /**
@@ -31,6 +33,8 @@ class GuestDirectory
      */
     public function paginate(Property $property, Request $request, bool $searchIdNumbers = false): LengthAwarePaginator
     {
+        $anonymized = $request->input('filter.status') === self::STATUS_ANONYMIZED;
+
         return QueryBuilder::for(Guest::query()->where('guests.property_id', $property->id)->notMerged(), $request)
             ->allowedFilters(
                 AllowedFilter::callback('search', fn (Builder $query, string $search) => $this->search($query, $search, $searchIdNumbers)),
@@ -40,6 +44,7 @@ class GuestDirectory
                     fn (Builder $tags) => $tags->where('tags.id', (int) $tag)->where('tags.property_id', $property->id),
                 )),
             )
+            ->when($anonymized, fn (Builder $query) => $query->whereNotNull('guests.anonymized_at'), fn (Builder $query) => $query->whereNull('guests.anonymized_at'))
             ->allowedSorts('full_name', 'created_at')
             ->defaultSort('full_name')
             ->with('tags')
@@ -76,6 +81,7 @@ class GuestDirectory
         match ($status) {
             self::STATUS_VIP => $query->where('guests.is_vip', true),
             self::STATUS_BLACKLISTED => $query->blacklisted(),
+            self::STATUS_ANONYMIZED => null,
             default => null,
         };
     }

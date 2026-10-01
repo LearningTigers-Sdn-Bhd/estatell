@@ -1,5 +1,6 @@
 <?php
 
+use App\Actions\Guests\PurgeExpiredIdentityScans;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
@@ -46,3 +47,5 @@ Artisan::command('db:create-test', function () {
 })->purpose('Create the test database named in phpunit.xml if it does not exist');
 
 Schedule::command('horizon:snapshot')->everyFiveMinutes();
+
+Schedule::call(fn (): int => app(PurgeExpiredIdentityScans::class)())->name('purge-expired-identity-scans')->dailyAt('03:30')->onOneServer();

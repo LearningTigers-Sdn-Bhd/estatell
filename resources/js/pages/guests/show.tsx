@@ -5,6 +5,7 @@ import { DateText } from '@/components/pms/date-text';
 import { DetailLayout } from '@/components/pms/detail-layout';
 import { EmptyState } from '@/components/pms/empty-state';
 import { AddNoteDialog } from '@/components/pms/guests/add-note-dialog';
+import { AnonymizeGuestDialog } from '@/components/pms/guests/anonymize-guest-dialog';
 import { DocumentsTab } from '@/components/pms/guests/documents-tab';
 import { PossibleDuplicates } from '@/components/pms/guests/possible-duplicates';
 import {
@@ -34,10 +35,12 @@ type Props = {
     notes?: Note[];
     documents?: Document[];
     duplicates?: App.Data.Guests.GuestMatchData[];
+    retentionDays?: number | null;
     canManage: boolean;
     canBlacklist: boolean;
     canViewDocuments: boolean;
     canMerge: boolean;
+    canAnonymize: boolean;
 };
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
@@ -130,6 +133,15 @@ function Summary({ guest }: { guest: Guest }) {
                         status={{ value: 'vip', label: 'VIP', tone: 'info' }}
                     />
                 )}
+                {guest.anonymizedAt && (
+                    <StatusBadge
+                        status={{
+                            value: 'anonymized',
+                            label: 'Anonymized',
+                            tone: 'neutral',
+                        }}
+                    />
+                )}
                 {guest.blacklistedAt && (
                     <StatusBadge
                         status={{
@@ -168,11 +180,14 @@ export default function GuestShow({
     notes = [],
     documents = [],
     duplicates = [],
+    retentionDays = null,
     canManage,
     canBlacklist,
     canViewDocuments,
     canMerge,
+    canAnonymize,
 }: Props) {
+    const isAnonymized = guest.anonymizedAt !== null;
     const tabs = [
         {
             value: 'details',
@@ -186,7 +201,7 @@ export default function GuestShow({
             icon: StickyNote,
             href: notesTab.url({ guest: guest.id }),
         },
-        ...(canViewDocuments
+        ...(canViewDocuments && !isAnonymized
             ? [
                   {
                       value: 'documents',
@@ -208,7 +223,7 @@ export default function GuestShow({
                     back={{ href: index.url(), label: 'Guests' }}
                     actions={
                         <>
-                            {canManage && (
+                            {canManage && !isAnonymized && (
                                 <>
                                     <VipButton guest={guest} />
                                     {tab === 'notes' && (
@@ -237,10 +252,26 @@ export default function GuestShow({
                                     </Link>
                                 </>
                             )}
-                            {canBlacklist && <BlacklistButton guest={guest} />}
+                            {canBlacklist && !isAnonymized && (
+                                <BlacklistButton guest={guest} />
+                            )}
+                            {canAnonymize && !isAnonymized && (
+                                <AnonymizeGuestDialog guest={guest} />
+                            )}
                         </>
                     }
                 />
+
+                {isAnonymized && (
+                    <Alert>
+                        <AlertTitle>Anonymized</AlertTitle>
+                        <AlertDescription>
+                            This guest was anonymized on{' '}
+                            <DateText date={guest.anonymizedAt} />. Personal
+                            data was removed. Financial history is kept.
+                        </AlertDescription>
+                    </Alert>
+                )}
 
                 {guest.blacklistedAt && (
                     <Alert variant="destructive">
@@ -263,6 +294,7 @@ export default function GuestShow({
                             guest={guest}
                             documents={documents}
                             canManage={canManage}
+                            retentionDays={retentionDays}
                         />
                     ) : (
                         <div className="flex flex-col gap-6">
