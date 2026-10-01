@@ -24,7 +24,8 @@ reservation_units    id, reservation_id, property_id, room_type_id, rate_plan_id
                      late_arrival_expected, checked_in_at, checked_out_at, timestamps
 unit_nights          id, reservation_unit_id, date, rate_plan_id,
                      room_id (nullable), bed_id (nullable),
-                     base_amount, extra_amount, supplement_amount, discount_amount, amount
+                     base_amount, extra_amount, supplement_amount, discount_amount,
+                     override_amount (nullable), amount
                      unique (reservation_unit_id, date)
                      check: room_id or bed_id, never both
 unit_guests          id, reservation_unit_id, guest_id, is_primary
@@ -77,8 +78,9 @@ It has no `canTransitionTo()` because nothing sets it by hand.
 - `room_id` is for Room room types and `bed_id` is for Bed room types, never both. Both can be empty until the unit is assigned. A CHECK keeps the two apart. Only the assignment Actions can check the room type (a CHECK cannot read another table), so `AssignRoom`, `AssignBed` and `MoveUnit` verify that the room or bed belongs to the unit's room type and property.
 - `reservation_units.property_id` repeats the reservation's property so availability and audit queries need no join. Actions set it from the reservation. `unit_nights`, `unit_guests` and `reservation_unit_children` have no `property_id` and no timestamps: they are scoped through their unit.
 - A unit holds inventory on its `unit_nights` while it is Confirmed, CheckedIn or CheckedOut. Cancelled and NoShow units release their nights ([availability](../10-availability/01-availability-service.md)). When a unit is cancelled or marked no-show, its Action clears `room_id` and `bed_id`, so the room can be sold again.
-- `reservation_unit_children.age` is at least 0. `AddUnit` validates ages against the property age groups.
-- `unit_nights` stores the quoted amounts at booking. Rate changes do not change existing bookings.
+- `reservation_unit_children.age` is from 0 to 17, and ages are always required when a unit has children. `AddUnit` checks them. The quote prices an age past the property's last age group as an adult.
+- `unit_nights` stores the quoted amounts at booking. Rate changes do not change existing bookings. `discount_amount` is the rate plan's stay discount from the quote. A catalogue discount (`reservation_units.discount_id`) is not stored on the nights; the folio posts it.
+- `amount` is `override_amount` when it is set, otherwise `base_amount + extra_amount + supplement_amount - discount_amount`. A CHECK enforces this. The quoted split stays as it was, so reports can show the quote and the override side by side.
 - `reservation_unit_children` holds one row per child, so the count always matches `children`. Extending a stay, changing plan or reinstating re-prices from these ages.
 - Every action works on one unit. Group actions loop over units.
 - `reference` comes from `document_sequences`.
@@ -91,12 +93,13 @@ It has no `canTransitionTo()` because nothing sets it by hand.
 
 ## Build status
 
-| Part                                                                                             | Status                 |
-| ------------------------------------------------------------------------------------------------ | ---------------------- |
-| Tables, enums, models, factories, `SyncReservationStatus`                                        | Built                  |
-| `AvailabilityService` counts booked units, `MergeGuests` and `AnonymizeGuest` hooks              | Built                  |
-| `CreateReservation`, `AddUnit`, `AttachGuest`, `AssignRoom`, `AssignBed`, double-booking indexes | Booking form item      |
-| Check-in, check-out, cancel, no-show, reinstate, move                                            | Front desk (module 18) |
+| Part                                                                                          | Status                                      |
+| --------------------------------------------------------------------------------------------- | ------------------------------------------- |
+| Tables, enums, models, factories, `SyncReservationStatus`                                     | Built                                       |
+| `AvailabilityService` counts booked units, `MergeGuests` and `AnonymizeGuest` hooks           | Built                                       |
+| `CreateReservation`, `AddUnit` (incl. bed lines), `UpdateReservationGroup`, `override_amount` | [Group bookings](02-group-bookings.md) item |
+| `AttachGuest`, `AssignRoom`, `AssignBed`, double-booking indexes                              | Booking form item                           |
+| Check-in, check-out, cancel, no-show, reinstate, move                                         | Front desk (module 18)                      |
 
 ## Lessons from wastays
 

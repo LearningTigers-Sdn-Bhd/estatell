@@ -43,7 +43,7 @@ The Reservations page has `New ▾` with **New booking** and **Walk-in**. Walk-i
 
 1. **Stay**: arrival, departure, nights (shown), source, external reference.
 2. **Rooms and beds**: one line per room type + rate plan.
-    - Room lines: adults and children. When children > 0 and the property has age groups, one required age field per child, under the line.
+    - Room lines: adults and children. When children > 0, one required age field per child, under the line.
     - Bed lines: "Beds: N", expanded into N units, with one bed picker per unit.
     - Package plans: departure is locked, the stay total is shown.
     - Rate cell: the server quote from `RateQuoteService`. ⓘ opens the night breakdown. ✎ sets an override (logged, needs a reason).
@@ -144,7 +144,8 @@ Without `guests.manage`, a tab accepts only an existing guest.
 ## Implementation
 
 - Inertia `<Form>` or `useForm` with a Form Request. No client-side validation library.
-- One Action per concern: `CreateReservation`, `AddUnit`, `AttachGuest`, `AssignRoom` / `AssignBed` (whole stay). No god service. `CreateReservation` creates or updates the tab guests through the guest Actions.
+- The form request maps onto `NewReservationData` and calls `CreateReservation` and `AddUnit` from the [group bookings](02-group-bookings.md#creating-reservations-and-units) item. Before that, the guest tabs create or update guests through the guest Actions.
+- This item adds `AttachGuest` and `AssignRoom` / `AssignBed` (whole stay). One Action per concern, no god service.
 - `guests.search` is a JSON route that reuses the `GuestDirectory` search. It needs `guests.view`.
 - Components: Base UI `Combobox`, `Tabs` and `Collapsible`. The autocomplete field is `components/pms/guests/guest-autocomplete-field.tsx`. More guest details reuse the fields of `guest-form.tsx`.
 

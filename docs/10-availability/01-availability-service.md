@@ -33,6 +33,7 @@ Date overlap uses `spatie/period`.
 
 - No stored availability table and no `available_room_numbers` jsonb.
 - Overbooking is allowed only for channel bookings, and is flagged on the night audit readiness panel.
+- The service never locks. A writer that sells inventory (`AddUnit`) locks the room type row first, then checks `availableForStay()` in the same transaction.
 - The channel manager reads availability from this service when sending (see [ARI sync](../21-channels/04-ari-sync.md)).
 
 ## Future

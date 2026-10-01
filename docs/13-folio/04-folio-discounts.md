@@ -36,7 +36,7 @@ A SHA-256 hash of the discount (ID, `updated_at`, type, value, scope, selected c
 ## Rules
 
 - Reversing a charge also reverses its discount.
-- A booking-time discount sets `reservation_units.discount_id` and `unit_nights.discount_amount`. Only RoomOnly discounts are allowed there. The night audit posts gross room + discount line, so reports show gross revenue and discounts.
+- A booking-time discount sets only `reservation_units.discount_id` (RoomOnly discounts only). `unit_nights.discount_amount` holds the rate plan's stay discount, not this one. The night audit calculates the catalogue discount for each night and posts gross room + discount line, so reports show gross revenue and discounts.
 - `RemoveDiscount` is a reversal.
 
 ## Permissions
