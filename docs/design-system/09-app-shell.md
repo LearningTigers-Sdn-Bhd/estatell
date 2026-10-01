@@ -28,9 +28,9 @@ Five rows, top to bottom:
 │   Night audit                │
 │              ⋮               │
 ├──────────────────────────────┤
-│ Business  Fri 12 Jun 2026    │  r4  BusinessDateIndicator
+│ ⚠ Night audit pending      › │  r4  BusinessDateIndicator
+│ Business  Fri 12 Jun 2026    │
 │ System    Sat 13 Jun · 01:24 │
-│ ⚠ Night audit pending      › │
 ├──────────────────────────────┤
 │ 👤 Aisha · Owner          ⌄  │  r5  user menu: Account, Log out
 └──────────────────────────────┘

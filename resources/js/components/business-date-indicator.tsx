@@ -120,6 +120,21 @@ export function BusinessDateIndicator() {
                     role="status"
                     className="grid gap-1 rounded-md px-2 py-1.5 text-xs"
                 >
+                    <div
+                        className={cn(
+                            'flex items-center gap-1.5 font-medium',
+                            stateTone[view.state],
+                        )}
+                    >
+                        <Icon
+                            aria-hidden
+                            className={cn(
+                                'size-3.5 shrink-0',
+                                view.state === 'auditing' && 'animate-spin',
+                            )}
+                        />
+                        <span>{view.message}</span>
+                    </div>
                     {view.businessDay ? (
                         <>
                             <div className="flex items-baseline justify-between gap-2">
@@ -136,21 +151,6 @@ export function BusinessDateIndicator() {
                             </div>
                         </>
                     ) : null}
-                    <div
-                        className={cn(
-                            'flex items-center gap-1.5 font-medium',
-                            stateTone[view.state],
-                        )}
-                    >
-                        <Icon
-                            aria-hidden
-                            className={cn(
-                                'size-3.5 shrink-0',
-                                view.state === 'auditing' && 'animate-spin',
-                            )}
-                        />
-                        <span>{view.message}</span>
-                    </div>
                 </div>
             </SidebarMenuItem>
         </SidebarMenu>
