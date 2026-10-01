@@ -32,6 +32,17 @@ GuestPicker, open:
 └────────────────────────────────────────────┘
 ```
 
+Guest autocomplete field: a variant of `GuestPicker` for forms that also create guests (the [booking form](../12-reservations/05-booking-form.md#guests-section)). Name, Phone and Email are plain inputs with a `guests.search` dropdown. Typing never forces a pick: Escape keeps the typed value as a new guest. Picking fills the fields and shows a linked-guest row with "Change guest". Component: `components/pms/guests/guest-autocomplete-field.tsx`.
+
+```
+ Name [ahmad▌                ]  Phone [+60 __________]  Email [__________]
+ ┌ Existing guests ─────────────────────────────────────┐
+ │ ▸ Ahmad Faiz      +60 12-345 6789  ahmad@x.com  VIP  │
+ │   Ahmad Zulkifli  +60 19-222 1010                    │
+ │   ↑↓ move  ↵ select  esc keep typing as new guest    │
+ └──────────────────────────────────────────────────────┘
+```
+
 Command palette:
 
 ```

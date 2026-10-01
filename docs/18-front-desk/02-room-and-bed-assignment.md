@@ -6,7 +6,7 @@ Put units into physical rooms or beds, per night.
 
 ## Actions
 
-- `AssignRoom` / `AssignBed`: sets `room_id` or `bed_id` on the unit's nights.
+- `AssignRoom` / `AssignBed`: sets `room_id` or `bed_id` on the unit's nights. The whole-stay version ships with the [booking form](../12-reservations/05-booking-form.md#room--bed-column) in module 12. This module adds the Room & Rate editing around it.
 - `AutoAssignRooms`: when `property_settings.auto_assign_rooms` is on, assigns free clean rooms or beds by room group and position.
 - `MoveUnit`: changes the room or bed from a given night onward.
 

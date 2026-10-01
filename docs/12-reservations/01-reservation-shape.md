@@ -56,6 +56,7 @@ erDiagram
 - `reservation_unit_children` holds one row per child, so the count always matches `children`. Extending a stay, changing plan or reinstating re-prices from these ages.
 - Every action works on one unit. Group actions loop over units.
 - `reference` comes from `document_sequences`.
+- `company_id` is a nullable column without a foreign key until [Companies](../15-city-ledger/01-companies.md) adds the table and the key.
 - `external_reference` holds the OTA booking number or the agency's voucher number.
 - `cancellation_requested_*` is set only by an agent after the cancel cut-off (see [Agent portal](../23-agent-portal/01-agent-portal.md)).
 - Status transitions are one Action per transition, checked by `UnitStatus::canTransitionTo()`.
