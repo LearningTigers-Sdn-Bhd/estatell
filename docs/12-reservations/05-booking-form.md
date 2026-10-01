@@ -124,6 +124,8 @@ Collapsed by default: date of birth, gender, nationality, address line 1 and 2, 
 
 ### Permissions
 
+This item adds `reservations.view` and `reservations.manage` (see [Reservation page](06-reservation-page.md#permissions)). The booking form needs `reservations.manage`.
+
 | Permission      | Allows                                     |
 | --------------- | ------------------------------------------ |
 | `guests.view`   | Search and select existing guests          |
