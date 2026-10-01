@@ -116,7 +116,8 @@ test('a guest is marked as VIP and unmarked, with a toast and a log each time', 
     $property = $owner->property;
     $guest = Guest::factory()->for($property)->create(['full_name' => 'Aisyah']);
 
-    $this->actingAs($owner)->post(route('guests.vip.store', [$property->code, $guest]))
+    $this->actingAs($owner)->from(route('guests.notes.index', [$property->code, $guest]))->post(route('guests.vip.store', [$property->code, $guest]))
+        ->assertRedirect(route('guests.notes.index', [$property->code, $guest]))
         ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Aisyah is now a VIP.']);
     expect($guest->refresh()->is_vip)->toBeTrue();
 
@@ -166,6 +167,7 @@ test('a note records its author and notes are listed newest first', function () 
 
     $this->actingAs($owner)
         ->post(route('guests.notes.store', [$property->code, $guest]), ['body' => 'Likes a quiet room'])
+        ->assertRedirect(route('guests.notes.index', [$property->code, $guest]))
         ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Note added.']);
     $this->post(route('guests.notes.store', [$property->code, $guest]), ['body' => ''])->assertSessionHasErrors('body');
 

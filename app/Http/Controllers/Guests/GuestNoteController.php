@@ -18,6 +18,6 @@ class GuestNoteController extends Controller
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Note added.')]);
 
-        return to_route('guests.show', ['property' => $property, 'guest' => $guest]);
+        return to_route('guests.notes.index', ['property' => $property, 'guest' => $guest]);
     }
 }

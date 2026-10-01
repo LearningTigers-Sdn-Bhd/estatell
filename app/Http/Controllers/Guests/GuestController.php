@@ -136,7 +136,7 @@ class GuestController extends Controller
             ? ['type' => 'success', 'message' => __(':name is now a VIP.', ['name' => $guest->full_name])]
             : ['type' => 'error', 'message' => __(':name is already a VIP.', ['name' => $guest->full_name])]);
 
-        return to_route('guests.show', ['property' => $property, 'guest' => $guest]);
+        return back(fallback: route('guests.show', ['property' => $property, 'guest' => $guest]));
     }
 
     public function unmarkVip(Request $request, Property $property, Guest $guest, SetVip $setVip): RedirectResponse
@@ -145,7 +145,7 @@ class GuestController extends Controller
             ? ['type' => 'success', 'message' => __(':name is no longer a VIP.', ['name' => $guest->full_name])]
             : ['type' => 'error', 'message' => __(':name is not a VIP.', ['name' => $guest->full_name])]);
 
-        return to_route('guests.show', ['property' => $property, 'guest' => $guest]);
+        return back(fallback: route('guests.show', ['property' => $property, 'guest' => $guest]));
     }
 
     public function blacklist(BlacklistGuestRequest $request, Property $property, Guest $guest, BlacklistGuest $blacklistGuest): RedirectResponse
@@ -154,7 +154,7 @@ class GuestController extends Controller
             ? ['type' => 'success', 'message' => __(':name blacklisted.', ['name' => $guest->full_name])]
             : ['type' => 'error', 'message' => __(':name is already blacklisted.', ['name' => $guest->full_name])]);
 
-        return to_route('guests.show', ['property' => $property, 'guest' => $guest]);
+        return back(fallback: route('guests.show', ['property' => $property, 'guest' => $guest]));
     }
 
     public function unblacklist(Request $request, Property $property, Guest $guest, UnblacklistGuest $unblacklistGuest): RedirectResponse
@@ -163,7 +163,7 @@ class GuestController extends Controller
             ? ['type' => 'success', 'message' => __(':name removed from the blacklist.', ['name' => $guest->full_name])]
             : ['type' => 'error', 'message' => __(':name is not blacklisted.', ['name' => $guest->full_name])]);
 
-        return to_route('guests.show', ['property' => $property, 'guest' => $guest]);
+        return back(fallback: route('guests.show', ['property' => $property, 'guest' => $guest]));
     }
 
     /**
