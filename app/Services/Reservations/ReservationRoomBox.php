@@ -113,15 +113,22 @@ class ReservationRoomBox
     }
 
     /**
-     * The room number or bed label of the first night of every unit that has one.
-     *
      * @param  Collection<int, Reservation>  $reservations
      * @return array<int, string>
      */
     private function firstNightAssignments(Collection $reservations): array
     {
-        $unitIds = $reservations->flatMap(fn (Reservation $reservation) => $reservation->units->pluck('id'))->all();
+        return $this->assignmentsForUnits($reservations->flatMap(fn (Reservation $reservation) => $reservation->units->pluck('id'))->all());
+    }
 
+    /**
+     * The room number or bed label of the first night of every unit that has one, with one query.
+     *
+     * @param  list<int>  $unitIds
+     * @return array<int, string> By unit id
+     */
+    public function assignmentsForUnits(array $unitIds): array
+    {
         if ($unitIds === []) {
             return [];
         }

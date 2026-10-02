@@ -513,3 +513,14 @@ test('staff see the all reservations item in the front desk context only with re
         expect(collect($page->toArray()['props']['navigation']['contexts'][0]['groups'])->firstWhere('label', 'Reservations'))->toBeNull();
     });
 });
+
+test('the list says whether the property has any reservation, so the empty state can tell hidden from none', function () {
+    [$user, $property] = listOwner();
+
+    $this->actingAs($user)->get(listUrl($property))->assertInertia(fn (Assert $page) => $page->where('hasReservations', false)->has('reservations.data', 0));
+
+    listReservation($property, [], [['arrival_date' => '2026-09-01', 'departure_date' => '2026-09-03']]);
+
+    $this->actingAs($user)->get(listUrl($property))->assertInertia(fn (Assert $page) => $page->where('hasReservations', true)->has('reservations.data', 0));
+    $this->actingAs(User::factory()->create())->get(listUrl($property))->assertNotFound();
+});

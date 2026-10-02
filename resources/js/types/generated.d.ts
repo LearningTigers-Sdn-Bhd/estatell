@@ -589,6 +589,62 @@ overrideReason: string | null,
 restrictionOverrideReason: string | null,
 addOns: App.Data.Reservations.NewAddOnData[],
 };
+export type ReservationActivityData = {
+id: number,
+text: string,
+reason: string | null,
+causerName: string | null,
+createdAt: string,
+};
+export type ReservationAddOnData = {
+id: number,
+unitId: number,
+unitLabel: string,
+chargeItem: string,
+quantity: number,
+serviceDate: string | null,
+unitAmount: string,
+total: string,
+};
+export type ReservationBookerData = {
+id: number | null,
+name: string,
+isVip: boolean,
+isBlacklisted: boolean,
+phone: string | null,
+email: string | null,
+};
+export type ReservationData = {
+id: number,
+reference: string,
+title: string,
+isGroup: boolean,
+isClosed: boolean,
+status: App.Data.Shared.BadgeData,
+firstArrival: string | null,
+lastDeparture: string | null,
+unitCount: number,
+roomNights: number,
+stayTotal: string,
+billingMode: string,
+billingModeLabel: string,
+source: string,
+sourceLabel: string,
+channelName: string | null,
+externalReference: string | null,
+createdOn: string,
+createdBy: string | null,
+booker: App.Data.Reservations.ReservationBookerData,
+};
+export type ReservationGuestData = {
+guestId: number | null,
+name: string | null,
+phone: string | null,
+unitId: number | null,
+unitLabel: string | null,
+unitStatus: App.Data.Shared.BadgeData | null,
+roles: string[],
+};
 export type ReservationListItemData = {
 id: number,
 reference: string,
@@ -616,6 +672,13 @@ bookedOn: string,
 total: string,
 roomBox: App.Data.Reservations.ReservationRoomBoxData,
 };
+export type ReservationNightData = {
+date: string,
+assigned: string | null,
+ratePlan: string,
+amount: string,
+isOverridden: boolean,
+};
 export type ReservationRoomBoxData = {
 state: App.Enums.ReservationRoomBoxState,
 label: string,
@@ -635,6 +698,36 @@ export type ReservationStatusCountData = {
 value: string,
 label: string,
 count: number,
+};
+export type ReservationUnitData = {
+id: number,
+roomType: string,
+ratePlan: string,
+status: App.Data.Shared.BadgeData,
+arrival: string,
+departure: string,
+nightCount: number,
+adults: number,
+children: number,
+childAges: number[],
+assigned: string[],
+allNightsAssigned: boolean,
+primaryGuest: string | null,
+primaryGuestId: number | null,
+total: string,
+nights: App.Data.Reservations.ReservationNightData[],
+priceOverrideReason: string | null,
+priceOverrideBy: string | null,
+};
+export type ReservationUnitOptionData = {
+id: number,
+roomType: string,
+isBed: boolean,
+assigned: string | null,
+label: string,
+status: App.Data.Shared.BadgeData,
+arrival: string,
+departure: string,
 };
 }
 namespace Rooms {

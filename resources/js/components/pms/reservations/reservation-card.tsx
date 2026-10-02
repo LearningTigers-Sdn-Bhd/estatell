@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { show as showGuest } from '@/routes/guests';
+import { show } from '@/routes/reservations';
 import {
     ReservationMarkers,
     SourceIcon,
@@ -24,7 +25,7 @@ type Item = App.Data.Reservations.ReservationListItemData;
 
 /**
  * One reservation as a card: room box, title with markers, stay strip, status, occupancy, room types and total.
- * Opening the reservation comes with the reservation page.
+ * The title is a stretched link that opens the reservation.
  */
 export function ReservationCard({
     reservation,
@@ -36,7 +37,7 @@ export function ReservationCard({
     return (
         <Card
             className={cn(
-                'h-full',
+                'relative h-full',
                 reservation.isCancelled && 'bg-muted/50 text-muted-foreground',
                 reservation.isBlacklisted &&
                     'bg-muted ring-2 ring-destructive/50',
@@ -47,7 +48,12 @@ export function ReservationCard({
                 <div className="flex min-w-0 flex-1 flex-col gap-1">
                     <div className="flex min-w-0 items-center gap-1.5">
                         <h2 className="truncate font-heading text-base leading-snug font-medium">
-                            {reservation.title}
+                            <Link
+                                href={show.url({ reservation: reservation.id })}
+                                className="after:absolute after:inset-0"
+                            >
+                                {reservation.title}
+                            </Link>
                         </h2>
                         <ReservationMarkers reservation={reservation} />
                     </div>
@@ -55,15 +61,32 @@ export function ReservationCard({
                         {reservationSubtitle(reservation)}
                     </p>
                 </div>
-                {reservation.bookerId !== null && (
-                    <DropdownMenu>
-                        <DropdownMenuTrigger
-                            render={<Button variant="ghost" size="icon-sm" />}
-                            aria-label={`Actions for ${reservation.reference}`}
+                <DropdownMenu>
+                    <DropdownMenuTrigger
+                        render={
+                            <Button
+                                variant="ghost"
+                                size="icon-sm"
+                                className="relative z-10"
+                            />
+                        }
+                        aria-label={`Actions for ${reservation.reference}`}
+                    >
+                        <Ellipsis />
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                        <DropdownMenuItem
+                            render={
+                                <Link
+                                    href={show.url({
+                                        reservation: reservation.id,
+                                    })}
+                                />
+                            }
                         >
-                            <Ellipsis />
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
+                            Open reservation
+                        </DropdownMenuItem>
+                        {reservation.bookerId !== null && (
                             <DropdownMenuItem
                                 render={
                                     <Link
@@ -75,9 +98,9 @@ export function ReservationCard({
                             >
                                 Open guest
                             </DropdownMenuItem>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-                )}
+                        )}
+                    </DropdownMenuContent>
+                </DropdownMenu>
             </CardHeader>
             <CardContent className="flex flex-1 flex-col gap-3">
                 <dl className="grid grid-cols-3 gap-2 rounded-lg bg-muted px-3 py-2 text-sm">

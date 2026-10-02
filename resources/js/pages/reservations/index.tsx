@@ -43,6 +43,7 @@ type Props = {
     sorts: EnumOption[];
     sources: EnumOption[];
     currency: App.Enums.Currency | null;
+    hasReservations: boolean;
 };
 
 const statusIcons: Record<string, LucideIcon> = {
@@ -61,6 +62,7 @@ export default function ReservationsIndex({
     sorts,
     sources,
     currency,
+    hasReservations,
 }: Props) {
     const [view, setView] = useReservationView();
 
@@ -120,6 +122,10 @@ export default function ReservationsIndex({
                 stay: { mode: 'default', from: null, to: null },
             },
         });
+    const showAllDates = () =>
+        visit({
+            filters: { stay: { mode: 'all', from: null, to: null } },
+        });
     const empty = hasActiveFilters(filters) ? (
         <EmptyState
             icon={CalendarDays}
@@ -127,6 +133,17 @@ export default function ReservationsIndex({
             action={
                 <Button variant="outline" onClick={clearFilters}>
                     Clear filters
+                </Button>
+            }
+        />
+    ) : hasReservations ? (
+        <EmptyState
+            icon={CalendarDays}
+            title="No upcoming reservations"
+            description="Reservations that ended before the business date are hidden."
+            action={
+                <Button variant="outline" onClick={showAllDates}>
+                    Show all dates
                 </Button>
             }
         />
@@ -185,17 +202,7 @@ export default function ReservationsIndex({
                             <Button
                                 variant="link"
                                 className="h-auto p-0"
-                                onClick={() =>
-                                    visit({
-                                        filters: {
-                                            stay: {
-                                                mode: 'all',
-                                                from: null,
-                                                to: null,
-                                            },
-                                        },
-                                    })
-                                }
+                                onClick={showAllDates}
                             >
                                 Show all dates
                             </Button>

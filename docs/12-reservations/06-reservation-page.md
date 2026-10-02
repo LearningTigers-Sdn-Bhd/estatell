@@ -142,12 +142,13 @@ Below `lg`, List view shows the cards, as wastays does.
 
 ### Empty states
 
-- No reservations: "No reservations yet", "Bookings you take appear here.", with **New booking**.
+- The property has no reservation at all: "No reservations yet", "Bookings you take appear here.", with **New booking** (hidden until the booking form).
+- The default stay window hides everything (no filter set, but the property has reservations): "No upcoming reservations", with **Show all dates** (`filter[stay]=all`).
 - Filters with no match: "No reservations match these filters", with **Clear filters**.
 
 ### Build status
 
-Built: `reservations.index` with the status tabs, search, source and stay filters, sorts, Cards and List views, the card, the room box and the sidebar item **All reservations**. `ReservationDirectory` (`app/Services/Reservations/`) runs the query and the counts, and `ReservationRoomBox` builds the room box. The URL values are `filter[status]`, `filter[source]`, `filter[search]`, `filter[stay]` (`all`, or `from_to` with either date empty) and `sort`. A card or row is not a link and its menu has only **Open guest** until the reservation page item adds `reservations.show`. **New booking** is hidden until the booking form.
+Built: `reservations.index` with the status tabs, search, source and stay filters, sorts, Cards and List views, the card, the room box and the sidebar item **All reservations**. `ReservationDirectory` (`app/Services/Reservations/`) runs the query and the counts, and `ReservationRoomBox` builds the room box. The URL values are `filter[status]`, `filter[source]`, `filter[search]`, `filter[stay]` (`all`, or `from_to` with either date empty) and `sort`. A card or row opens `reservations.show` (the card title is a stretched link, and the **⋯** menu has **Open reservation** and, with `guests.view`, **Open guest**). **New booking** is hidden until the booking form.
 
 ## Reservation page (Detail archetype)
 
@@ -229,6 +230,10 @@ The reservation's activity log entries (`spatie/laravel-activitylog`), newest fi
 ### Summary card
 
 Booker (name, VIP, phone, email, link to the guest), earliest arrival, latest departure, units, room nights, stay total (sum of `unit_nights.amount` of units that hold inventory), balance ("from folio" until [module 13](../13-folio/01-folios-and-lines.md)), billing mode (2 or more units, with the `BillingMode` label), source, company ("—" until [Companies](../15-city-ledger/01-companies.md)), created date and user.
+
+### Page build status
+
+Built, view only: the four tab routes with `renderTab()`, the header with the Group badge and the Status by unit popover, the Units tab (Choose unit list or select, `?unit=`, night table, price override reason), the Guests, Add-ons and Activity tabs, and the summary card. The reservation page sends `ReservationData`, a `ReservationUnitOptionData` list and the open tab's own data. `ReservationOverview`, `ReservationGuestRows` and `ReservationActivityLog` (`app/Services/Reservations/`) read the data in a constant number of queries. Not built yet, and so with no buttons: Add unit, Edit group, Attach guest, add and remove add-on, and the unit **⋯** menu.
 
 ## Refusals and messages
 

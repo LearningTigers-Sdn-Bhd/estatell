@@ -1,3 +1,4 @@
+import { Link, router } from '@inertiajs/react';
 import { useMemo } from 'react';
 import type { ReactNode } from 'react';
 import { DataTable, dataTableColumns } from '@/components/pms/data-table';
@@ -6,6 +7,7 @@ import { DateText } from '@/components/pms/date-text';
 import { MoneyText } from '@/components/pms/money-text';
 import { StatusBadge } from '@/components/pms/status-badge';
 import { ReservationMarkers, reservationSubtitle } from './reservation-parts';
+import { show } from '@/routes/reservations';
 import { RoomBox } from './room-box';
 
 type Item = App.Data.Reservations.ReservationListItemData;
@@ -35,9 +37,13 @@ export function ReservationList({
             column.accessor('reference', {
                 header: 'Ref',
                 cell: (info) => (
-                    <span className="font-medium tabular-nums">
+                    <Link
+                        href={show.url({ reservation: info.row.original.id })}
+                        onClick={(event) => event.stopPropagation()}
+                        className="font-medium tabular-nums underline-offset-4 hover:underline"
+                    >
                         {info.getValue()}
-                    </span>
+                    </Link>
                 ),
             }),
             column.display({
@@ -135,6 +141,9 @@ export function ReservationList({
             sort={sort}
             onSortChange={onSortChange}
             pagination={pagination}
+            onRowClick={(row) =>
+                router.visit(show.url({ reservation: row.id }))
+            }
             empty={empty}
         />
     );
