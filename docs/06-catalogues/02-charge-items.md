@@ -55,7 +55,7 @@ The item form selects the taxes that apply to the item. It writes the same `tax_
 
 ## Quantity resolution
 
-`ChargeQuantityResolver` is deferred until reservations and folios establish the canonical stay dates, guest counts and item quantities. It will turn a charging unit and stay context into a quantity. For example, PerGuestNight with two guests and three nights produces six.
+`ChargeQuantityResolver` is built with [Add-ons](../12-reservations/04-add-ons.md#rows-by-charging-unit). It turns a charging unit and a unit's stay into add-on rows: nightly units give one row per night, so PerGuestNight with two guests and three nights gives three rows of quantity two.
 
 ## Rules
 
