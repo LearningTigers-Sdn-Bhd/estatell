@@ -5,7 +5,7 @@ namespace App\Actions\Reservations;
 use RuntimeException;
 
 /**
- * Raised inside `CreateReservation`'s transaction when a line is refused, so everything written so far rolls back.
+ * Raised inside the transaction of `CreateReservation` or `AddUnit` when a line or add-on is refused, so everything written so far rolls back.
  * It never leaves the Action.
  */
 class ReservationRefused extends RuntimeException

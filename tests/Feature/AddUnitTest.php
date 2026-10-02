@@ -7,6 +7,7 @@ use App\Enums\DiscountScope;
 use App\Enums\ReservationSource;
 use App\Enums\ReservationStatus;
 use App\Models\BusinessDate;
+use App\Models\ChargeItem;
 use App\Models\Discount;
 use App\Models\Property;
 use App\Models\PropertyAgeGroup;
@@ -20,6 +21,7 @@ use App\Models\Role;
 use App\Models\Room;
 use App\Models\RoomBlock;
 use App\Models\RoomType;
+use App\Models\UnitAddOn;
 use App\Models\UnitNight;
 use App\Models\User;
 use Carbon\CarbonImmutable;
@@ -506,4 +508,32 @@ test('it ignores the beds of the line and adds exactly one unit', function () {
     addUnit($setup, unitData($setup, 2, ['beds' => 3]));
 
     expect(ReservationUnit::query()->count())->toBe(1);
+});
+
+test('it adds the add-ons of the line to the new unit', function () {
+    $setup = unitSetup();
+    $item = ChargeItem::factory()->create(['property_id' => $setup['property']->id, 'default_amount' => '50.00']);
+
+    addUnit($setup, unitData($setup, 2, ['addOns' => [['chargeItemId' => $item->id, 'quantity' => 2]]]));
+
+    $unit = ReservationUnit::query()->sole();
+
+    expect($unit->addOns()->sole()->quantity)->toBe(2)
+        ->and(Activity::query()->where('event', 'reservation.add_on_added')->count())->toBe(1);
+});
+
+test('a refused add-on refuses the unit, rolls it back and names the line', function () {
+    $setup = unitSetup();
+    $item = ChargeItem::factory()->create(['property_id' => $setup['property']->id, 'default_amount' => '50.00', 'allow_override' => false]);
+
+    $result = addUnit($setup, unitData($setup, 2, ['addOns' => [
+        ['chargeItemId' => $item->id],
+        ['chargeItemId' => $item->id, 'unitAmount' => '1.00'],
+    ]]), 4);
+
+    expect($result->reservation)->toBeNull()
+        ->and($result->refusal)->toBe('amount_override_not_allowed')
+        ->and($result->lineIndex)->toBe(4)
+        ->and(UnitAddOn::query()->count())->toBe(0);
+    expectNothingWritten();
 });

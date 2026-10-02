@@ -558,6 +558,12 @@ nightAmounts: string[],
 };
 }
 namespace Reservations {
+export type NewAddOnData = {
+chargeItemId: number,
+quantity: number | null,
+unitAmount: string | null,
+serviceDate: string | null,
+};
 export type NewReservationData = {
 bookerGuestId: number,
 source: App.Enums.ReservationSource,
@@ -581,6 +587,7 @@ lateArrivalExpected: boolean,
 overrideTotal: string | null,
 overrideReason: string | null,
 restrictionOverrideReason: string | null,
+addOns: App.Data.Reservations.NewAddOnData[],
 };
 }
 namespace Rooms {

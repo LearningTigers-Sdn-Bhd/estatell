@@ -34,6 +34,7 @@ class AddUnit
         private SyncReservationStatus $syncReservationStatus,
         private CurrentBusinessDate $currentBusinessDate,
         private PropertyToday $propertyToday,
+        private AddUnitAddOn $addUnitAddOn,
     ) {}
 
     /**
@@ -42,154 +43,174 @@ class AddUnit
      * The room type row is locked before the availability check, so two staff cannot sell the last unit together.
      * Every check runs before the first write, so a refusal writes and logs nothing. `$lineIndex` is the index of
      * the line in the request, and comes back on a refusal. Channel bookings skip the arrival date, restriction
-     * and availability checks. See docs/12-reservations/02-group-bookings.md.
+     * and availability checks. An add-on refusal rolls back the unit and comes back with the line index. See docs/12-reservations/02-group-bookings.md.
      */
     public function __invoke(User $actor, Reservation $reservation, NewUnitData $data, int $lineIndex = 0): ReservationResult
     {
-        return DB::transaction(function () use ($actor, $reservation, $data, $lineIndex): ReservationResult {
-            $isChannel = $reservation->source === ReservationSource::Channel;
-            $refuse = fn (string $code, $date = null): ReservationResult => ReservationResult::refused($code, $lineIndex, $date);
+        try {
+            return DB::transaction(fn (): ReservationResult => $this->add($actor, $reservation, $data, $lineIndex));
+        } catch (ReservationRefused $refused) {
+            return $refused->result;
+        }
+    }
 
-            $roomType = RoomType::query()
-                ->where('property_id', $reservation->property_id)
-                ->active()
-                ->lockForUpdate()
-                ->find($data->roomTypeId);
-            $ratePlan = RatePlan::query()->where('property_id', $reservation->property_id)->find($data->ratePlanId);
+    /**
+     * @throws ReservationRefused when an add-on is refused after the unit was written, so the transaction rolls back
+     */
+    private function add(User $actor, Reservation $reservation, NewUnitData $data, int $lineIndex): ReservationResult
+    {
 
-            if ($roomType === null || $ratePlan === null) {
-                return $refuse(ReservationResult::REFUSAL_ROOM_TYPE_NOT_FOUND);
+        $isChannel = $reservation->source === ReservationSource::Channel;
+        $refuse = fn (string $code, $date = null): ReservationResult => ReservationResult::refused($code, $lineIndex, $date);
+
+        $roomType = RoomType::query()
+            ->where('property_id', $reservation->property_id)
+            ->active()
+            ->lockForUpdate()
+            ->find($data->roomTypeId);
+        $ratePlan = RatePlan::query()->where('property_id', $reservation->property_id)->find($data->ratePlanId);
+
+        if ($roomType === null || $ratePlan === null) {
+            return $refuse(ReservationResult::REFUSAL_ROOM_TYPE_NOT_FOUND);
+        }
+
+        if (! $ratePlan->roomTypes()->whereKey($roomType->id)->exists()) {
+            return $refuse(ReservationResult::REFUSAL_RATE_PLAN_NOT_LINKED);
+        }
+
+        $arrival = $data->arrivalDate->startOfDay();
+        $departure = $data->departureDate->startOfDay();
+
+        if ($departure->lte($arrival)) {
+            return $refuse(ReservationResult::REFUSAL_INVALID_STAY);
+        }
+
+        $property = $reservation->property;
+
+        if (! $isChannel) {
+            $today = $this->currentBusinessDate->date($property) ?? $this->propertyToday->date($property);
+
+            if ($arrival->lt($today)) {
+                return $refuse(ReservationResult::REFUSAL_ARRIVAL_IN_PAST);
             }
+        }
 
-            if (! $ratePlan->roomTypes()->whereKey($roomType->id)->exists()) {
-                return $refuse(ReservationResult::REFUSAL_RATE_PLAN_NOT_LINKED);
-            }
+        if ($data->adults < 1) {
+            return $refuse(ReservationResult::REFUSAL_ADULTS_REQUIRED);
+        }
 
-            $arrival = $data->arrivalDate->startOfDay();
-            $departure = $data->departureDate->startOfDay();
+        if (array_any($data->childAges, fn (mixed $age): bool => ! is_int($age) || $age < 0 || $age > 17)) {
+            return $refuse(ReservationResult::REFUSAL_CHILD_AGE_INVALID);
+        }
 
-            if ($departure->lte($arrival)) {
-                return $refuse(ReservationResult::REFUSAL_INVALID_STAY);
-            }
+        if ($data->discountId !== null && ! $this->isRoomOnlyDiscountOf($reservation, $data->discountId)) {
+            return $refuse(ReservationResult::REFUSAL_DISCOUNT_NOT_ALLOWED);
+        }
 
-            $property = $reservation->property;
+        $restrictionOverride = null;
 
-            if (! $isChannel) {
-                $today = $this->currentBusinessDate->date($property) ?? $this->propertyToday->date($property);
+        if (! $isChannel) {
+            $violations = $this->restrictionCheck->violations($ratePlan->id, $roomType->id, $arrival, $departure);
 
-                if ($arrival->lt($today)) {
-                    return $refuse(ReservationResult::REFUSAL_ARRIVAL_IN_PAST);
-                }
-            }
+            if ($violations !== []) {
+                $reason = trim((string) $data->restrictionOverrideReason);
 
-            if ($data->adults < 1) {
-                return $refuse(ReservationResult::REFUSAL_ADULTS_REQUIRED);
-            }
-
-            if (array_any($data->childAges, fn (mixed $age): bool => ! is_int($age) || $age < 0 || $age > 17)) {
-                return $refuse(ReservationResult::REFUSAL_CHILD_AGE_INVALID);
-            }
-
-            if ($data->discountId !== null && ! $this->isRoomOnlyDiscountOf($reservation, $data->discountId)) {
-                return $refuse(ReservationResult::REFUSAL_DISCOUNT_NOT_ALLOWED);
-            }
-
-            $restrictionOverride = null;
-
-            if (! $isChannel) {
-                $violations = $this->restrictionCheck->violations($ratePlan->id, $roomType->id, $arrival, $departure);
-
-                if ($violations !== []) {
-                    $reason = trim((string) $data->restrictionOverrideReason);
-
-                    if ($reason === '') {
-                        return $refuse(ReservationResult::REFUSAL_RESTRICTED);
-                    }
-
-                    if (! $this->canOverrideRestrictions($actor, $reservation)) {
-                        return $refuse(ReservationResult::REFUSAL_RESTRICTION_OVERRIDE_NOT_ALLOWED);
-                    }
-
-                    $restrictionOverride = ['reason' => $reason, 'violations' => $violations];
-                }
-
-                $soldOut = array_find(
-                    $this->availability->nights($roomType, $arrival, $departure),
-                    fn (NightAvailability $night): bool => $night->available < 1,
-                );
-
-                if ($soldOut !== null) {
-                    return $refuse(ReservationResult::REFUSAL_NOT_AVAILABLE, $soldOut->date);
-                }
-            }
-
-            $overrideTotal = null;
-
-            if ($data->overrideTotal !== null) {
-                if (trim((string) $data->overrideReason) === '') {
-                    return $refuse(ReservationResult::REFUSAL_OVERRIDE_REASON_REQUIRED);
+                if ($reason === '') {
+                    return $refuse(ReservationResult::REFUSAL_RESTRICTED);
                 }
 
-                if (preg_match('/^\d+(\.\d{1,2})?$/', $data->overrideTotal) !== 1) {
-                    return $refuse(ReservationResult::REFUSAL_OVERRIDE_INVALID);
+                if (! $this->canOverrideRestrictions($actor, $reservation)) {
+                    return $refuse(ReservationResult::REFUSAL_RESTRICTION_OVERRIDE_NOT_ALLOWED);
                 }
+
+                $restrictionOverride = ['reason' => $reason, 'violations' => $violations];
             }
 
-            $quote = $this->rateQuoteService->quote(new RateQuoteRequest(
-                $ratePlan,
-                $roomType,
-                $arrival,
-                $departure,
-                $data->adults,
-                array_values($data->childAges),
-                1,
-            ));
+            $soldOut = array_find(
+                $this->availability->nights($roomType, $arrival, $departure),
+                fn (NightAvailability $night): bool => $night->available < 1,
+            );
 
-            if ($quote->isRefused()) {
-                return $refuse((string) $quote->refusal, $quote->refusalDate);
+            if ($soldOut !== null) {
+                return $refuse(ReservationResult::REFUSAL_NOT_AVAILABLE, $soldOut->date);
+            }
+        }
+
+        $overrideTotal = null;
+
+        if ($data->overrideTotal !== null) {
+            if (trim((string) $data->overrideReason) === '') {
+                return $refuse(ReservationResult::REFUSAL_OVERRIDE_REASON_REQUIRED);
             }
 
-            if ($data->overrideTotal !== null) {
-                $overrideTotal = Money::of($data->overrideTotal, $quote->total->getCurrency());
+            if (preg_match('/^\d+(\.\d{1,2})?$/', $data->overrideTotal) !== 1) {
+                return $refuse(ReservationResult::REFUSAL_OVERRIDE_INVALID);
             }
+        }
 
-            $unit = $reservation->units()->make([
-                'room_type_id' => $roomType->id,
+        $quote = $this->rateQuoteService->quote(new RateQuoteRequest(
+            $ratePlan,
+            $roomType,
+            $arrival,
+            $departure,
+            $data->adults,
+            array_values($data->childAges),
+            1,
+        ));
+
+        if ($quote->isRefused()) {
+            return $refuse((string) $quote->refusal, $quote->refusalDate);
+        }
+
+        if ($data->overrideTotal !== null) {
+            $overrideTotal = Money::of($data->overrideTotal, $quote->total->getCurrency());
+        }
+
+        $unit = $reservation->units()->make([
+            'room_type_id' => $roomType->id,
+            'rate_plan_id' => $ratePlan->id,
+            'arrival_date' => $arrival,
+            'departure_date' => $departure,
+            'adults' => $data->adults,
+            'children' => count($data->childAges),
+            'discount_id' => $data->discountId,
+            'late_arrival_expected' => $data->lateArrivalExpected,
+        ]);
+        $unit->forceFill(['property_id' => $reservation->property_id, 'status' => UnitStatus::Confirmed])->save();
+
+        $overrides = $overrideTotal === null ? null : $this->spread($overrideTotal, count($quote->nights));
+
+        $unit->nights()->createMany(array_map(
+            fn (NightPrice $night, int $index): array => [
+                'date' => $night->date->toDateString(),
                 'rate_plan_id' => $ratePlan->id,
-                'arrival_date' => $arrival,
-                'departure_date' => $departure,
-                'adults' => $data->adults,
-                'children' => count($data->childAges),
-                'discount_id' => $data->discountId,
-                'late_arrival_expected' => $data->lateArrivalExpected,
-            ]);
-            $unit->forceFill(['property_id' => $reservation->property_id, 'status' => UnitStatus::Confirmed])->save();
+                'base_amount' => (string) $night->base->getAmount(),
+                'extra_amount' => (string) $night->extra->getAmount(),
+                'supplement_amount' => (string) $night->supplement->getAmount(),
+                'discount_amount' => (string) $night->discountAmount->getAmount(),
+                'override_amount' => $overrides === null ? null : (string) $overrides[$index]->getAmount(),
+                'amount' => (string) ($overrides === null ? $night->net() : $overrides[$index])->getAmount(),
+            ],
+            $quote->nights,
+            array_keys($quote->nights),
+        ));
 
-            $overrides = $overrideTotal === null ? null : $this->spread($overrideTotal, count($quote->nights));
+        $unit->childAges()->createMany(array_map(fn (int $age): array => ['age' => $age], array_values($data->childAges)));
 
-            $unit->nights()->createMany(array_map(
-                fn (NightPrice $night, int $index): array => [
-                    'date' => $night->date->toDateString(),
-                    'rate_plan_id' => $ratePlan->id,
-                    'base_amount' => (string) $night->base->getAmount(),
-                    'extra_amount' => (string) $night->extra->getAmount(),
-                    'supplement_amount' => (string) $night->supplement->getAmount(),
-                    'discount_amount' => (string) $night->discountAmount->getAmount(),
-                    'override_amount' => $overrides === null ? null : (string) $overrides[$index]->getAmount(),
-                    'amount' => (string) ($overrides === null ? $night->net() : $overrides[$index])->getAmount(),
-                ],
-                $quote->nights,
-                array_keys($quote->nights),
-            ));
+        foreach ($data->addOns as $addOn) {
+            $addOnResult = ($this->addUnitAddOn)($actor, $unit, $addOn);
 
-            $unit->childAges()->createMany(array_map(fn (int $age): array => ['age' => $age], array_values($data->childAges)));
+            if ($addOnResult->isRefused()) {
+                throw new ReservationRefused(ReservationResult::refused((string) $addOnResult->refusal, $lineIndex));
+            }
+        }
 
-            $this->log($actor, $reservation, $unit, $restrictionOverride, $overrideTotal, $data->overrideReason);
+        $this->log($actor, $reservation, $unit, $restrictionOverride, $overrideTotal, $data->overrideReason);
 
-            ($this->syncReservationStatus)($reservation);
+        ($this->syncReservationStatus)($reservation);
 
-            return ReservationResult::created($reservation);
-        });
+        return ReservationResult::created($reservation);
+
     }
 
     private function isRoomOnlyDiscountOf(Reservation $reservation, int $discountId): bool

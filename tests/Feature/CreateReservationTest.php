@@ -6,6 +6,7 @@ use App\Data\Reservations\NewReservationData;
 use App\Enums\BillingMode;
 use App\Enums\ReservationSource;
 use App\Models\Bed;
+use App\Models\ChargeItem;
 use App\Models\Guest;
 use App\Models\Property;
 use App\Models\PropertySetting;
@@ -15,6 +16,7 @@ use App\Models\Reservation;
 use App\Models\ReservationUnit;
 use App\Models\Room;
 use App\Models\RoomType;
+use App\Models\UnitAddOn;
 use App\Models\UnitNight;
 use App\Models\User;
 use App\Services\Availability\AvailabilityService;
@@ -317,4 +319,36 @@ test('it logs the reservation once with its units', function () {
     expect($created->causer_id)->toBe($setup['user']->id)
         ->and($created->properties['units'])->toBe(3)
         ->and(Activity::query()->where('event', 'reservation.unit_added')->count())->toBe(3);
+});
+
+test('each line keeps its own add-ons and a bed line gives every bed the same ones', function () {
+    $setup = createSetup(beds: 3);
+    $item = ChargeItem::factory()->create(['property_id' => $setup['property']->id, 'default_amount' => '50.00']);
+    $perNight = ChargeItem::factory()->create(['property_id' => $setup['property']->id, 'default_amount' => '10.00', 'charging_unit' => 'per_night']);
+
+    $result = createReservation($setup, [
+        roomLine($setup, 2, ['addOns' => [['chargeItemId' => $item->id, 'quantity' => 2]]]),
+        bedLine($setup, 3, 2, ['addOns' => [['chargeItemId' => $perNight->id]]]),
+    ]);
+
+    expect($result->isRefused())->toBeFalse()
+        ->and(UnitAddOn::query()->where('charge_item_id', $item->id)->count())->toBe(1)
+        ->and(UnitAddOn::query()->where('charge_item_id', $perNight->id)->count())->toBe(6)
+        ->and(ReservationUnit::query()->whereHas('addOns')->count())->toBe(4);
+});
+
+test('a refused add-on rolls back the whole booking and does not use up the reference', function () {
+    $setup = createSetup();
+    $item = ChargeItem::factory()->create(['property_id' => $setup['property']->id, 'default_amount' => '50.00', 'allow_override' => false]);
+
+    $result = createReservation($setup, [
+        roomLine($setup, 2, ['addOns' => [['chargeItemId' => $item->id]]]),
+        roomLine($setup, 2, ['addOns' => [['chargeItemId' => $item->id, 'unitAmount' => '1.00']]]),
+    ]);
+
+    expect($result->reservation)->toBeNull()
+        ->and($result->refusal)->toBe('amount_override_not_allowed')
+        ->and($result->lineIndex)->toBe(1)
+        ->and(UnitAddOn::query()->count())->toBe(0);
+    expectNothingCreated();
 });

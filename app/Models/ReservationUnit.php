@@ -119,4 +119,12 @@ class ReservationUnit extends Model
     {
         return $this->hasMany(ReservationUnitChild::class);
     }
+
+    /**
+     * @return HasMany<UnitAddOn, $this>
+     */
+    public function addOns(): HasMany
+    {
+        return $this->hasMany(UnitAddOn::class);
+    }
 }

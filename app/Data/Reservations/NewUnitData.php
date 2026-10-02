@@ -15,6 +15,7 @@ class NewUnitData extends Data
 {
     /**
      * @param  list<int>  $childAges
+     * @param  list<NewAddOnData>  $addOns
      */
     public function __construct(
         public int $roomTypeId,
@@ -31,5 +32,6 @@ class NewUnitData extends Data
         public ?string $overrideTotal = null,
         public ?string $overrideReason = null,
         public ?string $restrictionOverrideReason = null,
+        public array $addOns = [],
     ) {}
 }

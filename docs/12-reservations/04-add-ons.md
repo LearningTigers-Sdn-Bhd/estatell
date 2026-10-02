@@ -77,6 +77,10 @@ No UI in this item. The Add-ons tab on the [reservation page](06-reservation-pag
 - Add-ons are not split out of the rate. Package inclusions are (see [Inclusions](../09-packages/01-inclusions.md)).
 - Stay changes in [module 18](../18-front-desk/01-check-in-and-check-out.md) re-run the quantities of PerGuest and PerGuestNight add-ons and drop nightly rows outside the new dates.
 
+## Build status
+
+Built: `unit_add_ons` (with its CHECKs), `UnitAddOn`, `NewAddOnData`, `NewUnitData::$addOns`, `AddUnitAddOn`, `RemoveUnitAddOn`, `AddOnResult` and `ChargeQuantityResolver`. `AddUnit` calls `AddUnitAddOn` for each add-on of the line and rolls back its own unit on a refusal. The Add-ons tab and the booking form Extras call them in later items. Posting (`PostScheduledAddOns`, `CheckInUnit`) comes with module 13.
+
 ## Lessons from wastays
 
 wastays posted extras as forecast folio rows, one per stay date for nightly charging units, priced from `hotel_extra_charges` with an amount override flag. estatell keeps the per-night rows and the override flag, but stores add-ons on the unit, not as forecast folio rows.
