@@ -102,7 +102,7 @@ Changes `group_name` and `billing_mode`. [Routing](../13-folio/03-routing.md) ad
 
 ## Build status
 
-Built: `CreateReservation`, `AddUnit`, `UpdateReservationGroup`, `ReservationResult`, `NewReservationData`, `NewUnitData` and `unit_nights.override_amount` (with its CHECK). The Add unit button, the Edit group dialog and the booking form call them in later items.
+Built: `CreateReservation`, `AddUnit`, `UpdateReservationGroup`, `ReservationResult`, `NewReservationData`, `NewUnitData` and `unit_nights.override_amount` (with its CHECK), plus `reservation_closed` and the `fromChannel` argument. The Add unit button, the Edit group dialog and the booking form call them in later items.
 
 ## Supported cases
 

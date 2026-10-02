@@ -95,14 +95,14 @@ function bedLine(array $setup, int $beds, int $nights = 2, array $overrides = []
  * @param  list<array<string, mixed>>  $lines
  * @param  array<string, mixed>  $overrides
  */
-function createReservation(array $setup, array $lines, array $overrides = []): ReservationResult
+function createReservation(array $setup, array $lines, array $overrides = [], bool $fromChannel = false): ReservationResult
 {
     return app(CreateReservation::class)($setup['user'], $setup['property'], NewReservationData::from([
         'bookerGuestId' => $setup['guest']->id,
         'source' => ReservationSource::Direct->value,
         'units' => $lines,
         ...$overrides,
-    ]));
+    ]), $fromChannel);
 }
 
 function expectNothingCreated(): void
@@ -299,14 +299,24 @@ test('a merged or anonymized booker is refused', function (string $state) {
     expectNothingCreated();
 })->with(['merged', 'anonymized']);
 
-test('a channel reservation skips the date, restriction and availability checks', function () {
+test('a reservation created from a channel skips the restriction and availability checks', function () {
     $setup = createSetup(rooms: 1);
     Rate::query()->where('date', $setup['arrival']->toDateString())->update(['stop_sell' => true]);
 
-    $result = createReservation($setup, [roomLine($setup), roomLine($setup)], ['source' => ReservationSource::Channel->value]);
+    $result = createReservation($setup, [roomLine($setup), roomLine($setup)], ['source' => ReservationSource::Channel->value], fromChannel: true);
 
     expect($result->isRefused())->toBeFalse()
         ->and($result->reservation->units)->toHaveCount(2);
+});
+
+test('a Channel source without the channel flag gets every check', function () {
+    $setup = createSetup(rooms: 1);
+    Rate::query()->where('date', $setup['arrival']->toDateString())->update(['stop_sell' => true]);
+
+    $result = createReservation($setup, [roomLine($setup)], ['source' => ReservationSource::Channel->value]);
+
+    expect($result->refusal)->toBe(ReservationResult::REFUSAL_RESTRICTED);
+    expectNothingCreated();
 });
 
 test('it logs the reservation once with its units', function () {

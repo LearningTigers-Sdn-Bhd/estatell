@@ -30,22 +30,24 @@ roles    spatie columns + property_id (NOT NULL, FK) + default_role (nullable)
 
 ## Default permissions
 
-| Permission                    | Guards                                         | Owner | Manager | Front desk, Housekeeping, Finance |
-| ----------------------------- | ---------------------------------------------- | ----- | ------- | --------------------------------- |
-| `settings.manage`             | Property settings pages                        | ✓     | ✓       | –                                 |
-| `staff.view`                  | Staff list                                     | ✓     | ✓       | –                                 |
-| `staff.manage`                | Invite, deactivate, reactivate, assign roles   | ✓     | ✓       | –                                 |
-| `roles.manage`                | Create roles, edit role permissions            | ✓     | –       | –                                 |
-| `notification.manage`         | Property notification settings                 | ✓     | –       | –                                 |
-| `rates.view`                  | Rate calendar (view)                           | ✓     | ✓       | ✓                                 |
-| `rates.manage`                | Edit rates and restrictions in the calendar    | ✓     | ✓       | –                                 |
-| `rates.override-restrictions` | Book past a rate restriction at the front desk | ✓     | ✓       | –                                 |
-| `guests.view`                 | Guest list and guest page                      | ✓     | ✓       | Front desk, Finance               |
-| `guests.manage`               | Add and edit guests, tags, VIP mark, notes     | ✓     | ✓       | Front desk                        |
-| `guests.blacklist`            | Blacklist a guest, remove from the blacklist   | ✓     | ✓       | –                                 |
-| `guests.view-documents`       | See, add, edit guest ID documents and scans    | ✓     | ✓       | Front desk                        |
-| `guests.merge`                | Merge duplicate guests                         | ✓     | ✓       | –                                 |
-| `guests.anonymize`            | Anonymize a guest (removes personal data)      | ✓     | –       | –                                 |
+| Permission                    | Guards                                                                | Owner | Manager | Front desk, Housekeeping, Finance |
+| ----------------------------- | --------------------------------------------------------------------- | ----- | ------- | --------------------------------- |
+| `settings.manage`             | Property settings pages                                               | ✓     | ✓       | –                                 |
+| `staff.view`                  | Staff list                                                            | ✓     | ✓       | –                                 |
+| `staff.manage`                | Invite, deactivate, reactivate, assign roles                          | ✓     | ✓       | –                                 |
+| `roles.manage`                | Create roles, edit role permissions                                   | ✓     | –       | –                                 |
+| `notification.manage`         | Property notification settings                                        | ✓     | –       | –                                 |
+| `rates.view`                  | Rate calendar (view)                                                  | ✓     | ✓       | ✓                                 |
+| `rates.manage`                | Edit rates and restrictions in the calendar                           | ✓     | ✓       | –                                 |
+| `rates.override-restrictions` | Book past a rate restriction at the front desk                        | ✓     | ✓       | –                                 |
+| `guests.view`                 | Guest list and guest page                                             | ✓     | ✓       | Front desk, Finance               |
+| `guests.manage`               | Add and edit guests, tags, VIP mark, notes                            | ✓     | ✓       | Front desk                        |
+| `guests.blacklist`            | Blacklist a guest, remove from the blacklist                          | ✓     | ✓       | –                                 |
+| `guests.view-documents`       | See, add, edit guest ID documents and scans                           | ✓     | ✓       | Front desk                        |
+| `guests.merge`                | Merge duplicate guests                                                | ✓     | ✓       | –                                 |
+| `guests.anonymize`            | Anonymize a guest (removes personal data)                             | ✓     | –       | –                                 |
+| `reservations.view`           | Reservations list and reservation page                                | ✓     | ✓       | Front desk, Finance               |
+| `reservations.manage`         | Create reservations, add units, attach guests, edit group and add-ons | ✓     | ✓       | Front desk                        |
 
 Later modules add rows here. Their module docs list their permissions.
 

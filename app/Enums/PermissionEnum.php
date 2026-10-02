@@ -25,6 +25,8 @@ enum PermissionEnum: string
     case GuestsViewDocuments = 'guests.view-documents';
     case GuestsMerge = 'guests.merge';
     case GuestsAnonymize = 'guests.anonymize';
+    case ReservationsView = 'reservations.view';
+    case ReservationsManage = 'reservations.manage';
 
     public function label(): string
     {
@@ -46,6 +48,8 @@ enum PermissionEnum: string
             self::GuestsViewDocuments => __('View and manage guest ID documents'),
             self::GuestsMerge => __('Merge duplicate guests'),
             self::GuestsAnonymize => __('Anonymize guests'),
+            self::ReservationsView => __('View reservations'),
+            self::ReservationsManage => __('Manage reservations'),
         };
     }
 
@@ -61,6 +65,7 @@ enum PermissionEnum: string
             self::NotificationManage => __('System'),
             self::RatesView, self::RatesManage, self::RatesOverrideRestrictions => __('Rates'),
             self::GuestsView, self::GuestsManage, self::GuestsBlacklist, self::GuestsViewDocuments, self::GuestsMerge, self::GuestsAnonymize => __('Guests'),
+            self::ReservationsView, self::ReservationsManage => __('Reservations'),
         };
     }
 

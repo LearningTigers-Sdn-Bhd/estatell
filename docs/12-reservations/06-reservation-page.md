@@ -212,6 +212,8 @@ Attach guest opens a Sheet with `GuestPicker` (existing guests only, through `gu
 
 Room units have no guest limit. Detaching a guest and changing the primary guest come later.
 
+Built: `AttachGuest` and `AttachGuestResult` (backend only; the Sheet comes with the page actions item).
+
 ### Add-ons tab
 
 Flat rows grouped by unit: charge item, quantity, service date, unit amount, total. A nightly add-on shows one row per night. **+ Add add-on** opens a Dialog (`AddUnitAddOn`, see [Add-ons](04-add-ons.md)). Each row has **Remove** with an AlertDialog confirm (`RemoveUnitAddOn`).

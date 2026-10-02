@@ -83,9 +83,9 @@ function unitData(array $setup, int $nights = 3, array $overrides = []): NewUnit
 /**
  * @param  array{reservation: Reservation, user: User}  $setup
  */
-function addUnit(array $setup, NewUnitData $data, int $lineIndex = 0): ReservationResult
+function addUnit(array $setup, NewUnitData $data, int $lineIndex = 0, bool $fromChannel = false): ReservationResult
 {
-    return app(AddUnit::class)($setup['user'], $setup['reservation'], $data, $lineIndex);
+    return app(AddUnit::class)($setup['user'], $setup['reservation'], $data, $lineIndex, $fromChannel);
 }
 
 function expectNothingWritten(): void
@@ -233,7 +233,7 @@ test('a channel booking may arrive in the past', function () {
     $arrival = now()->subDay();
     Rate::factory()->create(['rate_plan_id' => $setup['plan']->id, 'room_type_id' => $setup['roomType']->id, 'date' => $arrival->toDateString(), 'amount' => '100.00']);
 
-    $result = addUnit($setup, unitData($setup, 1, ['arrivalDate' => $arrival->toDateString(), 'departureDate' => now()->toDateString()]));
+    $result = addUnit($setup, unitData($setup, 1, ['arrivalDate' => $arrival->toDateString(), 'departureDate' => now()->toDateString()]), fromChannel: true);
 
     expect($result->isRefused())->toBeFalse();
 });
@@ -351,7 +351,7 @@ test('a channel booking skips the restriction check', function () {
     $setup = unitSetup(reservationAttributes: ['source' => ReservationSource::Channel]);
     Rate::query()->where('date', $setup['arrival']->toDateString())->update(['stop_sell' => true, 'min_stay' => 9]);
 
-    expect(addUnit($setup, unitData($setup, 2))->isRefused())->toBeFalse();
+    expect(addUnit($setup, unitData($setup, 2), fromChannel: true)->isRefused())->toBeFalse();
 });
 
 test('it refuses a stay when a night is sold out and names the night', function () {
@@ -397,11 +397,45 @@ test('a blocked room is not available', function () {
 test('a channel booking may overbook', function () {
     $setup = unitSetup(rooms: 1, reservationAttributes: ['source' => ReservationSource::Channel]);
 
-    addUnit($setup, unitData($setup, 2));
+    addUnit($setup, unitData($setup, 2), fromChannel: true);
 
-    expect(addUnit($setup, unitData($setup, 2))->isRefused())->toBeFalse()
+    expect(addUnit($setup, unitData($setup, 2), fromChannel: true)->isRefused())->toBeFalse()
         ->and(ReservationUnit::query()->count())->toBe(2);
 });
+
+test('a channel-source reservation gets every check when staff add a unit', function () {
+    $setup = unitSetup(rooms: 1, reservationAttributes: ['source' => ReservationSource::Channel]);
+    $yesterday = now()->subDay();
+    $inPast = unitData($setup, 1, ['arrivalDate' => $yesterday->toDateString(), 'departureDate' => now()->toDateString()]);
+    Rate::query()->where('date', $setup['arrival']->toDateString())->update(['stop_sell' => true]);
+
+    expect(addUnit($setup, $inPast)->refusal)->toBe(ReservationResult::REFUSAL_ARRIVAL_IN_PAST)
+        ->and(addUnit($setup, unitData($setup, 2))->refusal)->toBe(ReservationResult::REFUSAL_RESTRICTED);
+
+    Rate::query()->where('date', $setup['arrival']->toDateString())->update(['stop_sell' => false]);
+    addUnit($setup, unitData($setup, 2));
+
+    expect(addUnit($setup, unitData($setup, 2))->refusal)->toBe(ReservationResult::REFUSAL_NOT_AVAILABLE);
+});
+
+test('it refuses a Cancelled or Completed reservation before any other check', function (ReservationStatus $status) {
+    $setup = unitSetup();
+    $setup['reservation']->forceFill(['status' => $status])->save();
+
+    $result = addUnit($setup, unitData($setup, 2, ['roomTypeId' => 999999, 'adults' => 0]));
+
+    expect($result->refusal)->toBe(ReservationResult::REFUSAL_RESERVATION_CLOSED)
+        ->and($result->lineIndex)->toBe(0);
+    expectNothingWritten();
+    expect($setup['reservation']->refresh()->status)->toBe($status);
+})->with([ReservationStatus::Cancelled, ReservationStatus::Completed]);
+
+test('an InHouse or Confirmed reservation can take a unit', function (ReservationStatus $status) {
+    $setup = unitSetup();
+    $setup['reservation']->forceFill(['status' => $status])->save();
+
+    expect(addUnit($setup, unitData($setup, 2))->isRefused())->toBeFalse();
+})->with([ReservationStatus::Confirmed, ReservationStatus::InHouse]);
 
 test('it reads the room type with a row lock before checking availability', function () {
     $setup = unitSetup();
@@ -494,12 +528,11 @@ test('it logs the unit once with the actor', function () {
 
 test('it syncs the reservation status', function () {
     $setup = unitSetup();
-    ReservationUnit::factory()->for($setup['reservation'])->cancelled()->create(['room_type_id' => $setup['roomType']->id, 'rate_plan_id' => $setup['plan']->id]);
-    $setup['reservation']->forceFill(['status' => ReservationStatus::Cancelled])->save();
+    ReservationUnit::factory()->for($setup['reservation'])->checkedIn()->create(['room_type_id' => $setup['roomType']->id, 'rate_plan_id' => $setup['plan']->id]);
 
     addUnit($setup, unitData($setup, 2));
 
-    expect($setup['reservation']->fresh()->status)->toBe(ReservationStatus::Confirmed);
+    expect($setup['reservation']->fresh()->status)->toBe(ReservationStatus::InHouse);
 });
 
 test('it ignores the beds of the line and adds exactly one unit', function () {

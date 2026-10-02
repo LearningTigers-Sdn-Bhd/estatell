@@ -5,7 +5,7 @@ namespace App\Actions\Reservations;
 use App\Data\Reservations\NewUnitData;
 use App\Enums\DiscountScope;
 use App\Enums\PermissionEnum;
-use App\Enums\ReservationSource;
+use App\Enums\ReservationStatus;
 use App\Enums\UnitStatus;
 use App\Models\Discount;
 use App\Models\RatePlan;
@@ -42,13 +42,13 @@ class AddUnit
      *
      * The room type row is locked before the availability check, so two staff cannot sell the last unit together.
      * Every check runs before the first write, so a refusal writes and logs nothing. `$lineIndex` is the index of
-     * the line in the request, and comes back on a refusal. Channel bookings skip the arrival date, restriction
-     * and availability checks. An add-on refusal rolls back the unit and comes back with the line index. See docs/12-reservations/02-group-bookings.md.
+     * the line in the request, and comes back on a refusal. A Cancelled or Completed reservation is refused first. Only
+     * `$fromChannel` (booking ingestion) skips the arrival date, restriction and availability checks. An add-on refusal rolls back the unit and comes back with the line index. See docs/12-reservations/02-group-bookings.md.
      */
-    public function __invoke(User $actor, Reservation $reservation, NewUnitData $data, int $lineIndex = 0): ReservationResult
+    public function __invoke(User $actor, Reservation $reservation, NewUnitData $data, int $lineIndex = 0, bool $fromChannel = false): ReservationResult
     {
         try {
-            return DB::transaction(fn (): ReservationResult => $this->add($actor, $reservation, $data, $lineIndex));
+            return DB::transaction(fn (): ReservationResult => $this->add($actor, $reservation, $data, $lineIndex, $fromChannel));
         } catch (ReservationRefused $refused) {
             return $refused->result;
         }
@@ -57,11 +57,15 @@ class AddUnit
     /**
      * @throws ReservationRefused when an add-on is refused after the unit was written, so the transaction rolls back
      */
-    private function add(User $actor, Reservation $reservation, NewUnitData $data, int $lineIndex): ReservationResult
+    private function add(User $actor, Reservation $reservation, NewUnitData $data, int $lineIndex, bool $fromChannel): ReservationResult
     {
-
-        $isChannel = $reservation->source === ReservationSource::Channel;
         $refuse = fn (string $code, $date = null): ReservationResult => ReservationResult::refused($code, $lineIndex, $date);
+
+        $status = Reservation::query()->whereKey($reservation->id)->lockForUpdate()->value('status');
+
+        if (in_array($status, [ReservationStatus::Cancelled, ReservationStatus::Completed], true)) {
+            return $refuse(ReservationResult::REFUSAL_RESERVATION_CLOSED);
+        }
 
         $roomType = RoomType::query()
             ->where('property_id', $reservation->property_id)
@@ -87,7 +91,7 @@ class AddUnit
 
         $property = $reservation->property;
 
-        if (! $isChannel) {
+        if (! $fromChannel) {
             $today = $this->currentBusinessDate->date($property) ?? $this->propertyToday->date($property);
 
             if ($arrival->lt($today)) {
@@ -109,7 +113,7 @@ class AddUnit
 
         $restrictionOverride = null;
 
-        if (! $isChannel) {
+        if (! $fromChannel) {
             $violations = $this->restrictionCheck->violations($ratePlan->id, $roomType->id, $arrival, $departure);
 
             if ($violations !== []) {

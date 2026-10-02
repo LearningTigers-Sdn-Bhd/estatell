@@ -32,9 +32,9 @@ test('seeding creates the default roles with their default permissions', functio
     app(SeedDefaultRoles::class)($property);
 
     expect(Role::query()->where('property_id', $property->id)->count())->toBe(5)
-        ->and(roleNames(defaultRole($property, DefaultRoleEnum::Owner)))->toEqualCanonicalizing(['guests.anonymize', 'guests.blacklist', 'guests.manage', 'guests.merge', 'guests.view', 'guests.view-documents', 'notification.manage', 'rates.manage', 'rates.override-restrictions', 'rates.view', 'roles.manage', 'rooms.block', 'rooms.manage', 'rooms.view', 'settings.manage', 'staff.manage', 'staff.view'])
-        ->and(roleNames(defaultRole($property, DefaultRoleEnum::Manager)))->toEqualCanonicalizing(['guests.blacklist', 'guests.manage', 'guests.merge', 'guests.view', 'guests.view-documents', 'rates.manage', 'rates.override-restrictions', 'rates.view', 'rooms.block', 'rooms.manage', 'rooms.view', 'settings.manage', 'staff.manage', 'staff.view'])
-        ->and(roleNames(defaultRole($property, DefaultRoleEnum::FrontDesk)))->toBe(['guests.manage', 'guests.view', 'guests.view-documents', 'rates.view', 'rooms.block'])
+        ->and(roleNames(defaultRole($property, DefaultRoleEnum::Owner)))->toEqualCanonicalizing(['guests.anonymize', 'guests.blacklist', 'guests.manage', 'guests.merge', 'guests.view', 'guests.view-documents', 'notification.manage', 'rates.manage', 'rates.override-restrictions', 'rates.view', 'reservations.manage', 'reservations.view', 'roles.manage', 'rooms.block', 'rooms.manage', 'rooms.view', 'settings.manage', 'staff.manage', 'staff.view'])
+        ->and(roleNames(defaultRole($property, DefaultRoleEnum::Manager)))->toEqualCanonicalizing(['guests.blacklist', 'guests.manage', 'guests.merge', 'guests.view', 'guests.view-documents', 'rates.manage', 'rates.override-restrictions', 'rates.view', 'reservations.manage', 'reservations.view', 'rooms.block', 'rooms.manage', 'rooms.view', 'settings.manage', 'staff.manage', 'staff.view'])
+        ->and(roleNames(defaultRole($property, DefaultRoleEnum::FrontDesk)))->toBe(['guests.manage', 'guests.view', 'guests.view-documents', 'rates.view', 'reservations.manage', 'reservations.view', 'rooms.block'])
         ->and(roleNames(defaultRole($property, DefaultRoleEnum::Housekeeping)))->toBe(['rates.view'])
         ->and(defaultRole($property, DefaultRoleEnum::FrontDesk)->name)->toBe('Front desk');
 });
@@ -56,7 +56,7 @@ test('seeding again keeps the roles and the owner edits', function () {
     app(SeedDefaultRoles::class)($property);
 
     expect(Role::query()->where('property_id', $property->id)->count())->toBe(5)
-        ->and(roleNames(defaultRole($property, DefaultRoleEnum::Manager)))->toEqualCanonicalizing(['guests.blacklist', 'guests.manage', 'guests.merge', 'guests.view', 'guests.view-documents', 'rates.manage', 'rates.override-restrictions', 'rates.view', 'rooms.block', 'rooms.manage', 'rooms.view', 'staff.manage', 'staff.view']);
+        ->and(roleNames(defaultRole($property, DefaultRoleEnum::Manager)))->toEqualCanonicalizing(['guests.blacklist', 'guests.manage', 'guests.merge', 'guests.view', 'guests.view-documents', 'rates.manage', 'rates.override-restrictions', 'rates.view', 'reservations.manage', 'reservations.view', 'rooms.block', 'rooms.manage', 'rooms.view', 'staff.manage', 'staff.view']);
 });
 
 test('syncing grants only new permissions to default roles and never to custom roles', function () {
@@ -71,7 +71,21 @@ test('syncing grants only new permissions to default roles and never to custom r
 
     expect(Permission::query()->where('name', PermissionEnum::StaffManage->value)->count())->toBe(1)
         ->and(roleNames(defaultRole($property, DefaultRoleEnum::Owner)))->toContain('staff.manage')
-        ->and(roleNames(defaultRole($property, DefaultRoleEnum::Manager)))->toEqualCanonicalizing(['guests.blacklist', 'guests.manage', 'guests.merge', 'guests.view', 'guests.view-documents', 'rates.manage', 'rates.override-restrictions', 'rates.view', 'rooms.block', 'rooms.manage', 'rooms.view', 'staff.manage', 'staff.view'])
-        ->and(roleNames(defaultRole($property, DefaultRoleEnum::FrontDesk)))->toBe(['guests.manage', 'guests.view', 'guests.view-documents', 'rates.view', 'rooms.block'])
+        ->and(roleNames(defaultRole($property, DefaultRoleEnum::Manager)))->toEqualCanonicalizing(['guests.blacklist', 'guests.manage', 'guests.merge', 'guests.view', 'guests.view-documents', 'rates.manage', 'rates.override-restrictions', 'rates.view', 'reservations.manage', 'reservations.view', 'rooms.block', 'rooms.manage', 'rooms.view', 'staff.manage', 'staff.view'])
+        ->and(roleNames(defaultRole($property, DefaultRoleEnum::FrontDesk)))->toBe(['guests.manage', 'guests.view', 'guests.view-documents', 'rates.view', 'reservations.manage', 'reservations.view', 'rooms.block'])
         ->and(roleNames($custom))->toBe([]);
+});
+
+test('reservation permissions go to the right default roles', function () {
+    $property = Property::factory()->create();
+    app(SeedDefaultRoles::class)($property);
+    $roles = fn (string $permission): array => collect(DefaultRoleEnum::cases())
+        ->filter(fn (DefaultRoleEnum $role): bool => in_array($permission, roleNames(defaultRole($property, $role)), true))
+        ->map(fn (DefaultRoleEnum $role): string => $role->value)
+        ->values()
+        ->all();
+
+    expect($roles(PermissionEnum::ReservationsView->value))->toBe(['owner', 'manager', 'front_desk', 'finance'])
+        ->and($roles(PermissionEnum::ReservationsManage->value))->toBe(['owner', 'manager', 'front_desk'])
+        ->and(PermissionEnum::ReservationsView->group())->toBe('Reservations');
 });

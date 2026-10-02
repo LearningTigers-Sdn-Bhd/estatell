@@ -93,15 +93,15 @@ It has no `canTransitionTo()` because nothing sets it by hand.
 
 ## Build status
 
-| Part                                                                                          | Status                                            |
-| --------------------------------------------------------------------------------------------- | ------------------------------------------------- |
-| Tables, enums, models, factories, `SyncReservationStatus`                                     | Built                                             |
-| `AvailabilityService` counts booked units, `MergeGuests` and `AnonymizeGuest` hooks           | Built                                             |
-| `CreateReservation`, `AddUnit` (incl. bed lines), `UpdateReservationGroup`, `override_amount` | Built, see [Group bookings](02-group-bookings.md) |
-| `unit_add_ons`, `AddUnitAddOn`, `RemoveUnitAddOn`, `ChargeQuantityResolver`                   | Built, see [Add-ons](04-add-ons.md)               |
-| `AttachGuest`                                                                                 | Reservation page item                             |
-| `AssignRoom`, `AssignBed`, double-booking indexes                                             | Booking form item                                 |
-| Check-in, check-out, cancel, no-show, reinstate, move                                         | Front desk (module 18)                            |
+| Part                                                                                          | Status                                                           |
+| --------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| Tables, enums, models, factories, `SyncReservationStatus`                                     | Built                                                            |
+| `AvailabilityService` counts booked units, `MergeGuests` and `AnonymizeGuest` hooks           | Built                                                            |
+| `CreateReservation`, `AddUnit` (incl. bed lines), `UpdateReservationGroup`, `override_amount` | Built, see [Group bookings](02-group-bookings.md)                |
+| `unit_add_ons`, `AddUnitAddOn`, `RemoveUnitAddOn`, `ChargeQuantityResolver`                   | Built, see [Add-ons](04-add-ons.md)                              |
+| `AttachGuest`, `reservations.view`, `reservations.manage`                                     | Built, see [Reservation page](06-reservation-page.md#guests-tab) |
+| `AssignRoom`, `AssignBed`, double-booking indexes                                             | Booking form item                                                |
+| Check-in, check-out, cancel, no-show, reinstate, move                                         | Front desk (module 18)                                           |
 
 ## Lessons from wastays
 

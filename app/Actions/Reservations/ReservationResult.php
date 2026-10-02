@@ -39,6 +39,8 @@ class ReservationResult
 
     public const REFUSAL_OVERRIDE_INVALID = 'override_invalid';
 
+    public const REFUSAL_RESERVATION_CLOSED = 'reservation_closed';
+
     private function __construct(
         public readonly ?Reservation $reservation,
         public readonly ?string $refusal,
