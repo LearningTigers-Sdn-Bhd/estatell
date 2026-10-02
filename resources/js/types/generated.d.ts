@@ -589,6 +589,53 @@ overrideReason: string | null,
 restrictionOverrideReason: string | null,
 addOns: App.Data.Reservations.NewAddOnData[],
 };
+export type ReservationListItemData = {
+id: number,
+reference: string,
+title: string,
+bookerName: string,
+bookerId: number | null,
+isGroup: boolean,
+isVip: boolean,
+isBlacklisted: boolean,
+isRepeat: boolean,
+isCancelled: boolean,
+status: App.Data.Shared.BadgeData,
+source: string,
+sourceLabel: string,
+channelName: string | null,
+externalReference: string | null,
+unitCount: number,
+adults: number,
+children: number,
+firstArrival: string | null,
+lastDeparture: string | null,
+nights: number,
+roomTypes: string[],
+bookedOn: string,
+total: string,
+roomBox: App.Data.Reservations.ReservationRoomBoxData,
+};
+export type ReservationRoomBoxData = {
+state: App.Enums.ReservationRoomBoxState,
+label: string,
+tone: App.Enums.Tone,
+tooltip: string | null,
+numbers: string[],
+more: number,
+count: number,
+isBed: boolean,
+units: App.Data.Reservations.ReservationRoomBoxUnitData[],
+};
+export type ReservationRoomBoxUnitData = {
+roomType: string,
+assigned: string | null,
+};
+export type ReservationStatusCountData = {
+value: string,
+label: string,
+count: number,
+};
 }
 namespace Rooms {
 export type BedData = {
@@ -737,6 +784,7 @@ export type PropertyType = 'hotel' | 'hostel' | 'resort' | 'serviced_apartment' 
 export type RateDerivation = 'percent' | 'amount';
 export type RatePlanStatus = 'active' | 'archived';
 export type RegistrationCardScope = 'primary_only' | 'every_adult';
+export type ReservationRoomBoxState = 'assigned' | 'unassigned' | 'auto_assign' | 'cancelled' | 'no_show';
 export type ReservationSource = 'direct' | 'walk_in' | 'phone' | 'channel' | 'agent';
 export type ReservationStatus = 'confirmed' | 'in_house' | 'completed' | 'cancelled';
 export type RoomBlockReason = 'maintenance' | 'owner_use' | 'out_of_order' | 'other';

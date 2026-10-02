@@ -48,6 +48,14 @@ type Props = {
     fromLocked?: boolean;
     /** Months shown side by side. Two falls back to one on a phone. */
     months?: 1 | 2;
+    /**
+     * Allow a range with a first date and no end. The first click sets the first date and keeps the calendar open
+     * for an end date. `to` is an empty string while the range is open.
+     */
+    openEnded?: boolean;
+    /** Adds an action under the calendar that clears the range, for example "All dates". */
+    onClear?: () => void;
+    clearLabel?: string;
     /** Longest range, counting both ends. */
     maxDays?: number;
     /** Unit shown after the count, for example "night". */
@@ -68,6 +76,9 @@ export function DateRangePicker({
     onChange,
     min,
     fromLocked = false,
+    openEnded = false,
+    onClear,
+    clearLabel = 'Clear dates',
     maxDays,
     months = 1,
     unit = 'day',
@@ -80,6 +91,7 @@ export function DateRangePicker({
     const isMobile = useIsMobile();
     const [picking, setPicking] = useState(false);
     const [hovered, setHovered] = useState<Date>();
+    const [anchor, setAnchor] = useState<Date>();
     const fromDate = toDate(from);
     const toDateValue = toDate(to);
     const minDate = toDate(min ?? '');
@@ -98,6 +110,7 @@ export function DateRangePicker({
         setOpen(next);
         setPicking(false);
         setHovered(undefined);
+        setAnchor(undefined);
     };
 
     const select = (triggerDate: Date) => {
@@ -106,6 +119,21 @@ export function DateRangePicker({
         if (fromLocked) {
             onChange(from, toValue(triggerDate));
             changeOpen(false);
+
+            return;
+        }
+
+        if (openEnded) {
+            if (picking && anchor && triggerDate > anchor) {
+                onChange(toValue(anchor), toValue(triggerDate));
+                changeOpen(false);
+
+                return;
+            }
+
+            setAnchor(triggerDate);
+            setPicking(true);
+            onChange(toValue(triggerDate), '');
 
             return;
         }
@@ -134,9 +162,10 @@ export function DateRangePicker({
         ...(lastAllowed ? [{ after: lastAllowed }] : []),
     ];
     const previewing = fromLocked || picking;
+    const previewFrom = openEnded && anchor ? anchor : fromDate;
     const preview =
-        previewing && fromDate && hovered && hovered > fromDate
-            ? { from: fromDate, to: hovered }
+        previewing && previewFrom && hovered && hovered > previewFrom
+            ? { from: previewFrom, to: hovered }
             : { from: fromDate, to: toDateValue };
 
     return (
@@ -156,7 +185,9 @@ export function DateRangePicker({
                 }
             >
                 <CalendarDays data-icon="inline-start" />
-                {fromDate && toDateValue ? (
+                {openEnded && fromDate && !toDateValue ? (
+                    <span className="tabular-nums">{label(fromDate)} – …</span>
+                ) : fromDate && toDateValue ? (
                     <span className="tabular-nums">
                         {label(fromDate)} – {label(toDateValue)}
                         <span className="text-muted-foreground">
@@ -181,6 +212,20 @@ export function DateRangePicker({
                     disabled={disabledDays}
                     numberOfMonths={isMobile ? 1 : months}
                 />
+                {onClear && (
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="w-full"
+                        onClick={() => {
+                            onClear();
+                            changeOpen(false);
+                        }}
+                    >
+                        {clearLabel}
+                    </Button>
+                )}
             </PopoverContent>
         </Popover>
     );

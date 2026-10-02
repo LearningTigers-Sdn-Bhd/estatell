@@ -145,6 +145,10 @@ Below `lg`, List view shows the cards, as wastays does.
 - No reservations: "No reservations yet", "Bookings you take appear here.", with **New booking**.
 - Filters with no match: "No reservations match these filters", with **Clear filters**.
 
+### Build status
+
+Built: `reservations.index` with the status tabs, search, source and stay filters, sorts, Cards and List views, the card, the room box and the sidebar item **All reservations**. `ReservationDirectory` (`app/Services/Reservations/`) runs the query and the counts, and `ReservationRoomBox` builds the room box. The URL values are `filter[status]`, `filter[source]`, `filter[search]`, `filter[stay]` (`all`, or `from_to` with either date empty) and `sort`. A card or row is not a link and its menu has only **Open guest** until the reservation page item adds `reservations.show`. **New booking** is hidden until the booking form.
+
 ## Reservation page (Detail archetype)
 
 `DetailLayout`: link tabs on the left (two thirds), the summary card on the right.

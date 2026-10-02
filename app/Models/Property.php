@@ -199,6 +199,14 @@ class Property extends Model implements FeatureScopeSerializeable
     }
 
     /**
+     * @return HasMany<Reservation, $this>
+     */
+    public function reservations(): HasMany
+    {
+        return $this->hasMany(Reservation::class);
+    }
+
+    /**
      * @return HasMany<Tag, $this>
      */
     public function tags(): HasMany

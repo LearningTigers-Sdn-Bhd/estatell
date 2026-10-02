@@ -61,9 +61,7 @@ class GuestDirectory
         $idNumber = $this->identityNumber->normalize($search);
 
         $query->where(function (Builder $query) use ($search, $idNumber, $searchIdNumbers): void {
-            $query->whereLike('guests.full_name', "%{$search}%")
-                ->orWhereLike('guests.email', "%{$search}%")
-                ->orWhereLike('guests.phone', '%'.preg_replace('/[\s()-]+/', '', $search).'%');
+            $query->matchingText($search);
 
             if ($searchIdNumbers && strlen($idNumber) >= 4) {
                 $query->orWhereIn('guests.id', GuestIdentityDocument::query()

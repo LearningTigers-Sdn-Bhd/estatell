@@ -123,9 +123,10 @@ class GuestMatcher
     }
 
     /**
-     * Numbers typed without a country code are read as numbers of the property's country.
+     * The phone number in E.164, read as a number of the property's country when it has no country code.
+     * Null when it is blank or not a valid number.
      */
-    private function normalizePhone(?string $phone, Property $property): ?string
+    public function normalizePhone(?string $phone, Property $property): ?string
     {
         if (blank($phone)) {
             return null;

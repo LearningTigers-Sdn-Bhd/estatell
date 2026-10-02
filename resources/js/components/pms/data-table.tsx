@@ -1,4 +1,3 @@
-import { Link } from '@inertiajs/react';
 import {
     createColumnHelper,
     functionalUpdate,
@@ -9,7 +8,8 @@ import {
 import type { ColumnDef, RowData, SortingState } from '@tanstack/react-table';
 import { ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react';
 import type { ReactNode } from 'react';
-import { buttonVariants } from '@/components/ui/button';
+import { PaginationFooter } from '@/components/pms/pagination-footer';
+import type { PaginationData } from '@/components/pms/pagination-footer';
 import {
     Table,
     TableBody,
@@ -38,15 +38,7 @@ export function dataTableColumns<TData extends RowData>() {
     return createColumnHelper<Features, TData>();
 }
 
-export type DataTablePagination = {
-    currentPage: number;
-    lastPage: number;
-    from: number | null;
-    to: number | null;
-    total: number;
-    prevUrl: string | null;
-    nextUrl: string | null;
-};
+export type DataTablePagination = PaginationData;
 
 type Props<TData extends RowData> = {
     columns: DataTableColumn<TData>[];
@@ -186,62 +178,7 @@ export function DataTable<TData extends RowData>({
                 </Table>
             </div>
 
-            {pagination.total > 0 && (
-                <nav
-                    aria-label="Pagination"
-                    className="flex items-center justify-between gap-3 text-sm text-muted-foreground"
-                >
-                    <p className="tabular-nums">
-                        Showing {pagination.from}–{pagination.to} of{' '}
-                        {pagination.total}
-                    </p>
-                    {pagination.lastPage > 1 && (
-                        <div className="flex items-center gap-2">
-                            <PageLink href={pagination.prevUrl}>
-                                Previous
-                            </PageLink>
-                            <span className="tabular-nums">
-                                Page {pagination.currentPage} of{' '}
-                                {pagination.lastPage}
-                            </span>
-                            <PageLink href={pagination.nextUrl}>Next</PageLink>
-                        </div>
-                    )}
-                </nav>
-            )}
+            <PaginationFooter pagination={pagination} />
         </div>
-    );
-}
-
-function PageLink({
-    href,
-    children,
-}: {
-    href: string | null;
-    children: ReactNode;
-}) {
-    if (!href) {
-        return (
-            <span
-                aria-disabled
-                className={cn(
-                    buttonVariants({ variant: 'outline', size: 'sm' }),
-                    'pointer-events-none opacity-50',
-                )}
-            >
-                {children}
-            </span>
-        );
-    }
-
-    return (
-        <Link
-            href={href}
-            preserveScroll
-            preserveState
-            className={buttonVariants({ variant: 'outline', size: 'sm' })}
-        >
-            {children}
-        </Link>
     );
 }

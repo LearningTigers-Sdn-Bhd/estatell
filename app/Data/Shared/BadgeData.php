@@ -4,6 +4,7 @@ namespace App\Data\Shared;
 
 use App\Enums\PropertyStatus;
 use App\Enums\RatePlanStatus;
+use App\Enums\ReservationStatus;
 use App\Enums\Tone;
 use Spatie\LaravelData\Data;
 
@@ -24,6 +25,11 @@ class BadgeData extends Data
     }
 
     public static function fromRatePlanStatus(RatePlanStatus $status): self
+    {
+        return new self($status->value, $status->label(), $status->tone());
+    }
+
+    public static function fromReservationStatus(ReservationStatus $status): self
     {
         return new self($status->value, $status->label(), $status->tone());
     }

@@ -116,4 +116,21 @@ class Guest extends Model
     {
         $query->whereNotNull('guests.blacklisted_at');
     }
+
+    /**
+     * Guests whose name, email or phone contains the text. Phone numbers are compared by their digits.
+     * Shared by the guest list and the reservation search.
+     *
+     * @param  Builder<Guest>  $query
+     */
+    public function scopeMatchingText(Builder $query, string $text): void
+    {
+        $text = trim($text);
+
+        $query->where(function (Builder $query) use ($text): void {
+            $query->whereLike('guests.full_name', "%{$text}%")
+                ->orWhereLike('guests.email', "%{$text}%")
+                ->orWhereLike('guests.phone', '%'.preg_replace('/[\s()-]+/', '', $text).'%');
+        });
+    }
 }

@@ -36,6 +36,14 @@ class FrontDeskNavigation
                     active: request()->routeIs('front-desk.room-blocks.*'),
                 ) : null,
             ]))),
+            new NavGroupData(label: __('Reservations'), items: array_values(array_filter([
+                $user->can(PermissionEnum::ReservationsView->value) ? new NavItemData(
+                    title: __('All reservations'),
+                    href: route('reservations.index', ['property' => $property->code], absolute: false),
+                    icon: 'calendar-check',
+                    active: request()->routeIs('reservations.*'),
+                ) : null,
+            ]))),
             new NavGroupData(label: __('Guests'), items: array_values(array_filter([
                 $user->can(PermissionEnum::GuestsView->value) ? new NavItemData(
                     title: __('Guests'),
