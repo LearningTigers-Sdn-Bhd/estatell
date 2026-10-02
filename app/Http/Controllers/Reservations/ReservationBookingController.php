@@ -100,7 +100,7 @@ class ReservationBookingController extends Controller
         return Inertia::render('reservations/create', [
             'isWalkIn' => $walkIn,
             'sources' => array_map(fn (ReservationSource $source): array => ['value' => $source->value, 'label' => $source->label()], $sources),
-            'businessDate' => ($businessDate->date($property) ?? $today->date($property))->toDateString(),
+            'today' => ($businessDate->date($property) ?? $today->date($property))->toDateString(),
             'addUnitOptions' => $options->addUnit($property),
             'chargeItems' => $options->chargeItems($property),
             'discounts' => $options->roomDiscounts($property),

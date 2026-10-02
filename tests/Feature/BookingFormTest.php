@@ -81,7 +81,7 @@ test('the new booking page sends the lists the form needs', function () {
             ->component('reservations/create')
             ->where('isWalkIn', false)
             ->where('sources', [['value' => 'direct', 'label' => 'Direct'], ['value' => 'phone', 'label' => 'Phone']])
-            ->where('businessDate', '2026-10-10')
+            ->where('today', '2026-10-10')
             ->has('addUnitOptions.roomTypes', 2)
             ->has('addUnitOptions.ratePlans', 3)
             ->where('addUnitOptions.ratePlans.2.fixedNights', 3)
@@ -101,7 +101,7 @@ test('the walk-in page fixes the source and the business date', function () {
         ->assertInertia(fn (Assert $page) => $page
             ->where('isWalkIn', true)
             ->where('sources', [['value' => 'walk_in', 'label' => 'Walk-in']])
-            ->where('businessDate', '2026-10-10'));
+            ->where('today', '2026-10-10'));
 });
 
 test('the booking page query count stays the same however much the property has', function () {

@@ -44,7 +44,8 @@ type Quote = App.Data.Reservations.BookingQuoteData;
 type Props = {
     isWalkIn: boolean;
     sources: EnumOption[];
-    businessDate: string;
+    /** The business date, `Y-m-d`. Not named `businessDate`: that is the shared prop the header indicator reads. */
+    today: string;
     addUnitOptions: App.Data.Reservations.AddUnitOptionsData;
     chargeItems: App.Data.Reservations.ChargeItemOptionData[];
     discounts: App.Data.Reservations.DiscountOptionData[];
@@ -83,7 +84,7 @@ function Section({
 export default function ReservationCreate({
     isWalkIn,
     sources,
-    businessDate,
+    today,
     addUnitOptions,
     chargeItems,
     discounts,
@@ -95,7 +96,7 @@ export default function ReservationCreate({
     const form = useForm<BookingForm>({
         source: sources[0]?.value ?? 'direct',
         external_reference: '',
-        arrival_date: isWalkIn ? businessDate : '',
+        arrival_date: isWalkIn ? today : '',
         departure_date: '',
         group_name: '',
         billing_mode: billingModes[0]?.value ?? 'master_pays',
@@ -244,7 +245,7 @@ export default function ReservationCreate({
                                             <DatePicker
                                                 id="booking-arrival"
                                                 value={data.arrival_date}
-                                                min={businessDate}
+                                                min={today}
                                                 onChange={(value) =>
                                                     form.setData(
                                                         'arrival_date',
