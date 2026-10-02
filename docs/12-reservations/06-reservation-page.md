@@ -24,7 +24,7 @@ The tabs share one controller with a private `renderTab()`, like `GuestControlle
 | `reservations.view`   | Reservations list and reservation page                                     | Owner, Manager, Front desk, Finance |
 | `reservations.manage` | Create reservations, add units, attach guests, edit group name and billing | Owner, Manager, Front desk          |
 
-The [booking form](05-booking-form.md) item adds both permissions, because it ships the first reservation route. This item uses them. Add both rows to [Roles and permissions](../03-staff/02-roles-and-permissions.md) in that item.
+This item adds both permissions, because it ships the first reservation routes. Add both rows to [Roles and permissions](../03-staff/02-roles-and-permissions.md) in this item. This item also adds `AttachGuest` for the Guests tab. The [booking form](05-booking-form.md) comes next and reuses both.
 
 ## Reservations list (Index archetype)
 
@@ -49,7 +49,7 @@ Status tabs, filters, and two views of the same page of results: **Cards** (defa
 
 | Control                  | Behaviour                                                                                                                                                                                                              |
 | ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **New booking ▾**        | New booking, Walk-in (see [booking form](05-booking-form.md#entry-points)). Needs `reservations.manage`.                                                                                                               |
+| **New booking ▾**        | New booking, Walk-in (see [booking form](05-booking-form.md#entry-points)). Needs `reservations.manage`. Hidden until the booking form item ships.                                                                     |
 | **Status tabs**          | All, Confirmed, In house, Completed, Cancelled, each with an icon and a count. Each tab is a link that sets `filter[status]`. The counts follow the current search, source and stay filters (one grouped count query). |
 | Search                   | Reference, `external_reference`, and the booker's or any unit guest's name, phone or email. Debounced (`FilterBar`).                                                                                                   |
 | Source                   | All, or one `ReservationSource`                                                                                                                                                                                        |

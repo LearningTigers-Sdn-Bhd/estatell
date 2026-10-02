@@ -124,7 +124,7 @@ Collapsed by default: date of birth, gender, nationality, address line 1 and 2, 
 
 ### Permissions
 
-This item adds `reservations.view` and `reservations.manage` (see [Reservation page](06-reservation-page.md#permissions)). The booking form needs `reservations.manage`.
+`reservations.view` and `reservations.manage` come with the [reservation page](06-reservation-page.md#permissions) item, which ships first. The booking form needs `reservations.manage`.
 
 | Permission      | Allows                                     |
 | --------------- | ------------------------------------------ |
@@ -147,7 +147,8 @@ Without `guests.manage`, a tab accepts only an existing guest.
 
 - Inertia `<Form>` or `useForm` with a Form Request. No client-side validation library.
 - The form request maps onto `NewReservationData` and calls `CreateReservation` and `AddUnit` from the [group bookings](02-group-bookings.md#creating-reservations-and-units) item. Before that, the guest tabs create or update guests through the guest Actions.
-- This item adds `AttachGuest` and `AssignRoom` / `AssignBed` (whole stay). One Action per concern, no god service.
+- This item adds `AssignRoom` / `AssignBed` (whole stay) and reuses `AttachGuest` from the [reservation page](06-reservation-page.md) item. One Action per concern, no god service.
+- After save, the form redirects to the reservation page. This item shows **New ▾** on the Reservations list.
 - `guests.search` is a JSON route that reuses the `GuestDirectory` search. It needs `guests.view`.
 - Components: Base UI `Combobox`, `Tabs` and `Collapsible`. The autocomplete field is `components/pms/guests/guest-autocomplete-field.tsx`. More guest details reuse the fields of `guest-form.tsx`.
 

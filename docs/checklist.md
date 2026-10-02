@@ -104,6 +104,10 @@ Legend: **Needs** lists items that must be done first.
 | `ccb116c` | feat(night-audit): add business dates and document numbers               |
 | `f1cef04` | docs(reservations): plan the booking form layout, rooms and guests       |
 | `907d4be` | fix(night-audit): show the audit state above the business date           |
+| `f609f48` | feat(reservations): add reservation, unit and status model               |
+| `a1ab0c8` | docs(reservations): re-scope group bookings to the creation backend      |
+| `48b3fa6` | docs(reservations): plan the reservations list and reservation page      |
+| `f840560` | docs(reservations): add status tabs, card view and room box rules        |
 
 Smaller fixes and reverts are in `git log`.
 
@@ -202,8 +206,8 @@ Smaller fixes and reverts are in `git log`.
 - [x] `feat(reservations): add reservation, unit and status model` — also re-point unit guests and the booker in `MergeGuests`, and refuse `AnonymizeGuest` for an in-house guest; `AvailabilityService` starts counting booked units. Docs: [Reservation shape](12-reservations/01-reservation-shape.md).
 - [ ] `feat(reservations): create reservations, units and groups` — `CreateReservation`, `AddUnit` (restrictions, availability with a room type lock, quote, price override in `override_amount`), bed lines as N units, `ReservationResult`, `UpdateReservationGroup`. Backend only. Also covers [Bed bookings](12-reservations/03-bed-bookings.md). Docs: [Group bookings](12-reservations/02-group-bookings.md).
 - [ ] `feat(reservations): add unit add-ons` — Docs: [Add-ons](12-reservations/04-add-ons.md).
-- [ ] `feat(reservations): add the booking form` — UI on top of `CreateReservation`; `AttachGuest`; adds `reservations.view` and `reservations.manage`; full page with a summary rail; optional room or bed per unit (whole-stay `AssignRoom` / `AssignBed`, moved from module 18); guest tabs with autocomplete through a new `guests.search` route. Docs: [Booking form](12-reservations/05-booking-form.md).
-- [ ] `feat(reservations): add the reservations list and reservation page` — Index with status tabs, Cards and List views, the reservation card and server search and filters; reservation page with Units, Guests, Add-ons and Activity tabs, summary card, status by unit, Add unit, Edit group. Docs: [Reservations list and reservation page](12-reservations/06-reservation-page.md).
+- [ ] `feat(reservations): add the reservations list and reservation page` — adds `reservations.view` and `reservations.manage`; `AttachGuest`; Index with status tabs, Cards and List views, the reservation card and server search and filters; reservation page with Units, Guests, Add-ons and Activity tabs, summary card, status by unit, Add unit, Edit group. New ▾ stays hidden until the booking form. Docs: [Reservations list and reservation page](12-reservations/06-reservation-page.md).
+- [ ] `feat(reservations): add the booking form` — UI on top of `CreateReservation`; shows New ▾ on the list and redirects to the reservation page after save; full page with a summary rail; optional room or bed per unit (whole-stay `AssignRoom` / `AssignBed`, moved from module 18); guest tabs with autocomplete through a new `guests.search` route, reusing `AttachGuest`. Needs: the reservation page. Docs: [Booking form](12-reservations/05-booking-form.md).
 
 ### 13 Folio and 14 Payments
 
