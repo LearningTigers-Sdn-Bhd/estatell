@@ -51,19 +51,20 @@ The Reservations page has `New ▾` with **New booking** and **Walk-in**. Walk-i
 
 ## Sections
 
-1. **Stay**: arrival, departure, nights (shown), source, external reference.
+1. **Stay**: arrival, departure, nights (shown), source, external reference. Arrival and departure apply to every line. **New booking** offers the sources Direct and Phone. **Walk-in** fixes the source to WalkIn. Channel and Agent are not offered: they come from ingestion and the agent portal.
 2. **Rooms and beds**: one line per room type + rate plan.
     - Room lines: adults and children. When children > 0, one required age field per child, under the line.
     - Bed lines: "Beds: N", expanded into N units, with one bed picker per unit.
     - Package plans: departure is locked, the stay total is shown.
+    - Children: one required age field per child under the line (not a comma list, unlike the Add unit Sheet on the reservation page).
     - Rate cell: the server quote from `RateQuoteService`. ⓘ opens the night breakdown. ✎ sets an override (logged, needs a reason).
     - A restriction that fails (stop-sell, closed to arrival or departure, min or max stay) shows a warning under the lines. Staff with `rates.override-restrictions` can continue after entering a reason (see [Daily rates and restrictions](../08-rates/02-daily-rates-and-restrictions.md)).
 3. **Group**: shown when the form has 2 or more units. Group name, and `billing_mode` in the rail.
 4. **Guests**: see [Guests section](#guests-section).
-5. **Extras** (optional): add-ons (see [Add-ons](04-add-ons.md)) and a RoomOnly discount from the [catalogue](../06-catalogues/05-discounts.md).
+5. **Extras** (optional): one section, grouped by line. Each line has its add-ons (see [Add-ons](04-add-ons.md); a Bed line gives every bed the same ones) and a RoomOnly discount from the [catalogue](../06-catalogues/05-discounts.md). Both go in the line's `NewUnitData`.
 6. **Notes**: one free text field for special requests or internal notes, up to 2000 characters. It is stored in `reservations.notes` (see [Reservation shape](01-reservation-shape.md)) and shown in the summary card of the reservation page. The creation log records only that notes exist, never the text.
 
-The rail shows units, room and add-on totals, the billing mode and the guest list. All amounts come from the server. Tax shows "from folio" until [Folios and lines](../13-folio/01-folios-and-lines.md) exists.
+The rail shows units, room and add-on totals (the add-on total comes from the quote, see [Implementation](#implementation)), the billing mode and the guest list. All amounts come from the server. Tax shows "from folio" until [Folios and lines](../13-folio/01-folios-and-lines.md) exists.
 
 ## Room / Bed column
 
@@ -162,18 +163,27 @@ Without `guests.manage`, a tab accepts only an existing guest.
 - `NewReservationData` gains `notes`. `CreateReservation` writes it to `reservations.notes`.
 - `AssignRoom` and `AssignBed` (whole stay) are new Actions, one concern each. Each logs `reservation.room_assigned` or `reservation.bed_assigned` with ids only. The Room & Rate editing around them stays in module 18.
 - `FreeUnits` (`app/Services/Availability/`) lists the rooms or beds that are free on every night of a stay, from the same data as `AvailabilityService`. It reads only.
-- Two JSON routes feed the form. **Quote** takes one line and returns the night breakdown, the total, restriction violations and the free unit count, all from `RateQuoteService`, `RestrictionCheck` and `AvailabilityService`. **Free units** takes a room type and dates and returns the pickable rooms or beds, and it is called only when a picker opens. The browser never calculates a price.
-- After save, the form redirects to the reservation page. This item shows **New ▾** on the Reservations list.
+- Two JSON routes feed the form. **Quote** takes one line and returns the night breakdown, the total, restriction violations and the free unit count, all from `RateQuoteService`, `RestrictionCheck` and `AvailabilityService`. Commit 2 adds `add_ons` to the request (the same shape as `NewAddOnData`) and `addOnsTotal` to the answer, from the read-only `ChargeQuantityResolver`, so the rail never calculates a nightly or per-guest add-on in the browser. **Free units** takes a room type and dates and returns the pickable rooms or beds, and it is called only when a picker opens. The browser never calculates a price.
+- After save, the form redirects to the reservation page with a toast that names the reference. This item shows **New ▾** on the Reservations list, for staff with `reservations.manage`.
+- `FormActions` (`components/pms/form-actions.tsx`) is built with this page: a sticky footer with Cancel and the primary button. The form uses the `use-unsaved-changes` guard when staff leave the page.
 - `guests.search` and `GuestPicker` come from the [reservation page](06-reservation-page.md) item. This item adds the autocomplete field on the same route.
 - Components: Base UI `Combobox`, `Tabs` and `Collapsible`. The autocomplete field is `components/pms/guests/guest-autocomplete-field.tsx`. More guest details reuse the fields of `guest-form.tsx`. Form parts live in `components/pms/reservations/`.
 - The page gets a query-count test with lazy loading prevented (see `.ai/rules/tests.md`).
+
+## Saving and errors
+
+- `GET reservations/new`, `GET reservations/walk-in` and `POST reservations` (`reservations.store`) are in `ReservationBookingController`. `new` and `walk-in` share one private render method.
+- The page gets the lists it needs with the page, because they are bounded: room types and rate plans (`ReservationFormOptions::addUnit`), charge items, active RoomOnly discounts, the sources, the billing modes, `autoAssignRooms`, the currency, `canOverrideRestrictions` and the business date. The business date is the default arrival.
+- `StoreBookingRequest` checks the shape and builds `NewBookingData`. It expands each line into units in the order `CreateReservation` adds them (a Bed line with N beds is N units), so the unit index of a pick is the running count. On a walk-in every unit needs a room or bed pick. Commit 2 builds one guest tab, the booker, with an existing guest id and no "stays in".
+- A refusal comes back as errors keyed by position: `lines.{i}.room_type_id`, `lines.{i}.rate_plan_id`, `lines.{i}.child_ages`, `lines.{i}.room_id`, `lines.{i}.bed_ids.{n}` and so on, plus `arrival_date`, `departure_date`, `guest_id` and `form`. The key comes from `ReservationRefusals` (the field) and the line or unit index of the result. `restricted` shows the override reason field of the line for staff with `rates.override-restrictions`, and a `form` error for everyone else.
+- A `restricted` or other line-level refusal never saves anything: `CreateBooking` rolls back.
 
 ## Build order
 
 One checklist item per commit, in this order:
 
 1. **Backend:** the `notes` column, `AssignRoom`, `AssignBed`, `FreeUnits`, the quote and free-units routes, and `CreateBooking`, with tests. No UI.
-2. **The page, with the booker as an existing guest:** Stay, Rooms and beds, Group, Extras, Notes, the summary rail, `New ▾` and Walk-in. Guests are not on the page yet: the booker is picked with `GuestPicker`, and units get no guest.
+2. **The page, with the booker as an existing guest:** the three routes, `StoreBookingRequest`, Stay, Rooms and beds, Group, Extras, Notes, the summary rail, `FormActions`, `New ▾` and Walk-in, the quote with add-ons, and notes in the summary card of the reservation page. Guests are not on the page yet: the booker is picked with `GuestPicker`, and units get no guest. Until commit 3, a walk-in of a person who is not yet a guest cannot be booked, so commit 3 follows straight after.
 3. **Guest tabs:** the Guests section with the autocomplete field, `DuplicateWarning`, create and update of guests, and "Stays in".
 
 ## Build status

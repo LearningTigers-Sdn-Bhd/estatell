@@ -15,6 +15,8 @@ About 50 components, each built when the first page needs it. Before the reserva
 | Feature folders | See [Where components live](03-component-folders.md)                                                                                                                                                                                                                                      |
 | Guest-facing    | `GuestLayout`, `RemoteCardForm`                                                                                                                                                                                                                                                           |
 
+`FormActions` is built with the [booking form](../12-reservations/05-booking-form.md#implementation), the first full-page form.
+
 Rules:
 
 - Components receive data and callbacks. No business logic inside.
