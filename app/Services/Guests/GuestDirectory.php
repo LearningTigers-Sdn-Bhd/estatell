@@ -6,6 +6,7 @@ use App\Models\Guest;
 use App\Models\GuestIdentityDocument;
 use App\Models\Property;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Spatie\QueryBuilder\AllowedFilter;
@@ -18,6 +19,10 @@ use Spatie\QueryBuilder\QueryBuilder;
 class GuestDirectory
 {
     public const int PER_PAGE = 25;
+
+    public const int LOOKUP_LIMIT = 8;
+
+    public const int LOOKUP_MIN_LENGTH = 2;
 
     public const string STATUS_VIP = 'vip';
 
@@ -50,6 +55,28 @@ class GuestDirectory
             ->with('tags')
             ->paginate(self::PER_PAGE)
             ->withQueryString();
+    }
+
+    /**
+     * The first guests whose name, email or phone contains the text, for a picker. Merged and anonymized guests are left out.
+     *
+     * @return Collection<int, Guest>
+     */
+    public function lookup(Property $property, string $text, int $limit = self::LOOKUP_LIMIT): Collection
+    {
+        if (mb_strlen(trim($text)) < self::LOOKUP_MIN_LENGTH) {
+            return new Collection;
+        }
+
+        return Guest::query()
+            ->where('guests.property_id', $property->id)
+            ->notMerged()
+            ->whereNull('guests.anonymized_at')
+            ->matchingText($text)
+            ->orderBy('guests.full_name')
+            ->orderBy('guests.id')
+            ->limit($limit)
+            ->get();
     }
 
     /**

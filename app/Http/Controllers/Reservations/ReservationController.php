@@ -8,6 +8,7 @@ use App\Data\Reservations\ReservationListItemData;
 use App\Data\Reservations\ReservationStatusCountData;
 use App\Data\Reservations\ReservationUnitData;
 use App\Data\Reservations\ReservationUnitOptionData;
+use App\Enums\BillingMode;
 use App\Enums\PermissionEnum;
 use App\Enums\ReservationSource;
 use App\Enums\ReservationStatus;
@@ -19,6 +20,7 @@ use App\Models\UnitAddOn;
 use App\Models\User;
 use App\Services\Reservations\ReservationActivityLog;
 use App\Services\Reservations\ReservationDirectory;
+use App\Services\Reservations\ReservationFormOptions;
 use App\Services\Reservations\ReservationGuestRows;
 use App\Services\Reservations\ReservationOverview;
 use App\Services\Reservations\ReservationRoomBox;
@@ -130,7 +132,8 @@ class ReservationController extends Controller
 
     /**
      * Each tab has its own URL, so the open tab survives a refresh. Every tab gets the header, the summary and the unit
-     * list. Only the open tab's own data is read and sent.
+     * list. Only the open tab's own data is read and sent. The form option lists are optional props, read when an
+     * overlay opens.
      *
      * @param  'units'|'guests'|'add-ons'|'activity'  $tab
      * @param  callable(list<ReservationUnitOptionData>, Collection<int, ReservationUnit>): array<string, mixed>  $tabProps
@@ -140,6 +143,7 @@ class ReservationController extends Controller
         $canViewGuest = $user->can(PermissionEnum::GuestsView->value);
         $reservation->load(['booker', 'creator']);
         $overview = app(ReservationOverview::class)->build($reservation, $canViewGuest);
+        $options = app(ReservationFormOptions::class);
 
         return Inertia::render('reservations/show', [
             'reservation' => $overview['reservation'],
@@ -148,6 +152,11 @@ class ReservationController extends Controller
             'autoAssignRooms' => (bool) $property->settings?->auto_assign_rooms,
             'currency' => $property->settings?->currency,
             'canViewGuest' => $canViewGuest,
+            'canManage' => $user->can(PermissionEnum::ReservationsManage->value),
+            'canOverrideRestrictions' => $user->can(PermissionEnum::RatesOverrideRestrictions->value),
+            'billingModes' => BillingMode::options(),
+            'addUnitOptions' => Inertia::optional(fn () => $options->addUnit($property)),
+            'chargeItems' => Inertia::optional(fn () => $options->chargeItems($property)),
             ...$tabProps($overview['units'], $overview['models']),
         ]);
     }

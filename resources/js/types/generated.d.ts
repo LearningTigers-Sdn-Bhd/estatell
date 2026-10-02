@@ -147,6 +147,14 @@ body: string,
 authorName: string | null,
 createdAt: string,
 };
+export type GuestOptionData = {
+id: number,
+fullName: string,
+phone: string | null,
+email: string | null,
+isVip: boolean,
+isBlacklisted: boolean,
+};
 export type GuestRowData = {
 id: number,
 fullName: string,
@@ -558,6 +566,18 @@ nightAmounts: string[],
 };
 }
 namespace Reservations {
+export type AddUnitOptionsData = {
+roomTypes: App.Data.Reservations.RoomTypeOptionData[],
+ratePlans: App.Data.Reservations.RatePlanOptionData[],
+};
+export type ChargeItemOptionData = {
+id: number,
+name: string,
+chargingUnit: string,
+chargingUnitLabel: string,
+defaultAmount: string | null,
+allowOverride: boolean,
+};
 export type NewAddOnData = {
 chargeItemId: number,
 quantity: number | null,
@@ -589,6 +609,11 @@ overrideReason: string | null,
 restrictionOverrideReason: string | null,
 addOns: App.Data.Reservations.NewAddOnData[],
 };
+export type RatePlanOptionData = {
+id: number,
+name: string,
+roomTypeIds: number[],
+};
 export type ReservationActivityData = {
 id: number,
 text: string,
@@ -618,6 +643,7 @@ export type ReservationData = {
 id: number,
 reference: string,
 title: string,
+groupName: string | null,
 isGroup: boolean,
 isClosed: boolean,
 status: App.Data.Shared.BadgeData,
@@ -728,6 +754,13 @@ label: string,
 status: App.Data.Shared.BadgeData,
 arrival: string,
 departure: string,
+};
+export type RoomTypeOptionData = {
+id: number,
+name: string,
+isBed: boolean,
+maxAdults: number,
+maxChildren: number,
 };
 }
 namespace Rooms {

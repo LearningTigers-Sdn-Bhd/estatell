@@ -11,6 +11,7 @@ use App\Data\Guests\GuestData;
 use App\Data\Guests\GuestIdentityDocumentData;
 use App\Data\Guests\GuestMatchData;
 use App\Data\Guests\GuestNoteData;
+use App\Data\Guests\GuestOptionData;
 use App\Data\Guests\GuestRowData;
 use App\Data\Guests\TagData;
 use App\Enums\Gender;
@@ -30,6 +31,7 @@ use App\Services\Guests\CountryOptions;
 use App\Services\Guests\GuestDirectory;
 use App\Services\Guests\GuestMatcher;
 use App\Services\Property\PropertyToday;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -62,6 +64,16 @@ class GuestController extends Controller
             'countries' => $canManage ? app(CountryOptions::class)->options() : [],
             'canManage' => $canManage,
         ]);
+    }
+
+    /**
+     * The first guests matching `?q=`, for the guest picker. Two characters are needed before it looks.
+     */
+    public function search(Request $request, Property $property, GuestDirectory $guestDirectory): JsonResponse
+    {
+        $guests = $guestDirectory->lookup($property, $request->string('q')->toString());
+
+        return response()->json(['guests' => $guests->map(GuestOptionData::fromModel(...))->all()]);
     }
 
     public function store(GuestRequest $request, Property $property, CreateGuest $createGuest): RedirectResponse

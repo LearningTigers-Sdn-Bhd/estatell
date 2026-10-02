@@ -13,6 +13,8 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('guests')->name('guests.')->group(function () {
     Route::get('/', [GuestController::class, 'index'])->middleware('can:'.PermissionEnum::GuestsView->value)->name('index');
 
+    Route::get('search', [GuestController::class, 'search'])->middleware('can:'.PermissionEnum::GuestsView->value)->name('search');
+
     Route::post('matches', GuestMatchController::class)->middleware('can:'.PermissionEnum::GuestsView->value)->name('matches');
 
     Route::middleware('can:'.PermissionEnum::GuestsManage->value)->group(function () {

@@ -1,8 +1,10 @@
 import { Head } from '@inertiajs/react';
 import { BedDouble, History, Receipt, Users } from 'lucide-react';
+import type { EnumOption } from '@/components/pms/enum-select';
 import { DateText } from '@/components/pms/date-text';
 import { DetailLayout } from '@/components/pms/detail-layout';
 import { PageHeader } from '@/components/pms/page-header';
+import { ReservationActions } from '@/components/pms/reservations/reservation-actions';
 import { ActivityTab } from '@/components/pms/reservations/activity-tab';
 import { AddOnsTab } from '@/components/pms/reservations/add-ons-tab';
 import { GuestsTab } from '@/components/pms/reservations/guests-tab';
@@ -26,6 +28,10 @@ type Props = {
     tab: Tab;
     autoAssignRooms: boolean;
     currency: App.Enums.Currency | null;
+    canManage: boolean;
+    billingModes: EnumOption[];
+    addUnitOptions?: App.Data.Reservations.AddUnitOptionsData;
+    chargeItems?: App.Data.Reservations.ChargeItemOptionData[];
     unit?: App.Data.Reservations.ReservationUnitData | null;
     guests?: App.Data.Reservations.ReservationGuestData[];
     addOns?: App.Data.Reservations.ReservationAddOnData[];
@@ -41,6 +47,10 @@ export default function ReservationShow({
     tab,
     autoAssignRooms,
     currency,
+    canManage,
+    billingModes,
+    addUnitOptions,
+    chargeItems,
     unit = null,
     guests = [],
     addOns = [],
@@ -109,6 +119,16 @@ export default function ReservationShow({
                         </>
                     }
                     back={{ href: index.url(), label: 'Reservations' }}
+                    actions={
+                        canManage ? (
+                            <ReservationActions
+                                reservation={reservation}
+                                billingModes={billingModes}
+                                addUnitOptions={addUnitOptions}
+                                currency={currency}
+                            />
+                        ) : undefined
+                    }
                 />
 
                 <DetailLayout
@@ -123,9 +143,21 @@ export default function ReservationShow({
                     }
                 >
                     {tab === 'guests' ? (
-                        <GuestsTab guests={guests} />
+                        <GuestsTab
+                            reservationId={reservation.id}
+                            guests={guests}
+                            units={units}
+                            canManage={canManage}
+                        />
                     ) : tab === 'add-ons' ? (
-                        <AddOnsTab addOns={addOns} currency={currency} />
+                        <AddOnsTab
+                            reservationId={reservation.id}
+                            addOns={addOns}
+                            units={units}
+                            chargeItems={chargeItems}
+                            canManage={canManage}
+                            currency={currency}
+                        />
                     ) : tab === 'activity' && activity ? (
                         <ActivityTab activity={activity} />
                     ) : (

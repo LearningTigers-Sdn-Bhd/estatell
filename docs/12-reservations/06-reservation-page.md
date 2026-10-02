@@ -217,7 +217,7 @@ Attach guest opens a Sheet with `GuestPicker` (existing guests only, through `gu
 
 Room units have no guest limit. Detaching a guest and changing the primary guest come later.
 
-Built: `AttachGuest` and `AttachGuestResult` (backend only; the Sheet comes with the page actions item).
+Built: `AttachGuest`, `AttachGuestResult` and the Sheet. The Sheet's unit select lists only open units, and a blacklisted guest shows a warning. The header button and the **Attach guest** button on a unit without a guest both open it.
 
 ### Add-ons tab
 
@@ -233,7 +233,9 @@ Booker (name, VIP, phone, email, link to the guest), earliest arrival, latest de
 
 ### Page build status
 
-Built, view only: the four tab routes with `renderTab()`, the header with the Group badge and the Status by unit popover, the Units tab (Choose unit list or select, `?unit=`, night table, price override reason), the Guests, Add-ons and Activity tabs, and the summary card. The reservation page sends `ReservationData`, a `ReservationUnitOptionData` list and the open tab's own data. `ReservationOverview`, `ReservationGuestRows` and `ReservationActivityLog` (`app/Services/Reservations/`) read the data in a constant number of queries. Not built yet, and so with no buttons: Add unit, Edit group, Attach guest, add and remove add-on, and the unit **⋯** menu.
+Built, view only: the four tab routes with `renderTab()`, the header with the Group badge and the Status by unit popover, the Units tab (Choose unit list or select, `?unit=`, night table, price override reason), the Guests, Add-ons and Activity tabs, and the summary card. The reservation page sends `ReservationData`, a `ReservationUnitOptionData` list and the open tab's own data. `ReservationOverview`, `ReservationGuestRows` and `ReservationActivityLog` (`app/Services/Reservations/`) read the data in a constant number of queries. The unit **⋯** menu is not built and has no button.
+
+Built, actions: the five `reservations.manage` routes, each in its own small controller (`ReservationGroupController`, `ReservationUnitController`, `ReservationUnitAddOnController`) with a Form Request that checks the shape only. The Add unit Sheet, Edit group Dialog, Attach guest Sheet, Add add-on Dialog and the Remove add-on AlertDialog call the Actions. The room type and rate plan lists (`addUnitOptions`) and the charge items (`chargeItems`) are optional props that load when their overlay opens, and a submit leaves them out with `except` so a refusal keeps them. `ReservationRefusals` (`app/Services/Reservations/`) is the one map from refusal code to field and message; a refusal with no field uses the `form` key, shown as an alert at the top of the overlay. A `restricted` refusal goes to the restriction override reason field for staff with `rates.override-restrictions`, and to `form` for everyone else. `guests.search` is `GuestController::search`, backed by `GuestDirectory::lookup` (8 guests, 2 characters at least, no merged or anonymized guests). The overlays follow the guests pattern (`Dialog` or `Sheet` with `Field` and `useForm`); `FormOverlay` is not built. Child ages in the Add unit Sheet are one comma-separated field.
 
 ## Refusals and messages
 
