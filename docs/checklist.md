@@ -203,7 +203,7 @@ Smaller fixes and reverts are in `git log`.
 - [ ] `feat(reservations): create reservations, units and groups` — `CreateReservation`, `AddUnit` (restrictions, availability with a room type lock, quote, price override in `override_amount`), bed lines as N units, `ReservationResult`, `UpdateReservationGroup`. Backend only. Also covers [Bed bookings](12-reservations/03-bed-bookings.md). Docs: [Group bookings](12-reservations/02-group-bookings.md).
 - [ ] `feat(reservations): add unit add-ons` — Docs: [Add-ons](12-reservations/04-add-ons.md).
 - [ ] `feat(reservations): add the booking form` — UI on top of `CreateReservation`; `AttachGuest`; adds `reservations.view` and `reservations.manage`; full page with a summary rail; optional room or bed per unit (whole-stay `AssignRoom` / `AssignBed`, moved from module 18); guest tabs with autocomplete through a new `guests.search` route. Docs: [Booking form](12-reservations/05-booking-form.md).
-- [ ] `feat(reservations): add the reservations list and reservation page` — Index with server search and filters; reservation page with Units, Guests, Add-ons and Activity tabs, summary card, status by unit, Add unit, Edit group. Docs: [Reservations list and reservation page](12-reservations/06-reservation-page.md).
+- [ ] `feat(reservations): add the reservations list and reservation page` — Index with status tabs, Cards and List views, the reservation card and server search and filters; reservation page with Units, Guests, Add-ons and Activity tabs, summary card, status by unit, Add unit, Edit group. Docs: [Reservations list and reservation page](12-reservations/06-reservation-page.md).
 
 ### 13 Folio and 14 Payments
 
