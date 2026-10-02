@@ -1,3 +1,6 @@
+import type { BookingGuest } from '@/components/pms/reservations/booking-guests';
+import { guestsPayload } from '@/components/pms/reservations/booking-guests';
+
 /** One booking line of the form: a room type and rate plan, the party, and what is picked for it. */
 export type BookingAddOn = {
     charge_item_id: string;
@@ -31,7 +34,7 @@ export type BookingForm = {
     group_name: string;
     billing_mode: string;
     notes: string;
-    booker_guest_id: string;
+    guests: BookingGuest[];
     lines: BookingLine[];
 };
 
@@ -78,6 +81,43 @@ export function unitsInLine(
     const beds = Number.parseInt(line.beds, 10);
 
     return Number.isFinite(beds) && beds > 0 ? beds : 1;
+}
+
+export type UnitOption = { value: string; label: string; isBed: boolean };
+
+/**
+ * Every unit on the form in the order the lines add them: "Deluxe King #1", "Dorm 6-Bed · Bed 2". The value is the
+ * unit index the server expects.
+ */
+export function unitOptions(
+    lines: BookingLine[],
+    roomTypes: RoomTypeOption[],
+): UnitOption[] {
+    const options: UnitOption[] = [];
+    const seen = new Map<string, number>();
+
+    for (const line of lines) {
+        const roomType = roomTypeOf(line, roomTypes);
+
+        if (!roomType) {
+            continue;
+        }
+
+        for (let unit = 0; unit < unitsInLine(line, roomTypes); unit++) {
+            const number = (seen.get(roomType.name) ?? 0) + 1;
+
+            seen.set(roomType.name, number);
+            options.push({
+                value: String(options.length),
+                label: roomType.isBed
+                    ? `${roomType.name} · Bed ${number}`
+                    : `${roomType.name} #${number}`,
+                isBed: roomType.isBed,
+            });
+        }
+    }
+
+    return options;
 }
 
 export function totalUnits(
@@ -185,6 +225,7 @@ export function quotePayload(
 export function bookingPayload(data: BookingForm, roomTypes: RoomTypeOption[]) {
     return {
         ...data,
+        guests: guestsPayload(data.guests),
         lines: data.lines.map((line) => {
             const isBed = roomTypeOf(line, roomTypes)?.isBed === true;
             const { key: _key, ...rest } = line;

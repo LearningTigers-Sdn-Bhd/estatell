@@ -33,7 +33,8 @@ export function BookingSummaryRail({
     billingModes,
     billingMode,
     onBillingModeChange,
-    bookerName,
+    guests,
+    unitsWithoutGuest,
 }: {
     units: number;
     quotes: Quote[];
@@ -41,7 +42,8 @@ export function BookingSummaryRail({
     billingModes: EnumOption[];
     billingMode: string;
     onBillingModeChange: (value: string) => void;
-    bookerName: string | null;
+    guests: { name: string; unit: string | null }[];
+    unitsWithoutGuest: number;
 }) {
     const rooms = sumMoney(quotes.map((quote) => quote.lineTotal));
     const addOns = sumMoney(quotes.map((quote) => quote.addOnsTotal));
@@ -92,22 +94,33 @@ export function BookingSummaryRail({
                 <Separator />
                 <div className="flex flex-col gap-1 text-sm">
                     <span className="font-medium">Guests</span>
-                    <span>
-                        {bookerName ?? (
-                            <span className="text-muted-foreground">
-                                No booker yet
+                    {guests.map((guest, index) => (
+                        <span
+                            key={index}
+                            className="flex justify-between gap-3"
+                        >
+                            <span>
+                                {guest.name}
+                                {index === 0 && (
+                                    <span className="text-muted-foreground">
+                                        {' '}
+                                        · booker
+                                    </span>
+                                )}
                             </span>
-                        )}
-                        {bookerName && (
-                            <span className="text-muted-foreground">
-                                {' '}
-                                · booker
+                            <span className="text-right text-muted-foreground">
+                                {guest.unit ??
+                                    (index === 0 ? 'not staying' : '')}
                             </span>
-                        )}
-                    </span>
-                    <span className="text-muted-foreground">
-                        {units} {units === 1 ? 'unit' : 'units'} without a guest
-                    </span>
+                        </span>
+                    ))}
+                    {unitsWithoutGuest > 0 && (
+                        <span className="text-muted-foreground">
+                            {unitsWithoutGuest}{' '}
+                            {unitsWithoutGuest === 1 ? 'unit' : 'units'} without
+                            a guest
+                        </span>
+                    )}
                 </div>
             </CardContent>
         </Card>

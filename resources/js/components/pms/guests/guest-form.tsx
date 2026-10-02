@@ -1,10 +1,11 @@
 import { useForm } from '@inertiajs/react';
 import { useState } from 'react';
-import { CountrySelect } from '@/components/pms/country-select';
-import { EnumSelect } from '@/components/pms/enum-select';
 import type { EnumOption } from '@/components/pms/enum-select';
-import { DatePicker } from '@/components/pms/date-picker';
 import { DuplicateWarning } from '@/components/pms/guests/duplicate-warning';
+import {
+    GuestAddressFields,
+    GuestPersonalFields,
+} from '@/components/pms/guests/guest-details-fields';
 import { TagInput } from '@/components/pms/guests/tag-input';
 import { PhoneInput } from '@/components/pms/phone-input';
 import { UnsavedChangesDialog } from '@/components/pms/unsaved-changes-dialog';
@@ -27,14 +28,7 @@ import { update } from '@/routes/guests';
 type Guest = App.Data.Guests.GuestData;
 type Tag = App.Data.Guests.TagData;
 
-type TextField =
-    | 'full_name'
-    | 'email'
-    | 'address_line1'
-    | 'address_line2'
-    | 'city'
-    | 'state'
-    | 'postal_code';
+type TextField = 'full_name' | 'email';
 
 type Props = {
     guest: Guest;
@@ -87,7 +81,6 @@ export function GuestForm({ guest, countries, genders, locales, tags }: Props) {
     });
     const guard = useUnsavedChanges(form.isDirty);
     const { data, errors } = form;
-    const today = new Date().toLocaleDateString('en-CA');
     const [checked, setChecked] = useState<GuestMatchCriteria>({});
 
     // Possible duplicates are looked up when a field is left, not on every key press.
@@ -130,44 +123,6 @@ export function GuestForm({ guest, countries, genders, locales, tags }: Props) {
                 onBlur={checkForDuplicates}
                 aria-invalid={!!errors[name]}
                 {...props}
-            />
-            <FieldError>{errors[name]}</FieldError>
-        </Field>
-    );
-
-    const select = (
-        name: 'gender' | 'preferred_locale',
-        label: string,
-        options: EnumOption[],
-        placeholder: string,
-    ) => (
-        <Field data-invalid={!!errors[name]}>
-            <FieldLabel htmlFor={name}>{label}</FieldLabel>
-            <EnumSelect
-                id={name}
-                options={options}
-                allLabel={placeholder}
-                value={data[name]}
-                onValueChange={(value) => form.setData(name, value)}
-                aria-invalid={!!errors[name]}
-                className="w-full"
-            />
-            <FieldError>{errors[name]}</FieldError>
-        </Field>
-    );
-
-    const country = (
-        name: 'nationality_code' | 'country_code',
-        label: string,
-    ) => (
-        <Field data-invalid={!!errors[name]}>
-            <FieldLabel htmlFor={name}>{label}</FieldLabel>
-            <CountrySelect
-                id={name}
-                options={countries}
-                value={data[name]}
-                onValueChange={(value) => form.setData(name, value)}
-                invalid={!!errors[name]}
             />
             <FieldError>{errors[name]}</FieldError>
         </Field>
@@ -224,52 +179,25 @@ export function GuestForm({ guest, countries, genders, locales, tags }: Props) {
 
                     <FieldSet>
                         <FieldLegend>Personal details</FieldLegend>
-                        <FieldGroup>
-                            <div className="grid gap-4 sm:grid-cols-2">
-                                {country('nationality_code', 'Nationality')}
-                                <Field data-invalid={!!errors.date_of_birth}>
-                                    <FieldLabel htmlFor="date_of_birth">
-                                        Date of birth
-                                    </FieldLabel>
-                                    <DatePicker
-                                        id="date_of_birth"
-                                        variant="dropdown"
-                                        max={today}
-                                        placeholder="Pick date of birth"
-                                        value={data.date_of_birth}
-                                        onChange={(value) => {
-                                            form.setData(
-                                                'date_of_birth',
-                                                value,
-                                            );
-                                            setChecked({
-                                                name: data.full_name,
-                                                email: data.email,
-                                                phone: data.phone,
-                                                date_of_birth: value,
-                                                exclude_guest_id: guest.id,
-                                            });
-                                        }}
-                                        aria-invalid={!!errors.date_of_birth}
-                                    />
-                                    <FieldError>
-                                        {errors.date_of_birth}
-                                    </FieldError>
-                                </Field>
-                                {select(
-                                    'gender',
-                                    'Gender',
-                                    genders,
-                                    'Select gender',
-                                )}
-                                {select(
-                                    'preferred_locale',
-                                    'Preferred language',
-                                    locales,
-                                    'Select language',
-                                )}
-                            </div>
-                        </FieldGroup>
+                        <GuestPersonalFields
+                            values={data}
+                            errors={errors}
+                            onChange={(field, value) =>
+                                form.setData(field, value)
+                            }
+                            countries={countries}
+                            genders={genders}
+                            locales={locales}
+                            onDateOfBirthChange={(value) =>
+                                setChecked({
+                                    name: data.full_name,
+                                    email: data.email,
+                                    phone: data.phone,
+                                    date_of_birth: value,
+                                    exclude_guest_id: guest.id,
+                                })
+                            }
+                        />
                     </FieldSet>
 
                     <FieldSet>
@@ -291,33 +219,14 @@ export function GuestForm({ guest, countries, genders, locales, tags }: Props) {
                 <div className="flex flex-col gap-8">
                     <FieldSet>
                         <FieldLegend>Address</FieldLegend>
-                        <FieldGroup>
-                            {text('address_line1', 'Address line 1', {
-                                maxLength: 150,
-                                placeholder: 'Street and number',
-                                autoComplete: 'off',
-                            })}
-                            {text('address_line2', 'Address line 2', {
-                                maxLength: 150,
-                                placeholder: 'Apartment, unit or building',
-                                autoComplete: 'off',
-                            })}
-                            <div className="grid gap-4 sm:grid-cols-2">
-                                {text('city', 'City', {
-                                    maxLength: 100,
-                                    placeholder: 'Kuala Lumpur',
-                                })}
-                                {text('state', 'State', {
-                                    maxLength: 100,
-                                    placeholder: 'Selangor',
-                                })}
-                                {text('postal_code', 'Postal code', {
-                                    maxLength: 20,
-                                    placeholder: '50450',
-                                })}
-                                {country('country_code', 'Country')}
-                            </div>
-                        </FieldGroup>
+                        <GuestAddressFields
+                            values={data}
+                            errors={errors}
+                            onChange={(field, value) =>
+                                form.setData(field, value)
+                            }
+                            countries={countries}
+                        />
                     </FieldSet>
                 </div>
             </div>

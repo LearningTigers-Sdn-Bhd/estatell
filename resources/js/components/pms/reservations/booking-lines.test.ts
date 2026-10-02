@@ -94,7 +94,7 @@ test('the posted lines drop the client key and send dorm beds instead of adults 
         group_name: '',
         billing_mode: 'master_pays',
         notes: '',
-        booker_guest_id: '1',
+        guests: [],
         lines: [room, beds],
     };
 

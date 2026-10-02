@@ -11,6 +11,8 @@ type Props = {
     value: string;
     onChange: (value: string) => void;
     onBlur?: () => void;
+    onFocus?: () => void;
+    onKeyDown?: (event: React.KeyboardEvent<HTMLInputElement>) => void;
     placeholder?: string;
     invalid?: boolean;
 };
@@ -24,6 +26,8 @@ export function PhoneInput({
     value,
     onChange,
     onBlur,
+    onFocus,
+    onKeyDown,
     placeholder = '+60 12-345 6789',
     invalid,
 }: Props) {
@@ -42,6 +46,8 @@ export function PhoneInput({
                 value={value}
                 onChange={(event) => onChange(event.target.value)}
                 onBlur={onBlur}
+                onFocus={onFocus}
+                onKeyDown={onKeyDown}
                 placeholder={placeholder}
                 aria-invalid={invalid}
             />

@@ -24,6 +24,7 @@ class GuestMatchData extends Data
         public bool $isBlacklisted,
         public array $reasons,
         public bool $isStrong,
+        public GuestProfileData $profile,
     ) {}
 
     /**
@@ -42,6 +43,7 @@ class GuestMatchData extends Data
             isBlacklisted: $guest->blacklisted_at !== null,
             reasons: array_map(fn (GuestMatchReason $reason): string => $reason->label(), $match['reasons']),
             isStrong: array_any($match['reasons'], fn (GuestMatchReason $reason): bool => $reason->isStrong()),
+            profile: GuestProfileData::fromModel($guest),
         );
     }
 }

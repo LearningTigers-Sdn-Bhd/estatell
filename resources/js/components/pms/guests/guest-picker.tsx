@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import {
     Combobox,
@@ -8,11 +8,12 @@ import {
     ComboboxItem,
     ComboboxList,
 } from '@/components/ui/combobox';
-import { search } from '@/routes/guests';
+import {
+    GUEST_SEARCH_MIN_LENGTH,
+    useGuestSearch,
+} from '@/hooks/use-guest-search';
 
 type Guest = App.Data.Guests.GuestOptionData;
-
-const MIN_LENGTH = 2;
 
 /**
  * Pick one existing guest. The server searches name, email and phone and sends the first few matches, so the list
@@ -30,51 +31,9 @@ export function GuestPicker({
     onChange: (guest: Guest | null) => void;
     invalid?: boolean;
 }) {
-    const [results, setResults] = useState<Guest[]>([]);
     const [query, setQuery] = useState('');
-    const [searching, setSearching] = useState(false);
-    const latest = useRef(0);
+    const { results, searching } = useGuestSearch(query);
     const text = query.trim();
-
-    useEffect(() => {
-        const request = ++latest.current;
-
-        if (text.length < MIN_LENGTH) {
-            setResults([]);
-            setSearching(false);
-
-            return;
-        }
-
-        setSearching(true);
-
-        const timeout = setTimeout(async () => {
-            try {
-                const response = await fetch(
-                    search.url({}, { query: { q: text } }),
-                    {
-                        headers: { Accept: 'application/json' },
-                        credentials: 'same-origin',
-                    },
-                );
-                const body = (await response.json()) as { guests: Guest[] };
-
-                if (request === latest.current) {
-                    setResults(body.guests);
-                }
-            } catch {
-                if (request === latest.current) {
-                    setResults([]);
-                }
-            } finally {
-                if (request === latest.current) {
-                    setSearching(false);
-                }
-            }
-        }, 300);
-
-        return () => clearTimeout(timeout);
-    }, [text]);
 
     const items =
         value && !results.some((guest) => guest.id === value.id)
@@ -109,7 +68,7 @@ export function GuestPicker({
                 <ComboboxEmpty>
                     {searching
                         ? 'Searching…'
-                        : text.length < MIN_LENGTH
+                        : text.length < GUEST_SEARCH_MIN_LENGTH
                           ? 'Type at least 2 letters to search.'
                           : 'No guests found.'}
                 </ComboboxEmpty>

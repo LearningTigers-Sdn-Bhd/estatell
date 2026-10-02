@@ -142,7 +142,7 @@ test('the matches endpoint returns suggestions, skips the excluded guest and enf
         ->assertOk()
         ->assertJsonCount(2, 'matches')
         ->assertJsonPath('matches.0.isStrong', true)
-        ->assertJsonStructure(['matches' => [['id', 'fullName', 'email', 'phone', 'isVip', 'isBlacklisted', 'reasons', 'isStrong']]]);
+        ->assertJsonStructure(['matches' => [['id', 'fullName', 'email', 'phone', 'isVip', 'isBlacklisted', 'reasons', 'isStrong', 'profile' => ['nationalityCode', 'dateOfBirth', 'gender', 'preferredLocale', 'addressLine1', 'addressLine2', 'city', 'state', 'postalCode', 'countryCode', 'blacklistReason']]]]);
 
     $this->postJson($url, ['phone' => '012 345 6789', 'exclude_guest_id' => $mine->id])
         ->assertJsonCount(1, 'matches')->assertJsonPath('matches.0.id', $other->id);

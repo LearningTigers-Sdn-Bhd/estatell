@@ -1,5 +1,6 @@
 import { TriangleAlert } from 'lucide-react';
 import { StatusBadge } from '@/components/pms/status-badge';
+import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useGuestMatches } from '@/hooks/use-guest-matches';
 import type { GuestMatchCriteria } from '@/hooks/use-guest-matches';
@@ -11,8 +12,14 @@ import { show } from '@/routes/guests';
  */
 export function DuplicateWarning({
     criteria,
+    onUse,
+    onDismiss,
 }: {
     criteria: GuestMatchCriteria;
+    /** Adds a Use existing button to each match, for forms that can link a guest. */
+    onUse?: (match: App.Data.Guests.GuestMatchData) => void;
+    /** Adds a Create new anyway button, which hides the warning for the details typed. */
+    onDismiss?: () => void;
 }) {
     const matches = useGuestMatches(criteria);
 
@@ -65,9 +72,30 @@ export function DuplicateWarning({
                                     }}
                                 />
                             )}
+                            {onUse && (
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="xs"
+                                    onClick={() => onUse(match)}
+                                >
+                                    Use existing
+                                </Button>
+                            )}
                         </li>
                     ))}
                 </ul>
+                {onDismiss && (
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="mt-2"
+                        onClick={onDismiss}
+                    >
+                        Create new anyway
+                    </Button>
+                )}
             </AlertDescription>
         </Alert>
     );

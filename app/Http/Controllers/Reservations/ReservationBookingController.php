@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Reservations;
 
 use App\Actions\Reservations\CreateBooking;
 use App\Enums\BillingMode;
+use App\Enums\Gender;
+use App\Enums\Locale;
 use App\Enums\PermissionEnum;
 use App\Enums\ReservationSource;
 use App\Http\Controllers\Controller;
@@ -13,6 +15,7 @@ use App\Http\Requests\Reservations\StoreBookingRequest;
 use App\Models\Property;
 use App\Models\RoomType;
 use App\Services\Availability\FreeUnits;
+use App\Services\Guests\CountryOptions;
 use App\Services\NightAudit\CurrentBusinessDate;
 use App\Services\Property\PropertyToday;
 use App\Services\Reservations\BookingErrorKeys;
@@ -95,6 +98,7 @@ class ReservationBookingController extends Controller
 
     private function form(Request $request, Property $property, ReservationFormOptions $options, CurrentBusinessDate $businessDate, PropertyToday $today, bool $walkIn): Response
     {
+        $canManageGuests = $request->user()->can(PermissionEnum::GuestsManage->value);
         $sources = $walkIn ? [ReservationSource::WalkIn] : [ReservationSource::Direct, ReservationSource::Phone];
 
         return Inertia::render('reservations/create', [
@@ -108,6 +112,10 @@ class ReservationBookingController extends Controller
             'autoAssignRooms' => (bool) $property->settings?->auto_assign_rooms,
             'currency' => $property->settings?->currency,
             'canOverrideRestrictions' => $request->user()->can(PermissionEnum::RatesOverrideRestrictions->value),
+            'canManageGuests' => $canManageGuests,
+            'countries' => $canManageGuests ? app(CountryOptions::class)->options() : [],
+            'genders' => Gender::options(),
+            'locales' => Locale::options(),
         ]);
     }
 }

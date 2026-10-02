@@ -2,16 +2,10 @@
 
 namespace App\Http\Requests\Guests;
 
-use App\Enums\Gender;
-use App\Enums\Locale;
 use App\Models\Property;
-use App\Services\Guests\CountryOptions;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 use LogicException;
-use Propaganistas\LaravelPhone\PhoneNumber;
-use Propaganistas\LaravelPhone\Rules\Phone;
 
 class GuestRequest extends FormRequest
 {
@@ -28,22 +22,8 @@ class GuestRequest extends FormRequest
      */
     public function rules(): array
     {
-        $countries = app(CountryOptions::class)->codes();
-
         return [
-            'full_name' => ['required', 'string', 'max:150'],
-            'email' => ['nullable', 'email:rfc', 'max:255'],
-            'phone' => ['nullable', 'string', 'max:30', (new Phone)->country($this->phoneRegion())->international()],
-            'nationality_code' => ['nullable', Rule::in($countries)],
-            'date_of_birth' => ['nullable', 'date_format:Y-m-d', 'before_or_equal:today'],
-            'gender' => ['nullable', Rule::enum(Gender::class)],
-            'preferred_locale' => ['nullable', Rule::enum(Locale::class)],
-            'address_line1' => ['nullable', 'string', 'max:150'],
-            'address_line2' => ['nullable', 'string', 'max:150'],
-            'city' => ['nullable', 'string', 'max:100'],
-            'state' => ['nullable', 'string', 'max:100'],
-            'postal_code' => ['nullable', 'string', 'max:20'],
-            'country_code' => ['nullable', Rule::in($countries)],
+            ...GuestProfileRules::for($this->phoneRegion()),
             'tags' => ['nullable', 'array', 'max:20'],
             'tags.*' => ['required', 'string', 'max:50'],
         ];
@@ -56,13 +36,7 @@ class GuestRequest extends FormRequest
      */
     public function profileAttributes(): array
     {
-        $attributes = $this->safe()->except('tags');
-
-        if (filled($attributes['phone'] ?? null)) {
-            $attributes['phone'] = (new PhoneNumber($attributes['phone'], $this->phoneRegion()))->formatE164();
-        }
-
-        return $attributes;
+        return GuestProfileRules::attributes($this->safe()->except('tags'), $this->phoneRegion());
     }
 
     /**

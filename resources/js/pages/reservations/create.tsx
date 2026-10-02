@@ -1,14 +1,19 @@
 import { Head, Link, useForm } from '@inertiajs/react';
 import { Plus } from 'lucide-react';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { DatePicker } from '@/components/pms/date-picker';
 import { DateText } from '@/components/pms/date-text';
 import { EnumSelect } from '@/components/pms/enum-select';
 import type { EnumOption } from '@/components/pms/enum-select';
 import { FormActions } from '@/components/pms/form-actions';
-import { GuestPicker } from '@/components/pms/guests/guest-picker';
 import { PageHeader } from '@/components/pms/page-header';
 import { BookingExtrasSection } from '@/components/pms/reservations/booking-extras-section';
+import { BookingGuestsSection } from '@/components/pms/reservations/booking-guests-section';
+import {
+    clampStaysIn,
+    emptyGuest,
+    guestTabLabel,
+} from '@/components/pms/reservations/booking-guests';
 import { BookingLineRow } from '@/components/pms/reservations/booking-line-row';
 import {
     addDays,
@@ -16,6 +21,7 @@ import {
     emptyLine,
     nightsBetween,
     totalUnits,
+    unitOptions,
 } from '@/components/pms/reservations/booking-lines';
 import type {
     BookingForm,
@@ -53,6 +59,10 @@ type Props = {
     autoAssignRooms: boolean;
     currency: App.Enums.Currency | null;
     canOverrideRestrictions: boolean;
+    canManageGuests: boolean;
+    countries: EnumOption[];
+    genders: EnumOption[];
+    locales: EnumOption[];
 };
 
 function Section({
@@ -92,6 +102,10 @@ export default function ReservationCreate({
     autoAssignRooms,
     currency,
     canOverrideRestrictions,
+    canManageGuests,
+    countries,
+    genders,
+    locales,
 }: Props) {
     const form = useForm<BookingForm>({
         source: sources[0]?.value ?? 'direct',
@@ -101,16 +115,23 @@ export default function ReservationCreate({
         group_name: '',
         billing_mode: billingModes[0]?.value ?? 'master_pays',
         notes: '',
-        booker_guest_id: '',
+        guests: [emptyGuest()],
         lines: [emptyLine()],
     });
     const { data, errors } = form;
-    const [booker, setBooker] =
-        useState<App.Data.Guests.GuestOptionData | null>(null);
     const [quotes, setQuotes] = useState<Record<string, Quote>>({});
     const guard = useUnsavedChanges(form.isDirty && !form.processing);
     const roomTypes = addUnitOptions.roomTypes;
     const units = totalUnits(data.lines, roomTypes);
+    const unitChoices = unitOptions(data.lines, roomTypes);
+
+    useEffect(() => {
+        const next = clampStaysIn(form.data.guests, unitChoices.length);
+
+        if (next !== form.data.guests) {
+            form.setData('guests', next);
+        }
+    }, [unitChoices.length]);
     const nights = nightsBetween(data.arrival_date, data.departure_date);
     const lockedNights = useMemo(() => {
         for (const line of data.lines) {
@@ -206,8 +227,6 @@ export default function ReservationCreate({
                     ?.scrollIntoView({ block: 'center', behavior: 'smooth' }),
         });
     };
-
-    const guestError = errors.booker_guest_id;
 
     return (
         <>
@@ -509,29 +528,20 @@ export default function ReservationCreate({
 
                         <Section
                             title="Guests"
-                            description="Pick the booker. Guests for each unit are attached from the reservation page."
+                            description="The booker, and the guest of each unit. Units without a guest can be filled from the reservation page."
                         >
-                            <Field
-                                className="max-w-md"
-                                data-invalid={!!guestError}
-                            >
-                                <FieldLabel htmlFor="booking-booker">
-                                    Booker
-                                </FieldLabel>
-                                <GuestPicker
-                                    id="booking-booker"
-                                    value={booker}
-                                    onChange={(guest) => {
-                                        setBooker(guest);
-                                        form.setData(
-                                            'booker_guest_id',
-                                            guest ? String(guest.id) : '',
-                                        );
-                                    }}
-                                    invalid={!!guestError}
-                                />
-                                <FieldError>{guestError}</FieldError>
-                            </Field>
+                            <BookingGuestsSection
+                                tabs={data.guests}
+                                units={unitChoices}
+                                canManageGuests={canManageGuests}
+                                countries={countries}
+                                genders={genders}
+                                locales={locales}
+                                errors={errors}
+                                onChange={(guests) =>
+                                    form.setData('guests', guests)
+                                }
+                            />
                         </Section>
 
                         <Section
@@ -594,7 +604,21 @@ export default function ReservationCreate({
                             onBillingModeChange={(value) =>
                                 form.setData('billing_mode', value)
                             }
-                            bookerName={booker?.fullName ?? null}
+                            guests={data.guests.map((tab, index) => ({
+                                name: guestTabLabel(tab, index),
+                                unit:
+                                    unitChoices[Number(tab.stays_in)]?.label ??
+                                    null,
+                            }))}
+                            unitsWithoutGuest={
+                                unitChoices.filter(
+                                    (_, index) =>
+                                        !data.guests.some(
+                                            (tab) =>
+                                                tab.stays_in === String(index),
+                                        ),
+                                ).length
+                            }
                         />
                     </aside>
                 </div>

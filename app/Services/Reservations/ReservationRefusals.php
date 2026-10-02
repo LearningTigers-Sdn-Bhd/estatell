@@ -85,7 +85,7 @@ class ReservationRefusals
             AssignmentResult::REFUSAL_ROOM_NOT_FREE => ['room_id', $day === '' ? __('This room is not free for the stay.') : __('This room is not free on :date.', ['date' => $day])],
             AssignmentResult::REFUSAL_BED_NOT_FREE => ['bed_id', $day === '' ? __('This bed is not free for the stay.') : __('This bed is not free on :date.', ['date' => $day])],
             BookingResult::REFUSAL_BOOKER_REQUIRED => ['guest_id', __('Choose the booker.')],
-            BookingResult::REFUSAL_GUEST_NAME_REQUIRED => ['full_name', __('Enter the guest\'s name.')],
+            BookingResult::REFUSAL_GUEST_NAME_REQUIRED => ['full_name', __('Enter the guest\'s name or pick an existing guest.')],
             BookingResult::REFUSAL_UNIT_NOT_FOUND => [self::FORM, __('This unit is not on the booking.')],
             default => [self::FORM, __('This change was refused.')],
         };

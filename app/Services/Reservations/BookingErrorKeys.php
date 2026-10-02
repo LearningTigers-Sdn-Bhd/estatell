@@ -2,11 +2,14 @@
 
 namespace App\Services\Reservations;
 
+use App\Actions\Reservations\AddOnResult;
+use App\Actions\Reservations\AttachGuestResult;
 use App\Actions\Reservations\BookingResult;
+use App\Actions\Reservations\ReservationResult;
 
 /**
  * Turns the refusal of `CreateBooking` into form errors keyed by position, for the booking form: `lines.1.room_type_id`,
- * `lines.0.bed_ids.2`, `arrival_date`, `booker_guest_id` or `form`. The field and message come from
+ * `lines.0.bed_ids.2`, `arrival_date`, `guests.0.guest_id` or `form`. The field and message come from
  * `ReservationRefusals`; the line comes from the line, or from the unit index of the result.
  */
 class BookingErrorKeys
@@ -29,12 +32,16 @@ class BookingErrorKeys
         $field = (string) array_key_first($errors);
         $message = $errors[$field];
 
-        if ($field === 'arrival_date' || $field === 'departure_date' || $field === ReservationRefusals::FORM) {
+        if ($field === 'arrival_date' || $field === 'departure_date') {
             return [$field => $message];
         }
 
-        if ($field === 'guest_id') {
-            return ['booker_guest_id' => $message];
+        if ($result->guestIndex !== null || in_array($result->refusal, [ReservationResult::REFUSAL_BOOKER_NOT_FOUND, BookingResult::REFUSAL_BOOKER_REQUIRED], true)) {
+            return ['guests.'.($result->guestIndex ?? 0).'.'.$this->guestField($result->refusal, $field) => $message];
+        }
+
+        if ($field === ReservationRefusals::FORM) {
+            return [$field => $message];
         }
 
         if ($result->unitIndex !== null && ($field === 'room_id' || $field === 'bed_id')) {
@@ -52,6 +59,18 @@ class BookingErrorKeys
         }
 
         return [ReservationRefusals::FORM => $message];
+    }
+
+    /**
+     * The field of a guest tab a refusal belongs to: the name, the unit it stays in, or the linked guest.
+     */
+    private function guestField(?string $refusal, string $field): string
+    {
+        return match ($refusal) {
+            BookingResult::REFUSAL_GUEST_NAME_REQUIRED => 'full_name',
+            AttachGuestResult::REFUSAL_BED_UNIT_FULL, AddOnResult::REFUSAL_UNIT_NOT_OPEN, BookingResult::REFUSAL_UNIT_NOT_FOUND => 'stays_in',
+            default => $field === 'form' ? 'stays_in' : 'guest_id',
+        };
     }
 
     /**

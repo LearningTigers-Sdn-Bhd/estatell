@@ -466,3 +466,36 @@ test('guest search needs guests.view', function () {
         ->getJson(route('guests.search', ['property' => $setup['property']->code, 'q' => 'ahmad']))
         ->assertForbidden();
 });
+
+test('guest search results carry the profile a form fills from, with the blacklist reason', function () {
+    $setup = actionsSetup();
+    Guest::factory()->create([
+        'property_id' => $setup['property']->id,
+        'full_name' => 'Ahmad Faiz',
+        'nationality_code' => 'MY',
+        'date_of_birth' => '1990-05-04',
+        'gender' => 'male',
+        'city' => 'Ipoh',
+        'address_line1' => '1 Jalan Bunga',
+        'blacklisted_at' => now(),
+        'blacklist_reason' => 'Damaged room',
+    ]);
+
+    $this->actingAs($setup['user'])
+        ->getJson(route('guests.search', ['property' => $setup['property']->code, 'q' => 'ahmad']))
+        ->assertOk()
+        ->assertJsonPath('guests.0.isBlacklisted', true)
+        ->assertJsonPath('guests.0.profile', [
+            'nationalityCode' => 'MY',
+            'dateOfBirth' => '1990-05-04',
+            'gender' => 'male',
+            'preferredLocale' => null,
+            'addressLine1' => '1 Jalan Bunga',
+            'addressLine2' => null,
+            'city' => 'Ipoh',
+            'state' => null,
+            'postalCode' => null,
+            'countryCode' => 'MY',
+            'blacklistReason' => 'Damaged room',
+        ]);
+});

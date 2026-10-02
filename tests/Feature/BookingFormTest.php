@@ -32,7 +32,7 @@ function bookingBody(array $setup, array $overrides = []): array
         'source' => 'phone',
         'arrival_date' => '2026-10-20',
         'departure_date' => '2026-10-22',
-        'booker_guest_id' => $setup['guest']->id,
+        'guests' => [['guest_id' => $setup['guest']->id]],
         'billing_mode' => 'master_pays',
         'lines' => [bookingFormLine($setup)],
         ...$overrides,
@@ -90,7 +90,11 @@ test('the new booking page sends the lists the form needs', function () {
             ->has('discounts', 1)
             ->where('discounts.0.name', 'Staff rate')
             ->has('billingModes', 2)
-            ->where('canOverrideRestrictions', true));
+            ->where('canOverrideRestrictions', true)
+            ->where('canManageGuests', true)
+            ->has('countries')
+            ->has('genders')
+            ->has('locales'));
 });
 
 test('the walk-in page fixes the source and the business date', function () {
@@ -186,7 +190,7 @@ test('a refused booking goes back with an error on the line and saves nothing', 
         'an override without a reason' => [bookingBody($setup, ['lines' => [bookingFormLine($setup, ['override_total' => '90.00'])]]), 'lines.0.override_reason', 'Enter a reason for the price override.'],
         'a bed that is not a bed of the dorm' => [bookingBody($setup, ['lines' => [['room_type_id' => $setup['dorm']->id, 'rate_plan_id' => $setup['bedPlan']->id, 'adults' => 1, 'beds' => 2, 'bed_ids' => [$setup['beds'][0]->id, 0]]]]), 'lines.0.bed_ids.1', 'This bed cannot be picked.'],
         'a room of another property' => [bookingBody($setup, ['lines' => [bookingFormLine($setup, ['room_id' => Room::factory()->create()->id])]]), 'lines.0.room_id', 'This room cannot be picked.'],
-        'an unknown booker' => [bookingBody($setup, ['booker_guest_id' => Guest::factory()->create()->id]), 'booker_guest_id', 'The booker is not one of this property\'s guests.'],
+        'an unknown booker' => [bookingBody($setup, ['guests' => [['guest_id' => Guest::factory()->create()->id]]]), 'guests.0.guest_id', 'The booker is not one of this property\'s guests.'],
     };
 
     $this->actingAs($setup['user'])
@@ -241,7 +245,7 @@ test('a walk-in needs a room or bed for every unit', function () {
 test('the booking form checks its shape', function (string $case) {
     $setup = bookingSetup();
     [$overrides, $field] = match ($case) {
-        'no booker' => [['booker_guest_id' => null], 'booker_guest_id'],
+        'no booker' => [['guests' => []], 'guests'],
         'no lines' => [['lines' => []], 'lines'],
         'a source that is not offered' => [['source' => 'channel'], 'source'],
         'a bad date' => [['arrival_date' => 'soon'], 'arrival_date'],
@@ -265,3 +269,101 @@ test('the booking routes need reservations.manage and stay in their property', f
 
     expect(Reservation::query()->count())->toBe(0);
 });
+
+test('a booking creates a guest, updates another and attaches both to their units', function () {
+    $setup = bookingSetup();
+    $other = Guest::factory()->create(['property_id' => $setup['property']->id, 'full_name' => 'Ahmad Faiz', 'city' => 'Ipoh']);
+
+    $this->actingAs($setup['user'])->post(bookingFormUrl($setup, 'reservations.store'), bookingBody($setup, [
+        'lines' => [bookingFormLine($setup), bookingFormLine($setup)],
+        'guests' => [
+            ['guest_id' => $setup['guest']->id, 'stays_in' => 0],
+            ['full_name' => 'Nur Aina', 'phone' => '012-888 2211', 'email' => 'aina@example.com', 'city' => 'Penang', 'date_of_birth' => '1990-05-04', 'stays_in' => 1],
+            ['guest_id' => $other->id, 'update_profile' => true, 'full_name' => 'Ahmad Faiz', 'city' => 'Melaka', 'stays_in' => 1],
+        ],
+    ]))->assertSessionHasNoErrors();
+
+    $reservation = Reservation::query()->sole();
+    $units = $reservation->units()->orderBy('id')->get();
+    $created = Guest::query()->where('full_name', 'Nur Aina')->sole();
+
+    expect($reservation->booker_guest_id)->toBe($setup['guest']->id)
+        ->and($created->phone)->toBe('+60128882211')
+        ->and($created->city)->toBe('Penang')
+        ->and($created->date_of_birth->toDateString())->toBe('1990-05-04')
+        ->and($other->refresh()->city)->toBe('Melaka')
+        ->and($units[0]->guests()->sole()->guest_id)->toBe($setup['guest']->id)
+        ->and($units[1]->guests()->orderBy('id')->pluck('guest_id')->all())->toBe([$created->id, $other->id])
+        ->and($units[1]->guests()->where('is_primary', true)->sole()->guest_id)->toBe($created->id);
+});
+
+test('a linked guest keeps its profile unless the update is on', function () {
+    $setup = bookingSetup();
+
+    $this->actingAs($setup['user'])->post(bookingFormUrl($setup, 'reservations.store'), bookingBody($setup, [
+        'guests' => [['guest_id' => $setup['guest']->id, 'full_name' => 'Changed Name', 'city' => 'Ipoh', 'stays_in' => 0]],
+    ]))->assertSessionHasNoErrors();
+
+    expect($setup['guest']->refresh()->full_name)->toBe('Tan Wei Ming')->and($setup['guest']->city)->not->toBe('Ipoh');
+});
+
+test('staff without guests.manage may only pick existing guests', function (array $tab, string $key, string $message) {
+    $setup = bookingSetup();
+    $user = User::factory()->create(['property_id' => $setup['property']->id]);
+    actionsRoleWith($user, ['reservations.view', 'reservations.manage', 'guests.view']);
+
+    $this->actingAs($user)
+        ->post(bookingFormUrl($setup, 'reservations.store'), bookingBody($setup, ['guests' => [['stays_in' => 0, ...$tab, 'guest_id' => $tab['guest_id'] ?? null]]]))
+        ->assertSessionHasErrors([$key => $message]);
+
+    expect(Reservation::query()->count())->toBe(0)->and(Guest::query()->count())->toBe(1);
+
+    $this->get(bookingFormUrl($setup, 'reservations.new'))->assertInertia(fn (Assert $page) => $page->where('canManageGuests', false)->where('countries', []));
+})->with([
+    'a new guest' => [['full_name' => 'New Person'], 'guests.0.full_name', 'Pick an existing guest.'],
+    'a profile update' => [['guest_id' => 1, 'update_profile' => true], 'guests.0.update_profile', 'You may not change a guest\'s profile.'],
+]);
+
+test('staff without guests.manage can book with an existing guest', function () {
+    $setup = bookingSetup();
+    $user = User::factory()->create(['property_id' => $setup['property']->id]);
+    actionsRoleWith($user, ['reservations.view', 'reservations.manage', 'guests.view']);
+
+    $this->actingAs($user)->post(bookingFormUrl($setup, 'reservations.store'), bookingBody($setup, ['guests' => [['guest_id' => $setup['guest']->id, 'stays_in' => 0]]]))
+        ->assertSessionHasNoErrors();
+
+    expect(Reservation::query()->count())->toBe(1);
+});
+
+test('a refused guest tab shows the error on the tab and saves nothing, not even the new guest', function (string $case) {
+    $setup = bookingSetup();
+    $bed = ['room_type_id' => $setup['dorm']->id, 'rate_plan_id' => $setup['bedPlan']->id, 'adults' => 1, 'beds' => 1];
+    [$body, $key, $message] = match ($case) {
+        'a second guest in a bed unit' => [bookingBody($setup, ['lines' => [$bed], 'guests' => [['full_name' => 'First', 'stays_in' => 0], ['full_name' => 'Second', 'stays_in' => 0]]]), 'guests.1.stays_in', 'A bed unit holds one guest.'],
+        'a unit that is not on the booking' => [bookingBody($setup, ['guests' => [['full_name' => 'First', 'stays_in' => 5]]]), 'guests.0.stays_in', 'This unit is not on the booking.'],
+        'a guest tab with no unit' => [bookingBody($setup, ['guests' => [['full_name' => 'First', 'stays_in' => 0], ['full_name' => 'Second']]]), 'guests.1.stays_in', 'Choose the unit this guest stays in.'],
+        'a new guest with no name' => [bookingBody($setup, ['guests' => [['email' => 'a@example.com']]]), 'guests.0.full_name', 'Enter the guest\'s name or pick an existing guest.'],
+        'the same guest twice in a unit' => [bookingBody($setup, ['guests' => [['guest_id' => $setup['guest']->id, 'stays_in' => 0], ['guest_id' => $setup['guest']->id, 'stays_in' => 0]]]), 'guests.1.guest_id', 'This guest already stays in this unit.'],
+        'a guest of another property' => [bookingBody($setup, ['guests' => [['guest_id' => $setup['guest']->id], ['guest_id' => Guest::factory()->create()->id, 'stays_in' => 0]]]), 'guests.1.guest_id', 'This guest cannot be found.'],
+    };
+    $before = Guest::query()->count();
+
+    $this->actingAs($setup['user'])->post(bookingFormUrl($setup, 'reservations.store'), $body)->assertSessionHasErrors([$key => $message]);
+
+    expect(Reservation::query()->count())->toBe(0)->and(Guest::query()->count())->toBe($before);
+})->with(['a second guest in a bed unit', 'a unit that is not on the booking', 'a guest tab with no unit', 'a new guest with no name', 'the same guest twice in a unit', 'a guest of another property']);
+
+test('a guest tab checks its profile fields', function (array $tab, string $field) {
+    $setup = bookingSetup();
+
+    $this->actingAs($setup['user'])
+        ->post(bookingFormUrl($setup, 'reservations.store'), bookingBody($setup, ['guests' => [['full_name' => 'First', 'stays_in' => 0, ...$tab]]]))
+        ->assertSessionHasErrors($field);
+
+    expect(Reservation::query()->count())->toBe(0);
+})->with([
+    'a bad phone' => [['phone' => 'abc'], 'guests.0.phone'],
+    'a bad email' => [['email' => 'not-an-email'], 'guests.0.email'],
+    'a date of birth in the future' => [['date_of_birth' => '2999-01-01'], 'guests.0.date_of_birth'],
+    'an unknown country' => [['nationality_code' => 'ZZ'], 'guests.0.nationality_code'],
+]);

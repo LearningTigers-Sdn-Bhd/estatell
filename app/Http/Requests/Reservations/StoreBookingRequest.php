@@ -8,8 +8,10 @@ use App\Data\Reservations\NewBookingGuestData;
 use App\Data\Reservations\NewUnitData;
 use App\Data\Reservations\UnitPickData;
 use App\Enums\BillingMode;
+use App\Enums\PermissionEnum;
 use App\Enums\ReservationSource;
 use App\Enums\SellUnit;
+use App\Http\Requests\Guests\GuestProfileRules;
 use App\Models\Property;
 use App\Models\RoomType;
 use Carbon\CarbonImmutable;
@@ -44,7 +46,11 @@ class StoreBookingRequest extends FormRequest
             'group_name' => ['nullable', 'string', 'max:150'],
             'billing_mode' => ['nullable', Rule::enum(BillingMode::class)],
             'notes' => ['nullable', 'string', 'max:2000'],
-            'booker_guest_id' => ['required', 'integer'],
+            'guests' => ['required', 'array', 'min:1', 'max:20'],
+            'guests.*.guest_id' => ['nullable', 'integer'],
+            'guests.*.update_profile' => ['nullable', 'boolean'],
+            'guests.*.stays_in' => ['nullable', 'integer', 'min:0', 'max:999'],
+            ...GuestProfileRules::prefixed('guests.*.', $this->phoneRegion(), nameRequired: false),
             'lines' => ['required', 'array', 'min:1', 'max:20'],
             'lines.*.room_type_id' => ['required', 'integer'],
             'lines.*.rate_plan_id' => ['required', 'integer'],
@@ -87,6 +93,8 @@ class StoreBookingRequest extends FormRequest
     public function after(): array
     {
         return [function (Validator $validator): void {
+            $this->checkGuests($validator);
+
             if ($validator->errors()->isNotEmpty() || $this->input('source') !== ReservationSource::WalkIn->value) {
                 return;
             }
@@ -148,13 +156,70 @@ class StoreBookingRequest extends FormRequest
         return new NewBookingData(
             source: ReservationSource::from($this->validated('source')),
             units: $units,
-            guests: [new NewBookingGuestData(guestId: (int) $this->validated('booker_guest_id'))],
+            guests: $this->guestTabs(),
             picks: $picks,
             billingMode: BillingMode::tryFrom((string) $this->validated('billing_mode')) ?? BillingMode::MasterPays,
             externalReference: $this->validated('external_reference'),
             groupName: $this->validated('group_name'),
             notes: $this->validated('notes'),
         );
+    }
+
+    /**
+     * Whether the user may create guests and change their profiles. Without it, a tab takes only an existing guest.
+     */
+    public function canManageGuests(): bool
+    {
+        return $this->user()->can(PermissionEnum::GuestsManage->value);
+    }
+
+    /**
+     * Every tab after the booker needs a unit to stay in, and creating or updating a guest needs `guests.manage`.
+     */
+    private function checkGuests(Validator $validator): void
+    {
+        foreach ($this->input('guests', []) as $index => $tab) {
+            if ($index > 0 && ! isset($tab['stays_in'])) {
+                $validator->errors()->add("guests.{$index}.stays_in", __('Choose the unit this guest stays in.'));
+            }
+
+            if ($this->canManageGuests()) {
+                continue;
+            }
+
+            if (empty($tab['guest_id'])) {
+                $validator->errors()->add("guests.{$index}.full_name", __('Pick an existing guest.'));
+            } elseif (! empty($tab['update_profile'])) {
+                $validator->errors()->add("guests.{$index}.update_profile", __('You may not change a guest\'s profile.'));
+            }
+        }
+    }
+
+    /**
+     * @return list<NewBookingGuestData>
+     */
+    private function guestTabs(): array
+    {
+        $region = $this->phoneRegion();
+        $tabs = $this->validated('guests');
+
+        // The validated array lists a tab where its first present field appears, so put the tabs back in form order.
+        ksort($tabs);
+
+        return array_map(fn (array $tab): NewBookingGuestData => new NewBookingGuestData(
+            guestId: empty($tab['guest_id']) ? null : (int) $tab['guest_id'],
+            profile: GuestProfileRules::attributes($tab, $region),
+            updateProfile: (bool) ($tab['update_profile'] ?? false),
+            unitIndex: isset($tab['stays_in']) ? (int) $tab['stays_in'] : null,
+        ), array_values($tabs));
+    }
+
+    private function phoneRegion(): string
+    {
+        /** @var Property $property */
+        $property = $this->route('property');
+
+        return $property->country_code ?? 'MY';
     }
 
     /**

@@ -140,6 +140,7 @@ isVip: boolean,
 isBlacklisted: boolean,
 reasons: string[],
 isStrong: boolean,
+profile: App.Data.Guests.GuestProfileData,
 };
 export type GuestNoteData = {
 id: number,
@@ -154,6 +155,20 @@ phone: string | null,
 email: string | null,
 isVip: boolean,
 isBlacklisted: boolean,
+profile: App.Data.Guests.GuestProfileData,
+};
+export type GuestProfileData = {
+nationalityCode: string | null,
+dateOfBirth: string | null,
+gender: string | null,
+preferredLocale: string | null,
+addressLine1: string | null,
+addressLine2: string | null,
+city: string | null,
+state: string | null,
+postalCode: string | null,
+countryCode: string | null,
+blacklistReason: string | null,
 };
 export type GuestRowData = {
 id: number,
