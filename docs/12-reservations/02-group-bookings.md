@@ -45,7 +45,7 @@ Both Actions return a `ReservationResult` and never throw for an expected refusa
 | `lineIndex`   | The index in `units` of the refused line                   |
 | `date`        | The night that caused the refusal, when there is one       |
 
-Refusal codes: `units_required`, `booker_not_found`, `room_type_not_found`, `rate_plan_not_linked`, `invalid_stay`, `arrival_in_past`, `adults_required`, `child_age_invalid`, `discount_not_allowed`, `restricted`, `restriction_override_not_allowed`, `not_available`, `override_reason_required`, `override_invalid`, plus the `RateQuote` refusal codes passed through as they are.
+Refusal codes: `units_required`, `booker_not_found`, `room_type_not_found`, `rate_plan_not_linked`, `invalid_stay`, `arrival_in_past`, `adults_required`, `child_age_invalid`, `discount_not_allowed`, `restricted`, `restriction_override_not_allowed`, `not_available`, `override_reason_required`, `override_invalid`, plus the `RateQuote` and [add-on](04-add-ons.md#addunitaddon) refusal codes passed through as they are.
 
 ### `CreateReservation`
 

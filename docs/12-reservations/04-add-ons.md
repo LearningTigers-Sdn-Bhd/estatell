@@ -28,7 +28,7 @@ The charge item's `ChargingUnit` decides how many rows are written and their qua
 | PerStay       | One           | Optional                          | 1                 |
 | PerGuest      | One           | Optional                          | Adults + children |
 
-`ChargeQuantityResolver` (`app/Services/Catalogues/`) turns a charging unit and the unit's stay into these rows. Nightly rows let each night post under its own `addon:{id}` key, and let an early departure drop the later nights.
+`ChargeQuantityResolver` (`app/Services/Catalogues/`, one `match` returning row arrays) turns a charging unit and the unit's stay into these rows. Nightly rows let each night post under its own `addon:{id}` key, and let an early departure drop the later nights.
 
 ## Price
 
@@ -42,31 +42,37 @@ No UI in this item. The Add-ons tab on the [reservation page](06-reservation-pag
 
 ### `AddUnitAddOn`
 
-`(User $actor, ReservationUnit $unit, NewAddOnData $data): AddOnResult`. `NewAddOnData`: `charge_item_id`, `quantity` (PerItem only), `unit_amount` (optional), `service_date` (optional, not for nightly units).
+`(User $actor, ReservationUnit $unit, NewAddOnData $data): AddOnResult`. `NewAddOnData`: `charge_item_id`, `quantity` (PerItem only, default 1), `unit_amount` (optional), `service_date` (optional). It locks the unit row first, so a concurrent cancel cannot race.
 
-| Check, in order                                                                        | Refusal                       |
-| -------------------------------------------------------------------------------------- | ----------------------------- |
-| The charge item is active and belongs to the unit's property                           | `charge_item_not_found`       |
-| The unit is Confirmed or CheckedIn                                                     | `unit_not_open`               |
-| `service_date`, when given, is from arrival to departure, both included                | `service_date_outside_stay`   |
-| `service_date`, when given, is not before the business date                            | `service_date_in_past`        |
-| Quantity is at least 1                                                                 | `quantity_invalid`            |
-| An amount different from `default_amount` needs `allow_override`; no default needs one | `amount_override_not_allowed` |
+| Check, in order                                                                                     | Refusal                       |
+| --------------------------------------------------------------------------------------------------- | ----------------------------- |
+| The charge item is active and belongs to the unit's property                                        | `charge_item_not_found`       |
+| The unit is Confirmed or CheckedIn                                                                  | `unit_not_open`               |
+| `service_date`, when given, is from arrival to departure, both included (non-nightly items)         | `service_date_outside_stay`   |
+| `service_date`, when given, is not before the business date (non-nightly items)                     | `service_date_in_past`        |
+| A nightly item has at least one night on or after the business date                                 | `service_date_in_past`        |
+| Quantity is from 1 to 999                                                                           | `quantity_invalid`            |
+| `unit_amount`, when given, is 0 or more with at most two decimals                                   | `amount_invalid`              |
+| An amount different from `default_amount` needs `allow_override`; an item with no default needs one | `amount_override_not_allowed` |
 
-Nightly rows are written only for nights on or after the business date. It writes the rows and one activity log entry, in one transaction. A refusal writes and logs nothing. `AddOnResult` holds the created add-ons or the refusal code.
+- Nightly items (PerNight, PerGuestNight) ignore a given `service_date` and `quantity`: their rows always follow the stay nights, and only nights on or after the business date are written.
+- An amount equal to the default (`50` and `50.00`) is not an override.
+- An undated non-nightly add-on on a CheckedIn unit gets the business date as `service_date`, so it posts in that night's audit (check-in has already happened).
+- The same item can be added twice to one unit. There is no unique index.
+- It writes the rows and one activity entry (`reservation.add_on_added`, on the reservation), in one transaction. A refusal writes and logs nothing. `AddOnResult` holds the created add-ons or the refusal code.
 
 ### `RemoveUnitAddOn`
 
-Deletes one add-on row and logs it. Nothing posts before module 13, so there is nothing to reverse. [Folios and lines](../13-folio/01-folios-and-lines.md) adds `folio_line_id` to `unit_add_ons` and refuses removing a posted add-on.
+`(User $actor, UnitAddOn $addOn): bool`. Deletes one add-on row and logs `reservation.add_on_removed` on the reservation. Returns false, writing and logging nothing, when the row is already gone or the unit is not Confirmed or CheckedIn (add-ons of Cancelled, NoShow and CheckedOut units stay as history). Nothing posts before module 13, so there is nothing to reverse. [Folios and lines](../13-folio/01-folios-and-lines.md) adds `folio_line_id` to `unit_add_ons` and refuses removing a posted add-on.
 
 ### Booking with add-ons
 
-`NewUnitData` gains `add_ons` (a list of `NewAddOnData`). `AddUnit` calls `AddUnitAddOn` for each one inside its transaction, so a booking stays all or nothing. An add-on refusal refuses the whole booking: `ReservationResult` passes the add-on code through and names the line. A bed line gives every bed the same add-ons.
+`NewUnitData` gains `add_ons` (a list of `NewAddOnData`). `AddUnit` calls `AddUnitAddOn` for each one inside its transaction, so a booking stays all or nothing. An add-on refusal refuses the whole booking: `ReservationResult` passes the add-on code through and names the line. `AddUnit` rolls back its own unit too, so Add unit on the reservation page never leaves a unit behind. A bed line gives every bed the same add-ons.
 
 ## Rules
 
 - Add-ons with a `service_date` post in the night audit for that date (`PostScheduledAddOns`, `addon:{id}` idempotency key).
-- Add-ons without a date post at check-in (`CheckInUnit`).
+- Add-ons without a date post at check-in (`CheckInUnit`). A CheckedIn unit never has undated add-ons (see above).
 - Add-ons on a Cancelled or NoShow unit stay as history and never post.
 - Add-ons are not split out of the rate. Package inclusions are (see [Inclusions](../09-packages/01-inclusions.md)).
 - Stay changes in [module 18](../18-front-desk/01-check-in-and-check-out.md) re-run the quantities of PerGuest and PerGuestNight add-ons and drop nightly rows outside the new dates.
