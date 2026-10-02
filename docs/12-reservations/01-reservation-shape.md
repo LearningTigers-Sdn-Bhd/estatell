@@ -99,7 +99,8 @@ It has no `canTransitionTo()` because nothing sets it by hand.
 | `AvailabilityService` counts booked units, `MergeGuests` and `AnonymizeGuest` hooks           | Built                                             |
 | `CreateReservation`, `AddUnit` (incl. bed lines), `UpdateReservationGroup`, `override_amount` | Built, see [Group bookings](02-group-bookings.md) |
 | `unit_add_ons`, `AddUnitAddOn`, `RemoveUnitAddOn`, `ChargeQuantityResolver`                   | Built, see [Add-ons](04-add-ons.md)               |
-| `AttachGuest`, `AssignRoom`, `AssignBed`, double-booking indexes                              | Booking form item                                 |
+| `AttachGuest`                                                                                 | Reservation page item                             |
+| `AssignRoom`, `AssignBed`, double-booking indexes                                             | Booking form item                                 |
 | Check-in, check-out, cancel, no-show, reinstate, move                                         | Front desk (module 18)                            |
 
 ## Lessons from wastays

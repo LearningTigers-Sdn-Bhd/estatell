@@ -6,16 +6,21 @@ Find a reservation and see everything about it on one page, with the same flow s
 
 ## Routes
 
-| URL                                                 | Name                        | Page                           |
-| --------------------------------------------------- | --------------------------- | ------------------------------ |
-| `GET /p/{code}/reservations`                        | `reservations.index`        | `pages/reservations/index.tsx` |
-| `GET /p/{code}/reservations/{reservation}`          | `reservations.show`         | `pages/reservations/show.tsx`  |
-| `GET /p/{code}/reservations/{reservation}/guests`   | `reservations.guests`       | `pages/reservations/show.tsx`  |
-| `GET /p/{code}/reservations/{reservation}/add-ons`  | `reservations.add-ons`      | `pages/reservations/show.tsx`  |
-| `GET /p/{code}/reservations/{reservation}/activity` | `reservations.activity`     | `pages/reservations/show.tsx`  |
-| `PUT /p/{code}/reservations/{reservation}/group`    | `reservations.group.update` | – (`UpdateReservationGroup`)   |
+| URL                                                   | Name                                  | Page                           |
+| ----------------------------------------------------- | ------------------------------------- | ------------------------------ |
+| `GET /p/{code}/reservations`                          | `reservations.index`                  | `pages/reservations/index.tsx` |
+| `GET /p/{code}/reservations/{reservation}`            | `reservations.show`                   | `pages/reservations/show.tsx`  |
+| `GET /p/{code}/reservations/{reservation}/guests`     | `reservations.guests`                 | `pages/reservations/show.tsx`  |
+| `GET /p/{code}/reservations/{reservation}/add-ons`    | `reservations.add-ons`                | `pages/reservations/show.tsx`  |
+| `GET /p/{code}/reservations/{reservation}/activity`   | `reservations.activity`               | `pages/reservations/show.tsx`  |
+| `PUT /p/{code}/reservations/{reservation}/group`      | `reservations.group.update`           | – (`UpdateReservationGroup`)   |
+| `POST …/{reservation}/units`                          | `reservations.units.store`            | – (`AddUnit`)                  |
+| `POST …/{reservation}/units/{unit}/guests`            | `reservations.units.guests.store`     | – (`AttachGuest`)              |
+| `POST …/{reservation}/units/{unit}/add-ons`           | `reservations.units.add-ons.store`    | – (`AddUnitAddOn`)             |
+| `DELETE …/{reservation}/units/{unit}/add-ons/{addOn}` | `reservations.units.add-ons.destroy`  | – (`RemoveUnitAddOn`)          |
+| `GET /p/{code}/guests/search`                         | `guests.search` (JSON, `guests.view`) | –                              |
 
-The tabs share one controller with a private `renderTab()`, like `GuestController`. The server sends only the open tab's data. The selected unit is `?unit={id}`, so a refresh keeps it.
+Routes live in `routes/reservations.php` with `scopeBindings()`, so another property's reservation, unit or add-on returns 404. Pages are guarded with `can:` middleware, like the guests routes (no Policy classes). The tabs share one controller with a private `renderTab()`, like `GuestController`. The server sends only the open tab's data. The selected unit is `?unit={id}`, so a refresh keeps it.
 
 ## Permissions
 
@@ -24,7 +29,9 @@ The tabs share one controller with a private `renderTab()`, like `GuestControlle
 | `reservations.view`   | Reservations list and reservation page                                     | Owner, Manager, Front desk, Finance |
 | `reservations.manage` | Create reservations, add units, attach guests, edit group name and billing | Owner, Manager, Front desk          |
 
-This item adds both permissions, because it ships the first reservation routes. Add both rows to [Roles and permissions](../03-staff/02-roles-and-permissions.md) in this item. This item also adds `AttachGuest` for the Guests tab. The [booking form](05-booking-form.md) comes next and reuses both.
+This item adds both permissions (a migration calls `SyncPermissions`, like the guest permissions), because it ships the first reservation routes. Add both rows to [Roles and permissions](../03-staff/02-roles-and-permissions.md) in this item. This item also adds `AttachGuest`, `guests.search` and `GuestPicker`. The [booking form](05-booking-form.md) comes next and reuses them.
+
+The booker's phone, email and **Open guest** need `guests.view`. Without it, staff see the booker's name and flags only.
 
 ## Reservations list (Index archetype)
 
@@ -47,15 +54,15 @@ Status tabs, filters, and two views of the same page of results: **Cards** (defa
 
 ### Controls
 
-| Control                  | Behaviour                                                                                                                                                                                                              |
-| ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **New booking ▾**        | New booking, Walk-in (see [booking form](05-booking-form.md#entry-points)). Needs `reservations.manage`. Hidden until the booking form item ships.                                                                     |
-| **Status tabs**          | All, Confirmed, In house, Completed, Cancelled, each with an icon and a count. Each tab is a link that sets `filter[status]`. The counts follow the current search, source and stay filters (one grouped count query). |
-| Search                   | Reference, `external_reference`, and the booker's or any unit guest's name, phone or email. Debounced (`FilterBar`).                                                                                                   |
-| Source                   | All, or one `ReservationSource`                                                                                                                                                                                        |
-| Stay dates               | Reservations whose stay overlaps the range. **Default: from the current business date onward.** **Reset** returns to the default. Clearing the range shows all dates.                                                  |
-| Sort                     | Arrival (default, earliest first), departure, reference, total, booked date. List view sorts by column header; Cards view uses the Sort select. Both use the same `sort` URL value.                                    |
-| **View** (Cards or List) | Switches the view of the loaded page and **makes no request**. Kept in the URL (`?view=list`) and remembered in the browser (`localStorage`). Default: Cards.                                                          |
+| Control                  | Behaviour                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **New booking ▾**        | New booking, Walk-in (see [booking form](05-booking-form.md#entry-points)). Needs `reservations.manage`. Hidden until the booking form item ships.                                                                                                                                                                                                                                                                        |
+| **Status tabs**          | All, Confirmed, In house, Completed, Cancelled, each with an icon and a count. Each tab is a link that sets `filter[status]`. The counts follow the current search, source and stay filters (one grouped count query).                                                                                                                                                                                                    |
+| Search                   | Reference, `external_reference`, and the booker's or any unit guest's name, phone or email. A local phone number (`012-345 6789`) matches the stored E.164 number, using the `GuestMatcher` normalisation. Debounced (`FilterBar`).                                                                                                                                                                                       |
+| Source                   | All, or one `ReservationSource`                                                                                                                                                                                                                                                                                                                                                                                           |
+| Stay dates               | Reservations whose stay overlaps the range. **Default: from the current business date onward** (`CurrentBusinessDate`, or `PropertyToday`), an open-ended range: `DateRangePicker` gains an optional end. Clearing the range shows all dates (`filter[stay]=all`). The Completed and Cancelled tabs show a "Showing stays from {date}. Show all dates" hint. **Reset** clears search, source and stay, and keeps the tab. |
+| Sort                     | Arrival (default, earliest first), departure, reference, total, booked date. List view sorts by column header; Cards view uses the Sort select. Both use the same `sort` URL value.                                                                                                                                                                                                                                       |
+| **View** (Cards or List) | Switches the view of the loaded page and **makes no request**. Kept in the URL (`?view=list`) and remembered in the browser (`localStorage`). Default: Cards.                                                                                                                                                                                                                                                             |
 
 - Reservations are unbounded: search, filters and pagination run on the server (`spatie/laravel-query-builder`, like `GuestDirectory`). All filters live in the URL.
 - One row or card per reservation. A group is not expanded into units.
@@ -92,10 +99,10 @@ Status tabs, filters, and two views of the same page of results: **Cards** (defa
 | ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Room box    | See [Room box](#room-box)                                                                                                                                  |
 | Title       | `group_name`, or the booker's name. For a channel booking without a group name: the booker.                                                                |
-| Markers     | ★ VIP (`is_vip`), ⛔ blacklisted, ↻ repeat guest (the booker has an earlier Completed reservation), 👥 group (2 or more units)                             |
+| Markers     | ★ VIP (`is_vip`), ⛔ blacklisted, ↻ repeat guest (the booker has another Completed reservation with a lower id), 👥 group (2 or more units)                |
 | Subtitle    | Booker (groups only), reference. Channel bookings add `channel_name` and `external_reference`.                                                             |
 | Menu `[⋯]`  | Open reservation, Open guest. Unit actions come with front desk.                                                                                           |
-| Stay strip  | Earliest arrival, nights, latest departure                                                                                                                 |
+| Stay strip  | Earliest arrival, nights, latest departure of units that hold inventory. When none does (a cancelled reservation), of all units.                           |
 | Badges      | `StatusBadge`, source icon (label on hover), unit count (groups only), adults and children of units that hold inventory                                    |
 | Details     | Room types grouped as `N× name`, booked date                                                                                                               |
 | Money strip | Total (sum of `unit_nights.amount` of units that hold inventory). Module 13 turns it into Charges, Paid and Balance (balance in danger tone when above 0). |
@@ -173,8 +180,8 @@ Below `lg`, List view shows the cards, as wastays does.
 
 - Reference, `group_name` (or the booker's name), a **Group** badge with 2 or more units, and the reservation status.
 - The status opens a **Status by unit** popover: each unit's room type, room or bed, and status.
-- **Add unit** opens a Sheet with one booking line (room type, rate plan, dates, guests, room or bed) and calls `AddUnit` (needs `reservations.manage`).
-- **⋯ More**: Edit group (a Dialog with group name and billing mode, `UpdateReservationGroup`), Cancel whole reservation (front desk), Print confirmation (later).
+- **Add unit** opens a Sheet with one booking line (room type, rate plan, dates, adults, child ages) and calls `AddUnit` (needs `reservations.manage`). Room or bed is not picked here: `AssignRoom` and `AssignBed` come with the booking form, so the new unit shows as not assigned. A collapsed **Price override** section holds the stay total and reason. After a `restricted` refusal, a restriction override reason field appears for staff with `rates.override-restrictions`. Add-ons, the catalogue discount and a live price preview are not in this Sheet. The room types and plans load as an Inertia optional prop when the Sheet opens. Hidden on Cancelled and Completed reservations.
+- **⋯ More**: only Edit group for now (a Dialog with group name, and billing mode when there are 2 or more units, `UpdateReservationGroup`). Edit group works on closed reservations too. Cancel whole reservation (front desk) and Print confirmation (later) are added when they exist.
 
 ### Units tab
 
@@ -192,19 +199,49 @@ Below `lg`, List view shows the cards, as wastays does.
  —                                  Dorm Bed · —         [Attach guest]
 ```
 
-Attach guest opens a Sheet with the guest autocomplete field and "Stays in" (`AttachGuest`).
+Attach guest opens a Sheet with `GuestPicker` (existing guests only, through `guests.search`) and "Stays in". Creating a guest here is not supported; the booking form adds the autocomplete field that can.
+
+`AttachGuest(User $actor, ReservationUnit $unit, Guest $guest): AttachGuestResult` locks the unit, writes a `unit_guests` row (the unit's first guest becomes `is_primary`) and logs `reservation.guest_attached` with ids only. A blacklisted guest is allowed, with a warning in the Sheet.
+
+| Check, in order                                                   | Refusal            |
+| ----------------------------------------------------------------- | ------------------ |
+| The guest belongs to the property and is not merged or anonymized | `guest_not_found`  |
+| The unit is Confirmed or CheckedIn                                | `unit_not_open`    |
+| The guest is not already on this unit                             | `already_attached` |
+| A Bed room type unit has no guest yet                             | `bed_unit_full`    |
+
+Room units have no guest limit. Detaching a guest and changing the primary guest come later.
 
 ### Add-ons tab
 
-Unit, charge item, quantity, service date, amount. **+ Add add-on** uses `AddUnitAddOn` (see [Add-ons](04-add-ons.md)).
+Flat rows grouped by unit: charge item, quantity, service date, unit amount, total. A nightly add-on shows one row per night. **+ Add add-on** opens a Dialog (`AddUnitAddOn`, see [Add-ons](04-add-ons.md)). Each row has **Remove** with an AlertDialog confirm (`RemoveUnitAddOn`).
 
 ### Activity tab
 
-The reservation's activity log entries (`spatie/laravel-activitylog`), newest first, paginated: creation, units added, overrides with their reasons, group edits, status changes.
+The reservation's activity log entries (`spatie/laravel-activitylog`), newest first, paginated by 25: creation, units added, overrides with their reasons, group edits, guests attached, add-ons added and removed. Status changes appear when the [front desk](../18-front-desk/01-check-in-and-check-out.md) Actions log them; `SyncReservationStatus` does not log.
 
 ### Summary card
 
-Booker (name, VIP, phone, email, link to the guest), earliest arrival, latest departure, units, room nights, stay total (sum of `unit_nights.amount` of units that hold inventory), balance ("from folio" until [module 13](../13-folio/01-folios-and-lines.md)), billing mode (2 or more units), source, company, created date and user.
+Booker (name, VIP, phone, email, link to the guest), earliest arrival, latest departure, units, room nights, stay total (sum of `unit_nights.amount` of units that hold inventory), balance ("from folio" until [module 13](../13-folio/01-folios-and-lines.md)), billing mode (2 or more units, with the `BillingMode` label), source, company ("—" until [Companies](../15-city-ledger/01-companies.md)), created date and user.
+
+## Refusals and messages
+
+- Forms in a Sheet or Dialog (Add unit, Attach guest, Add add-on, Edit group) show a refusal as an inline error on the matching field, or a form-level error, and stay open (see [form containers](../design-system.md)). Success closes the overlay with a toast.
+- Buttons without a form (Remove add-on) show a refusal as an error toast, as `.ai/rules/actions.md` says.
+- One map turns refusal codes into messages. The booking form reuses it.
+
+## Shared components
+
+New in `components/pms/`: `MoneyText` and `MoneyInput` (decimal strings, the property currency as one page prop), `GuestPicker`, and a pagination footer extracted from `DataTable` for the Cards view. `DateRangePicker` gains an optional end date.
+
+## Build order
+
+One checklist item per commit, in this order:
+
+1. Permissions and `AttachGuest` (backend), with the two `AddUnit` fixes in [Group bookings](02-group-bookings.md#addunit).
+2. The reservations list.
+3. The reservation page, view only.
+4. The page actions: Add unit, Edit group, Attach guest with `guests.search` and `GuestPicker`, add and remove add-ons.
 
 ## Data
 

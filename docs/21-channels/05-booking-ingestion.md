@@ -34,7 +34,7 @@ channel_booking_revisions    id, channel_connection_id, external_booking_id, rev
 - OTA bookings are always accepted. Over-capacity nights are flagged as overbooked.
 - OTA-collected payments use the `OtaCollected` payment method.
 - `payload` jsonb is allowed: it is a raw provider payload.
-- `IngestChannelBooking` creates reservations through `CreateReservation` (see [Group bookings](../12-reservations/02-group-bookings.md#creating-reservations-and-units)). `source = Channel` already skips the past-arrival, restriction and availability checks. To decide when this item is built: how `created_by` is filled without a staff user, how OTA prices map onto `unit_nights` (for example `override_total`), and whether quote refusals are skipped so the booking is always accepted.
+- `IngestChannelBooking` creates reservations through `CreateReservation` (see [Group bookings](../12-reservations/02-group-bookings.md#creating-reservations-and-units)). Ingestion passes `fromChannel: true`, which skips the past-arrival, restriction and availability checks. To decide when this item is built: how `created_by` is filled without a staff user, how OTA prices map onto `unit_nights` (for example `override_total`), and whether quote refusals are skipped so the booking is always accepted.
 
 ## Out of scope
 

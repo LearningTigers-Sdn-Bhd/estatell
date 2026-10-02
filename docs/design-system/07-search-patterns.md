@@ -18,6 +18,8 @@ Rules:
 - Items and actions the user has no permission for are hidden.
 - `GuestPicker` shows the `GuestMatcher` duplicate warning with "Use existing" and "Create new anyway".
 
+`GuestPicker` and the `guests.search` route are built with the [reservation page](../12-reservations/06-reservation-page.md#guests-tab), where it picks existing guests only.
+
 GuestPicker, open:
 
 ```

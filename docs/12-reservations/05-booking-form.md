@@ -149,7 +149,7 @@ Without `guests.manage`, a tab accepts only an existing guest.
 - The form request maps onto `NewReservationData` and calls `CreateReservation` and `AddUnit` from the [group bookings](02-group-bookings.md#creating-reservations-and-units) item. Before that, the guest tabs create or update guests through the guest Actions.
 - This item adds `AssignRoom` / `AssignBed` (whole stay) and reuses `AttachGuest` from the [reservation page](06-reservation-page.md) item. One Action per concern, no god service.
 - After save, the form redirects to the reservation page. This item shows **New ▾** on the Reservations list.
-- `guests.search` is a JSON route that reuses the `GuestDirectory` search. It needs `guests.view`.
+- `guests.search` (a JSON route, `guests.view`, up to 8 guests) and `GuestPicker` come with the [reservation page](06-reservation-page.md) item. This item adds the autocomplete field on the same route.
 - Components: Base UI `Combobox`, `Tabs` and `Collapsible`. The autocomplete field is `components/pms/guests/guest-autocomplete-field.tsx`. More guest details reuse the fields of `guest-form.tsx`.
 
 ## Lessons from wastays
