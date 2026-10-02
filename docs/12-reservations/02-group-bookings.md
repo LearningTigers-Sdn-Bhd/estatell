@@ -45,46 +45,50 @@ Both Actions return a `ReservationResult` and never throw for an expected refusa
 | `lineIndex`   | The index in `units` of the refused line                   |
 | `date`        | The night that caused the refusal, when there is one       |
 
-Refusal codes: `room_type_not_found`, `rate_plan_not_linked`, `invalid_stay`, `arrival_in_past`, `adults_required`, `child_ages_mismatch`, `child_age_invalid`, `discount_not_allowed`, `restricted`, `restriction_override_not_allowed`, `not_available`, `override_reason_required`, plus the `RateQuote` refusal codes passed through as they are.
+Refusal codes: `units_required`, `booker_not_found`, `room_type_not_found`, `rate_plan_not_linked`, `invalid_stay`, `arrival_in_past`, `adults_required`, `child_age_invalid`, `discount_not_allowed`, `restricted`, `restriction_override_not_allowed`, `not_available`, `override_reason_required`, `override_invalid`, plus the `RateQuote` refusal codes passed through as they are.
 
 ### `CreateReservation`
 
 Creates the reservation and its units in one transaction.
 
+- At least one line. An empty `units` list is refused as `units_required`.
+- The booker belongs to the property, otherwise `booker_not_found`.
+- Locks every room type of the request in id order before the first line, so two group bookings cannot deadlock. `AddUnit` locks the same rows again at no cost.
 - `reference` from `NextDocumentNumber` (`DocumentType::Reservation`).
 - Sets the booker, `source`, `channel_name`, `external_reference`, `company_id`, `group_name`, `billing_mode` and `created_by`.
 - For each line, calls `AddUnit` once per bed (`beds`, Bed room types) or once (Room room types). A Room room type with `beds` above 1 is refused as `invalid_stay`.
-- When one line is refused, nothing is saved and the result names the line.
+- When one line is refused, nothing is saved (the reference number is not used up) and the result names the line. Refusals write no activity.
 
 ### `AddUnit`
 
-Adds one unit to a reservation. It locks the room type row (`lockForUpdate`) before the availability check, so two staff cannot sell the last room or bed at the same time.
+Adds exactly one unit to a reservation and ignores `beds`. Callers loop for bed lines: `CreateReservation`, and Add unit on the reservation page. It locks the room type row (`lockForUpdate`) before the availability check, so two staff cannot sell the last room or bed at the same time.
 
-| Check, in order                                                                                                                                             | Refusal                                                                                                                                                              |
-| ----------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Room type and rate plan belong to the reservation's property                                                                                                | `room_type_not_found`                                                                                                                                                |
-| The rate plan is linked to the room type (`rate_plan_room_types`)                                                                                           | `rate_plan_not_linked`                                                                                                                                               |
-| Departure after arrival                                                                                                                                     | `invalid_stay`                                                                                                                                                       |
-| Arrival on or after the current business date (`CurrentBusinessDate`, or `PropertyToday` before the first business date). Channel bookings skip this check. | `arrival_in_past`                                                                                                                                                    |
-| Adults at least 1                                                                                                                                           | `adults_required`                                                                                                                                                    |
-| One age per child. Ages are always required when there are children.                                                                                        | `child_ages_mismatch`                                                                                                                                                |
-| Each age from 0 to 17. The quote prices an age past the property's last age group as an adult; `AddUnit` does no group matching itself.                     | `child_age_invalid`                                                                                                                                                  |
-| `discount_id`, when given, is an active RoomOnly discount of the property                                                                                   | `discount_not_allowed`                                                                                                                                               |
-| `RestrictionCheck::violations()` is empty                                                                                                                   | `restricted`. With a `restriction_override_reason`: allowed when the actor has `rates.override-restrictions` (logged), otherwise `restriction_override_not_allowed`. |
-| `AvailabilityService::availableForStay()` is at least 1                                                                                                     | `not_available`. `source = Channel` may overbook (see [availability](../10-availability/01-availability-service.md)).                                                |
-| An `override_total` comes with an `override_reason`                                                                                                         | `override_reason_required`                                                                                                                                           |
-| `RateQuoteService::quote()` (with `beds` = 1) is not refused                                                                                                | The quote's refusal code                                                                                                                                             |
+| Check, in order                                                                                                                                                                        | Refusal                                                                                                                                                                                                                  |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Room type and rate plan belong to the reservation's property. An archived room type counts as not found; an archived plan is refused by the quote (`plan_archived`).                   | `room_type_not_found`                                                                                                                                                                                                    |
+| The rate plan is linked to the room type (`rate_plan_room_types`)                                                                                                                      | `rate_plan_not_linked`                                                                                                                                                                                                   |
+| Departure after arrival                                                                                                                                                                | `invalid_stay`                                                                                                                                                                                                           |
+| Arrival on or after the current business date (`CurrentBusinessDate`, or `PropertyToday` before the first business date). Channel bookings skip this check.                            | `arrival_in_past`                                                                                                                                                                                                        |
+| Adults at least 1                                                                                                                                                                      | `adults_required`                                                                                                                                                                                                        |
+| Each age from 0 to 17. The quote prices an age past the property's last age group as an adult; `AddUnit` does no group matching itself.                                                | `child_age_invalid`                                                                                                                                                                                                      |
+| `discount_id`, when given, is an active RoomOnly discount of the property                                                                                                              | `discount_not_allowed`                                                                                                                                                                                                   |
+| `RestrictionCheck::violations()` is empty. Channel bookings skip this check: the OTA already checked its own copy (see [daily rates](../08-rates/02-daily-rates-and-restrictions.md)). | `restricted`. With a `restriction_override_reason`: allowed when the actor has `rates.override-restrictions` (logged), otherwise `restriction_override_not_allowed`. A reason given when nothing is violated is ignored. |
+| `AvailabilityService::availableForStay()` is at least 1                                                                                                                                | `not_available`. `source = Channel` may overbook (see [availability](../10-availability/01-availability-service.md)).                                                                                                    |
+| An `override_total` comes with an `override_reason`, and is 0 or more (0 is a complimentary stay). No permission is needed.                                                            | `override_reason_required`, `override_invalid`                                                                                                                                                                           |
+| `RateQuoteService::quote()` (with `beds` = 1) is not refused                                                                                                                           | The quote's refusal code                                                                                                                                                                                                 |
 
 It then writes:
 
-- The unit, with `property_id` from the reservation, `children` = number of ages, and `discount_id`.
+- The unit, with `property_id` from the reservation, `children` = number of ages (so ages are always given for every child), and `discount_id`.
 - One `unit_nights` row per night: `rate_plan_id` and the quoted `base_amount`, `extra_amount`, `supplement_amount` and `discount_amount` (the rate plan's stay discount from the quote).
 - One `reservation_unit_children` row per age.
 - An activity log entry. It holds the restriction override reason and the price override reason when they are used.
 
 Then it calls `SyncReservationStatus`.
 
-**Price override**: `override_total` is the stay total for this one unit. It is spread evenly over the nights in `override_amount`, and the last night takes the rounding remainder. A bed line with an override gives every bed the same total.
+The `rates.override-restrictions` check runs with the permission team set to the reservation's property, then restores the previous team (like `AssignStaffRole`).
+
+**Price override**: `override_total` is the stay total for this one unit. It is spread evenly over the nights in `override_amount`, rounded down to the cent, and the last night takes the remainder (100.00 over 3 nights is 33.33, 33.33, 33.34). A bed line with an override gives every bed the same total.
 
 **Catalogue discount**: `AddUnit` only stores `discount_id`. Its amount is not on `unit_nights`. The [folio](../13-folio/04-folio-discounts.md) calculates and posts it.
 
