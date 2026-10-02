@@ -31,7 +31,7 @@ class CreateReservation
             return ReservationResult::refused(ReservationResult::REFUSAL_UNITS_REQUIRED);
         }
 
-        if (! Guest::query()->where('property_id', $property->id)->whereKey($data->bookerGuestId)->exists()) {
+        if (! Guest::query()->where('property_id', $property->id)->notMerged()->whereNull('anonymized_at')->whereKey($data->bookerGuestId)->exists()) {
             return ReservationResult::refused(ReservationResult::REFUSAL_BOOKER_NOT_FOUND);
         }
 

@@ -130,7 +130,7 @@ class AddUnit
                     return $refuse(ReservationResult::REFUSAL_OVERRIDE_REASON_REQUIRED);
                 }
 
-                if (! is_numeric($data->overrideTotal) || (float) $data->overrideTotal < 0) {
+                if (preg_match('/^\d+(\.\d{1,2})?$/', $data->overrideTotal) !== 1) {
                     return $refuse(ReservationResult::REFUSAL_OVERRIDE_INVALID);
                 }
             }
@@ -150,7 +150,7 @@ class AddUnit
             }
 
             if ($data->overrideTotal !== null) {
-                $overrideTotal = Money::of($data->overrideTotal, $quote->total->getCurrency(), roundingMode: RoundingMode::HalfUp);
+                $overrideTotal = Money::of($data->overrideTotal, $quote->total->getCurrency());
             }
 
             $unit = $reservation->units()->make([

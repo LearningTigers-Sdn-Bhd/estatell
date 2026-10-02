@@ -52,7 +52,7 @@ Refusal codes: `units_required`, `booker_not_found`, `room_type_not_found`, `rat
 Creates the reservation and its units in one transaction.
 
 - At least one line. An empty `units` list is refused as `units_required`.
-- The booker belongs to the property, otherwise `booker_not_found`.
+- The booker belongs to the property and is not merged or anonymized, otherwise `booker_not_found`.
 - Locks every room type of the request in id order before the first line, so two group bookings cannot deadlock. `AddUnit` locks the same rows again at no cost.
 - `reference` from `NextDocumentNumber` (`DocumentType::Reservation`).
 - Sets the booker, `source`, `channel_name`, `external_reference`, `company_id`, `group_name`, `billing_mode` and `created_by`.
@@ -74,7 +74,7 @@ Adds exactly one unit to a reservation and ignores `beds`. Callers loop for bed 
 | `discount_id`, when given, is an active RoomOnly discount of the property                                                                                                              | `discount_not_allowed`                                                                                                                                                                                                   |
 | `RestrictionCheck::violations()` is empty. Channel bookings skip this check: the OTA already checked its own copy (see [daily rates](../08-rates/02-daily-rates-and-restrictions.md)). | `restricted`. With a `restriction_override_reason`: allowed when the actor has `rates.override-restrictions` (logged), otherwise `restriction_override_not_allowed`. A reason given when nothing is violated is ignored. |
 | `AvailabilityService::availableForStay()` is at least 1                                                                                                                                | `not_available`. `source = Channel` may overbook (see [availability](../10-availability/01-availability-service.md)).                                                                                                    |
-| An `override_total` comes with an `override_reason`, and is 0 or more (0 is a complimentary stay). No permission is needed.                                                            | `override_reason_required`, `override_invalid`                                                                                                                                                                           |
+| An `override_total` comes with an `override_reason`, and is 0 or more with at most two decimals (0 is a complimentary stay). No permission is needed.                                  | `override_reason_required`, `override_invalid`                                                                                                                                                                           |
 | `RateQuoteService::quote()` (with `beds` = 1) is not refused                                                                                                                           | The quote's refusal code                                                                                                                                                                                                 |
 
 It then writes:

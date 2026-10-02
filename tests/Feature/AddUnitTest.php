@@ -428,6 +428,7 @@ test('a negative override is refused and zero is allowed', function () {
 
     expect(addUnit($setup, unitData($setup, 2, ['overrideTotal' => '-1.00', 'overrideReason' => 'Typo']))->refusal)->toBe(ReservationResult::REFUSAL_OVERRIDE_INVALID)
         ->and(addUnit($setup, unitData($setup, 2, ['overrideTotal' => 'abc', 'overrideReason' => 'Typo']))->refusal)->toBe(ReservationResult::REFUSAL_OVERRIDE_INVALID)
+        ->and(addUnit($setup, unitData($setup, 2, ['overrideTotal' => '33.333', 'overrideReason' => 'Typo']))->refusal)->toBe(ReservationResult::REFUSAL_OVERRIDE_INVALID)
         ->and(addUnit($setup, unitData($setup, 2, ['overrideTotal' => '0', 'overrideReason' => 'Complimentary']))->isRefused())->toBeFalse()
         ->and(UnitNight::query()->pluck('amount')->unique()->all())->toBe(['0.00']);
 });

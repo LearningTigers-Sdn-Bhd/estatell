@@ -287,6 +287,16 @@ test('a booker of another property is refused', function () {
     expectNothingCreated();
 });
 
+test('a merged or anonymized booker is refused', function (string $state) {
+    $setup = createSetup();
+    $setup['guest']->forceFill($state === 'merged'
+        ? ['merged_into_id' => Guest::factory()->create(['property_id' => $setup['guest']->property_id])->id]
+        : ['anonymized_at' => now()])->save();
+
+    expect(createReservation($setup, [roomLine($setup)])->refusal)->toBe(ReservationResult::REFUSAL_BOOKER_NOT_FOUND);
+    expectNothingCreated();
+})->with(['merged', 'anonymized']);
+
 test('a channel reservation skips the date, restriction and availability checks', function () {
     $setup = createSetup(rooms: 1);
     Rate::query()->where('date', $setup['arrival']->toDateString())->update(['stop_sell' => true]);
