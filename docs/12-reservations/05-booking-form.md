@@ -39,6 +39,16 @@ A full page (Form archetype): it has repeating lines and many fields. Two column
 
 The Reservations page has `New ▾` with **New booking** and **Walk-in**. Walk-in opens the same page with `source = WalkIn` and today's business date as arrival. The walk-in check-in itself comes with [Check-in and check-out](../18-front-desk/01-check-in-and-check-out.md).
 
+| URL                                     | Name                      | Needs                 |
+| --------------------------------------- | ------------------------- | --------------------- |
+| `GET /p/{code}/reservations/new`        | `reservations.new`        | `reservations.manage` |
+| `GET /p/{code}/reservations/walk-in`    | `reservations.walk-in`    | `reservations.manage` |
+| `POST /p/{code}/reservations`           | `reservations.store`      | `reservations.manage` |
+| `POST /p/{code}/reservations/quote`     | `reservations.quote`      | `reservations.manage` |
+| `GET /p/{code}/reservations/free-units` | `reservations.free-units` | `reservations.manage` |
+
+`new` and `walk-in` render the same page (`pages/reservations/create.tsx`). All five sit before `{reservation}` in `routes/reservations.php`, so `new` is never read as a reservation id.
+
 ## Sections
 
 1. **Stay**: arrival, departure, nights (shown), source, external reference.
@@ -51,7 +61,7 @@ The Reservations page has `New ▾` with **New booking** and **Walk-in**. Walk-i
 3. **Group**: shown when the form has 2 or more units. Group name, and `billing_mode` in the rail.
 4. **Guests**: see [Guests section](#guests-section).
 5. **Extras** (optional): add-ons (see [Add-ons](04-add-ons.md)) and a RoomOnly discount from the [catalogue](../06-catalogues/05-discounts.md).
-6. **Notes**: special requests or internal notes.
+6. **Notes**: one free text field for special requests or internal notes, up to 2000 characters. It is stored in `reservations.notes` (see [Reservation shape](01-reservation-shape.md)) and shown in the summary card of the reservation page. The creation log records only that notes exist, never the text.
 
 The rail shows units, room and add-on totals, the billing mode and the guest list. All amounts come from the server. Tax shows "from folio" until [Folios and lines](../13-folio/01-folios-and-lines.md) exists.
 
@@ -67,7 +77,7 @@ Optional. A picked room or bed fills `room_id` or `bed_id` on every night of the
 
 - The list shows only rooms or beds free on every night of the unit, from `AvailabilityService`. A room picked on another line is disabled.
 - Changing the room type or dates reloads the list. A picked room that is no longer free is cleared.
-- The database constraint on room or bed and night prevents double booking.
+- `AssignRoom` and `AssignBed` lock the room type row, then check that the room or bed is free on every night. A refusal writes nothing and comes back as an inline error on the line. The database constraint on room or bed and night comes with [Room and bed assignment](../18-front-desk/02-room-and-bed-assignment.md) in module 18.
 - Mid-stay moves, `AutoAssignRooms` and later changes are in [Room and bed assignment](../18-front-desk/02-room-and-bed-assignment.md).
 
 ## Guests section
@@ -135,22 +145,36 @@ Without `guests.manage`, a tab accepts only an existing guest.
 
 ## Comes later
 
-| Feature                                  | Module                                                                  |
-| ---------------------------------------- | ----------------------------------------------------------------------- |
-| Company field                            | [Companies](../15-city-ledger/01-companies.md)                          |
-| Tax in the summary, MasterPays routing   | [Folio](../13-folio/01-folios-and-lines.md)                             |
-| Collect payment, deposit, payment method | [Payments and refunds](../14-payments/01-payments-and-refunds.md)       |
-| Walk-in check-in                         | [Check-in and check-out](../18-front-desk/01-check-in-and-check-out.md) |
-| Quick booking, backdated check-in        | Not planned yet                                                         |
+| Feature                                  | Module                                                                    |
+| ---------------------------------------- | ------------------------------------------------------------------------- |
+| Edit notes on the reservation page       | Not planned yet                                                           |
+| Database constraint on room and night    | [Room and bed assignment](../18-front-desk/02-room-and-bed-assignment.md) |
+| Company field                            | [Companies](../15-city-ledger/01-companies.md)                            |
+| Tax in the summary, MasterPays routing   | [Folio](../13-folio/01-folios-and-lines.md)                               |
+| Collect payment, deposit, payment method | [Payments and refunds](../14-payments/01-payments-and-refunds.md)         |
+| Walk-in check-in                         | [Check-in and check-out](../18-front-desk/01-check-in-and-check-out.md)   |
+| Quick booking, backdated check-in        | Not planned yet                                                           |
 
 ## Implementation
 
-- Inertia `<Form>` or `useForm` with a Form Request. No client-side validation library.
-- The form request maps onto `NewReservationData` and calls `CreateReservation` and `AddUnit` from the [group bookings](02-group-bookings.md#creating-reservations-and-units) item. Before that, the guest tabs create or update guests through the guest Actions.
-- This item adds `AssignRoom` / `AssignBed` (whole stay) and reuses `AttachGuest` from the [reservation page](06-reservation-page.md) item. One Action per concern, no god service.
+- Inertia `useForm` with a Form Request (`StoreBookingRequest`, shape only). No client-side validation library.
+- `CreateBooking` (`app/Actions/Reservations/`) only runs other Actions in one transaction, so there is no god service. In order: `CreateGuest` or `UpdateGuest` for each guest tab, `CreateReservation` (which calls `AddUnit` for each line), `AttachGuest` for each unit with a guest, then `AssignRoom` or `AssignBed` for each unit with a pick. Any refusal rolls everything back, including new guests and the reference number, and names the line. `ReservationRefusals` turns the codes into inline errors.
+- `NewReservationData` gains `notes`. `CreateReservation` writes it to `reservations.notes`.
+- `AssignRoom` and `AssignBed` (whole stay) are new Actions, one concern each. Each logs `reservation.room_assigned` or `reservation.bed_assigned` with ids only. The Room & Rate editing around them stays in module 18.
+- `FreeUnits` (`app/Services/Availability/`) lists the rooms or beds that are free on every night of a stay, from the same data as `AvailabilityService`. It reads only.
+- Two JSON routes feed the form. **Quote** takes one line and returns the night breakdown, the total, restriction violations and the free unit count, all from `RateQuoteService`, `RestrictionCheck` and `AvailabilityService`. **Free units** takes a room type and dates and returns the pickable rooms or beds, and it is called only when a picker opens. The browser never calculates a price.
 - After save, the form redirects to the reservation page. This item shows **New ▾** on the Reservations list.
-- `guests.search` (a JSON route, `guests.view`, up to 8 guests) and `GuestPicker` come with the [reservation page](06-reservation-page.md) item. This item adds the autocomplete field on the same route.
-- Components: Base UI `Combobox`, `Tabs` and `Collapsible`. The autocomplete field is `components/pms/guests/guest-autocomplete-field.tsx`. More guest details reuse the fields of `guest-form.tsx`.
+- `guests.search` and `GuestPicker` come from the [reservation page](06-reservation-page.md) item. This item adds the autocomplete field on the same route.
+- Components: Base UI `Combobox`, `Tabs` and `Collapsible`. The autocomplete field is `components/pms/guests/guest-autocomplete-field.tsx`. More guest details reuse the fields of `guest-form.tsx`. Form parts live in `components/pms/reservations/`.
+- The page gets a query-count test with lazy loading prevented (see `.ai/rules/tests.md`).
+
+## Build order
+
+One checklist item per commit, in this order:
+
+1. **Backend:** the `notes` column, `AssignRoom`, `AssignBed`, `FreeUnits`, the quote and free-units routes, and `CreateBooking`, with tests. No UI.
+2. **The page, with the booker as an existing guest:** Stay, Rooms and beds, Group, Extras, Notes, the summary rail, `New ▾` and Walk-in. Guests are not on the page yet: the booker is picked with `GuestPicker`, and units get no guest.
+3. **Guest tabs:** the Guests section with the autocomplete field, `DuplicateWarning`, create and update of guests, and "Stays in".
 
 ## Lessons from wastays
 

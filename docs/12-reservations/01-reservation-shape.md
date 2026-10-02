@@ -15,7 +15,7 @@ reservations         id, property_id, reference, status (ReservationStatus),
                      booker_guest_id, company_id (nullable), group_name (nullable),
                      billing_mode (BillingMode), source (ReservationSource),
                      channel_name (nullable), external_reference (nullable),
-                     created_by (FK users),
+                     notes (nullable text, up to 2000), created_by (FK users),
                      cancellation_requested_at, cancellation_requested_by (nullable),
                      timestamps
 reservation_units    id, reservation_id, property_id, room_type_id, rate_plan_id,
@@ -89,7 +89,8 @@ It has no `canTransitionTo()` because nothing sets it by hand.
 - `cancellation_requested_*` is set only by an agent after the cancel cut-off (see [Agent portal](../23-agent-portal/01-agent-portal.md)).
 - Status transitions are one Action per transition, checked by `UnitStatus::canTransitionTo()`. Each one calls `SyncReservationStatus` afterwards.
 - `MergeGuests` calls `RepointGuestReservations` (booker and unit guests), and `AnonymizeGuest` refuses an in-house guest through `GuestInHouse` (an occupant of a CheckedIn unit).
-- The double-booking rule (one room or bed per night) comes with `AssignRoom` in the [booking form](05-booking-form.md) item: partial unique indexes on `unit_nights (room_id, date)` and `(bed_id, date)`.
+- `notes` holds the booking form's free text. The creation log records only that notes exist.
+- The double-booking rule (one room or bed per night) is kept by `AssignRoom` and `AssignBed` from the [booking form](05-booking-form.md): they lock the room type row and check the nights. The partial unique indexes on `unit_nights (room_id, date)` and `(bed_id, date)` come with [Room and bed assignment](../18-front-desk/02-room-and-bed-assignment.md), because they need a way for cancelled units to release their rooms.
 
 ## Build status
 
@@ -100,7 +101,8 @@ It has no `canTransitionTo()` because nothing sets it by hand.
 | `CreateReservation`, `AddUnit` (incl. bed lines), `UpdateReservationGroup`, `override_amount` | Built, see [Group bookings](02-group-bookings.md)                |
 | `unit_add_ons`, `AddUnitAddOn`, `RemoveUnitAddOn`, `ChargeQuantityResolver`                   | Built, see [Add-ons](04-add-ons.md)                              |
 | `AttachGuest`, `reservations.view`, `reservations.manage`                                     | Built, see [Reservation page](06-reservation-page.md#guests-tab) |
-| `AssignRoom`, `AssignBed`, double-booking indexes                                             | Booking form item                                                |
+| `notes` column, `AssignRoom`, `AssignBed`                                                     | Booking form item                                                |
+| Double-booking indexes on `unit_nights`                                                       | Room and bed assignment (module 18)                              |
 | Check-in, check-out, cancel, no-show, reinstate, move                                         | Front desk (module 18)                                           |
 
 ## Lessons from wastays
