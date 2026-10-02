@@ -12,6 +12,7 @@ import { DateText } from '@/components/pms/date-text';
 import { EmptyState } from '@/components/pms/empty-state';
 import type { EnumOption } from '@/components/pms/enum-select';
 import { PageHeader } from '@/components/pms/page-header';
+import { NewBookingMenu } from '@/components/pms/reservations/new-booking-menu';
 import {
     PaginationFooter,
     toPaginationData,
@@ -44,6 +45,7 @@ type Props = {
     sources: EnumOption[];
     currency: App.Enums.Currency | null;
     hasReservations: boolean;
+    canManage: boolean;
 };
 
 const statusIcons: Record<string, LucideIcon> = {
@@ -63,6 +65,7 @@ export default function ReservationsIndex({
     sources,
     currency,
     hasReservations,
+    canManage,
 }: Props) {
     const [view, setView] = useReservationView();
 
@@ -174,7 +177,10 @@ export default function ReservationsIndex({
             <Head title="Reservations" />
 
             <div className="flex flex-1 flex-col gap-4 p-4">
-                <PageHeader title="Reservations" />
+                <PageHeader
+                    title="Reservations"
+                    actions={canManage ? <NewBookingMenu /> : undefined}
+                />
 
                 <TabLinks
                     tabs={tabs}

@@ -11,6 +11,9 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('reservations')->name('reservations.')->scopeBindings()->group(function () {
     Route::middleware('can:'.PermissionEnum::ReservationsManage->value)->group(function () {
         Route::post('quote', [ReservationBookingController::class, 'quote'])->name('quote');
+        Route::get('new', [ReservationBookingController::class, 'new'])->name('new');
+        Route::get('walk-in', [ReservationBookingController::class, 'walkIn'])->name('walk-in');
+        Route::post('/', [ReservationBookingController::class, 'store'])->name('store');
         Route::get('free-units', [ReservationBookingController::class, 'freeUnits'])->name('free-units');
     });
 

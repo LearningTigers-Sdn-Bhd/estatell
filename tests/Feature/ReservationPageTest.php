@@ -459,3 +459,18 @@ test('the page needs a constant number of queries however many units it has', fu
         expect($many)->toBe($few, "queries on {$route}")->and($many)->toBeLessThanOrEqual(25);
     }
 });
+
+test('the page carries the notes of the booking', function () {
+    [$user, $property] = pageOwner();
+    $reservation = pageReservation($property, ['notes' => 'Needs a cot.']);
+    pageUnit($reservation);
+
+    test()->actingAs($user)
+        ->get(pageUrl($property, $reservation))
+        ->assertInertia(fn (Assert $page) => $page->where('reservation.notes', 'Needs a cot.'));
+
+    $plain = pageReservation($property);
+    pageUnit($plain);
+
+    test()->get(pageUrl($property, $plain))->assertInertia(fn (Assert $page) => $page->where('reservation.notes', null));
+});

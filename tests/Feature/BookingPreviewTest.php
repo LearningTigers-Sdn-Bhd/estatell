@@ -2,6 +2,7 @@
 
 use App\Actions\Reservations\AssignRoom;
 use App\Enums\DefaultRoleEnum;
+use App\Models\ChargeItem;
 use App\Models\Property;
 use App\Models\Rate;
 use App\Models\RatePlan;
@@ -143,4 +144,48 @@ test('free units checks its query and the preview routes stay in their property'
 
     $this->actingAs($setup['user'])->getJson(previewUrl($setup, 'reservations.free-units', ['room_type_id' => $setup['roomType']->id]))->assertUnprocessable();
     $this->getJson(route('reservations.free-units', ['property' => $other->code, 'room_type_id' => 1, 'arrival_date' => '2026-10-20', 'departure_date' => '2026-10-22']))->assertNotFound();
+});
+
+test('a quote adds the add-ons of the line and multiplies them by the beds', function () {
+    $setup = bookingSetup();
+    $perItem = ChargeItem::factory()->create(['property_id' => $setup['property']->id, 'default_amount' => '50.00']);
+    $nightly = ChargeItem::factory()->create(['property_id' => $setup['property']->id, 'default_amount' => '10.00', 'charging_unit' => 'per_guest_night']);
+
+    $this->actingAs($setup['user'])
+        ->postJson(previewUrl($setup, 'reservations.quote'), quoteBody($setup, [
+            'add_ons' => [['charge_item_id' => $perItem->id, 'quantity' => 2], ['charge_item_id' => $nightly->id]],
+        ]))
+        ->assertOk()
+        ->assertJsonPath('addOnsTotal', '140.00')
+        ->assertJsonPath('lineTotal', '200.00');
+
+    $this->postJson(previewUrl($setup, 'reservations.quote'), quoteBody($setup, [
+        'room_type_id' => $setup['dorm']->id,
+        'rate_plan_id' => $setup['bedPlan']->id,
+        'adults' => 1,
+        'beds' => 2,
+        'add_ons' => [['charge_item_id' => $perItem->id, 'unit_amount' => '20.00']],
+    ]))->assertJsonPath('addOnsTotal', '40.00');
+});
+
+test('a quote leaves out an add-on it cannot price', function () {
+    $setup = bookingSetup();
+    $noPrice = ChargeItem::factory()->create(['property_id' => $setup['property']->id, 'default_amount' => null]);
+
+    $this->actingAs($setup['user'])
+        ->postJson(previewUrl($setup, 'reservations.quote'), quoteBody($setup, ['add_ons' => [['charge_item_id' => $noPrice->id], ['charge_item_id' => ChargeItem::factory()->create()->id]]]))
+        ->assertOk()
+        ->assertJsonPath('addOnsTotal', '0.00');
+});
+
+test('a price override replaces the quote and is flagged', function () {
+    $setup = bookingSetup();
+
+    $this->actingAs($setup['user'])
+        ->postJson(previewUrl($setup, 'reservations.quote'), quoteBody($setup, ['override_total' => '150.00']))
+        ->assertOk()
+        ->assertJsonPath('unitTotal', '150.00')
+        ->assertJsonPath('lineTotal', '150.00')
+        ->assertJsonPath('isOverridden', true)
+        ->assertJsonPath('nights.0.amount', '100.00');
 });

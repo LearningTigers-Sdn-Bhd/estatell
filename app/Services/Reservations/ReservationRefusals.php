@@ -47,6 +47,8 @@ class ReservationRefusals
 
         return match ($code) {
             ReservationResult::REFUSAL_RESERVATION_CLOSED => [self::FORM, __('This reservation is closed, so it cannot change.')],
+            ReservationResult::REFUSAL_UNITS_REQUIRED => [self::FORM, __('Add at least one room or bed.')],
+            ReservationResult::REFUSAL_BOOKER_NOT_FOUND => ['guest_id', __('The booker is not one of this property\'s guests.')],
             ReservationResult::REFUSAL_ROOM_TYPE_NOT_FOUND => ['room_type_id', __('This room type is not for sale.')],
             ReservationResult::REFUSAL_RATE_PLAN_NOT_LINKED => ['rate_plan_id', __('This rate plan is not sold for the room type.')],
             ReservationResult::REFUSAL_INVALID_STAY => ['departure_date', __('Departure must be after arrival.')],

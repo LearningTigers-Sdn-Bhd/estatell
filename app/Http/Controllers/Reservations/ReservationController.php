@@ -65,6 +65,7 @@ class ReservationController extends Controller
             'sources' => ReservationSource::options(),
             'currency' => $settings?->currency,
             'hasReservations' => $property->reservations()->exists(),
+            'canManage' => $request->user()->can(PermissionEnum::ReservationsManage->value),
         ]);
     }
 

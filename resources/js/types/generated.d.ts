@@ -574,6 +574,8 @@ export type BookingQuoteData = {
 nights: App.Data.Reservations.BookingQuoteNightData[],
 unitTotal: string | null,
 lineTotal: string | null,
+addOnsTotal: string,
+isOverridden: boolean,
 beds: number,
 violations: string[],
 available: number,
@@ -594,6 +596,10 @@ chargingUnit: string,
 chargingUnitLabel: string,
 defaultAmount: string | null,
 allowOverride: boolean,
+};
+export type DiscountOptionData = {
+id: number,
+name: string,
 };
 export type FreeUnitData = {
 id: number,
@@ -652,6 +658,7 @@ export type RatePlanOptionData = {
 id: number,
 name: string,
 roomTypeIds: number[],
+fixedNights: number | null,
 };
 export type ReservationActivityData = {
 id: number,
@@ -697,6 +704,7 @@ source: string,
 sourceLabel: string,
 channelName: string | null,
 externalReference: string | null,
+notes: string | null,
 createdOn: string,
 createdBy: string | null,
 booker: App.Data.Reservations.ReservationBookerData,

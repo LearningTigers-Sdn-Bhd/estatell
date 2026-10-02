@@ -7,7 +7,12 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 
-export type EnumOption = { value: string; label: string };
+export type EnumOption = {
+    value: string;
+    label: string;
+    /** Shown but not pickable, for example a room already picked on another line. */
+    disabled?: boolean;
+};
 
 type Props = {
     options: EnumOption[];
@@ -15,6 +20,8 @@ type Props = {
     value?: string;
     defaultValue?: string;
     onValueChange?: (value: string) => void;
+    /** Called when the menu opens or closes, for example to load the options on first open. */
+    onOpenChange?: (open: boolean) => void;
     /** Label for the empty value, for example "All statuses". Adds a first option with value "". */
     allLabel?: string;
     name?: string;
@@ -33,6 +40,7 @@ export function EnumSelect({
     value,
     defaultValue,
     onValueChange,
+    onOpenChange,
     allLabel,
     name,
     id,
@@ -51,6 +59,7 @@ export function EnumSelect({
             value={value}
             defaultValue={defaultValue}
             disabled={disabled}
+            onOpenChange={onOpenChange}
             onValueChange={(next) =>
                 onValueChange?.((next as string | null) ?? '')
             }
@@ -66,7 +75,11 @@ export function EnumSelect({
             <SelectContent>
                 <SelectGroup>
                     {items.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
+                        <SelectItem
+                            key={option.value}
+                            value={option.value}
+                            disabled={option.disabled}
+                        >
                             {option.label}
                         </SelectItem>
                     ))}

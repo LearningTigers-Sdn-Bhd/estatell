@@ -524,3 +524,12 @@ test('the list says whether the property has any reservation, so the empty state
     $this->actingAs($user)->get(listUrl($property))->assertInertia(fn (Assert $page) => $page->where('hasReservations', true)->has('reservations.data', 0));
     $this->actingAs(User::factory()->create())->get(listUrl($property))->assertNotFound();
 });
+
+test('the list tells staff who may book from staff who may only view', function (DefaultRoleEnum $role, bool $canManage) {
+    $user = User::factory()->withRole($role)->create();
+    PropertySetting::factory()->for($user->property)->create();
+
+    $this->actingAs($user)
+        ->get(route('reservations.index', ['property' => $user->property->code]))
+        ->assertInertia(fn ($page) => $page->where('canManage', $canManage));
+})->with([[DefaultRoleEnum::Owner, true], [DefaultRoleEnum::FrontDesk, true], [DefaultRoleEnum::Finance, false]]);

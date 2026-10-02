@@ -2,17 +2,64 @@
 
 namespace App\Http\Controllers\Reservations;
 
+use App\Actions\Reservations\CreateBooking;
+use App\Enums\BillingMode;
+use App\Enums\PermissionEnum;
+use App\Enums\ReservationSource;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Reservations\FreeUnitsRequest;
 use App\Http\Requests\Reservations\QuoteBookingLineRequest;
+use App\Http\Requests\Reservations\StoreBookingRequest;
 use App\Models\Property;
 use App\Models\RoomType;
 use App\Services\Availability\FreeUnits;
+use App\Services\NightAudit\CurrentBusinessDate;
+use App\Services\Property\PropertyToday;
+use App\Services\Reservations\BookingErrorKeys;
 use App\Services\Reservations\BookingQuote;
+use App\Services\Reservations\ReservationFormOptions;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class ReservationBookingController extends Controller
 {
+    /**
+     * The booking form for a new booking.
+     */
+    public function new(Request $request, Property $property, ReservationFormOptions $options, CurrentBusinessDate $businessDate, PropertyToday $today): Response
+    {
+        return $this->form($request, $property, $options, $businessDate, $today, walkIn: false);
+    }
+
+    /**
+     * The same form as a walk-in: the source is fixed, the arrival is the business date and a room or bed is required.
+     */
+    public function walkIn(Request $request, Property $property, ReservationFormOptions $options, CurrentBusinessDate $businessDate, PropertyToday $today): Response
+    {
+        return $this->form($request, $property, $options, $businessDate, $today, walkIn: true);
+    }
+
+    /**
+     * Save the booking. A refusal goes back to the form as errors keyed by line, and nothing is saved.
+     */
+    public function store(StoreBookingRequest $request, Property $property, CreateBooking $createBooking, BookingErrorKeys $errorKeys): RedirectResponse
+    {
+        $result = $createBooking($request->user(), $property, $request->toBookingData());
+
+        if ($result->isRefused()) {
+            return back(fallback: route('reservations.new', ['property' => $property]))->withErrors(
+                $errorKeys->errors($result, $request->unitsPerLine(), $request->user()->can(PermissionEnum::RatesOverrideRestrictions->value)),
+            );
+        }
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Reservation :reference created.', ['reference' => $result->reservation->reference])]);
+
+        return to_route('reservations.show', ['property' => $property, 'reservation' => $result->reservation]);
+    }
+
     /**
      * Price one booking line for the booking form. A line that cannot be priced answers 200 with `errors`.
      */
@@ -27,6 +74,8 @@ class ReservationBookingController extends Controller
             $request->integer('adults'),
             array_map(intval(...), $request->validated('child_ages') ?? []),
             $request->integer('beds', 1),
+            $request->addOns(),
+            $request->filled('override_total') ? $request->string('override_total')->toString() : null,
         ));
     }
 
@@ -42,5 +91,23 @@ class ReservationBookingController extends Controller
             $request->date('arrival_date', 'Y-m-d'),
             $request->date('departure_date', 'Y-m-d'),
         )]);
+    }
+
+    private function form(Request $request, Property $property, ReservationFormOptions $options, CurrentBusinessDate $businessDate, PropertyToday $today, bool $walkIn): Response
+    {
+        $sources = $walkIn ? [ReservationSource::WalkIn] : [ReservationSource::Direct, ReservationSource::Phone];
+
+        return Inertia::render('reservations/create', [
+            'isWalkIn' => $walkIn,
+            'sources' => array_map(fn (ReservationSource $source): array => ['value' => $source->value, 'label' => $source->label()], $sources),
+            'businessDate' => ($businessDate->date($property) ?? $today->date($property))->toDateString(),
+            'addUnitOptions' => $options->addUnit($property),
+            'chargeItems' => $options->chargeItems($property),
+            'discounts' => $options->roomDiscounts($property),
+            'billingModes' => BillingMode::options(),
+            'autoAssignRooms' => (bool) $property->settings?->auto_assign_rooms,
+            'currency' => $property->settings?->currency,
+            'canOverrideRestrictions' => $request->user()->can(PermissionEnum::RatesOverrideRestrictions->value),
+        ]);
     }
 }

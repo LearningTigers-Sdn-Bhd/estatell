@@ -104,6 +104,19 @@ export function ReservationSummary({
                     {reservation.createdBy && ` · ${reservation.createdBy}`}
                 </Row>
             </dl>
+            {reservation.notes && (
+                <>
+                    <Separator />
+                    <section className="flex flex-col gap-1">
+                        <h2 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                            Notes
+                        </h2>
+                        <p className="text-sm whitespace-pre-line">
+                            {reservation.notes}
+                        </p>
+                    </section>
+                </>
+            )}
         </div>
     );
 }
