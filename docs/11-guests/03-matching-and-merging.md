@@ -29,10 +29,10 @@ Avoid duplicate guests without blocking staff.
 | Guest form                          | A warning after the name, phone, email or date of birth field is left. Matches open in a new tab. |
 | ID document form                    | A warning after the number field is left: the number is already on another guest.                 |
 | Guest page, Details tab             | A **Possible duplicates** list from the guest's own details and ID numbers, with a Merge button.  |
-| Booking form (module 12, later)     | `GuestPicker` shows "Existing guest found, use this?" instead of a conflict error.                |
+| Booking form (module 12)            | `DuplicateWarning` shows "Use existing" and "Create new anyway" under the guest tab fields.       |
 | Channel bookings (module 21, later) | Booking ingestion runs guests through `GuestMatcher`.                                             |
 
-The forms use `POST guests/matches` (`guests.matches`, `guests.view`, JSON). It returns up to 10 matches with their reasons.
+The forms use `POST guests/matches` (`guests.matches`, `guests.view`, JSON). It returns up to 10 matches with their reasons and a `GuestProfileData`, so "Use existing" can fill a form without a second request.
 
 ## Merging
 

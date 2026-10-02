@@ -114,7 +114,7 @@ With an existing guest selected:
 
 | Tab            | Rules                                                                                                                                       |
 | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| Booker (first) | Always present, cannot be removed. Becomes `booker_guest_id`. "Stays in" also offers **Not staying**.                                       |
+| Booker (first) | Always present, cannot be removed. Becomes the booker of the reservation. "Stays in" also offers **Not staying**.                           |
 | Other tabs     | One guest staying in a unit. The label is the guest's name, or "Guest N" while empty. ✕ removes the tab.                                    |
 | Stays in       | Lists every unit on the form (Deluxe King #1, Dorm Bed 1). The first guest in a unit becomes `is_primary`. A bed unit takes one guest only. |
 
@@ -122,7 +122,7 @@ Units without a guest are allowed. They show "Attach guest" on the reservation p
 
 ### Autocomplete
 
-- Name, Phone and Email are autocompletes. Search starts after 2 characters, through `useHttp` to `guests.search`, debounced and cached per query. It returns up to 8 guests of the property. Merged and anonymized guests never show.
+- Name, Phone and Email are autocompletes. Search starts after 2 characters, to `guests.search`, debounced and cached per query. It returns up to 8 guests of the property. Merged and anonymized guests never show. Each result carries a `GuestProfileData` (date of birth, gender, nationality, language, address and the blacklist reason), so a pick needs no second request. The same data comes with the `guests.matches` results.
 - Selecting a guest links the tab to that `guest_id` and fills the fields, including More guest details. The details section opens when the guest has any of them.
 - Typed changes to a linked guest update the profile only when **Update guest profile** is on (off by default).
 - **Change guest** unlinks the guest, keeps the typed values and focuses Name.
@@ -131,7 +131,7 @@ Units without a guest are allowed. They show "Attach guest" on the reservation p
 
 ### More guest details
 
-Collapsed by default: date of birth, gender, nationality, address line 1 and 2, city, state, postcode, country, preferred language. No ID document: ID is collected on the [registration card](../16-registration/04-signing-flow.md) at check-in and kept on the guest profile.
+Collapsed by default: date of birth, gender, nationality, address line 1 and 2, city, state, postcode, country, preferred language. The fields come from `GuestDetailsFields`, extracted from `guest-form.tsx` and used by both forms, so they cannot drift apart. No ID document: ID is collected on the [registration card](../16-registration/04-signing-flow.md) at check-in and kept on the guest profile.
 
 ### Permissions
 
@@ -142,7 +142,7 @@ Collapsed by default: date of birth, gender, nationality, address line 1 and 2, 
 | `guests.view`   | Search and select existing guests          |
 | `guests.manage` | Create a guest or update a guest's profile |
 
-Without `guests.manage`, a tab accepts only an existing guest.
+Without `guests.manage`, a tab accepts only an existing guest, and **Update guest profile** is hidden. The page gets `canManageGuests`. `CreateBooking` does not check it: `StoreBookingRequest` does, and answers `guests.{i}.full_name` "Pick an existing guest." for a tab that would create or update a guest.
 
 ## Comes later
 
@@ -167,15 +167,16 @@ Without `guests.manage`, a tab accepts only an existing guest.
 - After save, the form redirects to the reservation page with a toast that names the reference. This item shows **New ▾** on the Reservations list, for staff with `reservations.manage`.
 - `FormActions` (`components/pms/form-actions.tsx`) is built with this page: a sticky footer with Cancel and the primary button. The form uses the `use-unsaved-changes` guard when staff leave the page.
 - `guests.search` and `GuestPicker` come from the [reservation page](06-reservation-page.md) item. This item adds the autocomplete field on the same route.
-- Components: Base UI `Combobox`, `Tabs` and `Collapsible`. The autocomplete field is `components/pms/guests/guest-autocomplete-field.tsx`. More guest details reuse the fields of `guest-form.tsx`. Form parts live in `components/pms/reservations/`.
+- The profile rules (name, phone checked against the property's country, email, date of birth and the rest) live in one class, `GuestProfileRules`, used by `GuestRequest` and `StoreBookingRequest`.
+- Components: Base UI `Combobox`, `Tabs` and `Collapsible`. The autocomplete field is `components/pms/guests/guest-autocomplete-field.tsx`. More guest details use `GuestDetailsFields`. `DuplicateWarning` gains **Use existing** (links the tab to the match) and **Create new anyway** (hides the warning for the values typed; nothing is sent to the server). Form parts live in `components/pms/reservations/`.
 - The page gets a query-count test with lazy loading prevented (see `.ai/rules/tests.md`).
 
 ## Saving and errors
 
 - `GET reservations/new`, `GET reservations/walk-in` and `POST reservations` (`reservations.store`) are in `ReservationBookingController`. `new` and `walk-in` share one private render method.
 - The page gets the lists it needs with the page, because they are bounded: room types and rate plans (`ReservationFormOptions::addUnit`), charge items, active RoomOnly discounts, the sources, the billing modes, `autoAssignRooms`, the currency, `canOverrideRestrictions` and `today`, the business date, which is the default arrival. The prop is not named `businessDate`, because the app shell shares a prop of that name for the header indicator.
-- `StoreBookingRequest` checks the shape and builds `NewBookingData`. It expands each line into units in the order `CreateReservation` adds them (a Bed line with N beds is N units), so the unit index of a pick is the running count. On a walk-in every unit needs a room or bed pick. Commit 2 builds one guest tab, the booker, with an existing guest id and no "stays in".
-- A refusal comes back as errors keyed by position: `lines.{i}.room_type_id`, `lines.{i}.rate_plan_id`, `lines.{i}.child_ages`, `lines.{i}.room_id`, `lines.{i}.bed_ids.{n}` and so on, plus `arrival_date`, `departure_date`, `guest_id` and `form`. The key comes from `ReservationRefusals` (the field) and the line or unit index of the result. `restricted` shows the override reason field of the line for staff with `rates.override-restrictions`, and a `form` error for everyone else.
+- `StoreBookingRequest` checks the shape and builds `NewBookingData`. It expands each line into units in the order `CreateReservation` adds them (a Bed line with N beds is N units), so the unit index of a pick is the running count. On a walk-in every unit needs a room or bed pick. From commit 3 the request has a `guests` array: for each tab `guest_id`, the profile fields, `update_profile` and `stays_in` (the unit index, or empty for a booker who does not stay). The first tab is the booker. `toBookingData()` builds one `NewBookingGuestData` for each tab. `booker_guest_id`, which commit 2 used, is gone.
+- A refusal comes back as errors keyed by position: `lines.{i}.room_type_id`, `lines.{i}.rate_plan_id`, `lines.{i}.child_ages`, `lines.{i}.room_id`, `lines.{i}.bed_ids.{n}` and so on, plus `arrival_date`, `departure_date`, `guests.{i}.guest_id`, `guests.{i}.full_name`, `guests.{i}.stays_in` and `form`. A guest refusal (`guest_not_found`, `already_attached`, `bed_unit_full`, `unit_not_found`, `guest_name_required`) names the tab through the guest index of the result; `bed_unit_full` and `already_attached` show on "Stays in". The key comes from `ReservationRefusals` (the field) and the line or unit index of the result. `restricted` shows the override reason field of the line for staff with `rates.override-restrictions`, and a `form` error for everyone else.
 - A `restricted` or other line-level refusal never saves anything: `CreateBooking` rolls back.
 
 ## Build order

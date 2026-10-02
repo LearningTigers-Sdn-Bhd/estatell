@@ -65,6 +65,7 @@ Routes under `/p/{code}/guests` (`guests.*`, route file `guests.php`). They are 
 - Email and phone stay plaintext for search and notifications. Rely on database encryption at rest.
 - ID documents have their own Documents tab. See [Identity documents](02-identity-documents.md).
 - A guest merged into another guest is hidden from the list and redirects to the survivor. See [Matching and merging](03-matching-and-merging.md).
+- The profile rules live in `GuestProfileRules`, shared by `GuestRequest` and the booking form (the form's fields are `GuestDetailsFields`).
 - `GuestPicker` and `guests.search` come with the [reservation page](../12-reservations/06-reservation-page.md#guests-tab).
 - Left for later: a settings page for tags, `marketing_consent_at` (captured on the registration card).
 

@@ -16,7 +16,7 @@ Rules:
 - Items show labels, never raw values.
 - Pressing `Tab` on a palette result shows that item's actions. Each action calls an existing Action.
 - Items and actions the user has no permission for are hidden.
-- `GuestPicker` shows the `GuestMatcher` duplicate warning with "Use existing" and "Create new anyway".
+- The guest autocomplete field shows the `GuestMatcher` duplicate warning with "Use existing" and "Create new anyway". `GuestPicker` picks existing guests only and shows no warning.
 
 `GuestPicker` and the `guests.search` route are built with the [reservation page](../12-reservations/06-reservation-page.md#guests-tab), where it picks existing guests only.
 
