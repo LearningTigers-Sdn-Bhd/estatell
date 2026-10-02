@@ -17,6 +17,10 @@ N beds = N units in one reservation, one occupant per unit.
 - Each backpacker can check in, move bed, check out or be marked no-show independently.
 - With EachPays, each unit gets its own folio.
 
+## Build status
+
+Built with `CreateReservation` and `AddUnit` (see [Group bookings](02-group-bookings.md)). Assigning a bed (`bed_id`) and `AttachGuest` come with the booking form.
+
 ## Out of scope
 
 Selling a whole dorm as one unit.

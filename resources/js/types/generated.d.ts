@@ -557,6 +557,32 @@ discount: string,
 nightAmounts: string[],
 };
 }
+namespace Reservations {
+export type NewReservationData = {
+bookerGuestId: number,
+source: App.Enums.ReservationSource,
+units: App.Data.Reservations.NewUnitData[],
+billingMode: App.Enums.BillingMode,
+channelName: string | null,
+externalReference: string | null,
+companyId: number | null,
+groupName: string | null,
+};
+export type NewUnitData = {
+roomTypeId: number,
+ratePlanId: number,
+arrivalDate: string,
+departureDate: string,
+adults: number,
+childAges: number[],
+beds: number,
+discountId: number | null,
+lateArrivalExpected: boolean,
+overrideTotal: string | null,
+overrideReason: string | null,
+restrictionOverrideReason: string | null,
+};
+}
 namespace Rooms {
 export type BedData = {
 id: number,

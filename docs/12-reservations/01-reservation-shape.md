@@ -93,13 +93,13 @@ It has no `canTransitionTo()` because nothing sets it by hand.
 
 ## Build status
 
-| Part                                                                                          | Status                                      |
-| --------------------------------------------------------------------------------------------- | ------------------------------------------- |
-| Tables, enums, models, factories, `SyncReservationStatus`                                     | Built                                       |
-| `AvailabilityService` counts booked units, `MergeGuests` and `AnonymizeGuest` hooks           | Built                                       |
-| `CreateReservation`, `AddUnit` (incl. bed lines), `UpdateReservationGroup`, `override_amount` | [Group bookings](02-group-bookings.md) item |
-| `AttachGuest`, `AssignRoom`, `AssignBed`, double-booking indexes                              | Booking form item                           |
-| Check-in, check-out, cancel, no-show, reinstate, move                                         | Front desk (module 18)                      |
+| Part                                                                                          | Status                                            |
+| --------------------------------------------------------------------------------------------- | ------------------------------------------------- |
+| Tables, enums, models, factories, `SyncReservationStatus`                                     | Built                                             |
+| `AvailabilityService` counts booked units, `MergeGuests` and `AnonymizeGuest` hooks           | Built                                             |
+| `CreateReservation`, `AddUnit` (incl. bed lines), `UpdateReservationGroup`, `override_amount` | Built, see [Group bookings](02-group-bookings.md) |
+| `AttachGuest`, `AssignRoom`, `AssignBed`, double-booking indexes                              | Booking form item                                 |
+| Check-in, check-out, cancel, no-show, reinstate, move                                         | Front desk (module 18)                            |
 
 ## Lessons from wastays
 

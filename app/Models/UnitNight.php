@@ -23,11 +23,12 @@ use Illuminate\Support\Carbon;
  * @property string $extra_amount
  * @property string $supplement_amount
  * @property string $discount_amount
+ * @property string|null $override_amount The stay override of the unit spread over its nights. When set, it is `amount`.
  * @property string $amount
  */
 #[Fillable([
     'date', 'rate_plan_id', 'room_id', 'bed_id', 'base_amount', 'extra_amount', 'supplement_amount',
-    'discount_amount', 'amount',
+    'discount_amount', 'override_amount', 'amount',
 ])]
 class UnitNight extends Model
 {
@@ -47,6 +48,7 @@ class UnitNight extends Model
             'extra_amount' => 'decimal:2',
             'supplement_amount' => 'decimal:2',
             'discount_amount' => 'decimal:2',
+            'override_amount' => 'decimal:2',
             'amount' => 'decimal:2',
         ];
     }

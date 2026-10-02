@@ -32,7 +32,7 @@ This item also builds the backend that creates every reservation: single rooms, 
 | `NewReservationData` | `booker_guest_id`, `source`, `channel_name`, `external_reference`, `company_id`, `group_name`, `billing_mode`, `units` (list of `NewUnitData`)                                                                                         |
 | `NewUnitData`        | `room_type_id`, `rate_plan_id`, `arrival_date`, `departure_date`, `adults`, `child_ages` (list of int), `beds` (default 1), `discount_id`, `late_arrival_expected`, `override_total`, `override_reason`, `restriction_override_reason` |
 
-The booker is an existing guest. Creating guests from the form tabs is in the booking form item. Both Actions take the acting `User $actor`, which becomes `created_by` and the activity log causer. How a channel booking, which has no staff user, fills `created_by` is decided in [booking ingestion](../21-channels/05-booking-ingestion.md).
+In code the properties are camelCase (`roomTypeId`, `arrivalDate`). Dates are `Y-m-d` strings, and `overrideTotal` is a decimal string. The booker is an existing guest. Creating guests from the form tabs is in the booking form item. Both Actions take the acting `User $actor`, which becomes `created_by` and the activity log causer. How a channel booking, which has no staff user, fills `created_by` is decided in [booking ingestion](../21-channels/05-booking-ingestion.md).
 
 ### Result
 
@@ -95,6 +95,10 @@ The `rates.override-restrictions` check runs with the permission team set to the
 ### `UpdateReservationGroup`
 
 Changes `group_name` and `billing_mode`. [Routing](../13-folio/03-routing.md) adds its rules for a billing mode change in module 13.
+
+## Build status
+
+Built: `CreateReservation`, `AddUnit`, `UpdateReservationGroup`, `ReservationResult`, `NewReservationData`, `NewUnitData` and `unit_nights.override_amount` (with its CHECK). The Add unit button, the Edit group dialog and the booking form call them in later items.
 
 ## Supported cases
 

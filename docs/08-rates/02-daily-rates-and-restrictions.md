@@ -69,7 +69,7 @@ Routes: `settings.rate-plans.pricing.edit`, `.update` and `.extend` (all `settin
 | `rates.override-restrictions` | Book past a restriction at the front desk                     | Owner, Manager    |
 | `settings.manage`             | The plan editor, including its Pricing tab                    | Owner, Manager    |
 
-The front desk override arrives with the booking form.
+The check is built in `AddUnit` (see [Group bookings](../12-reservations/02-group-bookings.md#addunit)). The front desk screen for it arrives with the booking form.
 
 ## Rates ending
 
