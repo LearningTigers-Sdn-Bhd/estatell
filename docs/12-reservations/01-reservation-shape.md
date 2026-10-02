@@ -101,7 +101,7 @@ It has no `canTransitionTo()` because nothing sets it by hand.
 | `CreateReservation`, `AddUnit` (incl. bed lines), `UpdateReservationGroup`, `override_amount` | Built, see [Group bookings](02-group-bookings.md)                |
 | `unit_add_ons`, `AddUnitAddOn`, `RemoveUnitAddOn`, `ChargeQuantityResolver`                   | Built, see [Add-ons](04-add-ons.md)                              |
 | `AttachGuest`, `reservations.view`, `reservations.manage`                                     | Built, see [Reservation page](06-reservation-page.md#guests-tab) |
-| `notes` column, `AssignRoom`, `AssignBed`                                                     | Booking form item                                                |
+| `notes` column, `AssignRoom`, `AssignBed`                                                     | Built, see [Booking form](05-booking-form.md#build-status)       |
 | Double-booking indexes on `unit_nights`                                                       | Room and bed assignment (module 18)                              |
 | Check-in, check-out, cancel, no-show, reinstate, move                                         | Front desk (module 18)                                           |
 

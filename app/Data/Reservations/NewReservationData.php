@@ -24,5 +24,6 @@ class NewReservationData extends Data
         public ?string $externalReference = null,
         public ?int $companyId = null,
         public ?string $groupName = null,
+        public ?string $notes = null,
     ) {}
 }

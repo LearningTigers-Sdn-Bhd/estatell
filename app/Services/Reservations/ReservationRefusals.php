@@ -3,7 +3,9 @@
 namespace App\Services\Reservations;
 
 use App\Actions\Reservations\AddOnResult;
+use App\Actions\Reservations\AssignmentResult;
 use App\Actions\Reservations\AttachGuestResult;
+use App\Actions\Reservations\BookingResult;
 use App\Actions\Reservations\ReservationResult;
 use App\Services\Rates\RateQuote;
 use Carbon\CarbonInterface;
@@ -76,6 +78,13 @@ class ReservationRefusals
             AddOnResult::REFUSAL_QUANTITY_INVALID => ['quantity', __('Enter a quantity from 1 to 999.')],
             AddOnResult::REFUSAL_AMOUNT_INVALID => ['unit_amount', __('Enter an amount such as 25.00.')],
             AddOnResult::REFUSAL_AMOUNT_OVERRIDE_NOT_ALLOWED => ['unit_amount', __('This item does not allow a different amount.')],
+            AssignmentResult::REFUSAL_ROOM_NOT_FOUND => ['room_id', __('This room cannot be picked.')],
+            AssignmentResult::REFUSAL_BED_NOT_FOUND => ['bed_id', __('This bed cannot be picked.')],
+            AssignmentResult::REFUSAL_ROOM_NOT_FREE => ['room_id', $day === '' ? __('This room is not free for the stay.') : __('This room is not free on :date.', ['date' => $day])],
+            AssignmentResult::REFUSAL_BED_NOT_FREE => ['bed_id', $day === '' ? __('This bed is not free for the stay.') : __('This bed is not free on :date.', ['date' => $day])],
+            BookingResult::REFUSAL_BOOKER_REQUIRED => ['guest_id', __('Choose the booker.')],
+            BookingResult::REFUSAL_GUEST_NAME_REQUIRED => ['full_name', __('Enter the guest\'s name.')],
+            BookingResult::REFUSAL_UNIT_NOT_FOUND => [self::FORM, __('This unit is not on the booking.')],
             default => [self::FORM, __('This change was refused.')],
         };
     }

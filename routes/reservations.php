@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\PermissionEnum;
+use App\Http\Controllers\Reservations\ReservationBookingController;
 use App\Http\Controllers\Reservations\ReservationController;
 use App\Http\Controllers\Reservations\ReservationGroupController;
 use App\Http\Controllers\Reservations\ReservationUnitAddOnController;
@@ -8,6 +9,11 @@ use App\Http\Controllers\Reservations\ReservationUnitController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('reservations')->name('reservations.')->scopeBindings()->group(function () {
+    Route::middleware('can:'.PermissionEnum::ReservationsManage->value)->group(function () {
+        Route::post('quote', [ReservationBookingController::class, 'quote'])->name('quote');
+        Route::get('free-units', [ReservationBookingController::class, 'freeUnits'])->name('free-units');
+    });
+
     Route::middleware('can:'.PermissionEnum::ReservationsView->value)->group(function () {
         Route::get('/', [ReservationController::class, 'index'])->name('index');
 

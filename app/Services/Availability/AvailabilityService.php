@@ -73,7 +73,7 @@ class AvailabilityService
      *
      * @return array<int, list<int>> Unit ids by room id
      */
-    private function unitsByRoom(RoomType $roomType): array
+    public function unitsByRoom(RoomType $roomType): array
     {
         $roomIds = Room::query()
             ->where('property_id', $roomType->property_id)
@@ -101,7 +101,7 @@ class AvailabilityService
      * @param  array<int, list<int>>  $units
      * @return array<string, array<int, true>> Blocked unit ids by date
      */
-    private function blockedUnits(RoomType $roomType, array $units, Period $stay): array
+    public function blockedUnits(RoomType $roomType, array $units, Period $stay): array
     {
         $blocks = RoomBlock::query()
             ->where('property_id', $roomType->property_id)

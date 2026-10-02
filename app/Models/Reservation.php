@@ -28,6 +28,7 @@ use Illuminate\Support\Carbon;
  * @property ReservationSource $source
  * @property string|null $channel_name
  * @property string|null $external_reference
+ * @property string|null $notes
  * @property int $created_by
  * @property Carbon|null $cancellation_requested_at
  * @property int|null $cancellation_requested_by
@@ -35,7 +36,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $updated_at
  */
 #[Fillable([
-    'booker_guest_id', 'company_id', 'group_name', 'billing_mode', 'source', 'channel_name', 'external_reference',
+    'booker_guest_id', 'company_id', 'group_name', 'billing_mode', 'source', 'channel_name', 'external_reference', 'notes',
 ])]
 class Reservation extends Model
 {

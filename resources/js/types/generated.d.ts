@@ -570,6 +570,23 @@ export type AddUnitOptionsData = {
 roomTypes: App.Data.Reservations.RoomTypeOptionData[],
 ratePlans: App.Data.Reservations.RatePlanOptionData[],
 };
+export type BookingQuoteData = {
+nights: App.Data.Reservations.BookingQuoteNightData[],
+unitTotal: string | null,
+lineTotal: string | null,
+beds: number,
+violations: string[],
+available: number,
+errors: Record<string, string>,
+};
+export type BookingQuoteNightData = {
+date: string,
+base: string,
+extra: string,
+supplement: string,
+discount: string,
+amount: string,
+};
 export type ChargeItemOptionData = {
 id: number,
 name: string,
@@ -578,11 +595,32 @@ chargingUnitLabel: string,
 defaultAmount: string | null,
 allowOverride: boolean,
 };
+export type FreeUnitData = {
+id: number,
+label: string,
+};
 export type NewAddOnData = {
 chargeItemId: number,
 quantity: number | null,
 unitAmount: string | null,
 serviceDate: string | null,
+};
+export type NewBookingData = {
+source: App.Enums.ReservationSource,
+units: App.Data.Reservations.NewUnitData[],
+guests: App.Data.Reservations.NewBookingGuestData[],
+picks: App.Data.Reservations.UnitPickData[],
+billingMode: App.Enums.BillingMode,
+channelName: string | null,
+externalReference: string | null,
+groupName: string | null,
+notes: string | null,
+};
+export type NewBookingGuestData = {
+guestId: number | null,
+profile: Record<string, any>,
+updateProfile: boolean,
+unitIndex: number | null,
 };
 export type NewReservationData = {
 bookerGuestId: number,
@@ -593,6 +631,7 @@ channelName: string | null,
 externalReference: string | null,
 companyId: number | null,
 groupName: string | null,
+notes: string | null,
 };
 export type NewUnitData = {
 roomTypeId: number,
@@ -761,6 +800,11 @@ name: string,
 isBed: boolean,
 maxAdults: number,
 maxChildren: number,
+};
+export type UnitPickData = {
+unitIndex: number,
+roomId: number | null,
+bedId: number | null,
 };
 }
 namespace Rooms {

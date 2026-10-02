@@ -176,6 +176,12 @@ One checklist item per commit, in this order:
 2. **The page, with the booker as an existing guest:** Stay, Rooms and beds, Group, Extras, Notes, the summary rail, `New ▾` and Walk-in. Guests are not on the page yet: the booker is picked with `GuestPicker`, and units get no guest.
 3. **Guest tabs:** the Guests section with the autocomplete field, `DuplicateWarning`, create and update of guests, and "Stays in".
 
+## Build status
+
+Built (commit 1, backend only): the `notes` column, `NewReservationData.notes`, `AssignRoom`, `AssignBed` and `AssignmentResult`, `FreeUnits` (with `unitsByRoom` and `blockedUnits` made public on `AvailabilityService`), `BookingQuote`, `reservations.quote` and `reservations.free-units` (`ReservationBookingController`), and `CreateBooking` with `NewBookingData`, `NewBookingGuestData`, `UnitPickData` and `BookingResult`. `ReservationRefusals` knows the new codes: `room_not_found`, `bed_not_found`, `room_not_free`, `bed_not_free`, `booker_required`, `guest_name_required` and `unit_not_found`. `CreateBooking` does not check `guests.manage`: the Form Request of the booking form does, when it builds the guest tabs. The routes `new`, `walk-in` and `store`, the page and the guest tabs are not built yet.
+
+The quote answers 200 even when the line cannot be priced: `errors` holds the refusal keyed by form field, as the Add unit Sheet uses it. It prices one bed for a Bed room type, and `lineTotal` is that times `beds`. The catalogue discount and price overrides are not in the preview.
+
 ## Lessons from wastays
 
 - wastays only asked for child ages at per-guest hotels and fell back to a flat child price when they were missing, which overcharged infants and undercharged older children.

@@ -53,6 +53,7 @@ class CreateReservation
                     'source' => $data->source,
                     'channel_name' => $data->channelName,
                     'external_reference' => $data->externalReference,
+                    'notes' => $data->notes === null || trim($data->notes) === '' ? null : trim($data->notes),
                 ]);
                 $reservation->forceFill([
                     'property_id' => $property->id,
@@ -80,6 +81,7 @@ class CreateReservation
                         'reference' => $reservation->reference,
                         'source' => $reservation->source->value,
                         'units' => $reservation->units()->count(),
+                        'has_notes' => $reservation->notes !== null,
                     ])
                     ->log('Reservation created');
 
