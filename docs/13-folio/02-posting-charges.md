@@ -82,7 +82,7 @@ All Actions return a result and write nothing on a refusal. Each one is one tran
 
 ### `FolioRouter`
 
-A service that returns the target folio for a line. In this item it always returns the unit's own folio. The routing item adds the rules (see [Routing](03-routing.md)): `targetFor` then takes the charge's transaction code, and tax children follow their parent.
+A service that returns the target folio for a charge: `targetFor(ReservationUnit, TransactionCode)`. The [routing](03-routing.md) item added the rules. With no matching rule it returns the unit's own folio, and tax children follow their parent.
 
 ## Add-on postings
 
@@ -95,7 +95,7 @@ Built (manual postings item): `CreateFolio`, `PostCharge`, `ReverseLine`, `Trans
 
 Decisions made at build time:
 
-- `FolioRouter::targetFor(ReservationUnit)` returns null until the unit has a folio. `PostCharge` creates it only after every check passed, so a refusal writes nothing.
+- `FolioRouter::targetFor(ReservationUnit, TransactionCode)` returns null until the unit has a folio. `PostCharge` creates it only after every check passed, so a refusal writes nothing.
 - The charge line holds the net amount. With an inclusive tax, `amount` is the entered amount minus the inclusive tax, and `unit_amount` stays as entered. The tax child lines add the tax back, so the folio total is the gross amount.
 - Tax child keys are `{charge key}:tax:{tax_id}`. A reversal posts under `reverse:{line_id}`, also inside a transfer. A repeated `ReverseLine` is refused (`already_reversed`), not replayed.
 - `TaxCalculator` refusals (`nationality_required`, `inclusive_tax_exceeds_amount`) pass through as refusal codes. The booker's nationality is used for foreign-only taxes.

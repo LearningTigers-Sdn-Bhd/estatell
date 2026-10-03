@@ -17,7 +17,7 @@ folio_routing_rules    id, reservation_id,
 - `reservation_unit_id`, `category` and `transaction_code_id` say what a rule matches. Null means all.
 - The table has no `property_id`: the reservation scopes it.
 - `target_folio_id` is any folio of the same reservation. A CHECK cannot say this, so the Action refuses a folio of another reservation.
-- Two rules cannot match the same thing: a unique index over the three selector columns treats nulls as equal (Postgres `NULLS NOT DISTINCT`, to verify).
+- Two rules cannot match the same thing: a unique index over the three selector columns treats nulls as equal (Postgres `NULLS NOT DISTINCT`, Postgres 15 and later; checked on 18.1).
 - `RoutingRuleSource`: BillingMode (made by `SyncRoutingRules`), Manual (made by staff).
 
 ## Folio types
@@ -70,7 +70,17 @@ FM is the Master folio and FA a third-party folio for the travel agent.
 
 ## Build status
 
-Built in the routing item: `folio_routing_rules`, `FolioRoutingRule`, `RoutingRuleSource`, `FolioType::ThirdParty`, the Master partial unique index, `BillingMode::MasterPaysAll`, the full `FolioRouter`, `SyncRoutingRules` and the third-party form of `CreateFolio`. No UI and no permissions: staff screens to create third-party folios and Manual rules come later.
+Built in the routing item: `folio_routing_rules` (with CHECKs on `category` and `source` and the unique index `folio_routing_rules_selector_unique` using `NULLS NOT DISTINCT`), `FolioRoutingRule` and its factory, `RoutingRuleSource`, `FolioType::ThirdParty` (type CHECK), the Master partial unique index `folios_active_master_unique`, `BillingMode::MasterPaysAll` (with the `reservations.billing_mode` CHECK), the full `FolioRouter`, `SyncRoutingRules` and the third-party form of `CreateFolio`. `CreateRoutingRule` and `RoutingRuleCheck` are the reusable place for the "target folio of another reservation" refusal. No UI and no permissions: staff screens to create third-party folios and Manual rules come later.
+
+Decisions made at build time:
+
+- `CreateFolio::thirdParty(Reservation, ?Guest, ?int $payerCompanyId)` takes exactly one payer. `folios` has no label column, so a third-party folio has no label: its payer names it. A label needs a schema decision first.
+- `CreateRoutingRule` returns a `RoutingRuleResult` and refuses `target_folio_not_in_reservation`, `unit_not_in_reservation`, `transaction_code_not_found` and `rule_exists`. `SyncRoutingRules` uses it for BillingMode rules, so a Manual rule on the same selectors keeps its place and the sync adds nothing.
+- `SyncRoutingRules` returns a `RoutingSyncResult` (`masterFolio`, `masterFolioCreated`, `rulesCreated`, `rulesRemoved`, `unitsWithPostedRoomLines`). It writes no activity log. A unit counts as holding posted room lines when its own folio has a Room charge that is not a reversal and was not reversed. The list is empty when no rule routes Room to the Master folio.
+- A reservation with a `company_id` gets a Master folio in every billing mode (the AR invoice is made from it), but EachPays still has no rules. Without a company the Master folio exists only when the mode routes and the reservation has 2 or more units. Cancelled units count toward the 2 units.
+- If a BillingMode rule no longer matches (another mode, another target), the sync deletes it and creates the right one.
+- `UpdateReservationGroup` now returns a `GroupUpdateResult` (it returned the `Reservation`). It runs the sync only when the billing mode changed.
+- A closed Master folio still counts as the active Master (only Voided is excluded), so the sync never makes a second one.
 
 ## Known later work
 

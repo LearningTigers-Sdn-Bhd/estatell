@@ -11,7 +11,8 @@ folios         id, property_id, reservation_id, reservation_unit_id (nullable),
                number, type (FolioType), status (FolioStatus),
                payer_guest_id (nullable), payer_company_id (nullable),
                invoice_number (nullable), closed_at, closed_by, timestamps
-               check: not both payer_guest_id and payer_company_id
+               check: not both payer_guest_id and payer_company_id;
+               (type = 'unit') = (reservation_unit_id is set); type has ThirdParty
 folio_lines    id, folio_id, transaction_code_id, kind (TransactionKind), description,
                quantity, unit_amount, amount (signed), posting_date,
                source_type, source_id, parent_line_id (nullable),

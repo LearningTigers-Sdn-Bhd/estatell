@@ -91,7 +91,7 @@ test('the new booking page sends the lists the form needs', function () {
             ->has('chargeItems', 1)
             ->has('discounts', 1)
             ->where('discounts.0.name', 'Staff rate')
-            ->has('billingModes', 2)
+            ->has('billingModes', 3)
             ->where('canOverrideRestrictions', true)
             ->where('canManageGuests', true)
             ->has('countries')

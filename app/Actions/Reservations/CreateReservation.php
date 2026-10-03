@@ -2,6 +2,7 @@
 
 namespace App\Actions\Reservations;
 
+use App\Actions\Folio\SyncRoutingRules;
 use App\Data\Reservations\NewReservationData;
 use App\Data\Reservations\NewUnitData;
 use App\Enums\DocumentType;
@@ -17,13 +18,13 @@ use Illuminate\Support\Facades\DB;
 
 class CreateReservation
 {
-    public function __construct(private AddUnit $addUnit, private NextDocumentNumber $nextDocumentNumber) {}
+    public function __construct(private AddUnit $addUnit, private NextDocumentNumber $nextDocumentNumber, private SyncRoutingRules $syncRoutingRules) {}
 
     /**
      * Create a reservation and its units in one transaction.
      *
      * A Bed room type line adds one unit for each bed. When any line is refused, nothing is saved, the reference
-     * number is not used up, nothing is logged, and the result names the line. `$fromChannel` is passed to `AddUnit`. See docs/12-reservations/02-group-bookings.md.
+     * number is not used up, nothing is logged, and the result names the line. `$fromChannel` is passed to `AddUnit`. `SyncRoutingRules` runs when the units are in, so a company or a group reservation gets its Master folio and rules. See docs/12-reservations/02-group-bookings.md.
      */
     public function __invoke(User $actor, Property $property, NewReservationData $data, bool $fromChannel = false): ReservationResult
     {
@@ -71,6 +72,8 @@ class CreateReservation
                         }
                     }
                 }
+
+                ($this->syncRoutingRules)($reservation);
 
                 activity()
                     ->performedOn($reservation)

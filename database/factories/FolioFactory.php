@@ -50,6 +50,21 @@ class FolioFactory extends Factory
         ]);
     }
 
+    public function master(): static
+    {
+        return $this->state(fn (array $attributes) => ['type' => FolioType::Master, 'reservation_unit_id' => null]);
+    }
+
+    public function thirdParty(): static
+    {
+        return $this->state(fn (array $attributes) => ['type' => FolioType::ThirdParty, 'reservation_unit_id' => null]);
+    }
+
+    public function voided(): static
+    {
+        return $this->state(fn (array $attributes) => ['status' => FolioStatus::Voided]);
+    }
+
     public function paidBy(Guest $guest): static
     {
         return $this->state(fn (array $attributes) => ['payer_guest_id' => $guest->id]);

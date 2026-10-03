@@ -3,18 +3,20 @@
 namespace App\Enums;
 
 /**
- * Whether a folio bills a whole reservation (Master) or one unit (Unit). See docs/13-folio/01-folios-and-lines.md.
+ * Whether a folio bills a whole reservation (Master), one unit (Unit) or a separate payer such as a travel agent (ThirdParty). See docs/13-folio/01-folios-and-lines.md.
  */
 enum FolioType: string
 {
     case Master = 'master';
     case Unit = 'unit';
+    case ThirdParty = 'third_party';
 
     public function label(): string
     {
         return match ($this) {
             self::Master => __('Master'),
             self::Unit => __('Unit'),
+            self::ThirdParty => __('Third party'),
         };
     }
 

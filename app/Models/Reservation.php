@@ -95,4 +95,12 @@ class Reservation extends Model
     {
         return $this->hasMany(ReservationUnit::class);
     }
+
+    /**
+     * @return HasMany<FolioRoutingRule, $this>
+     */
+    public function routingRules(): HasMany
+    {
+        return $this->hasMany(FolioRoutingRule::class);
+    }
 }

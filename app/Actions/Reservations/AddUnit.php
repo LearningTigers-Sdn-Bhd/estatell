@@ -2,6 +2,7 @@
 
 namespace App\Actions\Reservations;
 
+use App\Actions\Folio\SyncRoutingRules;
 use App\Data\Reservations\NewUnitData;
 use App\Enums\DiscountScope;
 use App\Enums\PermissionEnum;
@@ -35,6 +36,7 @@ class AddUnit
         private CurrentBusinessDate $currentBusinessDate,
         private PropertyToday $propertyToday,
         private AddUnitAddOn $addUnitAddOn,
+        private SyncRoutingRules $syncRoutingRules,
     ) {}
 
     /**
@@ -43,7 +45,7 @@ class AddUnit
      * The room type row is locked before the availability check, so two staff cannot sell the last unit together.
      * Every check runs before the first write, so a refusal writes and logs nothing. `$lineIndex` is the index of
      * the line in the request, and comes back on a refusal. A Cancelled or Completed reservation is refused first. Only
-     * `$fromChannel` (booking ingestion) skips the arrival date, restriction and availability checks. An add-on refusal rolls back the unit and comes back with the line index. See docs/12-reservations/02-group-bookings.md.
+     * `$fromChannel` (booking ingestion) skips the arrival date, restriction and availability checks. An add-on refusal rolls back the unit and comes back with the line index. Last, `SyncRoutingRules` makes the billing mode rules match the new unit count, and the result names units whose posted room lines stay on their folio. See docs/12-reservations/02-group-bookings.md.
      */
     public function __invoke(User $actor, Reservation $reservation, NewUnitData $data, int $lineIndex = 0, bool $fromChannel = false): ReservationResult
     {
@@ -217,8 +219,9 @@ class AddUnit
 
         ($this->syncReservationStatus)($reservation);
 
-        return ReservationResult::created($reservation);
+        $routing = ($this->syncRoutingRules)($reservation);
 
+        return ReservationResult::created($reservation, $routing->unitsWithPostedRoomLines);
     }
 
     private function isRoomOnlyDiscountOf(Reservation $reservation, int $discountId): bool

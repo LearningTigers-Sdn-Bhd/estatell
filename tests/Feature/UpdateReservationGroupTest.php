@@ -14,7 +14,7 @@ test('it changes the group name and billing mode and logs the change', function 
 
     $activity = Activity::query()->sole();
 
-    expect($updated->group_name)->toBe('Wedding party')
+    expect($updated->reservation->group_name)->toBe('Wedding party')
         ->and($reservation->fresh()->group_name)->toBe('Wedding party')
         ->and($reservation->fresh()->billing_mode)->toBe(BillingMode::EachPays)
         ->and($activity->event)->toBe('reservation.group_updated')

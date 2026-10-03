@@ -956,7 +956,7 @@ deactivatedAt: string | null,
 }
 namespace Enums {
 export type AgeBandPricing = 'free' | 'percent' | 'fixed';
-export type BillingMode = 'master_pays' | 'each_pays';
+export type BillingMode = 'master_pays' | 'master_pays_all' | 'each_pays';
 export type BusinessDateStatus = 'open' | 'auditing' | 'closed';
 export type ChargingUnit = 'per_item' | 'per_night' | 'per_stay' | 'per_guest_night' | 'per_guest';
 export type Currency = 'MYR';
@@ -968,7 +968,7 @@ export type DocumentType = 'reservation' | 'folio' | 'invoice' | 'credit_note' |
 export type DormStrategy = 'bed_as_unit' | 'native_dorm';
 export type EarlyDeparturePolicy = 'charge_full' | 'charge_used_nights';
 export type FolioStatus = 'open' | 'closed' | 'voided';
-export type FolioType = 'master' | 'unit';
+export type FolioType = 'master' | 'unit' | 'third_party';
 export type Gender = 'male' | 'female';
 export type GuestMatchReason = 'phone' | 'email' | 'id_number' | 'name_and_birth_date' | 'name';
 export type HousekeepingStatus = 'clean' | 'dirty' | 'inspected';
@@ -998,6 +998,7 @@ export type ReservationRoomBoxState = 'assigned' | 'unassigned' | 'auto_assign' 
 export type ReservationSource = 'direct' | 'walk_in' | 'phone' | 'channel' | 'agent';
 export type ReservationStatus = 'confirmed' | 'in_house' | 'completed' | 'cancelled';
 export type RoomBlockReason = 'maintenance' | 'owner_use' | 'out_of_order' | 'other';
+export type RoutingRuleSource = 'billing_mode' | 'manual';
 export type SellUnit = 'room' | 'bed';
 export type StayDiscountType = 'percent' | 'amount';
 export type SurchargeType = 'none' | 'fixed' | 'percent';

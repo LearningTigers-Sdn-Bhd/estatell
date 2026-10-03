@@ -7,7 +7,9 @@ use Carbon\CarbonInterface;
 
 /**
  * What `CreateReservation` and `AddUnit` return: the saved reservation, or a refusal code with the line and night that
- * caused it. The `RateQuote` refusal codes are passed through as they are.
+ * caused it. The `RateQuote` refusal codes are passed through as they are. `unitsWithPostedRoomLines` lists the units
+ * whose posted room lines stay on their own folio because a billing mode routing rule now sends room charges to the
+ * Master folio (see `SyncRoutingRules`). Only `AddUnit` can fill it.
  */
 class ReservationResult
 {
@@ -46,11 +48,16 @@ class ReservationResult
         public readonly ?string $refusal,
         public readonly ?int $lineIndex,
         public readonly ?CarbonInterface $date,
+        /** @var list<int> */
+        public readonly array $unitsWithPostedRoomLines = [],
     ) {}
 
-    public static function created(Reservation $reservation): self
+    /**
+     * @param  list<int>  $unitsWithPostedRoomLines
+     */
+    public static function created(Reservation $reservation, array $unitsWithPostedRoomLines = []): self
     {
-        return new self($reservation, null, null, null);
+        return new self($reservation, null, null, null, $unitsWithPostedRoomLines);
     }
 
     public static function refused(string $refusal, ?int $lineIndex = null, ?CarbonInterface $date = null): self

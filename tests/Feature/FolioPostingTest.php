@@ -127,7 +127,7 @@ test('the second posting reuses the unit folio', function () {
 
     expect($second->folio_id)->toBe($first->folio_id)
         ->and(Folio::query()->count())->toBe(1)
-        ->and(app(FolioRouter::class)->targetFor($setup['unit'])->id)->toBe($first->folio_id);
+        ->and(app(FolioRouter::class)->targetFor($setup['unit'], $setup['item']->transactionCode)->id)->toBe($first->folio_id);
 });
 
 test('an inclusive tax is taken out of the entered amount', function () {
@@ -358,7 +358,7 @@ test('a transfer refusal writes and logs nothing', function (string $refusal, Cl
     'no lines' => [PostingResult::REFUSAL_TRANSFER_INVALID, fn (FolioLine $charge, Folio $target) => [[], $target]],
     'lines of two folios' => [PostingResult::REFUSAL_TRANSFER_INVALID, fn (FolioLine $charge, Folio $target) => [[$charge, FolioLine::factory()->for($target)->create()], $target]],
     'another reservation' => [PostingResult::REFUSAL_DIFFERENT_RESERVATION, fn (FolioLine $charge, Folio $target, array $setup) => [[$charge], Folio::factory()->create(['property_id' => $setup['property']->id])]],
-    'a closed target' => [PostingResult::REFUSAL_FOLIO_NOT_OPEN, fn (FolioLine $charge) => [[$charge], Folio::factory()->closed()->create(['property_id' => $charge->folio->property_id, 'reservation_id' => $charge->folio->reservation_id])]],
+    'a closed target' => [PostingResult::REFUSAL_FOLIO_NOT_OPEN, fn (FolioLine $charge) => [[$charge], Folio::factory()->thirdParty()->closed()->create(['property_id' => $charge->folio->property_id, 'reservation_id' => $charge->folio->reservation_id])]],
     'a child line' => [PostingResult::REFUSAL_LINE_NOT_TRANSFERABLE, fn (FolioLine $charge, Folio $target) => [[$charge->children()->sole()], $target]],
     'an already reversed line' => [PostingResult::REFUSAL_LINE_NOT_TRANSFERABLE, function (FolioLine $charge, Folio $target, array $setup) {
         app(ReverseLine::class)($setup['actor'], $charge);

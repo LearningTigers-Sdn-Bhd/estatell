@@ -39,12 +39,13 @@ In code the properties are camelCase (`roomTypeId`, `arrivalDate`). Dates are `Y
 
 Both Actions return a `ReservationResult` and never throw for an expected refusal (see `.ai/rules/actions.md`):
 
-| Field         | Meaning                                                    |
-| ------------- | ---------------------------------------------------------- |
-| `reservation` | The saved reservation, or null when refused                |
-| `refusal`     | A refusal code (constants on `ReservationResult`), or null |
-| `lineIndex`   | The index in `units` of the refused line                   |
-| `date`        | The night that caused the refusal, when there is one       |
+| Field                      | Meaning                                                                                                                                  |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `reservation`              | The saved reservation, or null when refused                                                                                              |
+| `refusal`                  | A refusal code (constants on `ReservationResult`), or null                                                                               |
+| `lineIndex`                | The index in `units` of the refused line                                                                                                 |
+| `date`                     | The night that caused the refusal, when there is one                                                                                     |
+| `unitsWithPostedRoomLines` | Unit ids whose posted room lines stay on their own folio because `SyncRoutingRules` now routes Room to the Master folio (`AddUnit` only) |
 
 Refusal codes: `units_required`, `booker_not_found`, `room_type_not_found`, `rate_plan_not_linked`, `invalid_stay`, `arrival_in_past`, `adults_required`, `child_age_invalid`, `discount_not_allowed`, `restricted`, `restriction_override_not_allowed`, `not_available`, `override_reason_required`, `override_invalid`, `reservation_closed`, plus the `RateQuote` and [add-on](04-add-ons.md#addunitaddon) refusal codes passed through as they are.
 
@@ -99,11 +100,11 @@ The `rates.override-restrictions` check runs with the permission team set to the
 
 ### `UpdateReservationGroup`
 
-Changes `group_name` and `billing_mode`. [Routing](../13-folio/03-routing.md) adds its rules for a billing mode change in module 13.
+Changes `group_name` and `billing_mode`. A changed billing mode runs `SyncRoutingRules` ([Routing](../13-folio/03-routing.md)). It returns a `GroupUpdateResult`: the `reservation` and `unitsWithPostedRoomLines` (see above).
 
 ## Build status
 
-Built: `CreateReservation`, `AddUnit`, `UpdateReservationGroup`, `ReservationResult`, `NewReservationData`, `NewUnitData` and `unit_nights.override_amount` (with its CHECK), plus `reservation_closed` and the `fromChannel` argument. The Add unit button, the Edit group dialog and the booking form call them in later items.
+Built: `CreateReservation`, `AddUnit`, `UpdateReservationGroup` (returns `GroupUpdateResult`), `ReservationResult`, `NewReservationData`, `NewUnitData` and `unit_nights.override_amount` (with its CHECK), plus `reservation_closed` and the `fromChannel` argument. The Add unit button, the Edit group dialog and the booking form call them in later items.
 
 ## Supported cases
 
