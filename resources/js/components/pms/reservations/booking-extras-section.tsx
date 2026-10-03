@@ -263,10 +263,7 @@ export function BookingAddOnsSection({
     onChange: (index: number, patch: Partial<BookingLine>) => void;
     onLinesChange: (lines: BookingLine[]) => void;
 }) {
-    if (lines.every((line) => line.room_type_id === '')) {
-        return <NoLines />;
-    }
-
+    const noRoomType = lines.every((line) => line.room_type_id === '');
     const rows = lines.flatMap((line, lineIndex) =>
         line.add_ons.map((addOn, position) => ({
             addOn,
@@ -297,7 +294,7 @@ export function BookingAddOnsSection({
                     <Button
                         type="button"
                         variant="outline"
-                        disabled={chargeItems.length === 0}
+                        disabled={noRoomType || chargeItems.length === 0}
                         onClick={() =>
                             onChange(0, {
                                 add_ons: [
@@ -318,17 +315,20 @@ export function BookingAddOnsSection({
                 </>
             }
         >
-            {rows.length === 0 && (
-                <EmptyState
-                    icon={Package}
-                    title="No add-ons yet"
-                    description={
-                        chargeItems.length === 0
-                            ? 'This property has no charge items to add.'
-                            : 'Use Add add-on to add one.'
-                    }
-                />
-            )}
+            {rows.length === 0 &&
+                (noRoomType ? (
+                    <NoLines />
+                ) : (
+                    <EmptyState
+                        icon={Package}
+                        title="No add-ons yet"
+                        description={
+                            chargeItems.length === 0
+                                ? 'This property has no charge items to add.'
+                                : 'Use Add add-on to add one.'
+                        }
+                    />
+                ))}
             {rows.map(({ addOn, lineIndex, position }) => (
                 <AddOnRow
                     key={`${lines[lineIndex].key}-${position}`}
@@ -389,19 +389,7 @@ export function BookingDiscountsSection({
     errors: Errors;
     onChange: (index: number, patch: Partial<BookingLine>) => void;
 }) {
-    if (lines.every((line) => line.room_type_id === '')) {
-        return <NoLines />;
-    }
-
-    if (discounts.length === 0) {
-        return (
-            <EmptyState
-                icon={Percent}
-                title="No room discounts"
-                description="No room discounts are set up for this property."
-            />
-        );
-    }
+    const noRoomType = lines.every((line) => line.room_type_id === '');
 
     return (
         <ExtrasTable
@@ -413,44 +401,56 @@ export function BookingDiscountsSection({
                 </span>
             }
         >
-            {lines.map((line, index) => (
-                <div
-                    key={line.key}
-                    className={`grid gap-3 p-3 ${DISCOUNT_COLUMNS}`}
-                >
-                    <p className="flex min-h-8 items-center text-sm font-medium">
-                        {lineTitle(line, index, options)}
-                    </p>
-                    <Field
-                        data-invalid={!!errors[`lines.${index}.discount_id`]}
+            {noRoomType && <NoLines />}
+            {!noRoomType && discounts.length === 0 && (
+                <EmptyState
+                    icon={Percent}
+                    title="No room discounts"
+                    description="No room discounts are set up for this property."
+                />
+            )}
+            {!noRoomType &&
+                discounts.length > 0 &&
+                lines.map((line, index) => (
+                    <div
+                        key={line.key}
+                        className={`grid gap-3 p-3 ${DISCOUNT_COLUMNS}`}
                     >
-                        <FieldLabel
-                            htmlFor={`extras-${index}-discount`}
-                            className="lg:sr-only"
-                        >
-                            Discount
-                        </FieldLabel>
-                        <EnumSelect
-                            id={`extras-${index}-discount`}
-                            allLabel="No discount"
-                            options={discounts.map((discount) => ({
-                                value: String(discount.id),
-                                label: discount.name,
-                            }))}
-                            value={line.discount_id}
-                            onValueChange={(value) =>
-                                onChange(index, { discount_id: value })
-                            }
-                            aria-invalid={
+                        <p className="flex min-h-8 items-center text-sm font-medium">
+                            {lineTitle(line, index, options)}
+                        </p>
+                        <Field
+                            data-invalid={
                                 !!errors[`lines.${index}.discount_id`]
                             }
-                        />
-                        <FieldError>
-                            {errors[`lines.${index}.discount_id`]}
-                        </FieldError>
-                    </Field>
-                </div>
-            ))}
+                        >
+                            <FieldLabel
+                                htmlFor={`extras-${index}-discount`}
+                                className="lg:sr-only"
+                            >
+                                Discount
+                            </FieldLabel>
+                            <EnumSelect
+                                id={`extras-${index}-discount`}
+                                allLabel="No discount"
+                                options={discounts.map((discount) => ({
+                                    value: String(discount.id),
+                                    label: discount.name,
+                                }))}
+                                value={line.discount_id}
+                                onValueChange={(value) =>
+                                    onChange(index, { discount_id: value })
+                                }
+                                aria-invalid={
+                                    !!errors[`lines.${index}.discount_id`]
+                                }
+                            />
+                            <FieldError>
+                                {errors[`lines.${index}.discount_id`]}
+                            </FieldError>
+                        </Field>
+                    </div>
+                ))}
         </ExtrasTable>
     );
 }
