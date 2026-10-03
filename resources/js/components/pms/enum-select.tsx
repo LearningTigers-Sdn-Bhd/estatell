@@ -73,17 +73,30 @@ export function EnumSelect({
                 aria-label={props['aria-label']}
                 aria-invalid={props['aria-invalid']}
             >
-                <SelectValue placeholder={placeholder} />
+                <SelectValue placeholder={placeholder} className="min-w-0">
+                    {(picked: string | null) => {
+                        const label = items.find(
+                            (option) => option.value === picked,
+                        )?.label;
+
+                        return (
+                            <span className="min-w-0 truncate">
+                                {label ?? placeholder}
+                            </span>
+                        );
+                    }}
+                </SelectValue>
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="w-max max-w-sm min-w-(--anchor-width)">
                 <SelectGroup>
                     {items.map((option) => (
                         <SelectItem
                             key={option.value}
                             value={option.value}
                             disabled={option.disabled}
+                            className="*:first:min-w-0 *:first:shrink"
                         >
-                            {option.label}
+                            <span className="truncate">{option.label}</span>
                         </SelectItem>
                     ))}
                 </SelectGroup>
