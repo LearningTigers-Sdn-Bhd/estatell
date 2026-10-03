@@ -109,6 +109,6 @@ export default function RateCalendar({
 }
 
 RateCalendar.layout = {
-    variant: 'grid-only',
+    variant: 'fixed',
     breadcrumbs: [{ title: 'Rate calendar', href: calendarRoute() }],
 };

@@ -17,8 +17,7 @@ export default function AppSidebarLayout({
                 variant="sidebar"
                 className={cn(
                     'min-w-0 overflow-x-clip',
-                    variant === 'grid-only' &&
-                        'h-svh min-h-120 overflow-hidden',
+                    variant === 'fixed' && 'h-svh min-h-120 overflow-hidden',
                 )}
             >
                 <AppSidebarHeader breadcrumbs={breadcrumbs} />

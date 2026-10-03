@@ -2,10 +2,10 @@ import type { ReactNode } from 'react';
 import type { BreadcrumbItem } from '@/types/navigation';
 
 /**
- * `default` lets the page grow and the window scroll. `grid-only` fixes the page to the window height: the page
- * fills it and a grid inside scrolls on its own (the Grid calendar archetype).
+ * `default` lets the page grow and the window scroll. `fixed` fixes the page to the window height: the page fills
+ * it and a region inside scrolls on its own (the Grid calendar and full-page Form archetypes).
  */
-export type PageLayoutVariant = 'default' | 'grid-only';
+export type PageLayoutVariant = 'default' | 'fixed';
 
 export type AppLayoutProps = {
     children: ReactNode;

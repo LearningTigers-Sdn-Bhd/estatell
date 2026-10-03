@@ -42,7 +42,7 @@ type Props<Row extends GridRow> = {
     /** Room to leave below the grid, in pixels. */
     bottomGap?: number;
     /**
-     * Fill the height the parent gives it, for a parent that is a fixed-height flex column (the `grid-only` page
+     * Fill the height the parent gives it, for a parent that is a fixed-height flex column (the `fixed` page
      * layout). The grid then does not measure the window.
      */
     fill?: boolean;
