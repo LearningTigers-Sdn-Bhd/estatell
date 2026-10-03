@@ -74,16 +74,16 @@ FM is the Master folio and FA a third-party folio for the travel agent.
 
 Staff create third-party folios and Manual rules on the [folio tab](05-folio-page.md#routing-rules-and-third-party-folios). The rules belong to the reservation, not to one folio, so both actions sit above the folio rail.
 
-| Decision                 | Rule                                                                                                                                                                                                                                         |
-| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Permission               | `folio.transfer` covers both screens. Its label is "Transfer folio lines and manage routing". Routing decides who pays, the same trust as moving lines (wastays uses one permission, `manage_folio_movements`, for both). No new permission. |
-| Third-party payer        | An existing guest of the property, picked with `GuestPicker`. A company payer comes with [Companies](../15-city-ledger/01-companies.md).                                                                                                     |
-| Rule selectors           | Unit: all units or one unit. Charges: one category from `TransactionCategory::chargeItemCases()`, one charge code, or all charges. Tax, discount and payment categories are never offered: children follow their charge.                     |
-| Rule target              | An Open folio of the reservation. `CreateRoutingRule` refuses a Closed or Voided target for a Manual rule with `target_folio_not_open`. BillingMode rules are not checked, so `SyncRoutingRules` does not change.                            |
-| Remove                   | `RemoveRoutingRule` (Action) deletes a Manual rule. It refuses a BillingMode rule with `rule_not_manual`: change the billing mode to change those. Posted lines stay where they are.                                                         |
-| Activity log             | On the reservation: third-party folio created, routing rule added, routing rule removed.                                                                                                                                                     |
-| Unused third-party folio | No delete and no void. Close it at 0.00.                                                                                                                                                                                                     |
-| Scheduled rows           | No change. The folio tab already routes Scheduled rows through the rules, so a new rule moves them at once. Posted lines never move; staff use Transfer.                                                                                     |
+| Decision                 | Rule                                                                                                                                                                                                                                                         |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Permission               | `folio.transfer` covers both screens. Its label is "Transfer folio lines and manage routing". Routing decides who pays, the same trust as moving lines (wastays uses one permission, `manage_folio_movements`, for both). No new permission.                 |
+| Third-party payer        | An existing guest of the property, picked with `GuestPicker`. A company payer comes with [Companies](../15-city-ledger/01-companies.md).                                                                                                                     |
+| Rule selectors           | Unit: all units or one unit. Charges: one category from `TransactionCategory::routableCases()` (Room and the charge item categories), one charge code, or all charges. Tax, discount and payment categories are never offered: children follow their charge. |
+| Rule target              | An Open folio of the reservation. `CreateRoutingRule` refuses a Closed or Voided target for a Manual rule with `target_folio_not_open`. BillingMode rules are not checked, so `SyncRoutingRules` does not change.                                            |
+| Remove                   | `RemoveRoutingRule` (Action) deletes a Manual rule. It refuses a BillingMode rule with `rule_not_manual`: change the billing mode to change those. Posted lines stay where they are.                                                                         |
+| Activity log             | On the reservation: third-party folio created, routing rule added, routing rule removed.                                                                                                                                                                     |
+| Unused third-party folio | No delete and no void. Close it at 0.00.                                                                                                                                                                                                                     |
+| Scheduled rows           | No change. The folio tab already routes Scheduled rows through the rules, so a new rule moves them at once. Posted lines never move; staff use Transfer.                                                                                                     |
 
 `RoutingRuleRefusals` maps each refusal code to a field and a message, the way `FolioRefusals` does.
 
@@ -100,6 +100,17 @@ Decisions made at build time:
 - If a BillingMode rule no longer matches (another mode, another target), the sync deletes it and creates the right one.
 - `UpdateReservationGroup` now returns a `GroupUpdateResult` (it returned the `Reservation`). It runs the sync only when the billing mode changed.
 - A closed Master folio still counts as the active Master (only Voided is excluded), so the sync never makes a second one.
+
+Built (staff screen backend): `ReservationRoutingController` (`storeThirdPartyFolio`, `storeRule`, `destroyRule`), the three routes on `can:folio.transfer`, `StoreThirdPartyFolioRequest`, `StoreRoutingRuleRequest`, `CreateRoutingRule::manual()`, `RemoveRoutingRule`, `RoutingRuleRefusals`, `TransactionCategory::routableCases()` and the new `folio.transfer` label. The Dialog and the Sheet come in the next item.
+
+Decisions made at build time (staff screen backend):
+
+- `CreateRoutingRule::manual()` locks the target folio, refuses a target that is not Open, calls the same `__invoke` as the billing mode, and logs `routing_rule.created`. `__invoke` is unchanged, so `SyncRoutingRules` still writes no log.
+- `CreateFolio::thirdParty()` takes an optional actor and always logs `folio.third_party_created`.
+- `RemoveRoutingRule` refuses a rule that is already gone with `rule_not_found`, so a double click shows a toast instead of an error page.
+- The routable categories are Room plus the charge item categories. The overview named only the charge item list, which has no Room.
+- The payer guest is found in the property, not merged and not anonymized; anything else is a 404. A rule of another reservation is a 404 through `scopeBindings()` (`{routingRule}` on `Reservation::routingRules()`).
+- `charges` (`category`, `code`, `all`) picks the selector; the other selector fields are ignored.
 
 ## Known later work
 

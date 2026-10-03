@@ -9,6 +9,7 @@ use App\Models\Folio;
 use App\Models\Guest;
 use App\Models\Reservation;
 use App\Models\ReservationUnit;
+use App\Models\User;
 use App\Services\NightAudit\NextDocumentNumber;
 use InvalidArgumentException;
 
@@ -33,11 +34,12 @@ class CreateFolio
     /**
      * Create a ThirdParty folio: no unit and its own payer, for example a travel agent that pays only the diving
      * charges. Give exactly one payer, a guest or a company id. A reservation can have any number of them. The folio
-     * has no label: the payer names it. See docs/13-folio/03-routing.md.
+     * has no label: the payer names it. Staff make it on the folio tab, so it is logged on the reservation, with the
+     * actor when one is given. See docs/13-folio/03-routing.md.
      *
      * @throws InvalidArgumentException when not exactly one payer is given, or the guest belongs to another property
      */
-    public function thirdParty(Reservation $reservation, ?Guest $payerGuest, ?int $payerCompanyId = null): Folio
+    public function thirdParty(Reservation $reservation, ?Guest $payerGuest, ?int $payerCompanyId = null, ?User $actor = null): Folio
     {
         if (($payerGuest === null) === ($payerCompanyId === null)) {
             throw new InvalidArgumentException('A third party folio needs exactly one payer: a guest or a company.');
@@ -47,7 +49,22 @@ class CreateFolio
             throw new InvalidArgumentException('The payer guest belongs to another property.');
         }
 
-        return $this->create($reservation, FolioType::ThirdParty, null, $payerGuest?->id, $payerCompanyId);
+        $folio = $this->create($reservation, FolioType::ThirdParty, null, $payerGuest?->id, $payerCompanyId);
+
+        activity()
+            ->performedOn($reservation)
+            ->causedBy($actor)
+            ->event('folio.third_party_created')
+            ->withProperties([
+                'property_id' => $reservation->property_id,
+                'folio_id' => $folio->id,
+                'number' => $folio->number,
+                'payer_guest_id' => $folio->payer_guest_id,
+                'payer_company_id' => $folio->payer_company_id,
+            ])
+            ->log('Third-party folio created');
+
+        return $folio;
     }
 
     private function create(Reservation $reservation, FolioType $type, ?ReservationUnit $unit, ?int $payerGuestId, ?int $payerCompanyId): Folio

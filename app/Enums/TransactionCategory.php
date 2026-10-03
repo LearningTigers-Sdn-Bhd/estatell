@@ -64,6 +64,17 @@ enum TransactionCategory: string
         return [self::FoodAndBeverage, self::Laundry, self::Minibar, self::Fee, self::Other];
     }
 
+    /**
+     * The categories a Manual routing rule may match: Room and the charge item categories. Tax, discount and payment
+     * categories never route, because children follow their charge.
+     *
+     * @return list<self>
+     */
+    public static function routableCases(): array
+    {
+        return [self::Room, ...self::chargeItemCases()];
+    }
+
     /** @return list<array{value: string, label: string}> */
     public static function chargeItemOptions(): array
     {

@@ -61,7 +61,7 @@ enum PermissionEnum: string
             self::ReservationsManage => __('Manage reservations'),
             self::FolioPostCharge => __('Post charges to folios'),
             self::FolioReverse => __('Reverse folio lines'),
-            self::FolioTransfer => __('Transfer folio lines'),
+            self::FolioTransfer => __('Transfer folio lines and manage routing'),
             self::FolioDiscount => __('Apply and remove folio discounts'),
             self::FolioDiscountOpen => __('Apply discounts with an entered amount'),
             self::FolioClose => __('Close folios'),

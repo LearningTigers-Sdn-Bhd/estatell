@@ -6,6 +6,7 @@ use App\Http\Controllers\Reservations\ReservationController;
 use App\Http\Controllers\Reservations\ReservationFolioController;
 use App\Http\Controllers\Reservations\ReservationGroupController;
 use App\Http\Controllers\Reservations\ReservationPaymentController;
+use App\Http\Controllers\Reservations\ReservationRoutingController;
 use App\Http\Controllers\Reservations\ReservationUnitAddOnController;
 use App\Http\Controllers\Reservations\ReservationUnitController;
 use Illuminate\Support\Facades\Route;
@@ -41,6 +42,12 @@ Route::prefix('reservations')->name('reservations.')->scopeBindings()->group(fun
                 Route::post('payments', [ReservationPaymentController::class, 'storeForFolio'])->middleware('can:'.PermissionEnum::PaymentRecord->value)->name('payments.store');
                 Route::post('payments/{payment}/refunds', [ReservationPaymentController::class, 'refund'])->middleware('can:'.PermissionEnum::PaymentRefund->value)->name('payments.refunds.store');
                 Route::get('payments/{payment}/receipt', [ReservationPaymentController::class, 'receipt'])->middleware('can:'.PermissionEnum::PaymentRecord->value)->name('payments.receipt');
+            });
+
+            Route::middleware('can:'.PermissionEnum::FolioTransfer->value)->group(function () {
+                Route::post('folios/third-party', [ReservationRoutingController::class, 'storeThirdPartyFolio'])->name('folios.third-party.store');
+                Route::post('routing-rules', [ReservationRoutingController::class, 'storeRule'])->name('routing-rules.store');
+                Route::delete('routing-rules/{routingRule}', [ReservationRoutingController::class, 'destroyRule'])->name('routing-rules.destroy');
             });
 
             Route::middleware('can:'.PermissionEnum::PaymentRecord->value)->group(function () {
