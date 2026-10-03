@@ -170,11 +170,15 @@ class AddUnit
             $overrideTotal = Money::of($data->overrideTotal, $quote->total->getCurrency());
         }
 
+        $firstUnit = $reservation->units()->oldest('id')->first(['arrival_time', 'departure_time']);
+
         $unit = $reservation->units()->make([
             'room_type_id' => $roomType->id,
             'rate_plan_id' => $ratePlan->id,
             'arrival_date' => $arrival,
             'departure_date' => $departure,
+            'arrival_time' => $data->arrivalTime ?? $firstUnit?->arrival_time ?? $property->settings?->check_in_time ?? '15:00',
+            'departure_time' => $data->departureTime ?? $firstUnit?->departure_time ?? $property->settings?->check_out_time ?? '11:00',
             'adults' => $data->adults,
             'children' => count($data->childAges),
             'discount_id' => $data->discountId,

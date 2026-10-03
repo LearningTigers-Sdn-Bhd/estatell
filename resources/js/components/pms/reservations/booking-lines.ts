@@ -31,6 +31,8 @@ export type BookingForm = {
     external_reference: string;
     arrival_date: string;
     departure_date: string;
+    arrival_time: string;
+    departure_time: string;
     group_name: string;
     billing_mode: string;
     notes: string;

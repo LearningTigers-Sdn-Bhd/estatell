@@ -22,6 +22,8 @@ use Illuminate\Support\Carbon;
  * @property int $rate_plan_id
  * @property Carbon $arrival_date
  * @property Carbon $departure_date
+ * @property string $arrival_time `H:i:s`, the expected arrival
+ * @property string $departure_time `H:i:s`, the expected departure
  * @property int $adults
  * @property int $children
  * @property UnitStatus $status
@@ -33,7 +35,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $updated_at
  */
 #[Fillable([
-    'room_type_id', 'rate_plan_id', 'arrival_date', 'departure_date', 'adults', 'children', 'discount_id',
+    'room_type_id', 'rate_plan_id', 'arrival_date', 'departure_date', 'arrival_time', 'departure_time', 'adults', 'children', 'discount_id',
     'late_arrival_expected',
 ])]
 class ReservationUnit extends Model

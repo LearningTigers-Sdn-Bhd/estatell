@@ -9,7 +9,8 @@ use Spatie\LaravelData\Data;
 
 /**
  * One line of a new reservation: a room type and rate plan for a stay. A Bed room type sells `beds` units, one per bed.
- * `overrideTotal` is a decimal string, the stay total of one unit. See docs/12-reservations/02-group-bookings.md.
+ * `overrideTotal` is a decimal string, the stay total of one unit. `arrivalTime` and `departureTime` are `H:i`; when null,
+ * `AddUnit` copies the first unit of the reservation, then the property times. See docs/12-reservations/02-group-bookings.md.
  */
 class NewUnitData extends Data
 {
@@ -33,5 +34,7 @@ class NewUnitData extends Data
         public ?string $overrideReason = null,
         public ?string $restrictionOverrideReason = null,
         public array $addOns = [],
+        public ?string $arrivalTime = null,
+        public ?string $departureTime = null,
     ) {}
 }

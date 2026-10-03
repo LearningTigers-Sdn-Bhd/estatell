@@ -142,9 +142,9 @@ export function UnitsTab({
                     <dl className="grid gap-2 text-sm sm:grid-cols-[auto_1fr] sm:gap-x-6">
                         <dt className="text-muted-foreground">Stay</dt>
                         <dd className="flex items-center gap-1">
-                            <DateText date={unit.arrival} /> →{' '}
-                            <DateText date={unit.departure} /> ·{' '}
-                            {unit.nightCount}{' '}
+                            <DateText date={unit.arrival} /> {unit.arrivalTime}{' '}
+                            → <DateText date={unit.departure} />{' '}
+                            {unit.departureTime} · {unit.nightCount}{' '}
                             {unit.nightCount === 1 ? 'night' : 'nights'}
                         </dd>
                         <dt className="text-muted-foreground">Guests</dt>

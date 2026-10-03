@@ -21,6 +21,7 @@ use App\Services\Property\PropertyToday;
 use App\Services\Reservations\BookingErrorKeys;
 use App\Services\Reservations\BookingQuote;
 use App\Services\Reservations\ReservationFormOptions;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -105,6 +106,9 @@ class ReservationBookingController extends Controller
             'isWalkIn' => $walkIn,
             'sources' => array_map(fn (ReservationSource $source): array => ['value' => $source->value, 'label' => $source->label()], $sources),
             'today' => ($businessDate->date($property) ?? $today->date($property))->toDateString(),
+            'checkInTime' => substr($property->settings?->check_in_time ?? '15:00', 0, 5),
+            'checkOutTime' => substr($property->settings?->check_out_time ?? '11:00', 0, 5),
+            'nowTime' => CarbonImmutable::now($property->settings?->time_zone ?? config('app.timezone'))->format('H:i'),
             'addUnitOptions' => $options->addUnit($property),
             'chargeItems' => $options->chargeItems($property),
             'discounts' => $options->roomDiscounts($property),

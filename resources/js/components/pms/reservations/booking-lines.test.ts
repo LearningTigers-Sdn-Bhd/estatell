@@ -91,6 +91,8 @@ test('the posted lines drop the client key and send dorm beds instead of adults 
         external_reference: '',
         arrival_date: '2026-10-20',
         departure_date: '2026-10-22',
+        arrival_time: '15:00',
+        departure_time: '11:00',
         group_name: '',
         billing_mode: 'master_pays',
         notes: '',

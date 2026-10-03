@@ -82,6 +82,8 @@ test('the new booking page sends the lists the form needs', function () {
             ->where('isWalkIn', false)
             ->where('sources', [['value' => 'direct', 'label' => 'Direct'], ['value' => 'phone', 'label' => 'Phone']])
             ->where('today', '2026-10-10')
+            ->where('checkInTime', '15:00')
+            ->where('checkOutTime', '11:00')
             ->has('addUnitOptions.roomTypes', 2)
             ->has('addUnitOptions.ratePlans', 3)
             ->where('addUnitOptions.ratePlans.2.fixedNights', 3)
@@ -367,3 +369,39 @@ test('a guest tab checks its profile fields', function (array $tab, string $fiel
     'a date of birth in the future' => [['date_of_birth' => '2999-01-01'], 'guests.0.date_of_birth'],
     'an unknown country' => [['nationality_code' => 'ZZ'], 'guests.0.nationality_code'],
 ]);
+
+test('the booking saves the expected times of the stay on every unit', function () {
+    $setup = bookingSetup();
+
+    $this->actingAs($setup['user'])
+        ->post(bookingFormUrl($setup, 'reservations.store'), bookingBody($setup, ['arrival_time' => '18:30', 'departure_time' => '09:15']))
+        ->assertSessionHasNoErrors();
+
+    $unit = Reservation::query()->firstOrFail()->units()->sole();
+
+    expect(substr($unit->arrival_time, 0, 5))->toBe('18:30')
+        ->and(substr($unit->departure_time, 0, 5))->toBe('09:15');
+});
+
+test('a booking without times uses the property times', function () {
+    $setup = bookingSetup();
+
+    $this->actingAs($setup['user'])
+        ->post(bookingFormUrl($setup, 'reservations.store'), bookingBody($setup))
+        ->assertSessionHasNoErrors();
+
+    $unit = Reservation::query()->firstOrFail()->units()->sole();
+
+    expect(substr($unit->arrival_time, 0, 5))->toBe('15:00')
+        ->and(substr($unit->departure_time, 0, 5))->toBe('11:00');
+});
+
+test('a time that is not HH:MM is refused', function () {
+    $setup = bookingSetup();
+
+    $this->actingAs($setup['user'])
+        ->post(bookingFormUrl($setup, 'reservations.store'), bookingBody($setup, ['arrival_time' => '25:00', 'departure_time' => 'noon']))
+        ->assertSessionHasErrors(['arrival_time', 'departure_time']);
+
+    expect(Reservation::query()->count())->toBe(0);
+});

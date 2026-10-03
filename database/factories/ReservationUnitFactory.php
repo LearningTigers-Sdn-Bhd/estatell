@@ -29,6 +29,8 @@ class ReservationUnitFactory extends Factory
             'rate_plan_id' => fn (array $attributes): int => RatePlan::factory()->create(['property_id' => $attributes['property_id']])->id,
             'arrival_date' => '2026-11-02',
             'departure_date' => '2026-11-05',
+            'arrival_time' => '15:00',
+            'departure_time' => '11:00',
             'adults' => 1,
             'children' => 0,
             'status' => UnitStatus::Confirmed,

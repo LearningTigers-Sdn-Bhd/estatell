@@ -1,8 +1,6 @@
 import { Head, Link, useForm } from '@inertiajs/react';
 import { Plus } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { DatePicker } from '@/components/pms/date-picker';
-import { DateText } from '@/components/pms/date-text';
 import { EnumSelect } from '@/components/pms/enum-select';
 import type { EnumOption } from '@/components/pms/enum-select';
 import { FormActions } from '@/components/pms/form-actions';
@@ -29,6 +27,7 @@ import type {
 } from '@/components/pms/reservations/booking-lines';
 import { BookingSummaryRail } from '@/components/pms/reservations/booking-summary-rail';
 import { FormError } from '@/components/pms/reservations/form-error';
+import { StayDateTime } from '@/components/pms/reservations/stay-date-time';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button, buttonVariants } from '@/components/ui/button';
 import {
@@ -52,6 +51,11 @@ type Props = {
     sources: EnumOption[];
     /** The business date, `Y-m-d`. Not named `businessDate`: that is the shared prop the header indicator reads. */
     today: string;
+    /** The property's check-in and check-out times, `H:i`: the defaults of the expected times. */
+    checkInTime: string;
+    checkOutTime: string;
+    /** The current time at the property, `H:i`: the walk-in arrival time. */
+    nowTime: string;
     addUnitOptions: App.Data.Reservations.AddUnitOptionsData;
     chargeItems: App.Data.Reservations.ChargeItemOptionData[];
     discounts: App.Data.Reservations.DiscountOptionData[];
@@ -95,6 +99,9 @@ export default function ReservationCreate({
     isWalkIn,
     sources,
     today,
+    checkInTime,
+    checkOutTime,
+    nowTime,
     addUnitOptions,
     chargeItems,
     discounts,
@@ -112,6 +119,8 @@ export default function ReservationCreate({
         external_reference: '',
         arrival_date: isWalkIn ? today : '',
         departure_date: '',
+        arrival_time: isWalkIn ? nowTime : checkInTime,
+        departure_time: checkOutTime,
         group_name: '',
         billing_mode: billingModes[0]?.value ?? 'master_pays',
         notes: '',
@@ -249,93 +258,126 @@ export default function ReservationCreate({
 
                         <Section title="Stay">
                             <FieldGroup>
-                                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                                    <Field data-invalid={!!errors.arrival_date}>
+                                <div className="grid items-start gap-4 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
+                                    <Field
+                                        data-invalid={
+                                            !!errors.arrival_date ||
+                                            !!errors.arrival_time
+                                        }
+                                    >
                                         <FieldLabel htmlFor="booking-arrival">
                                             Arrival
                                         </FieldLabel>
-                                        {isWalkIn ? (
-                                            <p className="flex h-9 items-center text-sm">
-                                                <DateText
-                                                    date={data.arrival_date}
-                                                />
-                                            </p>
-                                        ) : (
-                                            <DatePicker
-                                                id="booking-arrival"
-                                                value={data.arrival_date}
-                                                min={today}
-                                                onChange={(value) =>
-                                                    form.setData(
-                                                        'arrival_date',
-                                                        value,
-                                                    )
-                                                }
-                                                aria-invalid={
-                                                    !!errors.arrival_date
-                                                }
-                                            />
-                                        )}
+                                        <StayDateTime
+                                            id="booking-arrival"
+                                            date={data.arrival_date}
+                                            time={data.arrival_time}
+                                            timeLabel="Arrival time"
+                                            dateLocked={isWalkIn}
+                                            min={today}
+                                            onDateChange={(value) =>
+                                                form.setData(
+                                                    'arrival_date',
+                                                    value,
+                                                )
+                                            }
+                                            onTimeChange={(value) =>
+                                                form.setData(
+                                                    'arrival_time',
+                                                    value,
+                                                )
+                                            }
+                                            aria-invalid={!!errors.arrival_date}
+                                            timeInvalid={!!errors.arrival_time}
+                                        />
                                         <FieldError>
-                                            {errors.arrival_date}
+                                            {errors.arrival_date ??
+                                                errors.arrival_time}
                                         </FieldError>
                                     </Field>
+                                    <Field>
+                                        <FieldLabel
+                                            aria-hidden
+                                            className="invisible max-sm:hidden"
+                                        >
+                                            Nights
+                                        </FieldLabel>
+                                        <div
+                                            className="flex h-8 min-w-16 flex-col items-center justify-center rounded-lg bg-muted px-3 text-xs leading-tight tabular-nums max-sm:justify-self-start"
+                                            aria-label="Nights"
+                                        >
+                                            <span className="font-medium">
+                                                {lockedNights !== null
+                                                    ? lockedNights
+                                                    : nights || '—'}
+                                            </span>
+                                            <span className="text-muted-foreground">
+                                                {(lockedNights ?? nights) === 1
+                                                    ? 'Night'
+                                                    : 'Nights'}
+                                            </span>
+                                        </div>
+                                    </Field>
                                     <Field
-                                        data-invalid={!!errors.departure_date}
+                                        data-invalid={
+                                            !!errors.departure_date ||
+                                            !!errors.departure_time
+                                        }
                                     >
                                         <FieldLabel htmlFor="booking-departure">
                                             Departure
                                         </FieldLabel>
-                                        {lockedNights !== null ? (
-                                            <p className="flex h-9 items-center text-sm">
-                                                <DateText
-                                                    date={
-                                                        data.arrival_date
-                                                            ? departure
-                                                            : null
-                                                    }
-                                                />
-                                            </p>
-                                        ) : (
-                                            <DatePicker
-                                                id="booking-departure"
-                                                value={data.departure_date}
-                                                min={
-                                                    data.arrival_date
-                                                        ? addDays(
-                                                              data.arrival_date,
-                                                              1,
-                                                          )
-                                                        : undefined
-                                                }
-                                                onChange={(value) =>
-                                                    form.setData(
-                                                        'departure_date',
-                                                        value,
-                                                    )
-                                                }
-                                                aria-invalid={
-                                                    !!errors.departure_date
-                                                }
-                                            />
-                                        )}
+                                        <StayDateTime
+                                            id="booking-departure"
+                                            date={
+                                                lockedNights !== null
+                                                    ? data.arrival_date
+                                                        ? departure
+                                                        : ''
+                                                    : data.departure_date
+                                            }
+                                            time={data.departure_time}
+                                            timeLabel="Departure time"
+                                            dateLocked={lockedNights !== null}
+                                            min={
+                                                data.arrival_date
+                                                    ? addDays(
+                                                          data.arrival_date,
+                                                          1,
+                                                      )
+                                                    : undefined
+                                            }
+                                            onDateChange={(value) =>
+                                                form.setData(
+                                                    'departure_date',
+                                                    value,
+                                                )
+                                            }
+                                            onTimeChange={(value) =>
+                                                form.setData(
+                                                    'departure_time',
+                                                    value,
+                                                )
+                                            }
+                                            aria-invalid={
+                                                !!errors.departure_date
+                                            }
+                                            timeInvalid={
+                                                !!errors.departure_time
+                                            }
+                                        />
                                         {lockedNights !== null && (
                                             <FieldDescription>
-                                                Set by the package.
+                                                Date set by the package.
                                             </FieldDescription>
                                         )}
                                         <FieldError>
-                                            {errors.departure_date}
+                                            {errors.departure_date ??
+                                                errors.departure_time}
                                         </FieldError>
                                     </Field>
-                                    <Field>
-                                        <FieldLabel>Nights</FieldLabel>
-                                        <p className="flex h-9 items-center text-sm tabular-nums">
-                                            {lockedNights !== null
-                                                ? lockedNights
-                                                : nights || '—'}
-                                        </p>
-                                    </Field>
+                                </div>
+                                <div className="grid gap-4 sm:grid-cols-2">
                                     <Field data-invalid={!!errors.source}>
                                         <FieldLabel htmlFor="booking-source">
                                             Source
@@ -352,33 +394,34 @@ export default function ReservationCreate({
                                         />
                                         <FieldError>{errors.source}</FieldError>
                                     </Field>
-                                </div>
-                                <Field
-                                    className="max-w-sm"
-                                    data-invalid={!!errors.external_reference}
-                                >
-                                    <FieldLabel htmlFor="booking-external_reference">
-                                        External reference
-                                    </FieldLabel>
-                                    <Input
-                                        id="booking-external_reference"
-                                        value={data.external_reference}
-                                        onChange={(event) =>
-                                            form.setData(
-                                                'external_reference',
-                                                event.target.value,
-                                            )
-                                        }
-                                        maxLength={100}
-                                        autoComplete="off"
-                                        aria-invalid={
+                                    <Field
+                                        data-invalid={
                                             !!errors.external_reference
                                         }
-                                    />
-                                    <FieldError>
-                                        {errors.external_reference}
-                                    </FieldError>
-                                </Field>
+                                    >
+                                        <FieldLabel htmlFor="booking-external_reference">
+                                            External reference
+                                        </FieldLabel>
+                                        <Input
+                                            id="booking-external_reference"
+                                            value={data.external_reference}
+                                            onChange={(event) =>
+                                                form.setData(
+                                                    'external_reference',
+                                                    event.target.value,
+                                                )
+                                            }
+                                            maxLength={100}
+                                            autoComplete="off"
+                                            aria-invalid={
+                                                !!errors.external_reference
+                                            }
+                                        />
+                                        <FieldError>
+                                            {errors.external_reference}
+                                        </FieldError>
+                                    </Field>
+                                </div>
                             </FieldGroup>
                         </Section>
 

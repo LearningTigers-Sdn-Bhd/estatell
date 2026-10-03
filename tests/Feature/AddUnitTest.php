@@ -570,3 +570,27 @@ test('a refused add-on refuses the unit, rolls it back and names the line', func
         ->and(UnitAddOn::query()->count())->toBe(0);
     expectNothingWritten();
 });
+
+test('a unit with no times takes the property check-in and check-out times', function () {
+    $setup = unitSetup();
+    $setup['property']->settings->update(['check_in_time' => '14:00', 'check_out_time' => '12:30']);
+
+    addUnit($setup, unitData($setup));
+
+    $unit = ReservationUnit::query()->sole();
+
+    expect(substr($unit->arrival_time, 0, 5))->toBe('14:00')
+        ->and(substr($unit->departure_time, 0, 5))->toBe('12:30');
+});
+
+test('a unit with no times copies the times of the first unit of the reservation', function () {
+    $setup = unitSetup();
+
+    addUnit($setup, unitData($setup, 2, ['arrivalTime' => '18:30', 'departureTime' => '10:00']));
+    addUnit($setup, unitData($setup));
+
+    $second = ReservationUnit::query()->orderByDesc('id')->first();
+
+    expect(substr($second->arrival_time, 0, 5))->toBe('18:30')
+        ->and(substr($second->departure_time, 0, 5))->toBe('10:00');
+});
