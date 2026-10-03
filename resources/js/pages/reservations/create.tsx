@@ -582,7 +582,10 @@ export default function ReservationCreate({
                                     keepMounted
                                     className="flex flex-col gap-8 pt-4"
                                 >
-                                    <Section title="Rooms and beds">
+                                    <Section
+                                        title="Rooms and beds"
+                                        description="One line for each room type and rate plan. A dorm line sells beds."
+                                    >
                                         <div className="flex flex-col gap-3">
                                             <div className="overflow-hidden rounded-lg border">
                                                 <BookingLinesHeader />
@@ -755,7 +758,10 @@ export default function ReservationCreate({
                                         </div>
                                     </Section>
 
-                                    <Section title="Guests">
+                                    <Section
+                                        title="Guests"
+                                        description="The booker, and the guest of each unit. Units without a guest can be filled from the reservation page."
+                                    >
                                         <BookingGuestsSection
                                             guests={data.guests}
                                             units={unitChoices}
