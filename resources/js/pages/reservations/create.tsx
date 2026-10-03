@@ -475,21 +475,22 @@ export default function ReservationCreate({
                                             />
                                         ))}
                                     </div>
-                                </div>
-                                <div>
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        onClick={() =>
-                                            form.setData('lines', [
-                                                ...data.lines,
-                                                emptyLine(),
-                                            ])
-                                        }
-                                    >
-                                        <Plus data-icon="inline-start" />
-                                        Add line
-                                    </Button>
+                                    <div className="border-t bg-muted/50 px-3 py-2">
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() =>
+                                                form.setData('lines', [
+                                                    ...data.lines,
+                                                    emptyLine(),
+                                                ])
+                                            }
+                                        >
+                                            <Plus data-icon="inline-start" />
+                                            Add line
+                                        </Button>
+                                    </div>
                                 </div>
                                 {warnings.length > 0 && (
                                     <Alert>
