@@ -439,6 +439,37 @@ export default function ReservationCreate({
                             </FieldGroup>
                         </Section>
 
+                        {units > 1 && (
+                            <Section title="Group">
+                                <Field
+                                    className="max-w-sm"
+                                    data-invalid={!!errors.group_name}
+                                >
+                                    <FieldLabel htmlFor="booking-group_name">
+                                        Group name
+                                    </FieldLabel>
+                                    <Input
+                                        id="booking-group_name"
+                                        value={data.group_name}
+                                        onChange={(event) =>
+                                            form.setData(
+                                                'group_name',
+                                                event.target.value,
+                                            )
+                                        }
+                                        maxLength={150}
+                                        placeholder="Tan family trip"
+                                        autoComplete="off"
+                                        aria-invalid={!!errors.group_name}
+                                    />
+                                    <FieldDescription>
+                                        Leave empty to show the booker's name.
+                                    </FieldDescription>
+                                    <FieldError>{errors.group_name}</FieldError>
+                                </Field>
+                            </Section>
+                        )}
+
                         <Section title="Rooms and beds">
                             <div className="flex flex-col gap-3">
                                 <div className="overflow-hidden rounded-lg border">
@@ -560,37 +591,6 @@ export default function ReservationCreate({
                                     )}
                             </div>
                         </Section>
-
-                        {units > 1 && (
-                            <Section title="Group">
-                                <Field
-                                    className="max-w-sm"
-                                    data-invalid={!!errors.group_name}
-                                >
-                                    <FieldLabel htmlFor="booking-group_name">
-                                        Group name
-                                    </FieldLabel>
-                                    <Input
-                                        id="booking-group_name"
-                                        value={data.group_name}
-                                        onChange={(event) =>
-                                            form.setData(
-                                                'group_name',
-                                                event.target.value,
-                                            )
-                                        }
-                                        maxLength={150}
-                                        placeholder="Tan family trip"
-                                        autoComplete="off"
-                                        aria-invalid={!!errors.group_name}
-                                    />
-                                    <FieldDescription>
-                                        Leave empty to show the booker's name.
-                                    </FieldDescription>
-                                    <FieldError>{errors.group_name}</FieldError>
-                                </Field>
-                            </Section>
-                        )}
 
                         <Section
                             title="Guests"

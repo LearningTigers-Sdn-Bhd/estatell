@@ -13,7 +13,7 @@ A full page (Form archetype): it has repeating lines and many fields. Two column
 │ STAY                                                       │ SUMMARY        (sticky) │
 │ Arrival [12 Oct│03:00 PM] 3 nights Departure [15 Oct│12:00 PM] │ Units       5           │
 │ Source [Phone ▾]  Ext. ref [________]                      │ Rooms     RM 2,310.00   │
-│                                                            │ Add-ons   RM    80.00   │
+│ GROUP (2+ units)  Group name [Tan family trip]             │ Add-ons   RM    80.00   │
 │ ROOMS AND BEDS                                             │ Tax       from folio    │
 │ Room type │ Rate plan │ Room / Bed │ Ad │ Ch │ Rate     │   │ Total     RM 2,390.00   │
 │ Deluxe ▾  │ BAR RO ▾  │ Select later ▾│ 2 │ 2 │ 840.00 ⓘ ✎ 🗑│ │                         │
@@ -22,11 +22,9 @@ A full page (Form archetype): it has repeating lines and many fields. Two column
 │   Bed 1 [D1-2 ▾]  Bed 2 [Select later ▾]  Bed 3 [ … ▾]     │ ( ) Each pays           │
 │ [+ Add line]                                               │                         │
 │                                                            │ Guests                  │
-│ GROUP (2+ units)  Group name [Tan family trip]             │  Tan Wei Ming  booker   │
-│                                                            │  Ahmad Faiz    Bed 1    │
-│ GUESTS                                                     │  2 units without guest  │
-│ [Booker] [Ahmad Faiz ✕] [Guest 3 ✕]        [+ Add guest]   │                         │
-│ (fields of the open tab)                                   │                         │
+│ GUESTS                                                     │  Tan Wei Ming  booker   │
+│ [Booker] [Ahmad Faiz ✕] [Guest 3 ✕]        [+ Add guest]   │  Ahmad Faiz    Bed 1    │
+│ (fields of the open tab)                                   │  2 units without guest  │
 │                                                            │                         │
 │ EXTRAS (optional)  Add-ons · Discount                      │                         │
 │ NOTES                                                      │                         │
@@ -55,15 +53,16 @@ The Reservations page has `New ▾` with **New booking** and **Walk-in**. Walk-i
     - Layout: the labels are Arrival and Departure. Each has one `InputGroup` with the date (`DatePicker`) and a native `type="time"` input. A nights badge sits between the two groups and takes no input. Source and External reference are on the row below. Below `lg` the badge sits between the groups, which stack in order.
     - Times: `arrival_time` and `departure_time` default to the property's `check_in_time` and `check_out_time` and apply to every line. They are the expected times and never change nights or prices (see [Expected times](01-reservation-shape.md#expected-times)). The native input shows 12-hour or 24-hour by the staff PC's locale, and the server always gets `HH:mm`. A stay is at least one night, so the times are never compared.
     - Walk-in: the arrival date is today. The arrival time defaults to now, rounded to the minute, and staff can edit it.
-    - Package plans lock the departure date, not the time. **New booking** offers the sources Direct and Phone. **Walk-in** fixes the source to WalkIn. Channel and Agent are not offered: they come from ingestion and the agent portal.
-2. **Rooms and beds**: one line per room type + rate plan.
+    - Package plans lock the departure date, not the time.
+    - Source: **New booking** offers the sources Direct and Phone. **Walk-in** fixes the source to WalkIn. Channel and Agent are not offered: they come from ingestion and the agent portal.
+2. **Group**: shown when the form has 2 or more units, above Rooms and beds. Group name, and `billing_mode` in the rail.
+3. **Rooms and beds**: one line per room type + rate plan.
     - Room lines: adults and children. When children > 0, one required age field per child, under the line.
     - Bed lines: "Beds: N", expanded into N units, with one bed picker per unit.
     - Package plans: departure is locked, the stay total is shown.
     - Children: one required age field per child under the line (not a comma list, unlike the Add unit Sheet on the reservation page).
     - Rate cell: the server quote from `RateQuoteService`. ⓘ opens the night breakdown. ✎ sets an override (logged, needs a reason).
     - A restriction that fails (stop-sell, closed to arrival or departure, min or max stay) shows a warning under the lines. Staff with `rates.override-restrictions` can continue after entering a reason (see [Daily rates and restrictions](../08-rates/02-daily-rates-and-restrictions.md)).
-3. **Group**: shown when the form has 2 or more units. Group name, and `billing_mode` in the rail.
 4. **Guests**: see [Guests section](#guests-section).
 5. **Extras** (optional): one section, grouped by line. Each line has its add-ons (see [Add-ons](04-add-ons.md); a Bed line gives every bed the same ones) and a RoomOnly discount from the [catalogue](../06-catalogues/05-discounts.md). Both go in the line's `NewUnitData`.
 6. **Notes**: one free text field for special requests or internal notes, up to 2000 characters. It is stored in `reservations.notes` (see [Reservation shape](01-reservation-shape.md)) and shown in the summary card of the reservation page. The creation log records only that notes exist, never the text.
