@@ -33,7 +33,8 @@ export function BookingLinesHeader() {
             <span>Room / Bed</span>
             <span>Adults</span>
             <span>Children</span>
-            <span className="col-span-2">Rate</span>
+            <span className="text-right">Rate</span>
+            <span />
         </div>
     );
 }
@@ -278,7 +279,7 @@ export function BookingLineRow({
                 </>
             )}
 
-            <div className="flex items-center justify-between gap-1 lg:col-span-2 lg:justify-end">
+            <div className="flex items-center justify-between lg:justify-end">
                 <BookingQuoteCell
                     quote={quote}
                     loading={loading}
@@ -289,6 +290,8 @@ export function BookingLineRow({
                     errors={errors}
                     index={index}
                 />
+            </div>
+            <div className="flex items-center justify-end">
                 <Button
                     type="button"
                     variant="ghost"
