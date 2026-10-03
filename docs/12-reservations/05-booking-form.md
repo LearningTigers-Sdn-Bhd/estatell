@@ -31,7 +31,7 @@ A full page (Form archetype): it has repeating lines and many fields. Two column
 └──────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-Stay is always visible above the tabs. The tab strip uses the `line` variant of `Tabs`. **Rooms & guests** holds Rooms and beds and Guests, stacked. **Discounts**, **Add-ons** and **Notes** are the other tabs.
+Stay is always visible above the tabs. The tab strip uses the `line` variant of `Tabs`, with an icon in each tab (bed, percent, package, notebook). **Rooms & guests** holds Rooms and beds and Guests, stacked. **Discounts**, **Add-ons** and **Notes** are the other tabs.
 
 ## Entry points
 

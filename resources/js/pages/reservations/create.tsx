@@ -1,5 +1,5 @@
 import { Head, Link, useForm } from '@inertiajs/react';
-import { Plus } from 'lucide-react';
+import { BedDouble, NotebookText, Package, Percent, Plus } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { EnumSelect } from '@/components/pms/enum-select';
 import type { EnumOption } from '@/components/pms/enum-select';
@@ -508,18 +508,21 @@ export default function ReservationCreate({
                                     value="rooms"
                                     className={tabClass(tabErrors.rooms)}
                                 >
+                                    <BedDouble data-icon="inline-start" />
                                     Rooms &amp; guests
                                 </TabsTrigger>
                                 <TabsTrigger
                                     value="discounts"
                                     className={tabClass(tabErrors.discounts)}
                                 >
+                                    <Percent data-icon="inline-start" />
                                     Discounts
                                 </TabsTrigger>
                                 <TabsTrigger
                                     value="add-ons"
                                     className={tabClass(tabErrors['add-ons'])}
                                 >
+                                    <Package data-icon="inline-start" />
                                     Add-ons
                                     {addOnCount > 0 && (
                                         <Badge variant="secondary">
@@ -531,6 +534,7 @@ export default function ReservationCreate({
                                     value="notes"
                                     className={tabClass(tabErrors.notes)}
                                 >
+                                    <NotebookText data-icon="inline-start" />
                                     Notes
                                 </TabsTrigger>
                             </TabsList>
