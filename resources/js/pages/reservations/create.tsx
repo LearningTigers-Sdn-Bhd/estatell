@@ -51,9 +51,14 @@ import {
     FieldLabel,
 } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
+import {
+    InputGroup,
+    InputGroupAddon,
+    InputGroupText,
+    InputGroupTextarea,
+} from '@/components/ui/input-group';
 import { Spinner } from '@/components/ui/spinner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Textarea } from '@/components/ui/textarea';
 import { useUnsavedChanges } from '@/hooks/use-unsaved-changes';
 import { index, newMethod, store, walkIn } from '@/routes/reservations';
 import { UnsavedChangesDialog } from '@/components/pms/unsaved-changes-dialog';
@@ -804,20 +809,32 @@ export default function ReservationCreate({
                                         >
                                             Notes
                                         </FieldLabel>
-                                        <Textarea
-                                            id="booking-notes"
-                                            value={data.notes}
-                                            onChange={(event) =>
-                                                form.setData(
-                                                    'notes',
-                                                    event.target.value,
-                                                )
-                                            }
-                                            maxLength={2000}
-                                            rows={3}
-                                            placeholder="Special requests or internal notes"
-                                            aria-invalid={!!errors.notes}
-                                        />
+                                        <InputGroup>
+                                            <InputGroupAddon
+                                                align="block-start"
+                                                className="border-b"
+                                            >
+                                                <NotebookText aria-hidden />
+                                                <InputGroupText>
+                                                    Special requests or internal
+                                                    notes
+                                                </InputGroupText>
+                                            </InputGroupAddon>
+                                            <InputGroupTextarea
+                                                id="booking-notes"
+                                                value={data.notes}
+                                                onChange={(event) =>
+                                                    form.setData(
+                                                        'notes',
+                                                        event.target.value,
+                                                    )
+                                                }
+                                                maxLength={2000}
+                                                rows={4}
+                                                placeholder="Add a note"
+                                                aria-invalid={!!errors.notes}
+                                            />
+                                        </InputGroup>
                                         <FieldError>{errors.notes}</FieldError>
                                     </Field>
                                 </TabsContent>
