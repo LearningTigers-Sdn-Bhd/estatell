@@ -96,7 +96,7 @@ A table with one collapsible row for each guest, and a footer with the count of 
  │ ▾ │ Tan Wei Ming  Booker │ +60 12-345 6789   │ Deluxe King #1      ▾ │      │
  │   │ Email [tan@x.com]   ⚠ Blacklisted: "Damaged room, 2025"        │      │
  │   │ [ ] Update guest profile with my changes      [Change guest]   │      │
- │   │ ▸ More guest details                                           │      │
+ │   │ Date of birth · Gender · Nationality · Address …               │      │
  ├───┼──────────────────────┼───────────────────┼───────────────────────┼──────┤
  │ ▸ │ Ahmad Faiz  Existing │ +60 13-888 2211   │ Dorm · Bed 1        ▾ │  ✕   │
  ├───┴──────────────────────┴───────────────────┴───────────────────────┴──────┤
@@ -116,31 +116,31 @@ Typing in Name opens the match list under the Name cell. The list floats over th
 
 ### Rows
 
-| Part           | Rules                                                                                                                                                                |
-| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Main row       | Chevron, **Name** (autocomplete), **Phone** (autocomplete), **Stays in** (select) and ✕. Most guests need nothing more.                                              |
-| Expanded row   | Email (autocomplete), the selected-guest card with the blacklist reason, **Change guest**, **Update guest profile**, the `DuplicateWarning`, and More guest details. |
-| Booker (first) | Always present, cannot be removed (no ✕). Becomes the booker of the reservation. "Stays in" also offers **Not staying**. Starts open.                                |
-| Other rows     | One guest staying in a unit. The name shows "Guest N" while empty. A new row opens when it is added.                                                                 |
-| Badges         | Booker, Existing (linked guest) or New. A VIP or blacklisted guest shows an icon in the main row, so a warning is visible when the row is closed.                    |
-| Open state     | Several rows can be open. A row with an error opens itself.                                                                                                          |
-| Stays in       | Lists every unit on the form (Deluxe King #1, Dorm Bed 1). The first guest in a unit becomes `is_primary`. A bed unit takes one guest only.                          |
-| Narrow screens | Below `lg` each row is a stacked card with the same collapsible part.                                                                                                |
+| Part           | Rules                                                                                                                                                                                                                                             |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Main row       | Chevron, **Name** (autocomplete), **Phone** (autocomplete), **Stays in** (select) and ✕. Most guests need nothing more.                                                                                                                           |
+| Expanded row   | Email (autocomplete), the selected-guest card with the blacklist reason, **Change guest**, **Update guest profile**, the `DuplicateWarning`, and the guest details (date of birth, gender, nationality, address, language) with no second toggle. |
+| Booker (first) | Always present, cannot be removed (no ✕). Becomes the booker of the reservation. "Stays in" also offers **Not staying**. Starts open.                                                                                                             |
+| Other rows     | One guest staying in a unit. The name shows "Guest N" while empty. A new row opens when it is added.                                                                                                                                              |
+| Badges         | Booker, Existing (linked guest) or New. A VIP or blacklisted guest shows an icon in the main row, so a warning is visible when the row is closed.                                                                                                 |
+| Open state     | Several rows can be open. A row with an error opens itself.                                                                                                                                                                                       |
+| Stays in       | Lists every unit on the form (Deluxe King #1, Dorm Bed 1). The first guest in a unit becomes `is_primary`. A bed unit takes one guest only.                                                                                                       |
+| Narrow screens | Below `lg` each row is a stacked card with the same collapsible part.                                                                                                                                                                             |
 
 Units without a guest are allowed. The footer counts them, and they show "Attach guest" on the reservation page.
 
 ### Autocomplete
 
 - Name, Phone and Email are autocompletes. The match list floats under the cell that is being typed in. Search starts after 2 characters, to `guests.search`, debounced and cached per query. It returns up to 8 guests of the property. Merged and anonymized guests never show. Each result carries a `GuestProfileData` (date of birth, gender, nationality, language, address and the blacklist reason), so a pick needs no second request. The same data comes with the `guests.matches` results.
-- Selecting a guest links the row to that `guest_id` and fills the fields, including More guest details. The details section opens when the guest has any of them.
+- Selecting a guest links the row to that `guest_id` and fills the fields, including the guest details.
 - Typed changes to a linked guest update the profile only when **Update guest profile** is on (off by default).
 - **Change guest** unlinks the guest, keeps the typed values and focuses Name.
 - A blacklisted guest shows the reason as a warning. The booking is still allowed.
 - With no guest picked, a new guest is created on save. The `DuplicateWarning` (`guests.matches`, `GuestMatcher`) shows under the fields with "Use existing" and "Create new anyway".
 
-### More guest details
+### Guest details
 
-Collapsed by default: date of birth, gender, nationality, address line 1 and 2, city, state, postcode, country, preferred language. The fields come from `GuestDetailsFields`, extracted from `guest-form.tsx` and used by both forms, so they cannot drift apart. No ID document: ID is collected on the [registration card](../16-registration/04-signing-flow.md) at check-in and kept on the guest profile.
+Shown in the expanded part of the row, with no second toggle: date of birth, gender, nationality, address line 1 and 2, city, state, postcode, country, preferred language. The fields come from `GuestDetailsFields`, extracted from `guest-form.tsx` and used by both forms, so they cannot drift apart. No ID document: ID is collected on the [registration card](../16-registration/04-signing-flow.md) at check-in and kept on the guest profile.
 
 ### Permissions
 
@@ -177,7 +177,7 @@ Without `guests.manage`, a row accepts only an existing guest, and **Update gues
 - `FormActions` (`components/pms/form-actions.tsx`) is built with this page: a sticky footer with Cancel and the primary button. The form uses the `use-unsaved-changes` guard when staff leave the page.
 - `guests.search` and `GuestPicker` come from the [reservation page](06-reservation-page.md) item. This item adds the autocomplete field on the same route.
 - The profile rules (name, phone checked against the property's country, email, date of birth and the rest) live in one class, `GuestProfileRules`, used by `GuestRequest` and `StoreBookingRequest`.
-- Components: Base UI `Combobox` and `Collapsible`. The autocomplete field is `components/pms/guests/guest-autocomplete-field.tsx`. More guest details use `GuestDetailsFields`. `DuplicateWarning` gains **Use existing** (links the tab to the match) and **Create new anyway** (hides the warning for the values typed; nothing is sent to the server). Form parts live in `components/pms/reservations/`.
+- Components: Base UI `Combobox` and `Collapsible`. The autocomplete field is `components/pms/guests/guest-autocomplete-field.tsx`. The guest details use `GuestDetailsFields`. `DuplicateWarning` gains **Use existing** (links the row to the match) and **Create new anyway** (hides the warning for the values typed; nothing is sent to the server). Form parts live in `components/pms/reservations/`.
 - The page gets a query-count test with lazy loading prevented (see `.ai/rules/tests.md`).
 
 ## Saving and errors

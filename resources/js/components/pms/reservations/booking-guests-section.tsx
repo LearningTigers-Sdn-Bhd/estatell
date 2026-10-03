@@ -9,7 +9,6 @@ import type { GuestDetails } from '@/components/pms/guests/guest-details-fields'
 import {
     emptyGuest,
     guestLabel,
-    hasDetails,
     linkGuest,
     takenBedUnits,
     unlinkGuest,
@@ -88,7 +87,6 @@ function GuestRow({
     const [checked, setChecked] = useState<GuestMatchCriteria>({});
     const [dismissed, setDismissed] = useState('');
     const [open, setOpen] = useState(true);
-    const [detailsOpen, setDetailsOpen] = useState(false);
     const taken = takenBedUnits(guests, units, index);
     const criteria = JSON.stringify(checked);
     const hiddenError = Object.keys(errors).some(
@@ -143,7 +141,6 @@ function GuestRow({
             onChange={(field, value) => onChange({ [field]: value })}
             onPick={(picked) => {
                 onChange(linkGuest(guest, picked));
-                setDetailsOpen(true);
             }}
             onUnlink={() => onChange(unlinkGuest(guest))}
             onLeave={checkForDuplicates}
@@ -236,7 +233,6 @@ function GuestRow({
                                         criteria={checked}
                                         onUse={(match) => {
                                             onChange(linkGuest(guest, match));
-                                            setDetailsOpen(true);
                                         }}
                                         onDismiss={() => setDismissed(criteria)}
                                     />
@@ -263,38 +259,19 @@ function GuestRow({
                             <FieldError>{error('update_profile')}</FieldError>
 
                             {canManageGuests && (
-                                <Collapsible
-                                    open={detailsOpen || hasDetails(guest)}
-                                    onOpenChange={setDetailsOpen}
-                                    className="flex flex-col gap-4"
-                                >
-                                    <CollapsibleTrigger
-                                        render={
-                                            <Button
-                                                type="button"
-                                                variant="ghost"
-                                                className="w-fit px-0"
-                                            />
-                                        }
-                                    >
-                                        More guest details
-                                    </CollapsibleTrigger>
-                                    <CollapsibleContent>
-                                        <GuestDetailsFields
-                                            idPrefix={`guest-${index}-`}
-                                            errorPrefix={prefix}
-                                            values={guest}
-                                            errors={errors}
-                                            onChange={(
-                                                field: keyof GuestDetails,
-                                                value: string,
-                                            ) => onChange({ [field]: value })}
-                                            countries={countries}
-                                            genders={genders}
-                                            locales={locales}
-                                        />
-                                    </CollapsibleContent>
-                                </Collapsible>
+                                <GuestDetailsFields
+                                    idPrefix={`guest-${index}-`}
+                                    errorPrefix={prefix}
+                                    values={guest}
+                                    errors={errors}
+                                    onChange={(
+                                        field: keyof GuestDetails,
+                                        value: string,
+                                    ) => onChange({ [field]: value })}
+                                    countries={countries}
+                                    genders={genders}
+                                    locales={locales}
+                                />
                             )}
                         </div>
                     </CollapsibleContent>
@@ -307,7 +284,7 @@ function GuestRow({
 /**
  * The Guests section: a table with one collapsible row for each guest. The booker is the first row. Name, Phone and
  * the unit the guest stays in are in the row; Email, the guest card, the profile update, the duplicate warning and the
- * optional details are in the expanded part. The footer counts the units without a guest and adds a guest. Units
+ * guest details are in the expanded part. The footer counts the units without a guest and adds a guest. Units
  * without a guest are allowed.
  */
 export function BookingGuestsSection({
