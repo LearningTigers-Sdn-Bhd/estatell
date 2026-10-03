@@ -67,6 +67,9 @@ import { UnsavedChangesDialog } from '@/components/pms/unsaved-changes-dialog';
 const BOOKING_WINDOW_DAYS = 1095;
 const LONGEST_STAY_DAYS = 365;
 
+/** The longest note the server takes. */
+const NOTES_LIMIT = 2000;
+
 type Quote = App.Data.Reservations.BookingQuoteData;
 
 type Props = {
@@ -829,11 +832,20 @@ export default function ReservationCreate({
                                                         event.target.value,
                                                     )
                                                 }
-                                                maxLength={2000}
+                                                maxLength={NOTES_LIMIT}
                                                 rows={4}
                                                 placeholder="Add a note"
                                                 aria-invalid={!!errors.notes}
                                             />
+                                            <InputGroupAddon
+                                                align="block-end"
+                                                className="justify-end"
+                                            >
+                                                <InputGroupText className="tabular-nums">
+                                                    {data.notes.length}/
+                                                    {NOTES_LIMIT}
+                                                </InputGroupText>
+                                            </InputGroupAddon>
                                         </InputGroup>
                                         <FieldError>{errors.notes}</FieldError>
                                     </Field>
