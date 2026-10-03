@@ -53,7 +53,7 @@ erDiagram
 
 - `ReservationStatus`: Confirmed, InHouse, Completed, Cancelled.
 - `UnitStatus`: Confirmed, CheckedIn, CheckedOut, Cancelled, NoShow (with `canTransitionTo()`).
-- `BillingMode`: MasterPays, EachPays.
+- `BillingMode`: MasterPays, MasterPaysAll, EachPays.
 - `ReservationSource`: Direct, WalkIn, Phone, Channel, Agent.
 
 ### Unit transitions

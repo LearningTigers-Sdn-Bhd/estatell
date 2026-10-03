@@ -82,7 +82,7 @@ All Actions return a result and write nothing on a refusal. Each one is one tran
 
 ### `FolioRouter`
 
-A service that returns the target folio for a line. In this item it always returns the unit's own folio. The routing item adds the rules.
+A service that returns the target folio for a line. In this item it always returns the unit's own folio. The routing item adds the rules (see [Routing](03-routing.md)): `targetFor` then takes the charge's transaction code, and tax children follow their parent.
 
 ## Add-on postings
 

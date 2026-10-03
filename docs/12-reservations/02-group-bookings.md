@@ -8,16 +8,17 @@ Book many rooms (or beds) under one reservation.
 
 A group is a reservation with 2 or more units. This is worked out from the units, not stored. Units can have different dates, room types, rate plans and occupants.
 
-`group_name` is an optional label. When it is empty, the UI shows the booker's name. `billing_mode` is stored on every reservation but only matters with 2 or more units: [Routing](../13-folio/03-routing.md) creates rules only then.
+`group_name` is an optional label. When it is empty, the UI shows the booker's name. `billing_mode` is stored on every reservation but only matters with 2 or more units, or when the reservation has a `company_id`: [Routing](../13-folio/03-routing.md) creates rules only then.
 
 ## Billing
 
 | `billing_mode` | Room charges      | Extras            |
 | -------------- | ----------------- | ----------------- |
 | MasterPays     | Master folio      | Each unit's folio |
+| MasterPaysAll  | Master folio      | Master folio      |
 | EachPays       | Each unit's folio | Each unit's folio |
 
-MasterPays creates routing rules automatically (see [Routing](../13-folio/03-routing.md)).
+MasterPays and MasterPaysAll create routing rules automatically (see [Routing](../13-folio/03-routing.md)).
 
 ## Creating reservations and units
 
