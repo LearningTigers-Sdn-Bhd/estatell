@@ -118,6 +118,7 @@ export function BookingLineRow({
                 </FieldLabel>
                 <EnumSelect
                     id={`line-${index}-room_type_id`}
+                    placeholder="Select room type"
                     options={options.roomTypes.map((type) => ({
                         value: String(type.id),
                         label: type.name,
@@ -145,6 +146,7 @@ export function BookingLineRow({
                 </FieldLabel>
                 <EnumSelect
                     id={`line-${index}-rate_plan_id`}
+                    placeholder="Select rate plan"
                     options={plans.map((plan) => ({
                         value: String(plan.id),
                         label: plan.name,

@@ -24,6 +24,8 @@ type Props = {
     onOpenChange?: (open: boolean) => void;
     /** Label for the empty value, for example "All statuses". Adds a first option with value "". */
     allLabel?: string;
+    /** Shown while nothing is picked. */
+    placeholder?: string;
     name?: string;
     id?: string;
     disabled?: boolean;
@@ -42,6 +44,7 @@ export function EnumSelect({
     onValueChange,
     onOpenChange,
     allLabel,
+    placeholder,
     name,
     id,
     disabled,
@@ -70,7 +73,7 @@ export function EnumSelect({
                 aria-label={props['aria-label']}
                 aria-invalid={props['aria-invalid']}
             >
-                <SelectValue />
+                <SelectValue placeholder={placeholder} />
             </SelectTrigger>
             <SelectContent>
                 <SelectGroup>
