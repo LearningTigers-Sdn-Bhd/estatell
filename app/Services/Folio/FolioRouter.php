@@ -5,8 +5,11 @@ namespace App\Services\Folio;
 use App\Enums\FolioType;
 use App\Models\Folio;
 use App\Models\FolioRoutingRule;
+use App\Models\Reservation;
 use App\Models\ReservationUnit;
 use App\Models\TransactionCode;
+use Closure;
+use Illuminate\Support\Collection;
 
 /**
  * Chooses the folio a charge lands on. The most specific matching rule of the reservation wins: a rule with the
@@ -29,6 +32,41 @@ class FolioRouter
             ->first();
 
         return $rule?->targetFolio ?? $this->unitFolio($unit);
+    }
+
+    /**
+     * The same choice as `targetFor()` for many postings of one reservation, with the rules and the unit folios read
+     * once. The closure returns the id of the target folio, or null while the unit has no folio. It writes nothing.
+     * The folio page uses it to place Scheduled rows.
+     *
+     * @return Closure(ReservationUnit, TransactionCode): ?int
+     */
+    public function resolverFor(Reservation $reservation): Closure
+    {
+        $rules = $reservation->routingRules()->get();
+        $unitFolioIds = Folio::query()
+            ->where('property_id', $reservation->property_id)
+            ->where('reservation_id', $reservation->id)
+            ->where('type', FolioType::Unit)
+            ->oldest('id')
+            ->pluck('id', 'reservation_unit_id')
+            ->all();
+
+        return fn (ReservationUnit $unit, TransactionCode $code): ?int => $this->pick($rules, $unit, $code)?->target_folio_id
+            ?? ($unitFolioIds[$unit->id] ?? null);
+    }
+
+    /**
+     * @param  Collection<int, FolioRoutingRule>  $rules
+     */
+    private function pick(Collection $rules, ReservationUnit $unit, TransactionCode $code): ?FolioRoutingRule
+    {
+        return $rules
+            ->filter(fn (FolioRoutingRule $rule): bool => ($rule->reservation_unit_id === null || $rule->reservation_unit_id === $unit->id)
+                && ($rule->transaction_code_id === null || $rule->transaction_code_id === $code->id)
+                && ($rule->category === null || $rule->category === $code->category))
+            ->sortByDesc(fn (FolioRoutingRule $rule): int => $this->specificity($rule))
+            ->first();
     }
 
     private function unitFolio(ReservationUnit $unit): ?Folio

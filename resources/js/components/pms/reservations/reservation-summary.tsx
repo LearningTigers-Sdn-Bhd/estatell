@@ -4,6 +4,7 @@ import { DateText } from '@/components/pms/date-text';
 import { MoneyText } from '@/components/pms/money-text';
 import { buttonVariants } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import { cn } from '@/lib/utils';
 import { show as showGuest } from '@/routes/guests';
 
 type Reservation = App.Data.Reservations.ReservationData;
@@ -89,7 +90,21 @@ export function ReservationSummary({
                     />
                 </Row>
                 <Row label="Balance">
-                    <span className="text-muted-foreground">from folio</span>
+                    {reservation.balance === null ? (
+                        <span className="text-muted-foreground">—</span>
+                    ) : (
+                        <span
+                            className={cn(
+                                Number(reservation.balance) > 0 &&
+                                    'text-destructive',
+                            )}
+                        >
+                            <MoneyText
+                                amount={reservation.balance}
+                                currency={currency}
+                            />
+                        </span>
+                    )}
                 </Row>
             </dl>
             <Separator />

@@ -105,6 +105,35 @@ description: string,
 netAmount: string,
 share: string | null,
 };
+export type FolioData = {
+key: string,
+kind: string,
+name: string,
+status: App.Data.Shared.BadgeData | null,
+invoiceNumber: string | null,
+balance: string | null,
+projectedTotal: string,
+lineCount: number,
+rows: App.Data.Folio.FolioRowData[],
+};
+export type FolioRailItemData = {
+key: string,
+kind: string,
+name: string,
+subtitle: string | null,
+status: App.Data.Shared.BadgeData | null,
+balance: string | null,
+};
+export type FolioRowData = {
+key: string,
+state: string,
+date: string,
+description: string,
+level: number,
+unit: string | null,
+amount: string,
+tags: string[],
+};
 export type NewChargeData = {
 chargeItemId: number | null,
 transactionCodeId: number | null,
@@ -739,6 +768,7 @@ lastDeparture: string | null,
 unitCount: number,
 roomNights: number,
 stayTotal: string,
+balance: string | null,
 billingMode: string,
 billingModeLabel: string,
 source: string,

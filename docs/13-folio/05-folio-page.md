@@ -117,7 +117,22 @@ Three commits, in order.
 2. **Row actions:** post charge, reverse, transfer, apply and remove discount. Controllers, routes, dialogs and toasts.
 3. **Close and reopen buttons.**
 
+## Build status
+
+Built (read-only tab): `reservations.folio` on `reservations.view`, `FolioStatement` and `ScheduledFolioRows` (services, read only), `FolioRouter::resolverFor()`, `FolioData`, `FolioRailItemData`, `FolioRowData`, the rail, the rows table, and the real Balance in the summary card (`ReservationData.balance`, null until the reservation has a folio). Not built: every action (see Actions), the Cards and List money strip.
+
+Decisions made at build time:
+
+- `FolioRouter::resolverFor(Reservation)` reads the rules and the unit folios once and returns a closure with the same choice as `targetFor()`. The page runs the same number of queries for 2 and for 8 units (tested).
+- The rail lists folios that are not Voided. A "not started" entry exists only for a unit that has Scheduled rows with no target folio, so a unit whose rows route to the master gets no empty entry.
+- Taxes of the property are read once with the ids of their codes. A Scheduled row uses the booker's nationality, as `PostCharge` does. A refused tax (for example a missing nationality) shows no tax rows.
+- A Scheduled night shows the room at `base + extra + supplement`, then the stay discount (`discount_amount`), then the booking-time discount, then tax on what is left. A Percent booking-time discount takes its share of the night's net amount (after the stay discount). A Fixed one is taken once, from the first night of the unit, and never more than that night. An Open one shows nothing. The night audit must post the same amounts.
+- A night with an `override_amount` is one row tagged "Overridden", with no discount rows and the tax on the override.
+- An add-on with no `service_date` shows on the unit's arrival date.
+- Posted rows follow the ledger: each charge or payment, then its children. A line with a reversal is tagged "Reversed", and a reversal line is tagged "Reversal". Posted lines carry no unit, so the Unit column shows only for Scheduled rows.
+- The Master is named "Master" and a third-party folio "Third party". A guest payer shows under the name. A company payer shows no name until [Companies](../15-city-ledger/01-companies.md) exists.
+
 ## Open
 
-- Check the query count of the routing step on a 10-unit group before choosing between in-memory routing and a batch `FolioRouter` method.
 - The Cards and List money strip waits for a later item.
+- Posted rows cannot name their unit. Add a source to night and add-on lines (or the night audit's `source_type`) before the master folio needs a Unit column for posted rows.

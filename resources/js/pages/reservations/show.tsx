@@ -1,8 +1,9 @@
 import { Head } from '@inertiajs/react';
-import { BedDouble, History, Receipt, Users } from 'lucide-react';
+import { BedDouble, CreditCard, History, Receipt, Users } from 'lucide-react';
 import type { EnumOption } from '@/components/pms/enum-select';
 import { DateText } from '@/components/pms/date-text';
 import { DetailLayout } from '@/components/pms/detail-layout';
+import { FolioTab } from '@/components/pms/folio/folio-tab';
 import { PageHeader } from '@/components/pms/page-header';
 import { ReservationActions } from '@/components/pms/reservations/reservation-actions';
 import { ActivityTab } from '@/components/pms/reservations/activity-tab';
@@ -15,12 +16,13 @@ import { Badge } from '@/components/ui/badge';
 import {
     activity as activityTab,
     addOns as addOnsTab,
+    folio as folioTab,
     guests as guestsTab,
     index,
     show,
 } from '@/routes/reservations';
 
-type Tab = 'units' | 'guests' | 'add-ons' | 'activity';
+type Tab = 'units' | 'guests' | 'add-ons' | 'folio' | 'activity';
 
 type Props = {
     reservation: App.Data.Reservations.ReservationData;
@@ -35,6 +37,8 @@ type Props = {
     unit?: App.Data.Reservations.ReservationUnitData | null;
     guests?: App.Data.Reservations.ReservationGuestData[];
     addOns?: App.Data.Reservations.ReservationAddOnData[];
+    folios?: App.Data.Folio.FolioRailItemData[];
+    folio?: App.Data.Folio.FolioData | null;
     activity?: Illuminate.LengthAwarePaginator<
         number,
         App.Data.Reservations.ReservationActivityData
@@ -54,6 +58,8 @@ export default function ReservationShow({
     unit = null,
     guests = [],
     addOns = [],
+    folios = [],
+    folio = null,
     activity,
 }: Props) {
     const key = { reservation: reservation.id };
@@ -75,6 +81,12 @@ export default function ReservationShow({
             label: 'Add-ons',
             icon: Receipt,
             href: addOnsTab.url(key),
+        },
+        {
+            value: 'folio',
+            label: 'Folio',
+            icon: CreditCard,
+            href: folioTab.url(key),
         },
         {
             value: 'activity',
@@ -156,6 +168,13 @@ export default function ReservationShow({
                             units={units}
                             chargeItems={chargeItems}
                             canManage={canManage}
+                            currency={currency}
+                        />
+                    ) : tab === 'folio' ? (
+                        <FolioTab
+                            reservationId={reservation.id}
+                            folios={folios}
+                            folio={folio}
                             currency={currency}
                         />
                     ) : tab === 'activity' && activity ? (

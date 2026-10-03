@@ -18,6 +18,7 @@ use App\Models\Reservation;
 use App\Models\ReservationUnit;
 use App\Models\UnitAddOn;
 use App\Models\User;
+use App\Services\Folio\FolioStatement;
 use App\Services\Reservations\ReservationActivityLog;
 use App\Services\Reservations\ReservationDirectory;
 use App\Services\Reservations\ReservationFormOptions;
@@ -122,6 +123,14 @@ class ReservationController extends Controller
     }
 
     /**
+     * Reservation page, Folio tab. `?folio=` picks the folio (an id, or `u{unit id}` for a unit with no folio yet).
+     */
+    public function folio(Request $request, Property $property, Reservation $reservation, FolioStatement $statement): Response
+    {
+        return $this->renderTab($request->user(), $property, $reservation, 'folio', fn (array $units): array => $statement->build($property, $reservation, $units, $request->string('folio')->toString()));
+    }
+
+    /**
      * Reservation page, Activity tab: the log, newest first, 25 to a page.
      */
     public function activity(Request $request, Property $property, Reservation $reservation, ReservationActivityLog $activityLog): Response
@@ -136,7 +145,7 @@ class ReservationController extends Controller
      * list. Only the open tab's own data is read and sent. The form option lists are optional props, read when an
      * overlay opens.
      *
-     * @param  'units'|'guests'|'add-ons'|'activity'  $tab
+     * @param  'units'|'guests'|'add-ons'|'folio'|'activity'  $tab
      * @param  callable(list<ReservationUnitOptionData>, Collection<int, ReservationUnit>): array<string, mixed>  $tabProps
      */
     private function renderTab(User $user, Property $property, Reservation $reservation, string $tab, callable $tabProps): Response

@@ -26,6 +26,7 @@ class ReservationData extends Data
         public int $unitCount,
         public int $roomNights,
         public string $stayTotal,
+        public ?string $balance,
         public string $billingMode,
         public string $billingModeLabel,
         public string $source,
@@ -45,6 +46,7 @@ class ReservationData extends Data
         ?string $lastDeparture,
         int $roomNights,
         string $stayTotal,
+        ?string $balance,
         bool $canViewGuest,
     ): self {
         return new self(
@@ -60,6 +62,7 @@ class ReservationData extends Data
             unitCount: $unitCount,
             roomNights: $roomNights,
             stayTotal: $stayTotal,
+            balance: $balance,
             billingMode: $reservation->billing_mode->value,
             billingModeLabel: $reservation->billing_mode->label(),
             source: $reservation->source->value,

@@ -4,6 +4,7 @@ namespace App\Services\Reservations;
 
 use App\Data\Reservations\ReservationData;
 use App\Data\Reservations\ReservationUnitOptionData;
+use App\Enums\FolioStatus;
 use App\Models\Reservation;
 use App\Models\ReservationUnit;
 use Brick\Math\BigDecimal;
@@ -11,8 +12,8 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 /**
- * The header, summary figures and unit list of one reservation, in three queries (units with room types, the
- * night totals, and the first-night rooms). Figures come from the units that hold inventory. Dates fall back to all
+ * The header, summary figures and unit list of one reservation, in four queries (units with room types, the
+ * night totals, the first-night rooms and the folio balance). Figures come from the units that hold inventory. Dates fall back to all
  * units when none does.
  */
 class ReservationOverview
@@ -42,11 +43,27 @@ class ReservationOverview
                 lastDeparture: $dated->max(fn (ReservationUnit $unit): string => $unit->departure_date->toDateString()),
                 roomNights: (int) $live->sum(fn (ReservationUnit $unit): int => $nights[$unit->id]['count'] ?? 0),
                 stayTotal: $total->toScale(2)->__toString(),
+                balance: $this->balance($reservation),
                 canViewGuest: $canViewGuest,
             ),
             'units' => $units->map(fn (ReservationUnit $unit): ReservationUnitOptionData => ReservationUnitOptionData::fromModel($unit, $assigned[$unit->id] ?? null))->values()->all(),
             'models' => $units,
         ];
+    }
+
+    /**
+     * The sum of the balances of the folios that are not Voided, or null while the reservation has no folio.
+     */
+    private function balance(Reservation $reservation): ?string
+    {
+        $row = DB::table('folios')
+            ->leftJoin('folio_lines', 'folio_lines.folio_id', '=', 'folios.id')
+            ->where('folios.reservation_id', $reservation->id)
+            ->where('folios.status', '!=', FolioStatus::Voided->value)
+            ->selectRaw('count(distinct folios.id) as folio_count, COALESCE(SUM(folio_lines.amount), 0)::numeric(14, 2) as balance')
+            ->first();
+
+        return (int) $row->folio_count === 0 ? null : (string) $row->balance;
     }
 
     /**

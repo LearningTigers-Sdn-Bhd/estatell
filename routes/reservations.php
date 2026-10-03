@@ -24,6 +24,7 @@ Route::prefix('reservations')->name('reservations.')->scopeBindings()->group(fun
             Route::get('/', [ReservationController::class, 'show'])->name('show');
             Route::get('guests', [ReservationController::class, 'guests'])->name('guests');
             Route::get('add-ons', [ReservationController::class, 'addOns'])->name('add-ons');
+            Route::get('folio', [ReservationController::class, 'folio'])->name('folio');
             Route::get('activity', [ReservationController::class, 'activity'])->name('activity');
         });
     });
