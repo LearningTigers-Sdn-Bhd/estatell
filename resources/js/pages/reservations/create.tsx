@@ -740,6 +740,9 @@ export default function ReservationCreate({
                                     currency={currency}
                                     errors={errors}
                                     onChange={setLine}
+                                    onLinesChange={(lines) =>
+                                        form.setData('lines', lines)
+                                    }
                                 />
                             </TabsContent>
 

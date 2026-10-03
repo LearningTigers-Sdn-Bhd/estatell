@@ -4,6 +4,7 @@ import {
     bookingPayload,
     emptyLine,
     isQuotable,
+    moveAddOn,
     nightsBetween,
     resizeAges,
     resizeBeds,
@@ -116,4 +117,26 @@ test('the posted lines drop the client key and send dorm beds instead of adults 
         bed_ids: ['3', ''],
         beds: '2',
     });
+});
+
+test('moving an add-on takes it from one line and puts it last on the other, and nothing else changes', () => {
+    const addOn = (id: string) => ({
+        charge_item_id: id,
+        quantity: '1',
+        unit_amount: '',
+        service_date: '',
+    });
+    const first = { ...emptyLine(), add_ons: [addOn('1'), addOn('2')] };
+    const second = { ...emptyLine(), add_ons: [addOn('3')] };
+    const lines = [first, second];
+    const moved = moveAddOn(lines, 0, 0, 1);
+
+    expect(moved[0].add_ons.map((one) => one.charge_item_id)).toEqual(['2']);
+    expect(moved[1].add_ons.map((one) => one.charge_item_id)).toEqual([
+        '3',
+        '1',
+    ]);
+    expect(lines[0].add_ons).toHaveLength(2);
+    expect(moveAddOn(lines, 0, 0, 0)).toBe(lines);
+    expect(moveAddOn(lines, 0, 5, 1)).toBe(lines);
 });

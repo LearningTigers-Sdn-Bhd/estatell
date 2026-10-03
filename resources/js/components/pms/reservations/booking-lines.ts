@@ -246,3 +246,30 @@ export function bookingPayload(data: BookingForm, roomTypes: RoomTypeOption[]) {
         }),
     };
 }
+
+/** Moves one add-on from a line to the end of another line, in one change so neither line is left stale. */
+export function moveAddOn(
+    lines: BookingLine[],
+    from: number,
+    position: number,
+    to: number,
+): BookingLine[] {
+    if (from === to || lines[from]?.add_ons[position] === undefined) {
+        return lines;
+    }
+
+    const moved = lines[from].add_ons[position];
+
+    return lines.map((line, index) => {
+        if (index === from) {
+            return {
+                ...line,
+                add_ons: line.add_ons.filter((_, at) => at !== position),
+            };
+        }
+
+        return index === to
+            ? { ...line, add_ons: [...line.add_ons, moved] }
+            : line;
+    });
+}
