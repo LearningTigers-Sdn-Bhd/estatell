@@ -1,9 +1,11 @@
-import { CreditCard, Plus } from 'lucide-react';
+import { BadgePercent, CreditCard, Plus } from 'lucide-react';
 import { useState } from 'react';
 import { EmptyState } from '@/components/pms/empty-state';
+import { ApplyDiscountDialog } from '@/components/pms/folio/apply-discount-dialog';
 import { FolioRail } from '@/components/pms/folio/folio-rail';
 import { FolioRowsTable } from '@/components/pms/folio/folio-rows-table';
 import { PostChargeDialog } from '@/components/pms/folio/post-charge-dialog';
+import { RemoveDiscountDialog } from '@/components/pms/folio/remove-discount-dialog';
 import { ReverseLineDialog } from '@/components/pms/folio/reverse-line-dialog';
 import { TransferLineDialog } from '@/components/pms/folio/transfer-line-dialog';
 import { MoneyText } from '@/components/pms/money-text';
@@ -37,6 +39,7 @@ export function FolioTab({
     folio,
     chargeItems,
     chargeCodes,
+    folioDiscounts,
     currency,
 }: {
     reservationId: number;
@@ -44,9 +47,13 @@ export function FolioTab({
     folio: App.Data.Folio.FolioData | null;
     chargeItems?: App.Data.Reservations.ChargeItemOptionData[];
     chargeCodes?: App.Data.Reservations.ChargeCodeOptionData[];
+    folioDiscounts?: App.Data.Folio.FolioDiscountOptionData[];
     currency: App.Enums.Currency | null;
 }) {
     const [posting, setPosting] = useState(false);
+    const [discounting, setDiscounting] = useState(false);
+    const [removing, setRemoving] =
+        useState<App.Data.Folio.FolioRowData | null>(null);
     const [reversing, setReversing] =
         useState<App.Data.Folio.FolioRowData | null>(null);
     const [transferring, setTransferring] =
@@ -88,6 +95,15 @@ export function FolioTab({
                     </div>
                     <div className="flex items-center gap-2">
                         {folio.status && <StatusBadge status={folio.status} />}
+                        {folio.canApplyDiscount && (
+                            <Button
+                                variant="outline"
+                                onClick={() => setDiscounting(true)}
+                            >
+                                <BadgePercent data-icon="inline-start" />
+                                Apply discount
+                            </Button>
+                        )}
                         {folio.canPostCharge && (
                             <Button onClick={() => setPosting(true)}>
                                 <Plus data-icon="inline-start" />
@@ -137,11 +153,15 @@ export function FolioTab({
                         <FolioRowsTable
                             rows={folio.rows}
                             currency={currency}
-                            onAction={(row, action) =>
-                                action === 'reverse'
-                                    ? setReversing(row)
-                                    : setTransferring(row)
-                            }
+                            onAction={(row, action) => {
+                                if (action === 'reverse') {
+                                    setReversing(row);
+                                } else if (action === 'transfer') {
+                                    setTransferring(row);
+                                } else {
+                                    setRemoving(row);
+                                }
+                            }}
                         />
                     )}
                 </CardContent>
@@ -157,6 +177,22 @@ export function FolioTab({
                     currency={currency}
                 />
             )}
+            {folio.canApplyDiscount && (
+                <ApplyDiscountDialog
+                    open={discounting}
+                    onOpenChange={setDiscounting}
+                    reservationId={reservationId}
+                    folioId={Number(folio.key)}
+                    discounts={folioDiscounts}
+                    currency={currency}
+                />
+            )}
+            <RemoveDiscountDialog
+                reservationId={reservationId}
+                folioId={Number(folio.key)}
+                row={removing}
+                onClose={() => setRemoving(null)}
+            />
             <ReverseLineDialog
                 reservationId={reservationId}
                 folioId={Number(folio.key)}

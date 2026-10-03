@@ -1,4 +1,4 @@
-import { ArrowRightLeft, MoreHorizontal, Undo2 } from 'lucide-react';
+import { ArrowRightLeft, MoreHorizontal, Undo2, X } from 'lucide-react';
 import { Fragment } from 'react';
 import { DateText } from '@/components/pms/date-text';
 import { MoneyText } from '@/components/pms/money-text';
@@ -38,7 +38,10 @@ export function FolioRowsTable({
 }: {
     rows: Row[];
     currency: App.Enums.Currency | null;
-    onAction: (row: Row, action: 'reverse' | 'transfer') => void;
+    onAction: (
+        row: Row,
+        action: 'reverse' | 'transfer' | 'remove_discount',
+    ) => void;
 }) {
     const showUnit = rows.some((row) => row.unit !== null);
     const showActions = rows.some((row) => row.actions.length > 0);
@@ -138,6 +141,22 @@ export function FolioRowsTable({
                                                     >
                                                         <ArrowRightLeft />
                                                         Move to another folio
+                                                    </DropdownMenuItem>
+                                                )}
+                                                {row.actions.includes(
+                                                    'remove_discount',
+                                                ) && (
+                                                    <DropdownMenuItem
+                                                        variant="destructive"
+                                                        onClick={() =>
+                                                            onAction(
+                                                                row,
+                                                                'remove_discount',
+                                                            )
+                                                        }
+                                                    >
+                                                        <X />
+                                                        Remove discount
                                                     </DropdownMenuItem>
                                                 )}
                                                 {row.actions.includes(

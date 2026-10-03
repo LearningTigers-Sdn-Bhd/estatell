@@ -157,7 +157,18 @@ Four commits, in order.
 
 ## Build status
 
-Built (post, reverse and transfer): `ReservationFolioController` with `storeCharge`, `reverse` and `transfer`, the routes `reservations.folios.charges.store`, `reservations.folios.lines.reverse` and `reservations.folios.transfers.store` (each with its own `can:`), `StoreFolioChargeRequest`, `StoreFolioTransferRequest`, `FolioRefusals`, `Reservation::folios()`, the `chargeCodes` optional prop, row `lineId` and `actions`, `canPostCharge`, `postUnits` and `transferTargets`, and the three dialogs. Not built: the discount actions and close and reopen.
+Built (discounts): the routes `reservations.folios.discounts.quote` (JSON), `reservations.folios.discounts.store` and `reservations.folios.discounts.destroy` (each with `can:folio.discount`), `QuoteFolioDiscountRequest` and `StoreFolioDiscountRequest`, `FolioDiscountOptionData`, `FolioDiscountQuoteResponseData`, the optional prop `folioDiscounts`, `FolioData.canApplyDiscount`, the `remove_discount` row action, and the apply and remove dialogs.
+
+Decisions made at build time (discounts):
+
+- The quote route returns the quote and an `error` message. A quote with no eligible charge or a refused amount still answers 200 with its message, so the Dialog can show it. A discount of another property, or an inactive one, is a 404. No open business date is a 422.
+- The Form Request of the quote and store routes checks `folio.discount-open`: an Open discount always needs it, a Fixed discount needs it only when the amount differs from its value, and a Percent discount never does. Without it the route answers 403.
+- The page sends the discount list as `folioDiscounts`. A user without `folio.discount-open` gets no Open discount, and `canEnterAmount` is false for them, so the Dialog never shows an amount field they cannot use. `canEnterAmount` is true for an Open discount, or a Fixed one with `allow_override`, when the user holds `folio.discount-open`.
+- `canApplyDiscount` is true when the folio is Open, the user holds `folio.discount`, and a live charge with no live discount line exists. The quote still decides eligibility by scope, so a discount can answer "nothing eligible".
+- The Remove discount action shows on a discount line (an Adjustment child of a charge) that is not reversed, on an Open folio, for a user with `folio.discount`.
+- The Dialog has two steps. The first picks the discount (and the amount) and asks for the quote. The second shows the eligible charges with each share and the total, and applies with the quote's `fingerprint`. A refusal shows in the Dialog, including `quote_changed`, and Back asks for a new quote.
+
+Built (post, reverse and transfer): `ReservationFolioController` with `storeCharge`, `reverse` and `transfer`, the routes `reservations.folios.charges.store`, `reservations.folios.lines.reverse` and `reservations.folios.transfers.store` (each with its own `can:`), `StoreFolioChargeRequest`, `StoreFolioTransferRequest`, `FolioRefusals`, `Reservation::folios()`, the `chargeCodes` optional prop, row `lineId` and `actions`, `canPostCharge`, `postUnits` and `transferTargets`, and the three dialogs. Not built: close and reopen.
 
 Decisions made at build time (actions):
 

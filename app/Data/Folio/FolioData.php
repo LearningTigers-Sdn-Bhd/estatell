@@ -7,7 +7,7 @@ use Spatie\LaravelData\Data;
 
 /**
  * The open folio of the folio tab. Balance is the posted lines only (null for a unit with no folio yet). Projected
- * total is the posted lines plus the Scheduled rows. `postUnits` are the units a charge can be posted for, and
+ * total is the posted lines plus the Scheduled rows. `canApplyDiscount` says an Open folio has a charge that can still take a discount. `postUnits` are the units a charge can be posted for, and
  * `transferTargets` are the other Open folios of the reservation. Both are empty when the user may not act.
  */
 class FolioData extends Data
@@ -27,6 +27,7 @@ class FolioData extends Data
         public string $projectedTotal,
         public int $lineCount,
         public array $rows,
+        public bool $canApplyDiscount = false,
         public bool $canPostCharge = false,
         public array $postUnits = [],
         public array $transferTargets = [],

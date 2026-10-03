@@ -131,6 +131,7 @@ class ReservationController extends Controller
             'postCharge' => $request->user()->can(PermissionEnum::FolioPostCharge->value),
             'reverse' => $request->user()->can(PermissionEnum::FolioReverse->value),
             'transfer' => $request->user()->can(PermissionEnum::FolioTransfer->value),
+            'discount' => $request->user()->can(PermissionEnum::FolioDiscount->value),
         ]));
     }
 
@@ -172,6 +173,7 @@ class ReservationController extends Controller
             'addUnitOptions' => Inertia::optional(fn () => $options->addUnit($property)),
             'chargeItems' => Inertia::optional(fn () => $options->chargeItems($property)),
             'chargeCodes' => Inertia::optional(fn () => $options->chargeCodes($property)),
+            'folioDiscounts' => Inertia::optional(fn () => $options->folioDiscounts($property, $user->can(PermissionEnum::FolioDiscountOpen->value))),
             ...$tabProps($overview['units'], $overview['models']),
         ]);
     }

@@ -2,6 +2,7 @@
 
 namespace App\Services\Reservations;
 
+use App\Data\Folio\FolioDiscountOptionData;
 use App\Data\Reservations\AddUnitOptionsData;
 use App\Data\Reservations\ChargeCodeOptionData;
 use App\Data\Reservations\ChargeItemOptionData;
@@ -9,6 +10,7 @@ use App\Data\Reservations\DiscountOptionData;
 use App\Data\Reservations\RatePlanOptionData;
 use App\Data\Reservations\RoomTypeOptionData;
 use App\Enums\DiscountScope;
+use App\Enums\DiscountType;
 use App\Enums\TransactionKind;
 use App\Models\ChargeItem;
 use App\Models\Discount;
@@ -61,5 +63,20 @@ class ReservationFormOptions
     {
         return TransactionCode::query()->where('property_id', $property->id)->where('kind', TransactionKind::Charge)->active()->orderBy('code')->get()
             ->map(ChargeCodeOptionData::fromModel(...))->all();
+    }
+
+    /**
+     * The active discounts a folio can take. A user without `folio.discount-open` gets no Open discount and cannot
+     * type an amount.
+     *
+     * @return list<FolioDiscountOptionData>
+     */
+    public function folioDiscounts(Property $property, bool $canEnterOpenAmounts): array
+    {
+        return Discount::query()->where('property_id', $property->id)->active()->ordered()->get()
+            ->reject(fn (Discount $discount): bool => ! $canEnterOpenAmounts && $discount->type === DiscountType::Open)
+            ->map(fn (Discount $discount): FolioDiscountOptionData => FolioDiscountOptionData::fromModel($discount, $canEnterOpenAmounts))
+            ->values()
+            ->all();
     }
 }

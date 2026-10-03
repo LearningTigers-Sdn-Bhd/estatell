@@ -33,11 +33,11 @@ class FolioStatement
      * Expects the property's `settings` and the reservation's `booker` to be loaded. An unknown `$selected` falls back to the Master folio, or
      * the first entry.
      *
-     * `$can` says what the user may do: post a charge, reverse a line, transfer a line. Rows and options carry only
+     * `$can` says what the user may do: post a charge, reverse a line, transfer a line, apply or remove a discount. Rows and options carry only
      * what is allowed now, so the page never works it out.
      *
      * @param  list<ReservationUnitOptionData>  $units
-     * @param  array{postCharge?: bool, reverse?: bool, transfer?: bool}  $can
+     * @param  array{postCharge?: bool, reverse?: bool, transfer?: bool, discount?: bool}  $can
      * @return array{folios: list<FolioRailItemData>, folio: FolioData|null}
      */
     public function build(Property $property, Reservation $reservation, array $units, string $selected = '', array $can = []): array
@@ -141,7 +141,7 @@ class FolioStatement
      * @param  list<ReservationUnitOptionData>  $units
      * @param  list<array{target: int|null, unit: int, date: string, rows: list<FolioRowData>}>  $blocks
      * @param  array<int, string>  $balances
-     * @param  array{postCharge?: bool, reverse?: bool, transfer?: bool}  $can
+     * @param  array{postCharge?: bool, reverse?: bool, transfer?: bool, discount?: bool}  $can
      */
     private function data(array $entry, Collection $entries, array $units, array $blocks, array $balances, array $can): FolioData
     {
@@ -166,7 +166,7 @@ class FolioStatement
             ->filter(fn (array $block): bool => $folio === null ? ($block['target'] === null && $block['unit'] === $entry['unit']) : $block['target'] === $folio->id)
             ->flatMap(fn (array $block): array => $block['rows'])
             ->values();
-        $posted = $folio === null ? collect() : $this->postedRows($folio, $allowed);
+        [$posted, $discountable] = $folio === null ? [collect(), false] : $this->postedRows($folio, $allowed, $isOpen && ($can['discount'] ?? false));
         $balance = $folio === null ? null : ($balances[$folio->id] ?? '0.00');
         $projected = $scheduled->reduce(fn (BigDecimal $sum, FolioRowData $row): BigDecimal => $sum->plus($row->amount), BigDecimal::of($balance ?? '0'));
 
@@ -180,6 +180,7 @@ class FolioStatement
             projectedTotal: (string) $projected->toScale(2),
             lineCount: $posted->count(),
             rows: [...$posted->all(), ...$scheduled->all()],
+            canApplyDiscount: $isOpen && ($can['discount'] ?? false) && $discountable,
             canPostCharge: $postUnits !== [],
             postUnits: $postUnits,
             transferTargets: $targets,
@@ -189,19 +190,21 @@ class FolioStatement
     /**
      * The folio's lines in ledger order: each charge or payment, then its children (a discount, then its tax).
      *
-     * A charge that is not a child, a reversal or already reversed takes the allowed actions.
+     * A charge that is not a child, a reversal or already reversed takes the allowed actions. A discount line that
+     * is not reversed offers Remove discount. The second value says whether any charge can still take a discount
+     * (a live charge with no live discount line).
      *
      * @param  list<string>  $allowed
-     * @return Collection<int, FolioRowData>
+     * @return array{0: Collection<int, FolioRowData>, 1: bool}
      */
-    private function postedRows(Folio $folio, array $allowed): Collection
+    private function postedRows(Folio $folio, array $allowed, bool $canRemoveDiscount): array
     {
         $lines = $folio->lines()->orderBy('posting_date')->orderBy('id')->get();
         $reversed = $lines->pluck('reversal_of_id')->filter()->flip();
         $children = $lines->whereNotNull('parent_line_id')->groupBy('parent_line_id');
         $rows = collect();
 
-        $walk = function (FolioLine $line, int $level) use (&$walk, $children, $reversed, $rows, $allowed): void {
+        $walk = function (FolioLine $line, int $level) use (&$walk, $children, $reversed, $rows, $allowed, $canRemoveDiscount): void {
             $tags = [];
 
             if ($line->reversal_of_id !== null) {
@@ -212,9 +215,14 @@ class FolioStatement
                 $tags[] = 'Reversed';
             }
 
-            $actionable = $level === 0 && $tags === [] && $line->kind === TransactionKind::Charge;
+            $live = $tags === [];
+            $actions = match (true) {
+                $level === 0 && $live && $line->kind === TransactionKind::Charge => $allowed,
+                $level === 1 && $live && $line->kind === TransactionKind::Adjustment && $canRemoveDiscount => ['remove_discount'],
+                default => [],
+            };
 
-            $rows->push(new FolioRowData('line:'.$line->id, 'posted', $line->posting_date->toDateString(), $line->description, min($level, 2), null, (string) $line->amount, $tags, $line->id, $actionable ? $allowed : []));
+            $rows->push(new FolioRowData('line:'.$line->id, 'posted', $line->posting_date->toDateString(), $line->description, min($level, 2), null, (string) $line->amount, $tags, $line->id, $actions));
 
             foreach ($children->get($line->id, []) as $child) {
                 $walk($child, $level + 1);
@@ -229,6 +237,16 @@ class FolioStatement
             }
         }
 
-        return $rows;
+        $discounted = $lines
+            ->filter(fn (FolioLine $line): bool => $line->kind === TransactionKind::Adjustment && $line->parent_line_id !== null && $line->reversal_of_id === null && ! $reversed->has($line->id))
+            ->pluck('parent_line_id')
+            ->flip();
+        $discountable = $lines->contains(fn (FolioLine $line): bool => $line->kind === TransactionKind::Charge
+            && $line->parent_line_id === null
+            && $line->reversal_of_id === null
+            && ! $reversed->has($line->id)
+            && ! $discounted->has($line->id));
+
+        return [$rows, $discountable];
     }
 }

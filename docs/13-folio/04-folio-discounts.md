@@ -103,7 +103,7 @@ Backend only: `DiscountQuote`, a quote data class, `ApplyDiscount`, `RemoveDisco
 
 ## Build status
 
-Built: `DiscountQuote` (service) with `DiscountQuoteData` and `DiscountQuoteLineData`, `ApplyDiscount`, `RemoveDiscount`, the refusal codes on `PostingResult`, the recursive `ReverseLine::post()` and `TransferLines` (every level, already reversed children skipped), and the permissions `folio.discount` and `folio.discount-open` with a syncing migration. Not built: the folio screen, the night audit discount posting, the booking-time discount posting.
+Built: `DiscountQuote` (service) with `DiscountQuoteData` and `DiscountQuoteLineData`, `ApplyDiscount`, `RemoveDiscount`, the refusal codes on `PostingResult`, the recursive `ReverseLine::post()` and `TransferLines` (every level, already reversed children skipped), and the permissions `folio.discount` and `folio.discount-open` with a syncing migration. The folio tab screens are built (see [Folio page](05-folio-page.md#build-status)). Not built: the night audit discount posting, the booking-time discount posting.
 
 Decisions made at build time:
 

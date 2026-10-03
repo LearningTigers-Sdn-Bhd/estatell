@@ -115,9 +115,23 @@ balance: string | null,
 projectedTotal: string,
 lineCount: number,
 rows: App.Data.Folio.FolioRowData[],
+canApplyDiscount: boolean,
 canPostCharge: boolean,
 postUnits: App.Data.Folio.FolioOptionData[],
 transferTargets: App.Data.Folio.FolioOptionData[],
+};
+export type FolioDiscountOptionData = {
+id: number,
+name: string,
+type: string,
+typeLabel: string,
+value: string | null,
+scopeLabel: string,
+canEnterAmount: boolean,
+};
+export type FolioDiscountQuoteResponseData = {
+quote: App.Data.Folio.DiscountQuoteData,
+error: string | null,
 };
 export type FolioOptionData = {
 id: number,

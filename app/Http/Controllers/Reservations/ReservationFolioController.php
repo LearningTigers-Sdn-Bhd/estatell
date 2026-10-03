@@ -2,17 +2,27 @@
 
 namespace App\Http\Controllers\Reservations;
 
+use App\Actions\Folio\ApplyDiscount;
 use App\Actions\Folio\PostCharge;
+use App\Actions\Folio\PostingResult;
+use App\Actions\Folio\RemoveDiscount;
 use App\Actions\Folio\ReverseLine;
 use App\Actions\Folio\TransferLines;
+use App\Data\Folio\FolioDiscountQuoteResponseData;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Folio\QuoteFolioDiscountRequest;
 use App\Http\Requests\Folio\StoreFolioChargeRequest;
+use App\Http\Requests\Folio\StoreFolioDiscountRequest;
 use App\Http\Requests\Folio\StoreFolioTransferRequest;
+use App\Models\Discount;
 use App\Models\Folio;
 use App\Models\FolioLine;
 use App\Models\Property;
 use App\Models\Reservation;
+use App\Services\Folio\DiscountQuote;
 use App\Services\Folio\FolioRefusals;
+use App\Services\NightAudit\CurrentBusinessDate;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -71,6 +81,62 @@ class ReservationFolioController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Moved to folio :number.', ['number' => $target->number])]);
 
         return back(fallback: $this->page($property, $reservation, $folio));
+    }
+
+    /**
+     * Quote a discount for the folio: the eligible charges, the amount and the fingerprint that `store` sends back.
+     * It writes nothing. A discount that is not the property's is a 404.
+     */
+    public function quoteDiscount(QuoteFolioDiscountRequest $request, Property $property, Reservation $reservation, Folio $folio, DiscountQuote $discountQuote, CurrentBusinessDate $currentBusinessDate, FolioRefusals $refusals): JsonResponse
+    {
+        $discount = $this->discount($property, $request->integer('discount_id'));
+        $businessDate = $currentBusinessDate->date($property);
+
+        if ($businessDate === null) {
+            abort(422, $refusals->message(PostingResult::REFUSAL_NO_BUSINESS_DATE));
+        }
+
+        $quote = $discountQuote->quote($folio, $discount, $businessDate, $request->amount());
+        $refusal = $quote->lines === [] ? PostingResult::REFUSAL_NOTHING_ELIGIBLE : $quote->amountRefusal;
+
+        return response()->json(new FolioDiscountQuoteResponseData($quote, $refusal === null ? null : $refusals->message($refusal)));
+    }
+
+    /**
+     * Apply a quoted discount. The fingerprint must still match, or the Action refuses with `quote_changed`. A refusal
+     * goes back to the Dialog as an error.
+     */
+    public function storeDiscount(StoreFolioDiscountRequest $request, Property $property, Reservation $reservation, Folio $folio, ApplyDiscount $applyDiscount, FolioRefusals $refusals): RedirectResponse
+    {
+        $discount = $this->discount($property, $request->integer('discount_id'));
+        $result = $applyDiscount($request->user(), $folio, $discount, $request->amount(), $request->string('fingerprint')->toString());
+
+        if ($result->isRefused()) {
+            return back(fallback: $this->page($property, $reservation, $folio))->withErrors($refusals->errors((string) $result->refusal));
+        }
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Discount :name applied.', ['name' => $discount->name])]);
+
+        return back(fallback: $this->page($property, $reservation, $folio));
+    }
+
+    /**
+     * Remove a discount from its charge. The charge stays. It has no form, so a refusal is an error toast.
+     */
+    public function destroyDiscount(Request $request, Property $property, Reservation $reservation, Folio $folio, FolioLine $line, RemoveDiscount $removeDiscount, FolioRefusals $refusals): RedirectResponse
+    {
+        $result = $removeDiscount($request->user(), $line);
+
+        Inertia::flash('toast', $result->isRefused()
+            ? ['type' => 'error', 'message' => $refusals->message((string) $result->refusal)]
+            : ['type' => 'success', 'message' => __('Discount removed.')]);
+
+        return back(fallback: $this->page($property, $reservation, $folio));
+    }
+
+    private function discount(Property $property, int $id): Discount
+    {
+        return Discount::query()->where('property_id', $property->id)->active()->findOrFail($id);
     }
 
     private function page(Property $property, Reservation $reservation, Folio $folio): string

@@ -1,7 +1,11 @@
 import { router } from '@inertiajs/react';
 import { useEffect } from 'react';
 
-type OptionProp = 'addUnitOptions' | 'chargeItems' | 'chargeCodes';
+type OptionProp =
+    | 'addUnitOptions'
+    | 'chargeItems'
+    | 'chargeCodes'
+    | 'folioDiscounts';
 
 /**
  * Asks the server for an optional page prop the first time an overlay opens. The prop stays on the page afterwards.
@@ -22,4 +26,9 @@ export function useFormOptions(
 }
 
 /** The prop keys a form submit leaves out, so the redirect back keeps the lists the overlay already has. */
-export const KEEP_OPTIONS = ['addUnitOptions', 'chargeItems', 'chargeCodes'];
+export const KEEP_OPTIONS = [
+    'addUnitOptions',
+    'chargeItems',
+    'chargeCodes',
+    'folioDiscounts',
+];
