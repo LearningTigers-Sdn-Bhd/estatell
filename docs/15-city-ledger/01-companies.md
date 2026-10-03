@@ -26,6 +26,7 @@ company_rate_plans   company_id, rate_plan_id
 
 - `reservations.company_id` records the billed company.
 - `folios.payer_company_id` makes a company pay a folio.
+- Changing `reservations.company_id` after the Master folio exists must decide what happens to the Master payer (see [Routing](../13-folio/03-routing.md#known-later-work)).
 - `company_rate_plans` links negotiated derived rate plans. The booking form offers them when the company is selected.
 - A plan linked to any company is hidden on the booking form until one of those companies is selected. This stops staff giving agent prices to walk-ins.
 - `portal_enabled` and `agent_cancel_cutoff_days` belong to the [Agent portal](../23-agent-portal/01-agent-portal.md). They are edited on the company's Portal tab, with its portal users and invitations.

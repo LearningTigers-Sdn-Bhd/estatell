@@ -46,15 +46,16 @@ The router follows one rule and stops. A rule target is final, so there are no c
 
 `SyncRoutingRules` (Action) makes the BillingMode rules match the reservation's `billing_mode`. It locks the reservation row, creates the Master folio when it does not exist (a service must not write), and removes only rules with source BillingMode.
 
-| `billing_mode` | Rules (any unit)         | Needs                              |
-| -------------- | ------------------------ | ---------------------------------- |
-| MasterPays     | Room to the Master folio | 2 or more units, or a `company_id` |
-| MasterPaysAll  | All charges to Master    | 2 or more units, or a `company_id` |
-| EachPays       | None                     |                                    |
+| `billing_mode` | Rules (any unit)         | Needs                                   |
+| -------------- | ------------------------ | --------------------------------------- |
+| MasterPays     | Room to the Master folio | 2 or more live units, or a `company_id` |
+| MasterPaysAll  | All charges to Master    | 2 or more live units, or a `company_id` |
+| EachPays       | None                     |                                         |
 
 - A reservation with a `company_id` always gets a Master folio and its rules, even with one unit, because the AR invoice is made from the master folio. Without a company the 2-unit threshold applies.
 - The Master payer is the reservation's `company_id` (no foreign key until [Companies](../15-city-ledger/01-companies.md)). Without a company it has no payer.
-- `SyncRoutingRules` runs after `CreateReservation`, after `AddUnit` and after `UpdateReservationGroup` changes the mode.
+- A live unit is one that is not Cancelled or NoShow. Cancelled and NoShow units do not count toward the 2 units.
+- `SyncRoutingRules` runs after `CreateReservation`, after `AddUnit`, after `UpdateReservationGroup` changes the mode, and after a unit is cancelled or marked NoShow.
 - Changing the mode affects later postings only. When a unit already holds posted room lines, the answer says so, and the lines stay on its folio.
 
 ## Examples
@@ -77,7 +78,7 @@ Decisions made at build time:
 - `CreateFolio::thirdParty(Reservation, ?Guest, ?int $payerCompanyId)` takes exactly one payer. `folios` has no label column, so a third-party folio has no label: its payer names it. A label needs a schema decision first.
 - `CreateRoutingRule` returns a `RoutingRuleResult` and refuses `target_folio_not_in_reservation`, `unit_not_in_reservation`, `transaction_code_not_found` and `rule_exists`. `SyncRoutingRules` uses it for BillingMode rules, so a Manual rule on the same selectors keeps its place and the sync adds nothing.
 - `SyncRoutingRules` returns a `RoutingSyncResult` (`masterFolio`, `masterFolioCreated`, `rulesCreated`, `rulesRemoved`, `unitsWithPostedRoomLines`). It writes no activity log. A unit counts as holding posted room lines when its own folio has a Room charge that is not a reversal and was not reversed. The list is empty when no rule routes Room to the Master folio.
-- A reservation with a `company_id` gets a Master folio in every billing mode (the AR invoice is made from it), but EachPays still has no rules. Without a company the Master folio exists only when the mode routes and the reservation has 2 or more units. Cancelled units count toward the 2 units.
+- A reservation with a `company_id` gets a Master folio in every billing mode (the AR invoice is made from it), but EachPays still has no rules. Without a company the Master folio exists only when the mode routes and the reservation has 2 or more units. Until the side item is built, Cancelled units still count toward the 2 units.
 - If a BillingMode rule no longer matches (another mode, another target), the sync deletes it and creates the right one.
 - `UpdateReservationGroup` now returns a `GroupUpdateResult` (it returned the `Reservation`). It runs the sync only when the billing mode changed.
 - A closed Master folio still counts as the active Master (only Voided is excluded), so the sync never makes a second one.
@@ -89,6 +90,9 @@ Decisions made at build time:
 - **Folio discounts** apply from the folio that holds the charges. A RoomOnly discount finds nothing on a unit folio when the room lines are on the master.
 - **Cancellation and no-show fees** are Room charges and follow the Room rule.
 - **Folio page:** Scheduled rows for master and third-party folios follow the rules ([Folio page](05-folio-page.md)).
+- **Company change:** when `reservations.company_id` changes after the Master folio exists, the Master payer stays the old company. Decide in [Companies](../15-city-ledger/01-companies.md): refuse the change while the Master holds lines, or move the payer.
+- **Third-party label:** a third-party folio has no label, so its payer names it. Decide before any staff screen: add a nullable `label` to `folios`, or accept the payer as the only name.
+- **Side item, not built:** the live-unit rule and the cancel hook above are built by the follow-up in the [checklist](../checklist.md) (`fix(folio): count live units in routing and check the key's property`).
 
 ## Out of scope
 

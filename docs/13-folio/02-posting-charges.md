@@ -44,7 +44,7 @@ All Actions return a result and write nothing on a refusal. Each one is one tran
 | An amount different from `default_amount` needs `allow_override`; an item with no default needs one | `amount_override_not_allowed` |
 | The target folio is Open                                                                            | `folio_not_open`              |
 
-- The key is `manual:{uuid}`, sent by the form, so a double click never posts twice. A key that already exists returns the existing line and writes nothing.
+- The key is `manual:{uuid}`, sent by the form, so a double click never posts twice. A key that already exists returns the existing line and writes nothing, but only when the line's folio belongs to the unit's property. A key from another property is refused (`charge_not_found`), so a key never reveals another property's lines.
 - It posts the charge line, then one Tax child line per `TaxCalculator` component (`parent_line_id`). `kind` is Charge for the charge and Tax for the children. `posting_date` is the business date.
 - With `unit_add_on_id`, the key is `addon:{id}`, `source_type` and `source_id` name the add-on, and `unit_add_ons.folio_line_id` is set to the charge line.
 - The target folio comes from `FolioRouter`.
@@ -113,6 +113,9 @@ Built with the night audit item.
 5. The idempotency key `night:{unit_night_id}` prevents double posting.
 
 ## Rules
+
+- `ReverseLine::post()` and `TransferLines` must skip a child that already has a reversal. A second reversal would break the unique key `reverse:{line_id}`. This is latent until a child can be reversed alone (`RemoveDiscount`), so the [folio discounts](04-folio-discounts.md) item fixes it with a test.
+- A posting with `unit_add_on_id` takes the item, quantity and amount from the add-on row. The night audit item builds the data from the row and does not trust the caller.
 
 - No forecast table. `unit_nights` already is the forecast, and so are the nightly `unit_add_ons` rows. The folio page reads them (see [Folio page](05-folio-page.md)).
 - Surcharges from payment methods post as charge lines.
