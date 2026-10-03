@@ -23,12 +23,14 @@ export function useBookingQuote(
     const payload = useRef<Payload | null>(null);
     const cache = useRef(new Map<string, Quote>());
     const latest = useRef(0);
+    // `useHttp` reads its data argument once, as the starting data, so the payload goes in through `transform`.
     const http = useHttp<Payload, Quote>(
         'post',
         quoteRoute.url(),
-        () => payload.current as Payload,
+        {} as Payload,
     );
     const submit = http.submit;
+    const { transform } = http;
     const key = quotable
         ? JSON.stringify(quotePayload(line, arrival, departure, isBed))
         : '';
@@ -56,6 +58,7 @@ export function useBookingQuote(
 
         const timeout = setTimeout(() => {
             payload.current = JSON.parse(key) as Payload;
+            transform(() => payload.current as Payload);
             submit()
                 .then((response) => {
                     cache.current.set(key, response);
@@ -77,7 +80,7 @@ export function useBookingQuote(
         }, 400);
 
         return () => clearTimeout(timeout);
-    }, [key, submit]);
+    }, [key, submit, transform]);
 
     return { quote, loading };
 }
