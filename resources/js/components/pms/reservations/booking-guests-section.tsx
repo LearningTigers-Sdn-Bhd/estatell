@@ -46,7 +46,7 @@ const MAIN_ROW_FIELDS = ['full_name', 'phone', 'stays_in'];
 function GuestsHeader() {
     return (
         <div
-            className={`hidden gap-3 border-b bg-muted px-3 py-2 text-xs font-medium text-muted-foreground lg:grid ${GUEST_COLUMNS}`}
+            className={`hidden gap-3 rounded-t-lg border-b bg-muted px-3 py-2 text-xs font-medium text-muted-foreground lg:grid ${GUEST_COLUMNS}`}
         >
             <span />
             <span>Guest</span>
@@ -127,6 +127,7 @@ function GuestRow({
                     {guest.guest?.isBlacklisted && (
                         <TriangleAlert
                             className="text-destructive"
+                            role="img"
                             aria-label="Blacklisted"
                         />
                     )}
@@ -313,7 +314,7 @@ export function BookingGuestsSection({
     const empty = unitsWithoutGuest(guests, units.length);
 
     return (
-        <div className="overflow-hidden rounded-lg border">
+        <div className="rounded-lg border">
             <GuestsHeader />
             <div className="divide-y">
                 {guests.map((guest, index) => (
@@ -345,7 +346,7 @@ export function BookingGuestsSection({
                     />
                 ))}
             </div>
-            <div className="flex items-center justify-between gap-3 border-t bg-muted/50 px-3 py-2">
+            <div className="flex items-center justify-between gap-3 rounded-b-lg border-t bg-muted/50 px-3 py-2">
                 <FieldDescription>
                     {units.length === 0
                         ? 'Add a room or bed line first.'

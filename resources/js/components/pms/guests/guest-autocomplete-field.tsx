@@ -138,51 +138,92 @@ export function GuestAutocompleteField({
         onLeave?.();
     };
 
+    const listId = `${idPrefix}-guests`;
+    const optionId = (guest: Guest) => `${idPrefix}-guest-${guest.id}`;
+    const combobox = (field: GuestField) => {
+        const expanded = open && focused === field;
+
+        return {
+            role: 'combobox' as const,
+            'aria-autocomplete': 'list' as const,
+            'aria-expanded': expanded,
+            'aria-controls': expanded ? listId : undefined,
+            'aria-activedescendant':
+                expanded && results[highlight]
+                    ? optionId(results[highlight])
+                    : undefined,
+        };
+    };
+
     const list = (field: GuestField) =>
         open &&
         focused === field && (
-            <ul
-                role="listbox"
-                aria-label="Existing guests"
-                className="absolute top-full left-0 z-20 mt-1 max-h-72 w-80 max-w-[calc(100vw-2rem)] overflow-y-auto rounded-lg border bg-popover p-1 text-popover-foreground shadow-md"
-                onMouseDown={(event) => event.preventDefault()}
-            >
-                {searching && results.length === 0 && (
-                    <li className="px-2 py-1.5 text-sm text-muted-foreground">
-                        Searching…
-                    </li>
-                )}
-                {results.map((guest, index) => (
-                    <li
-                        key={guest.id}
-                        role="option"
-                        aria-selected={index === highlight}
-                        className={cn(
-                            'flex cursor-pointer flex-col rounded-md px-2 py-1.5 text-sm',
-                            index === highlight &&
-                                'bg-accent text-accent-foreground',
-                        )}
-                        onMouseEnter={() => setHighlight(index)}
-                        onClick={() => pick(guest)}
-                    >
-                        <span className="flex items-center gap-2">
-                            {guest.fullName}
-                            {guest.isVip && <Badge>VIP</Badge>}
-                            {guest.isBlacklisted && (
-                                <Badge variant="destructive">Blacklisted</Badge>
+            <>
+                <span role="status" className="sr-only">
+                    {searching && results.length === 0
+                        ? 'Searching for guests'
+                        : `${results.length} ${results.length === 1 ? 'guest' : 'guests'} found`}
+                </span>
+                <ul
+                    id={listId}
+                    role="listbox"
+                    aria-label="Existing guests"
+                    className="absolute top-full left-0 z-50 mt-1 max-h-72 w-80 max-w-[calc(100vw-2rem)] overflow-y-auto rounded-lg border bg-popover p-1 text-popover-foreground shadow-md"
+                    onMouseDown={(event) => event.preventDefault()}
+                >
+                    {searching && results.length === 0 && (
+                        <li
+                            aria-hidden
+                            className="px-2 py-1.5 text-sm text-muted-foreground"
+                        >
+                            Searching…
+                        </li>
+                    )}
+                    {results.map((guest, index) => (
+                        <li
+                            key={guest.id}
+                            id={optionId(guest)}
+                            role="option"
+                            aria-selected={index === highlight}
+                            className={cn(
+                                'flex cursor-pointer flex-col rounded-md px-2 py-1.5 text-sm',
+                                index === highlight &&
+                                    'bg-accent text-accent-foreground',
                             )}
-                        </span>
-                        <span className="text-xs text-muted-foreground">
-                            {[guest.phone, guest.email]
-                                .filter(Boolean)
-                                .join(' · ') || 'No contact details'}
-                        </span>
+                            onMouseEnter={() => setHighlight(index)}
+                            onClick={() => pick(guest)}
+                        >
+                            <span className="flex items-center gap-2">
+                                {guest.fullName}
+                                {guest.isVip && <Badge>VIP</Badge>}
+                                {guest.isBlacklisted && (
+                                    <Badge variant="destructive">
+                                        Blacklisted
+                                    </Badge>
+                                )}
+                            </span>
+                            <span
+                                className={cn(
+                                    'text-xs',
+                                    index === highlight
+                                        ? 'text-accent-foreground'
+                                        : 'text-muted-foreground',
+                                )}
+                            >
+                                {[guest.phone, guest.email]
+                                    .filter(Boolean)
+                                    .join(' · ') || 'No contact details'}
+                            </span>
+                        </li>
+                    ))}
+                    <li
+                        aria-hidden
+                        className="px-2 py-1 text-xs text-muted-foreground"
+                    >
+                        ↑↓ move · ↵ select · esc keep typing as a new guest
                     </li>
-                ))}
-                <li className="px-2 py-1 text-xs text-muted-foreground">
-                    ↑↓ move · ↵ select · esc keep typing as a new guest
-                </li>
-            </ul>
+                </ul>
+            </>
         );
 
     return children({
@@ -208,8 +249,7 @@ export function GuestAutocompleteField({
                         maxLength={150}
                         placeholder="Aisyah binti Rahman"
                         autoComplete="off"
-                        role="combobox"
-                        aria-expanded={open && focused === 'full_name'}
+                        {...combobox('full_name')}
                         aria-invalid={!!errors.full_name}
                     />
                     {nameBadges && (
@@ -238,6 +278,7 @@ export function GuestAutocompleteField({
                     onBlur={leave}
                     onKeyDown={keys}
                     invalid={!!errors.phone}
+                    inputProps={combobox('phone')}
                 />
                 <FieldError>{errors.phone}</FieldError>
                 {list('phone')}
@@ -262,6 +303,7 @@ export function GuestAutocompleteField({
                     maxLength={255}
                     placeholder="guest@example.com"
                     autoComplete="off"
+                    {...combobox('email')}
                     aria-invalid={!!errors.email}
                 />
                 <FieldError>{errors.email}</FieldError>

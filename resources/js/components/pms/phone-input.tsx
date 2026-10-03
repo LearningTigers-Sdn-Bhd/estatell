@@ -15,6 +15,8 @@ type Props = {
     onKeyDown?: (event: React.KeyboardEvent<HTMLInputElement>) => void;
     placeholder?: string;
     invalid?: boolean;
+    /** Extra attributes for the input, for example the combobox ARIA attributes of the guest search. */
+    inputProps?: React.ComponentProps<'input'>;
 };
 
 /**
@@ -30,6 +32,7 @@ export function PhoneInput({
     onKeyDown,
     placeholder = '+60 12-345 6789',
     invalid,
+    inputProps,
 }: Props) {
     return (
         <InputGroup>
@@ -50,6 +53,7 @@ export function PhoneInput({
                 onKeyDown={onKeyDown}
                 placeholder={placeholder}
                 aria-invalid={invalid}
+                {...inputProps}
             />
         </InputGroup>
     );
