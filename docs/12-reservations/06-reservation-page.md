@@ -91,24 +91,39 @@ Status tabs, filters, and two views of the same page of results: **Cards** (defa
 │ Room type               Booked              │
 │ 1× Deluxe King, 3× Dorm  02 Oct 2026        │
 │ 6-Bed, 1× Family Suite                      │
-│ ┌─────────────────────────────────────────┐ │
-│ │ Total                     RM 2,390.00   │ │  money strip (tabular-nums)
-│ └─────────────────────────────────────────┘ │
+│ ┌─────────────┬─────────────┬─────────────┐ │
+│ │ Total       │ Paid        │ Balance     │ │  money strip (tabular-nums)
+│ │ 2,390.00    │ 500.00      │ 412.60      │ │
+│ └─────────────┴─────────────┴─────────────┘ │
 └─────────────────────────────────────────────┘
 ```
 
-| Part        | Shows                                                                                                                                                      |
-| ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Room box    | See [Room box](#room-box)                                                                                                                                  |
-| Title       | `group_name`, or the booker's name. For a channel booking without a group name: the booker.                                                                |
-| Markers     | ★ VIP (`is_vip`), ⛔ blacklisted, ↻ repeat guest (the booker has another Completed reservation with a lower id), 👥 group (2 or more units)                |
-| Subtitle    | Booker (groups only), reference. Channel bookings add `channel_name` and `external_reference`.                                                             |
-| Menu `[⋯]`  | Open reservation, Open guest. Unit actions come with front desk.                                                                                           |
-| Stay strip  | Earliest arrival, nights, latest departure of units that hold inventory. When none does (a cancelled reservation), of all units.                           |
-| Badges      | `StatusBadge`, source icon (label on hover), unit count (groups only), adults and children of units that hold inventory                                    |
-| Details     | Room types grouped as `N× name`, booked date                                                                                                               |
-| Money strip | Total (sum of `unit_nights.amount` of units that hold inventory). Module 13 turns it into Charges, Paid and Balance (balance in danger tone when above 0). |
-| Card tone   | Cancelled: muted. Blacklisted booker: destructive border and muted background.                                                                             |
+| Part        | Shows                                                                                                                                       |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| Room box    | See [Room box](#room-box)                                                                                                                   |
+| Title       | `group_name`, or the booker's name. For a channel booking without a group name: the booker.                                                 |
+| Markers     | ★ VIP (`is_vip`), ⛔ blacklisted, ↻ repeat guest (the booker has another Completed reservation with a lower id), 👥 group (2 or more units) |
+| Subtitle    | Booker (groups only), reference. Channel bookings add `channel_name` and `external_reference`.                                              |
+| Menu `[⋯]`  | Open reservation, Open guest. Unit actions come with front desk.                                                                            |
+| Stay strip  | Earliest arrival, nights, latest departure of units that hold inventory. When none does (a cancelled reservation), of all units.            |
+| Badges      | `StatusBadge`, source icon (label on hover), unit count (groups only), adults and children of units that hold inventory                     |
+| Details     | Room types grouped as `N× name`, booked date                                                                                                |
+| Money strip | Three columns: Total, Paid and Balance. See [Money strip](#money-strip).                                                                    |
+| Card tone   | Cancelled: muted. Blacklisted booker: destructive border and muted background.                                                              |
+
+### Money strip
+
+Three columns in the muted strip, each with a small muted label above the amount. Amounts are left-aligned, `tabular-nums`, with no currency code (one code per amount does not fit). The List view shows the same three figures as columns.
+
+| Figure  | Source                                                                                     | Notes                                                                        |
+| ------- | ------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------- |
+| Total   | Sum of `unit_nights.amount` of units that hold inventory                                   | Same as before. Sortable (`total`). No tax, no add-ons.                      |
+| Paid    | `−SUM(folio_lines.amount)` of Payment lines of the folios that are not Voided              | Net of refunds. "—" while the reservation has no folio.                      |
+| Balance | `SUM(folio_lines.amount)` of the folios that are not Voided, as the summary card's Balance | Danger tone above 0. "—" with no folio. Sortable (`balance`, no folio last). |
+
+- Total is kept instead of posted charges: nights post only at the night audit, so posted charges read 0.00 before check-in.
+- `Total − Paid` is not always the Balance. Balance counts only posted lines, with tax and add-ons. A negative Balance is a deposit held.
+- Paid and Balance come from one more grouped sub-query joined into the list query, so the list runs no extra queries.
 
 ### Room box
 

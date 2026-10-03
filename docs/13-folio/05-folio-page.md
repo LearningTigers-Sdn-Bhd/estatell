@@ -56,7 +56,7 @@ The folio is the fifth tab of the [reservation page](../12-reservations/06-reser
 - It follows `renderTab()`: only this tab's data is read and sent. `?folio=` picks the folio and survives a refresh.
 - **Read permission: `reservations.view`.** There is no `folio.view`. Owner, Manager, Front desk and Finance hold it. Each action needs its own permission (see Actions below).
 - The summary card's Balance becomes real: the sum of the balances of the reservation's folios that are not Voided.
-- The Cards and List money strip (Charges, Paid, Balance) is a later small item.
+- The Cards and List money strip shows Total, Paid and Balance (see [Money strip](../12-reservations/06-reservation-page.md#money-strip)). It is a later small item.
 
 ## Folio rail
 
@@ -206,5 +206,5 @@ Decisions made at build time:
 
 ## Open
 
-- The Cards and List money strip waits for a later item.
+- The Cards and List money strip (Total, Paid, Balance) waits for a later item.
 - Posted rows cannot name their unit. Add a source to night and add-on lines (or the night audit's `source_type`) before the master folio needs a Unit column for posted rows.
