@@ -35,7 +35,7 @@ Stay is always visible above the tabs. The tab strip uses the `line` variant of 
 
 ## Entry points
 
-The Reservations page has `New ▾` with **New booking** and **Walk-in**. Walk-in opens the same page with `source = WalkIn` and today's business date as arrival. The walk-in check-in itself comes with [Check-in and check-out](../18-front-desk/01-check-in-and-check-out.md).
+The Reservations page has `New ▾` with **New booking** and **Walk-in**. Walk-in opens the same page with `source = WalkIn` and today's business date as arrival. The **Reservation mode** field on the form switches between the two pages without losing what was typed (see [Stay](#sections)). The walk-in check-in itself comes with [Check-in and check-out](../18-front-desk/01-check-in-and-check-out.md).
 
 | URL                                     | Name                      | Needs                 |
 | --------------------------------------- | ------------------------- | --------------------- |
@@ -55,6 +55,7 @@ The Reservations page has `New ▾` with **New booking** and **Walk-in**. Walk-i
     - Arrival starts as today's business date on both pages. Staff can pick a later date on a new booking.
     - Walk-in: the arrival date is today and is fixed. The arrival time defaults to now, rounded to the minute, and staff can edit it.
     - Package plans lock the departure date, not the time.
+    - Reservation mode: a select after Departure, on the same row from `lg` (about 12rem wide; below `lg` it wraps to the next line). Options: **New booking** and **Walk-in**. Picking the other mode visits `reservations.walk-in` or `reservations.new` as a partial Inertia visit with `preserveState`, so the same page stays mounted and the dates, lines and guests are kept. The URL and the breadcrumb change, and no unsaved-changes prompt appears. To Walk-in: the source becomes WalkIn and is locked, and the arrival becomes today with the current time and is locked. To New booking: the source goes back to Direct and the arrival unlocks. A departure that is then not after the arrival gets the normal error on save. Both pages need `reservations.manage`, and the backend does not change.
     - Group name: the third field of the row after External reference, shown when the form has 2 or more units. Leave it empty to show the booker's name. `billing_mode` stays in the rail.
     - Source: **New booking** offers the sources Direct and Phone. **Walk-in** fixes the source to WalkIn. Channel and Agent are not offered: they come from ingestion and the agent portal.
 2. **Rooms and beds** (tab **Rooms & guests**): one line per room type + rate plan.
@@ -204,6 +205,7 @@ One checklist item per commit, in this order:
 6. **Tabs and group name:** Group name moves into Stay. Rooms and beds and Guests share the **Rooms & guests** tab, and Discounts, Add-ons and Notes get a tab each, in a `line` tab strip. UI only: the request, error keys and Actions do not change.
 7. **Discounts and add-ons tables:** the Discounts and Add-ons tabs become tables (a flat add-ons table with a Line column). UI only: the request, error keys and Actions do not change.
 8. **Fixed height:** the page uses the `fixed` layout variant (renamed from `grid-only`), with one scroll region and `FormActions` below it. UI only.
+9. **Reservation mode:** the field after Departure switches between New booking and Walk-in with a partial visit that keeps the form. UI only.
 
 ## Build status
 

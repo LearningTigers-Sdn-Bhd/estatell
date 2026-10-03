@@ -218,6 +218,7 @@ Smaller fixes and reverts are in `git log`.
 - [x] `feat(reservations): group the booking form into tabs` — Group name becomes a Stay field after External reference; Rooms & guests, Discounts, Add-ons (count badge) and Notes become a `line` tab strip under Stay; a tab with an error turns red and opens itself. UI only. Needs: booking guests as a table. Docs: [Booking form](12-reservations/05-booking-form.md).
 - [x] `feat(reservations): show booking discounts and add-ons as tables` — Discounts becomes one row for each line with a discount select; Add-ons becomes one flat table with a Line column, count and an Add add-on footer button. UI only. Needs: booking form tabs. Docs: [Booking form](12-reservations/05-booking-form.md).
 - [x] `feat(reservations): fix the booking form to the window height` — rename the `grid-only` layout variant to `fixed`; the booking form scrolls in one region (title, Stay, tabs, rail) with the breadcrumb on top and `FormActions` always at the bottom. UI only. Needs: booking discounts and add-ons as tables. Docs: [Booking form](12-reservations/05-booking-form.md), [Page archetypes](design-system/04-page-archetypes.md).
+- [ ] `feat(reservations): switch the booking mode on the form` — a Reservation mode select after Departure switches between New booking and Walk-in with a partial Inertia visit that keeps what was typed; the source and arrival follow the mode. UI only. Needs: the fixed height booking form. Docs: [Booking form](12-reservations/05-booking-form.md).
 
 ### 13 Folio and 14 Payments
 
