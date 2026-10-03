@@ -222,7 +222,7 @@ Smaller fixes and reverts are in `git log`.
 
 ### 13 Folio and 14 Payments
 
-- [ ] `feat(folio): add folios and immutable ledger lines` — also re-point the payer in `MergeGuests`, and refuse `AnonymizeGuest` for a guest with an open balance. Docs: [Folios and lines](13-folio/01-folios-and-lines.md).
+- [x] `feat(folio): add folios and immutable ledger lines` — `folios` and `folio_lines` with a trigger that rejects updates and deletes, `FolioType`, `FolioStatus`, `FolioBalance`, `RepointGuestFolios` in `MergeGuests`, and `AnonymizeGuest` refuses a guest with an open balance. Backend only. Docs: [Folios and lines](13-folio/01-folios-and-lines.md).
 - [ ] `feat(folio): post charges, reverse and transfer lines` — Needs: business dates. Docs: [Posting charges](13-folio/02-posting-charges.md).
 - [ ] `feat(folio): add folio routing` — Docs: [Routing](13-folio/03-routing.md).
 - [ ] `feat(folio): apply and remove folio discounts` — Docs: [Folio discounts](13-folio/04-folio-discounts.md).

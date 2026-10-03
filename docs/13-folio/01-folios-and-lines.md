@@ -45,11 +45,18 @@ erDiagram
 - A unit can check out only when its folio balance is 0 or transferred to the master folio.
 - A reservation closes only when all its folios are closed.
 - Closing a folio assigns `invoice_number` from `document_sequences`.
+- `folio_lines` has no `property_id` and no `updated_at`. The folio scopes it.
+- A database trigger rejects every `UPDATE` and `DELETE` on `folio_lines`, so immutability does not depend on code discipline.
+- `payer_company_id` has no foreign key until module 15 adds companies.
+- CHECK constraints: not both payers; a Unit folio has a `reservation_unit_id` and a Master folio has none; `closed_at` and `closed_by` are set together; `quantity` is at least 1; `source_type` and `source_id` are set together.
+- `MergeGuests` moves the folios a merged guest pays through `RepointGuestFolios`. `AnonymizeGuest` refuses a guest who pays a folio with a balance other than 0 (voided folios are skipped).
 
 ## Services and Actions
 
-- `FolioBalance`
-- `CloseFolio`, `ReopenFolio`
+- `FolioBalance` (service, built): the balance of one folio, and whether a guest has an open balance.
+- `RepointGuestFolios` (built): called by `MergeGuests`.
+- `CloseFolio`, `ReopenFolio` (not built).
+- `CreateFolio` (not built): when folios are created is still open.
 
 ## Permissions
 

@@ -2,6 +2,7 @@
 
 namespace App\Actions\Guests;
 
+use App\Actions\Folio\RepointGuestFolios;
 use App\Actions\Reservations\RepointGuestReservations;
 use App\Models\Guest;
 use App\Models\GuestIdentityDocument;
@@ -11,7 +12,10 @@ use Illuminate\Support\Facades\DB;
 
 class MergeGuests
 {
-    public function __construct(private RepointGuestReservations $repointGuestReservations) {}
+    public function __construct(
+        private RepointGuestReservations $repointGuestReservations,
+        private RepointGuestFolios $repointGuestFolios,
+    ) {}
 
     /**
      * Profile fields that are filled from the merged guest when the survivor has none. They are cleared on the merged guest.
@@ -29,7 +33,8 @@ class MergeGuests
      * or either one was already merged into another guest or anonymized.
      *
      * Reservations re-point the booker and the unit occupants through `RepointGuestReservations`.
-     * Modules that point at a guest (folios) add their own re-pointing here.
+     * Folios that the merged guest pays move to the survivor through `RepointGuestFolios`.
+     * Modules that point at a guest add their own re-pointing here.
      */
     public function __invoke(User $actor, Guest $survivor, Guest $merged): bool
     {
@@ -84,6 +89,7 @@ class MergeGuests
             $survivor->save();
 
             $reservations = ($this->repointGuestReservations)($survivor, $merged);
+            $folios = ($this->repointGuestFolios)($survivor, $merged);
 
             $merged->forceFill(array_fill_keys(self::PERSONAL_FIELDS, null))->forceFill([
                 'is_vip' => false,
@@ -108,6 +114,7 @@ class MergeGuests
                     'reservations_moved' => $reservations['reservations'],
                     'unit_guests_moved' => $reservations['unit_guests'],
                     'unit_guest_duplicates_removed' => $reservations['duplicates_removed'],
+                    'folios_moved' => $folios['folios'],
                     'fields_filled' => $filled,
                     'vip_carried' => $vipCarried,
                     'blacklist_carried' => $blacklistCarried,

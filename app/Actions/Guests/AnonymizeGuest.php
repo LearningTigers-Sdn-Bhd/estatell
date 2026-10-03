@@ -5,6 +5,7 @@ namespace App\Actions\Guests;
 use App\Models\Guest;
 use App\Models\GuestIdentityDocument;
 use App\Models\User;
+use App\Services\Folio\FolioBalance;
 use App\Services\Guests\GuestName;
 use App\Services\Reservations\GuestInHouse;
 use Illuminate\Support\Facades\DB;
@@ -21,17 +22,21 @@ class AnonymizeGuest
         'blacklisted_at', 'blacklist_reason', 'marketing_consent_at',
     ];
 
-    public function __construct(private GuestName $guestName, private GuestInHouse $guestInHouse) {}
+    public function __construct(
+        private GuestName $guestName,
+        private GuestInHouse $guestInHouse,
+        private FolioBalance $folioBalance,
+    ) {}
 
     /**
      * Remove the guest's personal data and keep the record, so financial history stays intact.
      * The name becomes `Anonymized guest #id`. Notes, tag links and ID documents (numbers, blind indexes and
      * scan files) are deleted, and the blacklist reason is removed from earlier activity log entries.
      *
-     * Returns false when the guest is already anonymized, was merged into another guest, or is in house
-     * (an occupant of a checked-in unit). This cannot be undone.
+     * Returns false when the guest is already anonymized, was merged into another guest, is in house
+     * (an occupant of a checked-in unit), or pays a folio with a balance other than 0. This cannot be undone.
      *
-     * Modules that keep a guest's balances (folios) add their own checks here.
+     * Modules that keep a guest's records add their own checks here.
      */
     public function __invoke(User $actor, Guest $guest): bool
     {
@@ -43,6 +48,10 @@ class AnonymizeGuest
             }
 
             if ($this->guestInHouse->isInHouse($guest)) {
+                return false;
+            }
+
+            if ($this->folioBalance->guestHasOpenBalance($guest)) {
                 return false;
             }
 
