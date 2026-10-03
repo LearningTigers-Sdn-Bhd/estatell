@@ -38,7 +38,13 @@ A Scheduled night shows its discount as a child row, in the same order as a post
 - A Scheduled night can carry the rate plan stay discount (`unit_nights.discount_amount`) and the booking-time discount (`reservation_units.discount_id`).
 - A folio discount (`ApplyDiscount`) never targets a Scheduled night. Eligible lines are posted lines only. A Scheduled row has no discount action.
 
+## Overridden nights
+
+`unit_nights.amount` is already net of the stay discount: `amount = COALESCE(override_amount, base + extra + supplement − discount_amount)` (database CHECK). A Scheduled night is drawn from its parts, so the stay discount is a child row.
+
+- A night with an `override_amount` has no breakdown, because the override replaces the whole sum. It shows as one row tagged "Overridden", with no discount child.
+- The booking-time discount (`reservation_units.discount_id`) is not part of `amount`. It follows the child row rule above.
+
 ## Open
 
-- Check how `RateQuote` fills `unit_nights.amount` against `discount_amount`. If the displayed rate already includes the stay discount, the row needs a "includes stay discount" note, not a child row.
 - The page layout, the tab on the [reservation page](../12-reservations/06-reservation-page.md) and the routes are not designed yet.

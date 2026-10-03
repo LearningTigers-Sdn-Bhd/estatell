@@ -227,8 +227,9 @@ Smaller fixes and reverts are in `git log`.
 - [x] `feat(folio): add folio routing` — `folio_routing_rules` (by unit, category or code), `FolioType::ThirdParty`, one active Master per reservation, `BillingMode::MasterPaysAll`, the full `FolioRouter` and `SyncRoutingRules`. Backend only. Needs: post charges. Docs: [Routing](13-folio/03-routing.md).
 - [x] `fix(folio): count live units in routing and scope the posting key` — **Side item.** It does not block the order below and can run any time before the folio page. `SyncRoutingRules` counts only live units (not Cancelled or NoShow) when it creates rules and keeps the rules when a unit later cancels, and the `PostCharge` replay checks that the line's folio belongs to the unit's reservation. Backend only. Docs: [Routing](13-folio/03-routing.md), [Posting charges](13-folio/02-posting-charges.md).
 - [x] `feat(folio): apply and remove folio discounts` — `DiscountQuote`, `ApplyDiscount`, `RemoveDiscount`, `folio.discount` and `folio.discount-open`, one discount per charge, percent taxes only reduced, and `ReverseLine::post()` and `TransferLines` handle nested children and skip already reversed ones. Backend only. Needs: post charges. Docs: [Folio discounts](13-folio/04-folio-discounts.md).
+- [ ] `feat(folio): close and reopen folios` — `CloseFolio`, `ReopenFolio`, `folio.close` and `folio.reopen` with role defaults and a syncing migration. Backend only. Must land before payments. Needs: post charges. Docs: [Folios and lines](13-folio/01-folios-and-lines.md#close-and-reopen).
 - [ ] `feat(folio): add the folio page with scheduled nights` — Posted and Scheduled rows, Balance and Projected total. Needs: post charges, folio routing. Docs: [Folio page](13-folio/05-folio-page.md).
-- [ ] `feat(payments): record payments and refunds` — Docs: [Payments and refunds](14-payments/01-payments-and-refunds.md).
+- [ ] `feat(payments): record payments and refunds` — Needs: close and reopen folios. Docs: [Payments and refunds](14-payments/01-payments-and-refunds.md).
 
 ### 15 City ledger
 

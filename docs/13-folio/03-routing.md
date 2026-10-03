@@ -76,7 +76,7 @@ Built in the routing item: `folio_routing_rules` (with CHECKs on `category` and 
 
 Decisions made at build time:
 
-- `CreateFolio::thirdParty(Reservation, ?Guest, ?int $payerCompanyId)` takes exactly one payer. `folios` has no label column, so a third-party folio has no label: its payer names it. A label needs a schema decision first.
+- `CreateFolio::thirdParty(Reservation, ?Guest, ?int $payerCompanyId)` takes exactly one payer. `folios` has no label column, so a third-party folio has no label: its payer names it. The payer is the only name (decided: no label column).
 - `CreateRoutingRule` returns a `RoutingRuleResult` and refuses `target_folio_not_in_reservation`, `unit_not_in_reservation`, `transaction_code_not_found` and `rule_exists`. `SyncRoutingRules` uses it for BillingMode rules, so a Manual rule on the same selectors keeps its place and the sync adds nothing.
 - `SyncRoutingRules` returns a `RoutingSyncResult` (`masterFolio`, `masterFolioCreated`, `rulesCreated`, `rulesRemoved`, `unitsWithPostedRoomLines`). It writes no activity log. A unit counts as holding posted room lines when its own folio has a Room charge that is not a reversal and was not reversed. The list is empty when no rule routes Room to the Master folio.
 - A reservation with a `company_id` gets a Master folio in every billing mode (the AR invoice is made from it), but EachPays still has no rules. Without a company the Master folio exists only when the mode routes and the reservation has 2 or more live units (not Cancelled or NoShow). The live count applies only when rules are created: once the Master folio and its BillingMode rules exist, the sync keeps them when a unit later cancels or is marked NoShow, and removes them only for EachPays or when a rule is stale. A mode change on a kept group swaps the rule. Nothing hooks cancel or NoShow.
@@ -92,7 +92,7 @@ Decisions made at build time:
 - **Cancellation and no-show fees** are Room charges and follow the Room rule.
 - **Folio page:** Scheduled rows for master and third-party folios follow the rules ([Folio page](05-folio-page.md)).
 - **Company change:** when `reservations.company_id` changes after the Master folio exists, the Master payer stays the old company. Decide in [Companies](../15-city-ledger/01-companies.md): refuse the change while the Master holds lines, or move the payer.
-- **Third-party label:** a third-party folio has no label, so its payer names it. Decide before any staff screen: add a nullable `label` to `folios`, or accept the payer as the only name.
+- **Third-party label:** decided. A third-party folio has no label and its payer names it. A third-party folio is one payer on one reservation, so the payer's name already identifies it. Add a nullable `label` later only when a real case needs one.
 
 ## Out of scope
 

@@ -59,8 +59,15 @@ erDiagram
 - `FolioBalance` (service, built): the balance of one folio, and whether a guest has an open balance.
 - `RepointGuestFolios` (built): called by `MergeGuests`.
 - `PostCharge`, `ReverseLine`, `TransferLines` (built): see [Posting charges](02-posting-charges.md).
-- `CloseFolio`, `ReopenFolio` (not built).
+- `CloseFolio`, `ReopenFolio` (not built): see [Close and reopen](#close-and-reopen).
 - `CreateFolio` (built): a unit folio is created the first time a unit receives a posting, by `PostCharge`. Nothing creates folios at booking time. See [Posting charges](02-posting-charges.md).
+
+## Close and reopen
+
+- `CloseFolio` refuses a folio that is not Open, a balance other than 0, and a Master folio while one of its units is in-house. The in-house check waits for the front desk states ([check-out](../18-front-desk/01-check-in-and-check-out.md)); until then it is a recorded follow-up. Closing changes the status only. Ledger lines are never touched.
+- `ReopenFolio` accepts a Closed folio only. A Voided folio cannot reopen.
+- Both are logged on the reservation. Both run in one transaction.
+- Payments need `CloseFolio` first, so it lands before [Payments and refunds](../14-payments/01-payments-and-refunds.md).
 
 ## Permissions
 
