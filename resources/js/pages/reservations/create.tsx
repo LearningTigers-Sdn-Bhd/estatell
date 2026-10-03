@@ -755,10 +755,7 @@ export default function ReservationCreate({
                                         </div>
                                     </Section>
 
-                                    <Section
-                                        title="Guests"
-                                        description="The booker, and the guest of each unit. Units without a guest can be filled from the reservation page."
-                                    >
+                                    <Section title="Guests">
                                         <BookingGuestsSection
                                             guests={data.guests}
                                             units={unitChoices}
