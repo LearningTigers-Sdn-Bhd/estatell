@@ -96,26 +96,64 @@ A left rail lists the folios of the reservation, the same way the Units tab list
 
 ## Actions
 
-Row and folio actions call the existing Actions. A refusal code becomes an error toast and writes nothing.
+Row and folio actions call the existing Actions. A refusal code becomes an error toast and writes and logs nothing.
 
-| Action          | Permission                              | Shown on                                                            |
-| --------------- | --------------------------------------- | ------------------------------------------------------------------- |
-| Post charge     | `folio.post-charge`                     | An Open unit, master or third-party folio that can receive postings |
-| Reverse         | `folio.reverse`                         | A Posted charge (not a child)                                       |
-| Transfer        | `folio.transfer`                        | A Posted charge on an Open folio                                    |
-| Apply discount  | `folio.discount`, `folio.discount-open` | An Open folio with eligible charges                                 |
-| Remove discount | `folio.discount`                        | A discount child row                                                |
-| Close, Reopen   | `folio.close`, `folio.reopen`           | The folio header                                                    |
+| Action          | Permission                              | Shown on                                                             |
+| --------------- | --------------------------------------- | -------------------------------------------------------------------- |
+| Post charge     | `folio.post-charge`                     | An Open folio with at least one unit that can receive a posting      |
+| Reverse         | `folio.reverse`                         | A Posted charge (not a child, a reversal or an already reversed one) |
+| Transfer        | `folio.transfer`                        | A Posted charge on an Open folio, when another Open folio exists     |
+| Apply discount  | `folio.discount`, `folio.discount-open` | An Open folio with eligible charges                                  |
+| Remove discount | `folio.discount`                        | A discount child row that is not reversed                            |
+| Close, Reopen   | `folio.close`, `folio.reopen`           | The folio header (the third item)                                    |
 
-A Scheduled row has no actions.
+A Scheduled row has no actions. A "not started" entry has none either.
+
+### Routes
+
+One `ReservationFolioController` with named methods. The routes sit in the reservation group with `scopeBindings()`, so a folio or line of another reservation or property returns 404 (`Reservation` gets a `folios()` relation for it). A Form Request checks the shape only.
+
+| URL                                             | Name                                    | Action           | Permission          |
+| ----------------------------------------------- | --------------------------------------- | ---------------- | ------------------- |
+| `POST …/{reservation}/folios/{folio}/charges`   | `reservations.folios.charges.store`     | `PostCharge`     | `folio.post-charge` |
+| `POST …/folios/{folio}/lines/{line}/reversal`   | `reservations.folios.lines.reverse`     | `ReverseLine`    | `folio.reverse`     |
+| `POST …/folios/{folio}/transfers`               | `reservations.folios.transfers.store`   | `TransferLines`  | `folio.transfer`    |
+| `POST …/folios/{folio}/discounts/quote` (JSON)  | `reservations.folios.discounts.quote`   | `DiscountQuote`  | `folio.discount`    |
+| `POST …/folios/{folio}/discounts`               | `reservations.folios.discounts.store`   | `ApplyDiscount`  | `folio.discount`    |
+| `DELETE …/folios/{folio}/lines/{line}/discount` | `reservations.folios.discounts.destroy` | `RemoveDiscount` | `folio.discount`    |
+
+- **Refusal messages:** one small class maps each `PostingResult` refusal code to a message. The controller turns it into an error toast (`Inertia::flash('toast', ...)`) and redirects back.
+- **Server-driven buttons:** the server tells each row which actions it allows, from the user's permissions, the folio status and the row type. The browser never works it out. `FolioRowData` gets the line id and an `actions` list. `FolioData` gets `canPostCharge`, the units that can receive a posting, and the other Open folios as transfer targets.
+- **Option lists:** charge items and active discounts are optional props, read when a dialog opens, like the add-on dialog.
+
+### Post charge
+
+- On a Unit folio the unit is fixed.
+- On a Master or Third-party folio the dialog has a Unit select (units that are CheckedIn or CheckedOut). `PostCharge` takes a unit and `FolioRouter` picks the folio, so the dialog says that routing decides the folio, and the success toast names the folio that received the charge.
+- The form sends `manual:{uuid}` as the idempotency key, so a double click posts once.
+
+### Reverse, remove discount
+
+An AlertDialog names the target. No reason field: none of the Actions takes one.
+
+### Transfer
+
+A single-row "Transfer…" in the row menu with a Select of the other Open folios of the reservation. The children travel with their charge. Selecting several lines with checkboxes can follow when front desk needs it.
+
+### Apply discount
+
+Two steps, as the quote requires. The dialog picks a discount (and an amount when the discount is Open, or Fixed with `allow_override`), asks the quote route, shows the eligible charges and the amount, then applies with the quote's `fingerprint`. A changed ledger refuses with `quote_changed`, and the dialog asks for a new quote.
+
+**Open discount permission.** `ApplyDiscount` does not check permissions. An Open discount, or any amount that staff enter or change, needs `folio.discount-open`. A route middleware cannot tell, so the Form Request of the store and quote routes checks it. This is the one exception to "route middleware only"; the Percent and unchanged Fixed paths need only `folio.discount`.
 
 ## Build order
 
-Three commits, in order.
+Four commits, in order.
 
-1. **Read-only tab:** `FolioStatement` (service, read only), `FolioData` and `FolioRowData`, the route, the rail, the rows, Balance and Projected total, and the real Balance in the summary card. Tests: row rules, the Scheduled-to-Posted key match, routing of Scheduled rows, query count with lazy loading prevented, permissions and 404 across properties.
-2. **Row actions:** post charge, reverse, transfer, apply and remove discount. Controllers, routes, dialogs and toasts.
-3. **Close and reopen buttons.**
+1. **Read-only tab (built):** `FolioStatement` (service, read only), `FolioData` and `FolioRowData`, the route, the rail, the rows, Balance and Projected total, and the real Balance in the summary card. Tests: row rules, the Scheduled-to-Posted key match, routing of Scheduled rows, query count with lazy loading prevented, permissions and 404 across properties.
+2. **Post, reverse and transfer:** the controller, routes, Form Requests, refusal messages, row `actions` and the three dialogs.
+3. **Discounts:** the quote route, the apply dialog with its two steps, remove discount, and the discount-open check.
+4. **Close and reopen buttons.**
 
 ## Build status
 

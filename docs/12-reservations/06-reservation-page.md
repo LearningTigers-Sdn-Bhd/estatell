@@ -6,20 +6,21 @@ Find a reservation and see everything about it on one page, with the same flow s
 
 ## Routes
 
-| URL                                                   | Name                                  | Page                           |
-| ----------------------------------------------------- | ------------------------------------- | ------------------------------ |
-| `GET /p/{code}/reservations`                          | `reservations.index`                  | `pages/reservations/index.tsx` |
-| `GET /p/{code}/reservations/{reservation}`            | `reservations.show`                   | `pages/reservations/show.tsx`  |
-| `GET /p/{code}/reservations/{reservation}/guests`     | `reservations.guests`                 | `pages/reservations/show.tsx`  |
-| `GET /p/{code}/reservations/{reservation}/add-ons`    | `reservations.add-ons`                | `pages/reservations/show.tsx`  |
-| `GET /p/{code}/reservations/{reservation}/folio`      | `reservations.folio`                  | `pages/reservations/show.tsx`  |
-| `GET /p/{code}/reservations/{reservation}/activity`   | `reservations.activity`               | `pages/reservations/show.tsx`  |
-| `PUT /p/{code}/reservations/{reservation}/group`      | `reservations.group.update`           | – (`UpdateReservationGroup`)   |
-| `POST …/{reservation}/units`                          | `reservations.units.store`            | – (`AddUnit`)                  |
-| `POST …/{reservation}/units/{unit}/guests`            | `reservations.units.guests.store`     | – (`AttachGuest`)              |
-| `POST …/{reservation}/units/{unit}/add-ons`           | `reservations.units.add-ons.store`    | – (`AddUnitAddOn`)             |
-| `DELETE …/{reservation}/units/{unit}/add-ons/{addOn}` | `reservations.units.add-ons.destroy`  | – (`RemoveUnitAddOn`)          |
-| `GET /p/{code}/guests/search`                         | `guests.search` (JSON, `guests.view`) | –                              |
+| URL                                                    | Name                                  | Page                                                      |
+| ------------------------------------------------------ | ------------------------------------- | --------------------------------------------------------- |
+| `GET /p/{code}/reservations`                           | `reservations.index`                  | `pages/reservations/index.tsx`                            |
+| `GET /p/{code}/reservations/{reservation}`             | `reservations.show`                   | `pages/reservations/show.tsx`                             |
+| `GET /p/{code}/reservations/{reservation}/guests`      | `reservations.guests`                 | `pages/reservations/show.tsx`                             |
+| `GET /p/{code}/reservations/{reservation}/add-ons`     | `reservations.add-ons`                | `pages/reservations/show.tsx`                             |
+| `GET /p/{code}/reservations/{reservation}/folio`       | `reservations.folio`                  | `pages/reservations/show.tsx`                             |
+| `…/{reservation}/folios/{folio}/…` (six action routes) | `reservations.folios.*`               | – (see [Folio page](../13-folio/05-folio-page.md#routes)) |
+| `GET /p/{code}/reservations/{reservation}/activity`    | `reservations.activity`               | `pages/reservations/show.tsx`                             |
+| `PUT /p/{code}/reservations/{reservation}/group`       | `reservations.group.update`           | – (`UpdateReservationGroup`)                              |
+| `POST …/{reservation}/units`                           | `reservations.units.store`            | – (`AddUnit`)                                             |
+| `POST …/{reservation}/units/{unit}/guests`             | `reservations.units.guests.store`     | – (`AttachGuest`)                                         |
+| `POST …/{reservation}/units/{unit}/add-ons`            | `reservations.units.add-ons.store`    | – (`AddUnitAddOn`)                                        |
+| `DELETE …/{reservation}/units/{unit}/add-ons/{addOn}`  | `reservations.units.add-ons.destroy`  | – (`RemoveUnitAddOn`)                                     |
+| `GET /p/{code}/guests/search`                          | `guests.search` (JSON, `guests.view`) | –                                                         |
 
 Routes live in `routes/reservations.php` with `scopeBindings()`, so another property's reservation, unit or add-on returns 404. Pages are guarded with `can:` middleware, like the guests routes (no Policy classes). The tabs share one controller with a private `renderTab()`, like `GuestController`. The server sends only the open tab's data. The selected unit is `?unit={id}`, so a refresh keeps it.
 
