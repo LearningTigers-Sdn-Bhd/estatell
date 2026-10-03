@@ -719,11 +719,16 @@ export default function ReservationCreate({
     );
 }
 
-ReservationCreate.layout = (props: { isWalkIn: boolean }) => ({
+ReservationCreate.layout = (props: {
+    isWalkIn: boolean;
+    property: App.Data.Property.PropertySummaryData;
+}) => ({
+    // The property code is passed in because this runs before AppLayout sets the URL defaults, so server and browser
+    // render the same links.
     breadcrumbs: [
-        { title: 'Reservations', href: index() },
+        { title: 'Reservations', href: index(props.property.code) },
         props.isWalkIn
-            ? { title: 'Walk-in', href: walkIn() }
-            : { title: 'New booking', href: newMethod() },
+            ? { title: 'Walk-in', href: walkIn(props.property.code) }
+            : { title: 'New booking', href: newMethod(props.property.code) },
     ],
 });
