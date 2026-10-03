@@ -66,13 +66,30 @@ The router follows one rule and stops. A rule target is final, so there are no c
 | Master pays rooms, units pay extras   | Room to FM                    | Extras stay on each unit's folio           |
 | Master pays all                       | All to FM                     | Unit folios stay empty                     |
 | Company pays rooms, agent pays diving | Room to FM, DIVING code to FA | Everything else stays on each unit's folio |
-| Each unit pays for the other (Manual) | Unit 1 to F2, unit 2 to F1    | The router supports it. No screen yet.     |
+| Each unit pays for the other (Manual) | Unit 1 to F2, unit 2 to F1    | Made in the Routing rules Sheet            |
 
 FM is the Master folio and FA a third-party folio for the travel agent.
 
+## Staff screens
+
+Staff create third-party folios and Manual rules on the [folio tab](05-folio-page.md#routing-rules-and-third-party-folios). The rules belong to the reservation, not to one folio, so both actions sit above the folio rail.
+
+| Decision                 | Rule                                                                                                                                                                                                                                         |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Permission               | `folio.transfer` covers both screens. Its label is "Transfer folio lines and manage routing". Routing decides who pays, the same trust as moving lines (wastays uses one permission, `manage_folio_movements`, for both). No new permission. |
+| Third-party payer        | An existing guest of the property, picked with `GuestPicker`. A company payer comes with [Companies](../15-city-ledger/01-companies.md).                                                                                                     |
+| Rule selectors           | Unit: all units or one unit. Charges: one category from `TransactionCategory::chargeItemCases()`, one charge code, or all charges. Tax, discount and payment categories are never offered: children follow their charge.                     |
+| Rule target              | An Open folio of the reservation. `CreateRoutingRule` refuses a Closed or Voided target for a Manual rule with `target_folio_not_open`. BillingMode rules are not checked, so `SyncRoutingRules` does not change.                            |
+| Remove                   | `RemoveRoutingRule` (Action) deletes a Manual rule. It refuses a BillingMode rule with `rule_not_manual`: change the billing mode to change those. Posted lines stay where they are.                                                         |
+| Activity log             | On the reservation: third-party folio created, routing rule added, routing rule removed.                                                                                                                                                     |
+| Unused third-party folio | No delete and no void. Close it at 0.00.                                                                                                                                                                                                     |
+| Scheduled rows           | No change. The folio tab already routes Scheduled rows through the rules, so a new rule moves them at once. Posted lines never move; staff use Transfer.                                                                                     |
+
+`RoutingRuleRefusals` maps each refusal code to a field and a message, the way `FolioRefusals` does.
+
 ## Build status
 
-Built in the routing item: `folio_routing_rules` (with CHECKs on `category` and `source` and the unique index `folio_routing_rules_selector_unique` using `NULLS NOT DISTINCT`), `FolioRoutingRule` and its factory, `RoutingRuleSource`, `FolioType::ThirdParty` (type CHECK), the Master partial unique index `folios_active_master_unique`, `BillingMode::MasterPaysAll` (with the `reservations.billing_mode` CHECK), the full `FolioRouter`, `SyncRoutingRules` and the third-party form of `CreateFolio`. `CreateRoutingRule` and `RoutingRuleCheck` are the reusable place for the "target folio of another reservation" refusal. No UI and no permissions: staff screens to create third-party folios and Manual rules come later.
+Built in the routing item: `folio_routing_rules` (with CHECKs on `category` and `source` and the unique index `folio_routing_rules_selector_unique` using `NULLS NOT DISTINCT`), `FolioRoutingRule` and its factory, `RoutingRuleSource`, `FolioType::ThirdParty` (type CHECK), the Master partial unique index `folios_active_master_unique`, `BillingMode::MasterPaysAll` (with the `reservations.billing_mode` CHECK), the full `FolioRouter`, `SyncRoutingRules` and the third-party form of `CreateFolio`. `CreateRoutingRule` and `RoutingRuleCheck` are the reusable place for the "target folio of another reservation" refusal. No UI and no permissions at that step: see [Staff screens](#staff-screens).
 
 Decisions made at build time:
 

@@ -108,6 +108,8 @@ Row and folio actions call the existing Actions. A refusal writes and logs nothi
 | Close, Reopen   | `folio.close`, `folio.reopen`           | The folio header                                                     |
 | Record payment  | `payment.record`                        | The folio header of an Open folio, and a "not started" entry         |
 | Refund          | `payment.refund`                        | A Completed payment row with an amount left to refund                |
+| Third-party     | `folio.transfer`                        | Above the rail, for the reservation                                  |
+| Routing rules   | `folio.transfer`                        | Above the rail, for the reservation                                  |
 
 A Scheduled row has no actions. A "not started" entry has only Record payment.
 
@@ -149,6 +151,55 @@ A single-row "Transfer…" in the row menu with a Select of the other Open folio
 Two steps, as the quote requires. The dialog picks a discount (and an amount when the discount is Open, or Fixed with `allow_override`), asks the quote route, shows the eligible charges and the amount, then applies with the quote's `fingerprint`. A changed ledger refuses with `quote_changed`, and the dialog asks for a new quote.
 
 **Open discount permission.** `ApplyDiscount` does not check permissions. An Open discount, or any amount that staff enter or change, needs `folio.discount-open`. A route middleware cannot tell, so the Form Request of the store and quote routes checks it. This is the one exception to "route middleware only"; the Percent and unchanged Fixed paths need only `folio.discount`.
+
+## Routing rules and third-party folios
+
+Two reservation-level buttons sit above the rail, next to Record payment. The rules and decisions are in [Routing](03-routing.md#staff-screens).
+
+```
+┌───────────────────────────────────────────────────────────────────────┐
+│ Folio                          [Routing rules (3)] [+ Third-party]    │
+├────────────────────┬──────────────────────────────────────────────────┤
+│ FOLIOS             │ Third party · Blue Reef Dive  F-0034             │
+│  Master · Acme     │ ● Open                                           │
+│  Unit 101 · Tan    │ ...                                              │
+│ ▌Third party ·     │                                                  │
+│   Blue Reef Dive   │                                                  │
+└────────────────────┴──────────────────────────────────────────────────┘
+```
+
+**+ Third-party** opens a Dialog with one field, the payer (`GuestPicker`). On success the tab opens the new folio (`?folio=`) and a toast names it.
+
+**Routing rules** opens a Sheet:
+
+```
+┌ Routing rules ──────────────────────────────────────────┐
+│ Unit       Charges            Goes to            Source │
+│ All units  Room               Master · Acme  Billing    │  read only
+│ All units  DIVE Diving trip   Third party ·  Manual [🗑]│
+│                               Blue Reef Dive            │
+│ Unit 101   Food and beverage  Unit 102 · Lee Manual [🗑]│
+│                                                         │
+│ Add rule                                                │
+│ Unit     [All units                 ▾]                  │
+│ Charges  (•) Category [Food and beverage ▾]             │
+│          ( ) Charge code [DIVE Diving trip ▾]           │
+│          ( ) All charges                                │
+│ Goes to  [Third party · Blue Reef Dive ▾]  Open folios  │
+│ ⓘ Only later postings follow a new rule. Posted lines   │
+│   stay; move them with Transfer.                        │
+│                                          [Add rule]     │
+└─────────────────────────────────────────────────────────┘
+```
+
+- The rules and the form options (units, categories, charge codes, Open folios) are one optional prop, read when the Sheet opens, like `chargeItems`.
+- Remove asks in an AlertDialog ("Remove routing rule?"). A refusal shows as an error toast. A refusal in the add form shows on its field.
+
+| URL                                           | Name                                    | Action                       | Permission       |
+| --------------------------------------------- | --------------------------------------- | ---------------------------- | ---------------- |
+| `POST …/{reservation}/folios/third-party`     | `reservations.folios.third-party.store` | `CreateFolio::thirdParty`    | `folio.transfer` |
+| `POST …/{reservation}/routing-rules`          | `reservations.routing-rules.store`      | `CreateRoutingRule` (Manual) | `folio.transfer` |
+| `DELETE …/{reservation}/routing-rules/{rule}` | `reservations.routing-rules.destroy`    | `RemoveRoutingRule`          | `folio.transfer` |
 
 ## Build order
 
