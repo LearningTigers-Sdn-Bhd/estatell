@@ -800,6 +800,11 @@ export default function ReservationCreate({
                                     unitChoices[Number(tab.stays_in)]?.label ??
                                     null,
                             }))}
+                            discountCount={
+                                data.lines.filter(
+                                    (line) => line.discount_id !== '',
+                                ).length
+                            }
                             unitsWithoutGuest={
                                 unitChoices.filter(
                                     (_, index) =>

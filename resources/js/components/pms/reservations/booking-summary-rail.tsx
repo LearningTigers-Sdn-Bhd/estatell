@@ -24,7 +24,8 @@ function Row({
 
 /**
  * The booking summary: units, the server's room and add-on totals added up for display, the billing mode and the guest
- * list. Tax shows "from folio" until the folio exists.
+ * list. Tax shows "from folio" until the folio exists. Catalogue discounts are not in the total, because the folio applies
+ * them; a note says so while any line has one.
  */
 export function BookingSummaryRail({
     units,
@@ -35,6 +36,7 @@ export function BookingSummaryRail({
     onBillingModeChange,
     guests,
     unitsWithoutGuest,
+    discountCount,
 }: {
     units: number;
     quotes: Quote[];
@@ -44,6 +46,8 @@ export function BookingSummaryRail({
     onBillingModeChange: (value: string) => void;
     guests: { name: string; unit: string | null }[];
     unitsWithoutGuest: number;
+    /** How many lines have a catalogue discount picked. */
+    discountCount: number;
 }) {
     const rooms = sumMoney(quotes.map((quote) => quote.lineTotal));
     const addOns = sumMoney(quotes.map((quote) => quote.addOnsTotal));
@@ -77,6 +81,14 @@ export function BookingSummaryRail({
                         </span>
                     </Row>
                 </dl>
+                {discountCount > 0 && (
+                    <p className="text-sm text-muted-foreground">
+                        {discountCount === 1
+                            ? 'A discount is applied on the folio.'
+                            : `${discountCount} discounts are applied on the folio.`}{' '}
+                        It is not in this total.
+                    </p>
+                )}
                 {units > 1 && (
                     <>
                         <Separator />
