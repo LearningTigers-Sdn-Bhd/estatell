@@ -12,26 +12,26 @@ A full page (Form archetype): it has repeating lines and many fields. Two column
 ┌────────────────────────────────────────────────────────────┬─────────────────────────┐
 │ STAY                                                       │ SUMMARY        (sticky) │
 │ Arrival [12 Oct│03:00 PM] 3 nights Departure [15 Oct│12:00 PM] │ Units       5           │
-│ Source [Phone ▾]  Ext. ref [________]                      │ Rooms     RM 2,310.00   │
-│ GROUP (2+ units)  Group name [Tan family trip]             │ Add-ons   RM    80.00   │
-│ ROOMS AND BEDS                                             │ Tax       from folio    │
-│ Room type │ Rate plan │ Room / Bed │ Ad │ Ch │ Rate     │   │ Total     RM 2,390.00   │
-│ Deluxe ▾  │ BAR RO ▾  │ Select later ▾│ 2 │ 2 │ 840.00 ⓘ ✎ 🗑│ │                         │
-│   Children's ages: [4] [9]                                 │ Billing (2+ units)      │
-│ Dorm ▾    │ Backpacker▾│ Beds [3]            │ 270.00 ⓘ ✎ 🗑│ │ (•) Master pays rooms   │
-│   Bed 1 [D1-2 ▾]  Bed 2 [Select later ▾]  Bed 3 [ … ▾]     │ ( ) Each pays           │
-│ [+ Add line]                                               │                         │
-│                                                            │ Guests                  │
-│ GUESTS                                                     │  Tan Wei Ming  booker   │
-│ Guest · Phone · Stays in (one collapsible row each)        │  Ahmad Faiz    Bed 1    │
-│ [+ Add guest] in the table footer                          │  2 units without guest  │
-│                                                            │                         │
-│ EXTRAS (optional)  Add-ons · Discount                      │                         │
-│ NOTES                                                      │                         │
+│ Source [Phone ▾]  Ext. ref [____]  Group name [Tan family] │ Rooms     RM 2,310.00   │
+│                                                            │ Add-ons   RM    80.00   │
+│ Rooms & guests   Discounts   Add-ons (2)   Notes           │ Tax       from folio    │
+│ ───────────────                                            │ Total     RM 2,390.00   │
+│ ROOMS AND BEDS                                             │                         │
+│ Room type │ Rate plan │ Room / Bed │ Ad │ Ch │ Rate     │   │ Billing (2+ units)      │
+│ Deluxe ▾  │ BAR RO ▾  │ Select later ▾│ 2 │ 2 │ 840.00 ⓘ ✎ 🗑│ │ (•) Master pays rooms   │
+│   Children's ages: [4] [9]                                 │ ( ) Each pays           │
+│ Dorm ▾    │ Backpacker▾│ Beds [3]            │ 270.00 ⓘ ✎ 🗑│ │                         │
+│   Bed 1 [D1-2 ▾]  Bed 2 [Select later ▾]  Bed 3 [ … ▾]     │ Guests                  │
+│                                           [+ Add line]     │  Tan Wei Ming  booker   │
+│ GUESTS                                                     │  Ahmad Faiz    Bed 1    │
+│ Guest · Phone · Stays in (one collapsible row each)        │  2 units without guest  │
+│ 2 units without a guest                   [+ Add guest]    │                         │
 ├────────────────────────────────────────────────────────────┴─────────────────────────┤
 │                                                          [Cancel]  [Create booking]  │
 └──────────────────────────────────────────────────────────────────────────────────────┘
 ```
+
+Stay is always visible above the tabs. The tab strip uses the `line` variant of `Tabs`. **Rooms & guests** holds Rooms and beds and Guests, stacked. **Discounts**, **Add-ons** and **Notes** are the other tabs.
 
 ## Entry points
 
@@ -49,23 +49,23 @@ The Reservations page has `New ▾` with **New booking** and **Walk-in**. Walk-i
 
 ## Sections
 
-1. **Stay**: arrival, departure, nights (shown), source, external reference. Arrival and departure apply to every line.
-    - Layout: the labels are Arrival and Departure. Each has one `InputGroup` with the date (`DatePicker`) and a native `type="time"` input. A nights badge sits between the two groups and takes no input. Source and External reference are on the row below. Below `lg` the badge sits between the groups, which stack in order.
+1. **Stay**: arrival, departure, nights (shown), source, external reference, group name. Arrival and departure apply to every line.
+    - Layout: the labels are Arrival and Departure. Each has one `InputGroup` with the date (`DatePicker`) and a native `type="time"` input. A nights badge sits between the two groups and takes no input. Source, External reference and Group name are on the row below. Below `lg` the badge sits between the groups, which stack in order.
     - Times: `arrival_time` and `departure_time` default to the property's `check_in_time` and `check_out_time` and apply to every line. They are the expected times and never change nights or prices (see [Expected times](01-reservation-shape.md#expected-times)). The native input shows 12-hour or 24-hour by the staff PC's locale, and the server always gets `HH:mm`. A stay is at least one night, so the times are never compared.
     - Walk-in: the arrival date is today. The arrival time defaults to now, rounded to the minute, and staff can edit it.
     - Package plans lock the departure date, not the time.
+    - Group name: the third field of the row after External reference, shown when the form has 2 or more units. Leave it empty to show the booker's name. `billing_mode` stays in the rail.
     - Source: **New booking** offers the sources Direct and Phone. **Walk-in** fixes the source to WalkIn. Channel and Agent are not offered: they come from ingestion and the agent portal.
-2. **Group**: shown when the form has 2 or more units, above Rooms and beds. Group name, and `billing_mode` in the rail.
-3. **Rooms and beds**: one line per room type + rate plan.
+2. **Rooms and beds** (tab **Rooms & guests**): one line per room type + rate plan.
     - Room lines: adults and children. When children > 0, one required age field per child, under the line.
     - Bed lines: "Beds: N", expanded into N units, with one bed picker per unit.
     - Package plans: departure is locked, the stay total is shown.
     - Children: one required age field per child under the line (not a comma list, unlike the Add unit Sheet on the reservation page).
     - Rate cell: the server quote from `RateQuoteService`. ⓘ opens the night breakdown. ✎ sets an override (logged, needs a reason).
     - A restriction that fails (stop-sell, closed to arrival or departure, min or max stay) shows a warning under the lines. Staff with `rates.override-restrictions` can continue after entering a reason (see [Daily rates and restrictions](../08-rates/02-daily-rates-and-restrictions.md)).
-4. **Guests**: see [Guests section](#guests-section).
-5. **Extras** (optional): one section, grouped by line. Each line has its add-ons (see [Add-ons](04-add-ons.md); a Bed line gives every bed the same ones) and a RoomOnly discount from the [catalogue](../06-catalogues/05-discounts.md). Both go in the line's `NewUnitData`.
-6. **Notes**: one free text field for special requests or internal notes, up to 2000 characters. It is stored in `reservations.notes` (see [Reservation shape](01-reservation-shape.md)) and shown in the summary card of the reservation page. The creation log records only that notes exist, never the text.
+3. **Guests** (tab **Rooms & guests**, under Rooms and beds): see [Guests section](#guests-section).
+4. **Discounts** and **Add-ons** (optional, one tab each, grouped by line; with no line they say "Add a room or bed line first"). Each line has its add-ons (see [Add-ons](04-add-ons.md); a Bed line gives every bed the same ones) on the Add-ons tab, with a count badge, and a RoomOnly discount from the [catalogue](../06-catalogues/05-discounts.md) on the Discounts tab. Both go in the line's `NewUnitData`. A tab with an error turns red and opens itself on submit; an error on a room, bed or guest opens **Rooms & guests**.
+5. **Notes** (tab **Notes**): one free text field for special requests or internal notes, up to 2000 characters. It is stored in `reservations.notes` (see [Reservation shape](01-reservation-shape.md)) and shown in the summary card of the reservation page. The creation log records only that notes exist, never the text.
 
 The rail shows units, room and add-on totals (the add-on total comes from the quote, see [Implementation](#implementation)), the billing mode and the guest list. All amounts come from the server. Tax shows "from folio" until [Folios and lines](../13-folio/01-folios-and-lines.md) exists.
 
@@ -198,6 +198,7 @@ One checklist item per commit, in this order:
 
 4. **Stay times:** the `arrival_time` and `departure_time` columns, backfilled from the property settings; `NewUnitData`, `NewBookingData`, `AddUnit` (copies the times from the first unit when none are given), `CreateReservation` and `StoreBookingRequest`; the `InputGroup` Stay layout; the times on the reservation page. The Add unit Sheet has no time fields.
 5. **Guest table:** the Guests section becomes a table with collapsible rows and an Add guest footer, replacing the tabs. UI only: the request, error keys and Actions do not change.
+6. **Tabs and group name:** Group name moves into Stay. Rooms and beds and Guests share the **Rooms & guests** tab, and Discounts, Add-ons and Notes get a tab each, in a `line` tab strip. UI only: the request, error keys and Actions do not change.
 
 ## Build status
 
