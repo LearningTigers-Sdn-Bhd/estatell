@@ -55,6 +55,8 @@ roles    spatie columns + property_id (NOT NULL, FK) + default_role (nullable)
 | `folio.discount-open`         | Apply an Open discount, or change the amount of a discount            | ✓     | ✓       | Finance                           |
 | `folio.close`                 | Close a folio with a balance of 0                                     | ✓     | ✓       | Front desk, Finance               |
 | `folio.reopen`                | Reopen a Closed folio                                                 | ✓     | ✓       | Finance                           |
+| `payment.record`              | Record a payment, download a receipt                                  | ✓     | ✓       | Front desk, Finance               |
+| `payment.refund`              | Refund a payment                                                      | ✓     | ✓       | Finance                           |
 
 Later modules add rows here. Their module docs list their permissions.
 

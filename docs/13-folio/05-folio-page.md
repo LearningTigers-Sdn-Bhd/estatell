@@ -81,7 +81,7 @@ A left rail lists the folios of the reservation, the same way the Units tab list
 | Balance   | Posted balance of that folio, in the danger tone when above 0                           |
 | Order     | Master, then Unit folios in unit order, then Third party folios, then not-started units |
 
-- **Not started:** a unit with no folio gets a read-only entry labelled "Unit X · not started". It shows the unit's Scheduled rows, no Balance and no actions. Nothing creates a folio to show it. A folio is created on the first posting (see [Posting charges](02-posting-charges.md)).
+- **Not started:** a unit with no folio gets a read-only entry labelled "Unit X · not started". It shows the unit's Scheduled rows and no Balance. Its only action is Record payment, which creates the unit's folio on the first payment ([Payments and refunds](../14-payments/01-payments-and-refunds.md)). Nothing else creates a folio to show it. A folio is created on the first posting (see [Posting charges](02-posting-charges.md)).
 - The default folio is the Master when it exists, otherwise the first Unit folio.
 - The rail takes about 200px, so the Room column is hidden while the rail names the unit.
 - A Closed folio is read only: no post, discount, transfer or reverse actions, and its menus are hidden. It shows the invoice number and a Reopen action.
@@ -105,9 +105,11 @@ Row and folio actions call the existing Actions. A refusal writes and logs nothi
 | Transfer        | `folio.transfer`                        | A Posted charge on an Open folio, when another Open folio exists     |
 | Apply discount  | `folio.discount`, `folio.discount-open` | An Open folio with eligible charges                                  |
 | Remove discount | `folio.discount`                        | A discount child row that is not reversed                            |
-| Close, Reopen   | `folio.close`, `folio.reopen`           | The folio header (the third item)                                    |
+| Close, Reopen   | `folio.close`, `folio.reopen`           | The folio header                                                     |
+| Record payment  | `payment.record`                        | The folio header of an Open folio, and a "not started" entry         |
+| Refund          | `payment.refund`                        | A Completed payment row with an amount left to refund                |
 
-A Scheduled row has no actions. A "not started" entry has none either.
+A Scheduled row has no actions. A "not started" entry has only Record payment.
 
 ### Routes
 

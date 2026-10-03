@@ -232,7 +232,9 @@ Smaller fixes and reverts are in `git log`.
 - [x] `feat(folio): post, reverse and transfer from the folio tab` — `ReservationFolioController`, the charge, reversal and transfer routes with `scopeBindings()`, refusal messages as toasts, server-driven row actions, and the three dialogs. Needs: the folio tab. Docs: [Folio page](13-folio/05-folio-page.md#actions).
 - [x] `feat(folio): apply and remove discounts from the folio tab` — the quote route, the two-step apply dialog, remove discount, and the `folio.discount-open` check in the Form Request. Needs: post, reverse and transfer from the tab. Docs: [Folio page](13-folio/05-folio-page.md#apply-discount).
 - [x] `feat(folio): close and reopen from the folio tab` — Header buttons for `CloseFolio` and `ReopenFolio`. Needs: apply and remove discounts from the tab. Docs: [Folio page](13-folio/05-folio-page.md#actions).
-- [ ] `feat(payments): record payments and refunds` — Needs: close and reopen folios, the folio tab. Docs: [Payments and refunds](14-payments/01-payments-and-refunds.md).
+- [ ] `feat(payments): add payments and the record and refund Actions` — `payments` table, `PaymentPurpose`, `PaymentStatus`, `PostFolioCharge` extracted from `PostCharge`, `RecordPayment` (a deposit creates the unit folio, a surcharge posts on the same folio), `RefundPayment`, `PaymentQuote`, `payment.record` and `payment.refund`. Backend only. Needs: close and reopen folios, the folio tab. Docs: [Payments and refunds](14-payments/01-payments-and-refunds.md).
+- [ ] `feat(payments): record and refund from the folio tab` — the quote, record and refund routes, the Record payment Dialog with the total to collect, payment rows and the Refund row action, Record payment on a "not started" entry. Needs: the payments Actions. Docs: [Payments and refunds](14-payments/01-payments-and-refunds.md#ui-folio-tab).
+- [ ] `feat(payments): add receipt PDFs` — the table-based Blade layout, the receipt route and the download link. Needs: record and refund from the tab. Docs: [Payments and refunds](14-payments/01-payments-and-refunds.md#receipt).
 
 ### 15 City ledger
 

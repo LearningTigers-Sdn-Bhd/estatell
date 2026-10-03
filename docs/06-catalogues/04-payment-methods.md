@@ -47,4 +47,4 @@ payment_methods    id, property_id, transaction_code_id, name, type (PaymentMeth
 - `DirectBill` (label "City ledger") moves the balance to the city ledger (see [AR invoices](../15-city-ledger/02-ar-invoices.md)).
 - `OtaCollected` is used when an OTA collected payment (see [Booking ingestion](../21-channels/05-booking-ingestion.md)).
 
-Payment recording, surcharge posting, OTA ingestion and city-ledger invoice creation are later modules.
+Payment recording and surcharge posting are in [Payments and refunds](../14-payments/01-payments-and-refunds.md). OTA ingestion and city-ledger invoice creation are later modules.

@@ -49,6 +49,10 @@ All Actions return a result and write nothing on a refusal. Each one is one tran
 - With `unit_add_on_id`, the key is `addon:{id}`, `source_type` and `source_id` name the add-on, and `unit_add_ons.folio_line_id` is set to the charge line.
 - The target folio comes from `FolioRouter`.
 
+### `PostFolioCharge`
+
+(Planned with [payments](../14-payments/01-payments-and-refunds.md).) The line-writing core of `PostCharge`, for a given folio: it calculates tax with `TaxCalculator`, then posts the charge line and its tax children. `PostCharge` keeps its own checks (unit, charge, price, folio) and calls it. `RecordPayment` calls it for the payment surcharge, because a deposit has no CheckedIn unit for `PostCharge`.
+
 ### `ReverseLine`
 
 `(User $actor, FolioLine $line): PostingResult`. It posts a line with the opposite amount and `reversal_of_id`, then a reversal for each child line. A tax child reversal links to its own child.
@@ -118,7 +122,7 @@ Built with the night audit item.
 - A posting with `unit_add_on_id` takes the item, quantity and amount from the add-on row. The night audit item builds the data from the row and does not trust the caller.
 
 - No forecast table. `unit_nights` already is the forecast, and so are the nightly `unit_add_ons` rows. The folio page reads them (see [Folio page](05-folio-page.md)).
-- Surcharges from payment methods post as charge lines.
+- Surcharges from payment methods post as charge lines on the folio that receives the payment, through `PostFolioCharge` (see [Payments and refunds](../14-payments/01-payments-and-refunds.md)).
 - Every posting uses `CurrentBusinessDate`. Closed dates reject postings.
 
 ## Permissions
