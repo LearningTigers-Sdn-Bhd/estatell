@@ -225,7 +225,7 @@ export function GuestAutocompleteField({
                     ))}
                     <li
                         aria-hidden
-                        className="flex flex-wrap items-center gap-x-3 gap-y-1 px-2 py-1 text-xs text-muted-foreground"
+                        className="flex flex-wrap items-center gap-x-3 gap-y-1 border-t px-2 pt-2 pb-1 text-xs text-muted-foreground"
                     >
                         <span className="flex items-center gap-1">
                             <KbdGroup>
