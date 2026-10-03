@@ -1,4 +1,10 @@
-import { TriangleAlert, UserRound } from 'lucide-react';
+import {
+    ArrowDown,
+    ArrowUp,
+    CornerDownLeft,
+    TriangleAlert,
+    UserRound,
+} from 'lucide-react';
 import { useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { PhoneInput } from '@/components/pms/phone-input';
@@ -12,6 +18,7 @@ import {
     FieldLabel,
 } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
+import { Kbd, KbdGroup } from '@/components/ui/kbd';
 import {
     InputGroup,
     InputGroupAddon,
@@ -218,9 +225,29 @@ export function GuestAutocompleteField({
                     ))}
                     <li
                         aria-hidden
-                        className="px-2 py-1 text-xs text-muted-foreground"
+                        className="flex flex-wrap items-center gap-x-3 gap-y-1 px-2 py-1 text-xs text-muted-foreground"
                     >
-                        ↑↓ move · ↵ select · esc keep typing as a new guest
+                        <span className="flex items-center gap-1">
+                            <KbdGroup>
+                                <Kbd>
+                                    <ArrowUp />
+                                </Kbd>
+                                <Kbd>
+                                    <ArrowDown />
+                                </Kbd>
+                            </KbdGroup>
+                            move
+                        </span>
+                        <span className="flex items-center gap-1">
+                            <Kbd>
+                                <CornerDownLeft />
+                            </Kbd>
+                            select
+                        </span>
+                        <span className="flex items-center gap-1">
+                            <Kbd>Esc</Kbd>
+                            keep typing as a new guest
+                        </span>
                     </li>
                 </ul>
             </>
