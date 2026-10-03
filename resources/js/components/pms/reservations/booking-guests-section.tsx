@@ -221,7 +221,7 @@ function GuestRow({
                     </div>
 
                     <CollapsibleContent>
-                        <div className="flex flex-col gap-4 px-3 pb-3 lg:pl-14">
+                        <div className="flex flex-col gap-4 px-3 pb-3 lg:px-14">
                             {parts.linked}
                             {parts.notes}
 
