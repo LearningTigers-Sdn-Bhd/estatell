@@ -2,11 +2,12 @@
 
 namespace App\Services\Folio;
 
+use App\Actions\Folio\FolioStatusResult;
 use App\Actions\Folio\PostingResult;
 use App\Services\Catalogues\TaxCalculator;
 
 /**
- * Turns the refusal codes of the folio Actions into a message and the form field it belongs to. A form shows the
+ * Turns the refusal codes of the folio Actions (posting, discounts, close and reopen) into a message and the form field it belongs to. A form shows the
  * errors in its Dialog; an AlertDialog shows `message()` as a toast. A refusal with no matching field uses `form`,
  * a message for the whole form. See docs/13-folio/05-folio-page.md.
  */
@@ -58,6 +59,8 @@ class FolioRefusals
             PostingResult::REFUSAL_AMOUNT_REQUIRED => ['amount', __('Enter the discount amount.')],
             PostingResult::REFUSAL_QUOTE_CHANGED => [self::FORM, __('The folio changed. Check the new quote and apply again.')],
             PostingResult::REFUSAL_NOT_A_DISCOUNT => [self::FORM, __('This line is not a discount.')],
+            FolioStatusResult::REFUSAL_BALANCE_NOT_ZERO => [self::FORM, __('Only a folio with a balance of 0.00 can be closed. Settle it or move the charges first.')],
+            FolioStatusResult::REFUSAL_NOT_CLOSED => [self::FORM, __('Only a closed folio can be reopened.')],
             TaxCalculator::REFUSAL_NATIONALITY_REQUIRED => [self::FORM, __('This charge has a tax that depends on nationality. Add the booker\'s nationality to the guest first.')],
             TaxCalculator::REFUSAL_INCLUSIVE_TAX_EXCEEDS_AMOUNT => ['unit_amount', __('The tax in this price is more than the amount.')],
             default => [self::FORM, __('This could not be done.')],

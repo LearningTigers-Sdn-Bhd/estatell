@@ -132,6 +132,8 @@ class ReservationController extends Controller
             'reverse' => $request->user()->can(PermissionEnum::FolioReverse->value),
             'transfer' => $request->user()->can(PermissionEnum::FolioTransfer->value),
             'discount' => $request->user()->can(PermissionEnum::FolioDiscount->value),
+            'close' => $request->user()->can(PermissionEnum::FolioClose->value),
+            'reopen' => $request->user()->can(PermissionEnum::FolioReopen->value),
         ]));
     }
 

@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Reservations;
 
 use App\Actions\Folio\ApplyDiscount;
+use App\Actions\Folio\CloseFolio;
 use App\Actions\Folio\PostCharge;
 use App\Actions\Folio\PostingResult;
 use App\Actions\Folio\RemoveDiscount;
+use App\Actions\Folio\ReopenFolio;
 use App\Actions\Folio\ReverseLine;
 use App\Actions\Folio\TransferLines;
 use App\Data\Folio\FolioDiscountQuoteResponseData;
@@ -130,6 +132,34 @@ class ReservationFolioController extends Controller
         Inertia::flash('toast', $result->isRefused()
             ? ['type' => 'error', 'message' => $refusals->message((string) $result->refusal)]
             : ['type' => 'success', 'message' => __('Discount removed.')]);
+
+        return back(fallback: $this->page($property, $reservation, $folio));
+    }
+
+    /**
+     * Close an Open folio with a balance of 0. It has no form, so a refusal is an error toast.
+     */
+    public function close(Request $request, Property $property, Reservation $reservation, Folio $folio, CloseFolio $closeFolio, FolioRefusals $refusals): RedirectResponse
+    {
+        $result = $closeFolio($request->user(), $folio);
+
+        Inertia::flash('toast', $result->isRefused()
+            ? ['type' => 'error', 'message' => $refusals->message((string) $result->refusal)]
+            : ['type' => 'success', 'message' => __('Folio :number closed.', ['number' => $folio->number])]);
+
+        return back(fallback: $this->page($property, $reservation, $folio));
+    }
+
+    /**
+     * Reopen a Closed folio. A refusal is an error toast.
+     */
+    public function reopen(Request $request, Property $property, Reservation $reservation, Folio $folio, ReopenFolio $reopenFolio, FolioRefusals $refusals): RedirectResponse
+    {
+        $result = $reopenFolio($request->user(), $folio);
+
+        Inertia::flash('toast', $result->isRefused()
+            ? ['type' => 'error', 'message' => $refusals->message((string) $result->refusal)]
+            : ['type' => 'success', 'message' => __('Folio :number reopened.', ['number' => $folio->number])]);
 
         return back(fallback: $this->page($property, $reservation, $folio));
     }

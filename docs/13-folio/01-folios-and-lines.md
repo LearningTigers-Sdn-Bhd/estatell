@@ -72,7 +72,7 @@ erDiagram
 - Both Actions lock the folio row and return a `FolioStatusResult`. Refusal codes: `folio_not_open`, `balance_not_zero` (close) and `folio_not_closed` (reopen). A refusal writes and logs nothing.
 - Logged on the reservation: `folio.closed`, `folio.reopened`.
 - Defaults: `folio.close` for Owner, Manager, Front desk and Finance (front desk closes at check-out); `folio.reopen` for Owner, Manager and Finance.
-- Not built: the in-house check for a Master folio, and any screen. A migration syncs the two permissions.
+- Built in the folio tab: the Close and Reopen buttons ([Folio page](05-folio-page.md#build-status)). Not built: the in-house check for a Master folio. A migration syncs the two permissions.
 
 ## Permissions
 

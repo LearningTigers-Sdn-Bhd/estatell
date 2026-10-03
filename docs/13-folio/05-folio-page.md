@@ -157,6 +157,15 @@ Four commits, in order.
 
 ## Build status
 
+Built (close and reopen): the routes `reservations.folios.close` and `reservations.folios.reopen` (`can:folio.close`, `can:folio.reopen`), `ReservationFolioController::close` and `reopen`, the `FolioStatusResult` refusal messages in `FolioRefusals`, `FolioData.canClose` and `canReopen`, `CloseFolioDialog` and a Reopen button in the folio header.
+
+Decisions made at build time (close and reopen):
+
+- `canClose` is true for an Open folio and `canReopen` for a Closed one, when the user holds the permission. The Close button shows whatever the balance is, and the Action refuses a balance other than 0 with an error toast ("Only a folio with a balance of 0.00 can be closed. Settle it or move the charges first."). The Dialog says a balance of 0 is needed.
+- Close asks for a confirmation, because it issues the invoice number and stops postings. Reopen has no confirmation: it only opens the folio again, and the invoice number stays.
+- A closed folio shows its invoice number in the header. Its rows show no actions, and there is no Post charge or Apply discount button.
+- The in-house check for a Master folio is still not built (see [Folios and lines](01-folios-and-lines.md#close-and-reopen)).
+
 Built (discounts): the routes `reservations.folios.discounts.quote` (JSON), `reservations.folios.discounts.store` and `reservations.folios.discounts.destroy` (each with `can:folio.discount`), `QuoteFolioDiscountRequest` and `StoreFolioDiscountRequest`, `FolioDiscountOptionData`, `FolioDiscountQuoteResponseData`, the optional prop `folioDiscounts`, `FolioData.canApplyDiscount`, the `remove_discount` row action, and the apply and remove dialogs.
 
 Decisions made at build time (discounts):
@@ -168,7 +177,7 @@ Decisions made at build time (discounts):
 - The Remove discount action shows on a discount line (an Adjustment child of a charge) that is not reversed, on an Open folio, for a user with `folio.discount`.
 - The Dialog has two steps. The first picks the discount (and the amount) and asks for the quote. The second shows the eligible charges with each share and the total, and applies with the quote's `fingerprint`. A refusal shows in the Dialog, including `quote_changed`, and Back asks for a new quote.
 
-Built (post, reverse and transfer): `ReservationFolioController` with `storeCharge`, `reverse` and `transfer`, the routes `reservations.folios.charges.store`, `reservations.folios.lines.reverse` and `reservations.folios.transfers.store` (each with its own `can:`), `StoreFolioChargeRequest`, `StoreFolioTransferRequest`, `FolioRefusals`, `Reservation::folios()`, the `chargeCodes` optional prop, row `lineId` and `actions`, `canPostCharge`, `postUnits` and `transferTargets`, and the three dialogs. Not built: close and reopen.
+Built (post, reverse and transfer): `ReservationFolioController` with `storeCharge`, `reverse` and `transfer`, the routes `reservations.folios.charges.store`, `reservations.folios.lines.reverse` and `reservations.folios.transfers.store` (each with its own `can:`), `StoreFolioChargeRequest`, `StoreFolioTransferRequest`, `FolioRefusals`, `Reservation::folios()`, the `chargeCodes` optional prop, row `lineId` and `actions`, `canPostCharge`, `postUnits` and `transferTargets`, and the three dialogs. Nothing in the folio tab plan is left: the Cards and List money strip is the one open item.
 
 Decisions made at build time (actions):
 

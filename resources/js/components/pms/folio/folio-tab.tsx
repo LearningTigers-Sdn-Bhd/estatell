@@ -1,7 +1,9 @@
-import { BadgePercent, CreditCard, Plus } from 'lucide-react';
+import { Form } from '@inertiajs/react';
+import { BadgePercent, CreditCard, Lock, LockOpen, Plus } from 'lucide-react';
 import { useState } from 'react';
 import { EmptyState } from '@/components/pms/empty-state';
 import { ApplyDiscountDialog } from '@/components/pms/folio/apply-discount-dialog';
+import { CloseFolioDialog } from '@/components/pms/folio/close-folio-dialog';
 import { FolioRail } from '@/components/pms/folio/folio-rail';
 import { FolioRowsTable } from '@/components/pms/folio/folio-rows-table';
 import { PostChargeDialog } from '@/components/pms/folio/post-charge-dialog';
@@ -12,6 +14,9 @@ import { MoneyText } from '@/components/pms/money-text';
 import { StatusBadge } from '@/components/pms/status-badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Spinner } from '@/components/ui/spinner';
+import { KEEP_OPTIONS } from '@/components/pms/reservations/use-form-options';
+import { reopen } from '@/routes/reservations/folios';
 import { cn } from '@/lib/utils';
 
 function Figure({
@@ -52,6 +57,7 @@ export function FolioTab({
 }) {
     const [posting, setPosting] = useState(false);
     const [discounting, setDiscounting] = useState(false);
+    const [closing, setClosing] = useState(false);
     const [removing, setRemoving] =
         useState<App.Data.Folio.FolioRowData | null>(null);
     const [reversing, setReversing] =
@@ -95,6 +101,43 @@ export function FolioTab({
                     </div>
                     <div className="flex items-center gap-2">
                         {folio.status && <StatusBadge status={folio.status} />}
+                        {folio.canReopen && (
+                            <Form
+                                {...reopen.form({
+                                    reservation: reservationId,
+                                    folio: Number(folio.key),
+                                })}
+                                options={{
+                                    preserveScroll: true,
+                                    except: KEEP_OPTIONS,
+                                }}
+                            >
+                                {({ processing }) => (
+                                    <Button
+                                        type="submit"
+                                        variant="outline"
+                                        disabled={processing}
+                                        focusableWhenDisabled
+                                    >
+                                        {processing ? (
+                                            <Spinner data-icon="inline-start" />
+                                        ) : (
+                                            <LockOpen data-icon="inline-start" />
+                                        )}
+                                        Reopen folio
+                                    </Button>
+                                )}
+                            </Form>
+                        )}
+                        {folio.canClose && (
+                            <Button
+                                variant="outline"
+                                onClick={() => setClosing(true)}
+                            >
+                                <Lock data-icon="inline-start" />
+                                Close folio
+                            </Button>
+                        )}
                         {folio.canApplyDiscount && (
                             <Button
                                 variant="outline"
@@ -175,6 +218,14 @@ export function FolioTab({
                     chargeItems={chargeItems}
                     chargeCodes={chargeCodes}
                     currency={currency}
+                />
+            )}
+            {folio.canClose && (
+                <CloseFolioDialog
+                    open={closing}
+                    onOpenChange={setClosing}
+                    reservationId={reservationId}
+                    folio={folio}
                 />
             )}
             {folio.canApplyDiscount && (

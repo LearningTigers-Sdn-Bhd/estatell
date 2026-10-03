@@ -33,11 +33,11 @@ class FolioStatement
      * Expects the property's `settings` and the reservation's `booker` to be loaded. An unknown `$selected` falls back to the Master folio, or
      * the first entry.
      *
-     * `$can` says what the user may do: post a charge, reverse a line, transfer a line, apply or remove a discount. Rows and options carry only
+     * `$can` says what the user may do: post a charge, reverse a line, transfer a line, apply or remove a discount, close or reopen the folio. Rows and options carry only
      * what is allowed now, so the page never works it out.
      *
      * @param  list<ReservationUnitOptionData>  $units
-     * @param  array{postCharge?: bool, reverse?: bool, transfer?: bool, discount?: bool}  $can
+     * @param  array{postCharge?: bool, reverse?: bool, transfer?: bool, discount?: bool, close?: bool, reopen?: bool}  $can
      * @return array{folios: list<FolioRailItemData>, folio: FolioData|null}
      */
     public function build(Property $property, Reservation $reservation, array $units, string $selected = '', array $can = []): array
@@ -141,7 +141,7 @@ class FolioStatement
      * @param  list<ReservationUnitOptionData>  $units
      * @param  list<array{target: int|null, unit: int, date: string, rows: list<FolioRowData>}>  $blocks
      * @param  array<int, string>  $balances
-     * @param  array{postCharge?: bool, reverse?: bool, transfer?: bool, discount?: bool}  $can
+     * @param  array{postCharge?: bool, reverse?: bool, transfer?: bool, discount?: bool, close?: bool, reopen?: bool}  $can
      */
     private function data(array $entry, Collection $entries, array $units, array $blocks, array $balances, array $can): FolioData
     {
@@ -180,6 +180,8 @@ class FolioStatement
             projectedTotal: (string) $projected->toScale(2),
             lineCount: $posted->count(),
             rows: [...$posted->all(), ...$scheduled->all()],
+            canClose: $isOpen && ($can['close'] ?? false),
+            canReopen: $folio?->status === FolioStatus::Closed && ($can['reopen'] ?? false),
             canApplyDiscount: $isOpen && ($can['discount'] ?? false) && $discountable,
             canPostCharge: $postUnits !== [],
             postUnits: $postUnits,
