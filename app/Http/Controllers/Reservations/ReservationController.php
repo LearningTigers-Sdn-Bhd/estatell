@@ -127,7 +127,11 @@ class ReservationController extends Controller
      */
     public function folio(Request $request, Property $property, Reservation $reservation, FolioStatement $statement): Response
     {
-        return $this->renderTab($request->user(), $property, $reservation, 'folio', fn (array $units): array => $statement->build($property, $reservation, $units, $request->string('folio')->toString()));
+        return $this->renderTab($request->user(), $property, $reservation, 'folio', fn (array $units): array => $statement->build($property, $reservation, $units, $request->string('folio')->toString(), [
+            'postCharge' => $request->user()->can(PermissionEnum::FolioPostCharge->value),
+            'reverse' => $request->user()->can(PermissionEnum::FolioReverse->value),
+            'transfer' => $request->user()->can(PermissionEnum::FolioTransfer->value),
+        ]));
     }
 
     /**
@@ -167,6 +171,7 @@ class ReservationController extends Controller
             'billingModes' => BillingMode::options(),
             'addUnitOptions' => Inertia::optional(fn () => $options->addUnit($property)),
             'chargeItems' => Inertia::optional(fn () => $options->chargeItems($property)),
+            'chargeCodes' => Inertia::optional(fn () => $options->chargeCodes($property)),
             ...$tabProps($overview['units'], $overview['models']),
         ]);
     }

@@ -96,7 +96,7 @@ A left rail lists the folios of the reservation, the same way the Units tab list
 
 ## Actions
 
-Row and folio actions call the existing Actions. A refusal code becomes an error toast and writes and logs nothing.
+Row and folio actions call the existing Actions. A refusal writes and logs nothing. A form (post charge, transfer, apply discount) shows the refusal in its Dialog, on the matching field or as one message for the form, like the add-on dialog. An AlertDialog (reverse, remove discount) has no field, so it shows an error toast.
 
 | Action          | Permission                              | Shown on                                                             |
 | --------------- | --------------------------------------- | -------------------------------------------------------------------- |
@@ -122,7 +122,7 @@ One `ReservationFolioController` with named methods. The routes sit in the reser
 | `POST …/folios/{folio}/discounts`               | `reservations.folios.discounts.store`   | `ApplyDiscount`  | `folio.discount`    |
 | `DELETE …/folios/{folio}/lines/{line}/discount` | `reservations.folios.discounts.destroy` | `RemoveDiscount` | `folio.discount`    |
 
-- **Refusal messages:** one small class maps each `PostingResult` refusal code to a message. The controller turns it into an error toast (`Inertia::flash('toast', ...)`) and redirects back.
+- **Refusal messages:** `FolioRefusals` maps each `PostingResult` refusal code (and the two tax refusals) to a message and a field, the way `ReservationRefusals` does. A form gets `errors()`, and an AlertDialog gets `message()` as a toast (`Inertia::flash('toast', ...)`).
 - **Server-driven buttons:** the server tells each row which actions it allows, from the user's permissions, the folio status and the row type. The browser never works it out. `FolioRowData` gets the line id and an `actions` list. `FolioData` gets `canPostCharge`, the units that can receive a posting, and the other Open folios as transfer targets.
 - **Option lists:** charge items and active discounts are optional props, read when a dialog opens, like the add-on dialog.
 
@@ -156,6 +156,16 @@ Four commits, in order.
 4. **Close and reopen buttons.**
 
 ## Build status
+
+Built (post, reverse and transfer): `ReservationFolioController` with `storeCharge`, `reverse` and `transfer`, the routes `reservations.folios.charges.store`, `reservations.folios.lines.reverse` and `reservations.folios.transfers.store` (each with its own `can:`), `StoreFolioChargeRequest`, `StoreFolioTransferRequest`, `FolioRefusals`, `Reservation::folios()`, the `chargeCodes` optional prop, row `lineId` and `actions`, `canPostCharge`, `postUnits` and `transferTargets`, and the three dialogs. Not built: the discount actions and close and reopen.
+
+Decisions made at build time (actions):
+
+- A row offers actions only when it is a Posted charge with no parent, no reversal and no tag, on an Open folio. Reverse needs `folio.reverse`. Transfer needs `folio.transfer` and at least one other Open folio. The list is empty otherwise.
+- `postUnits` holds the CheckedIn and CheckedOut units (only the folio's own unit on a Unit folio). `canPostCharge` is true when the folio is Open, the user has `folio.post-charge` and that list is not empty. `transferTargets` is sent only to a user with `folio.transfer`.
+- The post charge Dialog posts by charge item or by "Other amount" with a charge code and a description (`chargeCodes` are the active Charge codes). A catalogue item with a fixed price shows the price and sends it.
+- The success toast of a charge names the folio that received it. A transfer toast names the target folio.
+- A line, folio or target outside the reservation is a 404. `TransferLines` takes the lines the form names (the dialog sends one).
 
 Built (read-only tab): `reservations.folio` on `reservations.view`, `FolioStatement` and `ScheduledFolioRows` (services, read only), `FolioRouter::resolverFor()`, `FolioData`, `FolioRailItemData`, `FolioRowData`, the rail, the rows table, and the real Balance in the summary card (`ReservationData.balance`, null until the reservation has a folio). Not built: every action (see Actions), the Cards and List money strip.
 

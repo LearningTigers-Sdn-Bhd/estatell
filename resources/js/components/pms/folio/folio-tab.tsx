@@ -1,9 +1,14 @@
-import { CreditCard } from 'lucide-react';
+import { CreditCard, Plus } from 'lucide-react';
+import { useState } from 'react';
 import { EmptyState } from '@/components/pms/empty-state';
 import { FolioRail } from '@/components/pms/folio/folio-rail';
 import { FolioRowsTable } from '@/components/pms/folio/folio-rows-table';
+import { PostChargeDialog } from '@/components/pms/folio/post-charge-dialog';
+import { ReverseLineDialog } from '@/components/pms/folio/reverse-line-dialog';
+import { TransferLineDialog } from '@/components/pms/folio/transfer-line-dialog';
 import { MoneyText } from '@/components/pms/money-text';
 import { StatusBadge } from '@/components/pms/status-badge';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 
@@ -24,19 +29,29 @@ function Figure({
 
 /**
  * The Folio tab: the folio rail (hidden for one entry) and the open folio with its Balance, Projected total and
- * rows. Read only. Everything is worked out on the server.
+ * rows. Everything is worked out on the server, including which actions a row offers.
  */
 export function FolioTab({
     reservationId,
     folios,
     folio,
+    chargeItems,
+    chargeCodes,
     currency,
 }: {
     reservationId: number;
     folios: App.Data.Folio.FolioRailItemData[];
     folio: App.Data.Folio.FolioData | null;
+    chargeItems?: App.Data.Reservations.ChargeItemOptionData[];
+    chargeCodes?: App.Data.Reservations.ChargeCodeOptionData[];
     currency: App.Enums.Currency | null;
 }) {
+    const [posting, setPosting] = useState(false);
+    const [reversing, setReversing] =
+        useState<App.Data.Folio.FolioRowData | null>(null);
+    const [transferring, setTransferring] =
+        useState<App.Data.Folio.FolioRowData | null>(null);
+
     if (folio === null) {
         return (
             <EmptyState
@@ -71,7 +86,15 @@ export function FolioTab({
                             </p>
                         )}
                     </div>
-                    {folio.status && <StatusBadge status={folio.status} />}
+                    <div className="flex items-center gap-2">
+                        {folio.status && <StatusBadge status={folio.status} />}
+                        {folio.canPostCharge && (
+                            <Button onClick={() => setPosting(true)}>
+                                <Plus data-icon="inline-start" />
+                                Post charge
+                            </Button>
+                        )}
+                    </div>
                 </CardHeader>
                 <CardContent className="flex flex-col gap-4">
                     <dl className="grid gap-2 sm:grid-cols-3">
@@ -111,10 +134,42 @@ export function FolioTab({
                             description="Posted and scheduled charges appear here."
                         />
                     ) : (
-                        <FolioRowsTable rows={folio.rows} currency={currency} />
+                        <FolioRowsTable
+                            rows={folio.rows}
+                            currency={currency}
+                            onAction={(row, action) =>
+                                action === 'reverse'
+                                    ? setReversing(row)
+                                    : setTransferring(row)
+                            }
+                        />
                     )}
                 </CardContent>
             </Card>
+            {folio.canPostCharge && (
+                <PostChargeDialog
+                    open={posting}
+                    onOpenChange={setPosting}
+                    reservationId={reservationId}
+                    folio={folio}
+                    chargeItems={chargeItems}
+                    chargeCodes={chargeCodes}
+                    currency={currency}
+                />
+            )}
+            <ReverseLineDialog
+                reservationId={reservationId}
+                folioId={Number(folio.key)}
+                row={reversing}
+                onClose={() => setReversing(null)}
+            />
+            <TransferLineDialog
+                reservationId={reservationId}
+                folioId={Number(folio.key)}
+                row={transferring}
+                targets={folio.transferTargets}
+                onClose={() => setTransferring(null)}
+            />
         </div>
     );
 }

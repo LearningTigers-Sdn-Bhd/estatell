@@ -34,6 +34,7 @@ type Props = {
     billingModes: EnumOption[];
     addUnitOptions?: App.Data.Reservations.AddUnitOptionsData;
     chargeItems?: App.Data.Reservations.ChargeItemOptionData[];
+    chargeCodes?: App.Data.Reservations.ChargeCodeOptionData[];
     unit?: App.Data.Reservations.ReservationUnitData | null;
     guests?: App.Data.Reservations.ReservationGuestData[];
     addOns?: App.Data.Reservations.ReservationAddOnData[];
@@ -55,6 +56,7 @@ export default function ReservationShow({
     billingModes,
     addUnitOptions,
     chargeItems,
+    chargeCodes,
     unit = null,
     guests = [],
     addOns = [],
@@ -175,6 +177,8 @@ export default function ReservationShow({
                             reservationId={reservation.id}
                             folios={folios}
                             folio={folio}
+                            chargeItems={chargeItems}
+                            chargeCodes={chargeCodes}
                             currency={currency}
                         />
                     ) : tab === 'activity' && activity ? (

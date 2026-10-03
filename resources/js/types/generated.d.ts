@@ -115,6 +115,13 @@ balance: string | null,
 projectedTotal: string,
 lineCount: number,
 rows: App.Data.Folio.FolioRowData[],
+canPostCharge: boolean,
+postUnits: App.Data.Folio.FolioOptionData[],
+transferTargets: App.Data.Folio.FolioOptionData[],
+};
+export type FolioOptionData = {
+id: number,
+label: string,
 };
 export type FolioRailItemData = {
 key: string,
@@ -133,6 +140,8 @@ level: number,
 unit: string | null,
 amount: string,
 tags: string[],
+lineId: number | null,
+actions: string[],
 };
 export type NewChargeData = {
 chargeItemId: number | null,
@@ -656,6 +665,11 @@ extra: string,
 supplement: string,
 discount: string,
 amount: string,
+};
+export type ChargeCodeOptionData = {
+id: number,
+code: string,
+name: string,
 };
 export type ChargeItemOptionData = {
 id: number,

@@ -3,6 +3,7 @@
 use App\Enums\PermissionEnum;
 use App\Http\Controllers\Reservations\ReservationBookingController;
 use App\Http\Controllers\Reservations\ReservationController;
+use App\Http\Controllers\Reservations\ReservationFolioController;
 use App\Http\Controllers\Reservations\ReservationGroupController;
 use App\Http\Controllers\Reservations\ReservationUnitAddOnController;
 use App\Http\Controllers\Reservations\ReservationUnitController;
@@ -26,6 +27,12 @@ Route::prefix('reservations')->name('reservations.')->scopeBindings()->group(fun
             Route::get('add-ons', [ReservationController::class, 'addOns'])->name('add-ons');
             Route::get('folio', [ReservationController::class, 'folio'])->name('folio');
             Route::get('activity', [ReservationController::class, 'activity'])->name('activity');
+
+            Route::prefix('folios/{folio}')->name('folios.')->group(function () {
+                Route::post('charges', [ReservationFolioController::class, 'storeCharge'])->middleware('can:'.PermissionEnum::FolioPostCharge->value)->name('charges.store');
+                Route::post('lines/{line}/reversal', [ReservationFolioController::class, 'reverse'])->middleware('can:'.PermissionEnum::FolioReverse->value)->name('lines.reverse');
+                Route::post('transfers', [ReservationFolioController::class, 'transfer'])->middleware('can:'.PermissionEnum::FolioTransfer->value)->name('transfers.store');
+            });
         });
     });
 

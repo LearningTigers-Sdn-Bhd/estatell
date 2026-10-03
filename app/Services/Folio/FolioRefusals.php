@@ -1,0 +1,66 @@
+<?php
+
+namespace App\Services\Folio;
+
+use App\Actions\Folio\PostingResult;
+use App\Services\Catalogues\TaxCalculator;
+
+/**
+ * Turns the refusal codes of the folio Actions into a message and the form field it belongs to. A form shows the
+ * errors in its Dialog; an AlertDialog shows `message()` as a toast. A refusal with no matching field uses `form`,
+ * a message for the whole form. See docs/13-folio/05-folio-page.md.
+ */
+class FolioRefusals
+{
+    public const string FORM = 'form';
+
+    /**
+     * The errors to flash back to a form, keyed by field name.
+     *
+     * @return array<string, string>
+     */
+    public function errors(string $code): array
+    {
+        [$field, $message] = $this->entry($code);
+
+        return [$field => $message];
+    }
+
+    /**
+     * The message alone, for a toast.
+     */
+    public function message(string $code): string
+    {
+        return $this->entry($code)[1];
+    }
+
+    /**
+     * @return array{0: string, 1: string}
+     */
+    private function entry(string $code): array
+    {
+        return match ($code) {
+            PostingResult::REFUSAL_NO_BUSINESS_DATE => [self::FORM, __('The property has no open business date, so nothing can be posted.')],
+            PostingResult::REFUSAL_UNIT_NOT_POSTABLE => ['unit_id', __('Charges can be posted to units that are checked in or checked out.')],
+            PostingResult::REFUSAL_CHARGE_NOT_FOUND => ['charge_item_id', __('This charge is not available.')],
+            PostingResult::REFUSAL_QUANTITY_INVALID => ['quantity', __('Quantity must be from 1 to 999.')],
+            PostingResult::REFUSAL_AMOUNT_INVALID => ['unit_amount', __('Enter an amount greater than 0.')],
+            PostingResult::REFUSAL_AMOUNT_OVERRIDE_NOT_ALLOWED => ['unit_amount', __('The price of this charge cannot be changed.')],
+            PostingResult::REFUSAL_FOLIO_NOT_OPEN => [self::FORM, __('This folio is not open, so it cannot change.')],
+            PostingResult::REFUSAL_LINE_IS_CHILD => [self::FORM, __('A tax or discount line moves and reverses with its charge.')],
+            PostingResult::REFUSAL_ALREADY_REVERSED => [self::FORM, __('This line is already reversed.')],
+            PostingResult::REFUSAL_LINE_IS_REVERSAL => [self::FORM, __('A reversal cannot be reversed.')],
+            PostingResult::REFUSAL_TRANSFER_INVALID => ['target_folio_id', __('Choose a different folio of this reservation.')],
+            PostingResult::REFUSAL_DIFFERENT_RESERVATION => ['target_folio_id', __('The folio must belong to the same reservation.')],
+            PostingResult::REFUSAL_LINE_NOT_TRANSFERABLE => [self::FORM, __('This line cannot be moved. It is a child, a reversal or already reversed.')],
+            PostingResult::REFUSAL_DISCOUNT_NOT_FOUND => ['discount_id', __('This discount is not available.')],
+            PostingResult::REFUSAL_NOTHING_ELIGIBLE => ['discount_id', __('No charge on this folio can take this discount.')],
+            PostingResult::REFUSAL_AMOUNT_REQUIRED => ['amount', __('Enter the discount amount.')],
+            PostingResult::REFUSAL_QUOTE_CHANGED => [self::FORM, __('The folio changed. Check the new quote and apply again.')],
+            PostingResult::REFUSAL_NOT_A_DISCOUNT => [self::FORM, __('This line is not a discount.')],
+            TaxCalculator::REFUSAL_NATIONALITY_REQUIRED => [self::FORM, __('This charge has a tax that depends on nationality. Add the booker\'s nationality to the guest first.')],
+            TaxCalculator::REFUSAL_INCLUSIVE_TAX_EXCEEDS_AMOUNT => ['unit_amount', __('The tax in this price is more than the amount.')],
+            default => [self::FORM, __('This could not be done.')],
+        };
+    }
+}

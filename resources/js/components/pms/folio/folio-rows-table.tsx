@@ -1,7 +1,15 @@
+import { ArrowRightLeft, MoreHorizontal, Undo2 } from 'lucide-react';
 import { Fragment } from 'react';
 import { DateText } from '@/components/pms/date-text';
 import { MoneyText } from '@/components/pms/money-text';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import {
     Table,
     TableBody,
@@ -26,12 +34,15 @@ const SECTIONS: Record<Row['state'], string> = {
 export function FolioRowsTable({
     rows,
     currency,
+    onAction,
 }: {
     rows: Row[];
     currency: App.Enums.Currency | null;
+    onAction: (row: Row, action: 'reverse' | 'transfer') => void;
 }) {
     const showUnit = rows.some((row) => row.unit !== null);
-    const columns = showUnit ? 4 : 3;
+    const showActions = rows.some((row) => row.actions.length > 0);
+    const columns = 3 + (showUnit ? 1 : 0) + (showActions ? 1 : 0);
 
     return (
         <Table>
@@ -41,6 +52,11 @@ export function FolioRowsTable({
                     <TableHead>Description</TableHead>
                     {showUnit && <TableHead>Unit</TableHead>}
                     <TableHead className="text-right">Amount</TableHead>
+                    {showActions && (
+                        <TableHead className="w-10">
+                            <span className="sr-only">Actions</span>
+                        </TableHead>
+                    )}
                 </TableRow>
             </TableHeader>
             <TableBody>
@@ -93,6 +109,58 @@ export function FolioRowsTable({
                                     currency={currency}
                                 />
                             </TableCell>
+                            {showActions && (
+                                <TableCell>
+                                    {row.actions.length > 0 && (
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger
+                                                render={
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon-sm"
+                                                        aria-label={`Actions for ${row.description}`}
+                                                    />
+                                                }
+                                            >
+                                                <MoreHorizontal />
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="end">
+                                                {row.actions.includes(
+                                                    'transfer',
+                                                ) && (
+                                                    <DropdownMenuItem
+                                                        onClick={() =>
+                                                            onAction(
+                                                                row,
+                                                                'transfer',
+                                                            )
+                                                        }
+                                                    >
+                                                        <ArrowRightLeft />
+                                                        Move to another folio
+                                                    </DropdownMenuItem>
+                                                )}
+                                                {row.actions.includes(
+                                                    'reverse',
+                                                ) && (
+                                                    <DropdownMenuItem
+                                                        variant="destructive"
+                                                        onClick={() =>
+                                                            onAction(
+                                                                row,
+                                                                'reverse',
+                                                            )
+                                                        }
+                                                    >
+                                                        <Undo2 />
+                                                        Reverse
+                                                    </DropdownMenuItem>
+                                                )}
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
+                                    )}
+                                </TableCell>
+                            )}
                         </TableRow>
                     </Fragment>
                 ))}
