@@ -39,7 +39,7 @@ erDiagram
 - A reservation has at most one active Master folio (partial unique index, Voided folios excluded) and any number of ThirdParty folios. A ThirdParty folio has no unit and its own payer. See [Routing](03-routing.md).
 - **Signed amounts**: charges and taxes positive, payments negative. Balance = `SUM(amount)`. Not stored.
 - **Immutable**: lines are never updated or deleted. Corrections are reversal lines (`reversal_of_id`).
-- **Idempotent**: `idempotency_key` is unique, for example `night:{unit_night_id}`, `payment:{id}`, `addon:{id}`.
+- **Idempotent**: `idempotency_key` is unique, for example `night:{unit_night_id}`, `payment:{uuid}`, `addon:{id}`.
 - Tax and discount lines are children of the charge (`parent_line_id`).
 - Transfers are a reversal on the source plus a new line on the target, linked by `transfer_group_id`.
 - `description` and `kind` are copied at posting time.

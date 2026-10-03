@@ -57,13 +57,14 @@ All Actions return a result and write nothing on a refusal. Each one is one tran
 
 `(User $actor, FolioLine $line): PostingResult`. It posts a line with the opposite amount and `reversal_of_id`, then a reversal for each child line. A tax child reversal links to its own child.
 
-| Check                                                     | Refusal            |
-| --------------------------------------------------------- | ------------------ |
-| A business date exists                                    | `no_business_date` |
-| The line has no parent (a child reverses with its parent) | `line_is_child`    |
-| The line is not already reversed                          | `already_reversed` |
-| The line is not itself a reversal                         | `line_is_reversal` |
-| Its folio is Open                                         | `folio_not_open`   |
+| Check                                                      | Refusal            |
+| ---------------------------------------------------------- | ------------------ |
+| A business date exists                                     | `no_business_date` |
+| The line has no parent (a child reverses with its parent)  | `line_is_child`    |
+| The line is not already reversed                           | `already_reversed` |
+| The line is not itself a reversal                          | `line_is_reversal` |
+| No payment owns the line (correct a payment with a refund) | `payment_line`     |
+| Its folio is Open                                          | `folio_not_open`   |
 
 - The key is `reverse:{line_id}`. A discount child line reverses with its parent, so it needs no extra rule.
 - A reversal of a posted add-on leaves `folio_line_id` as it is. The row stays as history.
@@ -79,6 +80,7 @@ All Actions return a result and write nothing on a refusal. Each one is one tran
 | Source and target belong to the same reservation              | `different_reservation` |
 | Both folios are Open                                          | `folio_not_open`        |
 | No line is a child, a reversal or already reversed            | `line_not_transferable` |
+| No payment owns a line                                        | `payment_line`          |
 
 - A transfer moves whole charges. Their children move with them.
 - The copy keeps `description`, `kind`, `quantity` and `unit_amount`. Its key is `transfer:{group}:{line_id}`.
