@@ -295,7 +295,7 @@ export default function ReservationCreate({
             <form onSubmit={submit} className="flex min-h-0 flex-1 flex-col">
                 <div
                     scroll-region=""
-                    className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto p-4"
+                    className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto p-4 pb-12"
                 >
                     <PageHeader
                         title={isWalkIn ? 'Walk-in' : 'New booking'}
