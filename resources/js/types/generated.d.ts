@@ -878,6 +878,8 @@ nights: number,
 roomTypes: string[],
 bookedOn: string,
 total: string,
+paid: string,
+balance: string,
 roomBox: App.Data.Reservations.ReservationRoomBoxData,
 };
 export type ReservationNightData = {

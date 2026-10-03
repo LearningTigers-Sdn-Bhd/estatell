@@ -166,7 +166,6 @@ export default function ReservationsIndex({
                 <ReservationCard
                     key={reservation.id}
                     reservation={reservation}
-                    currency={currency}
                 />
             ))}
         </div>

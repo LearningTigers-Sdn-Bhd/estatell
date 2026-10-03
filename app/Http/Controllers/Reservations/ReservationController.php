@@ -214,6 +214,8 @@ class ReservationController extends Controller
             ['value' => '-reference', 'label' => __('Reference, Z to A')],
             ['value' => 'total', 'label' => __('Total, lowest first')],
             ['value' => '-total', 'label' => __('Total, highest first')],
+            ['value' => 'balance', 'label' => __('Balance, lowest first')],
+            ['value' => '-balance', 'label' => __('Balance, highest first')],
             ['value' => 'booked', 'label' => __('Booked, oldest first')],
             ['value' => '-booked', 'label' => __('Booked, newest first')],
         ];

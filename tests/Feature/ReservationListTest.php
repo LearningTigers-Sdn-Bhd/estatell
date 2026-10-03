@@ -3,8 +3,11 @@
 use App\Enums\DefaultRoleEnum;
 use App\Enums\ReservationSource;
 use App\Enums\ReservationStatus;
+use App\Enums\TransactionKind;
 use App\Models\Bed;
 use App\Models\BusinessDate;
+use App\Models\Folio;
+use App\Models\FolioLine;
 use App\Models\Guest;
 use App\Models\Property;
 use App\Models\PropertySetting;
@@ -323,6 +326,44 @@ test('the list sorts by arrival, departure, reference, total and booked date, ei
         ->and($refs('-reference'))->toBe(collect([$a, $b, $c])->pluck('reference')->sort()->reverse()->values()->all());
 });
 
+test('paid and balance add up the folios that are not Voided, and are 0.00 without one', function () {
+    [$user, $property] = listOwner();
+    $group = listReservation($property, ['created_at' => '2026-09-01 10:00:00']);
+    $master = Folio::factory()->create(['property_id' => $property->id, 'reservation_id' => $group->id]);
+    $unitFolio = Folio::factory()->forUnit($group->units()->first())->create(['property_id' => $property->id, 'reservation_id' => $group->id]);
+    FolioLine::factory()->for($master)->create(['unit_amount' => '300.00', 'amount' => '300.00']);
+    FolioLine::factory()->for($master)->create(['kind' => TransactionKind::Tax, 'unit_amount' => '36.00', 'amount' => '36.00']);
+    FolioLine::factory()->for($unitFolio)->payment('200.00')->create();
+    FolioLine::factory()->for($unitFolio)->create(['kind' => TransactionKind::Payment, 'description' => 'Refund', 'unit_amount' => '50.00', 'amount' => '50.00']);
+    FolioLine::factory()->for(Folio::factory()->voided()->thirdParty()->create(['property_id' => $property->id, 'reservation_id' => $group->id]))->create(['unit_amount' => '999.00', 'amount' => '999.00']);
+
+    $deposit = listReservation($property, ['created_at' => '2026-09-02 10:00:00']);
+    FolioLine::factory()->for(Folio::factory()->create(['property_id' => $property->id, 'reservation_id' => $deposit->id]))->payment('300.00')->create();
+
+    listReservation($property, ['created_at' => '2026-09-03 10:00:00']);
+    $voidedOnly = listReservation($property, ['created_at' => '2026-09-04 10:00:00']);
+    Folio::factory()->voided()->create(['property_id' => $property->id, 'reservation_id' => $voidedOnly->id]);
+
+    $this->actingAs($user)->get(listUrl($property, ['sort' => 'booked']))->assertInertia(function (Assert $page): void {
+        $rows = collect($page->toArray()['props']['reservations']['data']);
+
+        expect($rows->pluck('paid')->all())->toBe(['150.00', '300.00', '0.00', '0.00'])
+            ->and($rows->pluck('balance')->all())->toBe(['186.00', '-300.00', '0.00', '0.00']);
+    });
+});
+
+test('the list sorts by balance either way, reading no folio as 0', function () {
+    [$user, $property] = listOwner();
+    $owing = listReservation($property);
+    FolioLine::factory()->for(Folio::factory()->create(['property_id' => $property->id, 'reservation_id' => $owing->id]))->create();
+    $none = listReservation($property);
+    $deposit = listReservation($property);
+    FolioLine::factory()->for(Folio::factory()->create(['property_id' => $property->id, 'reservation_id' => $deposit->id]))->payment('300.00')->create();
+
+    expect(listedReferences($user, $property, ['sort' => 'balance']))->toBe([$deposit->reference, $none->reference, $owing->reference])
+        ->and(listedReferences($user, $property, ['sort' => '-balance']))->toBe([$owing->reference, $none->reference, $deposit->reference]);
+});
+
 test('equal sort values are ordered by id and an unknown sort is refused', function () {
     [$user, $property] = listOwner();
     $first = listReservation($property);
@@ -464,12 +505,13 @@ test('the list needs a constant number of queries with lazy loading prevented', 
     $roomType = RoomType::factory()->for($property)->create();
     $room = Room::factory()->for($property)->create(['room_type_id' => $roomType->id]);
 
-    $queries = function (int $reservations) use ($user, $property, $roomType, $room): int {
-        Reservation::query()->where('property_id', $property->id)->delete();
-
-        foreach (range(1, $reservations) as $ignored) {
+    $queries = function (int $added) use ($user, $property, $roomType, $room): int {
+        foreach (range(1, $added) as $ignored) {
             $reservation = listReservation($property, ['group_name' => 'Trip'], [['room_type' => $roomType], ['room_type' => $roomType]]);
             UnitNight::query()->whereIn('reservation_unit_id', $reservation->units()->pluck('id'))->update(['room_id' => $room->id]);
+            $folio = Folio::factory()->create(['property_id' => $property->id, 'reservation_id' => $reservation->id]);
+            FolioLine::factory()->for($folio)->create();
+            FolioLine::factory()->for($folio)->payment()->create();
         }
 
         Model::preventLazyLoading();
@@ -486,7 +528,7 @@ test('the list needs a constant number of queries with lazy loading prevented', 
     test()->actingAs($user)->get(listUrl($property))->assertOk();
 
     $few = $queries(2);
-    $many = $queries(10);
+    $many = $queries(8);
 
     expect($many)->toBe($few)->and($many)->toBeLessThanOrEqual(30);
 });

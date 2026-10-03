@@ -115,15 +115,16 @@ Status tabs, filters, and two views of the same page of results: **Cards** (defa
 
 Three columns in the muted strip, each with a small muted label above the amount. Amounts are left-aligned, `tabular-nums`, with no currency code (one code per amount does not fit). The List view shows the same three figures as columns.
 
-| Figure  | Source                                                                                     | Notes                                                                        |
-| ------- | ------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------- |
-| Total   | Sum of `unit_nights.amount` of units that hold inventory                                   | Same as before. Sortable (`total`). No tax, no add-ons.                      |
-| Paid    | `−SUM(folio_lines.amount)` of Payment lines of the folios that are not Voided              | Net of refunds. "—" while the reservation has no folio.                      |
-| Balance | `SUM(folio_lines.amount)` of the folios that are not Voided, as the summary card's Balance | Danger tone above 0. "—" with no folio. Sortable (`balance`, no folio last). |
+| Figure  | Source                                                                                     | Notes                                                          |
+| ------- | ------------------------------------------------------------------------------------------ | -------------------------------------------------------------- |
+| Total   | Sum of `unit_nights.amount` of units that hold inventory                                   | Same as before. Sortable (`total`). No tax, no add-ons.        |
+| Paid    | `-SUM(folio_lines.amount)` of Payment lines of the folios that are not Voided              | Net of refunds. 0.00 while the reservation has no folio.       |
+| Balance | `SUM(folio_lines.amount)` of the folios that are not Voided, as the summary card's Balance | Danger tone above 0. 0.00 with no folio. Sortable (`balance`). |
 
 - Total is kept instead of posted charges: nights post only at the night audit, so posted charges read 0.00 before check-in.
-- `Total − Paid` is not always the Balance. Balance counts only posted lines, with tax and add-ons. A negative Balance is a deposit held.
+- `Total - Paid` is not always the Balance. Balance counts only posted lines, with tax and add-ons. A negative Balance is a deposit held.
 - Paid and Balance come from one more grouped sub-query joined into the list query, so the list runs no extra queries.
+- No placeholder dash: a reservation with no folio shows 0.00, and the balance sort reads it as 0.
 
 ### Room box
 

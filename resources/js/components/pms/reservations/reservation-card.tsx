@@ -24,16 +24,11 @@ import { RoomBox } from './room-box';
 type Item = App.Data.Reservations.ReservationListItemData;
 
 /**
- * One reservation as a card: room box, title with markers, stay strip, status, occupancy, room types and total.
+ * One reservation as a card: room box, title with markers, stay strip, status, occupancy, room types and the money
+ * strip (Total, Paid, Balance).
  * The title is a stretched link that opens the reservation.
  */
-export function ReservationCard({
-    reservation,
-    currency,
-}: {
-    reservation: Item;
-    currency: App.Enums.Currency | null;
-}) {
+export function ReservationCard({ reservation }: { reservation: Item }) {
     return (
         <Card
             className={cn(
@@ -163,16 +158,44 @@ export function ReservationCard({
                         <DateText date={reservation.bookedOn} />
                     </dd>
                 </dl>
-                <div className="mt-auto flex items-center justify-between rounded-lg bg-muted px-3 py-2 text-sm">
-                    <span className="text-muted-foreground">Total</span>
-                    <span className="font-medium">
-                        <MoneyText
-                            amount={reservation.total}
-                            currency={currency}
-                        />
-                    </span>
-                </div>
+                <dl className="mt-auto grid grid-cols-3 divide-x rounded-lg bg-muted py-2 text-sm">
+                    <MoneyCell label="Total" amount={reservation.total} />
+                    <MoneyCell label="Paid" amount={reservation.paid} />
+                    <MoneyCell
+                        label="Balance"
+                        amount={reservation.balance}
+                        owing
+                    />
+                </dl>
             </CardContent>
         </Card>
+    );
+}
+
+/**
+ * One column of the money strip: a muted label above the amount. With `owing`, an amount above 0 shows in the danger
+ * tone.
+ */
+function MoneyCell({
+    label,
+    amount,
+    owing = false,
+}: {
+    label: string;
+    amount: string;
+    owing?: boolean;
+}) {
+    return (
+        <div className="flex min-w-0 flex-col gap-0.5 px-3">
+            <dt className="text-xs text-muted-foreground">{label}</dt>
+            <dd
+                className={cn(
+                    'font-medium',
+                    owing && Number(amount) > 0 && 'text-destructive',
+                )}
+            >
+                <MoneyText amount={amount} currency={null} plain />
+            </dd>
+        </div>
     );
 }

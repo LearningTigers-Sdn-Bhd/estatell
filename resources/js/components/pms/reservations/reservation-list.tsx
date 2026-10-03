@@ -6,6 +6,7 @@ import type { DataTablePagination } from '@/components/pms/data-table';
 import { DateText } from '@/components/pms/date-text';
 import { MoneyText } from '@/components/pms/money-text';
 import { StatusBadge } from '@/components/pms/status-badge';
+import { cn } from '@/lib/utils';
 import { ReservationMarkers, reservationSubtitle } from './reservation-parts';
 import { show } from '@/routes/reservations';
 import { RoomBox } from './room-box';
@@ -120,6 +121,28 @@ export function ReservationList({
                 header: 'Total',
                 cell: (info) => (
                     <MoneyText amount={info.getValue()} currency={currency} />
+                ),
+            }),
+            column.accessor('paid', {
+                header: 'Paid',
+                enableSorting: false,
+                cell: (info) => (
+                    <MoneyText amount={info.getValue()} currency={currency} />
+                ),
+            }),
+            column.accessor('balance', {
+                header: 'Balance',
+                cell: (info) => (
+                    <span
+                        className={cn(
+                            Number(info.getValue()) > 0 && 'text-destructive',
+                        )}
+                    >
+                        <MoneyText
+                            amount={info.getValue()}
+                            currency={currency}
+                        />
+                    </span>
                 ),
             }),
             column.display({

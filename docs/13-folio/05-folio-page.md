@@ -56,7 +56,7 @@ The folio is the fifth tab of the [reservation page](../12-reservations/06-reser
 - It follows `renderTab()`: only this tab's data is read and sent. `?folio=` picks the folio and survives a refresh.
 - **Read permission: `reservations.view`.** There is no `folio.view`. Owner, Manager, Front desk and Finance hold it. Each action needs its own permission (see Actions below).
 - The summary card's Balance becomes real: the sum of the balances of the reservation's folios that are not Voided.
-- The Cards and List money strip shows Total, Paid and Balance (see [Money strip](../12-reservations/06-reservation-page.md#money-strip)). It is a later small item.
+- The Cards and List money strip shows Total, Paid and Balance (see [Money strip](../12-reservations/06-reservation-page.md#money-strip)).
 
 ## Folio rail
 
@@ -181,7 +181,7 @@ Decisions made at build time (discounts):
 - The Remove discount action shows on a discount line (an Adjustment child of a charge) that is not reversed, on an Open folio, for a user with `folio.discount`.
 - The Dialog has two steps. The first picks the discount (and the amount) and asks for the quote. The second shows the eligible charges with each share and the total, and applies with the quote's `fingerprint`. A refusal shows in the Dialog, including `quote_changed`, and Back asks for a new quote.
 
-Built (post, reverse and transfer): `ReservationFolioController` with `storeCharge`, `reverse` and `transfer`, the routes `reservations.folios.charges.store`, `reservations.folios.lines.reverse` and `reservations.folios.transfers.store` (each with its own `can:`), `StoreFolioChargeRequest`, `StoreFolioTransferRequest`, `FolioRefusals`, `Reservation::folios()`, the `chargeCodes` optional prop, row `lineId` and `actions`, `canPostCharge`, `postUnits` and `transferTargets`, and the three dialogs. Nothing in the folio tab plan is left: the Cards and List money strip is the one open item.
+Built (post, reverse and transfer): `ReservationFolioController` with `storeCharge`, `reverse` and `transfer`, the routes `reservations.folios.charges.store`, `reservations.folios.lines.reverse` and `reservations.folios.transfers.store` (each with its own `can:`), `StoreFolioChargeRequest`, `StoreFolioTransferRequest`, `FolioRefusals`, `Reservation::folios()`, the `chargeCodes` optional prop, row `lineId` and `actions`, `canPostCharge`, `postUnits` and `transferTargets`, and the three dialogs. Nothing in the folio tab plan is left.
 
 Decisions made at build time (actions):
 
@@ -191,7 +191,7 @@ Decisions made at build time (actions):
 - The success toast of a charge names the folio that received it. A transfer toast names the target folio.
 - A line, folio or target outside the reservation is a 404. `TransferLines` takes the lines the form names (the dialog sends one).
 
-Built (read-only tab): `reservations.folio` on `reservations.view`, `FolioStatement` and `ScheduledFolioRows` (services, read only), `FolioRouter::resolverFor()`, `FolioData`, `FolioRailItemData`, `FolioRowData`, the rail, the rows table, and the real Balance in the summary card (`ReservationData.balance`, null until the reservation has a folio). Not built: every action (see Actions), the Cards and List money strip.
+Built (read-only tab): `reservations.folio` on `reservations.view`, `FolioStatement` and `ScheduledFolioRows` (services, read only), `FolioRouter::resolverFor()`, `FolioData`, `FolioRailItemData`, `FolioRowData`, the rail, the rows table, and the real Balance in the summary card (`ReservationData.balance`, null until the reservation has a folio). Not built at that step: every action (see Actions) and the Cards and List money strip, both built later.
 
 Decisions made at build time:
 
@@ -206,5 +206,4 @@ Decisions made at build time:
 
 ## Open
 
-- The Cards and List money strip (Total, Paid, Balance) waits for a later item.
 - Posted rows cannot name their unit. Add a source to night and add-on lines (or the night audit's `source_type`) before the master folio needs a Unit column for posted rows.

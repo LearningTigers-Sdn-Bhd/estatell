@@ -2,8 +2,10 @@
 
 namespace App\Services\Reservations;
 
+use App\Enums\FolioStatus;
 use App\Enums\ReservationSource;
 use App\Enums\ReservationStatus;
+use App\Enums\TransactionKind;
 use App\Enums\UnitStatus;
 use App\Models\Guest;
 use App\Models\Property;
@@ -27,7 +29,8 @@ use Spatie\QueryBuilder\QueryBuilder;
  * The reservation list of one property: search, filters, sorts, pagination and status counts from the URL.
  *
  * Each row carries the dates, unit counts, occupancy and total of the units that hold inventory (dates fall back to
- * all units when none does), from two grouped sub-queries joined once. See docs/12-reservations/06-reservation-page.md.
+ * all units when none does), and the paid amount and balance of the folios that are not Voided, from three grouped
+ * sub-queries joined once. See docs/12-reservations/06-reservation-page.md.
  */
 class ReservationDirectory
 {
@@ -43,6 +46,7 @@ class ReservationDirectory
         'departure' => 'stay.last_departure',
         'reference' => 'reservations.reference',
         'total' => 'stay_total',
+        'balance' => 'coalesce(ledger.balance, 0)',
         'booked' => 'reservations.created_at',
     ];
 
@@ -100,6 +104,8 @@ class ReservationDirectory
             'stay.adults',
             'stay.children',
             DB::raw('coalesce(totals.total, 0) as stay_total'),
+            DB::raw('coalesce(ledger.paid, 0)::numeric(14, 2) as paid'),
+            DB::raw('coalesce(ledger.balance, 0)::numeric(14, 2) as balance'),
         ]);
         $this->applyStay($base, $this->stay($property, $request));
 
@@ -171,7 +177,8 @@ class ReservationDirectory
     }
 
     /**
-     * Reservations of the property joined once to their unit and total aggregates.
+     * Reservations of the property joined once to their unit, total and ledger aggregates. A reservation with no folio
+     * that is not Voided has no ledger row; the list reads its paid amount and balance as 0.
      *
      * @return Builder<Reservation>
      */
@@ -197,17 +204,27 @@ class ReservationDirectory
             ->groupBy('reservation_units.reservation_id')
             ->selectRaw('reservation_units.reservation_id, sum(unit_nights.amount) as total');
 
+        $ledger = DB::table('folios')
+            ->leftJoin('folio_lines', 'folio_lines.folio_id', '=', 'folios.id')
+            ->where('folios.property_id', $property->id)
+            ->where('folios.status', '!=', FolioStatus::Voided->value)
+            ->groupBy('folios.reservation_id')
+            ->selectRaw('folios.reservation_id,
+                (-coalesce(sum(folio_lines.amount) filter (where folio_lines.kind = ?), 0))::numeric(14, 2) as paid,
+                coalesce(sum(folio_lines.amount), 0)::numeric(14, 2) as balance', [TransactionKind::Payment->value]);
+
         return Reservation::query()
             ->where('reservations.property_id', $property->id)
             ->leftJoinSub($units, 'stay', 'stay.reservation_id', '=', 'reservations.id')
-            ->leftJoinSub($totals, 'totals', 'totals.reservation_id', '=', 'reservations.id');
+            ->leftJoinSub($totals, 'totals', 'totals.reservation_id', '=', 'reservations.id')
+            ->leftJoinSub($ledger, 'ledger', 'ledger.reservation_id', '=', 'reservations.id');
     }
 
     private function sort(string $name): AllowedSort
     {
         $column = self::SORTS[$name];
 
-        return AllowedSort::callback($name, fn (Builder $query, bool $descending) => $query->orderBy($column, $descending ? 'desc' : 'asc'));
+        return AllowedSort::callback($name, fn (Builder $query, bool $descending) => $query->orderByRaw($column.($descending ? ' desc' : ' asc')));
     }
 
     /**
