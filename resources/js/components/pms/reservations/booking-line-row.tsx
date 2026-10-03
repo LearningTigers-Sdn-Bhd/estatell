@@ -12,13 +12,31 @@ import {
 import type { BookingLine } from '@/components/pms/reservations/booking-lines';
 import { useBookingQuote } from '@/components/pms/reservations/use-booking-quote';
 import { Button } from '@/components/ui/button';
-import {
-    Field,
-    FieldDescription,
-    FieldError,
-    FieldLabel,
-} from '@/components/ui/field';
+import { Field, FieldError, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
+
+/**
+ * The columns of a line from `lg`: room type, rate plan, room or beds, adults, children, rate and remove. The header row in
+ * `BookingLinesHeader` uses the same template. Below `lg` the cells stack and show their labels.
+ */
+export const LINE_COLUMNS =
+    'lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1.3fr)_minmax(0,1fr)_4.5rem_4.5rem_minmax(0,12rem)_2rem]';
+
+/** The header of the lines table. Hidden below `lg`, where each cell shows its own label. */
+export function BookingLinesHeader() {
+    return (
+        <div
+            className={`hidden gap-3 border-b bg-muted px-3 py-2 text-xs font-medium text-muted-foreground lg:grid ${LINE_COLUMNS}`}
+        >
+            <span>Room type</span>
+            <span>Rate plan</span>
+            <span>Room / Bed</span>
+            <span>Adults</span>
+            <span>Children</span>
+            <span className="col-span-2">Rate</span>
+        </div>
+    );
+}
 
 type Options = App.Data.Reservations.AddUnitOptionsData;
 type Quote = App.Data.Reservations.BookingQuoteData;
@@ -84,80 +102,68 @@ export function BookingLineRow({
         return () => onQuote(line.key, null);
     }, [line.key, quote, onQuote]);
 
+    const bedCount = Number.parseInt(line.beds, 10) || 1;
+    const agesError = Object.entries(errors).find(([key]) =>
+        key.startsWith(`lines.${index}.child_ages`),
+    )?.[1];
+
     return (
-        <div className="flex flex-col gap-3 rounded-lg border p-3">
-            <div className="grid gap-3 md:grid-cols-[1fr_1fr_auto]">
-                <Field data-invalid={!!error('room_type_id')}>
-                    <FieldLabel htmlFor={`line-${index}-room_type_id`}>
-                        Room type
-                    </FieldLabel>
-                    <EnumSelect
-                        id={`line-${index}-room_type_id`}
-                        options={options.roomTypes.map((type) => ({
-                            value: String(type.id),
-                            label: type.name,
-                        }))}
-                        value={line.room_type_id}
-                        onValueChange={(value) =>
-                            onChange({
-                                room_type_id: value,
-                                rate_plan_id: '',
-                                room_id: '',
-                                bed_ids: [],
-                                child_ages: [],
-                            })
-                        }
-                        aria-invalid={!!error('room_type_id')}
-                    />
-                    <FieldError>{error('room_type_id')}</FieldError>
-                </Field>
-                <Field data-invalid={!!error('rate_plan_id')}>
-                    <FieldLabel htmlFor={`line-${index}-rate_plan_id`}>
-                        Rate plan
-                    </FieldLabel>
-                    <EnumSelect
-                        id={`line-${index}-rate_plan_id`}
-                        options={plans.map((plan) => ({
-                            value: String(plan.id),
-                            label: plan.name,
-                        }))}
-                        value={line.rate_plan_id}
-                        onValueChange={(value) =>
-                            onChange({ rate_plan_id: value })
-                        }
-                        disabled={line.room_type_id === ''}
-                        aria-invalid={!!error('rate_plan_id')}
-                    />
-                    <FieldError>{error('rate_plan_id')}</FieldError>
-                </Field>
-                <div className="flex items-end justify-between gap-1 md:justify-end">
-                    <BookingQuoteCell
-                        quote={quote}
-                        loading={loading}
-                        currency={currency}
-                        overrideTotal={line.override_total}
-                        overrideReason={line.override_reason}
-                        onOverrideChange={onChange}
-                        errors={errors}
-                        index={index}
-                    />
-                    <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon-sm"
-                        aria-label="Remove this line"
-                        disabled={!canRemove}
-                        onClick={onRemove}
-                    >
-                        <Trash2 />
-                    </Button>
-                </div>
-            </div>
+        <div className={`grid gap-3 p-3 ${LINE_COLUMNS}`}>
+            <Field data-invalid={!!error('room_type_id')}>
+                <FieldLabel
+                    htmlFor={`line-${index}-room_type_id`}
+                    className="lg:sr-only"
+                >
+                    Room type
+                </FieldLabel>
+                <EnumSelect
+                    id={`line-${index}-room_type_id`}
+                    options={options.roomTypes.map((type) => ({
+                        value: String(type.id),
+                        label: type.name,
+                    }))}
+                    value={line.room_type_id}
+                    onValueChange={(value) =>
+                        onChange({
+                            room_type_id: value,
+                            rate_plan_id: '',
+                            room_id: '',
+                            bed_ids: [],
+                            child_ages: [],
+                        })
+                    }
+                    aria-invalid={!!error('room_type_id')}
+                />
+                <FieldError>{error('room_type_id')}</FieldError>
+            </Field>
+            <Field data-invalid={!!error('rate_plan_id')}>
+                <FieldLabel
+                    htmlFor={`line-${index}-rate_plan_id`}
+                    className="lg:sr-only"
+                >
+                    Rate plan
+                </FieldLabel>
+                <EnumSelect
+                    id={`line-${index}-rate_plan_id`}
+                    options={plans.map((plan) => ({
+                        value: String(plan.id),
+                        label: plan.name,
+                    }))}
+                    value={line.rate_plan_id}
+                    onValueChange={(value) => onChange({ rate_plan_id: value })}
+                    disabled={line.room_type_id === ''}
+                    aria-invalid={!!error('rate_plan_id')}
+                />
+                <FieldError>{error('rate_plan_id')}</FieldError>
+            </Field>
 
             {isBed ? (
-                <div className="flex flex-col gap-3">
-                    <Field className="max-w-40" data-invalid={!!error('beds')}>
-                        <FieldLabel htmlFor={`line-${index}-beds`}>
+                <>
+                    <Field data-invalid={!!error('beds')}>
+                        <FieldLabel
+                            htmlFor={`line-${index}-beds`}
+                            className="lg:sr-only"
+                        >
                             Beds
                         </FieldLabel>
                         <Input
@@ -165,6 +171,8 @@ export function BookingLineRow({
                             type="number"
                             min={1}
                             max={99}
+                            placeholder="Beds"
+                            aria-label="Number of beds"
                             value={line.beds}
                             onChange={(event) =>
                                 onChange({
@@ -180,178 +188,200 @@ export function BookingLineRow({
                             }
                             aria-invalid={!!error('beds')}
                         />
+                        <FieldError>{error('beds')}</FieldError>
                     </Field>
-                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                        {beds.map((bedId, bed) => (
-                            <Field
-                                key={bed}
-                                data-invalid={!!error(`bed_ids.${bed}`)}
-                            >
-                                <FieldLabel
-                                    htmlFor={`line-${index}-bed-${bed}`}
-                                >
-                                    Bed {bed + 1}
-                                </FieldLabel>
-                                <BookingUnitPicker
-                                    id={`line-${index}-bed-${bed}`}
-                                    label={`Bed ${bed + 1}`}
-                                    roomTypeId={line.room_type_id}
-                                    arrival={arrival}
-                                    departure={departure}
-                                    value={bedId}
-                                    onChange={(value) =>
-                                        onChange({
-                                            bed_ids: beds.map(
-                                                (current, position) =>
-                                                    position === bed
-                                                        ? value
-                                                        : current,
-                                            ),
-                                        })
-                                    }
-                                    emptyLabel={emptyPickLabel}
-                                    takenIds={takenIds}
-                                    invalid={!!error(`bed_ids.${bed}`)}
-                                />
-                                <FieldError>
-                                    {error(`bed_ids.${bed}`)}
-                                </FieldError>
-                            </Field>
-                        ))}
-                    </div>
-                </div>
+                    <div className="max-lg:hidden lg:col-span-2" />
+                </>
             ) : (
-                <div className="flex flex-col gap-3">
-                    <div className="grid gap-3 sm:grid-cols-3">
-                        <Field data-invalid={!!error('adults')}>
-                            <FieldLabel htmlFor={`line-${index}-adults`}>
-                                Adults
-                            </FieldLabel>
-                            <Input
-                                id={`line-${index}-adults`}
-                                type="number"
-                                min={1}
-                                max={99}
-                                value={line.adults}
-                                onChange={(event) =>
-                                    onChange({ adults: event.target.value })
-                                }
-                                aria-invalid={!!error('adults')}
-                            />
-                            {roomType && (
-                                <FieldDescription>
-                                    Up to {roomType.maxAdults}.
-                                </FieldDescription>
-                            )}
-                            <FieldError>{error('adults')}</FieldError>
-                        </Field>
-                        <Field>
-                            <FieldLabel htmlFor={`line-${index}-children`}>
-                                Children
-                            </FieldLabel>
-                            <Input
-                                id={`line-${index}-children`}
-                                type="number"
-                                min={0}
-                                max={20}
-                                value={line.child_ages.length}
-                                onChange={(event) =>
-                                    onChange({
-                                        child_ages: resizeAges(
-                                            line.child_ages,
-                                            Number.parseInt(
-                                                event.target.value,
-                                                10,
-                                            ) || 0,
-                                        ),
-                                    })
-                                }
-                            />
-                            {roomType && (
-                                <FieldDescription>
-                                    Up to {roomType.maxChildren}.
-                                </FieldDescription>
-                            )}
-                        </Field>
-                        <Field data-invalid={!!error('room_id')}>
-                            <FieldLabel htmlFor={`line-${index}-room_id`}>
-                                Room
+                <>
+                    <Field data-invalid={!!error('room_id')}>
+                        <FieldLabel
+                            htmlFor={`line-${index}-room_id`}
+                            className="lg:sr-only"
+                        >
+                            Room
+                        </FieldLabel>
+                        <BookingUnitPicker
+                            id={`line-${index}-room_id`}
+                            label="Room"
+                            roomTypeId={line.room_type_id}
+                            arrival={arrival}
+                            departure={departure}
+                            value={line.room_id}
+                            onChange={(value) => onChange({ room_id: value })}
+                            emptyLabel={emptyPickLabel}
+                            takenIds={takenIds}
+                            invalid={!!error('room_id')}
+                        />
+                        <FieldError>{error('room_id')}</FieldError>
+                    </Field>
+                    <Field data-invalid={!!error('adults')}>
+                        <FieldLabel
+                            htmlFor={`line-${index}-adults`}
+                            className="lg:sr-only"
+                        >
+                            Adults
+                        </FieldLabel>
+                        <Input
+                            id={`line-${index}-adults`}
+                            type="number"
+                            min={1}
+                            max={99}
+                            aria-label="Adults"
+                            title={
+                                roomType
+                                    ? `Up to ${roomType.maxAdults}`
+                                    : undefined
+                            }
+                            value={line.adults}
+                            onChange={(event) =>
+                                onChange({ adults: event.target.value })
+                            }
+                            aria-invalid={!!error('adults')}
+                        />
+                        <FieldError>{error('adults')}</FieldError>
+                    </Field>
+                    <Field>
+                        <FieldLabel
+                            htmlFor={`line-${index}-children`}
+                            className="lg:sr-only"
+                        >
+                            Children
+                        </FieldLabel>
+                        <Input
+                            id={`line-${index}-children`}
+                            type="number"
+                            min={0}
+                            max={20}
+                            aria-label="Children"
+                            title={
+                                roomType
+                                    ? `Up to ${roomType.maxChildren}`
+                                    : undefined
+                            }
+                            value={line.child_ages.length}
+                            onChange={(event) =>
+                                onChange({
+                                    child_ages: resizeAges(
+                                        line.child_ages,
+                                        Number.parseInt(
+                                            event.target.value,
+                                            10,
+                                        ) || 0,
+                                    ),
+                                })
+                            }
+                        />
+                    </Field>
+                </>
+            )}
+
+            <div className="flex items-center justify-between gap-1 lg:col-span-2 lg:justify-end">
+                <BookingQuoteCell
+                    quote={quote}
+                    loading={loading}
+                    currency={currency}
+                    overrideTotal={line.override_total}
+                    overrideReason={line.override_reason}
+                    onOverrideChange={onChange}
+                    errors={errors}
+                    index={index}
+                />
+                <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    aria-label="Remove this line"
+                    disabled={!canRemove}
+                    onClick={onRemove}
+                >
+                    <Trash2 />
+                </Button>
+            </div>
+
+            {isBed && (
+                <div className="grid gap-3 sm:grid-cols-2 lg:col-span-full lg:grid-cols-3">
+                    {beds.map((bedId, bed) => (
+                        <Field
+                            key={bed}
+                            data-invalid={!!error(`bed_ids.${bed}`)}
+                        >
+                            <FieldLabel htmlFor={`line-${index}-bed-${bed}`}>
+                                Bed {bed + 1}
                             </FieldLabel>
                             <BookingUnitPicker
-                                id={`line-${index}-room_id`}
-                                label="Room"
+                                id={`line-${index}-bed-${bed}`}
+                                label={`Bed ${bed + 1}`}
                                 roomTypeId={line.room_type_id}
                                 arrival={arrival}
                                 departure={departure}
-                                value={line.room_id}
+                                value={bedId}
                                 onChange={(value) =>
-                                    onChange({ room_id: value })
+                                    onChange({
+                                        bed_ids: beds.map(
+                                            (current, position) =>
+                                                position === bed
+                                                    ? value
+                                                    : current,
+                                        ),
+                                    })
                                 }
                                 emptyLabel={emptyPickLabel}
                                 takenIds={takenIds}
-                                invalid={!!error('room_id')}
+                                invalid={!!error(`bed_ids.${bed}`)}
                             />
-                            <FieldError>{error('room_id')}</FieldError>
+                            <FieldError>{error(`bed_ids.${bed}`)}</FieldError>
                         </Field>
-                    </div>
-                    {line.child_ages.length > 0 && (
-                        <Field
-                            data-invalid={Object.keys(errors).some((key) =>
-                                key.startsWith(`lines.${index}.child_ages`),
-                            )}
-                        >
-                            <FieldLabel>Children's ages</FieldLabel>
-                            <div className="flex flex-wrap gap-2">
-                                {line.child_ages.map((age, child) => (
-                                    <Input
-                                        key={child}
-                                        type="number"
-                                        min={0}
-                                        max={17}
-                                        className="w-20"
-                                        aria-label={`Age of child ${child + 1}`}
-                                        value={age}
-                                        onChange={(event) =>
-                                            onChange({
-                                                child_ages: line.child_ages.map(
-                                                    (current, position) =>
-                                                        position === child
-                                                            ? event.target.value
-                                                            : current,
-                                                ),
-                                            })
-                                        }
-                                        aria-invalid={
-                                            !!error(`child_ages.${child}`) ||
-                                            !!error('child_ages')
-                                        }
-                                    />
-                                ))}
-                            </div>
-                            <FieldError>
-                                {
-                                    Object.entries(errors).find(([key]) =>
-                                        key.startsWith(
-                                            `lines.${index}.child_ages`,
-                                        ),
-                                    )?.[1]
-                                }
-                            </FieldError>
-                        </Field>
-                    )}
+                    ))}
                 </div>
             )}
 
+            {!isBed && line.child_ages.length > 0 && (
+                <Field
+                    className="lg:col-span-full"
+                    data-invalid={agesError !== undefined}
+                >
+                    <FieldLabel>Children's ages</FieldLabel>
+                    <div className="flex flex-wrap gap-2">
+                        {line.child_ages.map((age, child) => (
+                            <Input
+                                key={child}
+                                type="number"
+                                min={0}
+                                max={17}
+                                className="w-20"
+                                aria-label={`Age of child ${child + 1}`}
+                                value={age}
+                                onChange={(event) =>
+                                    onChange({
+                                        child_ages: line.child_ages.map(
+                                            (current, position) =>
+                                                position === child
+                                                    ? event.target.value
+                                                    : current,
+                                        ),
+                                    })
+                                }
+                                aria-invalid={
+                                    !!error(`child_ages.${child}`) ||
+                                    !!error('child_ages')
+                                }
+                            />
+                        ))}
+                    </div>
+                    <FieldError>{agesError}</FieldError>
+                </Field>
+            )}
+
             {quoteErrors.length > 0 && (
-                <p className="text-sm text-destructive">
+                <p className="text-sm text-destructive lg:col-span-full">
                     {quoteErrors.join(' ')}
                 </p>
             )}
             {quote &&
                 quoteErrors.length === 0 &&
-                quote.available <
-                    (isBed ? Number.parseInt(line.beds, 10) || 1 : 1) && (
-                    <p className="text-sm text-destructive">
+                quote.available < (isBed ? bedCount : 1) && (
+                    <p className="text-sm text-destructive lg:col-span-full">
                         {quote.available === 0
                             ? 'No unit is free for these dates.'
                             : `Only ${quote.available} free for these dates.`}

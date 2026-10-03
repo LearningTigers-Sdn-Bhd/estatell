@@ -12,7 +12,10 @@ import {
     emptyGuest,
     guestTabLabel,
 } from '@/components/pms/reservations/booking-guests';
-import { BookingLineRow } from '@/components/pms/reservations/booking-line-row';
+import {
+    BookingLineRow,
+    BookingLinesHeader,
+} from '@/components/pms/reservations/booking-line-row';
 import {
     addDays,
     bookingPayload,
@@ -438,33 +441,41 @@ export default function ReservationCreate({
 
                         <Section title="Rooms and beds">
                             <div className="flex flex-col gap-3">
-                                {data.lines.map((line, position) => (
-                                    <BookingLineRow
-                                        key={line.key}
-                                        index={position}
-                                        line={line}
-                                        options={addUnitOptions}
-                                        arrival={data.arrival_date}
-                                        departure={departure}
-                                        currency={currency}
-                                        errors={errors}
-                                        emptyPickLabel={emptyPickLabel}
-                                        takenIds={takenBy(position)}
-                                        canRemove={data.lines.length > 1}
-                                        onChange={(patch) =>
-                                            setLine(position, patch)
-                                        }
-                                        onRemove={() =>
-                                            form.setData(
-                                                'lines',
-                                                data.lines.filter(
-                                                    (_, at) => at !== position,
-                                                ),
-                                            )
-                                        }
-                                        onQuote={onQuote}
-                                    />
-                                ))}
+                                <div className="overflow-hidden rounded-lg border">
+                                    <BookingLinesHeader />
+                                    <div className="divide-y">
+                                        {data.lines.map((line, position) => (
+                                            <BookingLineRow
+                                                key={line.key}
+                                                index={position}
+                                                line={line}
+                                                options={addUnitOptions}
+                                                arrival={data.arrival_date}
+                                                departure={departure}
+                                                currency={currency}
+                                                errors={errors}
+                                                emptyPickLabel={emptyPickLabel}
+                                                takenIds={takenBy(position)}
+                                                canRemove={
+                                                    data.lines.length > 1
+                                                }
+                                                onChange={(patch) =>
+                                                    setLine(position, patch)
+                                                }
+                                                onRemove={() =>
+                                                    form.setData(
+                                                        'lines',
+                                                        data.lines.filter(
+                                                            (_, at) =>
+                                                                at !== position,
+                                                        ),
+                                                    )
+                                                }
+                                                onQuote={onQuote}
+                                            />
+                                        ))}
+                                    </div>
+                                </div>
                                 <div>
                                     <Button
                                         type="button"
