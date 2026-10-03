@@ -475,10 +475,10 @@ export default function ReservationCreate({
                                             />
                                         ))}
                                     </div>
-                                    <div className="border-t bg-muted/50 px-3 py-2">
+                                    <div className="flex justify-end border-t bg-muted/50 px-3 py-2">
                                         <Button
                                             type="button"
-                                            variant="ghost"
+                                            variant="outline"
                                             size="sm"
                                             onClick={() =>
                                                 form.setData('lines', [
