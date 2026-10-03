@@ -236,17 +236,17 @@ export function GuestAutocompleteField({
                                     <ArrowDown />
                                 </Kbd>
                             </KbdGroup>
-                            move
+                            Move
                         </span>
                         <span className="flex items-center gap-1">
                             <Kbd>
                                 <CornerDownLeft />
                             </Kbd>
-                            select
+                            Select
                         </span>
                         <span className="flex items-center gap-1">
                             <Kbd>Esc</Kbd>
-                            keep typing as a new guest
+                            Keep typing as a new guest
                         </span>
                     </li>
                 </ul>
