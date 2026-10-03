@@ -1,4 +1,10 @@
-import { ArrowRightLeft, MoreHorizontal, Undo2, X } from 'lucide-react';
+import {
+    ArrowRightLeft,
+    MoreHorizontal,
+    RotateCcw,
+    Undo2,
+    X,
+} from 'lucide-react';
 import { Fragment } from 'react';
 import { DateText } from '@/components/pms/date-text';
 import { MoneyText } from '@/components/pms/money-text';
@@ -29,7 +35,8 @@ const SECTIONS: Record<Row['state'], string> = {
 
 /**
  * The Posted rows, then the Scheduled rows, as the server sent them. Scheduled rows are muted, and children (a
- * discount, then its tax) are indented. The Unit column shows only when a row names a unit.
+ * discount, then its tax) are indented. A payment shows its reference under the method. The Unit column shows only
+ * when a row names a unit.
  */
 export function FolioRowsTable({
     rows,
@@ -40,7 +47,7 @@ export function FolioRowsTable({
     currency: App.Enums.Currency | null;
     onAction: (
         row: Row,
-        action: 'reverse' | 'transfer' | 'remove_discount',
+        action: 'reverse' | 'transfer' | 'remove_discount' | 'refund',
     ) => void;
 }) {
     const showUnit = rows.some((row) => row.unit !== null);
@@ -104,6 +111,11 @@ export function FolioRowsTable({
                                         </Badge>
                                     ))}
                                 </span>
+                                {row.note && (
+                                    <span className="block text-xs text-muted-foreground">
+                                        Ref {row.note}
+                                    </span>
+                                )}
                             </TableCell>
                             {showUnit && <TableCell>{row.unit}</TableCell>}
                             <TableCell className="text-right">
@@ -128,6 +140,21 @@ export function FolioRowsTable({
                                                 <MoreHorizontal />
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent align="end">
+                                                {row.actions.includes(
+                                                    'refund',
+                                                ) && (
+                                                    <DropdownMenuItem
+                                                        onClick={() =>
+                                                            onAction(
+                                                                row,
+                                                                'refund',
+                                                            )
+                                                        }
+                                                    >
+                                                        <RotateCcw />
+                                                        Refund
+                                                    </DropdownMenuItem>
+                                                )}
                                                 {row.actions.includes(
                                                     'transfer',
                                                 ) && (

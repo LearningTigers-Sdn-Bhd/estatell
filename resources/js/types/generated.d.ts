@@ -121,6 +121,8 @@ canApplyDiscount: boolean,
 canPostCharge: boolean,
 postUnits: App.Data.Folio.FolioOptionData[],
 transferTargets: App.Data.Folio.FolioOptionData[],
+canRecordPayment: boolean,
+paymentUnitId: number | null,
 };
 export type FolioDiscountOptionData = {
 id: number,
@@ -158,6 +160,9 @@ amount: string,
 tags: string[],
 lineId: number | null,
 actions: string[],
+note: string | null,
+paymentId: number | null,
+refundable: string | null,
 };
 export type NewChargeData = {
 chargeItemId: number | null,
@@ -348,6 +353,25 @@ purpose: App.Enums.PaymentPurpose,
 amount: string,
 reference: string | null,
 idempotencyKey: string,
+};
+export type PaymentFormOptionsData = {
+methods: App.Data.Payments.PaymentMethodOptionData[],
+purposes: {
+value: string,
+label: string,
+}[],
+};
+export type PaymentMethodOptionData = {
+id: number,
+name: string,
+requiresReference: boolean,
+};
+export type PaymentQuoteData = {
+amount: string | null,
+surcharge: string | null,
+surchargeTax: string | null,
+total: string | null,
+error: string | null,
 };
 }
 namespace Platform {

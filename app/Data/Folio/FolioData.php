@@ -9,6 +9,8 @@ use Spatie\LaravelData\Data;
  * The open folio of the folio tab. Balance is the posted lines only (null for a unit with no folio yet). Projected
  * total is the posted lines plus the Scheduled rows. `canClose` is true for an Open folio and `canReopen` for a Closed one, when the user holds the permission (a balance other than 0 is refused by the Action). `canApplyDiscount` says an Open folio has a charge that can still take a discount. `postUnits` are the units a charge can be posted for, and
  * `transferTargets` are the other Open folios of the reservation. Both are empty when the user may not act.
+ * `canRecordPayment` is true for an Open folio or a "not started" entry when the user holds `payment.record`, and
+ * `paymentUnitId` is the unit a "not started" entry records on.
  */
 class FolioData extends Data
 {
@@ -33,5 +35,7 @@ class FolioData extends Data
         public bool $canPostCharge = false,
         public array $postUnits = [],
         public array $transferTargets = [],
+        public bool $canRecordPayment = false,
+        public ?int $paymentUnitId = null,
     ) {}
 }

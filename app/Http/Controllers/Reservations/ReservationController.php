@@ -134,6 +134,8 @@ class ReservationController extends Controller
             'discount' => $request->user()->can(PermissionEnum::FolioDiscount->value),
             'close' => $request->user()->can(PermissionEnum::FolioClose->value),
             'reopen' => $request->user()->can(PermissionEnum::FolioReopen->value),
+            'recordPayment' => $request->user()->can(PermissionEnum::PaymentRecord->value),
+            'refund' => $request->user()->can(PermissionEnum::PaymentRefund->value),
         ]));
     }
 
@@ -176,6 +178,7 @@ class ReservationController extends Controller
             'chargeItems' => Inertia::optional(fn () => $options->chargeItems($property)),
             'chargeCodes' => Inertia::optional(fn () => $options->chargeCodes($property)),
             'folioDiscounts' => Inertia::optional(fn () => $options->folioDiscounts($property, $user->can(PermissionEnum::FolioDiscountOpen->value))),
+            'paymentOptions' => Inertia::optional(fn () => $options->payments($property)),
             ...$tabProps($overview['units'], $overview['models']),
         ]);
     }

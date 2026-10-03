@@ -151,6 +151,15 @@ Decisions made at build time:
 - A repeated key from another reservation (or, for a refund, of another payment) is refused with `payment_not_found`.
 - The quote's Data class for the Dialog comes with the folio tab item.
 
+Built (folio tab item): `ReservationPaymentController` with `quote`, `storeForFolio`, `storeForUnit` and `refund`, the four routes, `QuotePaymentRequest`, `StorePaymentRequest`, `StoreRefundRequest`, `PaymentRefusals`, `PaymentQuoteData`, `PaymentMethodOptionData`, `PaymentFormOptionsData` and the optional prop `paymentOptions`, `FolioData.canRecordPayment` and `paymentUnitId`, `FolioRowData.note`, `paymentId` and `refundable`, the `refund` row action, `RecordPaymentDialog`, `RefundPaymentDialog`, and the reference and Refund tag in the rows table.
+
+Decisions made at build time (folio tab):
+
+- The quote route answers 200 with an `error` message for a refused quote (an invalid amount, a tax that cannot be calculated). A method of another property is a 404. The Dialog asks for a new quote 300 ms after the method or the amount changes, and the Record button stays disabled until a quote without an error is back.
+- A recorded payment redirects to the folio page with `?folio={folio id}`, for a folio and for a "not started" entry. The toast names the amount and the receipt number. A refund goes back to the page it came from.
+- The Record payment button is the primary button when the folio has no Post charge button (a "not started" entry, or a user without `folio.post-charge`), and an outline button next to Post charge otherwise.
+- A payment row shows "Ref {reference}" under the method name. A refund row shows its reference the same way.
+
 ## Not in this item
 
 The AR invoice for City ledger, OTA collected payments, the Stay View Record payment button ([Stay View](../18-front-desk/03-stay-view.md)), the Cards and List money strip, online gateways with Pending payments.

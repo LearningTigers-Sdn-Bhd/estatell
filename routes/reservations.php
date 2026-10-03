@@ -5,6 +5,7 @@ use App\Http\Controllers\Reservations\ReservationBookingController;
 use App\Http\Controllers\Reservations\ReservationController;
 use App\Http\Controllers\Reservations\ReservationFolioController;
 use App\Http\Controllers\Reservations\ReservationGroupController;
+use App\Http\Controllers\Reservations\ReservationPaymentController;
 use App\Http\Controllers\Reservations\ReservationUnitAddOnController;
 use App\Http\Controllers\Reservations\ReservationUnitController;
 use Illuminate\Support\Facades\Route;
@@ -37,6 +38,13 @@ Route::prefix('reservations')->name('reservations.')->scopeBindings()->group(fun
                 Route::post('close', [ReservationFolioController::class, 'close'])->middleware('can:'.PermissionEnum::FolioClose->value)->name('close');
                 Route::post('reopen', [ReservationFolioController::class, 'reopen'])->middleware('can:'.PermissionEnum::FolioReopen->value)->name('reopen');
                 Route::post('transfers', [ReservationFolioController::class, 'transfer'])->middleware('can:'.PermissionEnum::FolioTransfer->value)->name('transfers.store');
+                Route::post('payments', [ReservationPaymentController::class, 'storeForFolio'])->middleware('can:'.PermissionEnum::PaymentRecord->value)->name('payments.store');
+                Route::post('payments/{payment}/refunds', [ReservationPaymentController::class, 'refund'])->middleware('can:'.PermissionEnum::PaymentRefund->value)->name('payments.refunds.store');
+            });
+
+            Route::middleware('can:'.PermissionEnum::PaymentRecord->value)->group(function () {
+                Route::post('payments/quote', [ReservationPaymentController::class, 'quote'])->name('payments.quote');
+                Route::post('units/{unit}/payments', [ReservationPaymentController::class, 'storeForUnit'])->name('units.payments.store');
             });
         });
     });

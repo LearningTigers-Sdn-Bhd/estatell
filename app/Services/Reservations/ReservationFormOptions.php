@@ -3,6 +3,8 @@
 namespace App\Services\Reservations;
 
 use App\Data\Folio\FolioDiscountOptionData;
+use App\Data\Payments\PaymentFormOptionsData;
+use App\Data\Payments\PaymentMethodOptionData;
 use App\Data\Reservations\AddUnitOptionsData;
 use App\Data\Reservations\ChargeCodeOptionData;
 use App\Data\Reservations\ChargeItemOptionData;
@@ -11,9 +13,11 @@ use App\Data\Reservations\RatePlanOptionData;
 use App\Data\Reservations\RoomTypeOptionData;
 use App\Enums\DiscountScope;
 use App\Enums\DiscountType;
+use App\Enums\PaymentMethodType;
 use App\Enums\TransactionKind;
 use App\Models\ChargeItem;
 use App\Models\Discount;
+use App\Models\PaymentMethod;
 use App\Models\Property;
 use App\Models\RatePlan;
 use App\Models\RoomType;
@@ -78,5 +82,19 @@ class ReservationFormOptions
             ->map(fn (Discount $discount): FolioDiscountOptionData => FolioDiscountOptionData::fromModel($discount, $canEnterOpenAmounts))
             ->values()
             ->all();
+    }
+
+    /**
+     * The methods and purposes of the Record payment Dialog. City ledger and OTA collected methods are not offered
+     * yet. `RecordPayment` checks the method again.
+     */
+    public function payments(Property $property): PaymentFormOptionsData
+    {
+        return PaymentFormOptionsData::forMethods(
+            PaymentMethod::query()->where('property_id', $property->id)->active()
+                ->whereNotIn('type', [PaymentMethodType::OtaCollected, PaymentMethodType::DirectBill])
+                ->ordered()->get()
+                ->map(PaymentMethodOptionData::fromModel(...))->all(),
+        );
     }
 }

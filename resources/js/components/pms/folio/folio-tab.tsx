@@ -1,5 +1,12 @@
 import { Form } from '@inertiajs/react';
-import { BadgePercent, CreditCard, Lock, LockOpen, Plus } from 'lucide-react';
+import {
+    BadgePercent,
+    Banknote,
+    CreditCard,
+    Lock,
+    LockOpen,
+    Plus,
+} from 'lucide-react';
 import { useState } from 'react';
 import { EmptyState } from '@/components/pms/empty-state';
 import { ApplyDiscountDialog } from '@/components/pms/folio/apply-discount-dialog';
@@ -7,6 +14,8 @@ import { CloseFolioDialog } from '@/components/pms/folio/close-folio-dialog';
 import { FolioRail } from '@/components/pms/folio/folio-rail';
 import { FolioRowsTable } from '@/components/pms/folio/folio-rows-table';
 import { PostChargeDialog } from '@/components/pms/folio/post-charge-dialog';
+import { RecordPaymentDialog } from '@/components/pms/folio/record-payment-dialog';
+import { RefundPaymentDialog } from '@/components/pms/folio/refund-payment-dialog';
 import { RemoveDiscountDialog } from '@/components/pms/folio/remove-discount-dialog';
 import { ReverseLineDialog } from '@/components/pms/folio/reverse-line-dialog';
 import { TransferLineDialog } from '@/components/pms/folio/transfer-line-dialog';
@@ -45,6 +54,7 @@ export function FolioTab({
     chargeItems,
     chargeCodes,
     folioDiscounts,
+    paymentOptions,
     currency,
 }: {
     reservationId: number;
@@ -53,9 +63,13 @@ export function FolioTab({
     chargeItems?: App.Data.Reservations.ChargeItemOptionData[];
     chargeCodes?: App.Data.Reservations.ChargeCodeOptionData[];
     folioDiscounts?: App.Data.Folio.FolioDiscountOptionData[];
+    paymentOptions?: App.Data.Payments.PaymentFormOptionsData;
     currency: App.Enums.Currency | null;
 }) {
     const [posting, setPosting] = useState(false);
+    const [paying, setPaying] = useState(false);
+    const [refunding, setRefunding] =
+        useState<App.Data.Folio.FolioRowData | null>(null);
     const [discounting, setDiscounting] = useState(false);
     const [closing, setClosing] = useState(false);
     const [removing, setRemoving] =
@@ -147,6 +161,17 @@ export function FolioTab({
                                 Apply discount
                             </Button>
                         )}
+                        {folio.canRecordPayment && (
+                            <Button
+                                variant={
+                                    folio.canPostCharge ? 'outline' : 'default'
+                                }
+                                onClick={() => setPaying(true)}
+                            >
+                                <Banknote data-icon="inline-start" />
+                                Record payment
+                            </Button>
+                        )}
                         {folio.canPostCharge && (
                             <Button onClick={() => setPosting(true)}>
                                 <Plus data-icon="inline-start" />
@@ -201,6 +226,8 @@ export function FolioTab({
                                     setReversing(row);
                                 } else if (action === 'transfer') {
                                     setTransferring(row);
+                                } else if (action === 'refund') {
+                                    setRefunding(row);
                                 } else {
                                     setRemoving(row);
                                 }
@@ -220,6 +247,23 @@ export function FolioTab({
                     currency={currency}
                 />
             )}
+            {folio.canRecordPayment && (
+                <RecordPaymentDialog
+                    open={paying}
+                    onOpenChange={setPaying}
+                    reservationId={reservationId}
+                    folio={folio}
+                    options={paymentOptions}
+                    currency={currency}
+                />
+            )}
+            <RefundPaymentDialog
+                reservationId={reservationId}
+                folioId={Number(folio.key)}
+                row={refunding}
+                currency={currency}
+                onClose={() => setRefunding(null)}
+            />
             {folio.canClose && (
                 <CloseFolioDialog
                     open={closing}

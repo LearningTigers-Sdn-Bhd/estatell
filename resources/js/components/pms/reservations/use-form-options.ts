@@ -5,7 +5,8 @@ type OptionProp =
     | 'addUnitOptions'
     | 'chargeItems'
     | 'chargeCodes'
-    | 'folioDiscounts';
+    | 'folioDiscounts'
+    | 'paymentOptions';
 
 /**
  * Asks the server for an optional page prop the first time an overlay opens. The prop stays on the page afterwards.
@@ -31,4 +32,5 @@ export const KEEP_OPTIONS = [
     'chargeItems',
     'chargeCodes',
     'folioDiscounts',
+    'paymentOptions',
 ];
