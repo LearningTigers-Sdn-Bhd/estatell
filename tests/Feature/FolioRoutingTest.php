@@ -19,6 +19,7 @@ use App\Enums\FolioType;
 use App\Enums\ReservationSource;
 use App\Enums\RoutingRuleSource;
 use App\Enums\TransactionCategory;
+use App\Enums\UnitStatus;
 use App\Models\BusinessDate;
 use App\Models\Folio;
 use App\Models\FolioLine;
@@ -329,6 +330,81 @@ test('one unit and no company gets no master folio and no rules', function () {
     expect($result->masterFolio)->toBeNull()
         ->and(Folio::query()->count())->toBe(0)
         ->and(FolioRoutingRule::query()->count())->toBe(0);
+});
+
+test('a cancelled unit and a no-show unit do not count toward the 2 units', function () {
+    $setup = routingSetup(units: 2);
+    $setup['unit1']->forceFill(['status' => UnitStatus::Cancelled])->save();
+
+    $result = app(SyncRoutingRules::class)($setup['reservation']);
+
+    expect($result->masterFolio)->toBeNull()
+        ->and(Folio::query()->count())->toBe(0)
+        ->and(FolioRoutingRule::query()->count())->toBe(0);
+
+    $setup['unit2']->forceFill(['status' => UnitStatus::NoShow])->save();
+    ReservationUnit::factory()->create(['reservation_id' => $setup['reservation']->id]);
+
+    expect(app(SyncRoutingRules::class)($setup['reservation'])->masterFolio)->toBeNull()
+        ->and(FolioRoutingRule::query()->count())->toBe(0);
+});
+
+test('3 units with 1 cancelled get the master folio and the rule', function () {
+    $setup = routingSetup(units: 3);
+    $setup['unit1']->forceFill(['status' => UnitStatus::Cancelled])->save();
+
+    $result = app(SyncRoutingRules::class)($setup['reservation']);
+
+    expect($result->masterFolioCreated)->toBeTrue()
+        ->and(FolioRoutingRule::query()->sole()->category)->toBe(TransactionCategory::Room);
+});
+
+test('the rules stay when a unit later cancels and the surviving unit still routes its room charge to the master', function () {
+    $setup = routingSetup();
+    $sync = app(SyncRoutingRules::class);
+    $master = $sync($setup['reservation'])->masterFolio;
+    $rule = FolioRoutingRule::query()->sole();
+
+    $setup['unit1']->forceFill(['status' => UnitStatus::Cancelled])->save();
+    $again = $sync($setup['reservation']);
+    $line = routingPost($setup, $setup['unit2'], $setup['room'])->line();
+
+    expect($again->rulesRemoved)->toBe(0)
+        ->and($again->rulesCreated)->toBe(0)
+        ->and($again->masterFolio->is($master))->toBeTrue()
+        ->and(FolioRoutingRule::query()->sole()->is($rule))->toBeTrue()
+        ->and($line->folio_id)->toBe($master->id);
+});
+
+test('a kept rule is swapped when the mode changes while only 1 live unit remains', function () {
+    $setup = routingSetup();
+    $sync = app(SyncRoutingRules::class);
+    $sync($setup['reservation']);
+    $setup['unit1']->forceFill(['status' => UnitStatus::NoShow])->save();
+    $setup['reservation']->update(['billing_mode' => BillingMode::MasterPaysAll]);
+
+    $sync($setup['reservation']);
+
+    expect(FolioRoutingRule::query()->sole()->category)->toBeNull();
+});
+
+test('AddUnit counts only live units when it takes a reservation to 2', function () {
+    $setup = routingBookingSetup();
+    $first = $setup['reservation']->units()->sole();
+    ReservationUnit::factory()->cancelled()->create(['reservation_id' => $setup['reservation']->id, 'room_type_id' => $setup['roomType']->id, 'rate_plan_id' => $setup['plan']->id]);
+
+    $result = app(AddUnit::class)($setup['user'], $setup['reservation'], routingUnitData($setup));
+
+    expect($result->isRefused())->toBeFalse()
+        ->and(FolioRoutingRule::query()->sole()->targetFolio->type)->toBe(FolioType::Master);
+
+    $other = routingBookingSetup();
+    $other['reservation']->units()->sole()->forceFill(['status' => UnitStatus::Cancelled])->save();
+
+    app(AddUnit::class)($other['user'], $other['reservation'], routingUnitData($other));
+
+    expect(FolioRoutingRule::query()->where('reservation_id', $other['reservation']->id)->count())->toBe(0)
+        ->and($first->exists)->toBeTrue();
 });
 
 test('a company with one unit gets a master folio paid by the company and the rules', function () {

@@ -34,7 +34,7 @@ class PostCharge
      * Post one charge on a unit's folio, then one Tax child line for each tax component. The unit row is locked first,
      * so two postings of one unit never race. Every check runs before the first write, so a refusal writes and logs
      * nothing. The folio comes from `FolioRouter` (a routing rule or the unit's own folio), and a closed one refuses the posting with
-     * no fallback. Tax lines go on the folio of their charge. A key that already exists returns the existing lines and writes nothing. The charge line holds the net
+     * no fallback. Tax lines go on the folio of their charge. A key that already exists returns the existing lines and writes nothing, but only when the line's folio belongs to the unit's reservation (otherwise `charge_not_found`). The charge line holds the net
      * amount (the entered amount without inclusive tax), so the folio total is the gross amount.
      * See docs/13-folio/02-posting-charges.md.
      */
@@ -46,6 +46,10 @@ class PostCharge
             $existing = FolioLine::query()->where('idempotency_key', $key)->first();
 
             if ($existing !== null) {
+                if ($existing->folio->reservation_id !== $locked->reservation_id) {
+                    return PostingResult::refused(PostingResult::REFUSAL_CHARGE_NOT_FOUND);
+                }
+
                 return PostingResult::replayed([$existing, ...$existing->children()->orderBy('id')->get()->all()]);
             }
 

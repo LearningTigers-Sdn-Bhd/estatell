@@ -8,6 +8,7 @@ use App\Enums\FolioType;
 use App\Enums\RoutingRuleSource;
 use App\Enums\TransactionCategory;
 use App\Enums\TransactionKind;
+use App\Enums\UnitStatus;
 use App\Models\Folio;
 use App\Models\FolioLine;
 use App\Models\FolioRoutingRule;
@@ -20,8 +21,9 @@ class SyncRoutingRules
 
     /**
      * Make the BillingMode rules of a reservation match its `billing_mode`. MasterPays sends Room charges to the Master
-     * folio, MasterPaysAll sends all charges, EachPays sends none. Rules exist only with 2 or more units or a
-     * `company_id`. The reservation row is locked first. The Master folio is created once, when the rules need it, or
+     * folio, MasterPaysAll sends all charges, EachPays sends none. Rules are created only with 2 or more live units
+     * (not Cancelled or NoShow) or a `company_id`. Once the Master folio and its BillingMode rules exist, a unit that
+     * later cancels never removes them: only EachPays or a stale rule does. The reservation row is locked first. The Master folio is created once, when the rules need it, or
      * when the reservation has a company (the AR invoice is made from it). Only BillingMode rules are removed or
      * changed: Manual rules are never touched, and a Manual rule on the same selectors keeps its place. Folios are
      * never deleted. Running it again changes nothing. See docs/13-folio/03-routing.md.
@@ -31,18 +33,27 @@ class SyncRoutingRules
         return DB::transaction(function () use ($reservation): RoutingSyncResult {
             $locked = Reservation::query()->lockForUpdate()->findOrFail($reservation->id);
 
-            $grouped = $locked->company_id !== null || $locked->units()->count() >= 2;
-            $routes = $grouped && $locked->billing_mode !== BillingMode::EachPays;
+            $liveUnits = $locked->units()->whereNotIn('status', [UnitStatus::Cancelled, UnitStatus::NoShow])->count();
+            $grouped = $locked->company_id !== null || $liveUnits >= 2;
+            $routes = $locked->billing_mode !== BillingMode::EachPays;
 
             $master = $this->activeMaster($locked);
             $created = false;
 
-            if ($master === null && ($routes || $locked->company_id !== null)) {
+            if ($master === null && ($locked->company_id !== null || ($routes && $grouped))) {
                 $master = ($this->createFolio)($locked, null);
                 $created = true;
             }
 
-            $needsRule = $routes && $master !== null;
+            $established = $master !== null && FolioRoutingRule::query()
+                ->where('reservation_id', $locked->id)
+                ->where('source', RoutingRuleSource::BillingMode)
+                ->whereNull('reservation_unit_id')
+                ->whereNull('transaction_code_id')
+                ->where('target_folio_id', $master->id)
+                ->exists();
+
+            $needsRule = $routes && $master !== null && ($grouped || $established);
             $category = $locked->billing_mode === BillingMode::MasterPays ? TransactionCategory::Room : null;
             $removed = 0;
             $added = 0;

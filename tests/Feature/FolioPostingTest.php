@@ -169,6 +169,31 @@ test('a repeated key returns the existing line and writes nothing', function () 
         ->and(Activity::query()->where('event', 'folio.charge_posted')->count())->toBe(1);
 });
 
+test('a repeated manual key from the same reservation replays, and from another reservation it is refused and writes nothing', function () {
+    $setup = postingSetup();
+    $sibling = ReservationUnit::factory()->checkedIn()->create(['reservation_id' => $setup['unit']->reservation_id]);
+    $data = chargeData($setup['item'], ['idempotencyKey' => 'manual:shared']);
+    $first = app(PostCharge::class)($setup['actor'], $setup['unit'], $data);
+
+    $replay = app(PostCharge::class)($setup['actor'], $sibling, $data);
+
+    expect($replay->replayed)->toBeTrue()
+        ->and($replay->line()->id)->toBe($first->line()->id);
+
+    $otherReservation = Reservation::factory()->create(['property_id' => $setup['property']->id]);
+    $stranger = ReservationUnit::factory()->checkedIn()->create(['reservation_id' => $otherReservation->id]);
+    $logged = Activity::query()->count();
+
+    $refused = app(PostCharge::class)($setup['actor'], $stranger, $data);
+
+    expect($refused->isRefused())->toBeTrue()
+        ->and($refused->refusal)->toBe(PostingResult::REFUSAL_CHARGE_NOT_FOUND)
+        ->and($refused->lines)->toBe([])
+        ->and(FolioLine::query()->count())->toBe(1)
+        ->and(Folio::query()->count())->toBe(1)
+        ->and(Activity::query()->count())->toBe($logged);
+});
+
 test('a charge refusal writes and logs nothing', function (string $refusal, Closure $arrange) {
     $setup = postingSetup();
     $data = $arrange($setup);

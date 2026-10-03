@@ -79,7 +79,7 @@ Decisions made at build time:
 - `CreateFolio::thirdParty(Reservation, ?Guest, ?int $payerCompanyId)` takes exactly one payer. `folios` has no label column, so a third-party folio has no label: its payer names it. A label needs a schema decision first.
 - `CreateRoutingRule` returns a `RoutingRuleResult` and refuses `target_folio_not_in_reservation`, `unit_not_in_reservation`, `transaction_code_not_found` and `rule_exists`. `SyncRoutingRules` uses it for BillingMode rules, so a Manual rule on the same selectors keeps its place and the sync adds nothing.
 - `SyncRoutingRules` returns a `RoutingSyncResult` (`masterFolio`, `masterFolioCreated`, `rulesCreated`, `rulesRemoved`, `unitsWithPostedRoomLines`). It writes no activity log. A unit counts as holding posted room lines when its own folio has a Room charge that is not a reversal and was not reversed. The list is empty when no rule routes Room to the Master folio.
-- A reservation with a `company_id` gets a Master folio in every billing mode (the AR invoice is made from it), but EachPays still has no rules. Without a company the Master folio exists only when the mode routes and the reservation has 2 or more units. Until the side item is built, Cancelled units still count toward the 2 units, and the sync removes rules that no longer match the count.
+- A reservation with a `company_id` gets a Master folio in every billing mode (the AR invoice is made from it), but EachPays still has no rules. Without a company the Master folio exists only when the mode routes and the reservation has 2 or more live units (not Cancelled or NoShow). The live count applies only when rules are created: once the Master folio and its BillingMode rules exist, the sync keeps them when a unit later cancels or is marked NoShow, and removes them only for EachPays or when a rule is stale. A mode change on a kept group swaps the rule. Nothing hooks cancel or NoShow.
 - If a BillingMode rule no longer matches (another mode, another target), the sync deletes it and creates the right one.
 - `UpdateReservationGroup` now returns a `GroupUpdateResult` (it returned the `Reservation`). It runs the sync only when the billing mode changed.
 - A closed Master folio still counts as the active Master (only Voided is excluded), so the sync never makes a second one.
@@ -93,7 +93,6 @@ Decisions made at build time:
 - **Folio page:** Scheduled rows for master and third-party folios follow the rules ([Folio page](05-folio-page.md)).
 - **Company change:** when `reservations.company_id` changes after the Master folio exists, the Master payer stays the old company. Decide in [Companies](../15-city-ledger/01-companies.md): refuse the change while the Master holds lines, or move the payer.
 - **Third-party label:** a third-party folio has no label, so its payer names it. Decide before any staff screen: add a nullable `label` to `folios`, or accept the payer as the only name.
-- **Side item, not built:** the live-unit rule and keeping rules when units cancel are built by the follow-up in the [checklist](../checklist.md) (`fix(folio): count live units in routing and scope the posting key`).
 
 ## Out of scope
 
