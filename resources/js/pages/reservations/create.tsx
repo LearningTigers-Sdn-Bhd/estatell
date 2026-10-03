@@ -331,7 +331,7 @@ export default function ReservationCreate({
                         description={
                             isWalkIn
                                 ? 'A guest at the desk now. Every unit needs a room or bed.'
-                                : undefined
+                                : 'Reserve rooms or beds for a guest who arrives on a later date.'
                         }
                         back={{ href: index.url(), label: 'Reservations' }}
                     />

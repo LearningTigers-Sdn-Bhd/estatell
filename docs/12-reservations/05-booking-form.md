@@ -35,7 +35,7 @@ Stay is always visible above the tabs. The tab strip uses the `line` variant of 
 
 ## Entry points
 
-The Reservations page has `New ▾` with **New booking** and **Walk-in**. Walk-in opens the same page with `source = WalkIn` and today's business date as arrival. The **Reservation mode** field on the form switches between the two pages without losing what was typed (see [Stay](#sections)). The walk-in check-in itself comes with [Check-in and check-out](../18-front-desk/01-check-in-and-check-out.md).
+The page header has a description in both modes: "Reserve rooms or beds for a guest who arrives on a later date." for a new booking, and "A guest at the desk now. Every unit needs a room or bed." for a walk-in. The Reservations page has `New ▾` with **New booking** and **Walk-in**. Walk-in opens the same page with `source = WalkIn` and today's business date as arrival. The **Reservation mode** field on the form switches between the two pages without losing what was typed (see [Stay](#sections)). The walk-in check-in itself comes with [Check-in and check-out](../18-front-desk/01-check-in-and-check-out.md).
 
 | URL                                     | Name                      | Needs                 |
 | --------------------------------------- | ------------------------- | --------------------- |
