@@ -223,20 +223,7 @@ function GuestRow({
                     <CollapsibleContent>
                         <div className="flex flex-col gap-4 px-3 pb-3 lg:pl-14">
                             {parts.linked}
-                            <div className="max-w-sm">{parts.email}</div>
                             {parts.notes}
-
-                            {guest.guest === null &&
-                                canManageGuests &&
-                                criteria !== dismissed && (
-                                    <DuplicateWarning
-                                        criteria={checked}
-                                        onUse={(match) => {
-                                            onChange(linkGuest(guest, match));
-                                        }}
-                                        onDismiss={() => setDismissed(criteria)}
-                                    />
-                                )}
 
                             {guest.guest !== null && canManageGuests && (
                                 <Field orientation="horizontal">
@@ -258,8 +245,13 @@ function GuestRow({
                             )}
                             <FieldError>{error('update_profile')}</FieldError>
 
+                            {!canManageGuests && (
+                                <div className="max-w-sm">{parts.email}</div>
+                            )}
                             {canManageGuests && (
                                 <GuestDetailsFields
+                                    columns={3}
+                                    leading={parts.email}
                                     idPrefix={`guest-${index}-`}
                                     errorPrefix={prefix}
                                     values={guest}
@@ -273,6 +265,18 @@ function GuestRow({
                                     locales={locales}
                                 />
                             )}
+
+                            {guest.guest === null &&
+                                canManageGuests &&
+                                criteria !== dismissed && (
+                                    <DuplicateWarning
+                                        criteria={checked}
+                                        onUse={(match) => {
+                                            onChange(linkGuest(guest, match));
+                                        }}
+                                        onDismiss={() => setDismissed(criteria)}
+                                    />
+                                )}
                         </div>
                     </CollapsibleContent>
                 </Collapsible>

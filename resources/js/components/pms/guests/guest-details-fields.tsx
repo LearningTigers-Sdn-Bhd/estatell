@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { CountrySelect } from '@/components/pms/country-select';
 import { DatePicker } from '@/components/pms/date-picker';
 import { EnumSelect } from '@/components/pms/enum-select';
@@ -9,6 +10,7 @@ import {
     FieldLabel,
 } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
+import { cn } from '@/lib/utils';
 
 /** The personal details and address of a guest, as the forms hold them. */
 export type GuestDetails = {
@@ -55,6 +57,10 @@ type PersonalProps = Props & {
     locales: EnumOption[];
     /** Called with the new date of birth, for the duplicate check. */
     onDateOfBirthChange?: (value: string) => void;
+    /** Fields per row from `lg`. Two by default; the booking form uses three. */
+    columns?: 2 | 3;
+    /** A field put first in the same grid, for example the Email in the booking form. */
+    leading?: ReactNode;
 };
 
 function useParts({
@@ -172,7 +178,13 @@ export function GuestPersonalFields(props: PersonalProps) {
 
     return (
         <FieldGroup>
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div
+                className={cn(
+                    'grid gap-4 sm:grid-cols-2',
+                    props.columns === 3 && 'lg:grid-cols-3',
+                )}
+            >
+                {props.leading}
                 <CountryField
                     field="nationality_code"
                     label="Nationality"

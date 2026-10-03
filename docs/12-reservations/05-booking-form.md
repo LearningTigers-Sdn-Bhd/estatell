@@ -140,7 +140,7 @@ Units without a guest are allowed. The footer counts them, and they show "Attach
 
 ### Guest details
 
-Shown in the expanded part of the row, with no second toggle: date of birth, gender, nationality, address line 1 and 2, city, state, postcode, country, preferred language. The fields come from `GuestDetailsFields`, extracted from `guest-form.tsx` and used by both forms, so they cannot drift apart. No ID document: ID is collected on the [registration card](../16-registration/04-signing-flow.md) at check-in and kept on the guest profile.
+Shown in the expanded part of the row, with no second toggle. Email and the personal fields (nationality, date of birth, gender, preferred language) share one grid of three columns from `lg`; the address keeps its own layout below. The fields are: date of birth, gender, nationality, address line 1 and 2, city, state, postcode, country, preferred language. The fields come from `GuestDetailsFields`, extracted from `guest-form.tsx` and used by both forms, so they cannot drift apart. No ID document: ID is collected on the [registration card](../16-registration/04-signing-flow.md) at check-in and kept on the guest profile.
 
 ### Permissions
 
