@@ -58,7 +58,7 @@ payments    id, property_id, folio_id, payment_method_id, amount,
 
 ### `PaymentQuote` (service)
 
-`(Property, PaymentMethod, amount)`: the surcharge, its tax and the total to collect. It writes nothing. The Dialog shows it before the user confirms, and `RecordPayment` calculates again.
+`quote(Reservation, PaymentMethod, string $amount): PaymentQuoteResult`: the surcharge, its tax and the total to collect. It takes the reservation because the tax on the fee uses the booker's nationality. It writes nothing. A Percent fee is rounded half up once, and a fee that rounds to 0.00 posts nothing. The Dialog shows it before the user confirms, and `RecordPayment` calculates again.
 
 ### `RefundPayment`
 
@@ -113,6 +113,15 @@ Three commits, in order.
 1. **Backend:** `payments` table with CHECKs, `PaymentPurpose`, `PaymentStatus`, `Payment` with its factory, `PostFolioCharge` extracted from `PostCharge`, `RecordPayment`, `RefundPayment`, `PaymentQuote`, `PaymentResult` and the two permissions with a syncing migration. No UI.
 2. **Folio tab:** the routes, the Dialogs, the payment rows and the Refund row action.
 3. **Receipt PDF:** the layout, the route and the download link on a payment row.
+
+Built (backend item): the `payments` table (CHECKs: amount above 0, a payment has a receipt number and a refund has none, a refund has no surcharge line, a trimmed reference) with a trigger that rejects every UPDATE and DELETE, `PaymentPurpose`, `PaymentStatus`, `Payment` and its factory, `Folio::payments()`, `FolioLine::payment()`, `PostFolioCharge`, `RecordPayment`, `RefundPayment`, `PaymentResult`, `NewPaymentData`, `PaymentQuote` with `PaymentQuoteResult`, `payment.record` and `payment.refund` (group "Payments") with a syncing migration, and the `payment_line` refusal in `ReverseLine` and `TransferLines`.
+
+Decisions made at build time:
+
+- `method_not_available` also covers a method whose transaction code is inactive, and a surcharge whose charge item or charge code is inactive.
+- The payment line's description is the method name. A refund line uses the system Refund code and its name. A missing Refund code is a setup error (an exception), not a refusal.
+- A repeated key from another reservation (or, for a refund, of another payment) is refused with `payment_not_found`.
+- The quote's Data class for the Dialog comes with the folio tab item.
 
 ## Not in this item
 

@@ -32,9 +32,9 @@ test('seeding creates the default roles with their default permissions', functio
     app(SeedDefaultRoles::class)($property);
 
     expect(Role::query()->where('property_id', $property->id)->count())->toBe(5)
-        ->and(roleNames(defaultRole($property, DefaultRoleEnum::Owner)))->toEqualCanonicalizing(['folio.close', 'folio.discount', 'folio.discount-open', 'folio.post-charge', 'folio.reopen', 'folio.reverse', 'folio.transfer', 'guests.anonymize', 'guests.blacklist', 'guests.manage', 'guests.merge', 'guests.view', 'guests.view-documents', 'notification.manage', 'rates.manage', 'rates.override-restrictions', 'rates.view', 'reservations.manage', 'reservations.view', 'roles.manage', 'rooms.block', 'rooms.manage', 'rooms.view', 'settings.manage', 'staff.manage', 'staff.view'])
-        ->and(roleNames(defaultRole($property, DefaultRoleEnum::Manager)))->toEqualCanonicalizing(['folio.close', 'folio.discount', 'folio.discount-open', 'folio.post-charge', 'folio.reopen', 'folio.reverse', 'folio.transfer', 'guests.blacklist', 'guests.manage', 'guests.merge', 'guests.view', 'guests.view-documents', 'rates.manage', 'rates.override-restrictions', 'rates.view', 'reservations.manage', 'reservations.view', 'rooms.block', 'rooms.manage', 'rooms.view', 'settings.manage', 'staff.manage', 'staff.view'])
-        ->and(roleNames(defaultRole($property, DefaultRoleEnum::FrontDesk)))->toBe(['folio.close', 'folio.discount', 'folio.post-charge', 'guests.manage', 'guests.view', 'guests.view-documents', 'rates.view', 'reservations.manage', 'reservations.view', 'rooms.block'])
+        ->and(roleNames(defaultRole($property, DefaultRoleEnum::Owner)))->toEqualCanonicalizing(['folio.close', 'folio.discount', 'folio.discount-open', 'folio.post-charge', 'folio.reopen', 'folio.reverse', 'folio.transfer', 'guests.anonymize', 'guests.blacklist', 'guests.manage', 'guests.merge', 'guests.view', 'guests.view-documents', 'notification.manage', 'payment.record', 'payment.refund', 'rates.manage', 'rates.override-restrictions', 'rates.view', 'reservations.manage', 'reservations.view', 'roles.manage', 'rooms.block', 'rooms.manage', 'rooms.view', 'settings.manage', 'staff.manage', 'staff.view'])
+        ->and(roleNames(defaultRole($property, DefaultRoleEnum::Manager)))->toEqualCanonicalizing(['folio.close', 'folio.discount', 'folio.discount-open', 'folio.post-charge', 'folio.reopen', 'folio.reverse', 'folio.transfer', 'guests.blacklist', 'guests.manage', 'guests.merge', 'guests.view', 'guests.view-documents', 'payment.record', 'payment.refund', 'rates.manage', 'rates.override-restrictions', 'rates.view', 'reservations.manage', 'reservations.view', 'rooms.block', 'rooms.manage', 'rooms.view', 'settings.manage', 'staff.manage', 'staff.view'])
+        ->and(roleNames(defaultRole($property, DefaultRoleEnum::FrontDesk)))->toBe(['folio.close', 'folio.discount', 'folio.post-charge', 'guests.manage', 'guests.view', 'guests.view-documents', 'payment.record', 'rates.view', 'reservations.manage', 'reservations.view', 'rooms.block'])
         ->and(roleNames(defaultRole($property, DefaultRoleEnum::Housekeeping)))->toBe(['rates.view'])
         ->and(defaultRole($property, DefaultRoleEnum::FrontDesk)->name)->toBe('Front desk');
 });
@@ -56,7 +56,7 @@ test('seeding again keeps the roles and the owner edits', function () {
     app(SeedDefaultRoles::class)($property);
 
     expect(Role::query()->where('property_id', $property->id)->count())->toBe(5)
-        ->and(roleNames(defaultRole($property, DefaultRoleEnum::Manager)))->toEqualCanonicalizing(['folio.close', 'folio.discount', 'folio.discount-open', 'folio.post-charge', 'folio.reopen', 'folio.reverse', 'folio.transfer', 'guests.blacklist', 'guests.manage', 'guests.merge', 'guests.view', 'guests.view-documents', 'rates.manage', 'rates.override-restrictions', 'rates.view', 'reservations.manage', 'reservations.view', 'rooms.block', 'rooms.manage', 'rooms.view', 'staff.manage', 'staff.view']);
+        ->and(roleNames(defaultRole($property, DefaultRoleEnum::Manager)))->toEqualCanonicalizing(['folio.close', 'folio.discount', 'folio.discount-open', 'folio.post-charge', 'folio.reopen', 'folio.reverse', 'folio.transfer', 'guests.blacklist', 'guests.manage', 'guests.merge', 'guests.view', 'guests.view-documents', 'payment.record', 'payment.refund', 'rates.manage', 'rates.override-restrictions', 'rates.view', 'reservations.manage', 'reservations.view', 'rooms.block', 'rooms.manage', 'rooms.view', 'staff.manage', 'staff.view']);
 });
 
 test('syncing grants only new permissions to default roles and never to custom roles', function () {
@@ -71,8 +71,8 @@ test('syncing grants only new permissions to default roles and never to custom r
 
     expect(Permission::query()->where('name', PermissionEnum::StaffManage->value)->count())->toBe(1)
         ->and(roleNames(defaultRole($property, DefaultRoleEnum::Owner)))->toContain('staff.manage')
-        ->and(roleNames(defaultRole($property, DefaultRoleEnum::Manager)))->toEqualCanonicalizing(['folio.close', 'folio.discount', 'folio.discount-open', 'folio.post-charge', 'folio.reopen', 'folio.reverse', 'folio.transfer', 'guests.blacklist', 'guests.manage', 'guests.merge', 'guests.view', 'guests.view-documents', 'rates.manage', 'rates.override-restrictions', 'rates.view', 'reservations.manage', 'reservations.view', 'rooms.block', 'rooms.manage', 'rooms.view', 'staff.manage', 'staff.view'])
-        ->and(roleNames(defaultRole($property, DefaultRoleEnum::FrontDesk)))->toBe(['folio.close', 'folio.discount', 'folio.post-charge', 'guests.manage', 'guests.view', 'guests.view-documents', 'rates.view', 'reservations.manage', 'reservations.view', 'rooms.block'])
+        ->and(roleNames(defaultRole($property, DefaultRoleEnum::Manager)))->toEqualCanonicalizing(['folio.close', 'folio.discount', 'folio.discount-open', 'folio.post-charge', 'folio.reopen', 'folio.reverse', 'folio.transfer', 'guests.blacklist', 'guests.manage', 'guests.merge', 'guests.view', 'guests.view-documents', 'payment.record', 'payment.refund', 'rates.manage', 'rates.override-restrictions', 'rates.view', 'reservations.manage', 'reservations.view', 'rooms.block', 'rooms.manage', 'rooms.view', 'staff.manage', 'staff.view'])
+        ->and(roleNames(defaultRole($property, DefaultRoleEnum::FrontDesk)))->toBe(['folio.close', 'folio.discount', 'folio.post-charge', 'guests.manage', 'guests.view', 'guests.view-documents', 'payment.record', 'rates.view', 'reservations.manage', 'reservations.view', 'rooms.block'])
         ->and(roleNames($custom))->toBe([]);
 });
 
@@ -131,4 +131,18 @@ test('folio close and reopen permissions go to the right default roles', functio
     expect($roles(PermissionEnum::FolioClose->value))->toBe(['owner', 'manager', 'front_desk', 'finance'])
         ->and($roles(PermissionEnum::FolioReopen->value))->toBe(['owner', 'manager', 'finance'])
         ->and(PermissionEnum::FolioReopen->group())->toBe('Folio');
+});
+
+test('payment permissions go to the right default roles', function () {
+    $property = Property::factory()->create();
+    app(SeedDefaultRoles::class)($property);
+    $roles = fn (string $permission): array => collect(DefaultRoleEnum::cases())
+        ->filter(fn (DefaultRoleEnum $role): bool => in_array($permission, roleNames(defaultRole($property, $role)), true))
+        ->map(fn (DefaultRoleEnum $role): string => $role->value)
+        ->values()
+        ->all();
+
+    expect($roles(PermissionEnum::PaymentRecord->value))->toBe(['owner', 'manager', 'front_desk', 'finance'])
+        ->and($roles(PermissionEnum::PaymentRefund->value))->toBe(['owner', 'manager', 'finance'])
+        ->and(PermissionEnum::PaymentRefund->group())->toBe('Payments');
 });

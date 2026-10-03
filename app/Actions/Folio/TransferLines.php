@@ -21,7 +21,7 @@ class TransferLines
      * Move whole charges to another folio of the same reservation: a reversal on the source (with all its descendants) and a
      * copy on the target (with its descendants that were not reversed). All lines of one transfer share one `transfer_group_id`. Both folio rows
      * are locked in id order, and every check runs before the first write, so a refusal writes and logs nothing.
-     * The result lists the copies on the target. See docs/13-folio/02-posting-charges.md.
+     * A line that a payment or refund owns is refused. The result lists the copies on the target. See docs/13-folio/02-posting-charges.md.
      *
      * @param  list<FolioLine>  $lines
      */
@@ -59,6 +59,10 @@ class TransferLines
                 if ($source->parent_line_id !== null || $source->reversal_of_id !== null || in_array($source->id, $reversedIds, true)) {
                     return PostingResult::refused(PostingResult::REFUSAL_LINE_NOT_TRANSFERABLE);
                 }
+            }
+
+            if (FolioLine::query()->whereIn('id', $ids)->whereHas('payment')->exists()) {
+                return PostingResult::refused(PostingResult::REFUSAL_PAYMENT_LINE);
             }
 
             $group = (string) Str::uuid();

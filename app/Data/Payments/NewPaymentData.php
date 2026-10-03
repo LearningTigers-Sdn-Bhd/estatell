@@ -1,0 +1,22 @@
+<?php
+
+namespace App\Data\Payments;
+
+use App\Enums\PaymentPurpose;
+use Spatie\LaravelData\Data;
+
+/**
+ * One payment to record. `amount` is the amount paid on the bill as a decimal string; any surcharge and its tax are
+ * added on top. `idempotencyKey` is a UUID sent by the form: the payment line key is `payment:{uuid}`.
+ * See docs/14-payments/01-payments-and-refunds.md.
+ */
+class NewPaymentData extends Data
+{
+    public function __construct(
+        public int $paymentMethodId,
+        public PaymentPurpose $purpose,
+        public string $amount,
+        public ?string $reference,
+        public string $idempotencyKey,
+    ) {}
+}

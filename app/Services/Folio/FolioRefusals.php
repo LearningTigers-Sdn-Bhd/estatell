@@ -59,6 +59,7 @@ class FolioRefusals
             PostingResult::REFUSAL_AMOUNT_REQUIRED => ['amount', __('Enter the discount amount.')],
             PostingResult::REFUSAL_QUOTE_CHANGED => [self::FORM, __('The folio changed. Check the new quote and apply again.')],
             PostingResult::REFUSAL_NOT_A_DISCOUNT => [self::FORM, __('This line is not a discount.')],
+            PostingResult::REFUSAL_PAYMENT_LINE => [self::FORM, __('A payment cannot be reversed or moved. Refund it instead.')],
             FolioStatusResult::REFUSAL_BALANCE_NOT_ZERO => [self::FORM, __('Only a folio with a balance of 0.00 can be closed. Settle it or move the charges first.')],
             FolioStatusResult::REFUSAL_NOT_CLOSED => [self::FORM, __('Only a closed folio can be reopened.')],
             TaxCalculator::REFUSAL_NATIONALITY_REQUIRED => [self::FORM, __('This charge has a tax that depends on nationality. Add the booker\'s nationality to the guest first.')],

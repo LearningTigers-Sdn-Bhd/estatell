@@ -116,4 +116,14 @@ class FolioLine extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    /**
+     * The payment or refund that owns this line, if any. Such a line is corrected only by a refund.
+     *
+     * @return HasOne<Payment, $this>
+     */
+    public function payment(): HasOne
+    {
+        return $this->hasOne(Payment::class);
+    }
 }

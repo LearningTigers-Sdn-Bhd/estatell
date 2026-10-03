@@ -47,6 +47,8 @@ class PostingResult
 
     public const REFUSAL_NOT_A_DISCOUNT = 'not_a_discount';
 
+    public const REFUSAL_PAYMENT_LINE = 'payment_line';
+
     /**
      * @param  list<FolioLine>  $lines
      */

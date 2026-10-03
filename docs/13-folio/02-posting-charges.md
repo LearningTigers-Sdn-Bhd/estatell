@@ -51,7 +51,7 @@ All Actions return a result and write nothing on a refusal. Each one is one tran
 
 ### `PostFolioCharge`
 
-(Planned with [payments](../14-payments/01-payments-and-refunds.md).) The line-writing core of `PostCharge`, for a given folio: it calculates tax with `TaxCalculator`, then posts the charge line and its tax children. `PostCharge` keeps its own checks (unit, charge, price, folio) and calls it. `RecordPayment` calls it for the payment surcharge, because a deposit has no CheckedIn unit for `PostCharge`.
+(Built with [payments](../14-payments/01-payments-and-refunds.md).) The line-writing core of `PostCharge`, for a given folio: it posts the charge line and its tax children from a tax result. The caller calculates the tax with `TaxCalculator` first, so a tax refusal stops before any write. `PostCharge` keeps its own checks (unit, charge, price, folio) and calls it. `RecordPayment` calls it for the payment surcharge, because a deposit has no CheckedIn unit for `PostCharge`.
 
 ### `ReverseLine`
 

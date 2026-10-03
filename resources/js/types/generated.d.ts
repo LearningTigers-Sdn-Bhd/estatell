@@ -341,6 +341,15 @@ email: string,
 propertyName: string,
 };
 }
+namespace Payments {
+export type NewPaymentData = {
+paymentMethodId: number,
+purpose: App.Enums.PaymentPurpose,
+amount: string,
+reference: string | null,
+idempotencyKey: string,
+};
+}
 namespace Platform {
 export type AdminPropertyData = {
 code: number,
@@ -1059,7 +1068,9 @@ export type OverdueDeparturePolicy = 'extend_one_night' | 'block';
 export type OwnerSetupMethod = 'email_link' | 'initial_password';
 export type PackageUnit = 'per_guest' | 'per_room';
 export type PaymentMethodType = 'cash' | 'card' | 'bank_transfer' | 'e_wallet' | 'ota_collected' | 'direct_bill';
-export type PermissionEnum = 'settings.manage' | 'staff.view' | 'staff.manage' | 'roles.manage' | 'rooms.view' | 'rooms.manage' | 'rooms.block' | 'notification.manage' | 'rates.view' | 'rates.manage' | 'rates.override-restrictions' | 'guests.view' | 'guests.manage' | 'guests.blacklist' | 'guests.view-documents' | 'guests.merge' | 'guests.anonymize' | 'reservations.view' | 'reservations.manage' | 'folio.post-charge' | 'folio.reverse' | 'folio.transfer' | 'folio.discount' | 'folio.discount-open' | 'folio.close' | 'folio.reopen';
+export type PaymentPurpose = 'advance' | 'settlement' | 'security_deposit';
+export type PaymentStatus = 'pending' | 'completed' | 'failed';
+export type PermissionEnum = 'settings.manage' | 'staff.view' | 'staff.manage' | 'roles.manage' | 'rooms.view' | 'rooms.manage' | 'rooms.block' | 'notification.manage' | 'rates.view' | 'rates.manage' | 'rates.override-restrictions' | 'guests.view' | 'guests.manage' | 'guests.blacklist' | 'guests.view-documents' | 'guests.merge' | 'guests.anonymize' | 'reservations.view' | 'reservations.manage' | 'folio.post-charge' | 'folio.reverse' | 'folio.transfer' | 'folio.discount' | 'folio.discount-open' | 'folio.close' | 'folio.reopen' | 'payment.record' | 'payment.refund';
 export type PlatformFeature = 'channel-manager';
 export type PricingBasis = 'per_room' | 'per_guest' | 'per_bed' | 'package';
 export type PropertyStatus = 'onboarding' | 'pending_approval' | 'live' | 'suspended';

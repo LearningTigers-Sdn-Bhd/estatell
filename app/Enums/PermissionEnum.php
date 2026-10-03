@@ -34,6 +34,8 @@ enum PermissionEnum: string
     case FolioDiscountOpen = 'folio.discount-open';
     case FolioClose = 'folio.close';
     case FolioReopen = 'folio.reopen';
+    case PaymentRecord = 'payment.record';
+    case PaymentRefund = 'payment.refund';
 
     public function label(): string
     {
@@ -64,6 +66,8 @@ enum PermissionEnum: string
             self::FolioDiscountOpen => __('Apply discounts with an entered amount'),
             self::FolioClose => __('Close folios'),
             self::FolioReopen => __('Reopen closed folios'),
+            self::PaymentRecord => __('Record payments and download receipts'),
+            self::PaymentRefund => __('Refund payments'),
         };
     }
 
@@ -81,6 +85,7 @@ enum PermissionEnum: string
             self::GuestsView, self::GuestsManage, self::GuestsBlacklist, self::GuestsViewDocuments, self::GuestsMerge, self::GuestsAnonymize => __('Guests'),
             self::ReservationsView, self::ReservationsManage => __('Reservations'),
             self::FolioPostCharge, self::FolioReverse, self::FolioTransfer, self::FolioDiscount, self::FolioDiscountOpen, self::FolioClose, self::FolioReopen => __('Folio'),
+            self::PaymentRecord, self::PaymentRefund => __('Payments'),
         };
     }
 

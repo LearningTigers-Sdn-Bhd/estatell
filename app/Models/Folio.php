@@ -99,4 +99,12 @@ class Folio extends Model
     {
         return $this->hasMany(FolioLine::class);
     }
+
+    /**
+     * @return HasMany<Payment, $this>
+     */
+    public function payments(): HasMany
+    {
+        return $this->hasMany(Payment::class);
+    }
 }
