@@ -16,8 +16,10 @@ export function FormActions({
     return (
         <div
             className={cn(
-                'flex flex-wrap items-center justify-end gap-2 border-t bg-background px-4 py-3',
-                fixed ? 'shrink-0' : 'sticky bottom-0 z-10 -mx-4',
+                'flex flex-wrap items-center justify-end gap-2 border-t px-4 py-3',
+                fixed
+                    ? 'shrink-0 bg-muted/50'
+                    : 'sticky bottom-0 z-10 -mx-4 bg-muted',
             )}
         >
             {children}

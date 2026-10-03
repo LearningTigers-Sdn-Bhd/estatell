@@ -1,5 +1,13 @@
 import { Head, Link, useForm } from '@inertiajs/react';
-import { BedDouble, NotebookText, Package, Percent, Plus } from 'lucide-react';
+import {
+    BedDouble,
+    CalendarPlus,
+    NotebookText,
+    Package,
+    Percent,
+    Plus,
+    X,
+} from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { EnumSelect } from '@/components/pms/enum-select';
 import type { EnumOption } from '@/components/pms/enum-select';
@@ -900,6 +908,7 @@ export default function ReservationCreate({
                         href={index.url()}
                         className={buttonVariants({ variant: 'outline' })}
                     >
+                        <X data-icon="inline-start" />
                         Cancel
                     </Link>
                     <Button
@@ -907,8 +916,10 @@ export default function ReservationCreate({
                         disabled={form.processing}
                         focusableWhenDisabled
                     >
-                        {form.processing && (
+                        {form.processing ? (
                             <Spinner data-icon="inline-start" />
+                        ) : (
+                            <CalendarPlus data-icon="inline-start" />
                         )}
                         Create booking
                     </Button>
