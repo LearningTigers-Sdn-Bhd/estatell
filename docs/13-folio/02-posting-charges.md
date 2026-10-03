@@ -89,6 +89,19 @@ A service that returns the target folio for a line. In this item it always retur
 - `RemoveUnitAddOn` refuses a row that has a `folio_line_id` (`add_on_posted`). The correction is `ReverseLine`.
 - `unit_add_ons.folio_line_id` is a nullable foreign key to `folio_lines`. It tells posted nights from scheduled ones.
 
+## Build status
+
+Built (manual postings item): `CreateFolio`, `PostCharge`, `ReverseLine`, `TransferLines`, `PostingResult`, `NewChargeData`, a minimal `FolioRouter`, `unit_add_ons.folio_line_id`, the three permissions, and the `add_on_posted` refusal in `RemoveUnitAddOn`. Not built: routing rules, `InclusionAllocator`, `PostRoomCharges`, `PostScheduledAddOns`, the folio page, payments, `CloseFolio` and `ReopenFolio`. Room blocks still read `PropertyToday`.
+
+Decisions made at build time:
+
+- `FolioRouter::targetFor(ReservationUnit)` returns null until the unit has a folio. `PostCharge` creates it only after every check passed, so a refusal writes nothing.
+- The charge line holds the net amount. With an inclusive tax, `amount` is the entered amount minus the inclusive tax, and `unit_amount` stays as entered. The tax child lines add the tax back, so the folio total is the gross amount.
+- Tax child keys are `{charge key}:tax:{tax_id}`. A reversal posts under `reverse:{line_id}`, also inside a transfer. A repeated `ReverseLine` is refused (`already_reversed`), not replayed.
+- `TaxCalculator` refusals (`nationality_required`, `inclusive_tax_exceeds_amount`) pass through as refusal codes. The booker's nationality is used for foreign-only taxes.
+- Default roles: Manager gets all three permissions, Front desk `folio.post-charge`, Finance all three.
+- Logged on the reservation: `folio.charge_posted`, `folio.line_reversed`, `folio.lines_transferred`.
+
 ## Room charge pipeline (per unit night)
 
 Built with the night audit item.

@@ -223,7 +223,7 @@ Smaller fixes and reverts are in `git log`.
 ### 13 Folio and 14 Payments
 
 - [x] `feat(folio): add folios and immutable ledger lines` — `folios` and `folio_lines` with a trigger that rejects updates and deletes, `FolioType`, `FolioStatus`, `FolioBalance`, `RepointGuestFolios` in `MergeGuests`, and `AnonymizeGuest` refuses a guest with an open balance. Backend only. Docs: [Folios and lines](13-folio/01-folios-and-lines.md).
-- [ ] `feat(folio): post charges, reverse and transfer lines` — `CreateFolio`, `PostCharge`, `ReverseLine`, `TransferLines`, a minimal `FolioRouter` (own folio only), `unit_add_ons.folio_line_id`, and `RemoveUnitAddOn` refuses a posted add-on. Backend only. Needs: business dates. Docs: [Posting charges](13-folio/02-posting-charges.md).
+- [x] `feat(folio): post charges, reverse and transfer lines` — `CreateFolio`, `PostCharge`, `ReverseLine`, `TransferLines`, a minimal `FolioRouter` (own folio only), `unit_add_ons.folio_line_id`, and `RemoveUnitAddOn` refuses a posted add-on. Backend only. Needs: business dates. Docs: [Posting charges](13-folio/02-posting-charges.md).
 - [ ] `feat(folio): add folio routing` — the full `FolioRouter` and `folio_routing_rules`. Docs: [Routing](13-folio/03-routing.md).
 - [ ] `feat(folio): apply and remove folio discounts` — Docs: [Folio discounts](13-folio/04-folio-discounts.md).
 - [ ] `feat(folio): add the folio page with scheduled nights` — Posted and Scheduled rows, Balance and Projected total. Needs: post charges, folio routing. Docs: [Folio page](13-folio/05-folio-page.md).

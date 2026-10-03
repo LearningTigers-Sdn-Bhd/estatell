@@ -91,6 +91,17 @@ appliesTo: string[],
 postingTransactionCode: string,
 };
 }
+namespace Folio {
+export type NewChargeData = {
+chargeItemId: number | null,
+transactionCodeId: number | null,
+description: string | null,
+quantity: number,
+unitAmount: string,
+idempotencyKey: string | null,
+unitAddOnId: number | null,
+};
+}
 namespace Guests {
 export type GuestData = {
 id: number,
@@ -975,7 +986,7 @@ export type OverdueDeparturePolicy = 'extend_one_night' | 'block';
 export type OwnerSetupMethod = 'email_link' | 'initial_password';
 export type PackageUnit = 'per_guest' | 'per_room';
 export type PaymentMethodType = 'cash' | 'card' | 'bank_transfer' | 'e_wallet' | 'ota_collected' | 'direct_bill';
-export type PermissionEnum = 'settings.manage' | 'staff.view' | 'staff.manage' | 'roles.manage' | 'rooms.view' | 'rooms.manage' | 'rooms.block' | 'notification.manage' | 'rates.view' | 'rates.manage' | 'rates.override-restrictions' | 'guests.view' | 'guests.manage' | 'guests.blacklist' | 'guests.view-documents' | 'guests.merge' | 'guests.anonymize' | 'reservations.view' | 'reservations.manage';
+export type PermissionEnum = 'settings.manage' | 'staff.view' | 'staff.manage' | 'roles.manage' | 'rooms.view' | 'rooms.manage' | 'rooms.block' | 'notification.manage' | 'rates.view' | 'rates.manage' | 'rates.override-restrictions' | 'guests.view' | 'guests.manage' | 'guests.blacklist' | 'guests.view-documents' | 'guests.merge' | 'guests.anonymize' | 'reservations.view' | 'reservations.manage' | 'folio.post-charge' | 'folio.reverse' | 'folio.transfer';
 export type PlatformFeature = 'channel-manager';
 export type PricingBasis = 'per_room' | 'per_guest' | 'per_bed' | 'package';
 export type PropertyStatus = 'onboarding' | 'pending_approval' | 'live' | 'suspended';

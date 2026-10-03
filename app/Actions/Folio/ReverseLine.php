@@ -1,0 +1,108 @@
+<?php
+
+namespace App\Actions\Folio;
+
+use App\Enums\FolioStatus;
+use App\Models\Folio;
+use App\Models\FolioLine;
+use App\Models\User;
+use App\Services\NightAudit\CurrentBusinessDate;
+use Illuminate\Support\Facades\DB;
+
+class ReverseLine
+{
+    public function __construct(private CurrentBusinessDate $currentBusinessDate) {}
+
+    /**
+     * Post a line with the opposite amount and `reversal_of_id`, then a reversal for each child line. A child
+     * reversal links to its own child and sits under the parent reversal. The folio row is locked first, so two
+     * reversals of one line never race. Every check runs before the first write, so a refusal writes and logs nothing.
+     * A reversed add-on keeps its `folio_line_id`. See docs/13-folio/02-posting-charges.md.
+     */
+    public function __invoke(User $actor, FolioLine $line): PostingResult
+    {
+        return DB::transaction(function () use ($actor, $line): PostingResult {
+            $current = FolioLine::query()->findOrFail($line->id);
+            $folio = Folio::query()->lockForUpdate()->findOrFail($current->folio_id);
+            $businessDate = $this->currentBusinessDate->date($folio->property);
+
+            if ($businessDate === null) {
+                return PostingResult::refused(PostingResult::REFUSAL_NO_BUSINESS_DATE);
+            }
+
+            if ($current->parent_line_id !== null) {
+                return PostingResult::refused(PostingResult::REFUSAL_LINE_IS_CHILD);
+            }
+
+            if ($current->reversal()->exists()) {
+                return PostingResult::refused(PostingResult::REFUSAL_ALREADY_REVERSED);
+            }
+
+            if ($current->reversal_of_id !== null) {
+                return PostingResult::refused(PostingResult::REFUSAL_LINE_IS_REVERSAL);
+            }
+
+            if ($folio->status !== FolioStatus::Open) {
+                return PostingResult::refused(PostingResult::REFUSAL_FOLIO_NOT_OPEN);
+            }
+
+            $lines = $this->post($actor, $current, $businessDate->toDateString(), null);
+
+            activity()
+                ->performedOn($folio->reservation)
+                ->causedBy($actor)
+                ->event('folio.line_reversed')
+                ->withProperties([
+                    'property_id' => $folio->property_id,
+                    'folio_id' => $folio->id,
+                    'folio_line_id' => $current->id,
+                    'reversal_line_id' => $lines[0]->id,
+                    'amount' => $lines[0]->amount,
+                    'posting_date' => $businessDate->toDateString(),
+                ])
+                ->log('Folio line reversed');
+
+            return PostingResult::posted($lines);
+        });
+    }
+
+    /**
+     * Write the reversal of a parent line and of its children, without any check. `TransferLines` calls this after its
+     * own checks. Returns the reversal of the parent first, then the reversals of its children.
+     *
+     * @return non-empty-list<FolioLine>
+     */
+    public function post(User $actor, FolioLine $line, string $postingDate, ?string $transferGroupId): array
+    {
+        $reversal = $this->reversalOf($actor, $line, $postingDate, $transferGroupId, null);
+        $lines = [$reversal];
+
+        foreach ($line->children()->orderBy('id')->get() as $child) {
+            $lines[] = $this->reversalOf($actor, $child, $postingDate, $transferGroupId, $reversal->id);
+        }
+
+        return $lines;
+    }
+
+    private function reversalOf(User $actor, FolioLine $line, string $postingDate, ?string $transferGroupId, ?int $parentReversalId): FolioLine
+    {
+        $reversal = new FolioLine([
+            'transaction_code_id' => $line->transaction_code_id,
+            'kind' => $line->kind,
+            'description' => $line->description,
+            'quantity' => $line->quantity,
+            'unit_amount' => bcmul($line->unit_amount, '-1', 2),
+            'amount' => bcmul($line->amount, '-1', 2),
+        ]);
+        $reversal->folio_id = $line->folio_id;
+        $reversal->posting_date = $postingDate;
+        $reversal->reversal_of_id = $line->id;
+        $reversal->parent_line_id = $parentReversalId;
+        $reversal->transfer_group_id = $transferGroupId;
+        $reversal->idempotency_key = 'reverse:'.$line->id;
+        $reversal->user_id = $actor->id;
+        $reversal->save();
+
+        return $reversal->refresh();
+    }
+}

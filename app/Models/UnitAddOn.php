@@ -11,7 +11,8 @@ use Illuminate\Support\Carbon;
 
 /**
  * An extra sold with one unit. Nightly charge items have one row per night. The total is `quantity × unit_amount`
- * and is never stored. It has no `property_id`: the unit scopes it.
+ * and is never stored. It has no `property_id`: the unit scopes it. A posted add-on has a `folio_line_id` and is
+ * corrected with `ReverseLine`, not removed.
  *
  * @property int $id
  * @property int $reservation_unit_id
@@ -19,6 +20,7 @@ use Illuminate\Support\Carbon;
  * @property int $quantity
  * @property string $unit_amount
  * @property Carbon|null $service_date
+ * @property int|null $folio_line_id The charge line that posted this add-on. Null while it is only scheduled.
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
@@ -46,6 +48,14 @@ class UnitAddOn extends Model
     public function reservationUnit(): BelongsTo
     {
         return $this->belongsTo(ReservationUnit::class);
+    }
+
+    /**
+     * @return BelongsTo<FolioLine, $this>
+     */
+    public function folioLine(): BelongsTo
+    {
+        return $this->belongsTo(FolioLine::class);
     }
 
     /**

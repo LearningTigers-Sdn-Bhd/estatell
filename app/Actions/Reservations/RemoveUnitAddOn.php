@@ -12,7 +12,8 @@ class RemoveUnitAddOn
 {
     /**
      * Delete one add-on row and log it. Returns false, writing and logging nothing, when the row is already gone or
-     * the unit is not Confirmed or CheckedIn: add-ons of other units stay as history.
+     * the unit is not Confirmed or CheckedIn: add-ons of other units stay as history. A posted add-on (`add_on_posted`,
+     * it has a `folio_line_id`) is refused too: the correction is `ReverseLine`.
      * See docs/12-reservations/04-add-ons.md.
      */
     public function __invoke(User $actor, UnitAddOn $addOn): bool
@@ -21,7 +22,7 @@ class RemoveUnitAddOn
             $unit = ReservationUnit::query()->lockForUpdate()->find($addOn->reservation_unit_id);
             $locked = $unit === null ? null : $unit->addOns()->lockForUpdate()->find($addOn->id);
 
-            if ($unit === null || $locked === null || ! in_array($unit->status, [UnitStatus::Confirmed, UnitStatus::CheckedIn], true)) {
+            if ($unit === null || $locked === null || $locked->folio_line_id !== null || ! in_array($unit->status, [UnitStatus::Confirmed, UnitStatus::CheckedIn], true)) {
                 return false;
             }
 

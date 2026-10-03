@@ -31,9 +31,9 @@ enum DefaultRoleEnum: string
     {
         return match ($this) {
             self::Owner => PermissionEnum::cases(),
-            self::Manager => [PermissionEnum::SettingsManage, PermissionEnum::StaffView, PermissionEnum::StaffManage, PermissionEnum::RoomsView, PermissionEnum::RoomsManage, PermissionEnum::RoomsBlock, PermissionEnum::RatesView, PermissionEnum::RatesManage, PermissionEnum::RatesOverrideRestrictions, PermissionEnum::GuestsView, PermissionEnum::GuestsManage, PermissionEnum::GuestsBlacklist, PermissionEnum::GuestsViewDocuments, PermissionEnum::GuestsMerge, PermissionEnum::ReservationsView, PermissionEnum::ReservationsManage],
-            self::FrontDesk => [PermissionEnum::RoomsBlock, PermissionEnum::RatesView, PermissionEnum::GuestsView, PermissionEnum::GuestsManage, PermissionEnum::GuestsViewDocuments, PermissionEnum::ReservationsView, PermissionEnum::ReservationsManage],
-            self::Finance => [PermissionEnum::RatesView, PermissionEnum::GuestsView, PermissionEnum::ReservationsView],
+            self::Manager => [PermissionEnum::SettingsManage, PermissionEnum::StaffView, PermissionEnum::StaffManage, PermissionEnum::RoomsView, PermissionEnum::RoomsManage, PermissionEnum::RoomsBlock, PermissionEnum::RatesView, PermissionEnum::RatesManage, PermissionEnum::RatesOverrideRestrictions, PermissionEnum::GuestsView, PermissionEnum::GuestsManage, PermissionEnum::GuestsBlacklist, PermissionEnum::GuestsViewDocuments, PermissionEnum::GuestsMerge, PermissionEnum::ReservationsView, PermissionEnum::ReservationsManage, PermissionEnum::FolioPostCharge, PermissionEnum::FolioReverse, PermissionEnum::FolioTransfer],
+            self::FrontDesk => [PermissionEnum::RoomsBlock, PermissionEnum::RatesView, PermissionEnum::GuestsView, PermissionEnum::GuestsManage, PermissionEnum::GuestsViewDocuments, PermissionEnum::ReservationsView, PermissionEnum::ReservationsManage, PermissionEnum::FolioPostCharge],
+            self::Finance => [PermissionEnum::RatesView, PermissionEnum::GuestsView, PermissionEnum::ReservationsView, PermissionEnum::FolioPostCharge, PermissionEnum::FolioReverse, PermissionEnum::FolioTransfer],
             self::Housekeeping => [PermissionEnum::RatesView],
         };
     }

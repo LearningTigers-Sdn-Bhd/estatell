@@ -54,3 +54,11 @@ test('it keeps the add-ons of a unit that is not open', function (string $state)
         ->and(UnitAddOn::query()->count())->toBe(1)
         ->and(Activity::query()->count())->toBe(0);
 })->with(['cancelled', 'noShow', 'checkedOut']);
+
+test('it refuses a posted add-on and keeps the row and the log empty', function () {
+    $addOn = UnitAddOn::factory()->posted()->create();
+
+    expect(removeAddOn(User::factory()->create(), $addOn))->toBeFalse()
+        ->and(UnitAddOn::query()->count())->toBe(1)
+        ->and(Activity::query()->count())->toBe(0);
+});

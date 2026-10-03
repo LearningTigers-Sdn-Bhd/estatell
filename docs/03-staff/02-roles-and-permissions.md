@@ -48,6 +48,9 @@ roles    spatie columns + property_id (NOT NULL, FK) + default_role (nullable)
 | `guests.anonymize`            | Anonymize a guest (removes personal data)                             | ✓     | –       | –                                 |
 | `reservations.view`           | Reservations list and reservation page                                | ✓     | ✓       | Front desk, Finance               |
 | `reservations.manage`         | Create reservations, add units, attach guests, edit group and add-ons | ✓     | ✓       | Front desk                        |
+| `folio.post-charge`           | Post a manual charge to a unit's folio                                | ✓     | ✓       | Front desk, Finance               |
+| `folio.reverse`               | Reverse a folio line                                                  | ✓     | ✓       | Finance                           |
+| `folio.transfer`              | Transfer lines between folios of a reservation                        | ✓     | ✓       | Finance                           |
 
 Later modules add rows here. Their module docs list their permissions.
 

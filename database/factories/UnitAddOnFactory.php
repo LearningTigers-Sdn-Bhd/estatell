@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use App\Models\ChargeItem;
+use App\Models\FolioLine;
 use App\Models\ReservationUnit;
 use App\Models\UnitAddOn;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -28,5 +29,15 @@ class UnitAddOnFactory extends Factory
             'unit_amount' => '25.00',
             'service_date' => null,
         ];
+    }
+
+    /**
+     * An add-on that is already posted: its `folio_line_id` names the given charge line, or a new one.
+     */
+    public function posted(?FolioLine $line = null): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'folio_line_id' => $line?->id ?? FolioLine::factory()->create()->id,
+        ]);
     }
 }

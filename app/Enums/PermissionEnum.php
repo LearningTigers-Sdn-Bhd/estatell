@@ -27,6 +27,9 @@ enum PermissionEnum: string
     case GuestsAnonymize = 'guests.anonymize';
     case ReservationsView = 'reservations.view';
     case ReservationsManage = 'reservations.manage';
+    case FolioPostCharge = 'folio.post-charge';
+    case FolioReverse = 'folio.reverse';
+    case FolioTransfer = 'folio.transfer';
 
     public function label(): string
     {
@@ -50,6 +53,9 @@ enum PermissionEnum: string
             self::GuestsAnonymize => __('Anonymize guests'),
             self::ReservationsView => __('View reservations'),
             self::ReservationsManage => __('Manage reservations'),
+            self::FolioPostCharge => __('Post charges to folios'),
+            self::FolioReverse => __('Reverse folio lines'),
+            self::FolioTransfer => __('Transfer folio lines'),
         };
     }
 
@@ -66,6 +72,7 @@ enum PermissionEnum: string
             self::RatesView, self::RatesManage, self::RatesOverrideRestrictions => __('Rates'),
             self::GuestsView, self::GuestsManage, self::GuestsBlacklist, self::GuestsViewDocuments, self::GuestsMerge, self::GuestsAnonymize => __('Guests'),
             self::ReservationsView, self::ReservationsManage => __('Reservations'),
+            self::FolioPostCharge, self::FolioReverse, self::FolioTransfer => __('Folio'),
         };
     }
 
