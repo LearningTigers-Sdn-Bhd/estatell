@@ -1,5 +1,6 @@
-import { Plus, Trash2 } from 'lucide-react';
+import { BedDouble, Package, Percent, Plus, Trash2 } from 'lucide-react';
 import { DatePicker } from '@/components/pms/date-picker';
+import { EmptyState } from '@/components/pms/empty-state';
 import { EnumSelect } from '@/components/pms/enum-select';
 import { MoneyInput } from '@/components/pms/money-input';
 import {
@@ -40,9 +41,11 @@ function lineTitle(line: BookingLine, index: number, options: Options): string {
 
 function NoLines() {
     return (
-        <p className="text-sm text-muted-foreground">
-            Pick a room type in Rooms &amp; guests first.
-        </p>
+        <EmptyState
+            icon={BedDouble}
+            title="No room type picked"
+            description="Pick a room type in Rooms & guests first."
+        />
     );
 }
 
@@ -316,11 +319,15 @@ export function BookingAddOnsSection({
             }
         >
             {rows.length === 0 && (
-                <p className="p-3 text-sm text-muted-foreground">
-                    {chargeItems.length === 0
-                        ? 'This property has no charge items to add.'
-                        : 'No add-ons yet.'}
-                </p>
+                <EmptyState
+                    icon={Package}
+                    title="No add-ons yet"
+                    description={
+                        chargeItems.length === 0
+                            ? 'This property has no charge items to add.'
+                            : 'Use Add add-on to add one.'
+                    }
+                />
             )}
             {rows.map(({ addOn, lineIndex, position }) => (
                 <AddOnRow
@@ -388,9 +395,11 @@ export function BookingDiscountsSection({
 
     if (discounts.length === 0) {
         return (
-            <p className="text-sm text-muted-foreground">
-                No room discounts are set up for this property.
-            </p>
+            <EmptyState
+                icon={Percent}
+                title="No room discounts"
+                description="No room discounts are set up for this property."
+            />
         );
     }
 
