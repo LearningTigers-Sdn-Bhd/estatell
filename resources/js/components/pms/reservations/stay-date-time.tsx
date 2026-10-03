@@ -13,6 +13,8 @@ type Props = {
     onTimeChange: (value: string) => void;
     /** Earliest date that can be picked, `Y-m-d`. */
     min?: string;
+    /** Latest date that can be picked, `Y-m-d`. The month and year menus end here. */
+    max?: string;
     /** Show the date as text, for a date the form fixes. */
     dateLocked?: boolean;
     'aria-invalid'?: boolean;
@@ -31,6 +33,7 @@ export function StayDateTime({
     onDateChange,
     onTimeChange,
     min,
+    max,
     dateLocked = false,
     timeInvalid,
     timeLabel,
@@ -46,7 +49,9 @@ export function StayDateTime({
                 <DatePicker
                     id={id}
                     value={date}
+                    variant="dropdown"
                     min={min}
+                    max={max}
                     onChange={onDateChange}
                     aria-invalid={props['aria-invalid']}
                     className="h-full flex-1 rounded-none border-0 bg-transparent shadow-none dark:bg-transparent"

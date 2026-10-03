@@ -44,6 +44,10 @@ import { useUnsavedChanges } from '@/hooks/use-unsaved-changes';
 import { index, newMethod, store, walkIn } from '@/routes/reservations';
 import { UnsavedChangesDialog } from '@/components/pms/unsaved-changes-dialog';
 
+/** How far ahead an arrival can be picked, and the longest stay the departure menu offers. */
+const BOOKING_WINDOW_DAYS = 1095;
+const LONGEST_STAY_DAYS = 365;
+
 type Quote = App.Data.Reservations.BookingQuoteData;
 
 type Props = {
@@ -141,6 +145,7 @@ export default function ReservationCreate({
             form.setData('guests', next);
         }
     }, [unitChoices.length]);
+    const lastBookable = addDays(today, BOOKING_WINDOW_DAYS);
     const nights = nightsBetween(data.arrival_date, data.departure_date);
     const lockedNights = useMemo(() => {
         for (const line of data.lines) {
@@ -275,6 +280,7 @@ export default function ReservationCreate({
                                             timeLabel="Arrival time"
                                             dateLocked={isWalkIn}
                                             min={today}
+                                            max={lastBookable}
                                             onDateChange={(value) =>
                                                 form.setData(
                                                     'arrival_date',
@@ -345,8 +351,12 @@ export default function ReservationCreate({
                                                           data.arrival_date,
                                                           1,
                                                       )
-                                                    : undefined
+                                                    : addDays(today, 1)
                                             }
+                                            max={addDays(
+                                                data.arrival_date || today,
+                                                LONGEST_STAY_DAYS,
+                                            )}
                                             onDateChange={(value) =>
                                                 form.setData(
                                                     'departure_date',
