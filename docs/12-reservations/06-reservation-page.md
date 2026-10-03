@@ -12,6 +12,7 @@ Find a reservation and see everything about it on one page, with the same flow s
 | `GET /p/{code}/reservations/{reservation}`            | `reservations.show`                   | `pages/reservations/show.tsx`  |
 | `GET /p/{code}/reservations/{reservation}/guests`     | `reservations.guests`                 | `pages/reservations/show.tsx`  |
 | `GET /p/{code}/reservations/{reservation}/add-ons`    | `reservations.add-ons`                | `pages/reservations/show.tsx`  |
+| `GET /p/{code}/reservations/{reservation}/folio`      | `reservations.folio`                  | `pages/reservations/show.tsx`  |
 | `GET /p/{code}/reservations/{reservation}/activity`   | `reservations.activity`               | `pages/reservations/show.tsx`  |
 | `PUT /p/{code}/reservations/{reservation}/group`      | `reservations.group.update`           | – (`UpdateReservationGroup`)   |
 | `POST …/{reservation}/units`                          | `reservations.units.store`            | – (`AddUnit`)                  |
@@ -229,7 +230,7 @@ The reservation's activity log entries (`spatie/laravel-activitylog`), newest fi
 
 ### Summary card
 
-Booker (name, VIP, phone, email, link to the guest), earliest arrival, latest departure, units, room nights, stay total (sum of `unit_nights.amount` of units that hold inventory), balance ("from folio" until [module 13](../13-folio/01-folios-and-lines.md)), billing mode (2 or more units, with the `BillingMode` label), source, company ("—" until [Companies](../15-city-ledger/01-companies.md)), created date and user. Notes, when the booking has them, show under the summary figures (added with the booking form).
+Booker (name, VIP, phone, email, link to the guest), earliest arrival, latest departure, units, room nights, stay total (sum of `unit_nights.amount` of units that hold inventory), balance ("from folio" until the [folio page](../13-folio/05-folio-page.md) lands), billing mode (2 or more units, with the `BillingMode` label), source, company ("—" until [Companies](../15-city-ledger/01-companies.md)), created date and user. Notes, when the booking has them, show under the summary figures (added with the booking form).
 
 ### Page build status
 
@@ -265,7 +266,7 @@ One checklist item per commit, in this order:
 
 | Part                                            | Module                                                                    |
 | ----------------------------------------------- | ------------------------------------------------------------------------- |
-| Folios and Billing tabs, real balance           | [Folio](../13-folio/01-folios-and-lines.md)                               |
+| Folio tab (with a folio rail), real balance     | [Folio page](../13-folio/05-folio-page.md)                                |
 | Payments and deposits                           | [Payments and refunds](../14-payments/01-payments-and-refunds.md)         |
 | Unit actions, Arrivals, In-house and Departures | [Check-in and check-out](../18-front-desk/01-check-in-and-check-out.md)   |
 | Room & Rate editing, room moves                 | [Room and bed assignment](../18-front-desk/02-room-and-bed-assignment.md) |
@@ -275,4 +276,4 @@ One checklist item per commit, in this order:
 
 - The booking workspace had 9 tabs and a 2,300-line `WorkspacePresenter`. estatell starts with 4 tabs, and each later module adds its own tab with its own controller method and Data class.
 - The wastays front desk had 5 tabs, each with its own table and card partial. estatell has one card and one set of columns; the tabs only filter by status.
-- wastays showed a left rail only on some tabs. estatell shows the unit list only on the Units tab, and only for 2 or more units.
+- wastays showed a left rail only on some tabs. estatell shows a left rail on two tabs, only for 2 or more entries: the unit list on the Units tab and the folio list on the Folio tab ([Folio page](../13-folio/05-folio-page.md#folio-rail)).
