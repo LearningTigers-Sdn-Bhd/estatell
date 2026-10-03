@@ -1,4 +1,5 @@
 import { router } from '@inertiajs/react';
+import type { VisitOptions } from '@inertiajs/core';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 export type UnsavedChangesGuard = {
@@ -8,6 +9,8 @@ export type UnsavedChangesGuard = {
     proceed: () => void;
     /** Close the dialog and stay on the page. */
     stay: () => void;
+    /** Visit a page that keeps the form (a mode switch), without the dialog. */
+    visitWithout: (url: string, options?: VisitOptions) => void;
 };
 
 /**
@@ -71,5 +74,16 @@ export function useUnsavedChanges(dirty: boolean): UnsavedChangesGuard {
 
     const stay = useCallback(() => setTarget(null), []);
 
-    return { target, proceed, stay };
+    const visitWithout = useCallback((url: string, options?: VisitOptions) => {
+        bypass.current = true;
+        router.visit(url, {
+            ...options,
+            onFinish: (visit) => {
+                bypass.current = false;
+                options?.onFinish?.(visit);
+            },
+        });
+    }, []);
+
+    return { target, proceed, stay, visitWithout };
 }

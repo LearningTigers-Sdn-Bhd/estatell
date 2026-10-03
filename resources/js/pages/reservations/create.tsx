@@ -8,7 +8,7 @@ import {
     Plus,
     X,
 } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { EnumSelect } from '@/components/pms/enum-select';
 import type { EnumOption } from '@/components/pms/enum-select';
 import { FormActions } from '@/components/pms/form-actions';
@@ -165,6 +165,35 @@ export default function ReservationCreate({
     const [quotes, setQuotes] = useState<Record<string, Quote>>({});
     const [tab, setTab] = useState<BookingTab>('rooms');
     const guard = useUnsavedChanges(form.isDirty && !form.processing);
+    const mode = isWalkIn ? 'walk-in' : 'new';
+    const lastMode = useRef(isWalkIn);
+
+    // A mode switch keeps the page mounted, so the form follows the new mode when the props change.
+    useEffect(() => {
+        if (lastMode.current === isWalkIn) {
+            return;
+        }
+
+        lastMode.current = isWalkIn;
+        form.setData((current) => ({
+            ...current,
+            source: isWalkIn ? 'walk_in' : (sources[0]?.value ?? 'direct'),
+            arrival_date: isWalkIn ? today : current.arrival_date,
+            arrival_time: isWalkIn ? nowTime : current.arrival_time,
+        }));
+    }, [isWalkIn]);
+
+    const switchMode = (next: string) => {
+        if (next === mode) {
+            return;
+        }
+
+        guard.visitWithout((next === 'walk-in' ? walkIn : newMethod).url(), {
+            preserveState: true,
+            preserveScroll: true,
+            only: ['isWalkIn', 'sources', 'nowTime'],
+        });
+    };
     const roomTypes = addUnitOptions.roomTypes;
     const units = totalUnits(data.lines, roomTypes);
     const unitChoices = unitOptions(data.lines, roomTypes);
@@ -316,7 +345,7 @@ export default function ReservationCreate({
                                 description="The dates and expected times apply to every line."
                             >
                                 <FieldGroup>
-                                    <div className="grid items-start gap-4 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
+                                    <div className="grid items-start gap-4 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)_12rem]">
                                         <Field
                                             data-invalid={
                                                 !!errors.arrival_date ||
@@ -445,6 +474,26 @@ export default function ReservationCreate({
                                                 {errors.departure_date ??
                                                     errors.departure_time}
                                             </FieldError>
+                                        </Field>
+                                        <Field>
+                                            <FieldLabel htmlFor="booking-mode">
+                                                Reservation mode
+                                            </FieldLabel>
+                                            <EnumSelect
+                                                id="booking-mode"
+                                                options={[
+                                                    {
+                                                        value: 'new',
+                                                        label: 'New booking',
+                                                    },
+                                                    {
+                                                        value: 'walk-in',
+                                                        label: 'Walk-in',
+                                                    },
+                                                ]}
+                                                value={mode}
+                                                onValueChange={switchMode}
+                                            />
                                         </Field>
                                     </div>
                                     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

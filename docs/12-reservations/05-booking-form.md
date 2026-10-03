@@ -227,6 +227,8 @@ Built (commit 7, discounts and add-ons tables): `BookingDiscountsSection` is a t
 
 Built (commit 8, fixed height): the layout variant `grid-only` is renamed `fixed` (`PageLayoutVariant`, `AppSidebarLayout`, the rate calendar and its docs). `ReservationCreate.layout` returns `variant: 'fixed'`. The form is a flex column with one scroll region (`scroll-region`, `overflow-y-auto`) that holds the title row and the two columns, and `FormActions fixed` below it. The window does not scroll, the breadcrumb header stays on top and the footer is always visible. The rail's `sticky` works inside the scroll region.
 
+Built (commit 9, reservation mode): a **Reservation mode** select after Departure (New booking or Walk-in, from `lg` a 12rem column). Picking the other mode calls `guard.visitWithout`, a new function of `useUnsavedChanges` that visits without the unsaved-changes dialog, as a partial visit (`only: isWalkIn, sources, nowTime`) with `preserveState` and `preserveScroll`. The page stays mounted, so the dates, lines and guests are kept; an effect on `isWalkIn` then sets the source (WalkIn, or the first offered source) and, for Walk-in, the arrival date and time. A test checks that the walk-in page answers the partial request with only those props.
+
 The lines are one table-like grid from `lg` (`BookingLinesHeader` and `LINE_COLUMNS` in `booking-line-row.tsx`): a header row, then one row per line with Room type, Rate plan, Room / Bed, Ad, Ch, Rate and remove. A dorm line shows the Beds count in the Room / Bed cell and the bed pickers on a second line; children's ages, quote errors and "Only N free" also go on a second line. Below `lg` the cells stack and show their labels.
 
 ## Lessons from wastays

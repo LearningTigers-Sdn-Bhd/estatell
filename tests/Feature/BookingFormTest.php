@@ -405,3 +405,25 @@ test('a time that is not HH:MM is refused', function () {
 
     expect(Reservation::query()->count())->toBe(0);
 });
+
+test('a mode switch gets the walk-in props in a partial request', function () {
+    $setup = bookingSetup();
+
+    $this->actingAs($setup['user'])
+        ->get(bookingFormUrl($setup, 'reservations.new'))
+        ->assertOk();
+
+    $this->actingAs($setup['user'])
+        ->withHeaders([
+            'X-Inertia' => 'true',
+            'X-Inertia-Version' => inertia()->getVersion(),
+            'X-Inertia-Partial-Component' => 'reservations/create',
+            'X-Inertia-Partial-Data' => 'isWalkIn,sources,nowTime',
+        ])
+        ->get(bookingFormUrl($setup, 'reservations.walk-in'))
+        ->assertOk()
+        ->assertJsonPath('props.isWalkIn', true)
+        ->assertJsonPath('props.sources.0.value', 'walk_in')
+        ->assertJsonPath('props.nowTime', fn (string $time) => preg_match('/^\d{2}:\d{2}$/', $time) === 1)
+        ->assertJsonMissingPath('props.addUnitOptions');
+});
