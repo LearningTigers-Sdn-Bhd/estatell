@@ -102,6 +102,34 @@ A migration syncs the two permissions, and both rows go into [Roles and permissi
 - A refund row is tagged "Refund".
 - Payment and refund rows get no Reverse or Transfer action (see the `payment_line` rule).
 
+### Routes
+
+A separate `ReservationPaymentController` (the folio controller is already long). The routes sit in the reservation group with `scopeBindings()`, so a folio, unit or payment of another reservation or property returns 404. A Form Request checks the shape only.
+
+| URL                                                | Name                                         | Action                   | Permission       |
+| -------------------------------------------------- | -------------------------------------------- | ------------------------ | ---------------- |
+| `POST …/{reservation}/payments/quote` (JSON)       | `reservations.payments.quote`                | `PaymentQuote`           | `payment.record` |
+| `POST …/folios/{folio}/payments`                   | `reservations.folios.payments.store`         | `RecordPayment`, a folio | `payment.record` |
+| `POST …/units/{unit}/payments`                     | `reservations.units.payments.store`          | `RecordPayment`, a unit  | `payment.record` |
+| `POST …/folios/{folio}/payments/{payment}/refunds` | `reservations.folios.payments.refunds.store` | `RefundPayment`          | `payment.refund` |
+
+- The quote needs only the method and the amount, so it hangs off the reservation. The "not started" entry uses it too.
+- A payment on a "not started" entry redirects to `?folio={new folio id}`, because the `u{unit id}` entry is gone once the folio exists.
+- `PaymentRefusals` maps each refusal code to a field (`payment_method_id`, `amount`, `reference`) or one message for the form, like `FolioRefusals`.
+- The methods and purposes are one optional prop, `paymentOptions`, read when the Dialog opens: active methods that are not City ledger or OTA collected, with `requiresReference`, and `PaymentPurpose::options()`.
+- `FolioData` gets `canRecordPayment` (an Open folio, or a "not started" entry) and `paymentUnitId` (the unit of a "not started" entry). `FolioRowData` gets `note` (the payment reference), `paymentId` and `refundable` (the amount left to refund), and the `refund` action on an Open folio for a user with `payment.refund` when something is left.
+
+### Dialog defaults
+
+| Field   | Default                                                              |
+| ------- | -------------------------------------------------------------------- |
+| Purpose | Advance on a "not started" entry, Settlement on a folio              |
+| Amount  | The balance when it is above 0. Empty otherwise and on "not started" |
+| Method  | The first method in position order                                   |
+
+- The quote runs again when the method or the amount changes. The Dialog shows Surcharge, Tax on surcharge and **Total to collect**, and the submit button names the total ("Record RM 105.40").
+- The form sends a new UUID as the idempotency key each time the Dialog opens, so a double click records once.
+
 ## Receipt
 
 A table-based Blade PDF layout (dompdf has no flex or grid, see [design system](../design-system/11-accessibility-performance-pdfs.md#pdfs)). It shows the property, the receipt number, the date, the guest, the folio number, the method, the reference, the amount paid, the surcharge and the total collected. Route `GET …/payments/{payment}/receipt` with `payment.record`. A refund has no receipt.

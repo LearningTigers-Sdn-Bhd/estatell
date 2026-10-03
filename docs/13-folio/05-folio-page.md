@@ -124,6 +124,8 @@ One `ReservationFolioController` with named methods. The routes sit in the reser
 | `POST …/folios/{folio}/discounts`               | `reservations.folios.discounts.store`   | `ApplyDiscount`  | `folio.discount`    |
 | `DELETE …/folios/{folio}/lines/{line}/discount` | `reservations.folios.discounts.destroy` | `RemoveDiscount` | `folio.discount`    |
 
+Record payment and Refund have their own `ReservationPaymentController` and routes, listed in [Payments and refunds](../14-payments/01-payments-and-refunds.md#routes).
+
 - **Refusal messages:** `FolioRefusals` maps each `PostingResult` refusal code (and the two tax refusals) to a message and a field, the way `ReservationRefusals` does. A form gets `errors()`, and an AlertDialog gets `message()` as a toast (`Inertia::flash('toast', ...)`).
 - **Server-driven buttons:** the server tells each row which actions it allows, from the user's permissions, the folio status and the row type. The browser never works it out. `FolioRowData` gets the line id and an `actions` list. `FolioData` gets `canPostCharge`, the units that can receive a posting, and the other Open folios as transfer targets.
 - **Option lists:** charge items and active discounts are optional props, read when a dialog opens, like the add-on dialog.
