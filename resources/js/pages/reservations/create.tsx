@@ -372,7 +372,7 @@ export default function ReservationCreate({
                                                 <span className="font-medium">
                                                     {lockedNights !== null
                                                         ? lockedNights
-                                                        : nights || '—'}
+                                                        : nights}
                                                 </span>
                                                 <span className="text-muted-foreground">
                                                     {(lockedNights ??

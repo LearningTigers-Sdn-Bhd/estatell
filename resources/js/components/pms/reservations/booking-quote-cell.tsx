@@ -65,7 +65,9 @@ export function BookingQuoteCell({
                 ) : quote?.lineTotal ? (
                     <MoneyText amount={quote.lineTotal} currency={currency} />
                 ) : (
-                    <span className="text-muted-foreground">—</span>
+                    <span className="text-sm font-normal text-muted-foreground">
+                        No price yet
+                    </span>
                 )}
             </span>
             <Popover>
