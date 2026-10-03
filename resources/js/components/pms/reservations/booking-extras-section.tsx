@@ -134,15 +134,33 @@ function AddOnRow({
     );
 }
 
+function lineTitle(line: BookingLine, index: number, options: Options): string {
+    const roomType = roomTypeOf(line, options.roomTypes);
+    const plan = options.ratePlans.find(
+        (one) => String(one.id) === line.rate_plan_id,
+    );
+
+    return roomType
+        ? `${roomType.name}${plan ? ` · ${plan.name}` : ''}`
+        : `Line ${index + 1}`;
+}
+
+function NoLines() {
+    return (
+        <p className="text-sm text-muted-foreground">
+            Pick a room type in Rooms &amp; guests first.
+        </p>
+    );
+}
+
 /**
- * Extras, one block for each line: the add-ons of the line (a dorm line gives every bed the same ones) and a RoomOnly
- * discount. The prices are the server's, shown in the rate cell and the summary.
+ * The Add-ons tab, one block for each line: the add-ons of the line (a dorm line gives every bed the same ones). The
+ * prices are the server's, shown in the rate cell and the summary.
  */
-export function BookingExtrasSection({
+export function BookingAddOnsSection({
     lines,
     options,
     chargeItems,
-    discounts,
     arrival,
     departure,
     currency,
@@ -152,123 +170,151 @@ export function BookingExtrasSection({
     lines: BookingLine[];
     options: Options;
     chargeItems: ChargeItem[];
-    discounts: Discount[];
     arrival: string;
     departure: string;
     currency: App.Enums.Currency | null;
     errors: Errors;
     onChange: (index: number, patch: Partial<BookingLine>) => void;
 }) {
+    if (lines.every((line) => line.room_type_id === '')) {
+        return <NoLines />;
+    }
+
     return (
         <div className="flex flex-col gap-4">
-            {lines.map((line, index) => {
-                const roomType = roomTypeOf(line, options.roomTypes);
-                const plan = options.ratePlans.find(
-                    (one) => String(one.id) === line.rate_plan_id,
-                );
-
-                return (
-                    <div
-                        key={line.key}
-                        className="flex flex-col gap-3 rounded-lg border p-3"
-                    >
-                        <h3 className="text-sm font-medium">
-                            {roomType
-                                ? `${roomType.name}${plan ? ` · ${plan.name}` : ''}`
-                                : `Line ${index + 1}`}
-                        </h3>
-                        {line.add_ons.map((addOn, position) => (
-                            <AddOnRow
-                                key={position}
-                                id={`extras-${index}-${position}`}
-                                addOn={addOn}
-                                chargeItems={chargeItems}
-                                arrival={arrival}
-                                departure={departure}
-                                currency={currency}
-                                onChange={(patch) =>
-                                    onChange(index, {
-                                        add_ons: line.add_ons.map(
-                                            (current, at) =>
-                                                at === position
-                                                    ? { ...current, ...patch }
-                                                    : current,
-                                        ),
-                                    })
-                                }
-                                onRemove={() =>
-                                    onChange(index, {
-                                        add_ons: line.add_ons.filter(
-                                            (_, at) => at !== position,
-                                        ),
-                                    })
-                                }
-                            />
-                        ))}
-                        <FieldError>
-                            {errors[`lines.${index}.add_ons`]}
-                        </FieldError>
-                        <div className="flex flex-wrap items-end justify-between gap-3">
-                            <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                disabled={chargeItems.length === 0}
-                                onClick={() =>
-                                    onChange(index, {
-                                        add_ons: [
-                                            ...line.add_ons,
-                                            {
-                                                charge_item_id: '',
-                                                quantity: '1',
-                                                unit_amount: '',
-                                                service_date: '',
-                                            },
-                                        ],
-                                    })
-                                }
-                            >
-                                <Plus data-icon="inline-start" />
-                                Add add-on
-                            </Button>
-                            {discounts.length > 0 && (
-                                <Field
-                                    className="w-full sm:w-64"
-                                    data-invalid={
-                                        !!errors[`lines.${index}.discount_id`]
-                                    }
-                                >
-                                    <FieldLabel
-                                        htmlFor={`extras-${index}-discount`}
-                                    >
-                                        Discount
-                                    </FieldLabel>
-                                    <EnumSelect
-                                        id={`extras-${index}-discount`}
-                                        allLabel="No discount"
-                                        options={discounts.map((discount) => ({
-                                            value: String(discount.id),
-                                            label: discount.name,
-                                        }))}
-                                        value={line.discount_id}
-                                        onValueChange={(value) =>
-                                            onChange(index, {
-                                                discount_id: value,
-                                            })
-                                        }
-                                    />
-                                    <FieldDescription>
-                                        Applied on the folio, not in the rate.
-                                    </FieldDescription>
-                                    <FieldError>
-                                        {errors[`lines.${index}.discount_id`]}
-                                    </FieldError>
-                                </Field>
-                            )}
-                        </div>
+            {lines.map((line, index) => (
+                <div
+                    key={line.key}
+                    className="flex flex-col gap-3 rounded-lg border p-3"
+                >
+                    <h3 className="text-sm font-medium">
+                        {lineTitle(line, index, options)}
+                    </h3>
+                    {line.add_ons.map((addOn, position) => (
+                        <AddOnRow
+                            key={position}
+                            id={`extras-${index}-${position}`}
+                            addOn={addOn}
+                            chargeItems={chargeItems}
+                            arrival={arrival}
+                            departure={departure}
+                            currency={currency}
+                            onChange={(patch) =>
+                                onChange(index, {
+                                    add_ons: line.add_ons.map((current, at) =>
+                                        at === position
+                                            ? { ...current, ...patch }
+                                            : current,
+                                    ),
+                                })
+                            }
+                            onRemove={() =>
+                                onChange(index, {
+                                    add_ons: line.add_ons.filter(
+                                        (_, at) => at !== position,
+                                    ),
+                                })
+                            }
+                        />
+                    ))}
+                    <FieldError>{errors[`lines.${index}.add_ons`]}</FieldError>
+                    <div>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            disabled={chargeItems.length === 0}
+                            onClick={() =>
+                                onChange(index, {
+                                    add_ons: [
+                                        ...line.add_ons,
+                                        {
+                                            charge_item_id: '',
+                                            quantity: '1',
+                                            unit_amount: '',
+                                            service_date: '',
+                                        },
+                                    ],
+                                })
+                            }
+                        >
+                            <Plus data-icon="inline-start" />
+                            Add add-on
+                        </Button>
                     </div>
-                );
-            })}
+                </div>
+            ))}
+        </div>
+    );
+}
+
+/**
+ * The Discounts tab, one block for each line: a RoomOnly catalogue discount. It is applied on the folio, not in the
+ * rate.
+ */
+export function BookingDiscountsSection({
+    lines,
+    options,
+    discounts,
+    errors,
+    onChange,
+}: {
+    lines: BookingLine[];
+    options: Options;
+    discounts: Discount[];
+    errors: Errors;
+    onChange: (index: number, patch: Partial<BookingLine>) => void;
+}) {
+    if (lines.every((line) => line.room_type_id === '')) {
+        return <NoLines />;
+    }
+
+    if (discounts.length === 0) {
+        return (
+            <p className="text-sm text-muted-foreground">
+                No room discounts are set up for this property.
+            </p>
+        );
+    }
+
+    return (
+        <div className="flex flex-col gap-4">
+            {lines.map((line, index) => (
+                <div
+                    key={line.key}
+                    className="flex flex-col gap-3 rounded-lg border p-3"
+                >
+                    <h3 className="text-sm font-medium">
+                        {lineTitle(line, index, options)}
+                    </h3>
+                    <Field
+                        className="w-full sm:w-64"
+                        data-invalid={!!errors[`lines.${index}.discount_id`]}
+                    >
+                        <FieldLabel htmlFor={`extras-${index}-discount`}>
+                            Discount
+                        </FieldLabel>
+                        <EnumSelect
+                            id={`extras-${index}-discount`}
+                            allLabel="No discount"
+                            options={discounts.map((discount) => ({
+                                value: String(discount.id),
+                                label: discount.name,
+                            }))}
+                            value={line.discount_id}
+                            onValueChange={(value) =>
+                                onChange(index, { discount_id: value })
+                            }
+                        />
+                        <FieldDescription>
+                            Applied on the folio, not in the rate.
+                        </FieldDescription>
+                        <FieldError>
+                            {errors[`lines.${index}.discount_id`]}
+                        </FieldError>
+                    </Field>
+                </div>
+            ))}
         </div>
     );
 }

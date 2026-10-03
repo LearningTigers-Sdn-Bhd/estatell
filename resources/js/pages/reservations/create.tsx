@@ -5,7 +5,10 @@ import { EnumSelect } from '@/components/pms/enum-select';
 import type { EnumOption } from '@/components/pms/enum-select';
 import { FormActions } from '@/components/pms/form-actions';
 import { PageHeader } from '@/components/pms/page-header';
-import { BookingExtrasSection } from '@/components/pms/reservations/booking-extras-section';
+import {
+    BookingAddOnsSection,
+    BookingDiscountsSection,
+} from '@/components/pms/reservations/booking-extras-section';
 import { BookingGuestsSection } from '@/components/pms/reservations/booking-guests-section';
 import {
     clampStaysIn,
@@ -29,9 +32,16 @@ import type {
     BookingLine,
 } from '@/components/pms/reservations/booking-lines';
 import { BookingSummaryRail } from '@/components/pms/reservations/booking-summary-rail';
+import {
+    errorTabs,
+    firstErrorTab,
+    tabClass,
+} from '@/components/pms/reservations/booking-tabs';
+import type { BookingTab } from '@/components/pms/reservations/booking-tabs';
 import { FormError } from '@/components/pms/reservations/form-error';
 import { StayDateTime } from '@/components/pms/reservations/stay-date-time';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
 import { Button, buttonVariants } from '@/components/ui/button';
 import {
     Field,
@@ -42,6 +52,7 @@ import {
 } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { useUnsavedChanges } from '@/hooks/use-unsaved-changes';
 import { index, newMethod, store, walkIn } from '@/routes/reservations';
@@ -136,6 +147,7 @@ export default function ReservationCreate({
     });
     const { data, errors } = form;
     const [quotes, setQuotes] = useState<Record<string, Quote>>({});
+    const [tab, setTab] = useState<BookingTab>('rooms');
     const guard = useUnsavedChanges(form.isDirty && !form.processing);
     const roomTypes = addUnitOptions.roomTypes;
     const units = totalUnits(data.lines, roomTypes);
@@ -227,6 +239,14 @@ export default function ReservationCreate({
                 (_, i) => errors[`lines.${i}.restriction_override_reason`],
             ));
 
+    const tabErrors = errorTabs(errors);
+    const addOnCount = data.lines.reduce(
+        (sum, line) =>
+            sum +
+            line.add_ons.filter((addOn) => addOn.charge_item_id !== '').length,
+        0,
+    );
+
     const submit = (event?: React.FormEvent) => {
         event?.preventDefault();
         form.transform(
@@ -238,10 +258,17 @@ export default function ReservationCreate({
         );
         form.post(store.url(), {
             preserveScroll: true,
-            onError: () =>
+            onError: (submitted) => {
+                const failing = firstErrorTab(errorTabs(submitted));
+
+                if (failing !== null) {
+                    setTab(failing);
+                }
+
                 document
                     .querySelector('[aria-invalid="true"]')
-                    ?.scrollIntoView({ block: 'center', behavior: 'smooth' }),
+                    ?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+            },
         });
     };
 
@@ -390,7 +417,7 @@ export default function ReservationCreate({
                                         </FieldError>
                                     </Field>
                                 </div>
-                                <div className="grid gap-4 sm:grid-cols-2">
+                                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                                     <Field data-invalid={!!errors.source}>
                                         <FieldLabel htmlFor="booking-source">
                                             Source
@@ -435,223 +462,317 @@ export default function ReservationCreate({
                                             {errors.external_reference}
                                         </FieldError>
                                     </Field>
+                                    {units > 1 && (
+                                        <Field
+                                            data-invalid={!!errors.group_name}
+                                        >
+                                            <FieldLabel htmlFor="booking-group_name">
+                                                Group name
+                                            </FieldLabel>
+                                            <Input
+                                                id="booking-group_name"
+                                                value={data.group_name}
+                                                onChange={(event) =>
+                                                    form.setData(
+                                                        'group_name',
+                                                        event.target.value,
+                                                    )
+                                                }
+                                                maxLength={150}
+                                                placeholder="e.g. Tan family trip"
+                                                autoComplete="off"
+                                                aria-invalid={
+                                                    !!errors.group_name
+                                                }
+                                            />
+                                            <FieldError>
+                                                {errors.group_name}
+                                            </FieldError>
+                                        </Field>
+                                    )}
                                 </div>
                             </FieldGroup>
                         </Section>
 
-                        {units > 1 && (
-                            <Section title="Group">
-                                <Field
-                                    className="max-w-sm"
-                                    data-invalid={!!errors.group_name}
+                        <Tabs
+                            value={tab}
+                            onValueChange={(value) =>
+                                setTab(value as BookingTab)
+                            }
+                        >
+                            <TabsList
+                                variant="line"
+                                className="h-auto w-full justify-start border-b"
+                            >
+                                <TabsTrigger
+                                    value="rooms"
+                                    className={tabClass(tabErrors.rooms)}
                                 >
-                                    <FieldLabel htmlFor="booking-group_name">
-                                        Group name
+                                    Rooms &amp; guests
+                                </TabsTrigger>
+                                <TabsTrigger
+                                    value="discounts"
+                                    className={tabClass(tabErrors.discounts)}
+                                >
+                                    Discounts
+                                </TabsTrigger>
+                                <TabsTrigger
+                                    value="add-ons"
+                                    className={tabClass(tabErrors['add-ons'])}
+                                >
+                                    Add-ons
+                                    {addOnCount > 0 && (
+                                        <Badge variant="secondary">
+                                            {addOnCount}
+                                        </Badge>
+                                    )}
+                                </TabsTrigger>
+                                <TabsTrigger
+                                    value="notes"
+                                    className={tabClass(tabErrors.notes)}
+                                >
+                                    Notes
+                                </TabsTrigger>
+                            </TabsList>
+
+                            <TabsContent
+                                value="rooms"
+                                keepMounted
+                                className="flex flex-col gap-8 pt-4"
+                            >
+                                <Section title="Rooms and beds">
+                                    <div className="flex flex-col gap-3">
+                                        <div className="overflow-hidden rounded-lg border">
+                                            <BookingLinesHeader />
+                                            <div className="divide-y">
+                                                {data.lines.map(
+                                                    (line, position) => (
+                                                        <BookingLineRow
+                                                            key={line.key}
+                                                            index={position}
+                                                            line={line}
+                                                            options={
+                                                                addUnitOptions
+                                                            }
+                                                            arrival={
+                                                                data.arrival_date
+                                                            }
+                                                            departure={
+                                                                departure
+                                                            }
+                                                            currency={currency}
+                                                            errors={errors}
+                                                            emptyPickLabel={
+                                                                emptyPickLabel
+                                                            }
+                                                            takenIds={takenBy(
+                                                                position,
+                                                            )}
+                                                            canRemove={
+                                                                data.lines
+                                                                    .length > 1
+                                                            }
+                                                            onChange={(patch) =>
+                                                                setLine(
+                                                                    position,
+                                                                    patch,
+                                                                )
+                                                            }
+                                                            onRemove={() =>
+                                                                form.setData(
+                                                                    'lines',
+                                                                    data.lines.filter(
+                                                                        (
+                                                                            _,
+                                                                            at,
+                                                                        ) =>
+                                                                            at !==
+                                                                            position,
+                                                                    ),
+                                                                )
+                                                            }
+                                                            onQuote={onQuote}
+                                                        />
+                                                    ),
+                                                )}
+                                            </div>
+                                            <div className="flex justify-end border-t bg-muted/50 px-3 py-2">
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() =>
+                                                        form.setData('lines', [
+                                                            ...data.lines,
+                                                            emptyLine(),
+                                                        ])
+                                                    }
+                                                >
+                                                    <Plus data-icon="inline-start" />
+                                                    Add line
+                                                </Button>
+                                            </div>
+                                        </div>
+                                        {warnings.length > 0 && (
+                                            <Alert>
+                                                <AlertDescription>
+                                                    <ul className="flex flex-col gap-1">
+                                                        {warnings.map(
+                                                            (warning) => (
+                                                                <li
+                                                                    key={
+                                                                        warning
+                                                                    }
+                                                                >
+                                                                    {warning}
+                                                                </li>
+                                                            ),
+                                                        )}
+                                                    </ul>
+                                                    {canOverrideRestrictions
+                                                        ? 'You can book this anyway. Enter a reason for each line below.'
+                                                        : 'Ask someone who may book past restrictions.'}
+                                                </AlertDescription>
+                                            </Alert>
+                                        )}
+                                        {askOverride &&
+                                            data.lines.map((line, position) =>
+                                                (quotes[line.key]?.violations
+                                                    .length ?? 0) > 0 ||
+                                                errors[
+                                                    `lines.${position}.restriction_override_reason`
+                                                ] ? (
+                                                    <Field
+                                                        key={line.key}
+                                                        data-invalid={
+                                                            !!errors[
+                                                                `lines.${position}.restriction_override_reason`
+                                                            ]
+                                                        }
+                                                    >
+                                                        <FieldLabel
+                                                            htmlFor={`line-${position}-restriction`}
+                                                        >
+                                                            Restriction override
+                                                            reason, line{' '}
+                                                            {position + 1}
+                                                        </FieldLabel>
+                                                        <Input
+                                                            id={`line-${position}-restriction`}
+                                                            value={
+                                                                line.restriction_override_reason
+                                                            }
+                                                            onChange={(event) =>
+                                                                setLine(
+                                                                    position,
+                                                                    {
+                                                                        restriction_override_reason:
+                                                                            event
+                                                                                .target
+                                                                                .value,
+                                                                    },
+                                                                )
+                                                            }
+                                                            maxLength={500}
+                                                            aria-invalid={
+                                                                !!errors[
+                                                                    `lines.${position}.restriction_override_reason`
+                                                                ]
+                                                            }
+                                                        />
+                                                        <FieldError>
+                                                            {
+                                                                errors[
+                                                                    `lines.${position}.restriction_override_reason`
+                                                                ]
+                                                            }
+                                                        </FieldError>
+                                                    </Field>
+                                                ) : null,
+                                            )}
+                                    </div>
+                                </Section>
+
+                                <Section
+                                    title="Guests"
+                                    description="The booker, and the guest of each unit. Units without a guest can be filled from the reservation page."
+                                >
+                                    <BookingGuestsSection
+                                        guests={data.guests}
+                                        units={unitChoices}
+                                        canManageGuests={canManageGuests}
+                                        countries={countries}
+                                        genders={genders}
+                                        locales={locales}
+                                        errors={errors}
+                                        onChange={(guests) =>
+                                            form.setData('guests', guests)
+                                        }
+                                    />
+                                </Section>
+                            </TabsContent>
+
+                            <TabsContent
+                                value="discounts"
+                                keepMounted
+                                className="pt-4"
+                            >
+                                <BookingDiscountsSection
+                                    lines={data.lines}
+                                    options={addUnitOptions}
+                                    discounts={discounts}
+                                    errors={errors}
+                                    onChange={setLine}
+                                />
+                            </TabsContent>
+
+                            <TabsContent
+                                value="add-ons"
+                                keepMounted
+                                className="pt-4"
+                            >
+                                <BookingAddOnsSection
+                                    lines={data.lines}
+                                    options={addUnitOptions}
+                                    chargeItems={chargeItems}
+                                    arrival={data.arrival_date}
+                                    departure={departure}
+                                    currency={currency}
+                                    errors={errors}
+                                    onChange={setLine}
+                                />
+                            </TabsContent>
+
+                            <TabsContent
+                                value="notes"
+                                keepMounted
+                                className="pt-4"
+                            >
+                                <Field data-invalid={!!errors.notes}>
+                                    <FieldLabel
+                                        htmlFor="booking-notes"
+                                        className="sr-only"
+                                    >
+                                        Notes
                                     </FieldLabel>
-                                    <Input
-                                        id="booking-group_name"
-                                        value={data.group_name}
+                                    <Textarea
+                                        id="booking-notes"
+                                        value={data.notes}
                                         onChange={(event) =>
                                             form.setData(
-                                                'group_name',
+                                                'notes',
                                                 event.target.value,
                                             )
                                         }
-                                        maxLength={150}
-                                        placeholder="Tan family trip"
-                                        autoComplete="off"
-                                        aria-invalid={!!errors.group_name}
+                                        maxLength={2000}
+                                        rows={3}
+                                        placeholder="Special requests or internal notes"
+                                        aria-invalid={!!errors.notes}
                                     />
-                                    <FieldDescription>
-                                        Leave empty to show the booker's name.
-                                    </FieldDescription>
-                                    <FieldError>{errors.group_name}</FieldError>
+                                    <FieldError>{errors.notes}</FieldError>
                                 </Field>
-                            </Section>
-                        )}
-
-                        <Section title="Rooms and beds">
-                            <div className="flex flex-col gap-3">
-                                <div className="overflow-hidden rounded-lg border">
-                                    <BookingLinesHeader />
-                                    <div className="divide-y">
-                                        {data.lines.map((line, position) => (
-                                            <BookingLineRow
-                                                key={line.key}
-                                                index={position}
-                                                line={line}
-                                                options={addUnitOptions}
-                                                arrival={data.arrival_date}
-                                                departure={departure}
-                                                currency={currency}
-                                                errors={errors}
-                                                emptyPickLabel={emptyPickLabel}
-                                                takenIds={takenBy(position)}
-                                                canRemove={
-                                                    data.lines.length > 1
-                                                }
-                                                onChange={(patch) =>
-                                                    setLine(position, patch)
-                                                }
-                                                onRemove={() =>
-                                                    form.setData(
-                                                        'lines',
-                                                        data.lines.filter(
-                                                            (_, at) =>
-                                                                at !== position,
-                                                        ),
-                                                    )
-                                                }
-                                                onQuote={onQuote}
-                                            />
-                                        ))}
-                                    </div>
-                                    <div className="flex justify-end border-t bg-muted/50 px-3 py-2">
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={() =>
-                                                form.setData('lines', [
-                                                    ...data.lines,
-                                                    emptyLine(),
-                                                ])
-                                            }
-                                        >
-                                            <Plus data-icon="inline-start" />
-                                            Add line
-                                        </Button>
-                                    </div>
-                                </div>
-                                {warnings.length > 0 && (
-                                    <Alert>
-                                        <AlertDescription>
-                                            <ul className="flex flex-col gap-1">
-                                                {warnings.map((warning) => (
-                                                    <li key={warning}>
-                                                        {warning}
-                                                    </li>
-                                                ))}
-                                            </ul>
-                                            {canOverrideRestrictions
-                                                ? 'You can book this anyway. Enter a reason for each line below.'
-                                                : 'Ask someone who may book past restrictions.'}
-                                        </AlertDescription>
-                                    </Alert>
-                                )}
-                                {askOverride &&
-                                    data.lines.map((line, position) =>
-                                        (quotes[line.key]?.violations.length ??
-                                            0) > 0 ||
-                                        errors[
-                                            `lines.${position}.restriction_override_reason`
-                                        ] ? (
-                                            <Field
-                                                key={line.key}
-                                                data-invalid={
-                                                    !!errors[
-                                                        `lines.${position}.restriction_override_reason`
-                                                    ]
-                                                }
-                                            >
-                                                <FieldLabel
-                                                    htmlFor={`line-${position}-restriction`}
-                                                >
-                                                    Restriction override reason,
-                                                    line {position + 1}
-                                                </FieldLabel>
-                                                <Input
-                                                    id={`line-${position}-restriction`}
-                                                    value={
-                                                        line.restriction_override_reason
-                                                    }
-                                                    onChange={(event) =>
-                                                        setLine(position, {
-                                                            restriction_override_reason:
-                                                                event.target
-                                                                    .value,
-                                                        })
-                                                    }
-                                                    maxLength={500}
-                                                    aria-invalid={
-                                                        !!errors[
-                                                            `lines.${position}.restriction_override_reason`
-                                                        ]
-                                                    }
-                                                />
-                                                <FieldError>
-                                                    {
-                                                        errors[
-                                                            `lines.${position}.restriction_override_reason`
-                                                        ]
-                                                    }
-                                                </FieldError>
-                                            </Field>
-                                        ) : null,
-                                    )}
-                            </div>
-                        </Section>
-
-                        <Section
-                            title="Guests"
-                            description="The booker, and the guest of each unit. Units without a guest can be filled from the reservation page."
-                        >
-                            <BookingGuestsSection
-                                guests={data.guests}
-                                units={unitChoices}
-                                canManageGuests={canManageGuests}
-                                countries={countries}
-                                genders={genders}
-                                locales={locales}
-                                errors={errors}
-                                onChange={(guests) =>
-                                    form.setData('guests', guests)
-                                }
-                            />
-                        </Section>
-
-                        <Section
-                            title="Extras"
-                            description="Optional. Add-ons and a discount for each line."
-                        >
-                            <BookingExtrasSection
-                                lines={data.lines}
-                                options={addUnitOptions}
-                                chargeItems={chargeItems}
-                                discounts={discounts}
-                                arrival={data.arrival_date}
-                                departure={departure}
-                                currency={currency}
-                                errors={errors}
-                                onChange={setLine}
-                            />
-                        </Section>
-
-                        <Section title="Notes">
-                            <Field data-invalid={!!errors.notes}>
-                                <FieldLabel
-                                    htmlFor="booking-notes"
-                                    className="sr-only"
-                                >
-                                    Notes
-                                </FieldLabel>
-                                <Textarea
-                                    id="booking-notes"
-                                    value={data.notes}
-                                    onChange={(event) =>
-                                        form.setData(
-                                            'notes',
-                                            event.target.value,
-                                        )
-                                    }
-                                    maxLength={2000}
-                                    rows={3}
-                                    placeholder="Special requests or internal notes"
-                                    aria-invalid={!!errors.notes}
-                                />
-                                <FieldError>{errors.notes}</FieldError>
-                            </Field>
-                        </Section>
+                            </TabsContent>
+                        </Tabs>
                     </div>
 
                     <aside className="h-fit xl:sticky xl:top-4">
