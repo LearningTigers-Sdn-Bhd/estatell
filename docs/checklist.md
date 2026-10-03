@@ -223,9 +223,10 @@ Smaller fixes and reverts are in `git log`.
 ### 13 Folio and 14 Payments
 
 - [x] `feat(folio): add folios and immutable ledger lines` — `folios` and `folio_lines` with a trigger that rejects updates and deletes, `FolioType`, `FolioStatus`, `FolioBalance`, `RepointGuestFolios` in `MergeGuests`, and `AnonymizeGuest` refuses a guest with an open balance. Backend only. Docs: [Folios and lines](13-folio/01-folios-and-lines.md).
-- [ ] `feat(folio): post charges, reverse and transfer lines` — Needs: business dates. Docs: [Posting charges](13-folio/02-posting-charges.md).
-- [ ] `feat(folio): add folio routing` — Docs: [Routing](13-folio/03-routing.md).
+- [ ] `feat(folio): post charges, reverse and transfer lines` — `CreateFolio`, `PostCharge`, `ReverseLine`, `TransferLines`, a minimal `FolioRouter` (own folio only), `unit_add_ons.folio_line_id`, and `RemoveUnitAddOn` refuses a posted add-on. Backend only. Needs: business dates. Docs: [Posting charges](13-folio/02-posting-charges.md).
+- [ ] `feat(folio): add folio routing` — the full `FolioRouter` and `folio_routing_rules`. Docs: [Routing](13-folio/03-routing.md).
 - [ ] `feat(folio): apply and remove folio discounts` — Docs: [Folio discounts](13-folio/04-folio-discounts.md).
+- [ ] `feat(folio): add the folio page with scheduled nights` — Posted and Scheduled rows, Balance and Projected total. Needs: post charges, folio routing. Docs: [Folio page](13-folio/05-folio-page.md).
 - [ ] `feat(payments): record payments and refunds` — Docs: [Payments and refunds](14-payments/01-payments-and-refunds.md).
 
 ### 15 City ledger
@@ -258,6 +259,7 @@ Smaller fixes and reverts are in `git log`.
 ### 20 Night audit
 
 - [ ] `feat(night-audit): add the readiness panel` — Docs: [Readiness panel](20-night-audit/02-readiness-panel.md).
+- [ ] `feat(night-audit): post room charges and scheduled add-ons` — `InclusionAllocator`, `PostRoomCharges`, `PostScheduledAddOns`. Needs: post charges, folio routing. Docs: [Posting charges](13-folio/02-posting-charges.md).
 - [ ] `feat(night-audit): run the night audit` — Docs: [Audit run](20-night-audit/03-audit-run.md).
 - [ ] `feat(night-audit): schedule the night audit per property` — Docs: [Scheduling](20-night-audit/04-scheduling.md).
 - [ ] `feat(night-audit): snapshot statistics and notify results` — Docs: [Statistics](20-night-audit/05-statistics.md).

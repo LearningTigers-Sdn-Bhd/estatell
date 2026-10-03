@@ -4,14 +4,94 @@
 
 Post room charges, extras and taxes correctly and exactly once.
 
+## Build order
+
+The posting work is built in three items. This file is the spec for all three.
+
+| Item                    | Built here                                                                                        | Checklist item                                               |
+| ----------------------- | ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| Manual postings (first) | `CreateFolio`, `PostCharge`, `ReverseLine`, `TransferLines`, a minimal `FolioRouter`, permissions | `feat(folio): post charges, reverse and transfer lines`      |
+| Routing                 | The full `FolioRouter` with `folio_routing_rules` (see [Routing](03-routing.md))                  | `feat(folio): add folio routing`                             |
+| Night audit postings    | `InclusionAllocator`, `PostRoomCharges`, `PostScheduledAddOns`, undated add-ons at check-in       | `feat(night-audit): post room charges and scheduled add-ons` |
+
 ## Actions
 
-- `PostCharge`: manual charge from a charge item or open amount.
-- `PostRoomCharges`: run by the night audit for each in-house unit night.
+- `CreateFolio`: creates a Unit or Master folio. The number comes from `NextDocumentNumber` (`DocumentType::Folio`).
+- `PostCharge`: manual charge from a charge item or an open amount.
 - `ReverseLine`: posts a reversal line, including reversals of child lines.
-- `TransferLines`: moves lines between folios.
+- `TransferLines`: moves lines between folios of the same reservation.
+- `PostRoomCharges`: run by the night audit for each in-house unit night (night audit item).
+
+## Manual postings
+
+All Actions return a result and write nothing on a refusal. Each one is one transaction. Permissions are checked by the route, not the Action, like the reservation Actions.
+
+### `CreateFolio`
+
+`(Reservation $reservation, ?ReservationUnit $unit): Folio`. A unit gets a Unit folio, `payer_guest_id` is the booker. No unit gives the Master folio. It is called by `PostCharge` the first time a unit receives a posting. Nothing creates folios at booking time.
+
+### `PostCharge`
+
+`(User $actor, ReservationUnit $unit, NewChargeData $data): PostingResult`. `NewChargeData`: `charge_item_id` (nullable), `description` and `transaction_code_id` (for an open amount), `quantity`, `unit_amount`, `idempotency_key`, optional `unit_add_on_id`.
+
+| Check, in order                                                                                     | Refusal                       |
+| --------------------------------------------------------------------------------------------------- | ----------------------------- |
+| A business date exists for the property                                                             | `no_business_date`            |
+| The unit is CheckedIn or CheckedOut and belongs to the property                                     | `unit_not_postable`           |
+| The charge item is active (or the code is an active charge code) and belongs to the property        | `charge_not_found`            |
+| Quantity is from 1 to 999                                                                           | `quantity_invalid`            |
+| `unit_amount` is greater than 0 with at most two decimals                                           | `amount_invalid`              |
+| An amount different from `default_amount` needs `allow_override`; an item with no default needs one | `amount_override_not_allowed` |
+| The target folio is Open                                                                            | `folio_not_open`              |
+
+- The key is `manual:{uuid}`, sent by the form, so a double click never posts twice. A key that already exists returns the existing line and writes nothing.
+- It posts the charge line, then one Tax child line per `TaxCalculator` component (`parent_line_id`). `kind` is Charge for the charge and Tax for the children. `posting_date` is the business date.
+- With `unit_add_on_id`, the key is `addon:{id}`, `source_type` and `source_id` name the add-on, and `unit_add_ons.folio_line_id` is set to the charge line.
+- The target folio comes from `FolioRouter`.
+
+### `ReverseLine`
+
+`(User $actor, FolioLine $line): PostingResult`. It posts a line with the opposite amount and `reversal_of_id`, then a reversal for each child line. A tax child reversal links to its own child.
+
+| Check                                                     | Refusal            |
+| --------------------------------------------------------- | ------------------ |
+| A business date exists                                    | `no_business_date` |
+| The line has no parent (a child reverses with its parent) | `line_is_child`    |
+| The line is not already reversed                          | `already_reversed` |
+| The line is not itself a reversal                         | `line_is_reversal` |
+| Its folio is Open                                         | `folio_not_open`   |
+
+- The key is `reverse:{line_id}`. A discount child line reverses with its parent, so it needs no extra rule.
+- A reversal of a posted add-on leaves `folio_line_id` as it is. The row stays as history.
+
+### `TransferLines`
+
+`(User $actor, list<FolioLine> $lines, Folio $target): PostingResult`. It reverses each line on its folio and posts a copy on the target, with children. All lines of one transfer share one `transfer_group_id`.
+
+| Check                                                         | Refusal                 |
+| ------------------------------------------------------------- | ----------------------- |
+| A business date exists                                        | `no_business_date`      |
+| All lines belong to one folio, and it differs from the target | `transfer_invalid`      |
+| Source and target belong to the same reservation              | `different_reservation` |
+| Both folios are Open                                          | `folio_not_open`        |
+| No line is a child, a reversal or already reversed            | `line_not_transferable` |
+
+- A transfer moves whole charges. Their children move with them.
+- The copy keeps `description`, `kind`, `quantity` and `unit_amount`. Its key is `transfer:{group}:{line_id}`.
+- Source and target balances change by the same amount in opposite directions.
+
+### `FolioRouter`
+
+A service that returns the target folio for a line. In this item it always returns the unit's own folio. The routing item adds the rules.
+
+## Add-on postings
+
+- `RemoveUnitAddOn` refuses a row that has a `folio_line_id` (`add_on_posted`). The correction is `ReverseLine`.
+- `unit_add_ons.folio_line_id` is a nullable foreign key to `folio_lines`. It tells posted nights from scheduled ones.
 
 ## Room charge pipeline (per unit night)
+
+Built with the night audit item.
 
 1. `InclusionAllocator` splits the night: ROOM RM250 + Breakfast RM50.
 2. The room line posts at the full price. If `discount_amount` is set, a discount child line posts too.
@@ -21,12 +101,18 @@ Post room charges, extras and taxes correctly and exactly once.
 
 ## Rules
 
-- No forecast table. `unit_nights` already is the forecast.
+- No forecast table. `unit_nights` already is the forecast, and so are the nightly `unit_add_ons` rows. The folio page reads them (see [Folio page](05-folio-page.md)).
 - Surcharges from payment methods post as charge lines.
+- Every posting uses `CurrentBusinessDate`. Closed dates reject postings.
 
 ## Permissions
 
 `folio.post-charge`, `folio.reverse`, `folio.transfer`.
+
+## Open
+
+- Room blocks move from `PropertyToday` to `CurrentBusinessDate` "with the first folio posting" (see [Business dates](../20-night-audit/01-business-dates.md)). Decide at build time whether that switch belongs to this item or to the night audit postings.
+- Closing and reopening a folio stays in a later item.
 
 ## Lessons from wastays
 

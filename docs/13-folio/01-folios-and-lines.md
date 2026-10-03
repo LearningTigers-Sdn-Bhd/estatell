@@ -49,18 +49,20 @@ erDiagram
 - A database trigger rejects every `UPDATE` and `DELETE` on `folio_lines`, so immutability does not depend on code discipline.
 - `payer_company_id` has no foreign key until module 15 adds companies.
 - CHECK constraints: not both payers; a Unit folio has a `reservation_unit_id` and a Master folio has none; `closed_at` and `closed_by` are set together; `quantity` is at least 1; `source_type` and `source_id` are set together.
+- `unit_add_ons.folio_line_id` (nullable, foreign key to `folio_lines`) is added with the posting item. It marks a posted add-on.
 - `MergeGuests` moves the folios a merged guest pays through `RepointGuestFolios`. `AnonymizeGuest` refuses a guest who pays a folio with a balance other than 0 (voided folios are skipped).
 
 ## Services and Actions
 
 - `FolioBalance` (service, built): the balance of one folio, and whether a guest has an open balance.
 - `RepointGuestFolios` (built): called by `MergeGuests`.
+- `PostCharge`, `ReverseLine`, `TransferLines` (not built): see [Posting charges](02-posting-charges.md).
 - `CloseFolio`, `ReopenFolio` (not built).
-- `CreateFolio` (not built): when folios are created is still open.
+- `CreateFolio` (not built): a unit folio is created the first time a unit receives a posting, by `PostCharge`. Nothing creates folios at booking time. See [Posting charges](02-posting-charges.md).
 
 ## Permissions
 
-`folio.close`, `folio.reopen`.
+`folio.close`, `folio.reopen`. Posting permissions are in [Posting charges](02-posting-charges.md).
 
 ## Lessons from wastays
 

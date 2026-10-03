@@ -63,7 +63,7 @@ No UI in this item. The Add-ons tab on the [reservation page](06-reservation-pag
 
 ### `RemoveUnitAddOn`
 
-`(User $actor, UnitAddOn $addOn): bool`. Deletes one add-on row and logs `reservation.add_on_removed` on the reservation. Returns false, writing and logging nothing, when the row is already gone or the unit is not Confirmed or CheckedIn (add-ons of Cancelled, NoShow and CheckedOut units stay as history). Nothing posts before module 13, so there is nothing to reverse. [Folios and lines](../13-folio/01-folios-and-lines.md) adds `folio_line_id` to `unit_add_ons` and refuses removing a posted add-on.
+`(User $actor, UnitAddOn $addOn): bool`. Deletes one add-on row and logs `reservation.add_on_removed` on the reservation. Returns false, writing and logging nothing, when the row is already gone or the unit is not Confirmed or CheckedIn (add-ons of Cancelled, NoShow and CheckedOut units stay as history). Nothing posts before module 13, so there is nothing to reverse. The posting item in [Posting charges](../13-folio/02-posting-charges.md) adds `unit_add_ons.folio_line_id` and makes this Action refuse a posted add-on (`add_on_posted`). The correction is `ReverseLine`.
 
 ### Booking with add-ons
 
