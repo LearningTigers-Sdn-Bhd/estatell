@@ -422,6 +422,7 @@ export default function ReservationCreate({
                                                 )
                                             }
                                             maxLength={100}
+                                            placeholder="e.g. the agent's booking number"
                                             autoComplete="off"
                                             aria-invalid={
                                                 !!errors.external_reference
