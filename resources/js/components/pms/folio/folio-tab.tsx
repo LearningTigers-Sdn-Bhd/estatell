@@ -6,6 +6,8 @@ import {
     Lock,
     LockOpen,
     Plus,
+    Split,
+    UserPlus,
 } from 'lucide-react';
 import { useState } from 'react';
 import { EmptyState } from '@/components/pms/empty-state';
@@ -18,6 +20,8 @@ import { RecordPaymentDialog } from '@/components/pms/folio/record-payment-dialo
 import { RefundPaymentDialog } from '@/components/pms/folio/refund-payment-dialog';
 import { RemoveDiscountDialog } from '@/components/pms/folio/remove-discount-dialog';
 import { ReverseLineDialog } from '@/components/pms/folio/reverse-line-dialog';
+import { RoutingRulesSheet } from '@/components/pms/folio/routing-rules-sheet';
+import { ThirdPartyFolioDialog } from '@/components/pms/folio/third-party-folio-dialog';
 import { TransferLineDialog } from '@/components/pms/folio/transfer-line-dialog';
 import { MoneyText } from '@/components/pms/money-text';
 import { StatusBadge } from '@/components/pms/status-badge';
@@ -44,28 +48,36 @@ function Figure({
 }
 
 /**
- * The Folio tab: the folio rail (hidden for one entry) and the open folio with its Balance, Projected total and
- * rows. Everything is worked out on the server, including which actions a row offers.
+ * The Folio tab: the reservation's routing actions, the folio rail (hidden for one entry) and the open folio with its
+ * Balance, Projected total and rows. Everything is worked out on the server, including which actions a row offers.
  */
 export function FolioTab({
     reservationId,
+    units,
     folios,
     folio,
     chargeItems,
     chargeCodes,
     folioDiscounts,
     paymentOptions,
+    canManageRouting,
+    routingRules,
     currency,
 }: {
     reservationId: number;
+    units: App.Data.Reservations.ReservationUnitOptionData[];
     folios: App.Data.Folio.FolioRailItemData[];
     folio: App.Data.Folio.FolioData | null;
     chargeItems?: App.Data.Reservations.ChargeItemOptionData[];
     chargeCodes?: App.Data.Reservations.ChargeCodeOptionData[];
     folioDiscounts?: App.Data.Folio.FolioDiscountOptionData[];
     paymentOptions?: App.Data.Payments.PaymentFormOptionsData;
+    canManageRouting: boolean;
+    routingRules?: App.Data.Folio.RoutingRulesData | null;
     currency: App.Enums.Currency | null;
 }) {
+    const [creatingThirdParty, setCreatingThirdParty] = useState(false);
+    const [routing, setRouting] = useState(false);
     const [posting, setPosting] = useState(false);
     const [paying, setPaying] = useState(false);
     const [refunding, setRefunding] =
@@ -79,230 +91,275 @@ export function FolioTab({
     const [transferring, setTransferring] =
         useState<App.Data.Folio.FolioRowData | null>(null);
 
+    const routingActions = canManageRouting && (
+        <>
+            <div className="flex flex-wrap justify-end gap-2">
+                <Button variant="outline" onClick={() => setRouting(true)}>
+                    <Split data-icon="inline-start" />
+                    Routing rules
+                </Button>
+                <Button
+                    variant="outline"
+                    onClick={() => setCreatingThirdParty(true)}
+                >
+                    <UserPlus data-icon="inline-start" />
+                    Third-party folio
+                </Button>
+            </div>
+            <ThirdPartyFolioDialog
+                open={creatingThirdParty}
+                onOpenChange={setCreatingThirdParty}
+                reservationId={reservationId}
+            />
+            <RoutingRulesSheet
+                open={routing}
+                onOpenChange={setRouting}
+                reservationId={reservationId}
+                units={units}
+                routing={routingRules}
+                chargeCodes={chargeCodes}
+            />
+        </>
+    );
+
     if (folio === null) {
         return (
-            <EmptyState
-                icon={CreditCard}
-                title="No folio yet"
-                description="Charges appear here once a unit has nights or an add-on."
-            />
+            <div className="flex flex-col gap-4">
+                {routingActions}
+                <EmptyState
+                    icon={CreditCard}
+                    title="No folio yet"
+                    description="Charges appear here once a unit has nights or an add-on."
+                />
+            </div>
         );
     }
 
     const rail = folios.length > 1;
 
     return (
-        <div className={cn('grid gap-4', rail && 'lg:grid-cols-[14rem_1fr]')}>
-            {rail && (
-                <FolioRail
-                    reservationId={reservationId}
-                    items={folios}
-                    activeKey={folio.key}
-                    currency={currency}
-                />
-            )}
-            <Card>
-                <CardHeader className="flex flex-row items-center justify-between gap-3">
-                    <div className="flex flex-col gap-1">
-                        <h2 className="font-heading text-base font-medium">
-                            {folio.name}
-                        </h2>
-                        {folio.invoiceNumber && (
-                            <p className="text-sm text-muted-foreground">
-                                Invoice {folio.invoiceNumber}
-                            </p>
-                        )}
-                    </div>
-                    <div className="flex items-center gap-2">
-                        {folio.status && <StatusBadge status={folio.status} />}
-                        {folio.canReopen && (
-                            <Form
-                                {...reopen.form({
-                                    reservation: reservationId,
-                                    folio: Number(folio.key),
-                                })}
-                                options={{
-                                    preserveScroll: true,
-                                    except: KEEP_OPTIONS,
-                                }}
-                            >
-                                {({ processing }) => (
-                                    <Button
-                                        type="submit"
-                                        variant="outline"
-                                        disabled={processing}
-                                        focusableWhenDisabled
-                                    >
-                                        {processing ? (
-                                            <Spinner data-icon="inline-start" />
-                                        ) : (
-                                            <LockOpen data-icon="inline-start" />
-                                        )}
-                                        Reopen folio
-                                    </Button>
-                                )}
-                            </Form>
-                        )}
-                        {folio.canClose && (
-                            <Button
-                                variant="outline"
-                                onClick={() => setClosing(true)}
-                            >
-                                <Lock data-icon="inline-start" />
-                                Close folio
-                            </Button>
-                        )}
-                        {folio.canApplyDiscount && (
-                            <Button
-                                variant="outline"
-                                onClick={() => setDiscounting(true)}
-                            >
-                                <BadgePercent data-icon="inline-start" />
-                                Apply discount
-                            </Button>
-                        )}
-                        {folio.canRecordPayment && (
-                            <Button
-                                variant={
-                                    folio.canPostCharge ? 'outline' : 'default'
-                                }
-                                onClick={() => setPaying(true)}
-                            >
-                                <Banknote data-icon="inline-start" />
-                                Record payment
-                            </Button>
-                        )}
-                        {folio.canPostCharge && (
-                            <Button onClick={() => setPosting(true)}>
-                                <Plus data-icon="inline-start" />
-                                Post charge
-                            </Button>
-                        )}
-                    </div>
-                </CardHeader>
-                <CardContent className="flex flex-col gap-4">
-                    <dl className="grid gap-2 sm:grid-cols-3">
-                        <Figure label="Balance">
-                            {folio.balance === null ? (
-                                <span className="text-muted-foreground">—</span>
-                            ) : (
-                                <span
-                                    className={cn(
-                                        Number(folio.balance) > 0 &&
-                                            'text-destructive',
-                                    )}
-                                >
-                                    <MoneyText
-                                        amount={folio.balance}
-                                        currency={currency}
-                                    />
-                                </span>
+        <div className="flex flex-col gap-4">
+            {routingActions}
+            <div
+                className={cn('grid gap-4', rail && 'lg:grid-cols-[14rem_1fr]')}
+            >
+                {rail && (
+                    <FolioRail
+                        reservationId={reservationId}
+                        items={folios}
+                        activeKey={folio.key}
+                        currency={currency}
+                    />
+                )}
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between gap-3">
+                        <div className="flex flex-col gap-1">
+                            <h2 className="font-heading text-base font-medium">
+                                {folio.name}
+                            </h2>
+                            {folio.invoiceNumber && (
+                                <p className="text-sm text-muted-foreground">
+                                    Invoice {folio.invoiceNumber}
+                                </p>
                             )}
-                        </Figure>
-                        <Figure label="Projected total">
-                            <MoneyText
-                                amount={folio.projectedTotal}
-                                currency={currency}
+                        </div>
+                        <div className="flex items-center gap-2">
+                            {folio.status && (
+                                <StatusBadge status={folio.status} />
+                            )}
+                            {folio.canReopen && (
+                                <Form
+                                    {...reopen.form({
+                                        reservation: reservationId,
+                                        folio: Number(folio.key),
+                                    })}
+                                    options={{
+                                        preserveScroll: true,
+                                        except: KEEP_OPTIONS,
+                                    }}
+                                >
+                                    {({ processing }) => (
+                                        <Button
+                                            type="submit"
+                                            variant="outline"
+                                            disabled={processing}
+                                            focusableWhenDisabled
+                                        >
+                                            {processing ? (
+                                                <Spinner data-icon="inline-start" />
+                                            ) : (
+                                                <LockOpen data-icon="inline-start" />
+                                            )}
+                                            Reopen folio
+                                        </Button>
+                                    )}
+                                </Form>
+                            )}
+                            {folio.canClose && (
+                                <Button
+                                    variant="outline"
+                                    onClick={() => setClosing(true)}
+                                >
+                                    <Lock data-icon="inline-start" />
+                                    Close folio
+                                </Button>
+                            )}
+                            {folio.canApplyDiscount && (
+                                <Button
+                                    variant="outline"
+                                    onClick={() => setDiscounting(true)}
+                                >
+                                    <BadgePercent data-icon="inline-start" />
+                                    Apply discount
+                                </Button>
+                            )}
+                            {folio.canRecordPayment && (
+                                <Button
+                                    variant={
+                                        folio.canPostCharge
+                                            ? 'outline'
+                                            : 'default'
+                                    }
+                                    onClick={() => setPaying(true)}
+                                >
+                                    <Banknote data-icon="inline-start" />
+                                    Record payment
+                                </Button>
+                            )}
+                            {folio.canPostCharge && (
+                                <Button onClick={() => setPosting(true)}>
+                                    <Plus data-icon="inline-start" />
+                                    Post charge
+                                </Button>
+                            )}
+                        </div>
+                    </CardHeader>
+                    <CardContent className="flex flex-col gap-4">
+                        <dl className="grid gap-2 sm:grid-cols-3">
+                            <Figure label="Balance">
+                                {folio.balance === null ? (
+                                    <span className="text-muted-foreground">
+                                        —
+                                    </span>
+                                ) : (
+                                    <span
+                                        className={cn(
+                                            Number(folio.balance) > 0 &&
+                                                'text-destructive',
+                                        )}
+                                    >
+                                        <MoneyText
+                                            amount={folio.balance}
+                                            currency={currency}
+                                        />
+                                    </span>
+                                )}
+                            </Figure>
+                            <Figure label="Projected total">
+                                <MoneyText
+                                    amount={folio.projectedTotal}
+                                    currency={currency}
+                                />
+                            </Figure>
+                            <Figure label="Posted lines">
+                                <span className="tabular-nums">
+                                    {folio.lineCount}
+                                </span>
+                            </Figure>
+                        </dl>
+                        {folio.rows.length === 0 ? (
+                            <EmptyState
+                                icon={CreditCard}
+                                title="Nothing on this folio"
+                                description="Posted and scheduled charges appear here."
                             />
-                        </Figure>
-                        <Figure label="Posted lines">
-                            <span className="tabular-nums">
-                                {folio.lineCount}
-                            </span>
-                        </Figure>
-                    </dl>
-                    {folio.rows.length === 0 ? (
-                        <EmptyState
-                            icon={CreditCard}
-                            title="Nothing on this folio"
-                            description="Posted and scheduled charges appear here."
-                        />
-                    ) : (
-                        <FolioRowsTable
-                            reservationId={reservationId}
-                            folioId={Number(folio.key)}
-                            rows={folio.rows}
-                            currency={currency}
-                            onAction={(row, action) => {
-                                if (action === 'reverse') {
-                                    setReversing(row);
-                                } else if (action === 'transfer') {
-                                    setTransferring(row);
-                                } else if (action === 'refund') {
-                                    setRefunding(row);
-                                } else {
-                                    setRemoving(row);
-                                }
-                            }}
-                        />
-                    )}
-                </CardContent>
-            </Card>
-            {folio.canPostCharge && (
-                <PostChargeDialog
-                    open={posting}
-                    onOpenChange={setPosting}
-                    reservationId={reservationId}
-                    folio={folio}
-                    chargeItems={chargeItems}
-                    chargeCodes={chargeCodes}
-                    currency={currency}
-                />
-            )}
-            {folio.canRecordPayment && (
-                <RecordPaymentDialog
-                    open={paying}
-                    onOpenChange={setPaying}
-                    reservationId={reservationId}
-                    folio={folio}
-                    options={paymentOptions}
-                    currency={currency}
-                />
-            )}
-            <RefundPaymentDialog
-                reservationId={reservationId}
-                folioId={Number(folio.key)}
-                row={refunding}
-                currency={currency}
-                onClose={() => setRefunding(null)}
-            />
-            {folio.canClose && (
-                <CloseFolioDialog
-                    open={closing}
-                    onOpenChange={setClosing}
-                    reservationId={reservationId}
-                    folio={folio}
-                />
-            )}
-            {folio.canApplyDiscount && (
-                <ApplyDiscountDialog
-                    open={discounting}
-                    onOpenChange={setDiscounting}
+                        ) : (
+                            <FolioRowsTable
+                                reservationId={reservationId}
+                                folioId={Number(folio.key)}
+                                rows={folio.rows}
+                                currency={currency}
+                                onAction={(row, action) => {
+                                    if (action === 'reverse') {
+                                        setReversing(row);
+                                    } else if (action === 'transfer') {
+                                        setTransferring(row);
+                                    } else if (action === 'refund') {
+                                        setRefunding(row);
+                                    } else {
+                                        setRemoving(row);
+                                    }
+                                }}
+                            />
+                        )}
+                    </CardContent>
+                </Card>
+                {folio.canPostCharge && (
+                    <PostChargeDialog
+                        open={posting}
+                        onOpenChange={setPosting}
+                        reservationId={reservationId}
+                        folio={folio}
+                        chargeItems={chargeItems}
+                        chargeCodes={chargeCodes}
+                        currency={currency}
+                    />
+                )}
+                {folio.canRecordPayment && (
+                    <RecordPaymentDialog
+                        open={paying}
+                        onOpenChange={setPaying}
+                        reservationId={reservationId}
+                        folio={folio}
+                        options={paymentOptions}
+                        currency={currency}
+                    />
+                )}
+                <RefundPaymentDialog
                     reservationId={reservationId}
                     folioId={Number(folio.key)}
-                    discounts={folioDiscounts}
+                    row={refunding}
                     currency={currency}
+                    onClose={() => setRefunding(null)}
                 />
-            )}
-            <RemoveDiscountDialog
-                reservationId={reservationId}
-                folioId={Number(folio.key)}
-                row={removing}
-                onClose={() => setRemoving(null)}
-            />
-            <ReverseLineDialog
-                reservationId={reservationId}
-                folioId={Number(folio.key)}
-                row={reversing}
-                onClose={() => setReversing(null)}
-            />
-            <TransferLineDialog
-                reservationId={reservationId}
-                folioId={Number(folio.key)}
-                row={transferring}
-                targets={folio.transferTargets}
-                onClose={() => setTransferring(null)}
-            />
+                {folio.canClose && (
+                    <CloseFolioDialog
+                        open={closing}
+                        onOpenChange={setClosing}
+                        reservationId={reservationId}
+                        folio={folio}
+                    />
+                )}
+                {folio.canApplyDiscount && (
+                    <ApplyDiscountDialog
+                        open={discounting}
+                        onOpenChange={setDiscounting}
+                        reservationId={reservationId}
+                        folioId={Number(folio.key)}
+                        discounts={folioDiscounts}
+                        currency={currency}
+                    />
+                )}
+                <RemoveDiscountDialog
+                    reservationId={reservationId}
+                    folioId={Number(folio.key)}
+                    row={removing}
+                    onClose={() => setRemoving(null)}
+                />
+                <ReverseLineDialog
+                    reservationId={reservationId}
+                    folioId={Number(folio.key)}
+                    row={reversing}
+                    onClose={() => setReversing(null)}
+                />
+                <TransferLineDialog
+                    reservationId={reservationId}
+                    folioId={Number(folio.key)}
+                    row={transferring}
+                    targets={folio.transferTargets}
+                    onClose={() => setTransferring(null)}
+                />
+            </div>
         </div>
     );
 }

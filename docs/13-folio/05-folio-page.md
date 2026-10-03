@@ -158,7 +158,7 @@ Two reservation-level buttons sit above the rail, next to Record payment. The ru
 
 ```
 ┌───────────────────────────────────────────────────────────────────────┐
-│ Folio                          [Routing rules (3)] [+ Third-party]    │
+│                            [Routing rules] [Third-party folio]        │
 ├────────────────────┬──────────────────────────────────────────────────┤
 │ FOLIOS             │ Third party · Blue Reef Dive  F-0034             │
 │  Master · Acme     │ ● Open                                           │
@@ -168,7 +168,7 @@ Two reservation-level buttons sit above the rail, next to Record payment. The ru
 └────────────────────┴──────────────────────────────────────────────────┘
 ```
 
-**+ Third-party** opens a Dialog with one field, the payer (`GuestPicker`). On success the tab opens the new folio (`?folio=`) and a toast names it.
+**Third-party folio** opens a Dialog with one field, the payer (`GuestPicker`). On success the tab opens the new folio (`?folio=`) and a toast names it.
 
 **Routing rules** opens a Sheet:
 
@@ -211,6 +211,17 @@ Four commits, in order.
 4. **Close and reopen buttons.**
 
 ## Build status
+
+Built (routing rules and third-party folios): `RoutingRuleList` (service, two queries), `RoutingRulesData` and `RoutingRuleRowData`, the `canManageRouting` prop and the `routingRules` optional prop on the folio tab (null without `folio.transfer`), `ThirdPartyFolioDialog`, `RoutingRulesSheet`, `RemoveRoutingRuleDialog`, and `FolioStatement::optionLabel()` for the folio names in the selects.
+
+Decisions made at build time (routing rules and third-party folios):
+
+- The two buttons sit in a row above the rail and also show when the reservation has no folio yet, so a third-party folio can be made before any charge.
+- The Routing rules button shows no count: the rules are an optional prop, and a count on every page load is not worth a query.
+- The Sheet reads `routingRules` again each time it opens and after each add or remove, so it never shows a folio or rule that changed in the meantime. Units come from the page's `units` prop, and charge codes from the `chargeCodes` optional prop.
+- Rules are listed in the order `FolioRouter` tries them: all units first, then by unit, and a charge code before a category before all charges.
+- The remove AlertDialog opens over the Sheet, as the discard-changes dialog does over Attach guest.
+- `GuestPicker` moved to the `components/pms/` root, where the component folders doc already lists it, because a third module uses it now.
 
 Built (close and reopen): the routes `reservations.folios.close` and `reservations.folios.reopen` (`can:folio.close`, `can:folio.reopen`), `ReservationFolioController::close` and `reopen`, the `FolioStatusResult` refusal messages in `FolioRefusals`, `FolioData.canClose` and `canReopen`, `CloseFolioDialog` and a Reopen button in the folio header.
 

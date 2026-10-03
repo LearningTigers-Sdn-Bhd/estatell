@@ -125,6 +125,17 @@ class FolioStatement
     }
 
     /**
+     * The folio's name with its payer, as the transfer and routing selects show it: "Third party · Blue Reef Dive".
+     * Expects `payerGuest` to be loaded.
+     *
+     * @param  array<int, string>  $labels  Unit label by unit id
+     */
+    public function optionLabel(Folio $folio, array $labels): string
+    {
+        return trim($this->name($folio, $labels).' · '.$folio->payerGuest?->full_name, ' ·');
+    }
+
+    /**
      * @param  array<int, string>  $labels
      */
     private function name(Folio $folio, array $labels): string

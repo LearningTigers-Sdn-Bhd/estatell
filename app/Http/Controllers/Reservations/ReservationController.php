@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Reservations;
 
+use App\Data\Folio\RoutingRulesData;
 use App\Data\Reservations\ReservationActivityData;
 use App\Data\Reservations\ReservationAddOnData;
 use App\Data\Reservations\ReservationListItemData;
@@ -19,6 +20,7 @@ use App\Models\ReservationUnit;
 use App\Models\UnitAddOn;
 use App\Models\User;
 use App\Services\Folio\FolioStatement;
+use App\Services\Folio\RoutingRuleList;
 use App\Services\Reservations\ReservationActivityLog;
 use App\Services\Reservations\ReservationDirectory;
 use App\Services\Reservations\ReservationFormOptions;
@@ -124,19 +126,26 @@ class ReservationController extends Controller
 
     /**
      * Reservation page, Folio tab. `?folio=` picks the folio (an id, or `u{unit id}` for a unit with no folio yet).
+     * `routingRules` is an optional prop for the Routing rules Sheet, sent only to a user with `folio.transfer`.
      */
-    public function folio(Request $request, Property $property, Reservation $reservation, FolioStatement $statement): Response
+    public function folio(Request $request, Property $property, Reservation $reservation, FolioStatement $statement, RoutingRuleList $routingRuleList): Response
     {
-        return $this->renderTab($request->user(), $property, $reservation, 'folio', fn (array $units): array => $statement->build($property, $reservation, $units, $request->string('folio')->toString(), [
-            'postCharge' => $request->user()->can(PermissionEnum::FolioPostCharge->value),
-            'reverse' => $request->user()->can(PermissionEnum::FolioReverse->value),
-            'transfer' => $request->user()->can(PermissionEnum::FolioTransfer->value),
-            'discount' => $request->user()->can(PermissionEnum::FolioDiscount->value),
-            'close' => $request->user()->can(PermissionEnum::FolioClose->value),
-            'reopen' => $request->user()->can(PermissionEnum::FolioReopen->value),
-            'recordPayment' => $request->user()->can(PermissionEnum::PaymentRecord->value),
-            'refund' => $request->user()->can(PermissionEnum::PaymentRefund->value),
-        ]));
+        $canManageRouting = $request->user()->can(PermissionEnum::FolioTransfer->value);
+
+        return $this->renderTab($request->user(), $property, $reservation, 'folio', fn (array $units): array => [
+            ...$statement->build($property, $reservation, $units, $request->string('folio')->toString(), [
+                'postCharge' => $request->user()->can(PermissionEnum::FolioPostCharge->value),
+                'reverse' => $request->user()->can(PermissionEnum::FolioReverse->value),
+                'transfer' => $canManageRouting,
+                'discount' => $request->user()->can(PermissionEnum::FolioDiscount->value),
+                'close' => $request->user()->can(PermissionEnum::FolioClose->value),
+                'reopen' => $request->user()->can(PermissionEnum::FolioReopen->value),
+                'recordPayment' => $request->user()->can(PermissionEnum::PaymentRecord->value),
+                'refund' => $request->user()->can(PermissionEnum::PaymentRefund->value),
+            ]),
+            'canManageRouting' => $canManageRouting,
+            'routingRules' => Inertia::optional(fn (): ?RoutingRulesData => $canManageRouting ? $routingRuleList->build($reservation, $units) : null),
+        ]);
     }
 
     /**

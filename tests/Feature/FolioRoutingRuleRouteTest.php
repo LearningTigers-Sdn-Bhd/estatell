@@ -15,6 +15,10 @@ use App\Models\ReservationUnit;
 use App\Models\TransactionCode;
 use App\Models\User;
 use App\Services\Folio\FolioRouter;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Testing\TestResponse;
+use Inertia\Testing\AssertableInertia;
 use Spatie\Activitylog\Models\Activity;
 
 /**
@@ -201,4 +205,74 @@ test('a billing mode rule cannot be removed', function () {
 
     expect($rule->fresh())->not->toBeNull()
         ->and(Activity::query()->where('event', 'routing_rule.removed')->exists())->toBeFalse();
+});
+
+/**
+ * The folio tab as a partial request for the routing rules only.
+ */
+function rrSheet(array $setup): TestResponse
+{
+    return test()->actingAs($setup['user'])->get(rrUrl($setup, 'reservations.folio'), [
+        'X-Inertia' => 'true',
+        'X-Inertia-Partial-Component' => 'reservations/show',
+        'X-Inertia-Partial-Data' => 'routingRules',
+        'X-Inertia-Version' => Inertia\Inertia::getVersion(),
+    ]);
+}
+
+test('the routing rules load on request only, most specific first, with open folios as targets', function () {
+    $setup = rrSetup();
+    $closed = Folio::factory()->thirdParty()->closed()->create(['property_id' => $setup['property']->id, 'reservation_id' => $setup['reservation']->id]);
+    FolioRoutingRule::factory()->forUnit($setup['unit1'])->toFolio($setup['agent'])->create(['reservation_id' => $setup['reservation']->id]);
+    FolioRoutingRule::factory()->forCategory(TransactionCategory::Room)->toFolio($setup['agent'])->fromBillingMode()->create(['reservation_id' => $setup['reservation']->id]);
+    FolioRoutingRule::factory()->forCode($setup['room'])->toFolio($setup['unitFolio'])->create(['reservation_id' => $setup['reservation']->id]);
+
+    $this->actingAs($setup['user'])->get(rrUrl($setup, 'reservations.folio'))->assertInertia(fn (AssertableInertia $page) => $page
+        ->missing('routingRules')
+        ->where('canManageRouting', true));
+
+    $response = rrSheet($setup)->assertOk();
+    $rules = collect($response->json('props.routingRules.rules'));
+
+    expect($rules->pluck('charges')->all())->toBe([$setup['room']->code.' '.$setup['room']->name, 'Room', 'All charges'])
+        ->and($rules->pluck('unit')->all())->toBe(['All units', 'All units', $rules[2]['unit']])
+        ->and($rules[2]['unit'])->toStartWith('Unit ')
+        ->and($rules->pluck('canRemove')->all())->toBe([true, false, true])
+        ->and($rules[1]['target'])->toBe('Third party · Blue Reef Dive')
+        ->and(collect($response->json('props.routingRules.targets'))->pluck('id')->all())->toBe([$setup['unitFolio']->id, $setup['agent']->id])
+        ->and(collect($response->json('props.routingRules.targets'))->pluck('id'))->not->toContain($closed->id)
+        ->and(collect($response->json('props.routingRules.categories'))->pluck('value')->all())->toBe(['room', 'food_and_beverage', 'laundry', 'minibar', 'fee', 'other']);
+});
+
+test('a user without folio.transfer gets no routing rules', function () {
+    $setup = rrSetup(DefaultRoleEnum::FrontDesk);
+
+    $this->actingAs($setup['user'])->get(rrUrl($setup, 'reservations.folio'))->assertInertia(fn (AssertableInertia $page) => $page->where('canManageRouting', false));
+
+    rrSheet($setup)->assertOk()->assertJsonPath('props.routingRules', null);
+});
+
+test('the routing rules need a constant number of queries with lazy loading prevented', function () {
+    $setup = rrSetup();
+
+    $queries = function (int $added) use ($setup): int {
+        foreach (range(1, $added) as $ignored) {
+            $folio = app(CreateFolio::class)->thirdParty($setup['reservation'], Guest::factory()->create(['property_id' => $setup['property']->id]));
+            FolioRoutingRule::factory()->forCode(TransactionCode::factory()->create(['property_id' => $setup['property']->id]))->toFolio($folio)->create(['reservation_id' => $setup['reservation']->id]);
+        }
+
+        Model::preventLazyLoading();
+        DB::flushQueryLog();
+        DB::enableQueryLog();
+        rrSheet($setup)->assertOk();
+        $count = count(DB::getQueryLog());
+        DB::disableQueryLog();
+        Model::preventLazyLoading(false);
+
+        return $count;
+    };
+
+    test()->actingAs($setup['user'])->get(rrUrl($setup, 'reservations.folio'))->assertOk();
+
+    expect($queries(4))->toBe($queries(1));
 });

@@ -42,6 +42,8 @@ type Props = {
     addOns?: App.Data.Reservations.ReservationAddOnData[];
     folios?: App.Data.Folio.FolioRailItemData[];
     folio?: App.Data.Folio.FolioData | null;
+    canManageRouting?: boolean;
+    routingRules?: App.Data.Folio.RoutingRulesData | null;
     activity?: Illuminate.LengthAwarePaginator<
         number,
         App.Data.Reservations.ReservationActivityData
@@ -66,6 +68,8 @@ export default function ReservationShow({
     addOns = [],
     folios = [],
     folio = null,
+    canManageRouting = false,
+    routingRules,
     activity,
 }: Props) {
     const key = { reservation: reservation.id };
@@ -179,12 +183,15 @@ export default function ReservationShow({
                     ) : tab === 'folio' ? (
                         <FolioTab
                             reservationId={reservation.id}
+                            units={units}
                             folios={folios}
                             folio={folio}
                             chargeItems={chargeItems}
                             chargeCodes={chargeCodes}
                             folioDiscounts={folioDiscounts}
                             paymentOptions={paymentOptions}
+                            canManageRouting={canManageRouting}
+                            routingRules={routingRules}
                             currency={currency}
                         />
                     ) : tab === 'activity' && activity ? (

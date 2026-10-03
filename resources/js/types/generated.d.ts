@@ -174,6 +174,22 @@ unitAmount: string,
 idempotencyKey: string | null,
 unitAddOnId: number | null,
 };
+export type RoutingRuleRowData = {
+id: number,
+unit: string,
+charges: string,
+target: string,
+sourceLabel: string,
+canRemove: boolean,
+};
+export type RoutingRulesData = {
+rules: App.Data.Folio.RoutingRuleRowData[],
+categories: {
+value: string,
+label: string,
+}[],
+targets: App.Data.Folio.FolioOptionData[],
+};
 }
 namespace Guests {
 export type GuestData = {

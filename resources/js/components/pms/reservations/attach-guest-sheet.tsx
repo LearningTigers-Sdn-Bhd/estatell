@@ -2,7 +2,7 @@ import { useForm } from '@inertiajs/react';
 import { TriangleAlert } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { EnumSelect } from '@/components/pms/enum-select';
-import { GuestPicker } from '@/components/pms/guests/guest-picker';
+import { GuestPicker } from '@/components/pms/guest-picker';
 import { DiscardChangesDialog } from '@/components/pms/reservations/discard-changes-dialog';
 import { FormError } from '@/components/pms/reservations/form-error';
 import { KEEP_OPTIONS } from '@/components/pms/reservations/use-form-options';
