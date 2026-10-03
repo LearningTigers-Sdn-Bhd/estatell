@@ -132,7 +132,27 @@ A separate `ReservationPaymentController` (the folio controller is already long)
 
 ## Receipt
 
-A table-based Blade PDF layout (dompdf has no flex or grid, see [design system](../design-system/11-accessibility-performance-pdfs.md#pdfs)). It shows the property, the receipt number, the date, the guest, the folio number, the method, the reference, the amount paid, the surcharge and the total collected. Route `GET …/payments/{payment}/receipt` with `payment.record`. A refund has no receipt.
+A table-based Blade PDF on A4 portrait (dompdf has no flex or grid, see [design system](../design-system/11-accessibility-performance-pdfs.md#pdfs)), as wastays prints it. It is rendered on demand and not stored. A refund has no receipt.
+
+| URL                                               | Name                                   | Permission       |
+| ------------------------------------------------- | -------------------------------------- | ---------------- |
+| `GET …/folios/{folio}/payments/{payment}/receipt` | `reservations.folios.payments.receipt` | `payment.record` |
+
+- `ReservationPaymentController::receipt` streams the PDF **inline** as `receipt-{number}.pdf`, so it opens in a new tab where staff print or save it. A refund, or a payment of another folio, reservation or property, is a 404.
+- `PaymentReceipt` (service, read only) gathers what the receipt shows into one `ReceiptDocument`, so the Blade views do no lookups.
+- Views: `resources/views/pdf/layout.blade.php` (shared by later PDFs) and `resources/views/pdf/receipt.blade.php`.
+- The row menu of a payment row has **Download receipt** (a plain link, new tab). `FolioRowData.hasReceipt` is true for a payment (not a refund) when the user holds `payment.record`. It is a flag, not a row action, so a closed folio still offers it while its rows show no actions.
+
+| Block         | Content                                                                                                              |
+| ------------- | -------------------------------------------------------------------------------------------------------------------- |
+| Header        | Property name, address, phone, email, registration number and TIN (each only when set)                               |
+| Title         | "Receipt", the receipt number, the posting (business) date and the time received in the property's time zone         |
+| Received from | The folio's payer guest, or the booker when the folio has none; the reservation reference and the folio number       |
+| Payment       | Method, reference, purpose                                                                                           |
+| Amounts       | Amount paid on the bill, Surcharge and Tax on surcharge (only with a fee), **Total collected**, read from the ledger |
+| Footer        | Received by (the staff member's name)                                                                                |
+
+Money shows as `MYR 105.40` with the property currency.
 
 ## Build order
 

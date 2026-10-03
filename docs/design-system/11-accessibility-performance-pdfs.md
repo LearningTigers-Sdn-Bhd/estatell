@@ -27,3 +27,5 @@ dompdf does not support flex or grid layouts.
 - PDFs use a separate Blade PDF layout with table-based markup.
 - A small token set: font, 4-point spacing scale, rule widths.
 - PDFs do not reuse screen components.
+- The shared layout is `resources/views/pdf/layout.blade.php`: A4 portrait, DejaVu Sans (dompdf's built-in Unicode font), spacing in steps of 4 pt, rules of 0.5 pt (light) and 1 pt (strong). Each document extends it (the first is the payment receipt).
+- A PDF opens inline in a new tab (`stream()`), so staff can print or save it.
