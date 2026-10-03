@@ -311,7 +311,10 @@ export default function ReservationCreate({
                         <div className="flex flex-col gap-8">
                             <FormError errors={errors} />
 
-                            <Section title="Stay">
+                            <Section
+                                title="Stay"
+                                description="The dates and expected times apply to every line."
+                            >
                                 <FieldGroup>
                                     <div className="grid items-start gap-4 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
                                         <Field
