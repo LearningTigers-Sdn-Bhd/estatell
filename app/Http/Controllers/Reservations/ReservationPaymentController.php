@@ -17,9 +17,12 @@ use App\Models\Property;
 use App\Models\Reservation;
 use App\Models\ReservationUnit;
 use App\Services\Payments\PaymentQuote;
+use App\Services\Payments\PaymentReceipt;
 use App\Services\Payments\PaymentRefusals;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Response;
 use Inertia\Inertia;
 
 /**
@@ -75,6 +78,22 @@ class ReservationPaymentController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Refund of :amount recorded.', ['amount' => $result->payment?->amount])]);
 
         return back(fallback: $page);
+    }
+
+    /**
+     * The receipt of a payment as an A4 PDF, shown inline so staff can print or save it. It is rendered on demand and
+     * not stored. Font subsetting keeps the file small (about 20 KB instead of 850 KB). A refund has no receipt (404).
+     */
+    public function receipt(Property $property, Reservation $reservation, Folio $folio, Payment $payment, PaymentReceipt $paymentReceipt): Response
+    {
+        abort_if($payment->refund_of_id !== null, 404);
+
+        $receipt = $paymentReceipt->forPayment($payment);
+
+        return Pdf::loadView('pdf.receipt', ['receipt' => $receipt])
+            ->setPaper('a4', 'portrait')
+            ->setOption('isFontSubsettingEnabled', true)
+            ->stream('receipt-'.$receipt->receiptNumber.'.pdf');
     }
 
     private function recorded(PaymentResult $result, PaymentRefusals $refusals, Property $property, Reservation $reservation, ?int $folioId): RedirectResponse

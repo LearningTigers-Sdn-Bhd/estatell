@@ -9,7 +9,8 @@ use Spatie\LaravelData\Data;
  * its discount and tax children. `tags` are labels such as Scheduled, Overridden, Reversal and Reversed. A Posted
  * row has its `lineId` and the `actions` the user may take on it now (reverse, transfer, remove_discount, refund).
  * Scheduled rows have neither. A payment or refund row carries its `paymentId` and its reference as `note`; a payment
- * also carries `refundable`, the amount left to refund.
+ * also carries `refundable`, the amount left to refund, and `hasReceipt` when the user may download its receipt (on
+ * any folio status, so it is not a row action).
  */
 class FolioRowData extends Data
 {
@@ -31,5 +32,6 @@ class FolioRowData extends Data
         public ?string $note = null,
         public ?int $paymentId = null,
         public ?string $refundable = null,
+        public bool $hasReceipt = false,
     ) {}
 }

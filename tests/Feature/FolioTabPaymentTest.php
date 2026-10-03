@@ -22,6 +22,7 @@ use App\Models\ReservationUnit;
 use App\Models\Tax;
 use App\Models\TransactionCode;
 use App\Models\User;
+use App\Services\Payments\PaymentReceipt;
 use Inertia\Testing\AssertableInertia as Assert;
 
 beforeEach(function () {
@@ -227,7 +228,9 @@ test('a not-started entry offers Record payment for its unit, and a closed folio
 
     $this->actingAs($setup['user'])->get(fpUrl($setup, 'reservations.folio', ['folio' => $setup['folio']->id]))->assertInertia(fn (Assert $page) => $page
         ->where('folio.canRecordPayment', false)
-        ->where('folio.rows', fn ($rows) => collect($rows)->every(fn ($row) => $row['actions'] === [])));
+        ->where('folio.rows', fn ($rows) => collect($rows)->every(fn ($row) => $row['actions'] === []))
+        ->where('folio.rows', fn ($rows) => collect($rows)->firstWhere('lineId', $payment->folio_line_id)['hasReceipt'] === true
+            && collect($rows)->where('tags', ['Refund'])->every(fn ($row) => $row['hasReceipt'] === false)));
 });
 
 test('the payment routes need their permission and stay inside the property and the reservation', function () {
@@ -267,4 +270,72 @@ test('the payment options load on request only and leave out city ledger and OTA
         ->assertJsonCount(1, 'props.paymentOptions.methods')
         ->assertJsonPath('props.paymentOptions.methods.0.id', $setup['cash']->id)
         ->assertJsonPath('props.paymentOptions.purposes.0.value', 'advance');
+});
+
+test('the receipt opens inline as an A4 PDF named after the receipt number', function () {
+    $setup = fpSetup();
+    $payment = fpPay($setup);
+
+    $response = $this->actingAs($setup['user'])
+        ->get(fpUrl($setup, 'reservations.folios.payments.receipt', ['folio' => $setup['folio']->id, 'payment' => $payment->id]))
+        ->assertOk()
+        ->assertHeader('Content-Type', 'application/pdf');
+
+    expect($response->headers->get('Content-Disposition'))->toStartWith('inline;')->toContain('receipt-'.$payment->receipt_number.'.pdf')
+        ->and($response->getContent())->toStartWith('%PDF-');
+});
+
+test('the receipt shows the payer, the amounts from the ledger and the property', function () {
+    $setup = fpSetup();
+    $setup['property']->forceFill(['name' => 'Grand River Homestay', 'tin' => 'C1234567890'])->save();
+    $item = ChargeItem::factory()->create(['property_id' => $setup['property']->id, 'name' => 'Card fee']);
+    Tax::factory()->for($setup['property'])->create(['rate' => '8.00', 'is_inclusive' => false])->applicableTransactionCodes()->attach($item->transaction_code_id);
+    $card = PaymentMethod::factory()->create(['property_id' => $setup['property']->id, 'name' => 'Visa', 'surcharge_type' => SurchargeType::Fixed, 'surcharge_value' => '5.00', 'surcharge_charge_item_id' => $item->id]);
+    $payment = app(RecordPayment::class)($setup['user'], $setup['reservation'], $setup['folio'], null, NewPaymentData::from([
+        'paymentMethodId' => $card->id, 'purpose' => PaymentPurpose::Settlement, 'amount' => '100.00', 'reference' => 'AUTH-9', 'idempotencyKey' => fake()->uuid(),
+    ]))->payment;
+
+    $receipt = app(PaymentReceipt::class)->forPayment($payment);
+    $html = view('pdf.receipt', ['receipt' => $receipt])->render();
+
+    expect($receipt->payerName)->toBe($setup['reservation']->booker->full_name)
+        ->and($receipt->amountPaid)->toBe('100.00')
+        ->and($receipt->surcharge)->toBe('5.00')
+        ->and($receipt->surchargeTax)->toBe('0.40')
+        ->and($receipt->total)->toBe('105.40')
+        ->and($receipt->reference)->toBe('AUTH-9')
+        ->and($receipt->registrationLines)->toBe(['TIN C1234567890'])
+        ->and($html)->toContain('Grand River Homestay')
+        ->toContain($payment->receipt_number)
+        ->toContain('MYR 105.40')
+        ->toContain('Tax on surcharge')
+        ->toContain($setup['folio']->number);
+});
+
+test('a receipt without a surcharge leaves the surcharge lines out', function () {
+    $setup = fpSetup();
+    $payment = fpPay($setup);
+
+    $receipt = app(PaymentReceipt::class)->forPayment($payment);
+
+    expect($receipt->surcharge)->toBeNull()
+        ->and($receipt->amountPaid)->toBe('80.00')
+        ->and(view('pdf.receipt', ['receipt' => $receipt])->render())->not->toContain('Surcharge');
+});
+
+test('a refund has no receipt, and the receipt needs payment.record inside the reservation', function () {
+    $setup = fpSetup();
+    $payment = fpPay($setup);
+    $refund = app(RefundPayment::class)($setup['user'], $payment, '10.00', null, fake()->uuid())->payment;
+    $url = fn (Payment $one): string => fpUrl($setup, 'reservations.folios.payments.receipt', ['folio' => $setup['folio']->id, 'payment' => $one->id]);
+
+    $this->actingAs($setup['user'])->get($url($refund))->assertNotFound();
+    $this->actingAs(fpStaff($setup, DefaultRoleEnum::Housekeeping))->get($url($payment))->assertForbidden();
+    $this->actingAs(fpStaff($setup, DefaultRoleEnum::FrontDesk))->get($url($payment))->assertOk();
+
+    $other = Reservation::factory()->create(['property_id' => $setup['property']->id]);
+    $foreign = Payment::factory()->create(['folio_id' => Folio::factory()->master()->create(['property_id' => $setup['property']->id, 'reservation_id' => $other->id])->id]);
+
+    $this->actingAs($setup['user'])->get($url($foreign))->assertNotFound();
+    $this->actingAs(User::factory()->withRole(DefaultRoleEnum::Owner)->create())->get($url($payment))->assertNotFound();
 });

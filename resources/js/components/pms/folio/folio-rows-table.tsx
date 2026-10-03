@@ -1,5 +1,6 @@
 import {
     ArrowRightLeft,
+    FileText,
     MoreHorizontal,
     RotateCcw,
     Undo2,
@@ -25,6 +26,7 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
+import { receipt } from '@/routes/reservations/folios/payments';
 
 type Row = App.Data.Folio.FolioRowData;
 
@@ -39,10 +41,14 @@ const SECTIONS: Record<Row['state'], string> = {
  * when a row names a unit.
  */
 export function FolioRowsTable({
+    reservationId,
+    folioId,
     rows,
     currency,
     onAction,
 }: {
+    reservationId: number;
+    folioId: number;
     rows: Row[];
     currency: App.Enums.Currency | null;
     onAction: (
@@ -51,7 +57,8 @@ export function FolioRowsTable({
     ) => void;
 }) {
     const showUnit = rows.some((row) => row.unit !== null);
-    const showActions = rows.some((row) => row.actions.length > 0);
+    const hasMenu = (row: Row) => row.actions.length > 0 || row.hasReceipt;
+    const showActions = rows.some(hasMenu);
     const columns = 3 + (showUnit ? 1 : 0) + (showActions ? 1 : 0);
 
     return (
@@ -126,7 +133,7 @@ export function FolioRowsTable({
                             </TableCell>
                             {showActions && (
                                 <TableCell>
-                                    {row.actions.length > 0 && (
+                                    {hasMenu(row) && (
                                         <DropdownMenu>
                                             <DropdownMenuTrigger
                                                 render={
@@ -140,6 +147,29 @@ export function FolioRowsTable({
                                                 <MoreHorizontal />
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent align="end">
+                                                {row.hasReceipt &&
+                                                    row.paymentId !== null && (
+                                                        <DropdownMenuItem
+                                                            render={
+                                                                <a
+                                                                    href={receipt.url(
+                                                                        {
+                                                                            reservation:
+                                                                                reservationId,
+                                                                            folio: folioId,
+                                                                            payment:
+                                                                                row.paymentId,
+                                                                        },
+                                                                    )}
+                                                                    target="_blank"
+                                                                    rel="noopener"
+                                                                />
+                                                            }
+                                                        >
+                                                            <FileText />
+                                                            Download receipt
+                                                        </DropdownMenuItem>
+                                                    )}
                                                 {row.actions.includes(
                                                     'refund',
                                                 ) && (

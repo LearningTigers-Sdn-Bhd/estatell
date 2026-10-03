@@ -163,6 +163,7 @@ actions: string[],
 note: string | null,
 paymentId: number | null,
 refundable: string | null,
+hasReceipt: boolean,
 };
 export type NewChargeData = {
 chargeItemId: number | null,

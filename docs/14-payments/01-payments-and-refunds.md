@@ -154,6 +154,14 @@ A table-based Blade PDF on A4 portrait (dompdf has no flex or grid, see [design 
 
 Money shows as `MYR 105.40` with the property currency.
 
+Built (receipt item): the route, `ReservationPaymentController::receipt`, `PaymentReceipt` with `ReceiptDocument`, `resources/views/pdf/layout.blade.php`, `resources/views/pdf/receipt.blade.php`, `FolioRowData.hasReceipt` and the Download receipt link in the row menu.
+
+Decisions made at build time (receipt):
+
+- The PDF turns on dompdf font subsetting, so a receipt is about 20 KB instead of 850 KB with the whole font embedded.
+- The address shows line 1, line 2, the postal code with the city, and the country name. The state code is left out until a state name list exists.
+- The receipt is in the app locale. Printing in the property's or the guest's language comes with translations.
+
 ## Build order
 
 Three commits, in order.

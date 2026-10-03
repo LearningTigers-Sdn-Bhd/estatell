@@ -167,7 +167,7 @@ class FolioStatement
             ->filter(fn (array $block): bool => $folio === null ? ($block['target'] === null && $block['unit'] === $entry['unit']) : $block['target'] === $folio->id)
             ->flatMap(fn (array $block): array => $block['rows'])
             ->values();
-        [$posted, $discountable] = $folio === null ? [collect(), false] : $this->postedRows($folio, $allowed, $isOpen && ($can['discount'] ?? false), $isOpen && ($can['refund'] ?? false));
+        [$posted, $discountable] = $folio === null ? [collect(), false] : $this->postedRows($folio, $allowed, $isOpen && ($can['discount'] ?? false), $isOpen && ($can['refund'] ?? false), $can['recordPayment'] ?? false);
         $balance = $folio === null ? null : ($balances[$folio->id] ?? '0.00');
         $projected = $scheduled->reduce(fn (BigDecimal $sum, FolioRowData $row): BigDecimal => $sum->plus($row->amount), BigDecimal::of($balance ?? '0'));
 
@@ -197,13 +197,13 @@ class FolioStatement
      *
      * A charge that is not a child, a reversal or already reversed takes the allowed actions. A discount line that
      * is not reversed offers Remove discount. A payment row carries its reference and the amount left to refund, and
-     * offers Refund when something is left. A refund row is tagged Refund. The second value says whether any charge
+     * offers Refund when something is left, and a receipt to a user with `payment.record`. A refund row is tagged Refund. The second value says whether any charge
      * can still take a discount (a live charge with no live discount line).
      *
      * @param  list<string>  $allowed
      * @return array{0: Collection<int, FolioRowData>, 1: bool}
      */
-    private function postedRows(Folio $folio, array $allowed, bool $canRemoveDiscount, bool $canRefund): array
+    private function postedRows(Folio $folio, array $allowed, bool $canRemoveDiscount, bool $canRefund, bool $canDownloadReceipt): array
     {
         $lines = $folio->lines()->orderBy('posting_date')->orderBy('id')->get();
         $payments = $folio->payments()->withSum('refunds', 'amount')->get()->keyBy('folio_line_id');
@@ -211,7 +211,7 @@ class FolioStatement
         $children = $lines->whereNotNull('parent_line_id')->groupBy('parent_line_id');
         $rows = collect();
 
-        $walk = function (FolioLine $line, int $level) use (&$walk, $children, $reversed, $rows, $allowed, $canRemoveDiscount, $payments, $canRefund): void {
+        $walk = function (FolioLine $line, int $level) use (&$walk, $children, $reversed, $rows, $allowed, $canRemoveDiscount, $payments, $canRefund, $canDownloadReceipt): void {
             $tags = [];
 
             if ($line->reversal_of_id !== null) {
@@ -238,7 +238,7 @@ class FolioStatement
                 $actions = $canRefund && $payment->status === PaymentStatus::Completed && BigDecimal::of($refundable)->isPositive() ? ['refund'] : [];
             }
 
-            $rows->push(new FolioRowData('line:'.$line->id, 'posted', $line->posting_date->toDateString(), $line->description, min($level, 2), null, (string) $line->amount, $tags, $line->id, $actions, $payment?->reference, $payment?->id, $refundable));
+            $rows->push(new FolioRowData('line:'.$line->id, 'posted', $line->posting_date->toDateString(), $line->description, min($level, 2), null, (string) $line->amount, $tags, $line->id, $actions, $payment?->reference, $payment?->id, $refundable, $canDownloadReceipt && $payment !== null && $payment->refund_of_id === null));
 
             foreach ($children->get($line->id, []) as $child) {
                 $walk($child, $level + 1);

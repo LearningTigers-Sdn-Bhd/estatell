@@ -219,6 +219,8 @@ export function FolioTab({
                         />
                     ) : (
                         <FolioRowsTable
+                            reservationId={reservationId}
+                            folioId={Number(folio.key)}
                             rows={folio.rows}
                             currency={currency}
                             onAction={(row, action) => {
