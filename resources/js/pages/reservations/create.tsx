@@ -135,7 +135,7 @@ export default function ReservationCreate({
     const form = useForm<BookingForm>({
         source: sources[0]?.value ?? 'direct',
         external_reference: '',
-        arrival_date: isWalkIn ? today : '',
+        arrival_date: today,
         departure_date: '',
         arrival_time: isWalkIn ? nowTime : checkInTime,
         departure_time: checkOutTime,

@@ -52,7 +52,8 @@ The Reservations page has `New ▾` with **New booking** and **Walk-in**. Walk-i
 1. **Stay**: arrival, departure, nights (shown), source, external reference, group name. Arrival and departure apply to every line.
     - Layout: the labels are Arrival and Departure. Each has one `InputGroup` with the date (`DatePicker`) and a native `type="time"` input. A nights badge sits between the two groups and takes no input. Source, External reference and Group name are on the row below. Below `lg` the badge sits between the groups, which stack in order.
     - Times: `arrival_time` and `departure_time` default to the property's `check_in_time` and `check_out_time` and apply to every line. They are the expected times and never change nights or prices (see [Expected times](01-reservation-shape.md#expected-times)). The native input shows 12-hour or 24-hour by the staff PC's locale, and the server always gets `HH:mm`. A stay is at least one night, so the times are never compared.
-    - Walk-in: the arrival date is today. The arrival time defaults to now, rounded to the minute, and staff can edit it.
+    - Arrival starts as today's business date on both pages. Staff can pick a later date on a new booking.
+    - Walk-in: the arrival date is today and is fixed. The arrival time defaults to now, rounded to the minute, and staff can edit it.
     - Package plans lock the departure date, not the time.
     - Group name: the third field of the row after External reference, shown when the form has 2 or more units. Leave it empty to show the booker's name. `billing_mode` stays in the rail.
     - Source: **New booking** offers the sources Direct and Phone. **Walk-in** fixes the source to WalkIn. Channel and Agent are not offered: they come from ingestion and the agent portal.
