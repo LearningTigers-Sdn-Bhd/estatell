@@ -19,7 +19,8 @@ reservations         id, property_id, reference, status (ReservationStatus),
                      cancellation_requested_at, cancellation_requested_by (nullable),
                      timestamps
 reservation_units    id, reservation_id, property_id, room_type_id, rate_plan_id,
-                     arrival_date, departure_date, adults, children,
+                     arrival_date, departure_date, arrival_time, departure_time,
+                     adults, children,
                      status (UnitStatus), discount_id (nullable),
                      late_arrival_expected, checked_in_at, checked_out_at, timestamps
 unit_nights          id, reservation_unit_id, date, rate_plan_id,
@@ -43,6 +44,10 @@ erDiagram
   ROOMS |o--o{ UNIT_NIGHTS : "assigned room"
   BEDS |o--o{ UNIT_NIGHTS : "assigned bed"
 ```
+
+## Expected times
+
+`arrival_time` and `departure_time` (`time`, not null) are the expected times of the unit. The booking form fills them from the property's `check_in_time` and `check_out_time`, and staff can change them per booking. They are not `checked_in_at` and `checked_out_at`, which stay the real times. They never change nights, prices, availability or the night audit: those use business dates only. A unit added later with `AddUnit` and no times copies them from the first unit of the reservation, and falls back to the property times when there is none.
 
 ## Enums
 

@@ -11,7 +11,7 @@ A full page (Form archetype): it has repeating lines and many fields. Two column
 ```
 ┌────────────────────────────────────────────────────────────┬─────────────────────────┐
 │ STAY                                                       │ SUMMARY        (sticky) │
-│ Arrival [12 Oct 2026] Departure [15 Oct 2026] · 3 nights   │ Units       5           │
+│ Arrival [12 Oct│03:00 PM] 3 nights Departure [15 Oct│12:00 PM] │ Units       5           │
 │ Source [Phone ▾]  Ext. ref [________]                      │ Rooms     RM 2,310.00   │
 │                                                            │ Add-ons   RM    80.00   │
 │ ROOMS AND BEDS                                             │ Tax       from folio    │
@@ -51,7 +51,11 @@ The Reservations page has `New ▾` with **New booking** and **Walk-in**. Walk-i
 
 ## Sections
 
-1. **Stay**: arrival, departure, nights (shown), source, external reference. Arrival and departure apply to every line. **New booking** offers the sources Direct and Phone. **Walk-in** fixes the source to WalkIn. Channel and Agent are not offered: they come from ingestion and the agent portal.
+1. **Stay**: arrival, departure, nights (shown), source, external reference. Arrival and departure apply to every line.
+    - Layout: the labels are Arrival and Departure. Each has one `InputGroup` with the date (`DatePicker`) and a native `type="time"` input. A nights badge sits between the two groups and takes no input. Source and External reference are on the row below. Below `lg` the badge sits between the groups, which stack in order.
+    - Times: `arrival_time` and `departure_time` default to the property's `check_in_time` and `check_out_time` and apply to every line. They are the expected times and never change nights or prices (see [Expected times](01-reservation-shape.md#expected-times)). The native input shows 12-hour or 24-hour by the staff PC's locale, and the server always gets `HH:mm`. On a same-day stay, departure must be after arrival.
+    - Walk-in: the arrival date is today. The arrival time defaults to now, rounded to the minute, and staff can edit it.
+    - Package plans lock the departure date, not the time. **New booking** offers the sources Direct and Phone. **Walk-in** fixes the source to WalkIn. Channel and Agent are not offered: they come from ingestion and the agent portal.
 2. **Rooms and beds**: one line per room type + rate plan.
     - Room lines: adults and children. When children > 0, one required age field per child, under the line.
     - Bed lines: "Beds: N", expanded into N units, with one bed picker per unit.
@@ -186,6 +190,8 @@ One checklist item per commit, in this order:
 1. **Backend:** the `notes` column, `AssignRoom`, `AssignBed`, `FreeUnits`, the quote and free-units routes, and `CreateBooking`, with tests. No UI.
 2. **The page, with the booker as an existing guest:** the three routes, `StoreBookingRequest`, Stay, Rooms and beds, Group, Extras, Notes, the summary rail, `FormActions`, `New ▾` and Walk-in, the quote with add-ons, and notes in the summary card of the reservation page. Guests are not on the page yet: the booker is picked with `GuestPicker`, and units get no guest. Until commit 3, a walk-in of a person who is not yet a guest cannot be booked, so commit 3 follows straight after.
 3. **Guest tabs:** the Guests section with the autocomplete field, `DuplicateWarning`, create and update of guests, and "Stays in".
+
+4. **Stay times:** the `arrival_time` and `departure_time` columns, backfilled from the property settings; `NewUnitData`, `NewBookingData`, `AddUnit` (copies the times from the first unit when none are given), `CreateReservation` and `StoreBookingRequest`; the `InputGroup` Stay layout; the times on the reservation page. The Add unit Sheet has no time fields.
 
 ## Build status
 
