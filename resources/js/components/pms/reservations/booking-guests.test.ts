@@ -3,10 +3,11 @@ import {
     clampStaysIn,
     emptyGuest,
     guestsPayload,
-    guestTabLabel,
+    guestLabel,
     hasDetails,
     linkGuest,
     takenBedUnits,
+    unitsWithoutGuest,
     unlinkGuest,
 } from './booking-guests';
 import type { GuestLink } from './booking-guests';
@@ -84,9 +85,9 @@ test('more details open by themselves only when one is filled', () => {
 });
 
 test('a tab is labelled by name, then Booker or Guest N', () => {
-    expect(guestTabLabel(emptyGuest(), 0)).toBe('Booker');
-    expect(guestTabLabel(emptyGuest(), 2)).toBe('Guest 3');
-    expect(guestTabLabel({ ...emptyGuest(), full_name: ' Aina ' }, 1)).toBe(
+    expect(guestLabel(emptyGuest(), 0)).toBe('Booker');
+    expect(guestLabel(emptyGuest(), 2)).toBe('Guest 3');
+    expect(guestLabel({ ...emptyGuest(), full_name: ' Aina ' }, 1)).toBe(
         'Aina',
     );
 });
@@ -156,4 +157,17 @@ test('a linked guest posts only its id, and a new or updated guest posts what wa
         phone: '012',
         stays_in: '1',
     });
+});
+
+test('the footer counts the units that have no guest, once for each unit', () => {
+    const guests = [
+        { ...emptyGuest('0') },
+        { ...emptyGuest('0') },
+        { ...emptyGuest('2') },
+        { ...emptyGuest('') },
+    ];
+
+    expect(unitsWithoutGuest(guests, 4)).toBe(2);
+    expect(unitsWithoutGuest(guests, 2)).toBe(0);
+    expect(unitsWithoutGuest([emptyGuest()], 0)).toBe(0);
 });

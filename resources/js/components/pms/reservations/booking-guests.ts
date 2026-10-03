@@ -77,8 +77,8 @@ export function hasDetails(tab: GuestDetails): boolean {
     return DETAIL_FIELDS.some((field) => tab[field] !== '');
 }
 
-/** The tab label: the guest's name, or "Booker" or "Guest N" while it is empty. */
-export function guestTabLabel(tab: BookingGuest, index: number): string {
+/** The row label: the guest's name, or "Booker" or "Guest N" while it is empty. */
+export function guestLabel(tab: BookingGuest, index: number): string {
     const name = tab.full_name.trim();
 
     if (name !== '') {
@@ -148,4 +148,18 @@ export function guestsPayload(tabs: BookingGuest[]) {
             guest_id: guest?.id ?? '',
         };
     });
+}
+
+/** How many units have no guest staying in them, for the footer of the Guests table. */
+export function unitsWithoutGuest(
+    guests: BookingGuest[],
+    unitCount: number,
+): number {
+    const filled = new Set(
+        guests
+            .filter((guest) => guest.stays_in !== '')
+            .map((guest) => guest.stays_in),
+    );
+
+    return Math.max(0, unitCount - filled.size);
 }

@@ -10,7 +10,7 @@ import { BookingGuestsSection } from '@/components/pms/reservations/booking-gues
 import {
     clampStaysIn,
     emptyGuest,
-    guestTabLabel,
+    guestLabel,
 } from '@/components/pms/reservations/booking-guests';
 import {
     BookingLineRow,
@@ -597,7 +597,7 @@ export default function ReservationCreate({
                             description="The booker, and the guest of each unit. Units without a guest can be filled from the reservation page."
                         >
                             <BookingGuestsSection
-                                tabs={data.guests}
+                                guests={data.guests}
                                 units={unitChoices}
                                 canManageGuests={canManageGuests}
                                 countries={countries}
@@ -671,7 +671,7 @@ export default function ReservationCreate({
                                 form.setData('billing_mode', value)
                             }
                             guests={data.guests.map((tab, index) => ({
-                                name: guestTabLabel(tab, index),
+                                name: guestLabel(tab, index),
                                 unit:
                                     unitChoices[Number(tab.stays_in)]?.label ??
                                     null,

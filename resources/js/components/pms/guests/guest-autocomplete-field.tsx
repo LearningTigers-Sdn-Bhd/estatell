@@ -1,5 +1,6 @@
 import { TriangleAlert, UserRound } from 'lucide-react';
 import { useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 import { PhoneInput } from '@/components/pms/phone-input';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -11,6 +12,11 @@ import {
     FieldLabel,
 } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
+import {
+    InputGroup,
+    InputGroupAddon,
+    InputGroupInput,
+} from '@/components/ui/input-group';
 import {
     GUEST_SEARCH_MIN_LENGTH,
     useGuestSearch,
@@ -42,12 +48,30 @@ type Props = {
     onLeave?: () => void;
     /** Without `guests.manage` the fields only search: a guest has to be picked. */
     existingOnly?: boolean;
+    /** Extra classes for each label, for example `lg:sr-only` when a table header names the column. */
+    labelClassName?: Partial<Record<GuestField, string>>;
+    /** Shown at the end of the Name input, for example the Booker and VIP badges. */
+    nameBadges?: ReactNode;
+    /** Receives the parts so the caller decides where each one goes. */
+    children: (parts: GuestAutocompleteParts) => ReactNode;
+};
+
+export type GuestAutocompleteParts = {
+    name: ReactNode;
+    phone: ReactNode;
+    email: ReactNode;
+    /** The card of the linked guest with the blacklist warning, or null. */
+    linked: ReactNode;
+    /** The hint for staff who may only pick guests, and the guest error. */
+    notes: ReactNode;
 };
 
 /**
  * Name, Phone and Email of a guest, each searching the property's guests as the user types. Typing never forces a pick:
- * Escape keeps the typed text as a new guest. Picking a guest links the tab and fills the fields, and Change guest
- * unlinks it again and keeps what was typed.
+ * Escape keeps the typed text as a new guest. Picking a guest links the row and fills the fields, and Change guest
+ * unlinks it again and keeps what was typed. The component keeps the search state and hands the parts to `children`,
+ * so a table row can put Name and Phone in its cells and Email in the expanded part. The match list floats under the
+ * field being typed in.
  */
 export function GuestAutocompleteField({
     idPrefix,
@@ -59,6 +83,9 @@ export function GuestAutocompleteField({
     onUnlink,
     onLeave,
     existingOnly = false,
+    labelClassName = {},
+    nameBadges,
+    children,
 }: Props) {
     const [focused, setFocused] = useState<GuestField | null>(null);
     const [dismissed, setDismissed] = useState(false);
@@ -111,56 +138,64 @@ export function GuestAutocompleteField({
         onLeave?.();
     };
 
-    return (
-        <div className="relative flex flex-col gap-3">
-            {linked && (
-                <div className="flex flex-col gap-2 rounded-lg border bg-muted/40 p-3">
-                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
-                        <UserRound
-                            className="size-4 text-muted-foreground"
-                            aria-hidden
-                        />
-                        <span className="font-medium">{linked.fullName}</span>
-                        {linked.phone && <span>· {linked.phone}</span>}
-                        {linked.email && <span>· {linked.email}</span>}
-                        {linked.isVip && <Badge>VIP</Badge>}
-                        {linked.isBlacklisted && (
-                            <Badge variant="destructive">Blacklisted</Badge>
+    const list = (field: GuestField) =>
+        open &&
+        focused === field && (
+            <ul
+                role="listbox"
+                aria-label="Existing guests"
+                className="absolute top-full left-0 z-20 mt-1 max-h-72 w-80 max-w-[calc(100vw-2rem)] overflow-y-auto rounded-lg border bg-popover p-1 text-popover-foreground shadow-md"
+                onMouseDown={(event) => event.preventDefault()}
+            >
+                {searching && results.length === 0 && (
+                    <li className="px-2 py-1.5 text-sm text-muted-foreground">
+                        Searching…
+                    </li>
+                )}
+                {results.map((guest, index) => (
+                    <li
+                        key={guest.id}
+                        role="option"
+                        aria-selected={index === highlight}
+                        className={cn(
+                            'flex cursor-pointer flex-col rounded-md px-2 py-1.5 text-sm',
+                            index === highlight &&
+                                'bg-accent text-accent-foreground',
                         )}
-                        <Button
-                            type="button"
-                            variant="outline"
-                            size="xs"
-                            className="ml-auto"
-                            onClick={() => {
-                                onUnlink();
-                                nameInput.current?.focus();
-                            }}
-                        >
-                            Change guest
-                        </Button>
-                    </div>
-                    {linked.isBlacklisted && (
-                        <Alert variant="destructive">
-                            <TriangleAlert aria-hidden />
-                            <AlertDescription>
-                                This guest is blacklisted
-                                {linked.profile.blacklistReason
-                                    ? `: "${linked.profile.blacklistReason}".`
-                                    : '.'}{' '}
-                                You can still book them.
-                            </AlertDescription>
-                        </Alert>
-                    )}
-                </div>
-            )}
+                        onMouseEnter={() => setHighlight(index)}
+                        onClick={() => pick(guest)}
+                    >
+                        <span className="flex items-center gap-2">
+                            {guest.fullName}
+                            {guest.isVip && <Badge>VIP</Badge>}
+                            {guest.isBlacklisted && (
+                                <Badge variant="destructive">Blacklisted</Badge>
+                            )}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                            {[guest.phone, guest.email]
+                                .filter(Boolean)
+                                .join(' · ') || 'No contact details'}
+                        </span>
+                    </li>
+                ))}
+                <li className="px-2 py-1 text-xs text-muted-foreground">
+                    ↑↓ move · ↵ select · esc keep typing as a new guest
+                </li>
+            </ul>
+        );
 
-            <div className="grid gap-3 md:grid-cols-3">
-                <Field data-invalid={!!errors.full_name}>
-                    <FieldLabel htmlFor={`${idPrefix}-full_name`}>
-                        Name
-                    </FieldLabel>
-                    <Input
+    return children({
+        name: (
+            <Field data-invalid={!!errors.full_name} className="relative">
+                <FieldLabel
+                    htmlFor={`${idPrefix}-full_name`}
+                    className={labelClassName.full_name}
+                >
+                    Name
+                </FieldLabel>
+                <InputGroup>
+                    <InputGroupInput
                         ref={nameInput}
                         id={`${idPrefix}-full_name`}
                         value={values.full_name}
@@ -177,98 +212,117 @@ export function GuestAutocompleteField({
                         aria-expanded={open && focused === 'full_name'}
                         aria-invalid={!!errors.full_name}
                     />
-                    <FieldError>{errors.full_name}</FieldError>
-                </Field>
-                <Field data-invalid={!!errors.phone}>
-                    <FieldLabel htmlFor={`${idPrefix}-phone`}>Phone</FieldLabel>
-                    <PhoneInput
-                        id={`${idPrefix}-phone`}
-                        value={values.phone}
-                        onChange={(value) => onChange('phone', value)}
-                        onFocus={focus('phone')}
-                        onBlur={leave}
-                        onKeyDown={keys}
-                        invalid={!!errors.phone}
-                    />
-                    <FieldError>{errors.phone}</FieldError>
-                </Field>
-                <Field data-invalid={!!errors.email}>
-                    <FieldLabel htmlFor={`${idPrefix}-email`}>Email</FieldLabel>
-                    <Input
-                        id={`${idPrefix}-email`}
-                        type="email"
-                        value={values.email}
-                        onChange={(event) =>
-                            onChange('email', event.target.value)
-                        }
-                        onFocus={focus('email')}
-                        onBlur={leave}
-                        onKeyDown={keys}
-                        maxLength={255}
-                        placeholder="guest@example.com"
-                        autoComplete="off"
-                        aria-invalid={!!errors.email}
-                    />
-                    <FieldError>{errors.email}</FieldError>
-                </Field>
-            </div>
-
-            {existingOnly && linked === null && (
-                <FieldDescription>
-                    Search and pick an existing guest. You may not add new
-                    guests.
-                </FieldDescription>
-            )}
-            {errors.guest_id && (
-                <p className="text-sm text-destructive">{errors.guest_id}</p>
-            )}
-
-            {open && (
-                <ul
-                    role="listbox"
-                    aria-label="Existing guests"
-                    className="absolute top-full right-0 left-0 z-20 mt-1 max-h-72 overflow-y-auto rounded-lg border bg-popover p-1 text-popover-foreground shadow-md"
-                    onMouseDown={(event) => event.preventDefault()}
-                >
-                    {searching && results.length === 0 && (
-                        <li className="px-2 py-1.5 text-sm text-muted-foreground">
-                            Searching…
-                        </li>
+                    {nameBadges && (
+                        <InputGroupAddon align="inline-end">
+                            {nameBadges}
+                        </InputGroupAddon>
                     )}
-                    {results.map((guest, index) => (
-                        <li
-                            key={guest.id}
-                            role="option"
-                            aria-selected={index === highlight}
-                            className={cn(
-                                'flex cursor-pointer flex-col rounded-md px-2 py-1.5 text-sm',
-                                index === highlight &&
-                                    'bg-accent text-accent-foreground',
-                            )}
-                            onMouseEnter={() => setHighlight(index)}
-                            onClick={() => pick(guest)}
-                        >
-                            <span className="flex items-center gap-2">
-                                {guest.fullName}
-                                {guest.isVip && <Badge>VIP</Badge>}
-                                {guest.isBlacklisted && (
-                                    <Badge variant="destructive">
-                                        Blacklisted
-                                    </Badge>
-                                )}
-                            </span>
-                            <span className="text-xs text-muted-foreground">
-                                {[guest.phone, guest.email]
-                                    .filter(Boolean)
-                                    .join(' · ') || 'No contact details'}
-                            </span>
-                        </li>
-                    ))}
-                    <li className="px-2 py-1 text-xs text-muted-foreground">
-                        ↑↓ move · ↵ select · esc keep typing as a new guest
-                    </li>
-                </ul>
-            )}
-        </div>
-    );
+                </InputGroup>
+                <FieldError>{errors.full_name}</FieldError>
+                {list('full_name')}
+            </Field>
+        ),
+        phone: (
+            <Field data-invalid={!!errors.phone} className="relative">
+                <FieldLabel
+                    htmlFor={`${idPrefix}-phone`}
+                    className={labelClassName.phone}
+                >
+                    Phone
+                </FieldLabel>
+                <PhoneInput
+                    id={`${idPrefix}-phone`}
+                    value={values.phone}
+                    onChange={(value) => onChange('phone', value)}
+                    onFocus={focus('phone')}
+                    onBlur={leave}
+                    onKeyDown={keys}
+                    invalid={!!errors.phone}
+                />
+                <FieldError>{errors.phone}</FieldError>
+                {list('phone')}
+            </Field>
+        ),
+        email: (
+            <Field data-invalid={!!errors.email} className="relative">
+                <FieldLabel
+                    htmlFor={`${idPrefix}-email`}
+                    className={labelClassName.email}
+                >
+                    Email
+                </FieldLabel>
+                <Input
+                    id={`${idPrefix}-email`}
+                    type="email"
+                    value={values.email}
+                    onChange={(event) => onChange('email', event.target.value)}
+                    onFocus={focus('email')}
+                    onBlur={leave}
+                    onKeyDown={keys}
+                    maxLength={255}
+                    placeholder="guest@example.com"
+                    autoComplete="off"
+                    aria-invalid={!!errors.email}
+                />
+                <FieldError>{errors.email}</FieldError>
+                {list('email')}
+            </Field>
+        ),
+        linked: linked && (
+            <div className="flex flex-col gap-2 rounded-lg border bg-muted/40 p-3">
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
+                    <UserRound
+                        className="size-4 text-muted-foreground"
+                        aria-hidden
+                    />
+                    <span className="font-medium">{linked.fullName}</span>
+                    {linked.phone && <span>· {linked.phone}</span>}
+                    {linked.email && <span>· {linked.email}</span>}
+                    {linked.isVip && <Badge>VIP</Badge>}
+                    {linked.isBlacklisted && (
+                        <Badge variant="destructive">Blacklisted</Badge>
+                    )}
+                    <Button
+                        type="button"
+                        variant="outline"
+                        size="xs"
+                        className="ml-auto"
+                        onClick={() => {
+                            onUnlink();
+                            nameInput.current?.focus();
+                        }}
+                    >
+                        Change guest
+                    </Button>
+                </div>
+                {linked.isBlacklisted && (
+                    <Alert variant="destructive">
+                        <TriangleAlert aria-hidden />
+                        <AlertDescription>
+                            This guest is blacklisted
+                            {linked.profile.blacklistReason
+                                ? `: "${linked.profile.blacklistReason}".`
+                                : '.'}{' '}
+                            You can still book them.
+                        </AlertDescription>
+                    </Alert>
+                )}
+            </div>
+        ),
+        notes: (
+            <>
+                {existingOnly && linked === null && (
+                    <FieldDescription>
+                        Search and pick an existing guest. You may not add new
+                        guests.
+                    </FieldDescription>
+                )}
+                {errors.guest_id && (
+                    <p className="text-sm text-destructive">
+                        {errors.guest_id}
+                    </p>
+                )}
+            </>
+        ),
+    });
 }
