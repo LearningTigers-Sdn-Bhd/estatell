@@ -17,7 +17,7 @@ Every screen uses one archetype.
 Rules:
 
 - The app shell owns the page width and padding. Pages do not add page-level `max-w-*` or replacement padding.
-- Layout variants: a page sets `Page.layout = { variant }`. `default` grows with its content and the window scrolls. `grid-only` (Grid calendar) fixes the page to the window height as a flex column. The grid gets `fill` and scrolls on its own, and a footer row stays at the bottom. The app header stays above.
+- Layout variants: a page sets `Page.layout = { variant }`. `default` grows with its content and the window scrolls. `fixed` fixes the page to the window height as a flex column, so the window does not scroll and the app header stays above. A Grid calendar gives its grid `fill`, and the grid scrolls on its own with a footer row at the bottom. A full-page Form puts its title, fields and summary in one scroll region marked `scroll-region`, and `FormActions` stays below it, so the footer is always visible. The booking form uses it. `fixed` was called `grid-only` before.
 - Forms are never embedded inline in tables, boards or dashboards.
 - Deferred props always show a `Skeleton` while loading.
 - Avoid nested cards and duplicated headings.

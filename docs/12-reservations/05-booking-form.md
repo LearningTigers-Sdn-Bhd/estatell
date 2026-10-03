@@ -6,7 +6,7 @@ Create a booking in as few fields as possible, with the same flow front desk sta
 
 ## Container and layout
 
-A full page (Form archetype): it has repeating lines and many fields. Two columns from `xl`: the form on the left, a sticky summary rail on the right. Below `xl` the rail moves under the form. `FormActions` stays at the bottom.
+A full page (Form archetype): it has repeating lines and many fields. Two columns from `xl`: the form on the left, a sticky summary rail on the right. Below `xl` the rail moves under the form. The page uses the `fixed` layout variant (see [Page archetypes](../design-system/04-page-archetypes.md)): it is as tall as the window, the breadcrumb header stays on top, the title, Stay, tabs and rail scroll together in one region, and `FormActions` is below that region, always visible. The title row scrolls with the content.
 
 ```
 ┌────────────────────────────────────────────────────────────┬─────────────────────────┐
@@ -203,6 +203,7 @@ One checklist item per commit, in this order:
 5. **Guest table:** the Guests section becomes a table with collapsible rows and an Add guest footer, replacing the tabs. UI only: the request, error keys and Actions do not change.
 6. **Tabs and group name:** Group name moves into Stay. Rooms and beds and Guests share the **Rooms & guests** tab, and Discounts, Add-ons and Notes get a tab each, in a `line` tab strip. UI only: the request, error keys and Actions do not change.
 7. **Discounts and add-ons tables:** the Discounts and Add-ons tabs become tables (a flat add-ons table with a Line column). UI only: the request, error keys and Actions do not change.
+8. **Fixed height:** the page uses the `fixed` layout variant (renamed from `grid-only`), with one scroll region and `FormActions` below it. UI only.
 
 ## Build status
 
