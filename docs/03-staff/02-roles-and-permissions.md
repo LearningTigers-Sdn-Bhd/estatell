@@ -53,6 +53,8 @@ roles    spatie columns + property_id (NOT NULL, FK) + default_role (nullable)
 | `folio.transfer`              | Transfer lines between folios of a reservation                        | ✓     | ✓       | Finance                           |
 | `folio.discount`              | Apply a Percent or an unchanged Fixed discount, remove a discount     | ✓     | ✓       | Front desk, Finance               |
 | `folio.discount-open`         | Apply an Open discount, or change the amount of a discount            | ✓     | ✓       | Finance                           |
+| `folio.close`                 | Close a folio with a balance of 0                                     | ✓     | ✓       | Front desk, Finance               |
+| `folio.reopen`                | Reopen a Closed folio                                                 | ✓     | ✓       | Finance                           |
 
 Later modules add rows here. Their module docs list their permissions.
 

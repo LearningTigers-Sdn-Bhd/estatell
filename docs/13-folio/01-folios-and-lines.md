@@ -59,7 +59,7 @@ erDiagram
 - `FolioBalance` (service, built): the balance of one folio, and whether a guest has an open balance.
 - `RepointGuestFolios` (built): called by `MergeGuests`.
 - `PostCharge`, `ReverseLine`, `TransferLines` (built): see [Posting charges](02-posting-charges.md).
-- `CloseFolio`, `ReopenFolio` (not built): see [Close and reopen](#close-and-reopen).
+- `CloseFolio`, `ReopenFolio` (built): see [Close and reopen](#close-and-reopen).
 - `CreateFolio` (built): a unit folio is created the first time a unit receives a posting, by `PostCharge`. Nothing creates folios at booking time. See [Posting charges](02-posting-charges.md).
 
 ## Close and reopen
@@ -68,6 +68,11 @@ erDiagram
 - `ReopenFolio` accepts a Closed folio only. A Voided folio cannot reopen.
 - Both are logged on the reservation. Both run in one transaction.
 - Payments need `CloseFolio` first, so it lands before [Payments and refunds](../14-payments/01-payments-and-refunds.md).
+- `invoice_number` is issued once, from the `Invoice` document sequence, at the first close. A reopened folio keeps it, and closing again issues no new number.
+- Both Actions lock the folio row and return a `FolioStatusResult`. Refusal codes: `folio_not_open`, `balance_not_zero` (close) and `folio_not_closed` (reopen). A refusal writes and logs nothing.
+- Logged on the reservation: `folio.closed`, `folio.reopened`.
+- Defaults: `folio.close` for Owner, Manager, Front desk and Finance (front desk closes at check-out); `folio.reopen` for Owner, Manager and Finance.
+- Not built: the in-house check for a Master folio, and any screen. A migration syncs the two permissions.
 
 ## Permissions
 
