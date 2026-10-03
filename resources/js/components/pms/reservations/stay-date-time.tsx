@@ -52,6 +52,7 @@ export function StayDateTime({
                     variant="dropdown"
                     min={min}
                     max={max}
+                    openOn={min}
                     onChange={onDateChange}
                     aria-invalid={props['aria-invalid']}
                     className="h-full flex-1 rounded-none border-0 bg-transparent shadow-none dark:bg-transparent"

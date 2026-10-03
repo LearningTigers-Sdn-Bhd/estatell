@@ -103,6 +103,8 @@ type Props = {
     min?: string;
     /** Latest date that can be picked, `Y-m-d`. */
     max?: string;
+    /** Month the calendar opens on when no date is picked, `Y-m-d`. Opens on `max` when left out, which suits a date of birth. */
+    openOn?: string;
     placeholder?: string;
     id?: string;
     /** Width of the trigger. Full width when left out. */
@@ -119,6 +121,7 @@ export function DatePicker({
     variant = 'default',
     min,
     max,
+    openOn,
     placeholder = 'Pick a date',
     id,
     className,
@@ -163,7 +166,7 @@ export function DatePicker({
                 <Calendar
                     mode="single"
                     selected={date}
-                    defaultMonth={date ?? maxDate}
+                    defaultMonth={date ?? toDate(openOn ?? '') ?? maxDate}
                     captionLayout={dropdown ? 'dropdown' : 'label'}
                     components={
                         dropdown ? { Dropdown: CaptionSelect } : undefined
