@@ -205,7 +205,7 @@ Built (commit 3, guest tabs): the `guests` array on `StoreBookingRequest` (the t
 
 Built (commit 4, stay times): the `arrival_time` and `departure_time` columns on `reservation_units` (backfilled from `property_settings`), `NewUnitData.arrivalTime` and `departureTime`, `AddUnit` (explicit time, else the first unit of the reservation, else the property time), `arrival_time` and `departure_time` on `StoreBookingRequest` (optional `H:i`; a missing time takes the property time), the `checkInTime`, `checkOutTime` and `nowTime` page props, `StayDateTime` (`InputGroup` with `DatePicker` and a native time input) with the nights badge, and the times in the unit panel of the reservation page. The Add unit Sheet is unchanged and inherits.
 
-The lines are one table-like grid from `lg` (`BookingLinesHeader` and `LINE_COLUMNS` in `booking-line-row.tsx`): a header row, then one row per line with Room type, Rate plan, Room / Bed, Ad, Ch, Rate and remove. A dorm line shows the Beds count in the Room / Bed cell and the bed pickers on a second line; children's ages, quote errors and "Only N free" also go on a second line. Below `lg` the cells stack and show their labels.
+The lines are one table-like grid from `lg` (`BookingLinesHeader` and `LINE_COLUMNS` in `booking-line-row.tsx`): a header row, then one row per line with Room type, Rate plan, Room / Bed, Guests (adults and children in one `InputGroup`, marked Ad and Ch), Rate and remove. A dorm line shows the Beds count in the Room / Bed cell and the bed pickers on a second line; children's ages, quote errors and "Only N free" also go on a second line. Below `lg` the cells stack and show their labels.
 
 ## Lessons from wastays
 

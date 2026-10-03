@@ -14,13 +14,18 @@ import { useBookingQuote } from '@/components/pms/reservations/use-booking-quote
 import { Button } from '@/components/ui/button';
 import { Field, FieldError, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
+import {
+    InputGroup,
+    InputGroupInput,
+    InputGroupText,
+} from '@/components/ui/input-group';
 
 /**
- * The columns of a line from `lg`: room type, rate plan, room or beds, adults, children, rate and remove. The header row in
+ * The columns of a line from `lg`: room type, rate plan, room or beds, guests, rate and remove. The header row in
  * `BookingLinesHeader` uses the same template. Below `lg` the cells stack and show their labels.
  */
 export const LINE_COLUMNS =
-    'lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1.3fr)_minmax(0,1fr)_4.5rem_4.5rem_minmax(0,12rem)_2rem]';
+    'lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1.3fr)_minmax(0,1fr)_10rem_minmax(0,12rem)_2rem]';
 
 /** The header of the lines table. Hidden below `lg`, where each cell shows its own label. */
 export function BookingLinesHeader() {
@@ -31,8 +36,7 @@ export function BookingLinesHeader() {
             <span>Room type</span>
             <span>Rate plan</span>
             <span>Room / Bed</span>
-            <span>Adults</span>
-            <span>Children</span>
+            <span>Guests</span>
             <span className="col-span-2">Rate</span>
         </div>
     );
@@ -192,7 +196,7 @@ export function BookingLineRow({
                         />
                         <FieldError>{error('beds')}</FieldError>
                     </Field>
-                    <div className="max-lg:hidden lg:col-span-2" />
+                    <div className="max-lg:hidden" />
                 </>
             ) : (
                 <>
@@ -222,58 +226,61 @@ export function BookingLineRow({
                             htmlFor={`line-${index}-adults`}
                             className="lg:sr-only"
                         >
-                            Adults
+                            Adults and children
                         </FieldLabel>
-                        <Input
-                            id={`line-${index}-adults`}
-                            type="number"
-                            min={1}
-                            max={99}
-                            aria-label="Adults"
-                            title={
-                                roomType
-                                    ? `Up to ${roomType.maxAdults}`
-                                    : undefined
-                            }
-                            value={line.adults}
-                            onChange={(event) =>
-                                onChange({ adults: event.target.value })
-                            }
-                            aria-invalid={!!error('adults')}
-                        />
+                        <InputGroup>
+                            <InputGroupText className="pl-2.5" title="Adults">
+                                Ad
+                            </InputGroupText>
+                            <InputGroupInput
+                                id={`line-${index}-adults`}
+                                type="number"
+                                min={1}
+                                max={99}
+                                aria-label="Adults"
+                                title={
+                                    roomType
+                                        ? `Up to ${roomType.maxAdults}`
+                                        : undefined
+                                }
+                                value={line.adults}
+                                onChange={(event) =>
+                                    onChange({ adults: event.target.value })
+                                }
+                                aria-invalid={!!error('adults')}
+                            />
+                            <InputGroupText
+                                className="border-l pl-2.5"
+                                title="Children"
+                            >
+                                Ch
+                            </InputGroupText>
+                            <InputGroupInput
+                                id={`line-${index}-children`}
+                                type="number"
+                                min={0}
+                                max={20}
+                                aria-label="Children"
+                                title={
+                                    roomType
+                                        ? `Up to ${roomType.maxChildren}`
+                                        : undefined
+                                }
+                                value={line.child_ages.length}
+                                onChange={(event) =>
+                                    onChange({
+                                        child_ages: resizeAges(
+                                            line.child_ages,
+                                            Number.parseInt(
+                                                event.target.value,
+                                                10,
+                                            ) || 0,
+                                        ),
+                                    })
+                                }
+                            />
+                        </InputGroup>
                         <FieldError>{error('adults')}</FieldError>
-                    </Field>
-                    <Field>
-                        <FieldLabel
-                            htmlFor={`line-${index}-children`}
-                            className="lg:sr-only"
-                        >
-                            Children
-                        </FieldLabel>
-                        <Input
-                            id={`line-${index}-children`}
-                            type="number"
-                            min={0}
-                            max={20}
-                            aria-label="Children"
-                            title={
-                                roomType
-                                    ? `Up to ${roomType.maxChildren}`
-                                    : undefined
-                            }
-                            value={line.child_ages.length}
-                            onChange={(event) =>
-                                onChange({
-                                    child_ages: resizeAges(
-                                        line.child_ages,
-                                        Number.parseInt(
-                                            event.target.value,
-                                            10,
-                                        ) || 0,
-                                    ),
-                                })
-                            }
-                        />
                     </Field>
                 </>
             )}
