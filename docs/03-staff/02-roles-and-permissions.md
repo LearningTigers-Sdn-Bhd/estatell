@@ -51,6 +51,8 @@ roles    spatie columns + property_id (NOT NULL, FK) + default_role (nullable)
 | `folio.post-charge`           | Post a manual charge to a unit's folio                                | ✓     | ✓       | Front desk, Finance               |
 | `folio.reverse`               | Reverse a folio line                                                  | ✓     | ✓       | Finance                           |
 | `folio.transfer`              | Transfer lines between folios of a reservation                        | ✓     | ✓       | Finance                           |
+| `folio.discount`              | Apply a Percent or an unchanged Fixed discount, remove a discount     | ✓     | ✓       | Front desk, Finance               |
+| `folio.discount-open`         | Apply an Open discount, or change the amount of a discount            | ✓     | ✓       | Finance                           |
 
 Later modules add rows here. Their module docs list their permissions.
 

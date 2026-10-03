@@ -18,8 +18,8 @@ class TransferLines
     ) {}
 
     /**
-     * Move whole charges to another folio of the same reservation: a reversal on the source (with its children) and a
-     * copy on the target (with its children). All lines of one transfer share one `transfer_group_id`. Both folio rows
+     * Move whole charges to another folio of the same reservation: a reversal on the source (with all its descendants) and a
+     * copy on the target (with its descendants that were not reversed). All lines of one transfer share one `transfer_group_id`. Both folio rows
      * are locked in id order, and every check runs before the first write, so a refusal writes and logs nothing.
      * The result lists the copies on the target. See docs/13-folio/02-posting-charges.md.
      *
@@ -66,13 +66,9 @@ class TransferLines
             $copies = [];
 
             foreach ($sources as $source) {
-                $this->reverseLine->post($actor, $source, $date, $group);
                 $parentCopy = $this->copy($actor, $source, $targetFolio, $date, $group, null);
-                $copies[] = $parentCopy;
-
-                foreach ($source->children()->orderBy('id')->get() as $child) {
-                    $copies[] = $this->copy($actor, $child, $targetFolio, $date, $group, $parentCopy->id);
-                }
+                $copies = [...$copies, $parentCopy, ...$this->copyChildren($actor, $source, $targetFolio, $date, $group, $parentCopy->id)];
+                $this->reverseLine->post($actor, $source, $date, $group);
             }
 
             activity()
@@ -91,6 +87,30 @@ class TransferLines
 
             return PostingResult::posted($copies);
         });
+    }
+
+    /**
+     * Copy every descendant that was not reversed (call it before the source is reversed), at every level, under the copy of its parent. A reversed line is
+     * not copied (a removed discount stays removed), and its live descendants move under the nearest copied parent.
+     *
+     * @return list<FolioLine>
+     */
+    private function copyChildren(User $actor, FolioLine $line, Folio $target, string $postingDate, string $group, int $parentCopyId): array
+    {
+        $copies = [];
+
+        foreach ($line->children()->orderBy('id')->get() as $child) {
+            if ($child->reversal()->exists()) {
+                $copies = [...$copies, ...$this->copyChildren($actor, $child, $target, $postingDate, $group, $parentCopyId)];
+
+                continue;
+            }
+
+            $copy = $this->copy($actor, $child, $target, $postingDate, $group, $parentCopyId);
+            $copies = [...$copies, $copy, ...$this->copyChildren($actor, $child, $target, $postingDate, $group, $copy->id)];
+        }
+
+        return $copies;
     }
 
     private function copy(User $actor, FolioLine $line, Folio $target, string $postingDate, string $group, ?int $parentCopyId): FolioLine

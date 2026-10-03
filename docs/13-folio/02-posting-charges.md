@@ -114,7 +114,7 @@ Built with the night audit item.
 
 ## Rules
 
-- `ReverseLine::post()` and `TransferLines` must handle every level of children (a discount line has its own tax lines) and skip a child that already has a reversal. A second reversal would break the unique key `reverse:{line_id}`. This is latent until a child can be reversed alone (`RemoveDiscount`), so the [folio discounts](04-folio-discounts.md) item builds the recursion and the skip, with tests.
+- `ReverseLine::post()` and `TransferLines` must handle every level of children (a discount line has its own tax lines) and skip a child that already has a reversal. A second reversal would break the unique key `reverse:{line_id}`. The [folio discounts](04-folio-discounts.md) item built the recursion and the skip, with tests.
 - A posting with `unit_add_on_id` takes the item, quantity and amount from the add-on row. The night audit item builds the data from the row and does not trust the caller.
 
 - No forecast table. `unit_nights` already is the forecast, and so are the nightly `unit_add_ons` rows. The folio page reads them (see [Folio page](05-folio-page.md)).

@@ -39,7 +39,7 @@ The discount lowers the tax that the charge carries. It does not run `TaxCalcula
 - For each **percent** tax line of the charge, the discount posts a negative tax line under the discount line: the tax amount × the share ÷ the net amount, rounded in the property currency. The tax code is the tax line's own code.
 - **Flat taxes** (for example the RM10 per room-night tourism tax) get no line. A discount never reduces a flat tax.
 - Because the proportion comes from the charge's own tax lines, inclusive taxes and foreign-guest taxes follow the charge without extra rules.
-- The Tax row is read for its rate type. A tax that was deleted after the charge posted is treated as flat (no line). To verify at build time.
+- The Tax row is read for its rate type. A tax that was deleted after the charge posted is treated as flat (no line). The Tax row is found by the tax line's transaction code and the property.
 
 ## Fingerprint
 
@@ -100,6 +100,21 @@ A role with `folio.discount-open` also has `folio.discount`. The Owner has both.
 ## Build scope
 
 Backend only: `DiscountQuote`, a quote data class, `ApplyDiscount`, `RemoveDiscount`, the two permissions, and the recursive reversal and transfer. No schema change: the parent link already allows two levels and `discount:{id}:{line}` fits `idempotency_key`. The folio screen and the night audit discount posting come later.
+
+## Build status
+
+Built: `DiscountQuote` (service) with `DiscountQuoteData` and `DiscountQuoteLineData`, `ApplyDiscount`, `RemoveDiscount`, the refusal codes on `PostingResult`, the recursive `ReverseLine::post()` and `TransferLines` (every level, already reversed children skipped), and the permissions `folio.discount` and `folio.discount-open` with a syncing migration. Not built: the folio screen, the night audit discount posting, the booking-time discount posting.
+
+Decisions made at build time:
+
+- `DiscountQuote::quote(Folio, Discount, CarbonImmutable $businessDate, ?string $amount)` also checks the amount and returns the refusal code in `amountRefusal`. `ApplyDiscount` passes it on after `nothing_eligible`, in the order of the table above.
+- A Percent discount ignores a given amount. The percentage is never changed, and the form can send back what it shows.
+- A discount line counts as "carried" while it has no reversal. After `RemoveDiscount`, the charge is eligible again for any discount **except the same one**: the key `discount:{discount_id}:{charge_line_id}` is unique in the ledger, so a removed discount cannot be applied to that charge a second time. Staff pick another discount. A charge that was transferred is a new line, so it has no history.
+- A share that rounds to 0.00 posts no discount line, and a tax reduction that rounds to 0.00 posts no tax line. When every share is 0.00, the Action refuses with `nothing_eligible`.
+- The discount line description is the discount name. A discount tax line copies the description of the tax line it reduces.
+- Eligible charges are lines of kind Charge. The AllCharges scope needs no code lookup beyond that, and the RoomOnly scope uses the `system_key` of the five room revenue codes.
+- `TransferLines` does not copy a reversed child (a removed discount stays removed). `RemoveDiscount` posts the reversal of the discount line without a parent, the same as any single reversal.
+- Logged on the reservation: `folio.discount_applied`, `folio.discount_removed`.
 
 ## Future
 

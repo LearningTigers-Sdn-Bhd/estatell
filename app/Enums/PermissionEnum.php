@@ -30,6 +30,8 @@ enum PermissionEnum: string
     case FolioPostCharge = 'folio.post-charge';
     case FolioReverse = 'folio.reverse';
     case FolioTransfer = 'folio.transfer';
+    case FolioDiscount = 'folio.discount';
+    case FolioDiscountOpen = 'folio.discount-open';
 
     public function label(): string
     {
@@ -56,6 +58,8 @@ enum PermissionEnum: string
             self::FolioPostCharge => __('Post charges to folios'),
             self::FolioReverse => __('Reverse folio lines'),
             self::FolioTransfer => __('Transfer folio lines'),
+            self::FolioDiscount => __('Apply and remove folio discounts'),
+            self::FolioDiscountOpen => __('Apply discounts with an entered amount'),
         };
     }
 
@@ -72,7 +76,7 @@ enum PermissionEnum: string
             self::RatesView, self::RatesManage, self::RatesOverrideRestrictions => __('Rates'),
             self::GuestsView, self::GuestsManage, self::GuestsBlacklist, self::GuestsViewDocuments, self::GuestsMerge, self::GuestsAnonymize => __('Guests'),
             self::ReservationsView, self::ReservationsManage => __('Reservations'),
-            self::FolioPostCharge, self::FolioReverse, self::FolioTransfer => __('Folio'),
+            self::FolioPostCharge, self::FolioReverse, self::FolioTransfer, self::FolioDiscount, self::FolioDiscountOpen => __('Folio'),
         };
     }
 

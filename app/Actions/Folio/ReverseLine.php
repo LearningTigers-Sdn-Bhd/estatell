@@ -14,8 +14,9 @@ class ReverseLine
     public function __construct(private CurrentBusinessDate $currentBusinessDate) {}
 
     /**
-     * Post a line with the opposite amount and `reversal_of_id`, then a reversal for each child line. A child
-     * reversal links to its own child and sits under the parent reversal. The folio row is locked first, so two
+     * Post a line with the opposite amount and `reversal_of_id`, then a reversal for each descendant line, at every
+     * level (a discount line has its own tax lines). A reversal of a child sits under the reversal of its parent. A
+     * descendant that already has a reversal is skipped (the key `reverse:{line_id}` is unique). The folio row is locked first, so two
      * reversals of one line never race. Every check runs before the first write, so a refusal writes and logs nothing.
      * A reversed add-on keeps its `folio_line_id`. See docs/13-folio/02-posting-charges.md.
      */
@@ -67,18 +68,36 @@ class ReverseLine
     }
 
     /**
-     * Write the reversal of a parent line and of its children, without any check. `TransferLines` calls this after its
-     * own checks. Returns the reversal of the parent first, then the reversals of its children.
+     * Write the reversal of a parent line and of its descendants, without any check. `TransferLines` and
+     * `RemoveDiscount` call this after their own checks. Returns the reversal of the parent first, then the reversals
+     * of its descendants, parents before children. A descendant that was reversed before is skipped, and its own
+     * descendants are still reversed when they are not.
      *
      * @return non-empty-list<FolioLine>
      */
     public function post(User $actor, FolioLine $line, string $postingDate, ?string $transferGroupId): array
     {
         $reversal = $this->reversalOf($actor, $line, $postingDate, $transferGroupId, null);
-        $lines = [$reversal];
+
+        return [$reversal, ...$this->reverseChildren($actor, $line, $postingDate, $transferGroupId, $reversal->id)];
+    }
+
+    /**
+     * @return list<FolioLine>
+     */
+    private function reverseChildren(User $actor, FolioLine $line, string $postingDate, ?string $transferGroupId, int $parentReversalId): array
+    {
+        $lines = [];
 
         foreach ($line->children()->orderBy('id')->get() as $child) {
-            $lines[] = $this->reversalOf($actor, $child, $postingDate, $transferGroupId, $reversal->id);
+            if ($child->reversal()->exists()) {
+                $lines = [...$lines, ...$this->reverseChildren($actor, $child, $postingDate, $transferGroupId, $parentReversalId)];
+
+                continue;
+            }
+
+            $reversal = $this->reversalOf($actor, $child, $postingDate, $transferGroupId, $parentReversalId);
+            $lines = [...$lines, $reversal, ...$this->reverseChildren($actor, $child, $postingDate, $transferGroupId, $reversal->id)];
         }
 
         return $lines;
