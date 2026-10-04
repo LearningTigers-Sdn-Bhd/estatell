@@ -51,7 +51,7 @@ const sourceIcons: Record<string, LucideIcon> = {
     walk_in: Footprints,
     phone: Phone,
     channel: Network,
-    agent: BriefcaseBusiness,
+    portal: BriefcaseBusiness,
 };
 
 /** The booking source as an icon, with its label on hover. */

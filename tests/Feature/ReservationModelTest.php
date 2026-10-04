@@ -56,6 +56,7 @@ test('the database rejects invalid values', function (Closure $attempt) {
     expect($attempt)->toThrow(QueryException::class);
 })->with([
     'a reservation status outside the enum' => [fn () => DB::transaction(fn () => DB::table('reservations')->where('id', Reservation::factory()->create()->id)->update(['status' => 'open']))],
+    'the old agent source' => [fn () => DB::transaction(fn () => DB::table('reservations')->where('id', Reservation::factory()->create()->id)->update(['source' => 'agent']))],
     'a billing mode outside the enum' => [fn () => DB::transaction(fn () => DB::table('reservations')->where('id', Reservation::factory()->create()->id)->update(['billing_mode' => 'nobody']))],
     'a blank group name' => [fn () => DB::transaction(fn () => Reservation::factory()->create(['group_name' => '  ']))],
     'a cancellation request without a user' => [fn () => DB::transaction(fn () => Reservation::factory()->create(['cancellation_requested_at' => now()]))],
@@ -65,6 +66,10 @@ test('the database rejects invalid values', function (Closure $attempt) {
     'a confirmed unit with a check-out time' => [fn () => DB::transaction(fn () => ReservationUnit::factory()->create(['checked_in_at' => now(), 'checked_out_at' => now()]))],
     'a negative child age' => [fn () => DB::transaction(fn () => ReservationUnitChild::factory()->create(['age' => -1]))],
 ]);
+
+test('a reservation can come from the company portal', function () {
+    expect(Reservation::factory()->create(['source' => ReservationSource::Portal])->refresh()->source)->toBe(ReservationSource::Portal);
+});
 
 test('a cancellation request needs the time and the user together', function () {
     $user = User::factory()->create();

@@ -11,7 +11,7 @@ enum ReservationSource: string
     case WalkIn = 'walk_in';
     case Phone = 'phone';
     case Channel = 'channel';
-    case Agent = 'agent';
+    case Portal = 'portal';
 
     public function label(): string
     {
@@ -20,7 +20,7 @@ enum ReservationSource: string
             self::WalkIn => __('Walk-in'),
             self::Phone => __('Phone'),
             self::Channel => __('Channel'),
-            self::Agent => __('Agent'),
+            self::Portal => __('Portal'),
         };
     }
 
