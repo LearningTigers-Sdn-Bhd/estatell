@@ -1,8 +1,9 @@
 import { Link } from '@inertiajs/react';
 import { UserPlus } from 'lucide-react';
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import { AttachGuestSheet } from '@/components/pms/reservations/attach-guest-sheet';
 import { StatusBadge } from '@/components/pms/status-badge';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
     Table,
@@ -43,94 +44,135 @@ export function GuestsTab({
         setAttaching(true);
     };
 
+    const groups = [...Map.groupBy(guests, (row) => row.unitId).values()];
+
     return (
         <div className="flex flex-col gap-4">
-            {canAttach && (
-                <div className="flex justify-end">
+            <div className="flex items-center justify-between gap-3 ps-3 pt-2">
+                <h2 className="font-heading text-base font-medium">Guests</h2>
+                {canAttach && (
                     <Button variant="outline" onClick={() => attach(null)}>
                         <UserPlus data-icon="inline-start" />
                         Attach guest
                     </Button>
-                </div>
-            )}
-            <Table>
-                <TableHeader>
-                    <TableRow>
-                        <TableHead>Guest</TableHead>
-                        <TableHead>Phone</TableHead>
-                        <TableHead>Unit</TableHead>
-                        <TableHead>Role</TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {guests.map((row, index) => (
-                        <TableRow key={index}>
-                            <TableCell>
-                                {row.name === null ? (
-                                    <span className="text-muted-foreground">
-                                        —
-                                    </span>
-                                ) : row.guestId !== null ? (
-                                    <Link
-                                        href={showGuest.url({
-                                            guest: row.guestId,
-                                        })}
-                                        className="font-medium underline-offset-4 hover:underline"
-                                    >
-                                        {row.name}
-                                    </Link>
-                                ) : (
-                                    row.name
-                                )}
-                            </TableCell>
-                            <TableCell className="tabular-nums">
-                                {row.phone ?? '—'}
-                            </TableCell>
-                            <TableCell>
-                                {row.unitLabel === null ? (
-                                    <span className="text-muted-foreground">
-                                        Not staying
-                                    </span>
-                                ) : (
-                                    <span className="flex items-center gap-2">
-                                        {row.unitLabel}
-                                        {row.unitStatus &&
-                                            !OPEN.includes(
-                                                row.unitStatus.value,
-                                            ) && (
-                                                <StatusBadge
-                                                    status={row.unitStatus}
-                                                />
-                                            )}
-                                    </span>
-                                )}
-                            </TableCell>
-                            <TableCell>
-                                {row.roles.length > 0 ? (
-                                    row.roles.join(' · ')
-                                ) : row.name === null ? (
-                                    canAttach &&
-                                    row.unitId !== null &&
-                                    row.unitStatus !== null &&
-                                    OPEN.includes(row.unitStatus.value) ? (
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={() => attach(row.unitId)}
-                                        >
-                                            Attach guest
-                                        </Button>
-                                    ) : (
-                                        'No guest yet'
-                                    )
-                                ) : (
-                                    '—'
-                                )}
-                            </TableCell>
+                )}
+            </div>
+            <div className="overflow-hidden rounded-xl border">
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>Guest</TableHead>
+                            <TableHead>Phone</TableHead>
+                            <TableHead>Role</TableHead>
                         </TableRow>
-                    ))}
-                </TableBody>
-            </Table>
+                    </TableHeader>
+                    <TableBody>
+                        {groups.map((rows) => {
+                            const first = rows[0];
+
+                            return (
+                                <Fragment key={first.unitId ?? 'not-staying'}>
+                                    <TableRow className="bg-muted/50 hover:bg-muted/50">
+                                        <TableCell
+                                            colSpan={3}
+                                            className="text-xs font-medium tracking-wide text-muted-foreground uppercase"
+                                        >
+                                            <span className="flex items-center gap-2">
+                                                {first.unitLabel ??
+                                                    'Not staying'}
+                                                {first.unitStatus &&
+                                                    !OPEN.includes(
+                                                        first.unitStatus.value,
+                                                    ) && (
+                                                        <StatusBadge
+                                                            status={
+                                                                first.unitStatus
+                                                            }
+                                                        />
+                                                    )}
+                                            </span>
+                                        </TableCell>
+                                    </TableRow>
+                                    {rows.map((row, index) => (
+                                        <TableRow key={index}>
+                                            <TableCell>
+                                                {row.name === null ? (
+                                                    <span className="text-muted-foreground">
+                                                        No guest yet
+                                                    </span>
+                                                ) : row.guestId !== null ? (
+                                                    <Link
+                                                        href={showGuest.url({
+                                                            guest: row.guestId,
+                                                        })}
+                                                        className="font-medium underline-offset-4 hover:underline"
+                                                    >
+                                                        {row.name}
+                                                    </Link>
+                                                ) : (
+                                                    row.name
+                                                )}
+                                            </TableCell>
+                                            <TableCell className="tabular-nums">
+                                                {row.phone ?? ''}
+                                            </TableCell>
+                                            <TableCell>
+                                                {row.name === null ? (
+                                                    canAttach &&
+                                                    row.unitId !== null &&
+                                                    row.unitStatus !== null &&
+                                                    OPEN.includes(
+                                                        row.unitStatus.value,
+                                                    ) && (
+                                                        <Button
+                                                            variant="outline"
+                                                            size="sm"
+                                                            onClick={() =>
+                                                                attach(
+                                                                    row.unitId,
+                                                                )
+                                                            }
+                                                        >
+                                                            Attach guest
+                                                        </Button>
+                                                    )
+                                                ) : (
+                                                    <span className="flex flex-wrap gap-1">
+                                                        {row.roles.length ===
+                                                        0 ? (
+                                                            <Badge variant="outline">
+                                                                Guest
+                                                            </Badge>
+                                                        ) : (
+                                                            row.roles.map(
+                                                                (role) => (
+                                                                    <Badge
+                                                                        key={
+                                                                            role
+                                                                        }
+                                                                        variant={
+                                                                            role ===
+                                                                            'Primary'
+                                                                                ? 'default'
+                                                                                : 'secondary'
+                                                                        }
+                                                                    >
+                                                                        {role}
+                                                                    </Badge>
+                                                                ),
+                                                            )
+                                                        )}
+                                                    </span>
+                                                )}
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </Fragment>
+                            );
+                        })}
+                    </TableBody>
+                </Table>
+            </div>
             <AttachGuestSheet
                 open={attaching}
                 onOpenChange={setAttaching}
