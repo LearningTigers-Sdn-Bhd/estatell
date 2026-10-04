@@ -200,6 +200,7 @@ export function NewDerivedRatePlanSheet({
                                 <FieldLabel>Direction</FieldLabel>
                                 <ToggleGroup
                                     variant="outline"
+                                    spacing={0}
                                     value={[data.direction]}
                                     onValueChange={(value) =>
                                         value[0] &&
