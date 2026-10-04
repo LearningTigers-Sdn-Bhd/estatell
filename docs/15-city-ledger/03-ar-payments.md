@@ -36,13 +36,13 @@ Payments and allocations are never edited. Only the void and reversal columns ar
 
 ## Actions
 
-| Action                  | Does                                                                                                                     | Refusals                                                                                                                      |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------- |
-| `RecordArPayment`       | Records the payment and its receipt number. With `allocate` true it runs `AutoAllocateArPayment` in the same transaction | `method_not_available`, `amount_invalid`, `reference_required`, `date_in_future`, `no_business_date`, `company_not_available` |
-| `AllocateArPayment`     | `(User, ArPayment, array of invoice id => amount)`: allocates to several invoices at once. All lines or none             | `payment_not_allocatable`, `invoice_not_allocatable`, `amount_invalid`, `exceeds_invoice_balance`, `exceeds_unallocated`      |
-| `AutoAllocateArPayment` | Fills the company's open invoices oldest first (by `due_on`, then id). What is left stays as credit                      | `payment_not_allocatable`                                                                                                     |
-| `ReverseAllocation`     | Marks an allocation reversed with a required reason. The invoice reopens if it was Settled                               | `already_reversed`, `reason_required`                                                                                         |
-| `VoidArPayment`         | Voids a payment with no active allocations                                                                               | `payment_has_allocations`, `already_void`                                                                                     |
+| Action                  | Does                                                                                                                     | Refusals                                                                                                                 |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------ |
+| `RecordArPayment`       | Records the payment and its receipt number. With `allocate` true it runs `AutoAllocateArPayment` in the same transaction | `method_not_available`, `amount_invalid`, `reference_required`, `date_in_future`, `no_business_date`                     |
+| `AllocateArPayment`     | `(User, ArPayment, array of invoice id => amount)`: allocates to several invoices at once. All lines or none             | `payment_not_allocatable`, `invoice_not_allocatable`, `amount_invalid`, `exceeds_invoice_balance`, `exceeds_unallocated` |
+| `AutoAllocateArPayment` | Fills the company's open invoices oldest first (by `due_on`, then id). What is left stays as credit                      | `payment_not_allocatable`                                                                                                |
+| `ReverseAllocation`     | Marks an allocation reversed with a required reason. The invoice reopens if it was Settled                               | `already_reversed`, `reason_required`                                                                                    |
+| `VoidArPayment`         | Voids a payment with no active allocations                                                                               | `payment_has_allocations`, `already_void`                                                                                |
 
 A refusal returns a result, writes nothing and logs nothing. Each success logs on the company: `ar_payment.recorded`, `ar_payment.allocated`, `ar_allocation.reversed`, `ar_payment.voided`.
 

@@ -5,6 +5,7 @@ namespace App\Services\CityLedger;
 use App\Data\CityLedger\ArInvoiceRowData;
 use App\Enums\ArInvoiceStatus;
 use App\Enums\ArInvoiceType;
+use App\Models\ArAllocation;
 use App\Models\ArInvoice;
 use App\Models\Property;
 use App\Services\NightAudit\CurrentBusinessDate;
@@ -51,6 +52,13 @@ class ArInvoiceDirectory
                     ->where('credits.status', '<>', ArInvoiceStatus::Void->value),
                 'credited',
             )
+            ->selectSub(
+                ArAllocation::query()
+                    ->selectRaw('COALESCE(SUM(ar_allocations.amount), 0)')
+                    ->whereColumn('ar_allocations.ar_invoice_id', 'ar_invoices.id')
+                    ->whereNull('ar_allocations.reversed_at'),
+                'allocated',
+            )
             ->allowedFilters(
                 AllowedFilter::callback('search', fn (Builder $query, string $search) => $query->where(fn (Builder $query) => $query
                     ->where('ar_invoices.number', 'ilike', '%'.$search.'%')
@@ -65,7 +73,7 @@ class ArInvoiceDirectory
             ->withQueryString()
             ->through(fn (ArInvoice $invoice): ArInvoiceRowData => ArInvoiceRowData::fromModel(
                 $invoice,
-                bcadd((string) $invoice->amount, (string) $invoice->getAttribute('credited'), 2),
+                bcsub(bcadd((string) $invoice->amount, (string) $invoice->getAttribute('credited'), 2), (string) $invoice->getAttribute('allocated'), 2),
                 $today,
             ));
     }

@@ -41,6 +41,8 @@ enum PermissionEnum: string
     case CompanyManage = 'company.manage';
     case CityLedgerInvoice = 'city-ledger.invoice';
     case CityLedgerCreditNote = 'city-ledger.credit-note';
+    case CityLedgerPayment = 'city-ledger.payment';
+    case CityLedgerAllocate = 'city-ledger.allocate';
 
     public function label(): string
     {
@@ -78,6 +80,8 @@ enum PermissionEnum: string
             self::CompanyManage => __('Manage companies'),
             self::CityLedgerInvoice => __('Settle folios to City ledger and void AR invoices'),
             self::CityLedgerCreditNote => __('Issue and void AR credit notes'),
+            self::CityLedgerPayment => __('Record and void AR payments'),
+            self::CityLedgerAllocate => __('Allocate AR payments and reverse allocations'),
         };
     }
 
@@ -96,7 +100,7 @@ enum PermissionEnum: string
             self::ReservationsView, self::ReservationsManage => __('Reservations'),
             self::FolioPostCharge, self::FolioReverse, self::FolioTransfer, self::FolioDiscount, self::FolioDiscountOpen, self::FolioClose, self::FolioReopen, self::FolioPrintVoucher => __('Folio'),
             self::PaymentRecord, self::PaymentRefund => __('Payments'),
-            self::CompanyView, self::CompanyManage, self::CityLedgerInvoice, self::CityLedgerCreditNote => __('City ledger'),
+            self::CompanyView, self::CompanyManage, self::CityLedgerInvoice, self::CityLedgerCreditNote, self::CityLedgerPayment, self::CityLedgerAllocate => __('City ledger'),
         };
     }
 
