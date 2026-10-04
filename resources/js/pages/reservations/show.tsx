@@ -2,16 +2,18 @@ import { Head } from '@inertiajs/react';
 import { BedDouble, CreditCard, History, Receipt, Users } from 'lucide-react';
 import type { EnumOption } from '@/components/pms/enum-select';
 import { DateText } from '@/components/pms/date-text';
-import { DetailLayout } from '@/components/pms/detail-layout';
+import { FolioRail } from '@/components/pms/folio/folio-rail';
 import { FolioTab } from '@/components/pms/folio/folio-tab';
 import { PageHeader } from '@/components/pms/page-header';
+import { TabLinks } from '@/components/pms/tab-links';
 import { ReservationActions } from '@/components/pms/reservations/reservation-actions';
 import { ActivityTab } from '@/components/pms/reservations/activity-tab';
 import { AddOnsTab } from '@/components/pms/reservations/add-ons-tab';
 import { GuestsTab } from '@/components/pms/reservations/guests-tab';
 import { ReservationSummary } from '@/components/pms/reservations/reservation-summary';
 import { StatusByUnitPopover } from '@/components/pms/reservations/status-by-unit-popover';
-import { UnitsTab } from '@/components/pms/reservations/units-tab';
+import { ReservationWorkspace } from '@/components/pms/reservations/reservation-workspace';
+import { UnitsList, UnitsTab } from '@/components/pms/reservations/units-tab';
 import { Badge } from '@/components/ui/badge';
 import {
     activity as activityTab,
@@ -106,11 +108,28 @@ export default function ReservationShow({
         },
     ];
 
+    const list =
+        tab === 'folio' && folio !== null && folios.length > 1 ? (
+            <FolioRail
+                reservationId={reservation.id}
+                items={folios}
+                activeKey={folio.key}
+                currency={currency}
+            />
+        ) : tab === 'units' && unit !== null && units.length > 1 ? (
+            <UnitsList
+                reservationId={reservation.id}
+                units={units}
+                activeUnitId={unit.id}
+                autoAssignRooms={autoAssignRooms}
+            />
+        ) : undefined;
+
     return (
         <>
             <Head title={reservation.reference} />
 
-            <div className="flex flex-1 flex-col gap-6 p-4">
+            <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4 lg:overflow-hidden">
                 <PageHeader
                     title={`${reservation.reference} · ${reservation.title}`}
                     description={
@@ -153,59 +172,62 @@ export default function ReservationShow({
                     }
                 />
 
-                <DetailLayout
+                <TabLinks
                     tabs={tabs}
                     activeTab={tab}
-                    panelWidth={tab === 'activity' ? 'default' : 'full'}
-                    summary={
-                        <ReservationSummary
-                            reservation={reservation}
-                            currency={currency}
-                        />
-                    }
+                    panelWidth="full"
+                    className="flex flex-col gap-4 lg:min-h-0 lg:flex-1"
+                    panelClassName="flex flex-col lg:min-h-0 lg:flex-1"
                 >
-                    {tab === 'guests' ? (
-                        <GuestsTab
-                            reservationId={reservation.id}
-                            guests={guests}
-                            units={units}
-                            canManage={canManage}
-                        />
-                    ) : tab === 'add-ons' ? (
-                        <AddOnsTab
-                            reservationId={reservation.id}
-                            addOns={addOns}
-                            units={units}
-                            chargeItems={chargeItems}
-                            canManage={canManage}
-                            currency={currency}
-                        />
-                    ) : tab === 'folio' ? (
-                        <FolioTab
-                            reservationId={reservation.id}
-                            units={units}
-                            folios={folios}
-                            folio={folio}
-                            chargeItems={chargeItems}
-                            chargeCodes={chargeCodes}
-                            folioDiscounts={folioDiscounts}
-                            paymentOptions={paymentOptions}
-                            canManageRouting={canManageRouting}
-                            routingRules={routingRules}
-                            currency={currency}
-                        />
-                    ) : tab === 'activity' && activity ? (
-                        <ActivityTab activity={activity} />
-                    ) : (
-                        <UnitsTab
-                            reservationId={reservation.id}
-                            units={units}
-                            unit={unit}
-                            autoAssignRooms={autoAssignRooms}
-                            currency={currency}
-                        />
-                    )}
-                </DetailLayout>
+                    <ReservationWorkspace
+                        list={list}
+                        aside={
+                            <ReservationSummary
+                                reservation={reservation}
+                                currency={currency}
+                            />
+                        }
+                    >
+                        {tab === 'guests' ? (
+                            <GuestsTab
+                                reservationId={reservation.id}
+                                guests={guests}
+                                units={units}
+                                canManage={canManage}
+                            />
+                        ) : tab === 'add-ons' ? (
+                            <AddOnsTab
+                                reservationId={reservation.id}
+                                addOns={addOns}
+                                units={units}
+                                chargeItems={chargeItems}
+                                canManage={canManage}
+                                currency={currency}
+                            />
+                        ) : tab === 'folio' ? (
+                            <FolioTab
+                                reservationId={reservation.id}
+                                units={units}
+                                folio={folio}
+                                chargeItems={chargeItems}
+                                chargeCodes={chargeCodes}
+                                folioDiscounts={folioDiscounts}
+                                paymentOptions={paymentOptions}
+                                canManageRouting={canManageRouting}
+                                routingRules={routingRules}
+                                currency={currency}
+                            />
+                        ) : tab === 'activity' && activity ? (
+                            <ActivityTab activity={activity} />
+                        ) : (
+                            <UnitsTab
+                                unit={unit}
+                                autoAssignRooms={autoAssignRooms}
+                                currency={currency}
+                            />
+                        )}
+                    </ReservationWorkspace>
+                </TabLinks>
             </div>
         </>
     );
@@ -214,6 +236,7 @@ export default function ReservationShow({
 ReservationShow.layout = (props: {
     reservation: App.Data.Reservations.ReservationData;
 }) => ({
+    variant: 'fixed',
     breadcrumbs: [
         { title: 'Reservations', href: index() },
         {

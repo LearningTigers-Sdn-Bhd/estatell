@@ -13,7 +13,6 @@ import { useState } from 'react';
 import { EmptyState } from '@/components/pms/empty-state';
 import { ApplyDiscountDialog } from '@/components/pms/folio/apply-discount-dialog';
 import { CloseFolioDialog } from '@/components/pms/folio/close-folio-dialog';
-import { FolioRail } from '@/components/pms/folio/folio-rail';
 import { FolioRowsTable } from '@/components/pms/folio/folio-rows-table';
 import { PostChargeDialog } from '@/components/pms/folio/post-charge-dialog';
 import { RecordPaymentDialog } from '@/components/pms/folio/record-payment-dialog';
@@ -26,7 +25,6 @@ import { TransferLineDialog } from '@/components/pms/folio/transfer-line-dialog'
 import { MoneyText } from '@/components/pms/money-text';
 import { StatusBadge } from '@/components/pms/status-badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Spinner } from '@/components/ui/spinner';
 import { KEEP_OPTIONS } from '@/components/pms/reservations/use-form-options';
 import { reopen } from '@/routes/reservations/folios';
@@ -54,7 +52,6 @@ function Figure({
 export function FolioTab({
     reservationId,
     units,
-    folios,
     folio,
     chargeItems,
     chargeCodes,
@@ -66,7 +63,6 @@ export function FolioTab({
 }: {
     reservationId: number;
     units: App.Data.Reservations.ReservationUnitOptionData[];
-    folios: App.Data.Folio.FolioRailItemData[];
     folio: App.Data.Folio.FolioData | null;
     chargeItems?: App.Data.Reservations.ChargeItemOptionData[];
     chargeCodes?: App.Data.Reservations.ChargeCodeOptionData[];
@@ -135,24 +131,12 @@ export function FolioTab({
         );
     }
 
-    const rail = folios.length > 1;
-
     return (
         <div className="flex flex-col gap-4">
             {routingActions}
-            <div
-                className={cn('grid gap-4', rail && 'lg:grid-cols-[14rem_1fr]')}
-            >
-                {rail && (
-                    <FolioRail
-                        reservationId={reservationId}
-                        items={folios}
-                        activeKey={folio.key}
-                        currency={currency}
-                    />
-                )}
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between gap-3">
+            <div className="flex flex-col gap-4">
+                <div className="flex flex-col gap-4">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
                         <div className="flex flex-col gap-1">
                             <h2 className="font-heading text-base font-medium">
                                 {folio.name}
@@ -233,8 +217,8 @@ export function FolioTab({
                                 </Button>
                             )}
                         </div>
-                    </CardHeader>
-                    <CardContent className="flex flex-col gap-4">
+                    </div>
+                    <div className="flex flex-col gap-4">
                         <dl className="grid gap-2 sm:grid-cols-3">
                             <Figure label="Balance">
                                 {folio.balance === null ? (
@@ -292,8 +276,8 @@ export function FolioTab({
                                 }}
                             />
                         )}
-                    </CardContent>
-                </Card>
+                    </div>
+                </div>
                 {folio.canPostCharge && (
                     <PostChargeDialog
                         open={posting}
