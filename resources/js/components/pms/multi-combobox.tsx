@@ -14,6 +14,8 @@ import {
 export type MultiComboboxOption = {
     value: string;
     label: string;
+    /** A second line in the dropdown, for example how the item is sold or why it is disabled. */
+    description?: string;
     disabled?: boolean;
 };
 
@@ -82,7 +84,16 @@ export function MultiCombobox({
                             value={item}
                             disabled={item.disabled}
                         >
-                            {item.label}
+                            {item.description ? (
+                                <span className="flex flex-col">
+                                    <span>{item.label}</span>
+                                    <span className="text-xs text-muted-foreground">
+                                        {item.description}
+                                    </span>
+                                </span>
+                            ) : (
+                                item.label
+                            )}
                         </ComboboxItem>
                     )}
                 </ComboboxList>

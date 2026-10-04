@@ -3,7 +3,7 @@ import { ArrowDown, ArrowRight, ArrowUp } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { EnumSelect } from '@/components/pms/enum-select';
 import { MultiCombobox } from '@/components/pms/multi-combobox';
-import { RoomTypeCheckboxItem } from '@/components/pms/rate-plans/room-type-checkbox-item';
+import { roomTypeOption } from '@/components/pms/rate-plans/room-type-options';
 import { Button } from '@/components/ui/button';
 import {
     Field,
@@ -11,8 +11,6 @@ import {
     FieldError,
     FieldGroup,
     FieldLabel,
-    FieldLegend,
-    FieldSet,
 } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import {
@@ -126,15 +124,6 @@ export function NewDerivedRatePlanSheet({
         return () => window.clearTimeout(timer);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [key, open]);
-
-    const toggle = (id: number, checked: boolean) => {
-        form.setData(
-            'room_type_ids',
-            checked
-                ? [...data.room_type_ids, id]
-                : data.room_type_ids.filter((current) => current !== id),
-        );
-    };
 
     const submit = (event: React.FormEvent) => {
         event.preventDefault();
@@ -332,31 +321,36 @@ export function NewDerivedRatePlanSheet({
                                 </ul>
                             )}
                         </section>
-                        <FieldSet>
-                            <FieldLegend variant="label">
+                        <Field data-invalid={!!errors.room_type_ids}>
+                            <FieldLabel htmlFor="derived-plan-room-types">
                                 Room types
-                            </FieldLegend>
+                            </FieldLabel>
+                            <MultiCombobox
+                                id="derived-plan-room-types"
+                                name="room_type_ids"
+                                items={parentRoomTypes.map((roomType) =>
+                                    roomTypeOption(
+                                        roomType,
+                                        true,
+                                        parent.pricingLabel,
+                                    ),
+                                )}
+                                value={data.room_type_ids.map(String)}
+                                onValueChange={(value) =>
+                                    form.setData(
+                                        'room_type_ids',
+                                        value.map(Number),
+                                    )
+                                }
+                                placeholder="Search room types"
+                                emptyLabel="No matching room types."
+                                invalid={!!errors.room_type_ids}
+                            />
                             <FieldDescription>
                                 Only room types that {parent.name} sells.
                             </FieldDescription>
-                            {parentRoomTypes.map((roomType) => (
-                                <RoomTypeCheckboxItem
-                                    key={roomType.id}
-                                    id={`derived-plan-room-type-${roomType.id}`}
-                                    name={roomType.name}
-                                    sellUnitLabel={roomType.sellUnitLabel}
-                                    fits
-                                    pricingLabel={parent.pricingLabel}
-                                    checked={data.room_type_ids.includes(
-                                        roomType.id,
-                                    )}
-                                    onCheckedChange={(checked) =>
-                                        toggle(roomType.id, checked)
-                                    }
-                                />
-                            ))}
                             <FieldError>{errors.room_type_ids}</FieldError>
-                        </FieldSet>
+                        </Field>
                         {companies.length > 0 && (
                             <Field data-invalid={!!errors.company_ids}>
                                 <FieldLabel htmlFor="derived-plan-companies">

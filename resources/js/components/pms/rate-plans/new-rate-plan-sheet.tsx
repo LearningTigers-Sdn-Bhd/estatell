@@ -2,7 +2,8 @@ import { useForm } from '@inertiajs/react';
 import { Plus } from 'lucide-react';
 import { useState } from 'react';
 import { EnumSelect } from '@/components/pms/enum-select';
-import { RoomTypeCheckboxItem } from '@/components/pms/rate-plans/room-type-checkbox-item';
+import { MultiCombobox } from '@/components/pms/multi-combobox';
+import { roomTypeOption } from '@/components/pms/rate-plans/room-type-options';
 import { Button } from '@/components/ui/button';
 import {
     Field,
@@ -80,15 +81,6 @@ export function NewRatePlanSheet({
                     ?.fitsBases.includes(value as App.Enums.PricingBasis),
             ),
         }));
-    };
-
-    const toggle = (id: number, checked: boolean) => {
-        form.setData(
-            'room_type_ids',
-            checked
-                ? [...form.data.room_type_ids, id]
-                : form.data.room_type_ids.filter((current) => current !== id),
-        );
     };
 
     const submit = (event: React.FormEvent) => {
@@ -255,42 +247,47 @@ export function NewRatePlanSheet({
                                 </>
                             )}
                             {roomTypes.length > 0 && (
-                                <FieldSet>
-                                    <FieldLegend variant="label">
+                                <Field
+                                    data-invalid={!!form.errors.room_type_ids}
+                                >
+                                    <FieldLabel htmlFor="new-rate-plan-room-types">
                                         Room types
-                                    </FieldLegend>
-                                    <FieldDescription>
-                                        Optional. You can change these later.
-                                    </FieldDescription>
-                                    {roomTypes.map((roomType) => (
-                                        <RoomTypeCheckboxItem
-                                            key={roomType.id}
-                                            id={`new-rate-plan-room-type-${roomType.id}`}
-                                            name={roomType.name}
-                                            sellUnitLabel={
-                                                roomType.sellUnitLabel
-                                            }
-                                            fits={roomType.fitsBases.includes(
-                                                basis,
-                                            )}
-                                            pricingLabel={
+                                    </FieldLabel>
+                                    <MultiCombobox
+                                        id="new-rate-plan-room-types"
+                                        name="room_type_ids"
+                                        items={roomTypes.map((roomType) =>
+                                            roomTypeOption(
+                                                roomType,
+                                                roomType.fitsBases.includes(
+                                                    basis,
+                                                ),
                                                 pricingBases.find(
                                                     (option) =>
                                                         option.value === basis,
-                                                )?.label ?? ''
-                                            }
-                                            checked={form.data.room_type_ids.includes(
-                                                roomType.id,
-                                            )}
-                                            onCheckedChange={(checked) =>
-                                                toggle(roomType.id, checked)
-                                            }
-                                        />
-                                    ))}
+                                                )?.label ?? '',
+                                            ),
+                                        )}
+                                        value={form.data.room_type_ids.map(
+                                            String,
+                                        )}
+                                        onValueChange={(value) =>
+                                            form.setData(
+                                                'room_type_ids',
+                                                value.map(Number),
+                                            )
+                                        }
+                                        placeholder="Search room types"
+                                        emptyLabel="No matching room types."
+                                        invalid={!!form.errors.room_type_ids}
+                                    />
+                                    <FieldDescription>
+                                        Optional. You can change these later.
+                                    </FieldDescription>
                                     <FieldError>
                                         {form.errors.room_type_ids}
                                     </FieldError>
-                                </FieldSet>
+                                </Field>
                             )}
                         </FieldGroup>
                         <SheetFooter>

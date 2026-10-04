@@ -83,7 +83,7 @@ A shortcut for "give Petronas 15% off". It is on the row menu of the Rate plans 
 | ---------------------- | ----------------------------------------------------------------------------------------------------------------------- |
 | Name                   | Required. Unique among active plans. Prefilled as "{Parent} – ".                                                        |
 | Direction, value, unit | Down or Up, a number, % or RM. The same preview as the Pricing tab: "Deluxe 800 → 680". A package parent allows % only. |
-| Room types             | All of the parent's room types start ticked. Staff can untick. At least one is needed.                                  |
+| Room types             | A multi-select combobox. All of the parent's room types start selected. Staff can remove some. At least one is needed.  |
 | Companies              | Optional multi-select of the property's Active companies. Shown only to staff with `company.manage`.                    |
 
 - **Action:** `CreateDerivedRatePlan` runs in one transaction. It creates the plan through `CreateRatePlan`, sets the derivation through `SaveRatePlanDerivation`, then syncs `company_rate_plans` for the chosen companies. It adds no new rule. Every check is the one the plan editor and the Rates tab already use.
