@@ -16,6 +16,7 @@ Find a reservation and see everything about it on one page, with the same flow s
 | `…/{reservation}/folios/{folio}/…` (six action routes) | `reservations.folios.*`               | – (see [Folio page](../13-folio/05-folio-page.md#routes)) |
 | `GET /p/{code}/reservations/{reservation}/activity`    | `reservations.activity`               | `pages/reservations/show.tsx`                             |
 | `PUT /p/{code}/reservations/{reservation}/group`       | `reservations.group.update`           | – (`UpdateReservationGroup`)                              |
+| `PUT …/{reservation}/company`                          | `reservations.company.update`         | – (`UpdateReservationCompany`; also needs `company.view`) |
 | `POST …/{reservation}/units`                           | `reservations.units.store`            | – (`AddUnit`)                                             |
 | `POST …/{reservation}/units/{unit}/guests`             | `reservations.units.guests.store`     | – (`AttachGuest`)                                         |
 | `POST …/{reservation}/units/{unit}/add-ons`            | `reservations.units.add-ons.store`    | – (`AddUnitAddOn`)                                        |
@@ -212,7 +213,7 @@ The Units list is hidden for one unit, and the Folio rail for one folio, so thos
 - Reference, `group_name` (or the booker's name), a **Group** badge with 2 or more units, and the reservation status.
 - The status opens a **Status by unit** popover: each unit's room type, room or bed, and status.
 - **Add unit** opens a Sheet with one booking line (room type, rate plan, dates, adults, child ages) and calls `AddUnit` (needs `reservations.manage`). Room or bed is not picked here: `AssignRoom` and `AssignBed` come with the booking form, so the new unit shows as not assigned. A collapsed **Price override** section holds the stay total and reason. After a `restricted` refusal, a restriction override reason field appears for staff with `rates.override-restrictions`. Add-ons, the catalogue discount and a live price preview are not in this Sheet. The room types and plans load as an Inertia optional prop when the Sheet opens. The Sheet has no time fields: the new unit copies the arrival and departure times of the reservation's first unit (see [Expected times](01-reservation-shape.md#expected-times)). Hidden on Cancelled and Completed reservations.
-- **⋯ More**: only Edit group for now (a Dialog with group name, and billing mode when there are 2 or more units, `UpdateReservationGroup`). Edit group works on closed reservations too. Cancel whole reservation (front desk) and Print confirmation (later) are added when they exist.
+- **⋯ More**: Edit group (a Dialog with group name, and billing mode when there are 2 or more units, `UpdateReservationGroup`) and **Change company** (a Dialog with the company combobox, `UpdateReservationCompany`; needs `company.view`, hidden on closed reservations). A `master_has_lines` or `company_not_available` refusal shows inline on the combobox. The Active company list loads as an Inertia optional prop when the Dialog opens. Edit group works on closed reservations too. Cancel whole reservation (front desk) and Print confirmation (later) are added when they exist.
 
 ### Units tab
 
@@ -276,7 +277,7 @@ A title row (Activity), then a timeline grouped by day (`ActivityTab`): a muted 
 
 ### Summary card
 
-Booker (name, VIP, phone, email; the name is an underlined link to the guest that opens in a new tab), earliest arrival, latest departure, units, room nights, stay total (sum of `unit_nights.amount` of units that hold inventory), balance ("from folio" until the [folio page](../13-folio/05-folio-page.md) lands), billing mode (2 or more units, with the `BillingMode` label), source, company ("—" until [Companies](../15-city-ledger/01-companies.md)), Created at (the date) and Created by (the user, or "System" when there is none) as two rows. Every row has an icon before its label, and only the top row (the Booker block) has `ps-3 pt-2`, like the title rows of the tab panels. Notes, when the booking has them, show in a rounded, bordered box of fixed height (`h-32`, the text scrolls inside) under the summary figures (added with the booking form).
+Booker (name, VIP, phone, email; the name is an underlined link to the guest that opens in a new tab), earliest arrival, latest departure, units, room nights, stay total (sum of `unit_nights.amount` of units that hold inventory), balance ("from folio" until the [folio page](../13-folio/05-folio-page.md) lands), billing mode (2 or more units, with the `BillingMode` label), source, company (the name, a link to the [company page](../15-city-ledger/01-companies.md#pages) for staff with `company.view`, or "None"), Created at (the date) and Created by (the user, or "System" when there is none) as two rows. Every row has an icon before its label, and only the top row (the Booker block) has `ps-3 pt-2`, like the title rows of the tab panels. Notes, when the booking has them, show in a rounded, bordered box of fixed height (`h-32`, the text scrolls inside) under the summary figures (added with the booking form).
 
 ### Page build status
 

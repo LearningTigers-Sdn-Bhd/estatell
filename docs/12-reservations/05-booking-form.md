@@ -57,6 +57,7 @@ The page header has a description in both modes: "Reserve rooms or beds for a gu
     - Package plans lock the departure date, not the time.
     - Reservation mode: a select after Departure, on the same row from `lg` (about 12rem wide; below `lg` it wraps to the next line). Options: **New booking** and **Walk-in**. Picking the other mode visits `reservations.walk-in` or `reservations.new` as a partial Inertia visit with `preserveState`, so the same page stays mounted and the dates, lines and guests are kept. The URL and the breadcrumb change, and no unsaved-changes prompt appears. To Walk-in: the source becomes WalkIn and is locked, and the arrival becomes today with the current time and is locked. To New booking: the source goes back to Direct and the arrival unlocks. A departure that is then not after the arrival gets the normal error on save. Both pages need `reservations.manage`, and the backend does not change.
     - Group name: the third field of the row after External reference, shown when the form has 2 or more units. Leave it empty to show the booker's name. `billing_mode` stays in the rail.
+    - Company: a combobox after Group name, shown only to staff with `company.view`. It lists the property's Active companies, with "No company" as the empty choice, and fills `company_id`. A chosen company does not change prices yet: [negotiated plans](../15-city-ledger/01-companies.md#rules) come in a later item. A Suspended or foreign id is refused as `company_not_available` on the `company_id` field.
     - Source: **New booking** offers the sources Direct and Phone. **Walk-in** fixes the source to WalkIn. Channel and Portal are not offered: they come from ingestion and the company portal.
 2. **Rooms and beds** (tab **Rooms & guests**): one line per room type + rate plan.
     - Room lines: adults and children. When children > 0, one required age field per child, under the line.
@@ -163,7 +164,6 @@ Without `guests.manage`, a row accepts only an existing guest, and **Update gues
 | ---------------------------------------- | ------------------------------------------------------------------------- |
 | Edit notes on the reservation page       | Not planned yet                                                           |
 | Database constraint on room and night    | [Room and bed assignment](../18-front-desk/02-room-and-bed-assignment.md) |
-| Company field                            | [Companies](../15-city-ledger/01-companies.md)                            |
 | Tax in the summary, MasterPays routing   | [Folio](../13-folio/01-folios-and-lines.md)                               |
 | Collect payment, deposit, payment method | [Payments and refunds](../14-payments/01-payments-and-refunds.md)         |
 | Walk-in check-in                         | [Check-in and check-out](../18-front-desk/01-check-in-and-check-out.md)   |

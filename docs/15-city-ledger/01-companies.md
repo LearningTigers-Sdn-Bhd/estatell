@@ -38,20 +38,23 @@ company_users        see Company portal
 - The name is unique per property, ignoring case, so one company never splits into two ledgers.
 - Companies are never deleted. Invoices, folios and reservations point at them. Suspend instead.
 - A Suspended company cannot be picked on a new booking or set on a reservation. Existing reservations keep it.
-- Changing `reservations.company_id` is refused while the Master folio holds lines: "Move or void the master folio's charges first." Without lines, the Master payer follows the new company (see [Routing](../13-folio/03-routing.md#known-later-work)).
+- Changing `reservations.company_id` is refused while the Master folio holds lines: "Move or void the master folio's charges first." Without lines, the Master payer follows the new company (see [Routing](../13-folio/03-routing.md#known-later-work)). Clearing the company follows the same rule; an empty Master folio stays, with no payer, because folios are never deleted.
+- The company is picked on the [booking form](../12-reservations/05-booking-form.md) and changed from the [reservation page](../12-reservations/06-reservation-page.md) (**⋯ More › Change company**). Both need `company.view`; the change also needs `reservations.manage`. The list holds Active companies of the property. A Suspended or foreign company is refused as `company_not_available`. A reservation keeps its own Suspended company, and saving it unchanged is not a change.
+- Closed (Cancelled or Completed) reservations cannot change company.
 - `company_rate_plans` links negotiated derived rate plans. The booking form offers them when the company is selected.
 - A plan linked to any company is hidden on the booking form until one of those companies is selected. This stops staff giving company prices to walk-ins.
 - `portal_enabled`, `portal_cancel_cutoff_days` and `company_users` belong to the [Company portal](../23-company-portal/01-company-portal.md). They are edited on the company's Portal tab, with its company users and invitations.
 
 ## Actions
 
-| Action                 | Does                                                                                       |
-| ---------------------- | ------------------------------------------------------------------------------------------ |
-| `CreateCompany`        | Creates an Active company. Logs `company.created`                                          |
-| `UpdateCompany`        | Updates the fields. Logs `company.updated` with diff                                       |
-| `SuspendCompany`       | Active → Suspended. Logs `company.suspended`                                               |
-| `UpdateCompanyBilling` | Saves the tax numbers and billing address. Returns false when `profile_managed_by_company` |
-| `ReactivateCompany`    | Suspended → Active. Logs `company.reactivated`                                             |
+| Action                     | Does                                                                                                                                                                                                                                                                          |
+| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `CreateCompany`            | Creates an Active company. Logs `company.created`                                                                                                                                                                                                                             |
+| `UpdateCompany`            | Updates the fields. Logs `company.updated` with diff                                                                                                                                                                                                                          |
+| `SuspendCompany`           | Active → Suspended. Logs `company.suspended`                                                                                                                                                                                                                                  |
+| `UpdateCompanyBilling`     | Saves the tax numbers and billing address. Returns false when `profile_managed_by_company`                                                                                                                                                                                    |
+| `ReactivateCompany`        | Suspended → Active. Logs `company.reactivated`                                                                                                                                                                                                                                |
+| `UpdateReservationCompany` | Sets or clears `reservations.company_id` (module 12 folder). Refuses `reservation_closed`, `company_not_available`, `master_has_lines`. Points an empty Master folio's payer at the company, runs `SyncRoutingRules`, logs `reservation.company_updated` with old and new ids |
 
 Suspend and reactivate return `false` when the company is already in the target status; the controller shows an error toast.
 

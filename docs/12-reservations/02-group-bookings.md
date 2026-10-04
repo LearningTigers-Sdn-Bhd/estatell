@@ -47,7 +47,7 @@ Both Actions return a `ReservationResult` and never throw for an expected refusa
 | `date`                     | The night that caused the refusal, when there is one                                                                                     |
 | `unitsWithPostedRoomLines` | Unit ids whose posted room lines stay on their own folio because `SyncRoutingRules` now routes Room to the Master folio (`AddUnit` only) |
 
-Refusal codes: `units_required`, `booker_not_found`, `room_type_not_found`, `rate_plan_not_linked`, `invalid_stay`, `arrival_in_past`, `adults_required`, `child_age_invalid`, `discount_not_allowed`, `restricted`, `restriction_override_not_allowed`, `not_available`, `override_reason_required`, `override_invalid`, `reservation_closed`, plus the `RateQuote` and [add-on](04-add-ons.md#addunitaddon) refusal codes passed through as they are.
+Refusal codes: `units_required`, `booker_not_found`, `room_type_not_found`, `rate_plan_not_linked`, `invalid_stay`, `arrival_in_past`, `adults_required`, `child_age_invalid`, `discount_not_allowed`, `restricted`, `restriction_override_not_allowed`, `not_available`, `override_reason_required`, `override_invalid`, `reservation_closed`, `company_not_available`, plus the `RateQuote` and [add-on](04-add-ons.md#addunitaddon) refusal codes passed through as they are.
 
 ### `CreateReservation`
 
@@ -55,6 +55,7 @@ Creates the reservation and its units in one transaction.
 
 - At least one line. An empty `units` list is refused as `units_required`.
 - The booker belongs to the property and is not merged or anonymized, otherwise `booker_not_found`.
+- A `company_id` must be an Active company of the property, otherwise `company_not_available`. `fromChannel` and portal bookings follow the same rule.
 - Locks every room type of the request in id order before the first line, so two group bookings cannot deadlock. `AddUnit` locks the same rows again at no cost.
 - `reference` from `NextDocumentNumber` (`DocumentType::Reservation`).
 - Sets the booker, `source`, `channel_name`, `external_reference`, `company_id`, `group_name`, `billing_mode` and `created_by`.
