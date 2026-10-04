@@ -1,13 +1,16 @@
 import { Head, Link, router } from '@inertiajs/react';
 import {
+    Archive,
+    ArchiveRestore,
     ArrowDown,
     ArrowUp,
     BedDouble,
     BedSingle,
     Ellipsis,
-    GitBranchPlus,
     GitBranch,
+    GitBranchPlus,
     Package,
+    Pencil,
     Tag,
     Users,
 } from 'lucide-react';
@@ -174,6 +177,7 @@ function RatePlanActions({
                             <Link href={edit.url({ ratePlan: ratePlan.id })} />
                         }
                     >
+                        <Pencil />
                         Edit
                     </DropdownMenuItem>
                     {canBeParent(ratePlan) && (
@@ -213,6 +217,7 @@ function RatePlanActions({
                                 )
                             }
                         >
+                            <ArchiveRestore />
                             Restore
                         </DropdownMenuItem>
                     ) : (
@@ -220,6 +225,7 @@ function RatePlanActions({
                             variant="destructive"
                             onClick={() => setArchiving(true)}
                         >
+                            <Archive />
                             Archive
                         </DropdownMenuItem>
                     )}
