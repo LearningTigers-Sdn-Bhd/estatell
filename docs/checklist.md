@@ -110,6 +110,7 @@ Legend: **Needs** lists items that must be done first.
 | `f840560` | docs(reservations): add status tabs, card view and room box rules        |
 | `e1af596` | docs(auth): plan session hardening and staff temp passwords              |
 | `81687e6` | feat(auth): end sessions when the password changes                       |
+| `a9a1ac7` | feat(staff): add staff with a temp password and force a new one          |
 
 Smaller fixes and reverts are in `git log`.
 
@@ -139,7 +140,7 @@ Smaller fixes and reverts are in `git log`.
 
 - [x] `feat(auth): end sessions when the password changes` — `AuthenticateSession` in the `web` group, **Log out other devices** on account security. Docs: [Routing](routing.md#sessions).
 - [x] `feat(staff): add staff with a temp password and force a new one` — temp columns, `TemporaryPasswordGenerator`, Add staff menu and Dialog, `EnsurePasswordChanged`, set-password page, reset, copy message. Needs: end sessions. Docs: [Temp passwords and bulk staff](03-staff/03-temp-passwords.md).
-- [ ] `feat(staff): bulk add staff from a grid or CSV/XLSX file` — install `spatie/simple-excel`, bulk add page, import, template. Needs: temp password.
+- [x] `feat(staff): bulk add staff from a grid or CSV/XLSX file` — install `spatie/simple-excel`, bulk add page, import, template. Needs: temp password.
 - [ ] `feat(staff): export temp passwords as CSV, XLSX or PDF` — row selection on the staff list, `ExportTemporaryPasswords`. Needs: bulk add.
 
 ### 02 Property (seeding) and 17 Onboarding (admin create)

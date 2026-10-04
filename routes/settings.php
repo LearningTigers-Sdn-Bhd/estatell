@@ -16,6 +16,7 @@ use App\Http\Controllers\Rooms\RoomController;
 use App\Http\Controllers\Rooms\RoomGroupController;
 use App\Http\Controllers\Rooms\RoomTypeController;
 use App\Http\Controllers\Staff\RoleController;
+use App\Http\Controllers\Staff\StaffBulkAddController;
 use App\Http\Controllers\Staff\StaffController;
 use App\Http\Controllers\Staff\StaffInvitationController;
 use App\Http\Controllers\Staff\StaffRoleController;
@@ -154,6 +155,10 @@ Route::prefix('settings')->name('settings.')->group(function () {
 
         Route::middleware('can:'.PermissionEnum::StaffManage->value)->scopeBindings()->group(function () {
             Route::post('/', [StaffTemporaryPasswordController::class, 'store'])->name('store');
+            Route::get('bulk', [StaffBulkAddController::class, 'create'])->name('bulk.create');
+            Route::post('bulk', [StaffBulkAddController::class, 'store'])->name('bulk.store');
+            Route::post('import', [StaffBulkAddController::class, 'import'])->name('import');
+            Route::get('import-template.{format}', [StaffBulkAddController::class, 'template'])->name('import-template');
             Route::post('temp-passwords/reset', [StaffTemporaryPasswordController::class, 'reset'])->name('temp-passwords.reset');
             Route::post('temp-passwords/message', [StaffTemporaryPasswordController::class, 'message'])->name('temp-passwords.message');
             Route::post('invitations', [StaffInvitationController::class, 'store'])->name('invitations.store');

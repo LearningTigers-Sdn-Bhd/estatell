@@ -1,5 +1,12 @@
-import { Form, Head } from '@inertiajs/react';
-import { ChevronDown, KeyRound, Mail, UserMinus, Users } from 'lucide-react';
+import { Form, Head, Link } from '@inertiajs/react';
+import {
+    ChevronDown,
+    KeyRound,
+    ListPlus,
+    Mail,
+    UserMinus,
+    Users,
+} from 'lucide-react';
 import { useState } from 'react';
 import { DateText } from '@/components/pms/date-text';
 import { EmptyState } from '@/components/pms/empty-state';
@@ -60,6 +67,7 @@ import {
     invited,
     reactivate,
 } from '@/routes/settings/staff';
+import { create as bulkCreate } from '@/routes/settings/staff/bulk';
 import { destroy, resend, store } from '@/routes/settings/staff/invitations';
 import { update as roleUpdate } from '@/routes/settings/staff/role';
 
@@ -173,6 +181,10 @@ function AddStaffMenu({
                     <DropdownMenuItem onClick={() => setAdding(true)}>
                         <KeyRound />
                         Add with temp password
+                    </DropdownMenuItem>
+                    <DropdownMenuItem render={<Link href={bulkCreate()} />}>
+                        <ListPlus />
+                        Bulk add
                     </DropdownMenuItem>
                 </DropdownMenuContent>
             </DropdownMenu>

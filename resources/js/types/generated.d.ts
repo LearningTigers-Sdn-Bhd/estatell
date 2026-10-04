@@ -1154,6 +1154,7 @@ export type ReservationStatus = 'confirmed' | 'in_house' | 'completed' | 'cancel
 export type RoomBlockReason = 'maintenance' | 'owner_use' | 'out_of_order' | 'other';
 export type RoutingRuleSource = 'billing_mode' | 'manual';
 export type SellUnit = 'room' | 'bed';
+export type SpreadsheetFormat = 'csv' | 'xlsx';
 export type StayDiscountType = 'percent' | 'amount';
 export type SurchargeType = 'none' | 'fixed' | 'percent';
 export type SystemTransactionCode = 'room_revenue' | 'no_show_revenue' | 'cancellation_revenue' | 'late_checkout_revenue' | 'early_departure_revenue' | 'food_and_beverage_revenue' | 'laundry_revenue' | 'minibar_revenue' | 'fee_revenue' | 'sst_tax' | 'tourism_tax' | 'cash_payment' | 'card_payment' | 'bank_transfer_payment' | 'ewallet_payment' | 'ota_collected_payment' | 'direct_bill_payment' | 'security_deposit' | 'refund' | 'adjustment' | 'discount';

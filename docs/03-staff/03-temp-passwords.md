@@ -84,10 +84,10 @@ Settings › Staff › Bulk add
 └─────────────────────────────────────────────────────────┘
 ```
 
-- Upload parses the file and fills the grid. Nothing is saved until **Create**.
-- File columns: `name`, `email`, `role`. The role matches a property role by name, case-insensitive. An unknown role leaves the cell empty with an error.
-- Up to 200 rows. Errors show on their row. Create is all or nothing (one transaction).
-- After **Create**, the page shows the created staff with **Copy all**, **Export CSV / XLSX / PDF** and **Done** (back to the staff list).
+- Upload parses the file and adds its rows after the filled grid rows. Nothing is saved until **Create**. Files are CSV or XLSX, at most 1 MB.
+- File columns: `name`, `email`, `role` (header names ignore case and spaces; blank lines are skipped). The role matches a role the owner may give, by name, ignoring case. An unknown or empty role leaves the cell empty with an error on that row. **Template** downloads an empty CSV or XLSX with the header row.
+- Up to 200 rows (`StaffImportReader::MAX_ROWS`). Errors show on their row, including an email that is in the list twice. Create is all or nothing (one transaction).
+- After **Create**, the page shows the created staff with **Copy all**, **Export CSV / XLSX / PDF** (with the export commit) and **Done** (back to the staff list).
 
 ## Exports and copy
 
@@ -118,6 +118,7 @@ The login URL is `route('login')`, so it follows `APP_URL`.
 | `Staff\TemporaryPasswordGenerator` (service) | Makes `Word-0000-Word` passwords                                                                                            |
 | `Staff\TemporaryPasswordMessage` (service)   | Builds the copy message text from the slips                                                                                 |
 | `Staff\StaffImportReader` (service)          | Reads CSV or XLSX into rows (`name`, `email`, `role`), at most 200                                                          |
+| `Staff\StaffImportTemplate` (service)        | Writes the empty import file for a `SpreadsheetFormat` (`csv`, `xlsx`)                                                      |
 
 - `TemporaryPasswordExportFormat` (enum) names the format in the export log: `message` now, `csv`, `xlsx` and `pdf` with the export commit.
 - Activity logs never contain a password.
