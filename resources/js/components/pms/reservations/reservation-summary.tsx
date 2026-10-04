@@ -133,7 +133,7 @@ export function ReservationSummary({
                 </Row>
                 <Row icon={Scale} label="Balance">
                     {reservation.balance === null ? (
-                        <span className="text-muted-foreground">—</span>
+                        <span className="text-muted-foreground">No folio</span>
                     ) : (
                         <span
                             className={cn(
@@ -160,7 +160,7 @@ export function ReservationSummary({
                     {reservation.sourceLabel}
                 </Row>
                 <Row icon={Building2} label="Company">
-                    —
+                    <span className="text-muted-foreground">None</span>
                 </Row>
                 <Row icon={CalendarPlus} label="Created at">
                     <DateText date={reservation.createdOn} />

@@ -72,7 +72,7 @@ class ReservationActivityLog
     private function entry(Activity $activity, array $names): ReservationActivityData
     {
         $properties = $activity->properties;
-        $name = fn (string $key): string => $names[$key][(int) $properties->get($key)] ?? '—';
+        $name = fn (string $key): string => $names[$key][(int) $properties->get($key)] ?? __('unknown');
         $reason = null;
 
         $text = match ($activity->event) {
@@ -133,13 +133,13 @@ class ReservationActivityLog
         $changes = [];
 
         if (($old['group_name'] ?? null) !== ($new['group_name'] ?? null)) {
-            $changes[] = __('group name :old → :new', ['old' => $old['group_name'] ?? '—', 'new' => $new['group_name'] ?? '—']);
+            $changes[] = __('group name :old → :new', ['old' => $old['group_name'] ?? __('none'), 'new' => $new['group_name'] ?? __('none')]);
         }
 
         if (($old['billing_mode'] ?? null) !== ($new['billing_mode'] ?? null)) {
             $changes[] = __('billing :old → :new', [
-                'old' => BillingMode::tryFrom((string) ($old['billing_mode'] ?? ''))?->label() ?? '—',
-                'new' => BillingMode::tryFrom((string) ($new['billing_mode'] ?? ''))?->label() ?? '—',
+                'old' => BillingMode::tryFrom((string) ($old['billing_mode'] ?? ''))?->label() ?? __('none'),
+                'new' => BillingMode::tryFrom((string) ($new['billing_mode'] ?? ''))?->label() ?? __('none'),
             ]);
         }
 

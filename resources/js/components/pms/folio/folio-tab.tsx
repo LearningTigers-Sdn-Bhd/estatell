@@ -210,7 +210,9 @@ export function FolioTab({
                     <dl className="grid gap-2 sm:grid-cols-3">
                         <Figure label="Balance">
                             {folio.balance === null ? (
-                                <span className="text-muted-foreground">—</span>
+                                <span className="text-muted-foreground">
+                                    Not started
+                                </span>
                             ) : (
                                 <span
                                     className={cn(

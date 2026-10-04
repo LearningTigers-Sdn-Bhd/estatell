@@ -326,7 +326,7 @@ test('the add-on rows are grouped by unit and ordered by service date', function
         ->where('addOns.2.id', $late->id)
         ->where('addOns.2.total', '37.50')
         ->where('addOns.2.unitId', $second->id)
-        ->where('addOns.2.unitLabel', $second->roomType->name.' · —'));
+        ->where('addOns.2.unitLabel', $second->roomType->name.' · Not assigned'));
 });
 
 test('the activity tab lists entries newest first, 25 to a page, in readable words', function () {
@@ -362,7 +362,7 @@ test('the activity tab lists entries newest first, 25 to a page, in readable wor
         ->where('activity.data.0.text', 'Ahmad Faiz added to a unit')
         ->where('activity.data.0.causerName', 'Aina')
         ->where('activity.data.0.kind', 'reservation.guest_attached')
-        ->where('activity.data.1.text', 'Group updated: group name — → Tan trip, billing Master folio pays → Each unit pays')
+        ->where('activity.data.1.text', 'Group updated: group name none → Tan trip, billing Master folio pays → Each unit pays')
         ->where('activity.data.2.text', "Unit added: {$roomType->name}, 2026-10-12 to 2026-10-15")
         ->where('activity.data.2.reason', 'Price override to 240.00: Corporate rate')
         ->where('activity.data.3.text', 'Reservation created with 27 units')

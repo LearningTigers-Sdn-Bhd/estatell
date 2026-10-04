@@ -4,6 +4,7 @@ import type { LucideIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { DateText } from '@/components/pms/date-text';
 import { EnumSelect } from '@/components/pms/enum-select';
+import { Badge } from '@/components/ui/badge';
 import { MoneyText } from '@/components/pms/money-text';
 import { StatusBadge } from '@/components/pms/status-badge';
 import {
@@ -132,7 +133,9 @@ export function UnitsList({
                         <span className="font-medium">{option.roomType}</span>
                         <span className="text-muted-foreground">
                             {option.assigned ??
-                                (autoAssignRooms ? 'auto' : '—')}{' '}
+                                (autoAssignRooms
+                                    ? 'Auto'
+                                    : 'Not assigned')}{' '}
                             · {option.status.label}
                         </span>
                     </Link>
@@ -183,7 +186,9 @@ export function UnitsTab({
                 </div>
                 <Detail icon={User} label="Primary">
                     {unit.primaryGuest === null ? (
-                        '—'
+                        <span className="text-muted-foreground">
+                            No primary guest
+                        </span>
                     ) : unit.primaryGuestId !== null ? (
                         <Link
                             href={showGuest.url({
@@ -216,7 +221,13 @@ export function UnitsTab({
                                 <TableCell>
                                     <DateText date={night.date} />
                                 </TableCell>
-                                <TableCell>{night.assigned ?? '—'}</TableCell>
+                                <TableCell>
+                                    {night.assigned ?? (
+                                        <Badge variant="outline">
+                                            Unassigned
+                                        </Badge>
+                                    )}
+                                </TableCell>
                                 <TableCell>{night.ratePlan}</TableCell>
                                 <TableCell className="text-right">
                                     <MoneyText

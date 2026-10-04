@@ -31,7 +31,7 @@ class ReservationUnitOptionData extends Data
             roomType: $unit->roomType->name,
             isBed: $unit->roomType->sell_unit === SellUnit::Bed,
             assigned: $assigned,
-            label: $unit->roomType->name.' · '.($assigned ?? '—'),
+            label: $unit->roomType->name.' · '.($assigned ?? __('Not assigned')),
             status: BadgeData::fromUnitStatus($unit->status),
             arrival: $unit->arrival_date->toDateString(),
             departure: $unit->departure_date->toDateString(),
