@@ -92,6 +92,22 @@ postingTransactionCode: string,
 };
 }
 namespace CityLedger {
+export type AgingReportData = {
+asAt: string,
+rows: App.Data.CityLedger.AgingRowData[],
+totals: App.Data.CityLedger.AgingRowData,
+};
+export type AgingRowData = {
+companyId: number | null,
+companyName: string,
+current: string,
+days1to30: string,
+days31to60: string,
+days61to90: string,
+over90: string,
+credit: string,
+total: string,
+};
 export type ArAllocationRowData = {
 id: number,
 paymentId: number,
@@ -205,6 +221,23 @@ export type OpenArInvoiceData = {
 id: number,
 number: string,
 dueOn: string | null,
+balance: string,
+};
+export type StatementData = {
+from: string,
+to: string,
+openingBalance: string,
+lines: App.Data.CityLedger.StatementLineData[],
+closingBalance: string,
+aging: App.Data.CityLedger.AgingRowData,
+};
+export type StatementLineData = {
+date: string,
+kind: string,
+kindLabel: string,
+number: string,
+description: string | null,
+amount: string,
 balance: string,
 };
 }
