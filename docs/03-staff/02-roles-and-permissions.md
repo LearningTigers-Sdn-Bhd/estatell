@@ -61,6 +61,8 @@ roles    spatie columns + property_id (NOT NULL, FK) + default_role (nullable)
 | `company.manage`              | Create, edit, suspend and reactivate companies                        | ✓     | ✓       | Finance                           |
 | `city-ledger.invoice`         | Settle a folio to City ledger, void an AR invoice                     | ✓     | ✓       | Finance                           |
 | `city-ledger.credit-note`     | Issue and void AR credit notes                                        | ✓     | ✓       | Finance                           |
+| `city-ledger.payment`         | Record and void AR payments                                           | ✓     | ✓       | Finance                           |
+| `city-ledger.allocate`        | Allocate AR payments, reverse allocations                             | ✓     | ✓       | Finance                           |
 
 Later modules add rows here. Their module docs list their permissions.
 

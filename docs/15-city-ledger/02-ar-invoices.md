@@ -44,7 +44,7 @@ The settle action does not go through `RecordPayment`: a City ledger line has no
 - `ReopenFolio` refuses a folio that has an AR invoice that is not Void (`folio_has_ar_invoice`): fix it with a credit note.
 - An AR invoice reuses the folio's invoice number. Credit notes take their own sequence (`DocumentType::CreditNote`).
 - Issued invoices are never edited. A correction is a credit note: a negative row with `credit_for_invoice_id`, issued with a reason, for at most the invoice's balance (`credit_exceeds_balance`). It is Settled at once, because it is applied to its invoice as it is issued.
-- Invoice balance = amount + its non-void credit notes - active allocations ([AR payments](03-ar-payments.md)). The invoice becomes Settled when the balance reaches 0, and Open again when a credit note is voided. Balance and overdue status are calculated, not stored.
+- Invoice balance = amount + its non-void credit notes - active allocations ([AR payments](03-ar-payments.md)). The invoice becomes Settled when the balance reaches 0, and Open again when a credit note is voided or an allocation is reversed. The invoice page lists its allocations. Balance and overdue status are calculated, not stored.
 - Void:
     - an invoice can be voided only while Open with no non-void credit notes and no active allocations (`invoice_not_voidable`);
     - a credit note can be voided, which puts its invoice back to its calculated status;
