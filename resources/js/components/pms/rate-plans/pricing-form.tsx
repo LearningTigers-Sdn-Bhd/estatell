@@ -351,6 +351,7 @@ export function PricingForm({
                             <FieldLabel>View</FieldLabel>
                             <ToggleGroup
                                 variant="outline"
+                                spacing={0}
                                 value={[mode]}
                                 onValueChange={(value) =>
                                     value[0] && changeMode(value[0] as Mode)

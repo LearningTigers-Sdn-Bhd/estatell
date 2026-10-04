@@ -5,6 +5,7 @@ import type { ReactNode } from 'react';
 import { DerivationForm } from '@/components/pms/rate-plans/derivation-form';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import { Field, FieldLabel } from '@/components/ui/field';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import {
     Tooltip,
@@ -65,34 +66,37 @@ export function PricingSource({
 
     return (
         <div className="flex flex-col gap-6">
-            <ToggleGroup
-                variant="outline"
-                className="self-start"
-                value={[source]}
-                onValueChange={(value) =>
-                    value[0] && setSource(value[0] as Source)
-                }
-                aria-label="How this plan is priced"
-            >
-                <ToggleGroupItem value="direct">
-                    <PencilLine data-icon="inline-start" />
-                    Set prices directly
-                </ToggleGroupItem>
-                {blocked ? (
-                    <Tooltip>
-                        <TooltipTrigger
-                            render={<span className="inline-flex" />}
-                        >
-                            {followItem}
-                        </TooltipTrigger>
-                        <TooltipContent>
-                            {derivation.cannotFollowReason}
-                        </TooltipContent>
-                    </Tooltip>
-                ) : (
-                    followItem
-                )}
-            </ToggleGroup>
+            <Field className="w-auto">
+                <FieldLabel id="pricing-source-label">Prices</FieldLabel>
+                <ToggleGroup
+                    variant="outline"
+                    spacing={0}
+                    value={[source]}
+                    onValueChange={(value) =>
+                        value[0] && setSource(value[0] as Source)
+                    }
+                    aria-labelledby="pricing-source-label"
+                >
+                    <ToggleGroupItem value="direct">
+                        <PencilLine data-icon="inline-start" />
+                        Set prices directly
+                    </ToggleGroupItem>
+                    {blocked ? (
+                        <Tooltip>
+                            <TooltipTrigger
+                                render={<span className="-ml-px inline-flex" />}
+                            >
+                                {followItem}
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                {derivation.cannotFollowReason}
+                            </TooltipContent>
+                        </Tooltip>
+                    ) : (
+                        followItem
+                    )}
+                </ToggleGroup>
+            </Field>
             {source === 'follow' ? (
                 <DerivationForm
                     ratePlan={ratePlan}
