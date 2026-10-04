@@ -87,7 +87,7 @@ export function EnumSelect({
                     }}
                 </SelectValue>
             </SelectTrigger>
-            <SelectContent className="w-max max-w-sm min-w-(--anchor-width)">
+            <SelectContent className="max-h-72 w-max max-w-sm min-w-(--anchor-width)">
                 <SelectGroup>
                     {items.map((option) => (
                         <SelectItem

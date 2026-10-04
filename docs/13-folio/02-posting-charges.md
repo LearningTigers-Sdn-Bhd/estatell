@@ -17,7 +17,7 @@ The posting work is built in three items. This file is the spec for all three.
 ## Actions
 
 - `CreateFolio`: creates a Unit or Master folio. The number comes from `NextDocumentNumber` (`DocumentType::Folio`).
-- `PostCharge`: manual charge from a charge item or an open amount.
+- `PostCharge`: manual charge from a charge item. Staff may replace the line description.
 - `ReverseLine`: posts a reversal line, including reversals of child lines.
 - `TransferLines`: moves lines between folios of the same reservation.
 - `PostRoomCharges`: run by the night audit for each in-house unit night (night audit item).
@@ -32,7 +32,7 @@ All Actions return a result and write nothing on a refusal. Each one is one tran
 
 ### `PostCharge`
 
-`(User $actor, ReservationUnit $unit, NewChargeData $data): PostingResult`. `NewChargeData`: `charge_item_id` (nullable), `description` and `transaction_code_id` (for an open amount), `quantity`, `unit_amount`, `idempotency_key`, optional `unit_add_on_id`.
+`(User $actor, ReservationUnit $unit, NewChargeData $data): PostingResult`. `NewChargeData`: `charge_item_id`, optional `description`, `quantity`, `unit_amount`, `idempotency_key`, optional `unit_add_on_id`. The folio form always sends a charge item. A one-off charge uses the closest item with its own description, so staff never pick a transaction code. The Action still accepts a null item with a `transaction_code_id` for internal callers; no screen offers it.
 
 | Check, in order                                                                                     | Refusal                       |
 | --------------------------------------------------------------------------------------------------- | ----------------------------- |
@@ -45,6 +45,7 @@ All Actions return a result and write nothing on a refusal. Each one is one tran
 | The target folio is Open                                                                            | `folio_not_open`              |
 
 - The key is `manual:{uuid}`, sent by the form, so a double click never posts twice. A key that already exists returns the existing line and writes nothing, but only when the line's folio belongs to the unit's reservation. A key that belongs to another reservation is refused (`charge_not_found`), so a key never reveals another reservation's lines. Transfers stay inside one reservation, so a legitimate replay always passes.
+- The line description is the given `description`, or else the item name (the code name for a code with no item). It is copied at posting time.
 - It posts the charge line, then one Tax child line per `TaxCalculator` component (`parent_line_id`). `kind` is Charge for the charge and Tax for the children. `posting_date` is the business date.
 - With `unit_add_on_id`, the key is `addon:{id}`, `source_type` and `source_id` name the add-on, and `unit_add_ons.folio_line_id` is set to the charge line.
 - The target folio comes from `FolioRouter`.
@@ -97,7 +98,7 @@ A service that returns the target folio for a charge: `targetFor(ReservationUnit
 
 ## Build status
 
-Built (manual postings item): `CreateFolio`, `PostCharge`, `ReverseLine`, `TransferLines`, `PostingResult`, `NewChargeData`, a minimal `FolioRouter`, `unit_add_ons.folio_line_id`, the three permissions, and the `add_on_posted` refusal in `RemoveUnitAddOn`. Not built: routing rules, `InclusionAllocator`, `PostRoomCharges`, `PostScheduledAddOns`, the folio page, payments, `CloseFolio` and `ReopenFolio`. Room blocks still read `PropertyToday`.
+Built (manual postings item): `CreateFolio`, `PostCharge`, `ReverseLine`, `TransferLines`, `PostingResult`, `NewChargeData`, a minimal `FolioRouter`, `unit_add_ons.folio_line_id`, the three permissions, and the `add_on_posted` refusal in `RemoveUnitAddOn`. Not built at that step: routing rules, `InclusionAllocator`, `PostRoomCharges` and `PostScheduledAddOns`. The folio page, payments, `CloseFolio` and `ReopenFolio` came later (see [Folio page](05-folio-page.md#build-status)).
 
 Decisions made at build time:
 
@@ -134,7 +135,6 @@ Built with the night audit item.
 ## Open
 
 - Room blocks move from `PropertyToday` to `CurrentBusinessDate` "with the first folio posting" (see [Business dates](../20-night-audit/01-business-dates.md)). Decide at build time whether that switch belongs to this item or to the night audit postings.
-- Closing and reopening a folio stays in a later item.
 
 ## Lessons from wastays
 

@@ -13,13 +13,16 @@ use App\Enums\BillingMode;
 use App\Enums\PermissionEnum;
 use App\Enums\ReservationSource;
 use App\Enums\ReservationStatus;
+use App\Enums\TransactionKind;
 use App\Http\Controllers\Controller;
 use App\Models\Property;
 use App\Models\Reservation;
 use App\Models\ReservationUnit;
 use App\Models\UnitAddOn;
 use App\Models\User;
+use App\Services\Folio\AddOnBilling;
 use App\Services\Folio\FolioStatement;
+use App\Services\Folio\FolioVoucher;
 use App\Services\Folio\RoutingRuleList;
 use App\Services\Reservations\ReservationActivityLog;
 use App\Services\Reservations\ReservationDirectory;
@@ -105,20 +108,22 @@ class ReservationController extends Controller
     /**
      * Reservation page, Add-ons tab. Rows are ordered by unit, then service date.
      */
-    public function addOns(Request $request, Property $property, Reservation $reservation): Response
+    public function addOns(Request $request, Property $property, Reservation $reservation, AddOnBilling $billing): Response
     {
-        return $this->renderTab($request->user(), $property, $reservation, 'add-ons', function (array $units): array {
+        return $this->renderTab($request->user(), $property, $reservation, 'add-ons', function (array $units, Collection $models) use ($reservation, $billing): array {
             $labels = collect($units)->mapWithKeys(fn (ReservationUnitOptionData $unit): array => [$unit->id => $unit->label]);
+            $addOns = UnitAddOn::query()
+                ->whereIn('reservation_unit_id', $labels->keys()->all())
+                ->with(['chargeItem.transactionCode', 'folioLine'])
+                ->orderBy('reservation_unit_id')
+                ->orderBy('service_date')
+                ->orderBy('id')
+                ->get();
+            $where = $billing->for($reservation, $addOns, $models, $labels->all());
 
             return [
-                'addOns' => UnitAddOn::query()
-                    ->whereIn('reservation_unit_id', $labels->keys()->all())
-                    ->with('chargeItem')
-                    ->orderBy('reservation_unit_id')
-                    ->orderBy('service_date')
-                    ->orderBy('id')
-                    ->get()
-                    ->map(fn (UnitAddOn $addOn): ReservationAddOnData => ReservationAddOnData::fromModel($addOn, $labels[$addOn->reservation_unit_id]))
+                'addOns' => $addOns
+                    ->map(fn (UnitAddOn $addOn): ReservationAddOnData => ReservationAddOnData::fromModel($addOn, $labels[$addOn->reservation_unit_id], $where[$addOn->id]['folio'], $where[$addOn->id]['routedTo']))
                     ->all(),
             ];
         });
@@ -142,7 +147,12 @@ class ReservationController extends Controller
                 'reopen' => $request->user()->can(PermissionEnum::FolioReopen->value),
                 'recordPayment' => $request->user()->can(PermissionEnum::PaymentRecord->value),
                 'refund' => $request->user()->can(PermissionEnum::PaymentRefund->value),
+                'printVoucher' => $request->user()->can(PermissionEnum::FolioPrintVoucher->value),
             ]),
+            'voucher' => [
+                'kinds' => array_values(array_filter(TransactionKind::options(), fn (array $kind): bool => $kind['value'] !== TransactionKind::Payment->value)),
+                'maxLines' => FolioVoucher::MAX_LINES,
+            ],
             'canManageRouting' => $canManageRouting,
             'routingRules' => Inertia::optional(fn (): ?RoutingRulesData => $canManageRouting ? $routingRuleList->build($reservation, $units) : null),
         ]);

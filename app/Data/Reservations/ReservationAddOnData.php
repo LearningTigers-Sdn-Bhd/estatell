@@ -7,7 +7,9 @@ use Brick\Math\BigDecimal;
 use Spatie\LaravelData\Data;
 
 /**
- * One add-on row. Expects `chargeItem` to be loaded. `total` is `quantity × unit_amount`.
+ * One add-on row. Expects `chargeItem` and `folioLine` to be loaded. `total` is `quantity × unit_amount`. A posted
+ * add-on has `posted`, its folio (`folioId`, `folioLabel`) and the posting date. An add-on that is not posted and that
+ * routing sends away from the unit's own folio has `routedTo`, the label of the folio it will post to.
  */
 class ReservationAddOnData extends Data
 {
@@ -20,9 +22,14 @@ class ReservationAddOnData extends Data
         public ?string $serviceDate,
         public string $unitAmount,
         public string $total,
+        public bool $posted = false,
+        public ?int $folioId = null,
+        public ?string $folioLabel = null,
+        public ?string $postedOn = null,
+        public ?string $routedTo = null,
     ) {}
 
-    public static function fromModel(UnitAddOn $addOn, string $unitLabel): self
+    public static function fromModel(UnitAddOn $addOn, string $unitLabel, ?string $folioLabel = null, ?string $routedTo = null): self
     {
         return new self(
             id: $addOn->id,
@@ -33,6 +40,11 @@ class ReservationAddOnData extends Data
             serviceDate: $addOn->service_date?->toDateString(),
             unitAmount: $addOn->unit_amount,
             total: BigDecimal::of($addOn->unit_amount)->multipliedBy($addOn->quantity)->toScale(2)->__toString(),
+            posted: $addOn->folio_line_id !== null,
+            folioId: $addOn->folioLine?->folio_id,
+            folioLabel: $folioLabel,
+            postedOn: $addOn->folioLine?->posting_date?->toDateString(),
+            routedTo: $routedTo,
         );
     }
 }

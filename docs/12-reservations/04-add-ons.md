@@ -81,6 +81,10 @@ No UI in this item. The Add-ons tab on the [reservation page](06-reservation-pag
 
 Built: `unit_add_ons` (with its CHECKs), `UnitAddOn`, `NewAddOnData`, `NewUnitData::$addOns`, `AddUnitAddOn`, `RemoveUnitAddOn`, `AddOnResult` and `ChargeQuantityResolver`. `AddUnit` calls `AddUnitAddOn` for each add-on of the line and rolls back its own unit on a refusal. The Add-ons tab and the booking form Extras call them in later items. Posting (`PostScheduledAddOns`, `CheckInUnit`) comes with module 13.
 
+## Add-ons tab and the folio
+
+The [Add-ons tab](06-reservation-page.md#add-ons-tab) reads the folio side without writing to it. `AddOnBilling` (`app/Services/Folio/`) returns, for each add-on, the folio that holds its line (posted) or the folio a routing rule will send it to (not posted, and only when it differs from the unit's own folio). `ReservationAddOnData` carries `posted`, `folioId`, `folioLabel`, `postedOn` and `routedTo`. A posted row hides Remove, since `RemoveUnitAddOn` refuses it (`add_on_posted`). Posting itself is still not built.
+
 ## Lessons from wastays
 
 wastays posted extras as forecast folio rows, one per stay date for nightly charging units, priced from `hotel_extra_charges` with an amount override flag. estatell keeps the per-night rows and the override flag, but stores add-ons on the unit, not as forecast folio rows.

@@ -155,6 +155,7 @@ test('the page offers close on an open folio and reopen on a closed one, by perm
     $this->actingAs($setup['user'])->get(fkPage($setup))->assertInertia(fn (Assert $page) => $page
         ->where('folio.canClose', false)
         ->where('folio.canReopen', true)
+        ->where('folio.number', fn ($number) => is_string($number))
         ->where('folio.invoiceNumber', fn ($number) => is_string($number)));
 
     $this->actingAs($frontDesk)->get(fkPage($setup))->assertInertia(fn (Assert $page) => $page

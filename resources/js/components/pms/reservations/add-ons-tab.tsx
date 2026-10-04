@@ -1,11 +1,19 @@
-import { Plus, Receipt } from 'lucide-react';
+import { Link } from '@inertiajs/react';
+import {
+    ArrowRight,
+    CircleCheck,
+    Clock,
+    ExternalLink,
+    Plus,
+    Receipt,
+} from 'lucide-react';
 import { Fragment, useState } from 'react';
 import { DateText } from '@/components/pms/date-text';
 import { EmptyState } from '@/components/pms/empty-state';
 import { MoneyText } from '@/components/pms/money-text';
 import { AddAddOnDialog } from '@/components/pms/reservations/add-add-on-dialog';
 import { RemoveAddOnDialog } from '@/components/pms/reservations/remove-add-on-dialog';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import {
     Table,
     TableBody,
@@ -15,11 +23,122 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
+import { cn } from '@/lib/utils';
+import { folio as folioTab } from '@/routes/reservations';
 
 type AddOn = App.Data.Reservations.ReservationAddOnData;
 type Unit = App.Data.Reservations.ReservationUnitOptionData;
 
 const OPEN = ['confirmed', 'checked_in'];
+
+function BillingIcon({
+    label,
+    className,
+    children,
+}: {
+    label: React.ReactNode;
+    className?: string;
+    children: React.ReactNode;
+}) {
+    return (
+        <Tooltip>
+            <TooltipTrigger
+                render={
+                    <span
+                        role="img"
+                        aria-label={
+                            typeof label === 'string' ? label : undefined
+                        }
+                        tabIndex={0}
+                        className={cn('inline-flex items-center', className)}
+                    />
+                }
+            >
+                {children}
+            </TooltipTrigger>
+            <TooltipContent>{label}</TooltipContent>
+        </Tooltip>
+    );
+}
+
+/**
+ * Where an add-on is billed. A posted add-on shows a tick, the folio and a link to it. One that is not posted shows a
+ * clock, and an arrow when routing sends it to another folio than the unit's own.
+ */
+function AddOnBillingCell({
+    reservationId,
+    row,
+}: {
+    reservationId: number;
+    row: AddOn;
+}) {
+    if (row.posted) {
+        return (
+            <span className="flex items-center gap-2">
+                <BillingIcon
+                    className="text-success"
+                    label={
+                        <span>
+                            Posted
+                            {row.folioLabel
+                                ? ` to ${row.folioLabel}`
+                                : ''} on{' '}
+                            <DateText date={row.postedOn} />
+                        </span>
+                    }
+                >
+                    <CircleCheck className="size-4" />
+                </BillingIcon>
+                {row.folioId !== null && (
+                    <Link
+                        href={folioTab.url(
+                            { reservation: reservationId },
+                            { query: { folio: row.folioId } },
+                        )}
+                        aria-label={`Open the folio line for ${row.chargeItem}`}
+                        className={cn(
+                            buttonVariants({
+                                variant: 'ghost',
+                                size: 'icon-sm',
+                            }),
+                        )}
+                    >
+                        <ExternalLink />
+                    </Link>
+                )}
+            </span>
+        );
+    }
+
+    return (
+        <span className="flex items-center gap-2 text-muted-foreground">
+            <BillingIcon
+                label={
+                    row.serviceDate ? (
+                        <span>
+                            Posts in the night audit of{' '}
+                            <DateText date={row.serviceDate} />
+                        </span>
+                    ) : (
+                        'Posts at check-in'
+                    )
+                }
+            >
+                <Clock className="size-4" />
+            </BillingIcon>
+            {row.routedTo && (
+                <BillingIcon label={`Posts to ${row.routedTo}`}>
+                    <ArrowRight className="size-4" />
+                </BillingIcon>
+            )}
+        </span>
+    );
+}
 
 /**
  * The Add-ons tab: flat rows grouped by unit. A nightly add-on has one row for each night.
@@ -45,7 +164,7 @@ export function AddOnsTab({
     const canAdd = canManage && openUnits.length > 0;
     const groups = Map.groupBy(addOns, (addOn) => addOn.unitId);
 
-    const columns = canManage ? 6 : 5;
+    const columns = canManage ? 7 : 6;
     const totalCents = addOns.reduce(
         (sum, addOn) => sum + Math.round(Number(addOn.total) * 100),
         0,
@@ -75,6 +194,7 @@ export function AddOnsTab({
                                 Unit amount
                             </TableHead>
                             <TableHead className="text-right">Total</TableHead>
+                            <TableHead>Billing</TableHead>
                             {canManage && (
                                 <TableHead className="w-12">
                                     <span className="sr-only">Actions</span>
@@ -125,16 +245,23 @@ export function AddOnsTab({
                                                 currency={currency}
                                             />
                                         </TableCell>
+                                        <TableCell>
+                                            <AddOnBillingCell
+                                                reservationId={reservationId}
+                                                row={row}
+                                            />
+                                        </TableCell>
                                         {canManage && (
                                             <TableCell className="text-right">
-                                                {openIds.has(row.unitId) && (
-                                                    <RemoveAddOnDialog
-                                                        reservationId={
-                                                            reservationId
-                                                        }
-                                                        addOn={row}
-                                                    />
-                                                )}
+                                                {!row.posted &&
+                                                    openIds.has(row.unitId) && (
+                                                        <RemoveAddOnDialog
+                                                            reservationId={
+                                                                reservationId
+                                                            }
+                                                            addOn={row}
+                                                        />
+                                                    )}
                                             </TableCell>
                                         )}
                                     </TableRow>
@@ -152,6 +279,7 @@ export function AddOnsTab({
                                         currency={currency}
                                     />
                                 </TableCell>
+                                <TableCell />
                                 {canManage && <TableCell />}
                             </TableRow>
                         </TableFooter>

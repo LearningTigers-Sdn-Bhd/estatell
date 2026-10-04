@@ -65,6 +65,7 @@ function TransferForm({
                             value: String(one.id),
                             label: one.label,
                         }))}
+                        placeholder="Choose a folio"
                         value={data.target_folio_id}
                         onValueChange={(value) =>
                             form.setData('target_folio_id', value)

@@ -204,6 +204,7 @@ function ApplyDiscountForm({
                             value: String(one.id),
                             label: describe(one),
                         }))}
+                        placeholder="Choose a discount"
                         value={form.data.discount_id}
                         onValueChange={(value) => {
                             const next = discounts.find(

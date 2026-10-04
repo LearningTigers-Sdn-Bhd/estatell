@@ -118,7 +118,7 @@ class PostCharge
                 $actor,
                 $folio,
                 $code,
-                $item?->name ?? (filled($data->description) ? trim((string) $data->description) : $code->name),
+                filled($data->description) ? trim((string) $data->description) : ($item?->name ?? $code->name),
                 $data->quantity,
                 $unitAmount,
                 $tax,

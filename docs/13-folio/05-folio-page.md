@@ -15,12 +15,33 @@ The server builds one list. The browser only draws it.
 
 - There is no forecast table. A night is Scheduled until its `night:{unit_night_id}` line exists. A nightly add-on is Scheduled until its row has a `folio_line_id`.
 - When the night audit posts a night, the same key matches, so the row moves from Scheduled to Posted. It cannot show twice.
-- Scheduled rows are muted and tagged "Scheduled". Tax on them is calculated live with `TaxCalculator`. Nothing is stored.
+- Scheduled rows are muted and carry the Scheduled marker (see [Row markers](#row-markers)). Tax on them is calculated live with `TaxCalculator`. Nothing is stored.
 - With `MasterPays`, the unit folio shows no Scheduled room rows. The master folio shows them (needs [Routing](03-routing.md)).
 
 ## Layout
 
-The folio panel has four rows: the title (folio name and status, with the invoice number under it when the folio has one, and Reopen or Close folio on the right), the figures, the action row, then the rows table. The action row holds one **Routing** dropdown (Routing rules, Third-party folio) on the left and the folio's own actions on the right (Apply discount, Record payment, Post charge). The whole panel scrolls. A reservation with no folio shows just the Routing dropdown above the empty state.
+The folio panel has four rows: the title (folio name and status, with the folio number under it ("Folio BSAA-26300001", and "· Invoice …" once the folio has an invoice number), and Reopen or Close folio on the right), the figures, the action row, then the rows table. The action row holds one **Routing** dropdown (Routing rules, Third-party folio) on the left and the folio's own actions on the right (Apply discount, Record payment, Post charge). The whole panel scrolls. A reservation with no folio shows just the Routing dropdown above the empty state.
+
+An icon-only button with a tooltip ("Hide summary" or "Show summary") sits after Close folio. It hides the reservation summary card on the right, and the folio panel takes its width, below `lg` too. The choice is remembered in the browser (`reservations.folio-summary-hidden`) and applies on the Folio tab only: the other tabs always show the summary, so it can never be lost. The page holds the state (`useSummaryHidden`) and passes `hideAside` to `ReservationWorkspace`.
+
+## Collapsing Scheduled rows
+
+The SCHEDULED header is a button with a chevron and `aria-expanded`. It hides or shows all Scheduled rows. It starts open. While collapsed it shows "N rows hidden". The state is local to the table and is not remembered. The POSTED header is plain text. Balance and Projected total do not change.
+
+## Row markers
+
+A row can carry markers. The server sends them as `tags`, a list of `FolioRowTag` cases with their label and tone (`BadgeData`). The browser draws each one as an icon with the label as its tooltip and accessible name. It never writes a label itself.
+
+| Marker     | Icon         | On                                        | Row treatment                                      |
+| ---------- | ------------ | ----------------------------------------- | -------------------------------------------------- |
+| Scheduled  | `Clock`      | Top-level Scheduled rows only             | Muted text                                         |
+| Overridden | `PencilLine` | A Scheduled night with an override        | Warning tint                                       |
+| Reversed   | `Ban`        | A reversed line and its reversed children | Warning tint, muted text, whole row struck through |
+| Reversal   | `Undo2`      | A reversal line and its children          | Warning tint, muted text                           |
+| Refund     | `RotateCcw`  | A refund payment row                      | Info tint                                          |
+
+- A row takes a light background tint from the tone of its first marker that has one (Overridden, Reversed and Reversal: warning, Refund: info), so a reversed line and its reversal read as a pair. Neutral markers leave the row plain. The icon and tooltip still carry the meaning, so color is never alone.
+- Scheduled discount and tax rows show no marker: the indent, the muted text and the section header already say it.
 
 ## Figures
 
@@ -46,7 +67,7 @@ A Scheduled night shows its discount as a child row, in the same order as a post
 
 `unit_nights.amount` is already net of the stay discount: `amount = COALESCE(override_amount, base + extra + supplement − discount_amount)` (database CHECK). A Scheduled night is drawn from its parts, so the stay discount is a child row.
 
-- A night with an `override_amount` has no breakdown, because the override replaces the whole sum. It shows as one row tagged "Overridden", with no discount child.
+- A night with an `override_amount` has no breakdown, because the override replaces the whole sum. It shows as one row with the Overridden marker, with no discount child.
 - The booking-time discount (`reservation_units.discount_id`) is not part of `amount`. It follows the child row rule above.
 
 ## Page and route
@@ -112,32 +133,37 @@ Row and folio actions call the existing Actions. A refusal writes and logs nothi
 | Close, Reopen   | `folio.close`, `folio.reopen`           | The folio header                                                     |
 | Record payment  | `payment.record`                        | The folio header of an Open folio, and a "not started" entry         |
 | Refund          | `payment.refund`                        | A Completed payment row with an amount left to refund                |
+| Print voucher   | `folio.print-voucher`                   | The folio header, and the row menu of a printable posted line        |
 | Third-party     | `folio.transfer`                        | The action row, for the reservation                                  |
 | Routing rules   | `folio.transfer`                        | The action row, for the reservation                                  |
 
-A Scheduled row has no actions. A "not started" entry has only Record payment.
+A Scheduled row has no actions except Print voucher. A "not started" entry has only Record payment and Print voucher.
 
 ### Routes
 
 One `ReservationFolioController` with named methods. The routes sit in the reservation group with `scopeBindings()`, so a folio or line of another reservation or property returns 404 (`Reservation` gets a `folios()` relation for it). A Form Request checks the shape only.
 
-| URL                                             | Name                                    | Action           | Permission          |
-| ----------------------------------------------- | --------------------------------------- | ---------------- | ------------------- |
-| `POST …/{reservation}/folios/{folio}/charges`   | `reservations.folios.charges.store`     | `PostCharge`     | `folio.post-charge` |
-| `POST …/folios/{folio}/lines/{line}/reversal`   | `reservations.folios.lines.reverse`     | `ReverseLine`    | `folio.reverse`     |
-| `POST …/folios/{folio}/transfers`               | `reservations.folios.transfers.store`   | `TransferLines`  | `folio.transfer`    |
-| `POST …/folios/{folio}/discounts/quote` (JSON)  | `reservations.folios.discounts.quote`   | `DiscountQuote`  | `folio.discount`    |
-| `POST …/folios/{folio}/discounts`               | `reservations.folios.discounts.store`   | `ApplyDiscount`  | `folio.discount`    |
-| `DELETE …/folios/{folio}/lines/{line}/discount` | `reservations.folios.discounts.destroy` | `RemoveDiscount` | `folio.discount`    |
+| URL                                                          | Name                                    | Action           | Permission            |
+| ------------------------------------------------------------ | --------------------------------------- | ---------------- | --------------------- |
+| `POST …/{reservation}/folios/{folio}/charges`                | `reservations.folios.charges.store`     | `PostCharge`     | `folio.post-charge`   |
+| `POST …/folios/{folio}/lines/{line}/reversal`                | `reservations.folios.lines.reverse`     | `ReverseLine`    | `folio.reverse`       |
+| `POST …/folios/{folio}/transfers`                            | `reservations.folios.transfers.store`   | `TransferLines`  | `folio.transfer`      |
+| `GET …/folios/{folio}/voucher?lines[]=…&scheduled[]=…` (PDF) | `reservations.folios.voucher`           | `FolioVoucher`   | `folio.print-voucher` |
+| `GET …/units/{unit}/voucher?scheduled[]=…` (PDF)             | `reservations.units.voucher`            | `FolioVoucher`   | `folio.print-voucher` |
+| `POST …/folios/{folio}/discounts/quote` (JSON)               | `reservations.folios.discounts.quote`   | `DiscountQuote`  | `folio.discount`      |
+| `POST …/folios/{folio}/discounts`                            | `reservations.folios.discounts.store`   | `ApplyDiscount`  | `folio.discount`      |
+| `DELETE …/folios/{folio}/lines/{line}/discount`              | `reservations.folios.discounts.destroy` | `RemoveDiscount` | `folio.discount`      |
 
 Record payment and Refund have their own `ReservationPaymentController` and routes, listed in [Payments and refunds](../14-payments/01-payments-and-refunds.md#routes).
 
 - **Refusal messages:** `FolioRefusals` maps each `PostingResult` refusal code (and the two tax refusals) to a message and a field, the way `ReservationRefusals` does. A form gets `errors()`, and an AlertDialog gets `message()` as a toast (`Inertia::flash('toast', ...)`).
 - **Server-driven buttons:** the server tells each row which actions it allows, from the user's permissions, the folio status and the row type. The browser never works it out. `FolioRowData` gets the line id and an `actions` list. `FolioData` gets `canPostCharge`, the units that can receive a posting, and the other Open folios as transfer targets.
-- **Option lists:** charge items and active discounts are optional props, read when a dialog opens, like the add-on dialog.
+- **Option lists:** charge items and active discounts are optional props, read when a dialog opens, like the add-on dialog. `chargeCodes` is read only by the Routing rules sheet.
 
 ### Post charge
 
+- The dialog picks a charge item, then quantity, amount (when the item allows one) and an optional description. There is no "Other amount" and no code picker: staff never choose a transaction code. A one-off charge uses the closest item and its own description, for example General fee, "Broken glass". A repeatable charge belongs in the [charge item catalogue](../06-catalogues/02-charge-items.md).
+- A description replaces the item name on the line. The placeholder shows the item name.
 - On a Unit folio the unit is fixed.
 - On a Master or Third-party folio the dialog has a Unit select (units that are CheckedIn or CheckedOut). `PostCharge` takes a unit and `FolioRouter` picks the folio, so the dialog says that routing decides the folio, and the success toast names the folio that received the charge.
 - The form sends `manual:{uuid}` as the idempotency key, so a double click posts once.
@@ -155,6 +181,34 @@ A single-row "Transfer…" in the row menu with a Select of the other Open folio
 Two steps, as the quote requires. The dialog picks a discount (and an amount when the discount is Open, or Fixed with `allow_override`), asks the quote route, shows the eligible charges and the amount, then applies with the quote's `fingerprint`. A changed ledger refuses with `quote_changed`, and the dialog asks for a new quote.
 
 **Open discount permission.** `ApplyDiscount` does not check permissions. An Open discount, or any amount that staff enter or change, needs `folio.discount-open`. A route middleware cannot tell, so the Form Request of the store and quote routes checks it. This is the one exception to "route middleware only"; the Percent and unchanged Fixed paths need only `folio.discount`.
+
+## Print voucher
+
+A voucher is a printed slip of any posted lines and Scheduled rows, for example a minibar slip the guest signs, or the tourism tax lines printed before the night audit posts them. It is one generic document: there is no tourism tax version, so staff tick the lines they want. It writes nothing and has no number. The folio number, the reservation reference and the posting dates identify it.
+
+```
+┌─ Print voucher ───────────────────────────────────────────────── ✕ ┐
+│ Quick select  (Charge) (Adjustment) (Tax)  [Clear]                 │
+│ ☑ Date         Description                          Amount         │
+│ ☑ 04 Oct 2026  Island hopping trip               MYR 360.00        │
+│ ☑              ↳ Tourism tax                      MYR 30.00        │
+│ ☐ 04 Oct 2026  Laundry                            MYR 10.00        │
+│ 2 lines selected                         Total MYR 390.00          │
+│                                   [Cancel]   [🖨 Print voucher]    │
+└────────────────────────────────────────────────────────────────────┘
+```
+
+- **Entry points:** a **Print voucher** button in the folio header opens the Dialog. **Print voucher** in the row menu of a posted line opens it with that line and its children already ticked.
+- **Which rows are listed:** posted lines that are not a payment (a payment has its receipt), not a reversal and not reversed, then the Scheduled rows of the open entry under a "Scheduled, not posted yet" heading. A tax or discount row can be ticked on its own, because a voucher only reads. The server sends `FolioRowData.printable` (true for a user who holds `folio.print-voucher`) and `kind` (a Scheduled row's kind comes from its key: `:tax:` is Tax, `:discount` and `:stay-discount` are Adjustment, anything else is Charge).
+- **Scheduled rows on the PDF:** they print like any other row, with no "Scheduled" heading, note or subtotal, because a hotel hands the voucher over as it is. Only the Dialog marks them. Posted rows come first in ledger order, then Scheduled rows by date, and the Total is one sum.
+- **Indent:** a discount or tax row is indented only when its parent charge is on the voucher too. Printed alone, it stands at the top with its date.
+- **A unit with no folio yet:** its "not started" entry can print a voucher of its Scheduled rows, so a hotel can hand over a tourism tax voucher before anything posts. It uses `GET …/units/{unit}/voucher?scheduled[]=…` (`reservations.units.voucher`, same permission). The PDF has no folio number and uses the reservation reference. A row that is not that unit's "not started" row is a 404, and `lines[]` is a 422.
+- **Quick select:** one button per `TransactionKind` except Payment (`voucher.kinds`). It ticks every listed line of that kind, and a second click unticks them.
+- **Limit:** up to `FolioVoucher::MAX_LINES` (100) rows, posted and Scheduled together. The Dialog disables Print above it and the request refuses it.
+- **Closed folio:** printing is still allowed, like the receipt.
+- **Route:** `GET …/folios/{folio}/voucher?lines[]=…&scheduled[]=…` (posted line ids and Scheduled row keys) streams the PDF inline as `voucher-{folio number}.pdf` in a new tab. The Dialog stays open, so the selection can change and print again. A line or Scheduled row that is not on the folio is a 404. A payment, a reversal or a reversed line is a 422 (the Dialog never offers one). An empty or oversized list is a validation error.
+- **Document:** `FolioVoucher` (service, read only) builds a `FolioVoucherDocument`. `Letterhead` supplies the property block and is shared with the receipt. The view is `resources/views/pdf/voucher.blade.php` (A4, table layout, dompdf): the property, "Voucher", the folio number and date, a guest block (name, nationality, reservation, stay), the chosen rows with children indented under their parent, the signed total, and signature lines. It prints two copies, "Guest copy" and "Hotel copy". The guest is the folio payer, or the booker.
+- **Permission:** `folio.print-voucher` for Owner, Manager, Front desk and Finance.
 
 ## Routing rules and third-party folios
 
@@ -249,9 +303,9 @@ Built (post, reverse and transfer): `ReservationFolioController` with `storeChar
 
 Decisions made at build time (actions):
 
-- A row offers actions only when it is a Posted charge with no parent, no reversal and no tag, on an Open folio. Reverse needs `folio.reverse`. Transfer needs `folio.transfer` and at least one other Open folio. The list is empty otherwise.
+- A row offers actions only when it is a Posted charge with no parent, no reversal and no marker, on an Open folio. Reverse needs `folio.reverse`. Transfer needs `folio.transfer` and at least one other Open folio. The list is empty otherwise.
 - `postUnits` holds the CheckedIn and CheckedOut units (only the folio's own unit on a Unit folio). `canPostCharge` is true when the folio is Open, the user has `folio.post-charge` and that list is not empty. `transferTargets` is sent only to a user with `folio.transfer`.
-- The post charge Dialog posts by charge item or by "Other amount" with a charge code and a description (`chargeCodes` are the active Charge codes). A catalogue item with a fixed price shows the price and sends it.
+- The post charge Dialog posts by charge item, with an optional description. An item with a fixed price shows the price and sends it. (An earlier version also had "Other amount" with a charge code; it was removed because staff should not pick codes.)
 - The success toast of a charge names the folio that received it. A transfer toast names the target folio.
 - A line, folio or target outside the reservation is a 404. `TransferLines` takes the lines the form names (the dialog sends one).
 
@@ -263,9 +317,9 @@ Decisions made at build time:
 - The rail lists folios that are not Voided. A "not started" entry exists only for a unit that has Scheduled rows with no target folio, so a unit whose rows route to the master gets no empty entry.
 - Taxes of the property are read once with the ids of their codes. A Scheduled row uses the booker's nationality, as `PostCharge` does. A refused tax (for example a missing nationality) shows no tax rows.
 - A Scheduled night shows the room at `base + extra + supplement`, then the stay discount (`discount_amount`), then the booking-time discount, then tax on what is left. A Percent booking-time discount takes its share of the night's net amount (after the stay discount). A Fixed one is taken once, from the first night of the unit, and never more than that night. An Open one shows nothing. The night audit must post the same amounts.
-- A night with an `override_amount` is one row tagged "Overridden", with no discount rows and the tax on the override.
+- A night with an `override_amount` is one row with the Overridden marker, with no discount rows and the tax on the override.
 - An add-on with no `service_date` shows on the unit's arrival date.
-- Posted rows follow the ledger: each charge or payment, then its children. A line with a reversal is tagged "Reversed", and a reversal line is tagged "Reversal". Posted lines carry no unit, so the Unit column shows only for Scheduled rows.
+- Posted rows follow the ledger: each charge or payment, then its children. A line with a reversal gets the Reversed marker, and a reversal line gets the Reversal marker. Posted lines carry no unit, so the Unit column shows only for Scheduled rows.
 - The Master is named "Master" and a third-party folio "Third party". A guest payer shows under the name. A company payer shows no name until [Companies](../15-city-ledger/01-companies.md) exists.
 
 ## Open

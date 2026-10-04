@@ -31,8 +31,7 @@ class StoreFolioChargeRequest extends FormRequest
 
         return [
             'unit_id' => [Rule::requiredIf($folio->reservation_unit_id === null), 'nullable', 'integer'],
-            'charge_item_id' => ['nullable', 'integer', 'required_without:transaction_code_id'],
-            'transaction_code_id' => ['nullable', 'integer'],
+            'charge_item_id' => ['required', 'integer'],
             'description' => ['nullable', 'string', 'max:120'],
             'quantity' => ['required', 'integer', 'min:1', 'max:999'],
             'unit_amount' => ['required', 'string', 'regex:/^\d+(\.\d{1,2})?$/'],
@@ -47,17 +46,15 @@ class StoreFolioChargeRequest extends FormRequest
     {
         return [
             'unit_amount.regex' => __('Enter an amount such as 25.00.'),
-            'charge_item_id.required_without' => __('Choose a charge.'),
+            'charge_item_id.required' => __('Choose a charge.'),
         ];
     }
 
     public function toChargeData(): NewChargeData
     {
-        $byItem = $this->filled('charge_item_id');
-
         return new NewChargeData(
-            chargeItemId: $byItem ? $this->integer('charge_item_id') : null,
-            transactionCodeId: ! $byItem && $this->filled('transaction_code_id') ? $this->integer('transaction_code_id') : null,
+            chargeItemId: $this->integer('charge_item_id'),
+            transactionCodeId: null,
             description: $this->filled('description') ? $this->string('description')->toString() : null,
             quantity: $this->integer('quantity'),
             unitAmount: $this->string('unit_amount')->toString(),

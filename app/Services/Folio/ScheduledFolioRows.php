@@ -3,8 +3,11 @@
 namespace App\Services\Folio;
 
 use App\Data\Folio\FolioRowData;
+use App\Data\Shared\BadgeData;
 use App\Enums\DiscountType;
+use App\Enums\FolioRowTag;
 use App\Enums\SystemTransactionCode;
+use App\Enums\TransactionKind;
 use App\Enums\UnitStatus;
 use App\Models\Discount;
 use App\Models\FolioLine;
@@ -127,14 +130,14 @@ class ScheduledFolioRows
         $tax = $this->tax($property, $code, $entered, '1', $nationality);
         $shift = $tax->isCalculated() ? $entered->minus($tax->netAmount) : Money::zero($currency);
 
-        $rows = [$this->row($key, $date, 'Room · '.$night->ratePlan->name, 0, $label, $gross->minus($shift), $overridden ? ['Scheduled', 'Overridden'] : ['Scheduled'])];
+        $rows = [$this->row($key, $date, 'Room · '.$night->ratePlan->name, 0, $label, $gross->minus($shift), $overridden ? [FolioRowTag::Scheduled, FolioRowTag::Overridden] : [FolioRowTag::Scheduled])];
 
         if ($stayDiscount->isPositive()) {
-            $rows[] = $this->row($key.':stay-discount', $date, 'Stay discount', 1, $label, $stayDiscount->negated(), ['Scheduled']);
+            $rows[] = $this->row($key.':stay-discount', $date, 'Stay discount', 1, $label, $stayDiscount->negated(), [FolioRowTag::Scheduled]);
         }
 
         if ($bookingDiscount->isPositive()) {
-            $rows[] = $this->row($key.':discount', $date, $unit->discount->name, 1, $label, $bookingDiscount->negated(), ['Scheduled']);
+            $rows[] = $this->row($key.':discount', $date, $unit->discount->name, 1, $label, $bookingDiscount->negated(), [FolioRowTag::Scheduled]);
         }
 
         return [...$rows, ...$this->taxRows($key, $date, $label, $tax)];
@@ -151,7 +154,7 @@ class ScheduledFolioRows
         $name = $addOn->chargeItem->name.($addOn->quantity > 1 ? ' ×'.$addOn->quantity : '');
 
         return [
-            $this->row($key, $date, $name, 0, $label, $tax->isCalculated() ? $tax->netAmount : $entered, ['Scheduled']),
+            $this->row($key, $date, $name, 0, $label, $tax->isCalculated() ? $tax->netAmount : $entered, [FolioRowTag::Scheduled]),
             ...$this->taxRows($key, $date, $label, $tax),
         ];
     }
@@ -187,16 +190,22 @@ class ScheduledFolioRows
     private function taxRows(string $key, string $date, ?string $label, TaxCalculationResult $tax): array
     {
         return array_map(
-            fn ($component): FolioRowData => $this->row($key.':tax:'.$component->taxId, $date, $component->name, 1, $label, $component->amount, ['Scheduled']),
+            fn ($component): FolioRowData => $this->row($key.':tax:'.$component->taxId, $date, $component->name, 1, $label, $component->amount, [FolioRowTag::Scheduled]),
             $tax->isCalculated() ? $tax->taxes : [],
         );
     }
 
     /**
-     * @param  list<string>  $tags
+     * @param  list<FolioRowTag>  $tags
      */
     private function row(string $key, string $date, string $description, int $level, ?string $unit, Money $amount, array $tags): FolioRowData
     {
-        return new FolioRowData($key, 'scheduled', $date, $description, $level, $unit, (string) $amount->getAmount(), $tags);
+        $kind = match (true) {
+            str_contains($key, ':tax:') => TransactionKind::Tax,
+            str_ends_with($key, ':discount'), str_ends_with($key, ':stay-discount') => TransactionKind::Adjustment,
+            default => TransactionKind::Charge,
+        };
+
+        return new FolioRowData($key, 'scheduled', $date, $description, $level, $unit, (string) $amount->getAmount(), array_map(BadgeData::fromFolioRowTag(...), $tags), kind: $kind);
     }
 }

@@ -202,7 +202,7 @@ test('payment rows carry the reference, the amount left and the refund action on
             && $row($rows->all(), $payment->folio_line_id)['paymentId'] === $payment->id
             && $row($rows->all(), $payment->folio_line_id)['refundable'] === '50.00'
             && $row($rows->all(), $payment->folio_line_id)['actions'] === ['refund']
-            && $row($rows->all(), $refund->folio_line_id)['tags'] === ['Refund']
+            && $row($rows->all(), $refund->folio_line_id)['tags'][0]['value'] === 'refund'
             && $row($rows->all(), $refund->folio_line_id)['actions'] === []
             && $row($rows->all(), $full->folio_line_id)['refundable'] === '0.00'
             && $row($rows->all(), $full->folio_line_id)['actions'] === []));
@@ -230,7 +230,7 @@ test('a not-started entry offers Record payment for its unit, and a closed folio
         ->where('folio.canRecordPayment', false)
         ->where('folio.rows', fn ($rows) => collect($rows)->every(fn ($row) => $row['actions'] === []))
         ->where('folio.rows', fn ($rows) => collect($rows)->firstWhere('lineId', $payment->folio_line_id)['hasReceipt'] === true
-            && collect($rows)->where('tags', ['Refund'])->every(fn ($row) => $row['hasReceipt'] === false)));
+            && collect($rows)->filter(fn ($row) => collect($row['tags'])->pluck('value')->all() === ['refund'])->every(fn ($row) => $row['hasReceipt'] === false)));
 });
 
 test('the payment routes need their permission and stay inside the property and the reservation', function () {

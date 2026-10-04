@@ -30,7 +30,7 @@ beforeEach(function () {
  * A live property with an open business date, an owner, a reservation with one checked-in unit that already has a
  * Unit folio, and the room revenue code.
  *
- * @return array{user: User, property: Property, reservation: Reservation, unit: ReservationUnit, folio: Folio, room: TransactionCode}
+ * @return array{user: User, property: Property, reservation: Reservation, unit: ReservationUnit, folio: Folio, room: TransactionCode, item: ChargeItem}
  */
 function faSetup(): array
 {
@@ -49,6 +49,7 @@ function faSetup(): array
         'unit' => $unit,
         'folio' => app(CreateFolio::class)($reservation, $unit),
         'room' => TransactionCode::factory()->system(SystemTransactionCode::RoomRevenue)->create(['property_id' => $property->id]),
+        'item' => ChargeItem::factory()->create(['property_id' => $property->id, 'default_amount' => null]),
     ];
 }
 
@@ -61,7 +62,7 @@ function faUrl(array $setup, string $route, Folio $folio, array $extra = []): st
 function faCharge(array $setup, array $overrides = []): array
 {
     return [
-        'transaction_code_id' => $setup['room']->id,
+        'charge_item_id' => $setup['item']->id,
         'quantity' => 1,
         'unit_amount' => '40.00',
         'idempotency_key' => 'manual:'.fake()->uuid(),
@@ -99,6 +100,16 @@ test('posting a charge on a unit folio posts for its unit and names the folio in
         ->and(Activity::query()->where('event', 'folio.charge_posted')->count())->toBe(1);
 });
 
+test('a description replaces the item name on the line', function () {
+    $setup = faSetup();
+    $url = faUrl($setup, 'reservations.folios.charges.store', $setup['folio']);
+
+    $this->actingAs($setup['user'])->post($url, faCharge($setup, ['description' => 'Broken glass']))->assertSessionHasNoErrors();
+    $this->actingAs($setup['user'])->post($url, faCharge($setup))->assertSessionHasNoErrors();
+
+    expect($setup['folio']->lines()->orderBy('id')->pluck('description')->all())->toBe(['Broken glass', $setup['item']->name]);
+});
+
 test('the same idempotency key posts once', function () {
     $setup = faSetup();
     $payload = faCharge($setup);
@@ -128,7 +139,7 @@ test('a charge refusal comes back as an error on its field and writes nothing', 
     $item = ChargeItem::factory()->create(['property_id' => $setup['property']->id, 'default_amount' => '25.00', 'allow_override' => false]);
     $url = faUrl($setup, 'reservations.folios.charges.store', $setup['folio']);
     $body = match ($field) {
-        'unit_amount' => faCharge($setup, ['transaction_code_id' => null, 'charge_item_id' => $item->id, 'unit_amount' => '30.00']),
+        'unit_amount' => faCharge($setup, ['charge_item_id' => $item->id, 'unit_amount' => '30.00']),
         default => faCharge($setup, $payload),
     };
 
@@ -140,7 +151,7 @@ test('a charge refusal comes back as an error on its field and writes nothing', 
     'bad amount' => [['unit_amount' => '0.00'], 'unit_amount'],
     'price not changeable' => [[], 'unit_amount'],
     'bad quantity' => [['quantity' => 1000], 'quantity'],
-    'no charge' => [['transaction_code_id' => null], 'charge_item_id'],
+    'no charge' => [['charge_item_id' => null], 'charge_item_id'],
 ]);
 
 test('a unit that is not checked in refuses the charge', function () {

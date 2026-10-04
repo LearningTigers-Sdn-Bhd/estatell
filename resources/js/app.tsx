@@ -6,6 +6,7 @@ import AdminLayout from '@/layouts/admin-layout';
 import AppLayout from '@/layouts/app-layout';
 import AuthLayout from '@/layouts/auth-layout';
 import AccountLayout from '@/layouts/account/layout';
+import { setUrlDefaults } from '@/wayfinder';
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 
@@ -32,7 +33,13 @@ void createInertiaApp({
         }
     },
     strictMode: true,
-    withApp(app) {
+    withApp(app, { page }) {
+        // A page's breadcrumb links are built before AppLayout renders, so the property default is set here as well. Without
+        // it the server render writes `/p/$property/...` and the browser writes the real code, which breaks hydration.
+        setUrlDefaults({
+            property: (page.props.property as { code?: number } | null)?.code,
+        });
+
         return (
             <TooltipProvider delay={0}>
                 <FlashToaster>{app}</FlashToaster>

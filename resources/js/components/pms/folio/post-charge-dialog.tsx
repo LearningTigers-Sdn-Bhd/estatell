@@ -30,22 +30,17 @@ import { store } from '@/routes/reservations/folios/charges';
 
 type Folio = App.Data.Folio.FolioData;
 type ChargeItem = App.Data.Reservations.ChargeItemOptionData;
-type ChargeCode = App.Data.Reservations.ChargeCodeOptionData;
-
-const OTHER = 'other';
 
 function PostChargeForm({
     reservationId,
     folio,
     chargeItems,
-    chargeCodes,
     currency,
     onDone,
 }: {
     reservationId: number;
     folio: Folio;
     chargeItems: ChargeItem[];
-    chargeCodes: ChargeCode[];
     currency: App.Enums.Currency | null;
     onDone: () => void;
 }) {
@@ -53,34 +48,29 @@ function PostChargeForm({
     const form = useForm({
         unit_id: String(folio.postUnits[0]?.id ?? ''),
         charge_item_id: '',
-        transaction_code_id: '',
         description: '',
         quantity: '1',
         unit_amount: '',
     });
     const { data, errors } = form;
-    const isOther = data.charge_item_id === OTHER;
     const item = chargeItems.find(
         (one) => String(one.id) === data.charge_item_id,
     );
-    const picked = isOther || item !== undefined;
+    const picked = item !== undefined;
     const showAmount =
-        isOther ||
-        (item !== undefined &&
-            (item.allowOverride || item.defaultAmount === null));
+        item !== undefined &&
+        (item.allowOverride || item.defaultAmount === null);
 
     const submit = (event: React.FormEvent) => {
         event.preventDefault();
         form.transform((values) => ({
             unit_id: folio.postUnits.length > 1 ? values.unit_id : '',
-            charge_item_id: isOther ? '' : values.charge_item_id,
-            transaction_code_id: isOther ? values.transaction_code_id : '',
-            description: isOther ? values.description : '',
+            charge_item_id: values.charge_item_id,
+            description: values.description,
             quantity: values.quantity,
-            unit_amount:
-                !isOther && !showAmount
-                    ? (item?.defaultAmount ?? '')
-                    : values.unit_amount,
+            unit_amount: showAmount
+                ? values.unit_amount
+                : (item?.defaultAmount ?? ''),
             idempotency_key: key,
         }));
         form.post(
@@ -126,13 +116,11 @@ function PostChargeForm({
                     <FieldLabel htmlFor="charge-choice">Charge</FieldLabel>
                     <EnumSelect
                         id="charge-choice"
-                        options={[
-                            ...chargeItems.map((one) => ({
-                                value: String(one.id),
-                                label: one.name,
-                            })),
-                            { value: OTHER, label: 'Other amount' },
-                        ]}
+                        options={chargeItems.map((one) => ({
+                            value: String(one.id),
+                            label: one.name,
+                        }))}
+                        placeholder="Choose a charge"
                         value={data.charge_item_id}
                         onValueChange={(value) => {
                             const next = chargeItems.find(
@@ -149,45 +137,26 @@ function PostChargeForm({
                     />
                     <FieldError>{errors.charge_item_id}</FieldError>
                 </Field>
-                {isOther && (
-                    <>
-                        <Field data-invalid={!!errors.transaction_code_id}>
-                            <FieldLabel htmlFor="charge-code">Code</FieldLabel>
-                            <EnumSelect
-                                id="charge-code"
-                                options={chargeCodes.map((one) => ({
-                                    value: String(one.id),
-                                    label: `${one.code} · ${one.name}`,
-                                }))}
-                                value={data.transaction_code_id}
-                                onValueChange={(value) =>
-                                    form.setData('transaction_code_id', value)
-                                }
-                                aria-invalid={!!errors.transaction_code_id}
-                            />
-                            <FieldError>
-                                {errors.transaction_code_id}
-                            </FieldError>
-                        </Field>
-                        <Field data-invalid={!!errors.description}>
-                            <FieldLabel htmlFor="charge-description">
-                                Description
-                            </FieldLabel>
-                            <Input
-                                id="charge-description"
-                                maxLength={120}
-                                value={data.description}
-                                onChange={(event) =>
-                                    form.setData(
-                                        'description',
-                                        event.target.value,
-                                    )
-                                }
-                                aria-invalid={!!errors.description}
-                            />
-                            <FieldError>{errors.description}</FieldError>
-                        </Field>
-                    </>
+                {picked && (
+                    <Field data-invalid={!!errors.description}>
+                        <FieldLabel htmlFor="charge-description">
+                            Description
+                        </FieldLabel>
+                        <Input
+                            id="charge-description"
+                            maxLength={120}
+                            placeholder={item.name}
+                            value={data.description}
+                            onChange={(event) =>
+                                form.setData('description', event.target.value)
+                            }
+                            aria-invalid={!!errors.description}
+                        />
+                        <FieldDescription>
+                            Optional. Replaces the name on the folio line.
+                        </FieldDescription>
+                        <FieldError>{errors.description}</FieldError>
+                    </Field>
                 )}
                 {picked && (
                     <Field data-invalid={!!errors.quantity}>
@@ -263,7 +232,6 @@ export function PostChargeDialog({
     reservationId,
     folio,
     chargeItems,
-    chargeCodes,
     currency,
 }: {
     open: boolean;
@@ -271,12 +239,11 @@ export function PostChargeDialog({
     reservationId: number;
     folio: Folio;
     chargeItems?: ChargeItem[];
-    chargeCodes?: ChargeCode[];
     currency: App.Enums.Currency | null;
 }) {
-    const loaded = chargeItems !== undefined && chargeCodes !== undefined;
+    const loaded = chargeItems !== undefined;
 
-    useFormOptions(open, loaded, ['chargeItems', 'chargeCodes']);
+    useFormOptions(open, loaded, ['chargeItems']);
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
@@ -284,8 +251,8 @@ export function PostChargeDialog({
                 <DialogHeader>
                     <DialogTitle>Post charge</DialogTitle>
                     <DialogDescription>
-                        Add a charge from the catalogue, or any amount with a
-                        charge code.
+                        Add a charge from the catalogue. For a one-off, pick the
+                        closest item and describe it.
                     </DialogDescription>
                 </DialogHeader>
                 {!loaded ? (
@@ -297,7 +264,6 @@ export function PostChargeDialog({
                         reservationId={reservationId}
                         folio={folio}
                         chargeItems={chargeItems}
-                        chargeCodes={chargeCodes}
                         currency={currency}
                         onDone={() => onOpenChange(false)}
                     />

@@ -14,6 +14,7 @@ import { ReservationSummary } from '@/components/pms/reservations/reservation-su
 import { StatusByUnitPopover } from '@/components/pms/reservations/status-by-unit-popover';
 import { ReservationWorkspace } from '@/components/pms/reservations/reservation-workspace';
 import { UnitsList, UnitsTab } from '@/components/pms/reservations/units-tab';
+import { useSummaryHidden } from '@/components/pms/reservations/use-summary-hidden';
 import { Badge } from '@/components/ui/badge';
 import {
     activity as activityTab,
@@ -46,6 +47,7 @@ type Props = {
     folio?: App.Data.Folio.FolioData | null;
     canManageRouting?: boolean;
     routingRules?: App.Data.Folio.RoutingRulesData | null;
+    voucher: { kinds: { value: string; label: string }[]; maxLines: number };
     activity?: Illuminate.LengthAwarePaginator<
         number,
         App.Data.Reservations.ReservationActivityData
@@ -72,6 +74,7 @@ export default function ReservationShow({
     folio = null,
     canManageRouting = false,
     routingRules,
+    voucher,
     activity,
 }: Props) {
     const key = { reservation: reservation.id };
@@ -107,6 +110,8 @@ export default function ReservationShow({
             href: activityTab.url(key),
         },
     ];
+
+    const [summaryHidden, toggleSummary] = useSummaryHidden();
 
     const list =
         tab === 'folio' && folio !== null && folios.length > 1 ? (
@@ -181,6 +186,7 @@ export default function ReservationShow({
                 >
                     <ReservationWorkspace
                         list={list}
+                        hideAside={tab === 'folio' && summaryHidden}
                         aside={
                             <ReservationSummary
                                 reservation={reservation}
@@ -215,6 +221,9 @@ export default function ReservationShow({
                                 paymentOptions={paymentOptions}
                                 canManageRouting={canManageRouting}
                                 routingRules={routingRules}
+                                voucher={voucher}
+                                summaryHidden={summaryHidden}
+                                onToggleSummary={toggleSummary}
                                 currency={currency}
                             />
                         ) : tab === 'activity' && activity ? (

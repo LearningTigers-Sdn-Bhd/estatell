@@ -2,6 +2,7 @@
 
 namespace App\Data\Shared;
 
+use App\Enums\FolioRowTag;
 use App\Enums\FolioStatus;
 use App\Enums\PropertyStatus;
 use App\Enums\RatePlanStatus;
@@ -29,6 +30,11 @@ class BadgeData extends Data
     public static function fromFolioStatus(FolioStatus $status): self
     {
         return new self($status->value, $status->label(), $status->tone());
+    }
+
+    public static function fromFolioRowTag(FolioRowTag $tag): self
+    {
+        return new self($tag->value, $tag->label(), $tag->tone());
     }
 
     public static function fromRatePlanStatus(RatePlanStatus $status): self

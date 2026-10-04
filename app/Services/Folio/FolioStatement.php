@@ -8,6 +8,7 @@ use App\Data\Folio\FolioRailItemData;
 use App\Data\Folio\FolioRowData;
 use App\Data\Reservations\ReservationUnitOptionData;
 use App\Data\Shared\BadgeData;
+use App\Enums\FolioRowTag;
 use App\Enums\FolioStatus;
 use App\Enums\FolioType;
 use App\Enums\PaymentStatus;
@@ -38,7 +39,7 @@ class FolioStatement
      * what is allowed now, so the page never works it out.
      *
      * @param  list<ReservationUnitOptionData>  $units
-     * @param  array{postCharge?: bool, reverse?: bool, transfer?: bool, discount?: bool, close?: bool, reopen?: bool, recordPayment?: bool, refund?: bool}  $can
+     * @param  array{postCharge?: bool, reverse?: bool, transfer?: bool, discount?: bool, close?: bool, reopen?: bool, recordPayment?: bool, refund?: bool, printVoucher?: bool}  $can
      * @return array{folios: list<FolioRailItemData>, folio: FolioData|null}
      */
     public function build(Property $property, Reservation $reservation, array $units, string $selected = '', array $can = []): array
@@ -178,7 +179,11 @@ class FolioStatement
             ->filter(fn (array $block): bool => $folio === null ? ($block['target'] === null && $block['unit'] === $entry['unit']) : $block['target'] === $folio->id)
             ->flatMap(fn (array $block): array => $block['rows'])
             ->values();
-        [$posted, $discountable] = $folio === null ? [collect(), false] : $this->postedRows($folio, $allowed, $isOpen && ($can['discount'] ?? false), $isOpen && ($can['refund'] ?? false), $can['recordPayment'] ?? false);
+        if ($can['printVoucher'] ?? false) {
+            $scheduled->each(fn (FolioRowData $row) => $row->printable = true);
+        }
+
+        [$posted, $discountable] = $folio === null ? [collect(), false] : $this->postedRows($folio, $allowed, $isOpen && ($can['discount'] ?? false), $isOpen && ($can['refund'] ?? false), $can['recordPayment'] ?? false, $can['printVoucher'] ?? false);
         $balance = $folio === null ? null : ($balances[$folio->id] ?? '0.00');
         $projected = $scheduled->reduce(fn (BigDecimal $sum, FolioRowData $row): BigDecimal => $sum->plus($row->amount), BigDecimal::of($balance ?? '0'));
 
@@ -187,6 +192,7 @@ class FolioStatement
             kind: $entry['item']->kind,
             name: $entry['item']->name,
             status: $entry['item']->status,
+            number: $folio?->number,
             invoiceNumber: $folio?->invoice_number,
             balance: $balance,
             projectedTotal: (string) $projected->toScale(2),
@@ -199,6 +205,7 @@ class FolioStatement
             postUnits: $postUnits,
             transferTargets: $targets,
             canRecordPayment: ($can['recordPayment'] ?? false) && ($folio === null || $isOpen),
+            canPrintVoucher: $posted->contains(fn (FolioRowData $row): bool => $row->printable) || $scheduled->contains(fn (FolioRowData $row): bool => $row->printable),
             paymentUnitId: $folio === null ? $entry['unit'] : null,
         );
     }
@@ -214,7 +221,7 @@ class FolioStatement
      * @param  list<string>  $allowed
      * @return array{0: Collection<int, FolioRowData>, 1: bool}
      */
-    private function postedRows(Folio $folio, array $allowed, bool $canRemoveDiscount, bool $canRefund, bool $canDownloadReceipt): array
+    private function postedRows(Folio $folio, array $allowed, bool $canRemoveDiscount, bool $canRefund, bool $canDownloadReceipt, bool $canPrintVoucher): array
     {
         $lines = $folio->lines()->orderBy('posting_date')->orderBy('id')->get();
         $payments = $folio->payments()->withSum('refunds', 'amount')->get()->keyBy('folio_line_id');
@@ -222,15 +229,15 @@ class FolioStatement
         $children = $lines->whereNotNull('parent_line_id')->groupBy('parent_line_id');
         $rows = collect();
 
-        $walk = function (FolioLine $line, int $level) use (&$walk, $children, $reversed, $rows, $allowed, $canRemoveDiscount, $payments, $canRefund, $canDownloadReceipt): void {
+        $walk = function (FolioLine $line, int $level) use (&$walk, $children, $reversed, $rows, $allowed, $canRemoveDiscount, $payments, $canRefund, $canDownloadReceipt, $canPrintVoucher): void {
             $tags = [];
 
             if ($line->reversal_of_id !== null) {
-                $tags[] = 'Reversal';
+                $tags[] = FolioRowTag::Reversal;
             }
 
             if ($reversed->has($line->id)) {
-                $tags[] = 'Reversed';
+                $tags[] = FolioRowTag::Reversed;
             }
 
             $live = $tags === [];
@@ -243,13 +250,13 @@ class FolioStatement
             $refundable = null;
 
             if ($payment !== null && $payment->refund_of_id !== null) {
-                $tags[] = 'Refund';
+                $tags[] = FolioRowTag::Refund;
             } elseif ($payment !== null) {
                 $refundable = (string) BigDecimal::of($payment->amount)->minus((string) ($payment->refunds_sum_amount ?? '0'))->toScale(2);
                 $actions = $canRefund && $payment->status === PaymentStatus::Completed && BigDecimal::of($refundable)->isPositive() ? ['refund'] : [];
             }
 
-            $rows->push(new FolioRowData('line:'.$line->id, 'posted', $line->posting_date->toDateString(), $line->description, min($level, 2), null, (string) $line->amount, $tags, $line->id, $actions, $payment?->reference, $payment?->id, $refundable, $canDownloadReceipt && $payment !== null && $payment->refund_of_id === null));
+            $rows->push(new FolioRowData('line:'.$line->id, 'posted', $line->posting_date->toDateString(), $line->description, min($level, 2), null, (string) $line->amount, array_map(BadgeData::fromFolioRowTag(...), $tags), $line->id, $actions, $payment?->reference, $payment?->id, $refundable, $canDownloadReceipt && $payment !== null && $payment->refund_of_id === null, $line->kind, $canPrintVoucher && FolioVoucher::isPrintable($line, $reversed->has($line->id))));
 
             foreach ($children->get($line->id, []) as $child) {
                 $walk($child, $level + 1);

@@ -178,7 +178,7 @@ A fixed-height workspace (see [Detail workspace](../design-system/04-page-archet
 | Folio                     | Folio rail             | Folio table and actions       | Summary card    |
 | Guests, Add-ons, Activity | – (two panels instead) | Tab content, full panel width | Summary card    |
 
-The Units list is hidden for one unit, and the Folio rail for one folio, so those tabs also show two panels. Below `lg` the panels stack in one scrolling column, with the summary card first, and the unit list becomes a select.
+The Units list is hidden for one unit, and the Folio rail for one folio, so those tabs also show two panels. On the Folio tab an icon button after Close folio hides the summary card, and the folio panel takes its width (see [Folio page](../13-folio/05-folio-page.md#layout)). Below `lg` the panels stack in one scrolling column, with the summary card first, and the unit list becomes a select.
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────────────────────┐
@@ -258,7 +258,17 @@ Built: `AttachGuest`, `AttachGuestResult` and the Sheet. The Sheet's unit select
 
 ### Add-ons tab
 
-A title row (Add-ons, with the **+ Add add-on** button on the right) above one rounded, bordered table. Rows are grouped by unit, with a shaded group row per unit: charge item, quantity, service date, unit amount, total. With no add-ons the table still shows its header, with the empty state in one body row and no footer. A footer row shows the Total of all add-ons (a display sum of the row totals, in cents). A nightly add-on shows one row per night. **+ Add add-on** opens a Dialog (`AddUnitAddOn`, see [Add-ons](04-add-ons.md)). Each row has **Remove** with an AlertDialog confirm (`RemoveUnitAddOn`).
+A title row (Add-ons, with the **+ Add add-on** button on the right) above one rounded, bordered table. Rows are grouped by unit, with a shaded group row per unit: charge item, quantity, service date, unit amount, total. With no add-ons the table still shows its header, with the empty state in one body row and no footer. A footer row shows the Total of all add-ons (a display sum of the row totals, in cents). A nightly add-on shows one row per night. **+ Add add-on** opens a Dialog (`AddUnitAddOn`, see [Add-ons](04-add-ons.md)). Each row has **Remove** with an AlertDialog confirm (`RemoveUnitAddOn`), except a posted row, which has no Remove: correct it with Reverse on the folio.
+
+A **Billing** column shows where each add-on is billed, as icons with tooltips (`AddOnBilling` service, read only, fixed number of queries):
+
+| State                                   | Icon                                      | Tooltip                                                                           |
+| --------------------------------------- | ----------------------------------------- | --------------------------------------------------------------------------------- |
+| Posted (`folio_line_id` set)            | Tick, and a link to the folio (`?folio=`) | "Posted to {folio} on {date}"                                                     |
+| Not posted                              | Clock                                     | "Posts in the night audit of {date}", or "Posts at check-in" with no date         |
+| Not posted, routed away from unit folio | Clock, then an arrow                      | "Posts to {folio}" (a routing rule sends it to the Master or a third-party folio) |
+
+An add-on on a Cancelled, NoShow or CheckedOut unit never posts, so it shows no routing arrow.
 
 ### Activity tab
 

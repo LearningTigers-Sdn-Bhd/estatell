@@ -110,7 +110,7 @@ test('a unit with no folio gets a not-started entry with its scheduled nights', 
         ->where('folio.lineCount', 0)
         ->has('folio.rows', 2)
         ->where('folio.rows.0.state', 'scheduled')
-        ->where('folio.rows.0.tags', ['Scheduled']));
+        ->where('folio.rows.0.tags.0.value', 'scheduled')->has('folio.rows.0.tags', 1));
 });
 
 test('a scheduled night shows its stay discount, booking discount and tax in order', function () {
@@ -139,7 +139,7 @@ test('an overridden night is one row without a discount child', function () {
     ftGet($setup)->assertInertia(fn (Assert $page) => $page
         ->has('folio.rows', 1)
         ->where('folio.rows.0.amount', '250.00')
-        ->where('folio.rows.0.tags', ['Scheduled', 'Overridden']));
+        ->where('folio.rows.0.tags.0.value', 'scheduled')->where('folio.rows.0.tags.1.value', 'overridden')->has('folio.rows.0.tags', 2));
 });
 
 test('a posted night key replaces its scheduled row so a night never shows twice', function () {
@@ -201,11 +201,11 @@ test('posted lines come in ledger order with children and reversal tags', functi
     app(ReverseLine::class)($setup['user'], $charge);
 
     ftGet($setup, ['folio' => (string) $charge->folio_id])->assertInertia(fn (Assert $page) => $page
-        ->where('folio.rows', fn ($rows) => collect($rows)->take(4)->map(fn ($row) => [$row['level'], $row['tags']])->all() === [
-            [0, ['Reversed']],
-            [1, ['Reversed']],
-            [0, ['Reversal']],
-            [1, ['Reversal']],
+        ->where('folio.rows', fn ($rows) => collect($rows)->take(4)->map(fn ($row) => [$row['level'], collect($row['tags'])->pluck('value')->all()])->all() === [
+            [0, ['reversed']],
+            [1, ['reversed']],
+            [0, ['reversal']],
+            [1, ['reversal']],
         ])
         ->where('folio.balance', '0.00'));
 });

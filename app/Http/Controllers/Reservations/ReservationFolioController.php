@@ -12,6 +12,7 @@ use App\Actions\Folio\ReverseLine;
 use App\Actions\Folio\TransferLines;
 use App\Data\Folio\FolioDiscountQuoteResponseData;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Folio\FolioVoucherRequest;
 use App\Http\Requests\Folio\QuoteFolioDiscountRequest;
 use App\Http\Requests\Folio\StoreFolioChargeRequest;
 use App\Http\Requests\Folio\StoreFolioDiscountRequest;
@@ -21,12 +22,17 @@ use App\Models\Folio;
 use App\Models\FolioLine;
 use App\Models\Property;
 use App\Models\Reservation;
+use App\Models\ReservationUnit;
 use App\Services\Folio\DiscountQuote;
 use App\Services\Folio\FolioRefusals;
+use App\Services\Folio\FolioVoucher;
+use App\Services\Folio\FolioVoucherDocument;
 use App\Services\NightAudit\CurrentBusinessDate;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Inertia\Inertia;
 
 class ReservationFolioController extends Controller
@@ -167,6 +173,52 @@ class ReservationFolioController extends Controller
     private function discount(Property $property, int $id): Discount
     {
         return Discount::query()->where('property_id', $property->id)->active()->findOrFail($id);
+    }
+
+    /**
+     * A voucher for the posted lines in `?lines[]=` and the Scheduled rows in `?scheduled[]=` (row keys), as an A4 PDF
+     * shown inline so staff can print or save it. It is rendered on demand and not stored. A line or Scheduled row that
+     * is not on this folio is a 404. A line that cannot be printed (a payment, a reversal or a reversed line) is a 422,
+     * because the dialog never offers one.
+     */
+    public function voucher(FolioVoucherRequest $request, Property $property, Reservation $reservation, Folio $folio, FolioVoucher $voucher): Response
+    {
+        $ids = $request->lineIds();
+        $keys = $request->scheduledKeys();
+
+        abort_unless($folio->lines()->whereIn('id', $ids)->count() === count($ids), 404);
+        abort_unless($voucher->printableLines($folio)->whereIn('id', $ids)->count() === count($ids), 422);
+
+        $scheduled = $keys === [] ? collect() : $voucher->scheduledRows($property, $reservation, $folio)->whereIn('key', $keys)->values();
+
+        abort_unless($scheduled->count() === count($keys), 404);
+
+        return $this->pdf($voucher->forLines($folio, $ids, $scheduled), $folio->number);
+    }
+
+    /**
+     * A voucher of Scheduled rows for a unit that has no folio yet (nothing has posted for it). Only `?scheduled[]=`
+     * applies. A row that does not belong to this unit's "not started" entry is a 404.
+     */
+    public function unitVoucher(FolioVoucherRequest $request, Property $property, Reservation $reservation, ReservationUnit $unit, FolioVoucher $voucher): Response
+    {
+        $keys = $request->scheduledKeys();
+
+        abort_unless($request->lineIds() === [], 422);
+
+        $scheduled = $voucher->scheduledRows($property, $reservation, null, $unit)->whereIn('key', $keys)->values();
+
+        abort_unless($scheduled->count() === count($keys), 404);
+
+        return $this->pdf($voucher->forUnit($property, $unit, $scheduled), $reservation->reference);
+    }
+
+    private function pdf(FolioVoucherDocument $document, string $name): Response
+    {
+        return Pdf::loadView('pdf.voucher', ['voucher' => $document])
+            ->setPaper('a4', 'portrait')
+            ->setOption('isFontSubsettingEnabled', true)
+            ->stream('voucher-'.$name.'.pdf');
     }
 
     private function page(Property $property, Reservation $reservation, Folio $folio): string

@@ -110,6 +110,7 @@ key: string,
 kind: string,
 name: string,
 status: App.Data.Shared.BadgeData | null,
+number: string | null,
 invoiceNumber: string | null,
 balance: string | null,
 projectedTotal: string,
@@ -123,6 +124,7 @@ postUnits: App.Data.Folio.FolioOptionData[],
 transferTargets: App.Data.Folio.FolioOptionData[],
 canRecordPayment: boolean,
 paymentUnitId: number | null,
+canPrintVoucher: boolean,
 };
 export type FolioDiscountOptionData = {
 id: number,
@@ -157,13 +159,15 @@ description: string,
 level: number,
 unit: string | null,
 amount: string,
-tags: string[],
+tags: App.Data.Shared.BadgeData[],
 lineId: number | null,
 actions: string[],
 note: string | null,
 paymentId: number | null,
 refundable: string | null,
 hasReceipt: boolean,
+kind: App.Enums.TransactionKind | null,
+printable: boolean,
 };
 export type NewChargeData = {
 chargeItemId: number | null,
@@ -827,6 +831,11 @@ quantity: number,
 serviceDate: string | null,
 unitAmount: string,
 total: string,
+posted: boolean,
+folioId: number | null,
+folioLabel: string | null,
+postedOn: string | null,
+routedTo: string | null,
 };
 export type ReservationBookerData = {
 id: number | null,
@@ -1093,6 +1102,7 @@ export type DiscountType = 'percent' | 'fixed' | 'open';
 export type DocumentType = 'reservation' | 'folio' | 'invoice' | 'credit_note' | 'receipt' | 'registration_card';
 export type DormStrategy = 'bed_as_unit' | 'native_dorm';
 export type EarlyDeparturePolicy = 'charge_full' | 'charge_used_nights';
+export type FolioRowTag = 'scheduled' | 'overridden' | 'reversed' | 'reversal' | 'refund';
 export type FolioStatus = 'open' | 'closed' | 'voided';
 export type FolioType = 'master' | 'unit' | 'third_party';
 export type Gender = 'male' | 'female';
@@ -1114,7 +1124,7 @@ export type PackageUnit = 'per_guest' | 'per_room';
 export type PaymentMethodType = 'cash' | 'card' | 'bank_transfer' | 'e_wallet' | 'ota_collected' | 'direct_bill';
 export type PaymentPurpose = 'advance' | 'settlement' | 'security_deposit';
 export type PaymentStatus = 'pending' | 'completed' | 'failed';
-export type PermissionEnum = 'settings.manage' | 'staff.view' | 'staff.manage' | 'roles.manage' | 'rooms.view' | 'rooms.manage' | 'rooms.block' | 'notification.manage' | 'rates.view' | 'rates.manage' | 'rates.override-restrictions' | 'guests.view' | 'guests.manage' | 'guests.blacklist' | 'guests.view-documents' | 'guests.merge' | 'guests.anonymize' | 'reservations.view' | 'reservations.manage' | 'folio.post-charge' | 'folio.reverse' | 'folio.transfer' | 'folio.discount' | 'folio.discount-open' | 'folio.close' | 'folio.reopen' | 'payment.record' | 'payment.refund';
+export type PermissionEnum = 'settings.manage' | 'staff.view' | 'staff.manage' | 'roles.manage' | 'rooms.view' | 'rooms.manage' | 'rooms.block' | 'notification.manage' | 'rates.view' | 'rates.manage' | 'rates.override-restrictions' | 'guests.view' | 'guests.manage' | 'guests.blacklist' | 'guests.view-documents' | 'guests.merge' | 'guests.anonymize' | 'reservations.view' | 'reservations.manage' | 'folio.post-charge' | 'folio.reverse' | 'folio.transfer' | 'folio.discount' | 'folio.discount-open' | 'folio.close' | 'folio.reopen' | 'folio.print-voucher' | 'payment.record' | 'payment.refund';
 export type PlatformFeature = 'channel-manager';
 export type PricingBasis = 'per_room' | 'per_guest' | 'per_bed' | 'package';
 export type PropertyStatus = 'onboarding' | 'pending_approval' | 'live' | 'suspended';

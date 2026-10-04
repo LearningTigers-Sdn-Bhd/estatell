@@ -51,7 +51,7 @@ Format: `{PREFIX}-{YY}{T}{NNNNN}`, the same as wastays. Example: prefix `GRH`, 2
 | Invoice          | 7    |
 | CreditNote       | 8    |
 
-Codes 4 and 6 are unused. wastays used them for the AR invoice and the tourism tax voucher. estatell does not need either: an AR invoice reuses the folio invoice number, and tourism tax is a tax code.
+Codes 4 and 6 are unused. wastays used them for the AR invoice and the tourism tax voucher. estatell does not need either: an AR invoice reuses the folio invoice number, and tourism tax is a tax code. A printed tourism tax slip is the generic [voucher](../13-folio/05-folio-page.md#print-voucher) with the tax lines ticked.
 
 The reference is stored on each document when it is issued. A later prefix change never rewrites issued documents.
 

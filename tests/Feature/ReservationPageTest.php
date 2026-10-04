@@ -3,6 +3,9 @@
 use App\Enums\BillingMode;
 use App\Enums\DefaultRoleEnum;
 use App\Enums\ReservationStatus;
+use App\Models\Folio;
+use App\Models\FolioLine;
+use App\Models\FolioRoutingRule;
 use App\Models\Guest;
 use App\Models\Property;
 use App\Models\PropertySetting;
@@ -474,4 +477,58 @@ test('the page carries the notes of the booking', function () {
     pageUnit($plain);
 
     test()->get(pageUrl($property, $plain))->assertInertia(fn (Assert $page) => $page->where('reservation.notes', null));
+});
+
+test('an add-on says where it is billed: posted folio, routed folio or nothing', function () {
+    [$user, $property] = pageOwner();
+    $reservation = pageReservation($property);
+    $unit = pageUnit($reservation);
+    $unitFolio = Folio::factory()->forUnit($unit)->create(['property_id' => $property->id, 'reservation_id' => $reservation->id]);
+    $line = FolioLine::factory()->create(['folio_id' => $unitFolio->id, 'posting_date' => '2026-10-10']);
+    $posted = UnitAddOn::factory()->posted($line)->create(['reservation_unit_id' => $unit->id, 'service_date' => '2026-10-10']);
+    $plain = UnitAddOn::factory()->create(['reservation_unit_id' => $unit->id, 'service_date' => '2026-10-11']);
+
+    $url = pageUrl($property, $reservation, 'reservations.add-ons');
+    $this->actingAs($user)->get($url)->assertInertia(fn (Assert $page) => $page
+        ->where('addOns.0.id', $posted->id)
+        ->where('addOns.0.posted', true)
+        ->where('addOns.0.folioId', $unitFolio->id)
+        ->where('addOns.0.postedOn', '2026-10-10')
+        ->where('addOns.0.folioLabel', fn ($label) => str_starts_with($label, 'Unit '))
+        ->where('addOns.0.routedTo', null)
+        ->where('addOns.1.id', $plain->id)
+        ->where('addOns.1.posted', false)
+        ->where('addOns.1.folioId', null)
+        ->where('addOns.1.routedTo', null));
+
+    $master = Folio::factory()->master()->create(['property_id' => $property->id, 'reservation_id' => $reservation->id]);
+    FolioRoutingRule::factory()->toFolio($master)->create(['reservation_id' => $reservation->id]);
+
+    $this->actingAs($user)->get($url)->assertInertia(fn (Assert $page) => $page
+        ->where('addOns.0.routedTo', null)
+        ->where('addOns.1.routedTo', fn ($label) => str_starts_with($label, 'Master')));
+});
+
+test('the add-ons tab reads in the same number of queries for any number of add-ons', function () {
+    [$user, $property] = pageOwner();
+    $reservation = pageReservation($property);
+    $unit = pageUnit($reservation);
+    $master = Folio::factory()->master()->create(['property_id' => $property->id, 'reservation_id' => $reservation->id]);
+    FolioRoutingRule::factory()->toFolio($master)->create(['reservation_id' => $reservation->id]);
+    $url = pageUrl($property, $reservation, 'reservations.add-ons');
+    $count = function () use ($user, $url): int {
+        DB::flushQueryLog();
+        DB::enableQueryLog();
+        $this->actingAs($user)->get($url)->assertOk();
+
+        return count(DB::getQueryLog());
+    };
+
+    UnitAddOn::factory()->count(2)->create(['reservation_unit_id' => $unit->id]);
+    $this->actingAs($user)->get($url)->assertOk();
+    $few = $count();
+    UnitAddOn::factory()->count(6)->create(['reservation_unit_id' => $unit->id]);
+    $many = $count();
+
+    expect($many)->toBe($few);
 });

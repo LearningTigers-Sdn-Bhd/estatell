@@ -6,7 +6,10 @@ import {
     CreditCard,
     Lock,
     LockOpen,
+    PanelRightClose,
+    PanelRightOpen,
     Plus,
+    Printer,
     Split,
     UserPlus,
 } from 'lucide-react';
@@ -16,6 +19,10 @@ import { ApplyDiscountDialog } from '@/components/pms/folio/apply-discount-dialo
 import { CloseFolioDialog } from '@/components/pms/folio/close-folio-dialog';
 import { FolioRowsTable } from '@/components/pms/folio/folio-rows-table';
 import { PostChargeDialog } from '@/components/pms/folio/post-charge-dialog';
+import {
+    PrintVoucherDialog,
+    type VoucherOptions,
+} from '@/components/pms/folio/print-voucher-dialog';
 import { RecordPaymentDialog } from '@/components/pms/folio/record-payment-dialog';
 import { RefundPaymentDialog } from '@/components/pms/folio/refund-payment-dialog';
 import { RemoveDiscountDialog } from '@/components/pms/folio/remove-discount-dialog';
@@ -33,6 +40,11 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Spinner } from '@/components/ui/spinner';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { KEEP_OPTIONS } from '@/components/pms/reservations/use-form-options';
 import { reopen } from '@/routes/reservations/folios';
 import { cn } from '@/lib/utils';
@@ -66,6 +78,9 @@ export function FolioTab({
     paymentOptions,
     canManageRouting,
     routingRules,
+    voucher,
+    summaryHidden,
+    onToggleSummary,
     currency,
 }: {
     reservationId: number;
@@ -77,6 +92,9 @@ export function FolioTab({
     paymentOptions?: App.Data.Payments.PaymentFormOptionsData;
     canManageRouting: boolean;
     routingRules?: App.Data.Folio.RoutingRulesData | null;
+    voucher: VoucherOptions;
+    summaryHidden: boolean;
+    onToggleSummary: () => void;
     currency: App.Enums.Currency | null;
 }) {
     const [creatingThirdParty, setCreatingThirdParty] = useState(false);
@@ -87,12 +105,16 @@ export function FolioTab({
         useState<App.Data.Folio.FolioRowData | null>(null);
     const [discounting, setDiscounting] = useState(false);
     const [closing, setClosing] = useState(false);
+    const [voucherOpen, setVoucherOpen] = useState(false);
+    const [voucherInitial, setVoucherInitial] = useState<string[]>([]);
     const [removing, setRemoving] =
         useState<App.Data.Folio.FolioRowData | null>(null);
     const [reversing, setReversing] =
         useState<App.Data.Folio.FolioRowData | null>(null);
     const [transferring, setTransferring] =
         useState<App.Data.Folio.FolioRowData | null>(null);
+
+    const summaryLabel = summaryHidden ? 'Show summary' : 'Hide summary';
 
     const routingButtons = canManageRouting && (
         <DropdownMenu>
@@ -161,9 +183,11 @@ export function FolioTab({
                                     <StatusBadge status={folio.status} />
                                 )}
                             </div>
-                            {folio.invoiceNumber && (
+                            {folio.number && (
                                 <p className="text-sm text-muted-foreground">
-                                    Invoice {folio.invoiceNumber}
+                                    Folio {folio.number}
+                                    {folio.invoiceNumber &&
+                                        ` · Invoice ${folio.invoiceNumber}`}
                                 </p>
                             )}
                         </div>
@@ -196,6 +220,18 @@ export function FolioTab({
                                     )}
                                 </Form>
                             )}
+                            {folio.canPrintVoucher && (
+                                <Button
+                                    variant="outline"
+                                    onClick={() => {
+                                        setVoucherInitial([]);
+                                        setVoucherOpen(true);
+                                    }}
+                                >
+                                    <Printer data-icon="inline-start" />
+                                    Print voucher
+                                </Button>
+                            )}
                             {folio.canClose && (
                                 <Button
                                     variant="outline"
@@ -205,6 +241,26 @@ export function FolioTab({
                                     Close folio
                                 </Button>
                             )}
+                            <Tooltip>
+                                <TooltipTrigger
+                                    render={
+                                        <Button
+                                            variant="outline"
+                                            size="icon"
+                                            aria-label={summaryLabel}
+                                            aria-pressed={summaryHidden}
+                                            onClick={onToggleSummary}
+                                        />
+                                    }
+                                >
+                                    {summaryHidden ? (
+                                        <PanelRightOpen />
+                                    ) : (
+                                        <PanelRightClose />
+                                    )}
+                                </TooltipTrigger>
+                                <TooltipContent>{summaryLabel}</TooltipContent>
+                            </Tooltip>
                         </div>
                     </div>
                     <dl className="grid gap-2 sm:grid-cols-3">
@@ -286,6 +342,26 @@ export function FolioTab({
                             folioId={Number(folio.key)}
                             rows={folio.rows}
                             currency={currency}
+                            onPrintVoucher={(row) => {
+                                const at = folio.rows.indexOf(row);
+                                const children: string[] = [];
+
+                                if (row.level === 0) {
+                                    for (
+                                        let next = at + 1;
+                                        folio.rows[next]?.level > 0 &&
+                                        folio.rows[next].state === row.state;
+                                        next++
+                                    ) {
+                                        if (folio.rows[next].printable) {
+                                            children.push(folio.rows[next].key);
+                                        }
+                                    }
+                                }
+
+                                setVoucherInitial([row.key, ...children]);
+                                setVoucherOpen(true);
+                            }}
                             onAction={(row, action) => {
                                 if (action === 'reverse') {
                                     setReversing(row);
@@ -307,7 +383,6 @@ export function FolioTab({
                         reservationId={reservationId}
                         folio={folio}
                         chargeItems={chargeItems}
-                        chargeCodes={chargeCodes}
                         currency={currency}
                     />
                 )}
@@ -328,6 +403,24 @@ export function FolioTab({
                     currency={currency}
                     onClose={() => setRefunding(null)}
                 />
+                {folio.canPrintVoucher && (
+                    <PrintVoucherDialog
+                        key={voucherInitial.join(',')}
+                        open={voucherOpen}
+                        onOpenChange={setVoucherOpen}
+                        reservationId={reservationId}
+                        folioId={
+                            folio.kind === 'not_started'
+                                ? null
+                                : Number(folio.key)
+                        }
+                        unitId={folio.paymentUnitId}
+                        rows={folio.rows.filter((row) => row.printable)}
+                        options={voucher}
+                        initial={voucherInitial}
+                        currency={currency}
+                    />
+                )}
                 {folio.canClose && (
                     <CloseFolioDialog
                         open={closing}
