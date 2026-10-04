@@ -101,6 +101,8 @@ class RatePlanController extends Controller
             'packageUnits' => PackageUnit::options(),
             'roomTypes' => $property->roomTypes()->active()->ordered()->get()
                 ->map(fn (RoomType $roomType): NewRatePlanRoomTypeData => NewRatePlanRoomTypeData::fromModel($roomType)),
+            'derivations' => RateDerivation::options(),
+            'currency' => $property->settings->currency,
             'companies' => $request->user()->can(PermissionEnum::CompanyManage->value) ? $companyOptions->active($property) : [],
         ]);
     }

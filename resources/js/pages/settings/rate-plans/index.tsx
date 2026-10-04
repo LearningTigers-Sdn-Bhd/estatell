@@ -5,6 +5,7 @@ import {
     BedDouble,
     BedSingle,
     Ellipsis,
+    GitBranchPlus,
     GitBranch,
     Package,
     Tag,
@@ -17,6 +18,7 @@ import { EnumSelect } from '@/components/pms/enum-select';
 import type { EnumOption } from '@/components/pms/enum-select';
 import { FilterBar } from '@/components/pms/filter-bar';
 import { PageHeader } from '@/components/pms/page-header';
+import { NewDerivedRatePlanSheet } from '@/components/pms/rate-plans/new-derived-rate-plan-sheet';
 import { NewRatePlanSheet } from '@/components/pms/rate-plans/new-rate-plan-sheet';
 import { RoomTypePills } from '@/components/pms/rate-plans/room-type-pills';
 import { StatusBadge } from '@/components/pms/status-badge';
@@ -131,18 +133,29 @@ function ArchiveRatePlan({
     );
 }
 
+/** An active plan that prices nights and does not follow another plan can be a parent. */
+function canBeParent(ratePlan: RatePlan): boolean {
+    return (
+        !ratePlan.archived &&
+        !ratePlan.isDerived &&
+        ratePlan.pricingBasis !== 'package'
+    );
+}
+
 function RatePlanActions({
     ratePlan,
     position,
     count,
     canReorder,
     onMove,
+    onCreateDerived,
 }: {
     ratePlan: RatePlan;
     position: number;
     count: number;
     canReorder: boolean;
     onMove: (from: number, to: number) => void;
+    onCreateDerived: (ratePlan: RatePlan) => void;
 }) {
     const [archiving, setArchiving] = useState(false);
 
@@ -163,6 +176,14 @@ function RatePlanActions({
                     >
                         Edit
                     </DropdownMenuItem>
+                    {canBeParent(ratePlan) && (
+                        <DropdownMenuItem
+                            onClick={() => onCreateDerived(ratePlan)}
+                        >
+                            <GitBranchPlus />
+                            Create derived plan
+                        </DropdownMenuItem>
+                    )}
                     {canReorder && !ratePlan.archived && (
                         <>
                             <DropdownMenuItem
@@ -240,15 +261,22 @@ export default function RatePlansIndex({
     pricingBases,
     packageUnits,
     roomTypes,
+    derivations,
+    currency,
+    companies,
 }: {
     ratePlans: RatePlan[];
     statuses: EnumOption[];
     pricingBases: EnumOption[];
     packageUnits: EnumOption[];
     roomTypes: App.Data.Rates.NewRatePlanRoomTypeData[];
+    derivations: EnumOption[];
+    currency: App.Enums.Currency;
+    companies: App.Data.CityLedger.CompanyOptionData[];
 }) {
     const [status, setStatus] = useState(initialStatus);
     const [search, setSearch] = useState('');
+    const [derivingFrom, setDerivingFrom] = useState<RatePlan | null>(null);
 
     const active = ratePlans.filter((ratePlan) => !ratePlan.archived);
     const term = search.trim().toLowerCase();
@@ -435,6 +463,9 @@ export default function RatePlansIndex({
                                                                 canReorder
                                                             }
                                                             onMove={move}
+                                                            onCreateDerived={
+                                                                setDerivingFrom
+                                                            }
                                                         />
                                                     </div>
                                                 </TableCell>
@@ -447,6 +478,18 @@ export default function RatePlansIndex({
                     </>
                 )}
             </div>
+            {derivingFrom && (
+                <NewDerivedRatePlanSheet
+                    key={derivingFrom.id}
+                    parent={derivingFrom}
+                    roomTypes={roomTypes}
+                    companies={companies}
+                    derivations={derivations}
+                    currency={currency}
+                    open
+                    onOpenChange={(next) => !next && setDerivingFrom(null)}
+                />
+            )}
         </>
     );
 }

@@ -24,6 +24,7 @@ export function MultiCombobox({
     value,
     onValueChange,
     placeholder,
+    emptyLabel = 'No matching charge codes.',
     invalid,
 }: {
     id: string;
@@ -32,6 +33,7 @@ export function MultiCombobox({
     value: string[];
     onValueChange: (value: string[]) => void;
     placeholder: string;
+    emptyLabel?: string;
     invalid?: boolean;
 }) {
     const anchor = useComboboxAnchor();
@@ -72,7 +74,7 @@ export function MultiCombobox({
                 )}
             </ComboboxValue>
             <ComboboxContent anchor={anchor}>
-                <ComboboxEmpty>No matching charge codes.</ComboboxEmpty>
+                <ComboboxEmpty>{emptyLabel}</ComboboxEmpty>
                 <ComboboxList>
                     {(item: MultiComboboxOption) => (
                         <ComboboxItem
