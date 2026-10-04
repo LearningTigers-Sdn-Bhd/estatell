@@ -181,7 +181,9 @@ function RatePlanActions({
                             onClick={() => onCreateDerived(ratePlan)}
                         >
                             <GitBranchPlus />
-                            Create derived plan
+                            {ratePlan.pricingBasis === 'package'
+                                ? 'Create derived package'
+                                : 'Create derived plan'}
                         </DropdownMenuItem>
                     )}
                     {canReorder && !ratePlan.archived && (

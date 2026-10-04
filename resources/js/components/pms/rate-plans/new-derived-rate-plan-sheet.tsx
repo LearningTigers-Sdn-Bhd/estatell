@@ -162,7 +162,11 @@ export function NewDerivedRatePlanSheet({
         >
             <SheetContent className="data-[side=right]:sm:max-w-xl">
                 <SheetHeader>
-                    <SheetTitle>Create derived plan</SheetTitle>
+                    <SheetTitle>
+                        {isPackage
+                            ? 'Create derived package'
+                            : 'Create derived plan'}
+                    </SheetTitle>
                     <SheetDescription>
                         A plan that follows {parent.name}. It has no prices of
                         its own, so a change to {parent.name} reaches it at
@@ -389,7 +393,7 @@ export function NewDerivedRatePlanSheet({
                             {form.processing && (
                                 <Spinner data-icon="inline-start" />
                             )}
-                            Create plan
+                            {isPackage ? 'Create package' : 'Create plan'}
                         </Button>
                     </SheetFooter>
                 </form>

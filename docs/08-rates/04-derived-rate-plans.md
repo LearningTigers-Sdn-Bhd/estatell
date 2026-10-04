@@ -77,7 +77,7 @@ The option is disabled, with the reason in a tooltip, in these cases:
 
 ## Create derived plan quick action
 
-A shortcut for "give Petronas 15% off". It is on the row menu of the Rate plans list and shows only for an active plan that is an eligible parent (see above), a Package plan included. The Sheet of a package parent shows its Nights and Charged read-only and copies them to the new plan. It opens a Sheet with the parent fixed.
+A shortcut for "give Petronas 15% off". It is on the row menu of the Rate plans list, named "Create derived package" on a Package row, and shows only for an active plan that is an eligible parent (see above), a Package plan included. The Sheet of a package parent shows its Nights and Charged read-only and copies them to the new plan. It opens a Sheet with the parent fixed.
 
 | Field                  | Rule                                                                                                                    |
 | ---------------------- | ----------------------------------------------------------------------------------------------------------------------- |
