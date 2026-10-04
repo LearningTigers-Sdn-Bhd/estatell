@@ -33,7 +33,7 @@ Routes live in `routes/reservations.php` with `scopeBindings()`, so another prop
 
 This item adds both permissions (a migration calls `SyncPermissions`, like the guest permissions), because it ships the first reservation routes. Add both rows to [Roles and permissions](../03-staff/02-roles-and-permissions.md) in this item. This item also adds `AttachGuest`, `guests.search` and `GuestPicker`. The [booking form](05-booking-form.md) comes next and reuses them.
 
-The booker's phone, email and **Open guest** need `guests.view`. Without it, staff see the booker's name and flags only.
+The booker's phone, email and the link on the booker's name need `guests.view`. Without it, staff see the booker's name and flags only.
 
 ## Reservations list (Index archetype)
 
@@ -189,7 +189,7 @@ The Units list is hidden for one unit, and the Folio rail for one folio, so thos
 │ [🛏 Units] [👤 Guests] [🧾 Add-ons] [🕘 Activity]          │ Booker                      │
 │ ─────────                                                  │ Tan Wei Ming  VIP           │
 │ ┌ Choose unit ───────┐┌──────────────────────────────────┐ │ +60 12-345 6789             │
-│ │ ▸ Deluxe King      ││ Deluxe King · BAR Room Only      │ │ [Open guest]                │
+│ │ ▸ Deluxe King      ││ Deluxe King · BAR Room Only      │ │                             │
 │ │   101 · Confirmed  ││ ●Confirmed                  [⋯]  │ │ ─────────────────────────── │
 │ │   Dorm 6-Bed       ││ Stay   12 Oct → 15 Oct · 3 nights│ │ Earliest arrival  12 Oct    │
 │ │   D1-2 · Confirmed ││ Guests 2 adults, 2 children (4,9)│ │ Latest departure  15 Oct    │
@@ -264,7 +264,7 @@ A title row (Activity), then a timeline grouped by day (`ActivityTab`): a muted 
 
 ### Summary card
 
-Booker (name, VIP, phone, email, link to the guest), earliest arrival, latest departure, units, room nights, stay total (sum of `unit_nights.amount` of units that hold inventory), balance ("from folio" until the [folio page](../13-folio/05-folio-page.md) lands), billing mode (2 or more units, with the `BillingMode` label), source, company ("—" until [Companies](../15-city-ledger/01-companies.md)), Created at (the date) and Created by (the user, or "System" when there is none) as two rows. Every row has an icon before its label, and only the top row (the Booker block) has `ps-3 pt-2`, like the title rows of the tab panels. Notes, when the booking has them, show in a rounded, bordered box of fixed height (`h-32`, the text scrolls inside) under the summary figures (added with the booking form).
+Booker (name, VIP, phone, email; the name is an underlined link to the guest that opens in a new tab), earliest arrival, latest departure, units, room nights, stay total (sum of `unit_nights.amount` of units that hold inventory), balance ("from folio" until the [folio page](../13-folio/05-folio-page.md) lands), billing mode (2 or more units, with the `BillingMode` label), source, company ("—" until [Companies](../15-city-ledger/01-companies.md)), Created at (the date) and Created by (the user, or "System" when there is none) as two rows. Every row has an icon before its label, and only the top row (the Booker block) has `ps-3 pt-2`, like the title rows of the tab panels. Notes, when the booking has them, show in a rounded, bordered box of fixed height (`h-32`, the text scrolls inside) under the summary figures (added with the booking form).
 
 ### Page build status
 
