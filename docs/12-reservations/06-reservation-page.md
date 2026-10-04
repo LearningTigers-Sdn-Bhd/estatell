@@ -260,7 +260,7 @@ A title row (Add-ons, with the **+ Add add-on** button on the right) above one r
 
 ### Activity tab
 
-The reservation's activity log entries (`spatie/laravel-activitylog`), newest first, paginated by 25: creation, units added, overrides with their reasons, group edits, guests attached, add-ons added and removed. Status changes appear when the [front desk](../18-front-desk/01-check-in-and-check-out.md) Actions log them; `SyncReservationStatus` does not log.
+A title row (Activity), then a timeline grouped by day (`ActivityTab`): a muted day header, and under it one entry per row with a dot on a thin line, the text, the time on the right, and who did it under the text. An override reason shows as a muted line under the text. Grouping is display only, on the loaded page. Event icons come later (the data has no event kind yet). The reservation's activity log entries (`spatie/laravel-activitylog`), newest first, paginated by 25: creation, units added, overrides with their reasons, group edits, guests attached, add-ons added and removed. Status changes appear when the [front desk](../18-front-desk/01-check-in-and-check-out.md) Actions log them; `SyncReservationStatus` does not log.
 
 ### Summary card
 
