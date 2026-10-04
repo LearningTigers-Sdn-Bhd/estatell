@@ -1,5 +1,4 @@
 import { History } from 'lucide-react';
-import { AuditTrail } from '@/components/pms/audit-trail';
 import { EmptyState } from '@/components/pms/empty-state';
 import {
     PaginationFooter,
@@ -8,8 +7,20 @@ import {
 
 type Activity = App.Data.Reservations.ReservationActivityData;
 
+const dayFormat = new Intl.DateTimeFormat('en-GB', {
+    weekday: 'short',
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+});
+
+const timeFormat = new Intl.DateTimeFormat('en-GB', {
+    hour: '2-digit',
+    minute: '2-digit',
+});
+
 /**
- * The Activity tab: the reservation's log, newest first, 25 to a page.
+ * The Activity tab: the reservation's log, newest first, grouped by day with a dot on a thin line.
  */
 export function ActivityTab({
     activity,
@@ -20,9 +31,58 @@ export function ActivityTab({
         return <EmptyState icon={History} title="No activity yet" />;
     }
 
+    const days = [
+        ...Map.groupBy(activity.data, (entry) =>
+            dayFormat.format(new Date(entry.createdAt)),
+        ),
+    ];
+
     return (
-        <div className="flex flex-col gap-3">
-            <AuditTrail entries={activity.data} />
+        <div className="flex flex-col gap-4">
+            <h2 className="ps-3 pt-2 font-heading text-base font-medium">
+                Activity
+            </h2>
+            <div className="flex flex-col gap-5 ps-3">
+                {days.map(([day, entries]) => (
+                    <section key={day} className="flex flex-col gap-3">
+                        <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                            {day}
+                        </h3>
+                        <ol className="flex flex-col border-s">
+                            {entries.map((entry) => (
+                                <li
+                                    key={entry.id}
+                                    className="relative flex flex-col gap-0.5 ps-5 pb-4 last:pb-0"
+                                >
+                                    <span
+                                        aria-hidden
+                                        className="absolute start-0 top-1.5 size-2 -translate-x-1/2 rounded-full bg-primary ring-4 ring-card"
+                                    />
+                                    <div className="flex items-baseline justify-between gap-3 pe-3">
+                                        <p className="text-sm">{entry.text}</p>
+                                        <time
+                                            dateTime={entry.createdAt}
+                                            className="shrink-0 text-xs text-muted-foreground tabular-nums"
+                                        >
+                                            {timeFormat.format(
+                                                new Date(entry.createdAt),
+                                            )}
+                                        </time>
+                                    </div>
+                                    {entry.reason && (
+                                        <p className="text-sm text-muted-foreground">
+                                            {entry.reason}
+                                        </p>
+                                    )}
+                                    <p className="text-xs text-muted-foreground">
+                                        {entry.causerName ?? 'System'}
+                                    </p>
+                                </li>
+                            ))}
+                        </ol>
+                    </section>
+                ))}
+            </div>
             <PaginationFooter pagination={toPaginationData(activity.meta)} />
         </div>
     );
