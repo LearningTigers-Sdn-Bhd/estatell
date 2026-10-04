@@ -3,17 +3,20 @@
 use App\Enums\DefaultRoleEnum;
 use App\Enums\DiscountScope;
 use App\Models\ChargeItem;
+use App\Models\Company;
 use App\Models\Discount;
 use App\Models\Guest;
 use App\Models\Rate;
 use App\Models\RatePlan;
 use App\Models\Reservation;
+use App\Models\Role;
 use App\Models\Room;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Inertia\Testing\AssertableInertia as Assert;
 use Spatie\Activitylog\Models\Activity;
+use Spatie\Permission\PermissionRegistrar;
 
 beforeEach(function () {
     $this->travelTo(now()->setDate(2026, 10, 10)->setTime(12, 0));
@@ -426,4 +429,53 @@ test('a mode switch gets the walk-in props in a partial request', function () {
         ->assertJsonPath('props.sources.0.value', 'walk_in')
         ->assertJsonPath('props.nowTime', fn (string $time) => preg_match('/^\d{2}:\d{2}$/', $time) === 1)
         ->assertJsonMissingPath('props.addUnitOptions');
+});
+
+test('the booking page lists the active companies of the property for staff who may view them', function () {
+    $setup = bookingSetup();
+    Company::factory()->for($setup['property'])->create(['name' => 'Borneo Travel']);
+    Company::factory()->for($setup['property'])->create(['name' => 'Acme']);
+    Company::factory()->for($setup['property'])->suspended()->create();
+    Company::factory()->create();
+
+    $this->actingAs($setup['user'])
+        ->get(bookingFormUrl($setup, 'reservations.new'))
+        ->assertInertia(fn (Assert $page) => $page
+            ->has('companies', 2)
+            ->where('companies.0.name', 'Acme')
+            ->where('companies.1.name', 'Borneo Travel'));
+});
+
+test('a booking can name a company and a refused company saves nothing', function () {
+    $setup = bookingSetup();
+    $company = Company::factory()->for($setup['property'])->create();
+    $suspended = Company::factory()->for($setup['property'])->suspended()->create();
+
+    $this->actingAs($setup['user'])
+        ->post(bookingFormUrl($setup, 'reservations.store'), bookingBody($setup, ['company_id' => $suspended->id]))
+        ->assertSessionHasErrors('company_id');
+
+    expect(Reservation::query()->count())->toBe(0);
+
+    $this->post(bookingFormUrl($setup, 'reservations.store'), bookingBody($setup, ['company_id' => $company->id]));
+
+    expect(Reservation::query()->sole()->company_id)->toBe($company->id);
+});
+
+test('staff without company.view cannot name a company', function () {
+    $setup = bookingSetup();
+    $company = Company::factory()->for($setup['property'])->create();
+    $role = Role::query()->create(['property_id' => $setup['property']->id, 'name' => 'Booker only']);
+    setPermissionsTeamId($setup['property']->id);
+    $role->givePermissionTo(['reservations.view', 'reservations.manage', 'guests.view']);
+    $setup['user']->syncRoles([$role]);
+    app(PermissionRegistrar::class)->forgetCachedPermissions();
+
+    $this->actingAs($setup['user'])
+        ->get(bookingFormUrl($setup, 'reservations.new'))
+        ->assertInertia(fn (Assert $page) => $page->where('companies', []));
+
+    $this->post(bookingFormUrl($setup, 'reservations.store'), bookingBody($setup, ['company_id' => $company->id]));
+
+    expect(Reservation::query()->sole()->company_id)->toBeNull();
 });

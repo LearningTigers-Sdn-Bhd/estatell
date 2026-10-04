@@ -22,6 +22,7 @@ import { DateText } from '@/components/pms/date-text';
 import { MoneyText } from '@/components/pms/money-text';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
+import { show as showCompany } from '@/routes/finance/city-ledger/companies';
 import { show as showGuest } from '@/routes/guests';
 
 type Reservation = App.Data.Reservations.ReservationData;
@@ -52,9 +53,11 @@ function Row({
  */
 export function ReservationSummary({
     reservation,
+    canViewCompany,
     currency,
 }: {
     reservation: Reservation;
+    canViewCompany: boolean;
     currency: App.Enums.Currency | null;
 }) {
     const { booker } = reservation;
@@ -160,7 +163,20 @@ export function ReservationSummary({
                     {reservation.sourceLabel}
                 </Row>
                 <Row icon={Building2} label="Company">
-                    <span className="text-muted-foreground">None</span>
+                    {reservation.companyId === null ? (
+                        <span className="text-muted-foreground">None</span>
+                    ) : canViewCompany ? (
+                        <Link
+                            href={showCompany.url({
+                                company: reservation.companyId,
+                            })}
+                            className="underline underline-offset-2"
+                        >
+                            {reservation.companyName}
+                        </Link>
+                    ) : (
+                        reservation.companyName
+                    )}
                 </Row>
                 <Row icon={CalendarPlus} label="Created at">
                     <DateText date={reservation.createdOn} />

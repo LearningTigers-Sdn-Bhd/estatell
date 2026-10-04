@@ -21,7 +21,7 @@ class ReservationOverview
     public function __construct(private ReservationRoomBox $roomBox) {}
 
     /**
-     * Expects `booker` and `creator` to be loaded.
+     * Expects `booker`, `creator` and `company` to be loaded.
      *
      * @return array{reservation: ReservationData, units: list<ReservationUnitOptionData>, models: Collection<int, ReservationUnit>}
      */

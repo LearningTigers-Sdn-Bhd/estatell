@@ -32,7 +32,7 @@ class BookingErrorKeys
         $field = (string) array_key_first($errors);
         $message = $errors[$field];
 
-        if ($field === 'arrival_date' || $field === 'departure_date') {
+        if (in_array($field, ['arrival_date', 'departure_date', 'company_id'], true)) {
             return [$field => $message];
         }
 

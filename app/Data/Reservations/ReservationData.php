@@ -8,7 +8,7 @@ use App\Models\Reservation;
 use Spatie\LaravelData\Data;
 
 /**
- * The header and summary card of the reservation page. Expects `booker` and `creator` to be loaded. The figures come
+ * The header and summary card of the reservation page. Expects `booker`, `creator` and `company` to be loaded. The figures come
  * from the units that hold inventory, and the dates fall back to all units when none does.
  */
 class ReservationData extends Data
@@ -34,6 +34,8 @@ class ReservationData extends Data
         public ?string $channelName,
         public ?string $externalReference,
         public ?string $notes,
+        public ?int $companyId,
+        public ?string $companyName,
         public string $createdOn,
         public ?string $createdBy,
         public ReservationBookerData $booker,
@@ -70,6 +72,8 @@ class ReservationData extends Data
             channelName: $reservation->channel_name,
             externalReference: $reservation->external_reference,
             notes: $reservation->notes,
+            companyId: $reservation->company_id,
+            companyName: $reservation->company?->name,
             createdOn: $reservation->created_at->toDateString(),
             createdBy: $reservation->creator?->name,
             booker: ReservationBookerData::fromModel($reservation->booker, $canViewGuest),

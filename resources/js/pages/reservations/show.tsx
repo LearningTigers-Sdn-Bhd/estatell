@@ -35,6 +35,8 @@ type Props = {
     currency: App.Enums.Currency | null;
     canManage: boolean;
     billingModes: EnumOption[];
+    canViewCompany: boolean;
+    companies?: App.Data.CityLedger.CompanyOptionData[];
     addUnitOptions?: App.Data.Reservations.AddUnitOptionsData;
     chargeItems?: App.Data.Reservations.ChargeItemOptionData[];
     chargeCodes?: App.Data.Reservations.ChargeCodeOptionData[];
@@ -62,6 +64,8 @@ export default function ReservationShow({
     currency,
     canManage,
     billingModes,
+    canViewCompany,
+    companies,
     addUnitOptions,
     chargeItems,
     chargeCodes,
@@ -171,6 +175,8 @@ export default function ReservationShow({
                                 reservation={reservation}
                                 billingModes={billingModes}
                                 addUnitOptions={addUnitOptions}
+                                canViewCompany={canViewCompany}
+                                companies={companies}
                                 currency={currency}
                             />
                         ) : undefined
@@ -190,6 +196,7 @@ export default function ReservationShow({
                         aside={
                             <ReservationSummary
                                 reservation={reservation}
+                                canViewCompany={canViewCompany}
                                 currency={currency}
                             />
                         }

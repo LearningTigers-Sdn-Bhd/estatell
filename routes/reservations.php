@@ -2,6 +2,7 @@
 
 use App\Enums\PermissionEnum;
 use App\Http\Controllers\Reservations\ReservationBookingController;
+use App\Http\Controllers\Reservations\ReservationCompanyController;
 use App\Http\Controllers\Reservations\ReservationController;
 use App\Http\Controllers\Reservations\ReservationFolioController;
 use App\Http\Controllers\Reservations\ReservationGroupController;
@@ -62,6 +63,7 @@ Route::prefix('reservations')->name('reservations.')->scopeBindings()->group(fun
 
     Route::middleware('can:'.PermissionEnum::ReservationsManage->value)->prefix('{reservation}')->group(function () {
         Route::put('group', [ReservationGroupController::class, 'update'])->name('group.update');
+        Route::put('company', [ReservationCompanyController::class, 'update'])->middleware('can:'.PermissionEnum::CompanyView->value)->name('company.update');
 
         Route::prefix('units')->name('units.')->group(function () {
             Route::post('/', [ReservationUnitController::class, 'store'])->name('store');

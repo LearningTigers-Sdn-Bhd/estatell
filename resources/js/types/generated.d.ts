@@ -116,6 +116,10 @@ directBillEnabled: boolean,
 status: App.Data.Shared.BadgeData,
 createdAt: string,
 };
+export type CompanyOptionData = {
+id: number,
+name: string,
+};
 export type CompanyRowData = {
 id: number,
 name: string,
@@ -809,6 +813,7 @@ channelName: string | null,
 externalReference: string | null,
 groupName: string | null,
 notes: string | null,
+companyId: number | null,
 };
 export type NewBookingGuestData = {
 guestId: number | null,
@@ -902,6 +907,8 @@ sourceLabel: string,
 channelName: string | null,
 externalReference: string | null,
 notes: string | null,
+companyId: number | null,
+companyName: string | null,
 createdOn: string,
 createdBy: string | null,
 booker: App.Data.Reservations.ReservationBookerData,

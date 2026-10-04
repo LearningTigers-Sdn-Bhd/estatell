@@ -57,6 +57,7 @@ class CreateBooking
                     billingMode: $data->billingMode,
                     channelName: $data->channelName,
                     externalReference: $data->externalReference,
+                    companyId: $data->companyId,
                     groupName: $data->groupName,
                     notes: $data->notes,
                 ), $fromChannel);

@@ -1,7 +1,8 @@
-import { MoreHorizontal, Pencil, Plus } from 'lucide-react';
+import { Building2, MoreHorizontal, Pencil, Plus } from 'lucide-react';
 import { useState } from 'react';
 import type { EnumOption } from '@/components/pms/enum-select';
 import { AddUnitSheet } from '@/components/pms/reservations/add-unit-sheet';
+import { ChangeCompanyDialog } from '@/components/pms/reservations/change-company-dialog';
 import { EditGroupDialog } from '@/components/pms/reservations/edit-group-dialog';
 import { Button } from '@/components/ui/button';
 import {
@@ -12,21 +13,26 @@ import {
 } from '@/components/ui/dropdown-menu';
 
 /**
- * The page header buttons: Add unit (hidden once the reservation is closed) and More, which holds Edit group.
+ * The page header buttons: Add unit (hidden once the reservation is closed) and More, which holds Edit group and Change company.
  */
 export function ReservationActions({
     reservation,
     billingModes,
     addUnitOptions,
+    canViewCompany,
+    companies,
     currency,
 }: {
     reservation: App.Data.Reservations.ReservationData;
     billingModes: EnumOption[];
     addUnitOptions?: App.Data.Reservations.AddUnitOptionsData;
+    canViewCompany: boolean;
+    companies?: App.Data.CityLedger.CompanyOptionData[];
     currency: App.Enums.Currency | null;
 }) {
     const [addingUnit, setAddingUnit] = useState(false);
     const [editingGroup, setEditingGroup] = useState(false);
+    const [changingCompany, setChangingCompany] = useState(false);
 
     return (
         <>
@@ -49,6 +55,14 @@ export function ReservationActions({
                         <Pencil />
                         Edit group
                     </DropdownMenuItem>
+                    {canViewCompany && !reservation.isClosed && (
+                        <DropdownMenuItem
+                            onClick={() => setChangingCompany(true)}
+                        >
+                            <Building2 />
+                            Change company
+                        </DropdownMenuItem>
+                    )}
                 </DropdownMenuContent>
             </DropdownMenu>
 
@@ -65,6 +79,14 @@ export function ReservationActions({
                 reservation={reservation}
                 billingModes={billingModes}
             />
+            {canViewCompany && (
+                <ChangeCompanyDialog
+                    open={changingCompany}
+                    onOpenChange={setChangingCompany}
+                    reservation={reservation}
+                    companies={companies}
+                />
+            )}
         </>
     );
 }

@@ -28,5 +28,6 @@ class NewBookingData extends Data
         public ?string $externalReference = null,
         public ?string $groupName = null,
         public ?string $notes = null,
+        public ?int $companyId = null,
     ) {}
 }

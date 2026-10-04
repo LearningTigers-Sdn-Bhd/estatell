@@ -95,6 +95,7 @@ test('the posted lines drop the client key and send dorm beds instead of adults 
         arrival_time: '15:00',
         departure_time: '11:00',
         group_name: '',
+        company_id: '',
         billing_mode: 'master_pays',
         notes: '',
         guests: [],

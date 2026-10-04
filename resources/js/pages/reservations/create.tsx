@@ -68,6 +68,8 @@ import {
 import { Spinner } from '@/components/ui/spinner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useUnsavedChanges } from '@/hooks/use-unsaved-changes';
+import { cn } from '@/lib/utils';
+import { CompanySelect } from '@/components/pms/company-select';
 import { index, newMethod, store, walkIn } from '@/routes/reservations';
 import { UnsavedChangesDialog } from '@/components/pms/unsaved-changes-dialog';
 
@@ -94,6 +96,7 @@ type Props = {
     chargeItems: App.Data.Reservations.ChargeItemOptionData[];
     discounts: App.Data.Reservations.DiscountOptionData[];
     billingModes: EnumOption[];
+    companies: App.Data.CityLedger.CompanyOptionData[];
     autoAssignRooms: boolean;
     currency: App.Enums.Currency | null;
     canOverrideRestrictions: boolean;
@@ -140,6 +143,7 @@ export default function ReservationCreate({
     chargeItems,
     discounts,
     billingModes,
+    companies,
     autoAssignRooms,
     currency,
     canOverrideRestrictions,
@@ -156,6 +160,7 @@ export default function ReservationCreate({
         arrival_time: isWalkIn ? nowTime : checkInTime,
         departure_time: checkOutTime,
         group_name: '',
+        company_id: '',
         billing_mode: billingModes[0]?.value ?? 'master_pays',
         notes: '',
         guests: [emptyGuest()],
@@ -496,7 +501,15 @@ export default function ReservationCreate({
                                             />
                                         </Field>
                                     </div>
-                                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                                    <div
+                                        className={cn(
+                                            'grid gap-4 sm:grid-cols-2',
+                                            !(
+                                                companies.length > 0 &&
+                                                units > 1
+                                            ) && 'lg:grid-cols-3',
+                                        )}
+                                    >
                                         <Field data-invalid={!!errors.source}>
                                             <FieldLabel htmlFor="booking-source">
                                                 Source
@@ -546,6 +559,34 @@ export default function ReservationCreate({
                                                 {errors.external_reference}
                                             </FieldError>
                                         </Field>
+                                        {companies.length > 0 && (
+                                            <Field
+                                                data-invalid={
+                                                    !!errors.company_id
+                                                }
+                                            >
+                                                <FieldLabel htmlFor="booking-company_id">
+                                                    Company
+                                                </FieldLabel>
+                                                <CompanySelect
+                                                    id="booking-company_id"
+                                                    value={data.company_id}
+                                                    onValueChange={(value) =>
+                                                        form.setData(
+                                                            'company_id',
+                                                            value,
+                                                        )
+                                                    }
+                                                    companies={companies}
+                                                    invalid={
+                                                        !!errors.company_id
+                                                    }
+                                                />
+                                                <FieldError>
+                                                    {errors.company_id}
+                                                </FieldError>
+                                            </Field>
+                                        )}
                                         {units > 1 && (
                                             <Field
                                                 data-invalid={

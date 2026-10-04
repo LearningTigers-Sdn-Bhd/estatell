@@ -46,6 +46,7 @@ class StoreBookingRequest extends FormRequest
             'arrival_time' => ['nullable', 'date_format:H:i'],
             'departure_time' => ['nullable', 'date_format:H:i'],
             'group_name' => ['nullable', 'string', 'max:150'],
+            'company_id' => ['nullable', 'integer'],
             'billing_mode' => ['nullable', Rule::enum(BillingMode::class)],
             'notes' => ['nullable', 'string', 'max:2000'],
             'guests' => ['required', 'array', 'min:1', 'max:20'],
@@ -165,6 +166,7 @@ class StoreBookingRequest extends FormRequest
             billingMode: BillingMode::tryFrom((string) $this->validated('billing_mode')) ?? BillingMode::MasterPays,
             externalReference: $this->validated('external_reference'),
             groupName: $this->validated('group_name'),
+            companyId: $this->user()->can(PermissionEnum::CompanyView->value) && $this->filled('company_id') ? $this->integer('company_id') : null,
             notes: $this->validated('notes'),
         );
     }

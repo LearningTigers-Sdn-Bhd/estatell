@@ -115,6 +115,18 @@ function expectNothingCreated(): void
         ->and(DB::table('document_sequences')->where('last_number', '>', 0)->count())->toBe(0);
 }
 
+test('it refuses a suspended company and one from another property', function (string $kind) {
+    $setup = createSetup();
+    $company = $kind === 'suspended'
+        ? Company::factory()->for($setup['property'])->suspended()->create()
+        : Company::factory()->create();
+
+    $result = createReservation($setup, [roomLine($setup)], ['companyId' => $company->id]);
+
+    expect($result->refusal)->toBe(ReservationResult::REFUSAL_COMPANY_NOT_AVAILABLE);
+    expectNothingCreated();
+})->with(['suspended', 'foreign']);
+
 test('it creates a single room reservation', function () {
     $setup = createSetup();
     $company = Company::factory()->for($setup['property'])->create();

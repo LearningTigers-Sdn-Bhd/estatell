@@ -15,6 +15,7 @@ use App\Http\Requests\Reservations\StoreBookingRequest;
 use App\Models\Property;
 use App\Models\RoomType;
 use App\Services\Availability\FreeUnits;
+use App\Services\CityLedger\CompanyOptions;
 use App\Services\Guests\CountryOptions;
 use App\Services\NightAudit\CurrentBusinessDate;
 use App\Services\Property\PropertyToday;
@@ -113,6 +114,7 @@ class ReservationBookingController extends Controller
             'chargeItems' => $options->chargeItems($property),
             'discounts' => $options->roomDiscounts($property),
             'billingModes' => BillingMode::options(),
+            'companies' => $request->user()->can(PermissionEnum::CompanyView->value) ? app(CompanyOptions::class)->active($property) : [],
             'autoAssignRooms' => (bool) $property->settings?->auto_assign_rooms,
             'currency' => $property->settings?->currency,
             'canOverrideRestrictions' => $request->user()->can(PermissionEnum::RatesOverrideRestrictions->value),

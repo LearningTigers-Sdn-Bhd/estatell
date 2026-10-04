@@ -20,6 +20,7 @@ use App\Models\Reservation;
 use App\Models\ReservationUnit;
 use App\Models\UnitAddOn;
 use App\Models\User;
+use App\Services\CityLedger\CompanyOptions;
 use App\Services\Folio\AddOnBilling;
 use App\Services\Folio\FolioStatement;
 use App\Services\Folio\FolioVoucher;
@@ -179,7 +180,7 @@ class ReservationController extends Controller
     private function renderTab(User $user, Property $property, Reservation $reservation, string $tab, callable $tabProps): Response
     {
         $canViewGuest = $user->can(PermissionEnum::GuestsView->value);
-        $reservation->load(['booker', 'creator']);
+        $reservation->load(['booker', 'creator', 'company']);
         $overview = app(ReservationOverview::class)->build($reservation, $canViewGuest);
         $options = app(ReservationFormOptions::class);
 
@@ -193,6 +194,8 @@ class ReservationController extends Controller
             'canManage' => $user->can(PermissionEnum::ReservationsManage->value),
             'canOverrideRestrictions' => $user->can(PermissionEnum::RatesOverrideRestrictions->value),
             'billingModes' => BillingMode::options(),
+            'canViewCompany' => $user->can(PermissionEnum::CompanyView->value),
+            'companies' => Inertia::optional(fn () => $user->can(PermissionEnum::CompanyView->value) ? app(CompanyOptions::class)->active($property) : []),
             'addUnitOptions' => Inertia::optional(fn () => $options->addUnit($property)),
             'chargeItems' => Inertia::optional(fn () => $options->chargeItems($property)),
             'chargeCodes' => Inertia::optional(fn () => $options->chargeCodes($property)),

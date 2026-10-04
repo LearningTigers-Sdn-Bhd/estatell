@@ -5,9 +5,11 @@ namespace App\Actions\Reservations;
 use App\Actions\Folio\SyncRoutingRules;
 use App\Data\Reservations\NewReservationData;
 use App\Data\Reservations\NewUnitData;
+use App\Enums\CompanyStatus;
 use App\Enums\DocumentType;
 use App\Enums\ReservationStatus;
 use App\Enums\SellUnit;
+use App\Models\Company;
 use App\Models\Guest;
 use App\Models\Property;
 use App\Models\Reservation;
@@ -34,6 +36,10 @@ class CreateReservation
 
         if (! Guest::query()->where('property_id', $property->id)->notMerged()->whereNull('anonymized_at')->whereKey($data->bookerGuestId)->exists()) {
             return ReservationResult::refused(ReservationResult::REFUSAL_BOOKER_NOT_FOUND);
+        }
+
+        if ($data->companyId !== null && ! Company::query()->where('property_id', $property->id)->where('status', CompanyStatus::Active)->whereKey($data->companyId)->exists()) {
+            return ReservationResult::refused(ReservationResult::REFUSAL_COMPANY_NOT_AVAILABLE);
         }
 
         try {

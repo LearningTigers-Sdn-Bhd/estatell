@@ -43,6 +43,10 @@ class ReservationResult
 
     public const REFUSAL_RESERVATION_CLOSED = 'reservation_closed';
 
+    public const REFUSAL_COMPANY_NOT_AVAILABLE = 'company_not_available';
+
+    public const REFUSAL_MASTER_HAS_LINES = 'master_has_lines';
+
     private function __construct(
         public readonly ?Reservation $reservation,
         public readonly ?string $refusal,
