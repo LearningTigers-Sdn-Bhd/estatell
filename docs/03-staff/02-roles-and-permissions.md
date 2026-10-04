@@ -57,6 +57,8 @@ roles    spatie columns + property_id (NOT NULL, FK) + default_role (nullable)
 | `folio.reopen`                | Reopen a Closed folio                                                 | ✓     | ✓       | Finance                           |
 | `payment.record`              | Record a payment, download a receipt                                  | ✓     | ✓       | Front desk, Finance               |
 | `payment.refund`              | Refund a payment                                                      | ✓     | ✓       | Finance                           |
+| `company.view`                | Companies list and page, pick a company on a booking                  | ✓     | ✓       | Front desk, Finance               |
+| `company.manage`              | Create, edit, suspend and reactivate companies                        | ✓     | ✓       | Finance                           |
 
 Later modules add rows here. Their module docs list their permissions.
 

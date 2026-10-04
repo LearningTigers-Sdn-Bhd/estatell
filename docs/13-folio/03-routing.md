@@ -119,7 +119,7 @@ Decisions made at build time (staff screen backend):
 - **Folio discounts** apply from the folio that holds the charges. A RoomOnly discount finds nothing on a unit folio when the room lines are on the master.
 - **Cancellation and no-show fees** are Room charges and follow the Room rule.
 - **Folio page:** Scheduled rows for master and third-party folios follow the rules ([Folio page](05-folio-page.md)).
-- **Company change:** when `reservations.company_id` changes after the Master folio exists, the Master payer stays the old company. Decide in [Companies](../15-city-ledger/01-companies.md): refuse the change while the Master holds lines, or move the payer.
+- **Company change:** decided. The change is refused while the Master folio holds lines. Without lines, the Master payer follows the new company. See [Companies](../15-city-ledger/01-companies.md#rules).
 - **Third-party label:** decided. A third-party folio has no label and its payer names it. A third-party folio is one payer on one reservation, so the payer's name already identifies it. Add a nullable `label` later only when a real case needs one.
 
 ## Out of scope

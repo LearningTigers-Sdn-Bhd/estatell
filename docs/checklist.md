@@ -113,6 +113,8 @@ Legend: **Needs** lists items that must be done first.
 | `a9a1ac7` | feat(staff): add staff with a temp password and force a new one          |
 | `c62ea70` | feat(staff): bulk add staff from a grid or CSV/XLSX file                 |
 | `3004870` | feat(staff): export temp passwords as CSV, XLSX or PDF                   |
+| `0b7b2c7` | docs(portal): rename agent portal to company portal                      |
+| `ef33875` | refactor(reservations): rename the Agent source to Portal                |
 
 Smaller fixes and reverts are in `git log`.
 
@@ -258,7 +260,9 @@ Smaller fixes and reverts are in `git log`.
 
 ### 15 City ledger
 
-- [ ] `feat(city-ledger): add companies` — Docs: [Companies](15-city-ledger/01-companies.md).
+- [ ] `feat(city-ledger): add companies` — table, enums, foreign keys on `reservations.company_id` and `folios.payer_company_id`, create, edit, suspend and reactivate, list and company page, `company.view` and `company.manage`, Finance sidebar. Docs: [Companies](15-city-ledger/01-companies.md).
+- [ ] `feat(reservations): pick the company on a booking` — company combobox on the booking form and the reservation page; refuse a change while the Master folio holds lines. Needs: add companies. Docs: [Companies](15-city-ledger/01-companies.md#rules).
+- [ ] `feat(rates): offer negotiated plans by company` — `company_rate_plans`, Rates tab on the company page, linked plans hidden until their company is picked. Needs: pick the company. Docs: [Companies](15-city-ledger/01-companies.md#rules).
 - [ ] `feat(city-ledger): add AR invoices and credit notes` — Docs: [AR invoices](15-city-ledger/02-ar-invoices.md).
 - [ ] `feat(city-ledger): record and allocate AR payments` — Docs: [AR payments](15-city-ledger/03-ar-payments.md).
 - [ ] `feat(city-ledger): add statements, aging and credit control` — Docs: [Credit control and reports](15-city-ledger/04-credit-control-and-reports.md).
