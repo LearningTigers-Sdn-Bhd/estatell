@@ -223,12 +223,21 @@ The Units list is hidden for one unit, and the Folio rail for one folio, so thos
 ### Guests tab
 
 ```
-👤 Guests                                              [+ Attach guest]
- Guest            Phone             Unit                 Role
- Tan Wei Ming     +60 12-345 6789   Deluxe King · 101    Booker · Primary
- Ahmad Faiz       +60 13-888 2211   Dorm Bed · D1-2      Primary
- —                                  Dorm Bed · —         [Attach guest]
+ Guests                                                 [+ Attach guest]
+┌──────────────────────────────────────────────────────────────┐
+│ Guest            Phone             Role                      │
+├──────────────────────────────────────────────────────────────┤
+│ DELUXE KING · 101                                            │  unit row group
+│ Tan Wei Ming     +60 12-345 6789   (Booker) (Primary)        │
+│ Aina Tan         +60 12-345 1111   (Guest)                   │
+│ DORM BED · D1-2                                              │
+│ Ahmad Faiz       +60 13-888 2211   (Primary)                 │
+│ DORM BED · —                                                 │
+│ No guest yet                       [Attach guest]            │
+└──────────────────────────────────────────────────────────────┘
 ```
+
+A title row with the Attach guest button sits above a rounded, bordered table. Rows are grouped by unit, with one group row per unit (a booker who does not stay goes under "Not staying"), so the Unit column is gone. The Role column shows badges: Booker, Primary, and a plain Guest badge for anyone else, so no cell shows a dash.
 
 Attach guest opens a Sheet with `GuestPicker` (existing guests only, through `guests.search`) and "Stays in". Creating a guest here is not supported; the booking form adds the autocomplete field that can.
 
