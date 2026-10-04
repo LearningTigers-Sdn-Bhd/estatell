@@ -49,6 +49,7 @@ export default function SetPassword({ email, passwordRules }: Props) {
                                     id="password"
                                     name="password"
                                     autoComplete="new-password"
+                                    placeholder="New password"
                                     autoFocus
                                     passwordrules={passwordRules}
                                     aria-invalid={!!errors.password}
@@ -64,6 +65,7 @@ export default function SetPassword({ email, passwordRules }: Props) {
                                     id="password_confirmation"
                                     name="password_confirmation"
                                     autoComplete="new-password"
+                                    placeholder="Confirm password"
                                     passwordrules={passwordRules}
                                 />
                             </Field>

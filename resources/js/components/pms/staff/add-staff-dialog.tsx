@@ -73,6 +73,7 @@ export function AddStaffDialog({
                                     <Input
                                         id="add-name"
                                         name="name"
+                                        placeholder="Ali Hassan"
                                         autoComplete="off"
                                         aria-invalid={!!errors.name}
                                         autoFocus
@@ -87,6 +88,7 @@ export function AddStaffDialog({
                                         id="add-email"
                                         name="email"
                                         type="email"
+                                        placeholder="ali@hotel.com"
                                         autoComplete="off"
                                         aria-invalid={!!errors.email}
                                     />
@@ -100,6 +102,7 @@ export function AddStaffDialog({
                                         id="add-role"
                                         name="role_id"
                                         options={roles}
+                                        placeholder="Choose a role"
                                         aria-invalid={!!errors.role_id}
                                     />
                                     <FieldError>{errors.role_id}</FieldError>

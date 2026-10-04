@@ -16,27 +16,40 @@ import { reset } from '@/routes/settings/staff/temp-passwords';
 
 /**
  * Replaces the passwords of one or more staff with new temp passwords. They are signed out everywhere.
- * The server skips Owners, deactivated staff and yourself.
+ * The server skips Owners, deactivated staff and yourself. Pass `open` and `onOpenChange` to open it from a menu;
+ * otherwise it shows its own Reset password button.
  */
 export function ResetTemporaryPassword({
     userIds,
     target,
     variant = 'ghost',
+    open: controlledOpen,
+    onOpenChange,
     onReset,
 }: {
     userIds: number[];
     /** Who is reset, for the title: a name or "3 staff". */
     target: string;
     variant?: 'ghost' | 'outline';
+    open?: boolean;
+    onOpenChange?: (open: boolean) => void;
     onReset: (userIds: number[]) => void;
 }) {
-    const [open, setOpen] = useState(false);
+    const [ownOpen, setOwnOpen] = useState(false);
+    const controlled = controlledOpen !== undefined;
+    const open = controlled ? controlledOpen : ownOpen;
+    const setOpen = (next: boolean) =>
+        controlled ? onOpenChange?.(next) : setOwnOpen(next);
 
     return (
         <AlertDialog open={open} onOpenChange={setOpen}>
-            <AlertDialogTrigger render={<Button variant={variant} size="sm" />}>
-                Reset password
-            </AlertDialogTrigger>
+            {!controlled && (
+                <AlertDialogTrigger
+                    render={<Button variant={variant} size="sm" />}
+                >
+                    Reset password
+                </AlertDialogTrigger>
+            )}
             <AlertDialogContent>
                 <AlertDialogHeader>
                     <AlertDialogTitle>

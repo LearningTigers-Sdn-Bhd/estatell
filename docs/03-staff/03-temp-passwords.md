@@ -62,7 +62,7 @@ Selected (1): [Copy message] [Export ▾ CSV · XLSX · PDF] [Reset temp passwor
 - The Status column shows **Temp password · Nd** (days left) or **Temp password expired**.
 - Copy and export use only selected rows with an unexpired temp password. Other rows are skipped and the toast names the count, for example "1 skipped: no temp password".
 - The page never receives temp passwords as props. Copy fetches the text from the message route; exports are downloads.
-- Each active row also has **Copy message** (when its temp password is unexpired) and **Reset password** (not for Owners or yourself). After a reset, the copy message opens for that person.
+- Each row has an actions menu (⋯). On the Active tab it holds **Copy message** (when its temp password is unexpired) and **Reset password** (not for Owners or yourself). After a reset, the copy message opens for that person.
 
 ### Add with temp password (Dialog, 3 fields)
 

@@ -1,11 +1,17 @@
-import { Form, Head, Link } from '@inertiajs/react';
+import { Form, Head, Link, router } from '@inertiajs/react';
 import {
     ChevronDown,
+    Copy,
+    Ellipsis,
     KeyRound,
     ListPlus,
     Mail,
+    Send,
+    UserCheck,
+    UserCog,
     UserMinus,
     Users,
+    X,
 } from 'lucide-react';
 import { useState } from 'react';
 import { DateText } from '@/components/pms/date-text';
@@ -13,6 +19,7 @@ import { EmptyState } from '@/components/pms/empty-state';
 import { EnumSelect } from '@/components/pms/enum-select';
 import type { EnumOption } from '@/components/pms/enum-select';
 import { PageHeader } from '@/components/pms/page-header';
+import { StatusBadge } from '@/components/pms/status-badge';
 import { AddStaffDialog } from '@/components/pms/staff/add-staff-dialog';
 import { ExportTemporaryPasswordsMenu } from '@/components/pms/staff/export-temporary-passwords-menu';
 import { ResetTemporaryPassword } from '@/components/pms/staff/reset-temporary-password';
@@ -26,7 +33,6 @@ import {
     AlertDialogFooter,
     AlertDialogHeader,
     AlertDialogTitle,
-    AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -39,12 +45,12 @@ import {
     DialogFooter,
     DialogHeader,
     DialogTitle,
-    DialogTrigger,
 } from '@/components/ui/dialog';
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
+    DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
@@ -115,6 +121,7 @@ function InviteStaffDialog({
                                         id="invite-email"
                                         name="email"
                                         type="email"
+                                        placeholder="ali@hotel.com"
                                         autoComplete="off"
                                         aria-invalid={!!errors.email}
                                         autoFocus
@@ -129,6 +136,7 @@ function InviteStaffDialog({
                                         id="invite-role"
                                         name="role_id"
                                         options={roles}
+                                        placeholder="Choose a role"
                                         aria-invalid={!!errors.role_id}
                                     />
                                     <FieldError>{errors.role_id}</FieldError>
@@ -217,28 +225,47 @@ function temporaryPasswordDaysLeft(expiresAt: string): number | null {
 
 function StaffStatus({ member }: { member: StaffMember }) {
     if (member.temporaryPasswordExpiresAt === null) {
-        return <span className="text-muted-foreground">Active</span>;
+        return (
+            <StatusBadge
+                status={{ value: 'active', label: 'Active', tone: 'success' }}
+            />
+        );
     }
 
     const daysLeft = temporaryPasswordDaysLeft(
         member.temporaryPasswordExpiresAt,
     );
 
-    return daysLeft === null ? (
-        <Badge variant="destructive">Temp password expired</Badge>
-    ) : (
-        <Badge variant="outline">Temp password · {daysLeft}d</Badge>
+    return (
+        <StatusBadge
+            status={
+                daysLeft === null
+                    ? {
+                          value: 'temp-expired',
+                          label: 'Temp password expired',
+                          tone: 'danger',
+                      }
+                    : {
+                          value: 'temp',
+                          label: `Temp password · ${daysLeft}d`,
+                          tone: 'warning',
+                      }
+            }
+        />
     );
 }
 
-function DeactivateStaff({ member }: { member: StaffMember }) {
-    const [open, setOpen] = useState(false);
-
+function DeactivateStaff({
+    member,
+    open,
+    onOpenChange: setOpen,
+}: {
+    member: StaffMember;
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+}) {
     return (
         <AlertDialog open={open} onOpenChange={setOpen}>
-            <AlertDialogTrigger render={<Button variant="ghost" size="sm" />}>
-                Deactivate
-            </AlertDialogTrigger>
             <AlertDialogContent>
                 <AlertDialogHeader>
                     <AlertDialogTitle>
@@ -279,17 +306,16 @@ function DeactivateStaff({ member }: { member: StaffMember }) {
 function ChangeRoleDialog({
     member,
     roles,
+    open,
+    onOpenChange: setOpen,
 }: {
     member: StaffMember;
     roles: RoleOption[];
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
 }) {
-    const [open, setOpen] = useState(false);
-
     return (
         <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger render={<Button variant="ghost" size="sm" />}>
-                Change role
-            </DialogTrigger>
             <DialogContent>
                 <DialogHeader>
                     <DialogTitle>Change the role of {member.name}</DialogTitle>
@@ -313,6 +339,7 @@ function ChangeRoleDialog({
                                     id={`role-${member.id}`}
                                     name="role_id"
                                     options={roles}
+                                    placeholder="Choose a role"
                                     defaultValue={
                                         member.roleId === null
                                             ? undefined
@@ -344,6 +371,150 @@ function ChangeRoleDialog({
                 </Form>
             </DialogContent>
         </Dialog>
+    );
+}
+
+function RowActionsTrigger({ name }: { name: string }) {
+    return (
+        <DropdownMenuTrigger
+            render={<Button variant="ghost" size="icon-sm" />}
+            aria-label={`Actions for ${name}`}
+        >
+            <Ellipsis />
+        </DropdownMenuTrigger>
+    );
+}
+
+function ActiveStaffActions({
+    member,
+    roles,
+    onShowMessage,
+}: {
+    member: StaffMember;
+    roles: RoleOption[];
+    onShowMessage: (userIds: number[]) => void;
+}) {
+    const [dialog, setDialog] = useState<
+        'role' | 'reset' | 'deactivate' | null
+    >(null);
+    const close = (open: boolean) => !open && setDialog(null);
+    const canCopy =
+        member.temporaryPasswordExpiresAt !== null &&
+        temporaryPasswordDaysLeft(member.temporaryPasswordExpiresAt) !== null;
+
+    return (
+        <>
+            <DropdownMenu>
+                <RowActionsTrigger name={member.name} />
+                <DropdownMenuContent align="end" className="w-48">
+                    {canCopy && (
+                        <DropdownMenuItem
+                            onClick={() => onShowMessage([member.id])}
+                        >
+                            <Copy />
+                            Copy message
+                        </DropdownMenuItem>
+                    )}
+                    {!member.isOwner && (
+                        <DropdownMenuItem onClick={() => setDialog('reset')}>
+                            <KeyRound />
+                            Reset password
+                        </DropdownMenuItem>
+                    )}
+                    <DropdownMenuItem onClick={() => setDialog('role')}>
+                        <UserCog />
+                        Change role
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                        variant="destructive"
+                        onClick={() => setDialog('deactivate')}
+                    >
+                        <UserMinus />
+                        Deactivate
+                    </DropdownMenuItem>
+                </DropdownMenuContent>
+            </DropdownMenu>
+            <ChangeRoleDialog
+                member={member}
+                roles={roles}
+                open={dialog === 'role'}
+                onOpenChange={close}
+            />
+            <ResetTemporaryPassword
+                userIds={[member.id]}
+                target={member.name}
+                open={dialog === 'reset'}
+                onOpenChange={close}
+                onReset={onShowMessage}
+            />
+            <DeactivateStaff
+                member={member}
+                open={dialog === 'deactivate'}
+                onOpenChange={close}
+            />
+        </>
+    );
+}
+
+function DeactivatedStaffActions({ member }: { member: StaffMember }) {
+    return (
+        <DropdownMenu>
+            <RowActionsTrigger name={member.name} />
+            <DropdownMenuContent align="end" className="w-44">
+                <DropdownMenuItem
+                    onClick={() =>
+                        router.post(
+                            reactivate.url({ user: member.id }),
+                            {},
+                            { preserveScroll: true },
+                        )
+                    }
+                >
+                    <UserCheck />
+                    Reactivate
+                </DropdownMenuItem>
+            </DropdownMenuContent>
+        </DropdownMenu>
+    );
+}
+
+function InvitationActions({ invitation }: { invitation: Invitation }) {
+    const [revoking, setRevoking] = useState(false);
+
+    return (
+        <>
+            <DropdownMenu>
+                <RowActionsTrigger name={invitation.email} />
+                <DropdownMenuContent align="end" className="w-44">
+                    <DropdownMenuItem
+                        onClick={() =>
+                            router.post(
+                                resend.url({ staffInvitation: invitation.id }),
+                                {},
+                                { preserveScroll: true },
+                            )
+                        }
+                    >
+                        <Send />
+                        Resend
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                        variant="destructive"
+                        onClick={() => setRevoking(true)}
+                    >
+                        <X />
+                        Revoke
+                    </DropdownMenuItem>
+                </DropdownMenuContent>
+            </DropdownMenu>
+            <RevokeInvitation
+                invitation={invitation}
+                open={revoking}
+                onOpenChange={setRevoking}
+            />
+        </>
     );
 }
 
@@ -517,37 +688,13 @@ function ActiveStaff({
                                 {canManage && (
                                     <TableCell>
                                         {!member.isYou && (
-                                            <div className="flex justify-end gap-1">
-                                                {member.temporaryPasswordExpiresAt !==
-                                                    null &&
-                                                    temporaryPasswordDaysLeft(
-                                                        member.temporaryPasswordExpiresAt,
-                                                    ) !== null && (
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="sm"
-                                                            onClick={() =>
-                                                                onShowMessage([
-                                                                    member.id,
-                                                                ])
-                                                            }
-                                                        >
-                                                            Copy message
-                                                        </Button>
-                                                    )}
-                                                {!member.isOwner && (
-                                                    <ResetTemporaryPassword
-                                                        userIds={[member.id]}
-                                                        target={member.name}
-                                                        onReset={onShowMessage}
-                                                    />
-                                                )}
-                                                <ChangeRoleDialog
+                                            <div className="flex justify-end">
+                                                <ActiveStaffActions
                                                     member={member}
                                                     roles={roles}
-                                                />
-                                                <DeactivateStaff
-                                                    member={member}
+                                                    onShowMessage={
+                                                        onShowMessage
+                                                    }
                                                 />
                                             </div>
                                         )}
@@ -569,10 +716,6 @@ function DeactivatedStaff({
     staff: StaffMember[];
     canManage: boolean;
 }) {
-    if (staff.length === 0) {
-        return <EmptyState icon={UserMinus} title="No deactivated staff" />;
-    }
-
     return (
         <div className="overflow-hidden rounded-lg border">
             <Table>
@@ -590,6 +733,16 @@ function DeactivatedStaff({
                     </TableRow>
                 </TableHeader>
                 <TableBody>
+                    {staff.length === 0 && (
+                        <TableRow>
+                            <TableCell colSpan={canManage ? 5 : 4}>
+                                <EmptyState
+                                    icon={UserMinus}
+                                    title="No deactivated staff"
+                                />
+                            </TableCell>
+                        </TableRow>
+                    )}
                     {staff.map((member) => (
                         <TableRow key={member.id}>
                             <TableCell className="font-medium">
@@ -603,27 +756,9 @@ function DeactivatedStaff({
                             {canManage && (
                                 <TableCell>
                                     <div className="flex justify-end">
-                                        <Form
-                                            {...reactivate.form({
-                                                user: member.id,
-                                            })}
-                                            options={{ preserveScroll: true }}
-                                        >
-                                            {({ processing }) => (
-                                                <Button
-                                                    type="submit"
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    disabled={processing}
-                                                    focusableWhenDisabled
-                                                >
-                                                    {processing && (
-                                                        <Spinner data-icon="inline-start" />
-                                                    )}
-                                                    Reactivate
-                                                </Button>
-                                            )}
-                                        </Form>
+                                        <DeactivatedStaffActions
+                                            member={member}
+                                        />
                                     </div>
                                 </TableCell>
                             )}
@@ -635,14 +770,17 @@ function DeactivatedStaff({
     );
 }
 
-function RevokeInvitation({ invitation }: { invitation: Invitation }) {
-    const [open, setOpen] = useState(false);
-
+function RevokeInvitation({
+    invitation,
+    open,
+    onOpenChange: setOpen,
+}: {
+    invitation: Invitation;
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+}) {
     return (
         <AlertDialog open={open} onOpenChange={setOpen}>
-            <AlertDialogTrigger render={<Button variant="ghost" size="sm" />}>
-                Revoke
-            </AlertDialogTrigger>
             <AlertDialogContent>
                 <AlertDialogHeader>
                     <AlertDialogTitle>
@@ -687,10 +825,6 @@ function Invitations({
     invitations: Invitation[];
     canManage: boolean;
 }) {
-    if (invitations.length === 0) {
-        return <EmptyState icon={Mail} title="No open invitations" />;
-    }
-
     return (
         <div className="overflow-hidden rounded-lg border">
             <Table>
@@ -709,6 +843,16 @@ function Invitations({
                     </TableRow>
                 </TableHeader>
                 <TableBody>
+                    {invitations.length === 0 && (
+                        <TableRow>
+                            <TableCell colSpan={canManage ? 6 : 5}>
+                                <EmptyState
+                                    icon={Mail}
+                                    title="No open invitations"
+                                />
+                            </TableCell>
+                        </TableRow>
+                    )}
                     {invitations.map((invitation) => (
                         <TableRow key={invitation.id}>
                             <TableCell className="font-medium">
@@ -721,36 +865,21 @@ function Invitations({
                             </TableCell>
                             <TableCell>
                                 {invitation.expired ? (
-                                    <Badge variant="outline">Expired</Badge>
+                                    <StatusBadge
+                                        status={{
+                                            value: 'expired',
+                                            label: 'Expired',
+                                            tone: 'warning',
+                                        }}
+                                    />
                                 ) : (
                                     <DateText date={invitation.expiresAt} />
                                 )}
                             </TableCell>
                             {canManage && (
                                 <TableCell>
-                                    <div className="flex justify-end gap-1">
-                                        <Form
-                                            {...resend.form({
-                                                staffInvitation: invitation.id,
-                                            })}
-                                            options={{ preserveScroll: true }}
-                                        >
-                                            {({ processing }) => (
-                                                <Button
-                                                    type="submit"
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    disabled={processing}
-                                                    focusableWhenDisabled
-                                                >
-                                                    {processing && (
-                                                        <Spinner data-icon="inline-start" />
-                                                    )}
-                                                    Resend
-                                                </Button>
-                                            )}
-                                        </Form>
-                                        <RevokeInvitation
+                                    <div className="flex justify-end">
+                                        <InvitationActions
                                             invitation={invitation}
                                         />
                                     </div>
@@ -803,6 +932,7 @@ export default function StaffIndex({
 
                 <TabLinks
                     activeTab={tab}
+                    panelWidth="full"
                     className="gap-4"
                     tabs={[
                         {

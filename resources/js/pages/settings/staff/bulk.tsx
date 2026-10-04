@@ -30,6 +30,7 @@ import {
     Table,
     TableBody,
     TableCell,
+    TableFooter,
     TableHead,
     TableHeader,
     TableRow,
@@ -77,7 +78,7 @@ function AddedResult({
     const [copying, setCopying] = useState(false);
 
     return (
-        <div className="flex max-w-4xl flex-col gap-4">
+        <div className="flex flex-col gap-4">
             <div className="overflow-hidden rounded-lg border">
                 <Table>
                     <TableHeader>
@@ -327,7 +328,7 @@ export default function StaffBulkAdd({
                     </FieldError>
                 )}
 
-                <div className="flex max-w-4xl flex-col gap-3">
+                <div className="flex flex-col gap-3">
                     <div className="overflow-hidden rounded-lg border">
                         <Table>
                             <TableHeader>
@@ -358,6 +359,7 @@ export default function StaffBulkAdd({
                                             <TableCell>
                                                 <Input
                                                     value={row.name}
+                                                    placeholder="Ali Hassan"
                                                     aria-label={`Name, row ${position + 1}`}
                                                     aria-invalid={
                                                         !!rowError(
@@ -380,6 +382,7 @@ export default function StaffBulkAdd({
                                                 <Input
                                                     type="email"
                                                     value={row.email}
+                                                    placeholder="ali@hotel.com"
                                                     autoComplete="off"
                                                     aria-label={`Email, row ${position + 1}`}
                                                     aria-invalid={
@@ -444,21 +447,30 @@ export default function StaffBulkAdd({
                                     );
                                 })}
                             </TableBody>
+                            <TableFooter>
+                                <TableRow>
+                                    <TableCell colSpan={5} className="text-end">
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            disabled={rows.length >= maxRows}
+                                            focusableWhenDisabled
+                                            onClick={() =>
+                                                form.setData('rows', [
+                                                    ...rows,
+                                                    emptyRow(),
+                                                ])
+                                            }
+                                        >
+                                            <Plus data-icon="inline-start" />
+                                            Add row
+                                        </Button>
+                                    </TableCell>
+                                </TableRow>
+                            </TableFooter>
                         </Table>
                     </div>
-                    <Button
-                        type="button"
-                        variant="outline"
-                        className="self-start"
-                        disabled={rows.length >= maxRows}
-                        focusableWhenDisabled
-                        onClick={() =>
-                            form.setData('rows', [...rows, emptyRow()])
-                        }
-                    >
-                        <Plus data-icon="inline-start" />
-                        Row
-                    </Button>
                 </div>
 
                 <div className="flex-1" />

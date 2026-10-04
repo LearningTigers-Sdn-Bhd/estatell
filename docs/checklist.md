@@ -112,6 +112,7 @@ Legend: **Needs** lists items that must be done first.
 | `81687e6` | feat(auth): end sessions when the password changes                       |
 | `a9a1ac7` | feat(staff): add staff with a temp password and force a new one          |
 | `c62ea70` | feat(staff): bulk add staff from a grid or CSV/XLSX file                 |
+| `3004870` | feat(staff): export temp passwords as CSV, XLSX or PDF                   |
 
 Smaller fixes and reverts are in `git log`.
 
