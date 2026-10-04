@@ -19,6 +19,18 @@ class ArInvoiceResult
 
     public const REFUSAL_NO_BUSINESS_DATE = 'no_business_date';
 
+    public const REFUSAL_NOT_AN_OPEN_INVOICE = 'not_an_open_invoice';
+
+    public const REFUSAL_AMOUNT_INVALID = 'amount_invalid';
+
+    public const REFUSAL_REASON_REQUIRED = 'reason_required';
+
+    public const REFUSAL_CREDIT_EXCEEDS_BALANCE = 'credit_exceeds_balance';
+
+    public const REFUSAL_NOT_VOIDABLE = 'invoice_not_voidable';
+
+    public const REFUSAL_ALREADY_VOID = 'already_void';
+
     private function __construct(
         public readonly ?ArInvoice $invoice,
         public readonly ?string $refusal,
