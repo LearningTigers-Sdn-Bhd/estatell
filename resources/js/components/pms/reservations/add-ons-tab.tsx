@@ -62,90 +62,87 @@ export function AddOnsTab({
                     </Button>
                 )}
             </div>
-            {addOns.length === 0 ? (
-                <EmptyState
-                    icon={Receipt}
-                    title="No add-ons"
-                    description="Extras sold with a unit appear here."
-                />
-            ) : (
-                <div className="overflow-hidden rounded-xl border">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Charge item</TableHead>
-                                <TableHead className="text-right">
-                                    Quantity
+            <div className="overflow-hidden rounded-xl border">
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>Charge item</TableHead>
+                            <TableHead className="text-right">
+                                Quantity
+                            </TableHead>
+                            <TableHead>Service date</TableHead>
+                            <TableHead className="text-right">
+                                Unit amount
+                            </TableHead>
+                            <TableHead className="text-right">Total</TableHead>
+                            {canManage && (
+                                <TableHead className="w-12">
+                                    <span className="sr-only">Actions</span>
                                 </TableHead>
-                                <TableHead>Service date</TableHead>
-                                <TableHead className="text-right">
-                                    Unit amount
-                                </TableHead>
-                                <TableHead className="text-right">
-                                    Total
-                                </TableHead>
-                                {canManage && (
-                                    <TableHead className="w-12">
-                                        <span className="sr-only">Actions</span>
-                                    </TableHead>
-                                )}
+                            )}
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {addOns.length === 0 && (
+                            <TableRow className="hover:bg-transparent">
+                                <TableCell colSpan={columns}>
+                                    <EmptyState
+                                        icon={Receipt}
+                                        title="No add-ons"
+                                        description="Extras sold with a unit appear here."
+                                    />
+                                </TableCell>
                             </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {[...groups.values()].map((rows) => (
-                                <Fragment key={rows[0].unitId}>
-                                    <TableRow className="bg-muted/50 hover:bg-muted/50">
-                                        <TableCell
-                                            colSpan={columns}
-                                            className="text-xs font-medium tracking-wide text-muted-foreground uppercase"
-                                        >
-                                            {rows[0].unitLabel}
+                        )}
+                        {[...groups.values()].map((rows) => (
+                            <Fragment key={rows[0].unitId}>
+                                <TableRow className="bg-muted/50 hover:bg-muted/50">
+                                    <TableCell
+                                        colSpan={columns}
+                                        className="text-xs font-medium tracking-wide text-muted-foreground uppercase"
+                                    >
+                                        {rows[0].unitLabel}
+                                    </TableCell>
+                                </TableRow>
+                                {rows.map((row) => (
+                                    <TableRow key={row.id}>
+                                        <TableCell>{row.chargeItem}</TableCell>
+                                        <TableCell className="text-right tabular-nums">
+                                            {row.quantity}
                                         </TableCell>
+                                        <TableCell>
+                                            <DateText date={row.serviceDate} />
+                                        </TableCell>
+                                        <TableCell className="text-right">
+                                            <MoneyText
+                                                amount={row.unitAmount}
+                                                currency={currency}
+                                            />
+                                        </TableCell>
+                                        <TableCell className="text-right">
+                                            <MoneyText
+                                                amount={row.total}
+                                                currency={currency}
+                                            />
+                                        </TableCell>
+                                        {canManage && (
+                                            <TableCell className="text-right">
+                                                {openIds.has(row.unitId) && (
+                                                    <RemoveAddOnDialog
+                                                        reservationId={
+                                                            reservationId
+                                                        }
+                                                        addOn={row}
+                                                    />
+                                                )}
+                                            </TableCell>
+                                        )}
                                     </TableRow>
-                                    {rows.map((row) => (
-                                        <TableRow key={row.id}>
-                                            <TableCell>
-                                                {row.chargeItem}
-                                            </TableCell>
-                                            <TableCell className="text-right tabular-nums">
-                                                {row.quantity}
-                                            </TableCell>
-                                            <TableCell>
-                                                <DateText
-                                                    date={row.serviceDate}
-                                                />
-                                            </TableCell>
-                                            <TableCell className="text-right">
-                                                <MoneyText
-                                                    amount={row.unitAmount}
-                                                    currency={currency}
-                                                />
-                                            </TableCell>
-                                            <TableCell className="text-right">
-                                                <MoneyText
-                                                    amount={row.total}
-                                                    currency={currency}
-                                                />
-                                            </TableCell>
-                                            {canManage && (
-                                                <TableCell className="text-right">
-                                                    {openIds.has(
-                                                        row.unitId,
-                                                    ) && (
-                                                        <RemoveAddOnDialog
-                                                            reservationId={
-                                                                reservationId
-                                                            }
-                                                            addOn={row}
-                                                        />
-                                                    )}
-                                                </TableCell>
-                                            )}
-                                        </TableRow>
-                                    ))}
-                                </Fragment>
-                            ))}
-                        </TableBody>
+                                ))}
+                            </Fragment>
+                        ))}
+                    </TableBody>
+                    {addOns.length > 0 && (
                         <TableFooter>
                             <TableRow>
                                 <TableCell colSpan={4}>Total</TableCell>
@@ -158,9 +155,9 @@ export function AddOnsTab({
                                 {canManage && <TableCell />}
                             </TableRow>
                         </TableFooter>
-                    </Table>
-                </div>
-            )}
+                    )}
+                </Table>
+            </div>
             <AddAddOnDialog
                 open={adding}
                 onOpenChange={setAdding}
