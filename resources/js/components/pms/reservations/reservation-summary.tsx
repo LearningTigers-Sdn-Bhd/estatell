@@ -61,8 +61,8 @@ export function ReservationSummary({
     const { booker } = reservation;
 
     return (
-        <div className="flex flex-col gap-4 ps-3 pt-2">
-            <section className="flex flex-col gap-1">
+        <div className="flex flex-col gap-4">
+            <section className="flex flex-col gap-1 ps-3 pt-2">
                 <h2 className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
                     <User aria-hidden className="size-4" />
                     Booker
