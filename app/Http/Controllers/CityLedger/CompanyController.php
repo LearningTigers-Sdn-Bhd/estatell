@@ -1,0 +1,107 @@
+<?php
+
+namespace App\Http\Controllers\CityLedger;
+
+use App\Actions\CityLedger\CreateCompany;
+use App\Actions\CityLedger\UpdateCompany;
+use App\Actions\CityLedger\UpdateCompanyBilling;
+use App\Data\CityLedger\CompanyData;
+use App\Data\CityLedger\CompanyRowData;
+use App\Enums\CompanyStatus;
+use App\Enums\CompanyType;
+use App\Enums\PermissionEnum;
+use App\Http\Controllers\Controller;
+use App\Http\Requests\CityLedger\CompanyRequest;
+use App\Models\Company;
+use App\Models\Property;
+use App\Services\Guests\CountryOptions;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Inertia\Inertia;
+use Inertia\Response;
+
+class CompanyController extends Controller
+{
+    /**
+     * Every company of the property in name order. The list is bounded, so it loads once and filters in the browser.
+     * The add company sheet opens on this page.
+     */
+    public function index(Request $request, Property $property): Response
+    {
+        return Inertia::render('finance/city-ledger/companies/index', [
+            'companies' => $property->companies()->ordered()->get()
+                ->map(fn (Company $company): CompanyRowData => CompanyRowData::fromModel($company)),
+            'types' => CompanyType::options(),
+            'statuses' => CompanyStatus::options(),
+            'currency' => $property->settings?->currency,
+            'canManage' => $request->user()->can(PermissionEnum::CompanyManage->value),
+        ]);
+    }
+
+    public function store(CompanyRequest $request, Property $property, CreateCompany $createCompany): RedirectResponse
+    {
+        $company = $createCompany($request->user(), $property, $request->companyAttributes());
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __(':name added.', ['name' => $company->name])]);
+
+        return to_route('finance.city-ledger.companies.show', ['property' => $property, 'company' => $company]);
+    }
+
+    /**
+     * Company page, Details tab: name, type, contact and registration numbers.
+     */
+    public function show(Request $request, Property $property, Company $company): Response
+    {
+        return $this->renderTab($request, $property, $company, 'details', [
+            'types' => CompanyType::options(),
+            'countries' => app(CountryOptions::class)->options(),
+        ]);
+    }
+
+    /**
+     * Company page, Credit tab: credit limit, payment terms and direct billing.
+     */
+    public function credit(Request $request, Property $property, Company $company): Response
+    {
+        return $this->renderTab($request, $property, $company, 'credit');
+    }
+
+    public function update(CompanyRequest $request, Property $property, Company $company, string $section, UpdateCompany $updateCompany): RedirectResponse
+    {
+        $updateCompany($request->user(), $company, $request->companyAttributes());
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __(':name saved.', ['name' => $company->refresh()->name])]);
+
+        return to_route($section === 'details' ? 'finance.city-ledger.companies.show' : "finance.city-ledger.companies.{$section}", ['property' => $property, 'company' => $company]);
+    }
+
+    /**
+     * The tax numbers and billing address form on the Details tab. Refused when the company manages them itself.
+     */
+    public function updateBilling(CompanyRequest $request, Property $property, Company $company, UpdateCompanyBilling $updateCompanyBilling): RedirectResponse
+    {
+        Inertia::flash('toast', $updateCompanyBilling($request->user(), $company, $request->companyAttributes())
+            ? ['type' => 'success', 'message' => __('Tax numbers and billing address saved.')]
+            : ['type' => 'error', 'message' => __('The company manages these details in the company portal.')]);
+
+        return to_route('finance.city-ledger.companies.show', ['property' => $property, 'company' => $company]);
+    }
+
+    /**
+     * Each tab has its own URL, so the open tab survives a refresh. Only the open tab's options are sent.
+     * Staff without `company.manage` see the fields read-only.
+     *
+     * @param  'details'|'credit'  $tab
+     * @param  array<string, mixed>  $tabProps
+     */
+    private function renderTab(Request $request, Property $property, Company $company, string $tab, array $tabProps = []): Response
+    {
+        return Inertia::render('finance/city-ledger/companies/show', [
+            'company' => CompanyData::fromModel($company),
+            'tab' => $tab,
+            'currency' => $property->settings?->currency,
+            'canManage' => $request->user()->can(PermissionEnum::CompanyManage->value),
+            ...$tabProps,
+        ]);
+    }
+}

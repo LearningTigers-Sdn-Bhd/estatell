@@ -22,7 +22,7 @@ use Illuminate\Support\Carbon;
  * @property string $reference
  * @property ReservationStatus $status
  * @property int $booker_guest_id
- * @property int|null $company_id No foreign key until the city ledger module adds companies.
+ * @property int|null $company_id The billed company.
  * @property string|null $group_name
  * @property BillingMode $billing_mode
  * @property ReservationSource $source
@@ -70,6 +70,14 @@ class Reservation extends Model
     public function booker(): BelongsTo
     {
         return $this->belongsTo(Guest::class, 'booker_guest_id');
+    }
+
+    /**
+     * @return BelongsTo<Company, $this>
+     */
+    public function company(): BelongsTo
+    {
+        return $this->belongsTo(Company::class);
     }
 
     /**

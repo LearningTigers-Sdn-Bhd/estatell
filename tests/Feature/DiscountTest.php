@@ -353,7 +353,7 @@ test('the settings sidebar lists discounts under billing setup', function () {
     $this->actingAs($owner)
         ->get(route('settings.discounts.index', $owner->property->code))
         ->assertInertia(fn (Assert $page) => $page
-            ->where('navigation.contexts.1.groups.3.label', 'Billing setup')
-            ->where('navigation.contexts.1.groups.3.items.4.title', 'Discounts')
-            ->where('navigation.contexts.1.groups.3.items.4.active', true));
+            ->where('navigation.contexts.2.groups.3.label', 'Billing setup')
+            ->where('navigation.contexts.2.groups.3.items.4.title', 'Discounts')
+            ->where('navigation.contexts.2.groups.3.items.4.active', true));
 });

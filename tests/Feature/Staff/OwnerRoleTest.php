@@ -47,8 +47,9 @@ test('staff without the permission do not see the settings context or save setti
     $this->actingAs($staff)
         ->get(route('dashboard', $code))
         ->assertInertia(fn (Assert $page) => $page
-            ->has('navigation.contexts', 1)
-            ->where('navigation.contexts.0.key', 'front-desk'));
+            ->has('navigation.contexts', 2)
+            ->where('navigation.contexts.0.key', 'front-desk')
+            ->where('navigation.contexts.1.key', 'finance'));
 
     $this->put(route('settings.update', [$code, 'support']), ['allow_support_access' => '0'])->assertForbidden();
 });
@@ -58,7 +59,7 @@ test('owners keep the settings context on account pages', function () {
 
     $this->actingAs($owner)
         ->get(route('account.profile.edit'))
-        ->assertInertia(fn (Assert $page) => $page->where('navigation.contexts.1.key', 'settings'));
+        ->assertInertia(fn (Assert $page) => $page->where('navigation.contexts.2.key', 'settings'));
 });
 
 test('the backfill migration makes the first user of each property without roles the Owner', function () {

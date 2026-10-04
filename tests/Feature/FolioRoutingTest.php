@@ -21,6 +21,7 @@ use App\Enums\RoutingRuleSource;
 use App\Enums\TransactionCategory;
 use App\Enums\UnitStatus;
 use App\Models\BusinessDate;
+use App\Models\Company;
 use App\Models\Folio;
 use App\Models\FolioLine;
 use App\Models\FolioRoutingRule;
@@ -250,13 +251,14 @@ test('a code rule sends diving charges to a third party folio and everything els
 test('a third party folio takes a guest or a company as its only payer', function () {
     $setup = routingSetup();
     $create = app(CreateFolio::class);
+    $companyId = Company::factory()->for($setup['property'])->create()->id;
 
-    $company = $create->thirdParty($setup['reservation'], null, 88);
+    $company = $create->thirdParty($setup['reservation'], null, $companyId);
 
-    expect($company->payer_company_id)->toBe(88)
+    expect($company->payer_company_id)->toBe($companyId)
         ->and($company->payer_guest_id)->toBeNull()
         ->and(fn () => $create->thirdParty($setup['reservation'], null, null))->toThrow(InvalidArgumentException::class)
-        ->and(fn () => $create->thirdParty($setup['reservation'], Guest::factory()->create(['property_id' => $setup['property']->id]), 88))->toThrow(InvalidArgumentException::class)
+        ->and(fn () => $create->thirdParty($setup['reservation'], Guest::factory()->create(['property_id' => $setup['property']->id]), $companyId))->toThrow(InvalidArgumentException::class)
         ->and(fn () => $create->thirdParty($setup['reservation'], Guest::factory()->create(), null))->toThrow(InvalidArgumentException::class);
 });
 
@@ -408,21 +410,23 @@ test('AddUnit counts only live units when it takes a reservation to 2', function
 });
 
 test('a company with one unit gets a master folio paid by the company and the rules', function () {
-    $setup = routingSetup(['company_id' => 55], units: 1);
+    $companyId = Company::factory()->create()->id;
+    $setup = routingSetup(['company_id' => $companyId], units: 1);
 
     $result = app(SyncRoutingRules::class)($setup['reservation']);
 
-    expect($result->masterFolio->payer_company_id)->toBe(55)
+    expect($result->masterFolio->payer_company_id)->toBe($companyId)
         ->and($result->masterFolio->payer_guest_id)->toBeNull()
         ->and(FolioRoutingRule::query()->sole()->category)->toBe(TransactionCategory::Room);
 });
 
 test('a company with each unit paying gets a master folio and no rules', function () {
-    $setup = routingSetup(['company_id' => 55, 'billing_mode' => BillingMode::EachPays], units: 1);
+    $companyId = Company::factory()->create()->id;
+    $setup = routingSetup(['company_id' => $companyId, 'billing_mode' => BillingMode::EachPays], units: 1);
 
     $result = app(SyncRoutingRules::class)($setup['reservation']);
 
-    expect($result->masterFolio->payer_company_id)->toBe(55)
+    expect($result->masterFolio->payer_company_id)->toBe($companyId)
         ->and(FolioRoutingRule::query()->count())->toBe(0);
 });
 

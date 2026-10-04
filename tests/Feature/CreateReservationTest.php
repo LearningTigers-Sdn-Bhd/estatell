@@ -7,6 +7,7 @@ use App\Enums\BillingMode;
 use App\Enums\ReservationSource;
 use App\Models\Bed;
 use App\Models\ChargeItem;
+use App\Models\Company;
 use App\Models\Guest;
 use App\Models\Property;
 use App\Models\PropertySetting;
@@ -116,11 +117,12 @@ function expectNothingCreated(): void
 
 test('it creates a single room reservation', function () {
     $setup = createSetup();
+    $company = Company::factory()->for($setup['property'])->create();
 
     $result = createReservation($setup, [roomLine($setup)], [
         'channelName' => 'Phone desk',
         'externalReference' => 'EXT-1',
-        'companyId' => 77,
+        'companyId' => $company->id,
         'billingMode' => BillingMode::EachPays->value,
     ]);
 
@@ -135,7 +137,7 @@ test('it creates a single room reservation', function () {
         ->and($reservation->status->value)->toBe('confirmed')
         ->and($reservation->channel_name)->toBe('Phone desk')
         ->and($reservation->external_reference)->toBe('EXT-1')
-        ->and($reservation->company_id)->toBe(77)
+        ->and($reservation->company_id)->toBe($company->id)
         ->and($reservation->group_name)->toBeNull()
         ->and($reservation->units()->count())->toBe(1)
         ->and(UnitNight::query()->count())->toBe(2);

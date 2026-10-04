@@ -260,7 +260,7 @@ Smaller fixes and reverts are in `git log`.
 
 ### 15 City ledger
 
-- [ ] `feat(city-ledger): add companies` — table, enums, foreign keys on `reservations.company_id` and `folios.payer_company_id`, create, edit, suspend and reactivate, list and company page, `company.view` and `company.manage`, Finance sidebar. Docs: [Companies](15-city-ledger/01-companies.md).
+- [x] `feat(city-ledger): add companies` — table, enums, foreign keys on `reservations.company_id` and `folios.payer_company_id`, create, edit, suspend and reactivate, list and company page, `company.view` and `company.manage`, Finance sidebar. Docs: [Companies](15-city-ledger/01-companies.md).
 - [ ] `feat(reservations): pick the company on a booking` — company combobox on the booking form and the reservation page; refuse a change while the Master folio holds lines. Needs: add companies. Docs: [Companies](15-city-ledger/01-companies.md#rules).
 - [ ] `feat(rates): offer negotiated plans by company` — `company_rate_plans`, Rates tab on the company page, linked plans hidden until their company is picked. Needs: pick the company. Docs: [Companies](15-city-ledger/01-companies.md#rules).
 - [ ] `feat(city-ledger): add AR invoices and credit notes` — Docs: [AR invoices](15-city-ledger/02-ar-invoices.md).

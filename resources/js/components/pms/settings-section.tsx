@@ -14,6 +14,7 @@ function focusFirstError(errors: Record<string, string>) {
 
 /**
  * One settings section = one form, saved on its own. Field ids must match field names so the first error gets focus.
+ * `readOnly` hides the save button for users who may only view; disable the fields as well.
  */
 export function SettingsSection({
     form,
@@ -21,6 +22,7 @@ export function SettingsSection({
     description,
     submitLabel = 'Save settings',
     contentClassName = 'grid gap-5 md:grid-cols-2',
+    readOnly = false,
     children,
 }: {
     form: RouteFormDefinition<'post'>;
@@ -28,6 +30,7 @@ export function SettingsSection({
     description: string;
     submitLabel?: string;
     contentClassName?: string;
+    readOnly?: boolean;
     children: (errors: Record<string, string>) => ReactNode;
 }) {
     return (
@@ -45,16 +48,18 @@ export function SettingsSection({
                         </p>
                     </header>
                     <div className={contentClassName}>{children(errors)}</div>
-                    <footer className="flex justify-end">
-                        <Button
-                            type="submit"
-                            disabled={processing}
-                            focusableWhenDisabled
-                        >
-                            {processing && <Spinner />}
-                            {submitLabel}
-                        </Button>
-                    </footer>
+                    {!readOnly && (
+                        <footer className="flex justify-end">
+                            <Button
+                                type="submit"
+                                disabled={processing}
+                                focusableWhenDisabled
+                            >
+                                {processing && <Spinner />}
+                                {submitLabel}
+                            </Button>
+                        </footer>
+                    )}
                 </section>
             )}
         </Form>

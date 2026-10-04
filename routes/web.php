@@ -13,6 +13,7 @@ Route::prefix('p/{property:code}')->whereNumber('property')->middleware([EnsureP
     Route::inertia('dashboard', 'dashboard')->name('dashboard');
 
     require __DIR__.'/onboarding.php';
+    require __DIR__.'/finance.php';
     require __DIR__.'/front-desk.php';
     require __DIR__.'/guests.php';
     require __DIR__.'/night-audit.php';

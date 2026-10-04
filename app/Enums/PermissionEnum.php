@@ -37,6 +37,8 @@ enum PermissionEnum: string
     case FolioPrintVoucher = 'folio.print-voucher';
     case PaymentRecord = 'payment.record';
     case PaymentRefund = 'payment.refund';
+    case CompanyView = 'company.view';
+    case CompanyManage = 'company.manage';
 
     public function label(): string
     {
@@ -70,6 +72,8 @@ enum PermissionEnum: string
             self::FolioPrintVoucher => __('Print folio vouchers'),
             self::PaymentRecord => __('Record payments and download receipts'),
             self::PaymentRefund => __('Refund payments'),
+            self::CompanyView => __('View companies'),
+            self::CompanyManage => __('Manage companies'),
         };
     }
 
@@ -88,6 +92,7 @@ enum PermissionEnum: string
             self::ReservationsView, self::ReservationsManage => __('Reservations'),
             self::FolioPostCharge, self::FolioReverse, self::FolioTransfer, self::FolioDiscount, self::FolioDiscountOpen, self::FolioClose, self::FolioReopen, self::FolioPrintVoucher => __('Folio'),
             self::PaymentRecord, self::PaymentRefund => __('Payments'),
+            self::CompanyView, self::CompanyManage => __('City ledger'),
         };
     }
 

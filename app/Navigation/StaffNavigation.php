@@ -17,6 +17,7 @@ class StaffNavigation
 {
     public function __construct(
         private FrontDeskNavigation $frontDesk,
+        private FinanceNavigation $finance,
         private SettingsNavigation $settings,
     ) {}
 
@@ -48,7 +49,7 @@ class StaffNavigation
     }
 
     /**
-     * Finance and Reports get their navigation classes with their modules.
+     * Reports gets its navigation class with its module.
      * Each context class leaves out the items the user has no permission for.
      *
      * @return list<NavGroupData>
@@ -58,7 +59,8 @@ class StaffNavigation
         return match ($context) {
             NavigationContext::FrontDesk => $this->frontDesk->groups($property, $user),
             NavigationContext::Settings => $this->settings->groups($property, $user),
-            NavigationContext::Finance, NavigationContext::Reports => [],
+            NavigationContext::Finance => $this->finance->groups($property, $user),
+            NavigationContext::Reports => [],
         };
     }
 }

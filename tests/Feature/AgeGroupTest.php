@@ -62,8 +62,8 @@ test('the page lists this property\'s groups by minimum age and opens under the 
             ->where('ageGroups.1.minAge', 4)
             ->where('ageGroups.1.maxAge', 11)
             ->where('maxAge', 17)
-            ->where('navigation.contexts.1.groups.0.items.0.title', 'Details')
-            ->where('navigation.contexts.1.groups.0.items.0.active', true));
+            ->where('navigation.contexts.2.groups.0.items.0.title', 'Details')
+            ->where('navigation.contexts.2.groups.0.items.0.active', true));
 });
 
 test('saving renames and re-ranges groups and keeps their ids', function () {

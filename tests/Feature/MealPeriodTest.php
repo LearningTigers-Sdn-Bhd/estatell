@@ -95,10 +95,10 @@ test('the tab lists this property\'s periods by start time and opens under the p
             ->where('mealPeriods.0.startsAt', '07:00')
             ->where('mealPeriods.0.endsAt', '10:00')
             ->where('mealPeriods.3.name', 'Supper')
-            ->where('navigation.contexts.1.groups.0.items.0.title', 'Details')
-            ->where('navigation.contexts.1.groups.0.items.0.active', true)
-            ->where('navigation.contexts.1.groups.2.label', 'Rates')
-            ->missing('navigation.contexts.1.groups.2.items.1'));
+            ->where('navigation.contexts.2.groups.0.items.0.title', 'Details')
+            ->where('navigation.contexts.2.groups.0.items.0.active', true)
+            ->where('navigation.contexts.2.groups.2.label', 'Rates')
+            ->missing('navigation.contexts.2.groups.2.items.1'));
 });
 
 test('a new period lands between lunch and dinner by its start time', function () {

@@ -21,6 +21,7 @@ export function SettingsInput({
     step,
     disabled,
     description,
+    placeholder,
 }: {
     name: string;
     label: string;
@@ -32,6 +33,7 @@ export function SettingsInput({
     step?: string;
     disabled?: boolean;
     description?: string;
+    placeholder?: string;
 }) {
     return (
         <Field>
@@ -44,6 +46,7 @@ export function SettingsInput({
                 min={min}
                 max={max}
                 step={step}
+                placeholder={placeholder}
                 disabled={disabled}
                 aria-invalid={!!error}
             />
@@ -96,12 +99,14 @@ export function SettingsSwitch({
     checked,
     error,
     description,
+    disabled,
 }: {
     name: string;
     label: string;
     checked: boolean;
     error?: string;
     description: string;
+    disabled?: boolean;
 }) {
     return (
         <Field
@@ -112,6 +117,7 @@ export function SettingsSwitch({
                 id={name}
                 name={name}
                 defaultChecked={checked}
+                disabled={disabled}
                 aria-invalid={!!error}
                 className="mt-0.5"
             />

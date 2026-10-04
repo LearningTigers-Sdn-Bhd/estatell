@@ -129,7 +129,7 @@ test('owners view and update the property notification matrix', function () {
                 'editable' => true,
                 'disabledReason' => null,
             ])
-            ->where('navigation.contexts.1.groups.5.items.0.title', 'Notifications'));
+            ->where('navigation.contexts.2.groups.5.items.0.title', 'Notifications'));
 
     $this->put(route('settings.notifications.update', [$owner->property->code, 'night_audit_completed', 'mail']), ['enabled' => false])
         ->assertRedirect($route)

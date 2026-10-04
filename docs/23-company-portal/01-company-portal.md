@@ -116,6 +116,7 @@ Bulk add portal users — Borneo Travel
 | `CancelPortalReservation`                | Cancels before the cut-off                                                                                                                    |
 | `RequestPortalCancellation`              | Sets the request columns and notifies the property                                                                                            |
 | `UpdatePortalReservationGuests`          | Edits guest names, phone and ID before arrival                                                                                                |
+| `UpdatePortalCompanyDetails`             | Saves contact, tax numbers and billing address for the company of the property in the URL                                                     |
 
 ## Pages
 
@@ -127,6 +128,7 @@ Bulk add portal users — Borneo Travel
 /portal/{code}/bookings                List (search by reference or company reference) and detail
                                        Detail: [Edit guests] [Cancel] or [Request cancellation]
 /portal/{code}/statements              AR invoices, payments, statement PDF (read-only)
+/portal/{code}/company                 Company details: contact, tax numbers and billing address (see below)
 /account/...                           Profile, password, 2FA (shared account pages)
 ```
 
@@ -138,6 +140,14 @@ Bulk add portal users — Borneo Travel
  Invitations
   Tip Top Hostel     Borneo Travel                                       [Accept] [Decline]
 ```
+
+## Company details
+
+The company user keeps the company's contact, tax numbers and billing address up to date. Hotel staff may also edit the tax numbers and address until the company ticks **"Only we manage our tax and billing details"**, which sets `companies.profile_managed_by_company` (see [Companies](../15-city-ledger/01-companies.md#data-model)).
+
+- Fields: the consent tick, contact email, contact phone, `brn`, `tin`, `sst_registration_number`, `billing_address_line1`, `billing_address_line2`, `billing_city`, `billing_state_code`, `billing_postal_code`, `billing_country_code`.
+- Each property has its own company row, so a change applies only to the property in the URL.
+- `UpdatePortalCompanyDetails` saves them and logs `company.updated` with the company user as causer.
 
 ## Staff side
 

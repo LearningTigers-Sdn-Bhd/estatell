@@ -631,7 +631,7 @@ test('the settings sidebar lists rate plans under Rates', function () {
     $this->actingAs($owner)
         ->get(route('settings.rate-plans.index', $property->code))
         ->assertInertia(fn (Assert $page) => $page
-            ->where('navigation.contexts.1.groups.2.label', 'Rates')
-            ->where('navigation.contexts.1.groups.2.items.0.title', 'Rate plans')
-            ->where('navigation.contexts.1.groups.2.items.0.active', true));
+            ->where('navigation.contexts.2.groups.2.label', 'Rates')
+            ->where('navigation.contexts.2.groups.2.items.0.title', 'Rate plans')
+            ->where('navigation.contexts.2.groups.2.items.0.active', true));
 });

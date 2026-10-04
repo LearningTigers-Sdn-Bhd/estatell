@@ -24,7 +24,7 @@ use Illuminate\Support\Carbon;
  * @property FolioType $type
  * @property FolioStatus $status
  * @property int|null $payer_guest_id
- * @property int|null $payer_company_id No foreign key until the city ledger module adds companies.
+ * @property int|null $payer_company_id The company that pays this folio.
  * @property string|null $invoice_number
  * @property Carbon|null $closed_at
  * @property int|null $closed_by
@@ -82,6 +82,14 @@ class Folio extends Model
     public function payerGuest(): BelongsTo
     {
         return $this->belongsTo(Guest::class, 'payer_guest_id');
+    }
+
+    /**
+     * @return BelongsTo<Company, $this>
+     */
+    public function payerCompany(): BelongsTo
+    {
+        return $this->belongsTo(Company::class, 'payer_company_id');
     }
 
     /**
