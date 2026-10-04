@@ -140,7 +140,7 @@ export function FolioTab({
             {routingOverlays}
             <div className="flex flex-col gap-4">
                 <div className="flex flex-col gap-4">
-                    <div className="flex flex-wrap items-center justify-between gap-2 px-3 pt-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2 ps-3 pt-2">
                         <div className="flex flex-col gap-1">
                             <div className="flex items-center gap-2">
                                 <h2 className="font-heading text-base font-medium">
