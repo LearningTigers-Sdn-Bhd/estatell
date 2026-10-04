@@ -39,7 +39,7 @@ class FolioStatement
      * what is allowed now, so the page never works it out.
      *
      * @param  list<ReservationUnitOptionData>  $units
-     * @param  array{postCharge?: bool, reverse?: bool, transfer?: bool, discount?: bool, close?: bool, reopen?: bool, recordPayment?: bool, refund?: bool, printVoucher?: bool}  $can
+     * @param  array{postCharge?: bool, reverse?: bool, transfer?: bool, discount?: bool, close?: bool, reopen?: bool, recordPayment?: bool, refund?: bool, printVoucher?: bool, settleCityLedger?: bool}  $can
      * @return array{folios: list<FolioRailItemData>, folio: FolioData|null}
      */
     public function build(Property $property, Reservation $reservation, array $units, string $selected = '', array $can = []): array
@@ -96,7 +96,7 @@ class FolioStatement
             ->where('property_id', $reservation->property_id)
             ->where('reservation_id', $reservation->id)
             ->where('status', '!=', FolioStatus::Voided)
-            ->with('payerGuest')
+            ->with('payerGuest', 'payerCompany:id,name')
             ->get()
             ->sortBy(fn (Folio $folio): array => [
                 match ($folio->type) {
@@ -207,6 +207,8 @@ class FolioStatement
             canRecordPayment: ($can['recordPayment'] ?? false) && ($folio === null || $isOpen),
             canPrintVoucher: $posted->contains(fn (FolioRowData $row): bool => $row->printable) || $scheduled->contains(fn (FolioRowData $row): bool => $row->printable),
             paymentUnitId: $folio === null ? $entry['unit'] : null,
+            canSettleToCityLedger: ($can['settleCityLedger'] ?? false) && $isOpen && $folio?->payer_company_id !== null && $balance !== null && bccomp($balance, '0', 2) > 0,
+            payerCompanyName: $folio?->payerCompany?->name,
         );
     }
 

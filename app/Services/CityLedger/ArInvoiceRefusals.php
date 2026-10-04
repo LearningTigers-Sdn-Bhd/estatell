@@ -1,0 +1,50 @@
+<?php
+
+namespace App\Services\CityLedger;
+
+use App\Actions\CityLedger\ArInvoiceResult;
+
+/**
+ * Turns the refusal codes of the AR invoice Actions into a message and the form field it belongs to. A Dialog shows
+ * the errors; an AlertDialog or a button shows `message()` as a toast. A refusal with no field uses `form`.
+ */
+class ArInvoiceRefusals
+{
+    public const string FORM = 'form';
+
+    /**
+     * @return array<string, string>
+     */
+    public function errors(string $code): array
+    {
+        [$field, $message] = $this->entry($code);
+
+        return [$field => $message];
+    }
+
+    public function message(string $code): string
+    {
+        return $this->entry($code)[1];
+    }
+
+    /**
+     * @return array{0: string, 1: string}
+     */
+    private function entry(string $code): array
+    {
+        return match ($code) {
+            ArInvoiceResult::REFUSAL_FOLIO_NOT_OPEN => [self::FORM, __('This folio is not open, so it cannot be settled.')],
+            ArInvoiceResult::REFUSAL_NO_COMPANY_PAYER => [self::FORM, __('This folio is not paid by a company.')],
+            ArInvoiceResult::REFUSAL_DIRECT_BILL_NOT_ALLOWED => [self::FORM, __('This company is suspended or cannot be direct billed.')],
+            ArInvoiceResult::REFUSAL_NOTHING_TO_SETTLE => [self::FORM, __('There is no balance to move to the city ledger.')],
+            ArInvoiceResult::REFUSAL_NO_BUSINESS_DATE => [self::FORM, __('The property has no open business date.')],
+            ArInvoiceResult::REFUSAL_NOT_AN_OPEN_INVOICE => [self::FORM, __('Only an invoice that is not void can take a credit note.')],
+            ArInvoiceResult::REFUSAL_AMOUNT_INVALID => ['amount', __('Enter an amount greater than 0, such as 120.00.')],
+            ArInvoiceResult::REFUSAL_REASON_REQUIRED => ['reason', __('Enter a reason for the credit note.')],
+            ArInvoiceResult::REFUSAL_CREDIT_EXCEEDS_BALANCE => ['amount', __('The credit cannot be more than the invoice balance.')],
+            ArInvoiceResult::REFUSAL_NOT_VOIDABLE => [self::FORM, __('Only an open invoice with no credit notes can be voided.')],
+            ArInvoiceResult::REFUSAL_ALREADY_VOID => [self::FORM, __('This document is already void.')],
+            default => [self::FORM, __('This could not be done.')],
+        };
+    }
+}

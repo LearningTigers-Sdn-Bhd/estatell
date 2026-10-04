@@ -2,6 +2,7 @@
 
 namespace App\Data\Shared;
 
+use App\Enums\ArInvoiceStatus;
 use App\Enums\CompanyStatus;
 use App\Enums\FolioRowTag;
 use App\Enums\FolioStatus;
@@ -24,6 +25,11 @@ class BadgeData extends Data
     ) {}
 
     public static function fromStatus(PropertyStatus $status): self
+    {
+        return new self($status->value, $status->label(), $status->tone());
+    }
+
+    public static function fromArInvoiceStatus(ArInvoiceStatus $status): self
     {
         return new self($status->value, $status->label(), $status->tone());
     }

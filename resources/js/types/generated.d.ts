@@ -92,6 +92,39 @@ postingTransactionCode: string,
 };
 }
 namespace CityLedger {
+export type ArInvoiceData = {
+row: App.Data.CityLedger.ArInvoiceRowData,
+reason: string | null,
+creditForNumber: string | null,
+creditForId: number | null,
+folioNumber: string | null,
+reservationId: number | null,
+reservationReference: string | null,
+credited: string,
+creditNotes: App.Data.CityLedger.ArInvoiceRowData[],
+lines: App.Data.CityLedger.ArInvoiceLineData[],
+canVoid: boolean,
+canCreditNote: boolean,
+};
+export type ArInvoiceLineData = {
+postingDate: string,
+description: string,
+amount: string,
+};
+export type ArInvoiceRowData = {
+id: number,
+number: string,
+companyId: number,
+companyName: string,
+type: App.Enums.ArInvoiceType,
+typeLabel: string,
+issuedOn: string,
+dueOn: string | null,
+amount: string,
+balance: string | null,
+status: App.Data.Shared.BadgeData,
+overdue: boolean,
+};
 export type CompanyData = {
 id: number,
 name: string,
@@ -165,6 +198,8 @@ transferTargets: App.Data.Folio.FolioOptionData[],
 canRecordPayment: boolean,
 paymentUnitId: number | null,
 canPrintVoucher: boolean,
+canSettleToCityLedger: boolean,
+payerCompanyName: string | null,
 };
 export type FolioDiscountOptionData = {
 id: number,

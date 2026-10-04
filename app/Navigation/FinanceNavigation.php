@@ -27,6 +27,12 @@ class FinanceNavigation
                     icon: 'building',
                     active: request()->routeIs('finance.city-ledger.companies.*'),
                 ) : null,
+                $user->can(PermissionEnum::CompanyView->value) ? new NavItemData(
+                    title: __('Invoices'),
+                    href: route('finance.city-ledger.invoices.index', ['property' => $property->code], absolute: false),
+                    icon: 'receipt',
+                    active: request()->routeIs('finance.city-ledger.invoices.*'),
+                ) : null,
             ]))),
         ];
     }

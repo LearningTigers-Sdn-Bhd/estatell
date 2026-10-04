@@ -149,6 +149,7 @@ class ReservationController extends Controller
                 'recordPayment' => $request->user()->can(PermissionEnum::PaymentRecord->value),
                 'refund' => $request->user()->can(PermissionEnum::PaymentRefund->value),
                 'printVoucher' => $request->user()->can(PermissionEnum::FolioPrintVoucher->value),
+                'settleCityLedger' => $request->user()->can(PermissionEnum::CityLedgerInvoice->value),
             ]),
             'voucher' => [
                 'kinds' => array_values(array_filter(TransactionKind::options(), fn (array $kind): bool => $kind['value'] !== TransactionKind::Payment->value)),

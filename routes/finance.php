@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\PermissionEnum;
+use App\Http\Controllers\CityLedger\ArInvoiceController;
 use App\Http\Controllers\CityLedger\CompanyBulkAddController;
 use App\Http\Controllers\CityLedger\CompanyController;
 use App\Http\Controllers\CityLedger\CompanyStatusController;
@@ -33,6 +34,17 @@ Route::prefix('finance')->name('finance.')->group(function () {
                 Route::post('suspend', [CompanyStatusController::class, 'suspend'])->name('suspend');
                 Route::post('reactivate', [CompanyStatusController::class, 'reactivate'])->name('reactivate');
             });
+        });
+    });
+
+    Route::prefix('city-ledger/invoices')->name('city-ledger.invoices.')->middleware('can:'.PermissionEnum::CompanyView->value)->scopeBindings()->group(function () {
+        Route::get('/', [ArInvoiceController::class, 'index'])->name('index');
+
+        Route::prefix('{invoice}')->group(function () {
+            Route::get('/', [ArInvoiceController::class, 'show'])->name('show');
+            Route::get('pdf', [ArInvoiceController::class, 'pdf'])->name('pdf');
+            Route::post('credit-notes', [ArInvoiceController::class, 'storeCreditNote'])->middleware('can:'.PermissionEnum::CityLedgerCreditNote->value)->name('credit-notes.store');
+            Route::post('void', [ArInvoiceController::class, 'void'])->name('void');
         });
     });
 });

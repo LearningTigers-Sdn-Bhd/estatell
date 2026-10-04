@@ -11,7 +11,9 @@ use Spatie\LaravelData\Data;
  * `transferTargets` are the other Open folios of the reservation. Both are empty when the user may not act.
  * `canRecordPayment` is true for an Open folio or a "not started" entry when the user holds `payment.record`, and
  * `paymentUnitId` is the unit a "not started" entry records on. `canPrintVoucher` is true when the user holds
- * `folio.print-voucher` and the folio has a line that can go on a voucher.
+ * `folio.print-voucher` and the folio has a line that can go on a voucher. `canSettleToCityLedger` is true for an Open
+ * folio paid by a company with a balance above 0, when the user holds `city-ledger.invoice`, and `payerCompanyName` names
+ * the company for the confirmation.
  */
 class FolioData extends Data
 {
@@ -40,5 +42,7 @@ class FolioData extends Data
         public bool $canRecordPayment = false,
         public ?int $paymentUnitId = null,
         public bool $canPrintVoucher = false,
+        public bool $canSettleToCityLedger = false,
+        public ?string $payerCompanyName = null,
     ) {}
 }

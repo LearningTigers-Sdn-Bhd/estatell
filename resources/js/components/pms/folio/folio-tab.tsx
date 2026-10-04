@@ -4,6 +4,7 @@ import {
     Banknote,
     ChevronDown,
     CreditCard,
+    Landmark,
     Lock,
     LockOpen,
     PanelRightClose,
@@ -24,6 +25,7 @@ import {
     type VoucherOptions,
 } from '@/components/pms/folio/print-voucher-dialog';
 import { RecordPaymentDialog } from '@/components/pms/folio/record-payment-dialog';
+import { SettleCityLedgerDialog } from '@/components/pms/folio/settle-city-ledger-dialog';
 import { RefundPaymentDialog } from '@/components/pms/folio/refund-payment-dialog';
 import { RemoveDiscountDialog } from '@/components/pms/folio/remove-discount-dialog';
 import { ReverseLineDialog } from '@/components/pms/folio/reverse-line-dialog';
@@ -105,6 +107,7 @@ export function FolioTab({
         useState<App.Data.Folio.FolioRowData | null>(null);
     const [discounting, setDiscounting] = useState(false);
     const [closing, setClosing] = useState(false);
+    const [settling, setSettling] = useState(false);
     const [voucherOpen, setVoucherOpen] = useState(false);
     const [voucherInitial, setVoucherInitial] = useState<string[]>([]);
     const [removing, setRemoving] =
@@ -322,6 +325,15 @@ export function FolioTab({
                                     Record payment
                                 </Button>
                             )}
+                            {folio.canSettleToCityLedger && (
+                                <Button
+                                    variant="outline"
+                                    onClick={() => setSettling(true)}
+                                >
+                                    <Landmark data-icon="inline-start" />
+                                    Settle to City ledger
+                                </Button>
+                            )}
                             {folio.canPostCharge && (
                                 <Button onClick={() => setPosting(true)}>
                                     <Plus data-icon="inline-start" />
@@ -418,6 +430,15 @@ export function FolioTab({
                         rows={folio.rows.filter((row) => row.printable)}
                         options={voucher}
                         initial={voucherInitial}
+                        currency={currency}
+                    />
+                )}
+                {folio.canSettleToCityLedger && (
+                    <SettleCityLedgerDialog
+                        open={settling}
+                        onOpenChange={setSettling}
+                        reservationId={reservationId}
+                        folio={folio}
                         currency={currency}
                     />
                 )}

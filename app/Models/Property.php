@@ -207,6 +207,16 @@ class Property extends Model implements FeatureScopeSerializeable
     }
 
     /**
+     * The property's AR invoices and credit notes, also the scope of the `{invoice}` route parameter.
+     *
+     * @return HasMany<ArInvoice, $this>
+     */
+    public function invoices(): HasMany
+    {
+        return $this->hasMany(ArInvoice::class);
+    }
+
+    /**
      * @return HasMany<Reservation, $this>
      */
     public function reservations(): HasMany

@@ -268,7 +268,7 @@ Smaller fixes and reverts are in `git log`.
 - [x] `feat(rates): offer negotiated plans by company` — `company_rate_plans`, `SyncCompanyRatePlans`, Rates tab on the company page, `companyIds` on plan options, linked plans hidden on the booking form and Add unit Sheet until their company is picked, `AddUnit` refusal `rate_plan_not_linked_to_company`, `UpdateReservationCompany` refusal `company_plan_conflict`. Needs: pick the company. Docs: [Companies](15-city-ledger/01-companies.md#rules).
 - [x] `feat(city-ledger): settle a folio to an AR invoice` — `ar_invoices`, enums, models, `SettleToCityLedger`, `CreateArInvoiceFromFolio`, the `folio_has_ar_invoice` reopen guard, `city-ledger.*` permissions. Backend only. Needs: add companies. Docs: [AR invoices](15-city-ledger/02-ar-invoices.md).
 - [x] `feat(city-ledger): issue credit notes and void AR invoices` — `IssueCreditNote`, `VoidArInvoice`. Needs: settle a folio. Docs: [AR invoices](15-city-ledger/02-ar-invoices.md#rules).
-- [ ] `feat(city-ledger): show AR invoices` — invoices list and page, credit note and void dialogs, PDF, Settle button on the folio tab, sidebar item. Needs: credit notes. Docs: [AR invoices](15-city-ledger/02-ar-invoices.md#pages).
+- [x] `feat(city-ledger): show AR invoices` — invoices list and page, credit note and void dialogs, PDF, Settle button on the folio tab, sidebar item. Needs: credit notes. Docs: [AR invoices](15-city-ledger/02-ar-invoices.md#pages).
 - [ ] `feat(city-ledger): record and allocate AR payments` — Docs: [AR payments](15-city-ledger/03-ar-payments.md).
 - [ ] `feat(city-ledger): add statements, aging and credit control` — Docs: [Credit control and reports](15-city-ledger/04-credit-control-and-reports.md).
 
