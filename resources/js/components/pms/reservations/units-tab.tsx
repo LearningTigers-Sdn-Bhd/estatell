@@ -138,13 +138,13 @@ export function UnitsTab({
 
     return (
         <div className="flex flex-col gap-4">
-            <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center justify-between gap-3 ps-3 pt-2">
                 <h2 className="font-heading text-base font-medium">
                     {unit.roomType} · {unit.ratePlan}
                 </h2>
                 <StatusBadge status={unit.status} />
             </div>
-            <dl className="grid gap-2 text-sm sm:grid-cols-[auto_1fr] sm:gap-x-6">
+            <dl className="grid gap-2 ps-3 text-sm sm:grid-cols-[auto_1fr] sm:gap-x-6">
                 <dt className="text-muted-foreground">Stay</dt>
                 <dd className="flex items-center gap-1">
                     <DateText date={unit.arrival} /> {unit.arrivalTime} →{' '}
