@@ -44,7 +44,7 @@ payment_methods    id, property_id, transaction_code_id, name, type (PaymentMeth
 - Renaming a method also renames its transaction code. Deactivating or reactivating a method does the same to its code. A seeded code's visible code and stable system key do not change.
 - Recording a payment with a surcharge also posts the surcharge as a charge line (for example a 2% card fee).
 - `requires_reference` forces a reference, for example a card approval code.
-- `DirectBill` (label "City ledger") moves the balance to the city ledger (see [AR invoices](../15-city-ledger/02-ar-invoices.md)).
+- `DirectBill` (label "City ledger") moves the balance to the city ledger through **Settle to City ledger** (see [AR invoices](../15-city-ledger/02-ar-invoices.md)). It stays inactive and is not offered in Record payment: it supplies only the transaction code.
 - `OtaCollected` is used when an OTA collected payment (see [Booking ingestion](../21-channels/05-booking-ingestion.md)).
 
 Payment recording and surcharge posting are in [Payments and refunds](../14-payments/01-payments-and-refunds.md). OTA ingestion and city-ledger invoice creation are later modules.

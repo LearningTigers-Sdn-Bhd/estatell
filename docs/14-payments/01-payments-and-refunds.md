@@ -82,7 +82,7 @@ payments    id, property_id, folio_id, payment_method_id, amount,
 - **A payment line is corrected only by a refund.** `ReverseLine` and `TransferLines` refuse a line that a `payments` row owns through `folio_line_id` (`payment_line`). Otherwise a reversed payment could still be refunded, and a transferred one would leave `payments.folio_id` on the old folio. The surcharge line is an ordinary charge and can be reversed or transferred. Moving a deposit to the Master folio is decided with [check-out](../18-front-desk/01-check-in-and-check-out.md).
 - A payment with the SecurityDeposit purpose uses the method's own code. The system `SECURITY_DEPOSIT` code stays unused.
 - The receipt PDF is rendered on demand from payment + folio with dompdf (see [Receipt](#receipt)). It is not stored.
-- City ledger (`DirectBill`) and OTA collected methods are not offered yet. `DirectBill` needs an AR invoice ([AR invoices](../15-city-ledger/02-ar-invoices.md)) and OTA collected comes with [Booking ingestion](../21-channels/05-booking-ingestion.md).
+- `DirectBill` is never offered here: staff use **Settle to City ledger** ([AR invoices](../15-city-ledger/02-ar-invoices.md)), which posts its own ledger line without a `payments` row. OTA collected methods are not offered yet: they come with [Booking ingestion](../21-channels/05-booking-ingestion.md).
 - Card, Bank transfer and E-wallet require a reference by default ([Payment methods](../06-catalogues/04-payment-methods.md)).
 
 ## Permissions
@@ -190,7 +190,7 @@ Decisions made at build time (folio tab):
 
 ## Not in this item
 
-The AR invoice for City ledger, OTA collected payments, the Stay View Record payment button ([Stay View](../18-front-desk/03-stay-view.md)), the Cards and List money strip, online gateways with Pending payments.
+OTA collected payments, the Stay View Record payment button ([Stay View](../18-front-desk/03-stay-view.md)), the Cards and List money strip, online gateways with Pending payments.
 
 ## Lessons from wastays
 

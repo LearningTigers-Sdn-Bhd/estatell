@@ -65,7 +65,7 @@ erDiagram
 ## Close and reopen
 
 - `CloseFolio` refuses a folio that is not Open, a balance other than 0, and a Master folio while one of its units is in-house. The in-house check waits for the front desk states ([check-out](../18-front-desk/01-check-in-and-check-out.md)); until then it is a recorded follow-up. Closing changes the status only. Ledger lines are never touched.
-- `ReopenFolio` accepts a Closed folio only. A Voided folio cannot reopen.
+- `ReopenFolio` accepts a Closed folio only. A Voided folio cannot reopen. A folio with an AR invoice that is not Void cannot reopen (`folio_has_ar_invoice`, see [AR invoices](../15-city-ledger/02-ar-invoices.md)).
 - Both are logged on the reservation. Both run in one transaction.
 - Payments need `CloseFolio` first, so it lands before [Payments and refunds](../14-payments/01-payments-and-refunds.md).
 - `invoice_number` is issued once, from the `Invoice` document sequence, at the first close. A reopened folio keeps it, and closing again issues no new number.
