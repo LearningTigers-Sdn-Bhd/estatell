@@ -10,6 +10,7 @@ import {
     Table,
     TableBody,
     TableCell,
+    TableFooter,
     TableHead,
     TableHeader,
     TableRow,
@@ -45,6 +46,10 @@ export function AddOnsTab({
     const groups = Map.groupBy(addOns, (addOn) => addOn.unitId);
 
     const columns = canManage ? 6 : 5;
+    const totalCents = addOns.reduce(
+        (sum, addOn) => sum + Math.round(Number(addOn.total) * 100),
+        0,
+    );
 
     return (
         <div className="flex flex-col gap-4">
@@ -141,6 +146,18 @@ export function AddOnsTab({
                                 </Fragment>
                             ))}
                         </TableBody>
+                        <TableFooter>
+                            <TableRow>
+                                <TableCell colSpan={4}>Total</TableCell>
+                                <TableCell className="text-right">
+                                    <MoneyText
+                                        amount={(totalCents / 100).toFixed(2)}
+                                        currency={currency}
+                                    />
+                                </TableCell>
+                                {canManage && <TableCell />}
+                            </TableRow>
+                        </TableFooter>
                     </Table>
                 </div>
             )}
