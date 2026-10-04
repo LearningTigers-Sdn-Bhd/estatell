@@ -14,7 +14,7 @@ function Panel({
         <section
             aria-label={label}
             className={cn(
-                'min-h-0 rounded-xl border bg-card p-3 lg:overflow-y-auto',
+                'min-h-0 rounded-xl border bg-card p-1.5 lg:overflow-y-auto',
                 className,
             )}
         >
