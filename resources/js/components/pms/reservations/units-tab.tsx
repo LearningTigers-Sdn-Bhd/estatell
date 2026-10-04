@@ -1,5 +1,7 @@
 import { Link, router } from '@inertiajs/react';
-import { Info } from 'lucide-react';
+import { BedDouble, CalendarDays, Info, User, Users } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
+import type { ReactNode } from 'react';
 import { DateText } from '@/components/pms/date-text';
 import { EnumSelect } from '@/components/pms/enum-select';
 import { MoneyText } from '@/components/pms/money-text';
@@ -49,6 +51,26 @@ function guestsText(unit: Unit): string {
     const children = `${unit.children} ${unit.children === 1 ? 'child' : 'children'}`;
 
     return `${adults}, ${children} (${unit.childAges.join(', ')})`;
+}
+
+function Detail({
+    icon: Icon,
+    label,
+    children,
+}: {
+    icon: LucideIcon;
+    label: string;
+    children: ReactNode;
+}) {
+    return (
+        <div className="flex flex-wrap items-center gap-x-2">
+            <span className="flex items-center gap-1.5 text-muted-foreground">
+                <Icon aria-hidden className="size-4" />
+                {label}
+            </span>
+            <span className="flex items-center gap-1">{children}</span>
+        </div>
+    );
 }
 
 /**
@@ -144,20 +166,22 @@ export function UnitsTab({
                 </h2>
                 <StatusBadge status={unit.status} />
             </div>
-            <dl className="grid gap-2 ps-3 text-sm sm:grid-cols-[auto_1fr] sm:gap-x-6">
-                <dt className="text-muted-foreground">Stay</dt>
-                <dd className="flex items-center gap-1">
+            <div className="flex flex-col gap-2 ps-3 text-sm">
+                <Detail icon={CalendarDays} label="Stay">
                     <DateText date={unit.arrival} /> {unit.arrivalTime} →{' '}
                     <DateText date={unit.departure} /> {unit.departureTime} ·{' '}
                     {unit.nightCount}{' '}
                     {unit.nightCount === 1 ? 'night' : 'nights'}
-                </dd>
-                <dt className="text-muted-foreground">Guests</dt>
-                <dd>{guestsText(unit)}</dd>
-                <dt className="text-muted-foreground">Room</dt>
-                <dd>{roomText(unit, autoAssignRooms)}</dd>
-                <dt className="text-muted-foreground">Primary</dt>
-                <dd>
+                </Detail>
+                <div className="flex flex-wrap gap-x-6 gap-y-2">
+                    <Detail icon={BedDouble} label="Room">
+                        {roomText(unit, autoAssignRooms)}
+                    </Detail>
+                    <Detail icon={Users} label="Guests">
+                        {guestsText(unit)}
+                    </Detail>
+                </div>
+                <Detail icon={User} label="Primary">
                     {unit.primaryGuest === null ? (
                         '—'
                     ) : unit.primaryGuestId !== null ? (
@@ -172,46 +196,48 @@ export function UnitsTab({
                     ) : (
                         unit.primaryGuest
                     )}
-                </dd>
-            </dl>
-            <Table>
-                <TableHeader>
-                    <TableRow>
-                        <TableHead>Night</TableHead>
-                        <TableHead>Room</TableHead>
-                        <TableHead>Rate</TableHead>
-                        <TableHead className="text-right">Amount</TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {unit.nights.map((night) => (
-                        <TableRow key={night.date}>
-                            <TableCell>
-                                <DateText date={night.date} />
-                            </TableCell>
-                            <TableCell>{night.assigned ?? '—'}</TableCell>
-                            <TableCell>{night.ratePlan}</TableCell>
+                </Detail>
+            </div>
+            <div className="overflow-hidden rounded-xl border">
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>Night</TableHead>
+                            <TableHead>Room</TableHead>
+                            <TableHead>Rate</TableHead>
+                            <TableHead className="text-right">Amount</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {unit.nights.map((night) => (
+                            <TableRow key={night.date}>
+                                <TableCell>
+                                    <DateText date={night.date} />
+                                </TableCell>
+                                <TableCell>{night.assigned ?? '—'}</TableCell>
+                                <TableCell>{night.ratePlan}</TableCell>
+                                <TableCell className="text-right">
+                                    <MoneyText
+                                        amount={night.amount}
+                                        currency={currency}
+                                    />
+                                </TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                    <TableFooter>
+                        <TableRow>
+                            <TableCell colSpan={3}>Total</TableCell>
                             <TableCell className="text-right">
                                 <MoneyText
-                                    amount={night.amount}
+                                    amount={unit.total}
                                     currency={currency}
                                 />
                             </TableCell>
                         </TableRow>
-                    ))}
-                </TableBody>
-                <TableFooter>
-                    <TableRow>
-                        <TableCell colSpan={3}>Total</TableCell>
-                        <TableCell className="text-right">
-                            <MoneyText
-                                amount={unit.total}
-                                currency={currency}
-                            />
-                        </TableCell>
-                    </TableRow>
-                </TableFooter>
-            </Table>
+                    </TableFooter>
+                </Table>
+            </div>
             {unit.priceOverrideReason !== null && (
                 <p className="flex items-start gap-2 text-sm text-muted-foreground">
                     <Info aria-hidden className="mt-0.5 size-4 shrink-0" />
