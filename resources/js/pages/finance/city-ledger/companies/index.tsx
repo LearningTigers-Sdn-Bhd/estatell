@@ -1,5 +1,5 @@
 import { Head, Link } from '@inertiajs/react';
-import { Building2 } from 'lucide-react';
+import { Building2, ChevronDown, Plus, Rows3 } from 'lucide-react';
 import { useState } from 'react';
 import { AddCompanySheet } from '@/components/pms/city-ledger/add-company-sheet';
 import { EmptyState } from '@/components/pms/empty-state';
@@ -11,6 +11,12 @@ import { PageHeader } from '@/components/pms/page-header';
 import { StatusBadge } from '@/components/pms/status-badge';
 import { Button } from '@/components/ui/button';
 import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
     Table,
     TableBody,
     TableCell,
@@ -19,6 +25,7 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { index, show } from '@/routes/finance/city-ledger/companies';
+import { create as bulkCreate } from '@/routes/finance/city-ledger/companies/bulk';
 
 type Company = App.Data.CityLedger.CompanyRowData;
 
@@ -38,6 +45,7 @@ export default function CompaniesIndex({
     const [search, setSearch] = useState('');
     const [type, setType] = useState('');
     const [status, setStatus] = useState('active');
+    const [adding, setAdding] = useState(false);
 
     const term = search.trim().toLowerCase();
     const visible = companies.filter(
@@ -55,7 +63,23 @@ export default function CompaniesIndex({
     };
 
     const addCompany = canManage && (
-        <AddCompanySheet types={types} currency={currency} />
+        <DropdownMenu>
+            <DropdownMenuTrigger render={<Button />}>
+                <Plus data-icon="inline-start" />
+                Add company
+                <ChevronDown data-icon="inline-end" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setAdding(true)}>
+                    <Plus />
+                    Add one
+                </DropdownMenuItem>
+                <DropdownMenuItem render={<Link href={bulkCreate()} />}>
+                    <Rows3 />
+                    Bulk add
+                </DropdownMenuItem>
+            </DropdownMenuContent>
+        </DropdownMenu>
     );
 
     return (
@@ -198,6 +222,15 @@ export default function CompaniesIndex({
                     </>
                 )}
             </div>
+
+            {canManage && (
+                <AddCompanySheet
+                    open={adding}
+                    onOpenChange={setAdding}
+                    types={types}
+                    currency={currency}
+                />
+            )}
         </>
     );
 }

@@ -1,5 +1,4 @@
 import { useForm } from '@inertiajs/react';
-import { Plus } from 'lucide-react';
 import { useState } from 'react';
 import { EnumSelect } from '@/components/pms/enum-select';
 import type { EnumOption } from '@/components/pms/enum-select';
@@ -34,7 +33,6 @@ import {
     SheetFooter,
     SheetHeader,
     SheetTitle,
-    SheetTrigger,
 } from '@/components/ui/sheet';
 import { Spinner } from '@/components/ui/spinner';
 import { Switch } from '@/components/ui/switch';
@@ -45,13 +43,16 @@ import { store } from '@/routes/finance/city-ledger/companies';
  * address are added later on the company page. After saving, the server opens the company.
  */
 export function AddCompanySheet({
+    open,
+    onOpenChange,
     types,
     currency,
 }: {
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
     types: EnumOption[];
     currency: App.Enums.Currency | null;
 }) {
-    const [open, setOpen] = useState(false);
     const [confirmingDiscard, setConfirmingDiscard] = useState(false);
     const form = useForm({
         name: '',
@@ -68,12 +69,12 @@ export function AddCompanySheet({
         form.reset();
         form.clearErrors();
         setConfirmingDiscard(false);
-        setOpen(false);
+        onOpenChange(false);
     };
 
     const changeOpen = (next: boolean) => {
         if (next) {
-            setOpen(true);
+            onOpenChange(true);
         } else if (form.isDirty) {
             setConfirmingDiscard(true);
         } else {
@@ -89,10 +90,6 @@ export function AddCompanySheet({
     return (
         <>
             <Sheet open={open} onOpenChange={changeOpen}>
-                <SheetTrigger render={<Button />}>
-                    <Plus data-icon="inline-start" />
-                    Add company
-                </SheetTrigger>
                 <SheetContent>
                     <SheetHeader>
                         <SheetTitle>Add company</SheetTitle>

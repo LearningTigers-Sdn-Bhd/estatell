@@ -1146,6 +1146,7 @@ export type AgeBandPricing = 'free' | 'percent' | 'fixed';
 export type BillingMode = 'master_pays' | 'master_pays_all' | 'each_pays';
 export type BusinessDateStatus = 'open' | 'auditing' | 'closed';
 export type ChargingUnit = 'per_item' | 'per_night' | 'per_stay' | 'per_guest_night' | 'per_guest';
+export type CompanyImportMode = 'simple' | 'detailed';
 export type CompanyStatus = 'active' | 'suspended';
 export type CompanyType = 'corporate' | 'travel_agent' | 'government';
 export type Currency = 'MYR';

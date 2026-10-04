@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\PermissionEnum;
+use App\Http\Controllers\CityLedger\CompanyBulkAddController;
 use App\Http\Controllers\CityLedger\CompanyController;
 use App\Http\Controllers\CityLedger\CompanyStatusController;
 use App\Http\Requests\CityLedger\CompanyRequest;
@@ -10,7 +11,13 @@ Route::prefix('finance')->name('finance.')->group(function () {
     Route::prefix('city-ledger/companies')->name('city-ledger.companies.')->group(function () {
         Route::get('/', [CompanyController::class, 'index'])->middleware('can:'.PermissionEnum::CompanyView->value)->name('index');
 
-        Route::post('/', [CompanyController::class, 'store'])->middleware('can:'.PermissionEnum::CompanyManage->value)->name('store');
+        Route::middleware('can:'.PermissionEnum::CompanyManage->value)->group(function () {
+            Route::post('/', [CompanyController::class, 'store'])->name('store');
+            Route::get('bulk', [CompanyBulkAddController::class, 'create'])->name('bulk.create');
+            Route::post('bulk', [CompanyBulkAddController::class, 'store'])->name('bulk.store');
+            Route::post('import', [CompanyBulkAddController::class, 'import'])->name('import');
+            Route::get('import-template.{format}', [CompanyBulkAddController::class, 'template'])->name('import-template');
+        });
 
         Route::scopeBindings()->prefix('{company}')->group(function () {
             Route::middleware('can:'.PermissionEnum::CompanyView->value)->group(function () {
