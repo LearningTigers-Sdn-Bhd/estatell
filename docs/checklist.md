@@ -133,6 +133,13 @@ Smaller fixes and reverts are in `git log`.
 - [x] `feat(staff): show roles as one permission matrix` — wastays-style grid: permissions as rows, roles as columns, one save. Replaces the per-role page. Docs: [Roles and permissions](03-staff/02-roles-and-permissions.md).
 - [x] `feat(platform): show the owner on admin property pages` — replace the staff count column. Needs: owner role.
 
+### Auth and 03 Staff (temp passwords)
+
+- [ ] `feat(auth): end sessions when the password changes` — `AuthenticateSession` in the `web` group, **Log out other devices** on account security. Docs: [Routing](routing.md#sessions).
+- [ ] `feat(staff): add staff with a temp password and force a new one` — temp columns, `TemporaryPasswordGenerator`, Add staff menu and Dialog, `EnsurePasswordChanged`, set-password page, reset, copy message. Needs: end sessions. Docs: [Temp passwords and bulk staff](03-staff/03-temp-passwords.md).
+- [ ] `feat(staff): bulk add staff from a grid or CSV/XLSX file` — install `spatie/simple-excel`, bulk add page, import, template. Needs: temp password.
+- [ ] `feat(staff): export temp passwords as CSV, XLSX or PDF` — row selection on the staff list, `ExportTemporaryPasswords`. Needs: bulk add.
+
 ### 02 Property (seeding) and 17 Onboarding (admin create)
 
 - [x] `feat(property): seed property defaults from type and country` — `SeedPropertyDefaults`, first with roles and settings. Later modules add their defaults. Docs: [Seed property defaults](02-property/03-seed-property-defaults.md).

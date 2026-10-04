@@ -2,12 +2,13 @@
 
 ## Purpose
 
-A property has many staff users. Staff join only by invitation.
+A property has many staff users. Staff join by an emailed invitation or are added with a temp password.
 
 ## Data model
 
 ```
 users                id, property_id, company_id (nullable), name, email, password, is_admin, deactivated_at,
+                     temporary_password, temporary_password_expires_at, must_change_password,
                      two_factor columns, timestamps
                      CHECK company_id IS NULL OR is_admin = false
 staff_invitations    id, property_id, email, role_id (nullable), company_id (nullable),
@@ -42,6 +43,16 @@ Deactivate returns `false` for yourself, an already deactivated user, an Owner w
 Resend and revoke return `false` for a closed invitation; the controller shows an error toast. Accept returns `false` for a closed or expired invitation, or when the email got an account after the invitation was sent.
 
 The email is `App\Notifications\StaffInvitationNotification`, queued after commit and sent on demand to the invited address.
+
+## Add staff menu
+
+The Staff page has one **Add staff** menu:
+
+| Item                   | Flow                                                                                          |
+| ---------------------- | --------------------------------------------------------------------------------------------- |
+| Invite by email        | This page: invitation link, valid 7 days                                                      |
+| Add with temp password | Dialog. See [Temp passwords and bulk staff](03-temp-passwords.md)                             |
+| Bulk add               | Full page, grid or CSV/XLSX upload. See [Temp passwords and bulk staff](03-temp-passwords.md) |
 
 ## Pages and routes
 

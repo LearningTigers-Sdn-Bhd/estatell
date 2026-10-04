@@ -26,6 +26,8 @@ URL shape, route groups, names and middleware for estatell. Wayfinder generates 
 | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------- |
 | `property.access`     | `EnsurePropertyAccess`: authenticates staff for the code, allows impersonation, redirects admins to the view-as page, sets the permission team, URL defaults and Pennant scope. See [Impersonation](01-platform/04-impersonation.md#middleware). | All `/p/{code}` routes             |
 | `web` group           | `LogoutDeactivatedUsers`: signs out users deactivated while signed in. See [Staff and invitations](03-staff/01-staff-and-invitations.md)                                                                                                         | Every web request                  |
+| `web` group           | `AuthenticateSession` (`auth.session`): ends a session when the user's password changes. See [Sessions](#sessions)                                                                                                                               | Every web request                  |
+| `web` group           | `EnsurePasswordChanged`: sends users with `must_change_password` to `/account/set-password`. Exempt: set-password routes and `logout`. See [Temp passwords](03-staff/03-temp-passwords.md)                                                       | Every web request                  |
 | `verified`            | Email verified (starter kit)                                                                                                                                                                                                                     | All `/p/{code}` routes             |
 | `live`                | `EnsurePropertyIsLive`: redirects to onboarding until the property is Live                                                                                                                                                                       | Operational modules                |
 | `block.impersonation` | `BlockDuringImpersonation`                                                                                                                                                                                                                       | Blocked routes (see Impersonation) |
@@ -117,6 +119,15 @@ import { stayView } from '@/routes/front-desk';
 
 - **Account** is about the signed-in person, has no property code, and lives in the user menu: `/account/profile`, `/account/security`, `/account/appearance`, `/account/notifications` (names under `account.*`). Code: `App\Http\Controllers\Account`, `pages/account/*`, `layouts/account/layout.tsx`, `routes/account.php`.
 - **Settings** always means the property, under `/p/{code}/settings`, and appears in the sidebar.
+- Account also has `GET` and `PUT /account/set-password` (`account.set-password.edit` and `.update`, `auth` only) for users with a temp password, and `DELETE /account/sessions` (`account.sessions.destroy`, auth and verified) for **Log out other devices**.
+
+## Sessions
+
+- Sessions live in Redis. `SESSION_LIFETIME` stays 120 minutes. "Remember me" stays (Laravel's 400-day cookie).
+- `AuthenticateSession` is in the `web` group. A session (including a remember-me login) ends when the user's password changes: a password change, a reset by email, a temp password reset or setting a new password after a temp one. The session that made the change stays signed in.
+- **Log out other devices** on `/account/security` asks for the current password and calls `Auth::logoutOtherDevices`.
+- There is no list of signed-in devices. Redis cannot list one user's sessions; that would need the `database` session driver.
+- `migrate:fresh` does not clear Redis. Old sessions fail the password hash check and sign out.
 
 ## Sidebar contexts (decided)
 
