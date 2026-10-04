@@ -35,7 +35,7 @@ Interface `StayPricing`: `priceStay()` returns one amount breakdown per night (b
     - A Bed room type: price × `beds`. Child prices and extra guest amounts do not apply.
     - The adults or room part is `base` and the children or extra guests part is `extra`. Each is split across the nights with `allocate()`, the extra cents going to the first nights. `supplement` is 0.
     - The arrival weekdays are not checked here. `RestrictionCheck` reports them.
-- **Derived plans:** `RateQuoteService` prices a derived plan with its parent's strategy and rates, then `DerivedRateResolver` adjusts each night (see [derived rate plans](04-derived-rate-plans.md)). A missing parent rate is refused as `rate_missing`, and an archived parent as `plan_archived`.
+- **Derived plans:** `RateQuoteService` prices a derived plan with its parent's strategy and rates, then `DerivedRateResolver` adjusts each night (see [derived rate plans](04-derived-rate-plans.md)). A missing parent rate is refused as `rate_missing`, and an archived parent as `plan_archived`. A derived package is priced by `PackagePricing` from its parent's package prices, then adjusted by a percent only (see [Derived packages](04-derived-rate-plans.md#derived-packages)).
 
 ## Quote steps
 

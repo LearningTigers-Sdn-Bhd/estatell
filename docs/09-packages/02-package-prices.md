@@ -50,16 +50,20 @@ Staff with `settings.manage` use the Pricing tab of a package plan (`settings.ra
 - **Arrival weekdays:** `RestrictionCheck` reports an arrival on a day that is not allowed. The quote does not check it.
 - **Not built yet:** the booking form lock.
 - **Not built yet:** the `early_departure_policy` field. It arrives with reservations.
-- **Other endpoints:** the nightly pricing form, derivation and extend stay closed to Package plans.
+- **Other endpoints:** the nightly pricing form and extend stay closed to Package plans. Derivation is open to a package only as a percent of a package parent with the same unit and nights.
+
+## Derived packages
+
+A package can follow another package of the same charged unit and the same nights, with a percent. The child has no `package_prices` of its own. `RateQuoteService` prices the stay from the parent's periods, child prices and extra guest amounts, then adjusts each night. The child's nights and unit are copied from the parent and locked. The child keeps its own room types, arrival weekdays and inclusions. See [Derived rate plans](../08-rates/04-derived-rate-plans.md#derived-packages).
 
 ## Edge cases
 
-| Case                       | Behaviour                                                                |
-| -------------------------- | ------------------------------------------------------------------------ |
-| Guest extends by one night | The extra night uses another rate plan on its `unit_nights.rate_plan_id` |
-| Guest leaves early         | `early_departure_policy`: ChargeFull or ChargeUsedNights                 |
-| Package price edited       | Existing bookings keep their stored nightly amounts                      |
-| `fixed_nights` edited      | Existing bookings keep their stored nights                               |
+| Case                       | Behaviour                                                                                    |
+| -------------------------- | -------------------------------------------------------------------------------------------- |
+| Guest extends by one night | The extra night uses another rate plan on its `unit_nights.rate_plan_id`                     |
+| Guest leaves early         | `early_departure_policy`: ChargeFull or ChargeUsedNights                                     |
+| Package price edited       | Existing bookings keep their stored nightly amounts                                          |
+| `fixed_nights` edited      | Existing bookings keep their stored nights. Refused while an active package follows the plan |
 
 ## Example
 
@@ -68,7 +72,7 @@ Island Escape 3D2N, arrival 1-30 Jun: RM600 per adult. 2 adults + 1 child aged 8
 ## UI
 
 - **New plan:** choosing Package in the new plan Sheet adds Nights and Charged (per guest or per room).
-- **Pricing tab:** a package plan shows an "Arrival days" weekday picker and, for each linked room type, a table of arrival periods and prices with "Add period". It replaces the pricing form on the rate plan's Pricing tab. "Follow another plan" is not offered. A plan with no linked room types shows an empty state that points to the Room types tab.
+- **Pricing tab:** a package plan shows an "Arrival days" weekday picker and, for each linked room type, a table of arrival periods and prices with "Add period". It replaces the pricing form on the rate plan's Pricing tab. "Follow another plan" is offered as a percent of a package with the same unit and nights, and then the price grid is replaced by the follow form. The "Arrival days" picker stays, because a derived package keeps its own arrival days. A plan with no linked room types shows an empty state that points to the Room types tab.
 - **Details tab:** a package also shows its Nights. A package charged per room shows the extra adult and extra child amounts, per stay.
 - **Children tab:** shown only for packages charged per guest.
 - **Inclusions tab:** open to every plan, see [Inclusions](01-inclusions.md).

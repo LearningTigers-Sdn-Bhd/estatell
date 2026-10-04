@@ -22,6 +22,22 @@ Columns on `rate_plans`: `parent_rate_plan_id`, `derivation` (`RateDerivation`),
 - The Discounts tab of a derived plan with no rules of its own shows "Copy discounts from {parent}" beside "Add long-stay discount" in the empty state, when the parent has rules. It saves a copy at once (`CopyParentStayDiscounts`). The copy is not linked, so later parent changes do not reach it. The button is hidden once the plan has a rule.
 - Room types, restrictions, name and early departure policy belong to the derived plan.
 
+## Derived packages
+
+A Package plan can follow a Package parent, for example "Dive Package − Petronas 10%". A Package plan has no nightly rates, so the rules differ from nightly plans in these ways.
+
+| Topic                   | Rule                                                                                                                                                                                                                                              |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Parent                  | A Package plan with the same `package_unit` and the same `fixed_nights`. A nightly plan cannot follow a package, and a package cannot follow a nightly plan.                                                                                      |
+| Derivation              | Percent only. A package price is per stay, and an Amount is added per night. Amount for packages is future work.                                                                                                                                  |
+| Price                   | The child uses the parent's `package_prices` for the arrival date, the parent's child prices and the parent's extra guest amounts. Then the percent adjusts each night after the stay is split.                                                   |
+| Nights and charged unit | Copied from the parent. The child cannot edit them. The parent cannot change its nights while an active plan follows it: "Dive Package − Petronas follows this plan, so its nights cannot change." The charged unit never changes after creation. |
+| Own to the child        | Name, room types, arrival weekdays and inclusions. A new derived package allows any arrival day and has no inclusions.                                                                                                                            |
+| Not applicable          | Long-stay discounts and own prices. The Discounts tab stays closed to packages, and the Pricing tab shows no price form.                                                                                                                          |
+| Quote                   | `RateQuoteService` already prices from the parent plan. The parent's nights check and package price lookup apply. A missing period is refused as `package_price_missing`.                                                                         |
+
+The database needs no change. `rate_plans_package_check` and `rate_plans_derivation_complete_check` allow a plan that is both a package and a follower.
+
 ## Rules
 
 - A derived plan has no own `rates.amount`. It follows the parent's price per date, so parent weekend and holiday prices carry through. It can still have its own restriction rows.
@@ -30,24 +46,26 @@ Columns on `rate_plans`: `parent_rate_plan_id`, `derivation` (`RateDerivation`),
 - A parent cannot be archived while active plans follow it (see [Rate plans](01-rate-plans.md#guards)).
 - A room type cannot be unlinked from a parent while an active follower sells it: "Breakfast follows this plan for Deluxe."
 - A follower cannot be restored while its parent is archived.
+- A package parent can have followers only when they are packages of the same unit and nights. Nightly plans and packages never mix.
 - Companies can be linked to derived plans (see [Companies](../15-city-ledger/01-companies.md)).
 
 ## Eligible parent
 
 A plan can be a parent when all of these hold:
 
-| Condition                                            | Why                                                          |
-| ---------------------------------------------------- | ------------------------------------------------------------ |
-| It is a different plan                               | A plan cannot follow itself                                  |
-| It is active                                         | Archived plans have no future prices                         |
-| It does not follow another plan                      | One level only                                               |
-| It is not a Package plan                             | Packages have no nightly price                               |
-| It has the same pricing basis                        | Per room, per guest and per bed prices mean different things |
-| It is linked to every room type the child plan sells | Otherwise some rows have no price                            |
+| Condition                                             | Why                                                          |
+| ----------------------------------------------------- | ------------------------------------------------------------ |
+| It is a different plan                                | A plan cannot follow itself                                  |
+| It is active                                          | Archived plans have no future prices                         |
+| It does not follow another plan                       | One level only                                               |
+| It is not a Package plan, or the child is a package   | A nightly plan has no nightly price to follow on a package   |
+| For a package: same `package_unit` and `fixed_nights` | The child uses the parent's package prices and stay length   |
+| It has the same pricing basis                         | Per room, per guest and per bed prices mean different things |
+| It is linked to every room type the child plan sells  | Otherwise some rows have no price                            |
 
 ## UI
 
-On the Pricing tab, "Follow another plan" asks for the parent, the direction (Down or Up), the value and the unit (% or RM). A preview shows today's price per room type, for example "Deluxe 800 → 850".
+On the Pricing tab, "Follow another plan" asks for the parent, the direction (Down or Up), the value and the unit (% or RM). A preview shows today's price per room type, for example "Deluxe 800 → 850". For a package, the Pricing tab offers the same choice with Percent only. The preview shows the package price for the period that holds today's date, or "No package price for today".
 
 The option is disabled, with the reason in a tooltip, in these cases:
 
@@ -59,14 +77,14 @@ The option is disabled, with the reason in a tooltip, in these cases:
 
 ## Create derived plan quick action
 
-A shortcut for "give Petronas 15% off". It is on the row menu of the Rate plans list and shows only for an active plan that is an eligible parent (see above). It opens a Sheet with the parent fixed.
+A shortcut for "give Petronas 15% off". It is on the row menu of the Rate plans list and shows only for an active plan that is an eligible parent (see above), a Package plan included. The Sheet of a package parent shows its Nights and Charged read-only and copies them to the new plan. It opens a Sheet with the parent fixed.
 
-| Field                  | Rule                                                                                                 |
-| ---------------------- | ---------------------------------------------------------------------------------------------------- |
-| Name                   | Required. Unique among active plans. Prefilled as "{Parent} – ".                                     |
-| Direction, value, unit | Down or Up, a number, % or RM. The same preview as the Pricing tab: "Deluxe 800 → 680".              |
-| Room types             | All of the parent's room types start ticked. Staff can untick. At least one is needed.               |
-| Companies              | Optional multi-select of the property's Active companies. Shown only to staff with `company.manage`. |
+| Field                  | Rule                                                                                                                    |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| Name                   | Required. Unique among active plans. Prefilled as "{Parent} – ".                                                        |
+| Direction, value, unit | Down or Up, a number, % or RM. The same preview as the Pricing tab: "Deluxe 800 → 680". A package parent allows % only. |
+| Room types             | All of the parent's room types start ticked. Staff can untick. At least one is needed.                                  |
+| Companies              | Optional multi-select of the property's Active companies. Shown only to staff with `company.manage`.                    |
 
 - **Action:** `CreateDerivedRatePlan` runs in one transaction. It creates the plan through `CreateRatePlan`, sets the derivation through `SaveRatePlanDerivation`, then syncs `company_rate_plans` for the chosen companies. It adds no new rule. Every check is the one the plan editor and the Rates tab already use.
 - **Route:** `settings.rate-plans.derived.store`, with `settings.manage`. Choosing companies also needs `company.manage`.
