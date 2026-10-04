@@ -170,7 +170,15 @@ Built: `reservations.index` with the status tabs, search, source and stay filter
 
 ## Reservation page (Detail archetype)
 
-`DetailLayout`: link tabs on the left (two thirds), the summary card on the right.
+A fixed-height workspace (see [Detail workspace](../design-system/04-page-archetypes.md)), not `DetailLayout`. The page fills the shell height and never scrolls as a whole. Row 1 is the header, row 2 the link tabs, row 3 up to three panels. Each panel is a rounded, bordered card with small padding and its own scroll.
+
+| Tab                       | Panel 1 (14rem)        | Panel 2 (rest)                | Panel 3 (20rem) |
+| ------------------------- | ---------------------- | ----------------------------- | --------------- |
+| Units                     | Choose unit list       | Open unit and night table     | Summary card    |
+| Folio                     | Folio rail             | Folio table and actions       | Summary card    |
+| Guests, Add-ons, Activity | – (two panels instead) | Tab content, full panel width | Summary card    |
+
+The Units list is hidden for one unit, and the Folio rail for one folio, so those tabs also show two panels. Below `lg` the panels stack in one scrolling column, with the summary card first, and the unit list becomes a select.
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────────────────────┐
