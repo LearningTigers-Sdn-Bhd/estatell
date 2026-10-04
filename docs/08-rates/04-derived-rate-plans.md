@@ -57,6 +57,22 @@ The option is disabled, with the reason in a tooltip, in these cases:
 | No plan is eligible         | "No other plan sells Deluxe and Spa Villa at a nightly price."          |
 | Other plans follow this one | "Breakfast and Corporate follow this plan, so it needs its own prices." |
 
+## Create derived plan quick action
+
+A shortcut for "give Petronas 15% off". It is on the row menu of the Rate plans list and shows only for an active plan that is an eligible parent (see above). It opens a Sheet with the parent fixed.
+
+| Field                  | Rule                                                                                                 |
+| ---------------------- | ---------------------------------------------------------------------------------------------------- |
+| Name                   | Required. Unique among active plans. Prefilled as "{Parent} – ".                                     |
+| Direction, value, unit | Down or Up, a number, % or RM. The same preview as the Pricing tab: "Deluxe 800 → 680".              |
+| Room types             | All of the parent's room types start ticked. Staff can untick. At least one is needed.               |
+| Companies              | Optional multi-select of the property's Active companies. Shown only to staff with `company.manage`. |
+
+- **Action:** `CreateDerivedRatePlan` runs in one transaction. It creates the plan through `CreateRatePlan`, sets the derivation through `SaveRatePlanDerivation`, then syncs `company_rate_plans` for the chosen companies. It adds no new rule. Every check is the one the plan editor and the Rates tab already use.
+- **Route:** `settings.rate-plans.derived.store`, with `settings.manage`. Choosing companies also needs `company.manage`.
+- **Result:** back to the list with a toast that links to the new plan.
+- Companies can still be linked or unlinked later on the company's Rates tab.
+
 ## Built
 
 - **Enum and columns:** `RateDerivation` (Percent, Amount) and the three `rate_plans` columns. The database checks that the three are all set or all empty, that a plan is not its own parent, and that a percent is above −100.
@@ -65,7 +81,7 @@ The option is disabled, with the reason in a tooltip, in these cases:
 - **Routes:** `settings.rate-plans.pricing.derivation.update` and `.preview` (preview saves nothing).
 - **UI:** a "Set prices directly / Follow another plan" choice on the Pricing tab. The form has the parent, Down or Up, the value and the unit. The preview shows today's room price per room type. A plan that follows another shows "Stop following" instead of the price form. The list shows "Follows Basic Rate -10%".
 - **Rate calendar:** a derived plan row shows the parent's room price after the derivation, with a link marker, read-only. Its own restriction rows show too (see [the calendar](02-daily-rates-and-restrictions.md#the-rate-calendar)).
-- **Company links:** `company_rate_plans`, set on the company's Rates tab (see [Companies](../15-city-ledger/01-companies.md#rules)). The rate plan editor has no link screen.
+- **Company links:** `company_rate_plans`, set on the company's Rates tab (see [Companies](../15-city-ledger/01-companies.md#rules)) or in the Create derived plan Sheet. The rate plan editor has no link screen.
 
 ## Future
 
