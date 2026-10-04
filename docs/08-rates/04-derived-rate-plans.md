@@ -70,7 +70,7 @@ A shortcut for "give Petronas 15% off". It is on the row menu of the Rate plans 
 
 - **Action:** `CreateDerivedRatePlan` runs in one transaction. It creates the plan through `CreateRatePlan`, sets the derivation through `SaveRatePlanDerivation`, then syncs `company_rate_plans` for the chosen companies. It adds no new rule. Every check is the one the plan editor and the Rates tab already use.
 - **Route:** `settings.rate-plans.derived.store`, with `settings.manage`. Choosing companies also needs `company.manage`.
-- **Result:** back to the list with a toast that links to the new plan.
+- **Result:** back to the list with a success toast. The new plan shows in the list, and its row menu opens it.
 - Companies can still be linked or unlinked later on the company's Rates tab.
 
 ## Built

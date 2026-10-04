@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Rates;
 
 use App\Actions\Rates\ArchiveRatePlan;
 use App\Actions\Rates\CopyParentStayDiscounts;
+use App\Actions\Rates\CreateDerivedRatePlan;
 use App\Actions\Rates\CreateRatePlan;
 use App\Actions\Rates\ExtendRates;
 use App\Actions\Rates\ReorderRatePlans;
@@ -38,6 +39,7 @@ use App\Enums\ChargingUnit;
 use App\Enums\InclusionEnd;
 use App\Enums\InclusionStart;
 use App\Enums\PackageUnit;
+use App\Enums\PermissionEnum;
 use App\Enums\PricingBasis;
 use App\Enums\RateDerivation;
 use App\Enums\RatePlanStatus;
@@ -47,6 +49,7 @@ use App\Enums\Weekday;
 use App\Enums\WeekendNights;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Rates\ArchiveRatePlanRequest;
+use App\Http\Requests\Rates\CreateDerivedRatePlanRequest;
 use App\Http\Requests\Rates\CreateRatePlanRequest;
 use App\Http\Requests\Rates\PackagePricingRequest;
 use App\Http\Requests\Rates\RatePlanChildPricesRequest;
@@ -67,6 +70,7 @@ use App\Models\RatePlanChildPrice;
 use App\Models\RatePlanInclusion;
 use App\Models\RatePlanStayDiscount;
 use App\Models\RoomType;
+use App\Services\CityLedger\CompanyOptions;
 use App\Services\Rates\DerivedRatePlans;
 use App\Services\Rates\DerivedRatePreview;
 use App\Services\Rates\RatesEndingCheck;
@@ -83,7 +87,7 @@ class RatePlanController extends Controller
     /**
      * Active rate plans in display order, then archived ones. The list is bounded, so it loads once.
      */
-    public function index(Property $property): Response
+    public function index(Request $request, Property $property, CompanyOptions $companyOptions): Response
     {
         return Inertia::render('settings/rate-plans/index', [
             'ratePlans' => $property->ratePlans()
@@ -97,6 +101,7 @@ class RatePlanController extends Controller
             'packageUnits' => PackageUnit::options(),
             'roomTypes' => $property->roomTypes()->active()->ordered()->get()
                 ->map(fn (RoomType $roomType): NewRatePlanRoomTypeData => NewRatePlanRoomTypeData::fromModel($roomType)),
+            'companies' => $request->user()->can(PermissionEnum::CompanyManage->value) ? $companyOptions->active($property) : [],
         ]);
     }
 
@@ -115,6 +120,37 @@ class RatePlanController extends Controller
         return $request->roomTypeIds() === []
             ? to_route('settings.rate-plans.room-types.edit', ['property' => $property, 'ratePlan' => $ratePlan])
             : to_route('settings.rate-plans.edit', ['property' => $property, 'ratePlan' => $ratePlan]);
+    }
+
+    /**
+     * The Create derived plan Sheet: a plan that follows `$ratePlan`, with its room types and companies.
+     */
+    public function storeDerived(CreateDerivedRatePlanRequest $request, Property $property, RatePlan $ratePlan, CreateDerivedRatePlan $createDerivedRatePlan): RedirectResponse
+    {
+        $derived = $createDerivedRatePlan($request->user(), $ratePlan, $request->validated('name'), $request->derivation(), $request->signedValue(), $request->roomTypeIds(), $request->companyIds());
+
+        Inertia::flash('toast', $derived === null
+            ? ['type' => 'error', 'message' => __('The rate plan or its room types changed. Reload the page and try again.')]
+            : ['type' => 'success', 'message' => __(':name created.', ['name' => $derived->name])]);
+
+        return to_route('settings.rate-plans.index', $property);
+    }
+
+    /**
+     * Shows today's price per room type of the parent with an unsaved derivation. Nothing is saved.
+     */
+    public function previewDerived(RatePlanDerivationRequest $request, Property $property, RatePlan $ratePlan, DerivedRatePreview $derivedRatePreview): JsonResponse
+    {
+        abort_if($ratePlan->archived_at !== null || $ratePlan->parent_rate_plan_id !== null || $ratePlan->pricing_basis === PricingBasis::Package, 404);
+
+        if ($request->derivation() === null || $request->signedValue() === null) {
+            return response()->json([]);
+        }
+
+        return response()->json(array_map(
+            fn (array $row): RatePlanDerivationPreviewRowData => new RatePlanDerivationPreviewRowData($row['room_type_id'], $row['name'], $row['parent_amount'], $row['derived_amount']),
+            $derivedRatePreview->preview($ratePlan->load('roomTypes'), $ratePlan, $request->derivation(), $request->signedValue(), now($property->settings->time_zone)->startOfDay(), $property->settings->currency->value),
+        ));
     }
 
     /**
