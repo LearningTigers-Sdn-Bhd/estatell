@@ -240,3 +240,15 @@ test('the details tab says why the nights of a package are locked', function () 
     $reason($child)->assertInertia(fn (Assert $page) => $page->where('nightsLockedReason', 'The nights follow Dive Package.'));
     $reason($free)->assertInertia(fn (Assert $page) => $page->where('nightsLockedReason', null));
 });
+
+test('the pricing tab of a package with no eligible parent names its room types', function () {
+    [$owner, $property, $parent, $roomType] = derivedPackageSetup();
+    $lonely = RatePlan::factory()->for($property)->package(PackageUnit::PerGuest, 5)->create(['name' => 'Lonely']);
+    $lonely->roomTypes()->attach($roomType);
+
+    expect(app(DerivedRatePlans::class)->cannotFollowReason($lonely))->toBe('No other package with the same nights and charged unit sells Deluxe.');
+
+    $this->actingAs($owner)->get(route('settings.rate-plans.pricing.edit', [$property->code, $lonely]))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page->where('derivation.cannotFollowReason', 'No other package with the same nights and charged unit sells Deluxe.'));
+});

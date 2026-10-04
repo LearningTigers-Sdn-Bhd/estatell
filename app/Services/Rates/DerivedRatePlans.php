@@ -64,7 +64,13 @@ class DerivedRatePlans
         }
 
         if ($this->eligibleParents($plan)->isEmpty()) {
-            $names = $plan->roomTypes()->active()->ordered()->pluck('name')->all();
+            $names = RoomType::query()->whereIn('id', $plan->roomTypes()->pluck('room_types.id'))->active()->ordered()->pluck('name')->all();
+
+            if ($plan->pricing_basis === PricingBasis::Package) {
+                return $names === []
+                    ? __('No other package has the same nights and charged unit.')
+                    : __('No other package with the same nights and charged unit sells :names.', ['names' => Arr::join($names, ', ', __(' and '))]);
+            }
 
             return $names === []
                 ? __('No other plan sells at a nightly price like this one.')
