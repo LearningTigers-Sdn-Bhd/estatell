@@ -9,15 +9,19 @@ use App\Data\Staff\TemporaryPasswordMessageData;
 use App\Enums\TemporaryPasswordExportFormat;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Staff\AddStaffRequest;
+use App\Http\Requests\Staff\ExportTemporaryPasswordsRequest;
 use App\Http\Requests\Staff\TemporaryPasswordUsersRequest;
 use App\Models\Property;
 use App\Models\Role;
 use App\Models\User;
+use App\Services\Staff\TemporaryPasswordFile;
 use App\Services\Staff\TemporaryPasswordMessage;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class StaffTemporaryPasswordController extends Controller
 {
@@ -72,6 +76,31 @@ class StaffTemporaryPasswordController extends Controller
             count: $slips->count(),
             skipped: count($request->validated('user_ids')) - $slips->count(),
         ));
+    }
+
+    /**
+     * A CSV, XLSX or PDF file of the chosen staff who have an unexpired temp password. The `X-Skipped` header
+     * counts the others.
+     */
+    public function export(ExportTemporaryPasswordsRequest $request, Property $property, ExportTemporaryPasswords $exportTemporaryPasswords, TemporaryPasswordFile $file): BinaryFileResponse
+    {
+        $format = $request->exportFormat();
+        $slips = $exportTemporaryPasswords($property, $request->user(), $this->chosenUsers($request, $property), $format);
+
+        if ($slips->isEmpty()) {
+            throw ValidationException::withMessages([
+                'user_ids' => __('None of the chosen staff has an unexpired temp password.'),
+            ]);
+        }
+
+        $response = response()
+            ->download($file->write($slips, $format), 'temp-passwords-'.$property->code.'.'.$format->value)
+            ->deleteFileAfterSend();
+
+        $response->headers->set('Cache-Control', 'no-store, private');
+        $response->headers->set('X-Skipped', (string) (count($request->validated('user_ids')) - $slips->count()));
+
+        return $response;
     }
 
     /**

@@ -11,8 +11,10 @@ import { useState } from 'react';
 import { DateText } from '@/components/pms/date-text';
 import { EmptyState } from '@/components/pms/empty-state';
 import { EnumSelect } from '@/components/pms/enum-select';
+import type { EnumOption } from '@/components/pms/enum-select';
 import { PageHeader } from '@/components/pms/page-header';
 import { AddStaffDialog } from '@/components/pms/staff/add-staff-dialog';
+import { ExportTemporaryPasswordsMenu } from '@/components/pms/staff/export-temporary-passwords-menu';
 import { ResetTemporaryPassword } from '@/components/pms/staff/reset-temporary-password';
 import { TemporaryPasswordMessageDialog } from '@/components/pms/staff/temporary-password-message-dialog';
 import { TabLinks } from '@/components/pms/tab-links';
@@ -28,6 +30,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
     Dialog,
     DialogClose,
@@ -344,101 +347,217 @@ function ChangeRoleDialog({
     );
 }
 
+function SelectionBar({
+    selected,
+    exportFormats,
+    onShowMessage,
+    onClear,
+}: {
+    selected: number[];
+    exportFormats: EnumOption[];
+    onShowMessage: (userIds: number[]) => void;
+    onClear: () => void;
+}) {
+    return (
+        <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-muted/50 px-3 py-2">
+            <span className="text-sm font-medium">
+                Selected ({selected.length})
+            </span>
+            <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onShowMessage(selected)}
+            >
+                Copy message
+            </Button>
+            <ExportTemporaryPasswordsMenu
+                userIds={selected}
+                formats={exportFormats}
+                size="sm"
+            />
+            <ResetTemporaryPassword
+                userIds={selected}
+                target={`${selected.length} staff`}
+                variant="outline"
+                onReset={(userIds) => {
+                    onShowMessage(userIds);
+                    onClear();
+                }}
+            />
+            <Button
+                variant="ghost"
+                size="sm"
+                className="ms-auto"
+                onClick={onClear}
+            >
+                Clear
+            </Button>
+        </div>
+    );
+}
+
 function ActiveStaff({
     staff,
     roles,
     canManage,
+    exportFormats,
     onShowMessage,
 }: {
     staff: StaffMember[];
     roles: RoleOption[];
     canManage: boolean;
+    exportFormats: EnumOption[];
     onShowMessage: (userIds: number[]) => void;
 }) {
+    const [chosen, setSelected] = useState<number[]>([]);
+    // Staff that left the list (deactivated, for example) drop out of the selection.
+    const selected = chosen.filter((id) =>
+        staff.some((member) => member.id === id),
+    );
+    const allSelected = staff.length > 0 && selected.length === staff.length;
+
+    const toggle = (userId: number, checked: boolean) =>
+        setSelected((current) =>
+            checked
+                ? [...current, userId]
+                : current.filter((id) => id !== userId),
+        );
+
     return (
-        <div className="overflow-hidden rounded-lg border">
-            <Table>
-                <TableHeader>
-                    <TableRow>
-                        <TableHead>Name</TableHead>
-                        <TableHead>Email</TableHead>
-                        <TableHead>Role</TableHead>
-                        <TableHead>Joined</TableHead>
-                        <TableHead>Status</TableHead>
-                        {canManage && (
-                            <TableHead>
-                                <span className="sr-only">Actions</span>
-                            </TableHead>
-                        )}
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {staff.map((member) => (
-                        <TableRow key={member.id}>
-                            <TableCell className="font-medium">
-                                <span className="flex items-center gap-2">
-                                    {member.name}
-                                    {member.isYou && (
-                                        <Badge variant="outline">You</Badge>
-                                    )}
-                                </span>
-                            </TableCell>
-                            <TableCell>{member.email}</TableCell>
-                            <TableCell>
-                                {member.role ?? (
-                                    <span className="text-muted-foreground">
-                                        No role
-                                    </span>
-                                )}
-                            </TableCell>
-                            <TableCell>
-                                <DateText date={member.joinedAt} />
-                            </TableCell>
-                            <TableCell>
-                                <StaffStatus member={member} />
-                            </TableCell>
+        <div className="flex flex-col gap-3">
+            {canManage && selected.length > 0 && (
+                <SelectionBar
+                    selected={selected}
+                    exportFormats={exportFormats}
+                    onShowMessage={onShowMessage}
+                    onClear={() => setSelected([])}
+                />
+            )}
+            <div className="overflow-hidden rounded-lg border">
+                <Table>
+                    <TableHeader>
+                        <TableRow>
                             {canManage && (
-                                <TableCell>
-                                    {!member.isYou && (
-                                        <div className="flex justify-end gap-1">
-                                            {member.temporaryPasswordExpiresAt !==
-                                                null &&
-                                                temporaryPasswordDaysLeft(
-                                                    member.temporaryPasswordExpiresAt,
-                                                ) !== null && (
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        onClick={() =>
-                                                            onShowMessage([
-                                                                member.id,
-                                                            ])
-                                                        }
-                                                    >
-                                                        Copy message
-                                                    </Button>
-                                                )}
-                                            {!member.isOwner && (
-                                                <ResetTemporaryPassword
-                                                    member={member}
-                                                    onReset={(userId) =>
-                                                        onShowMessage([userId])
-                                                    }
-                                                />
-                                            )}
-                                            <ChangeRoleDialog
-                                                member={member}
-                                                roles={roles}
-                                            />
-                                            <DeactivateStaff member={member} />
-                                        </div>
-                                    )}
-                                </TableCell>
+                                <TableHead className="w-10">
+                                    <Checkbox
+                                        aria-label="Select all staff"
+                                        checked={allSelected}
+                                        indeterminate={
+                                            selected.length > 0 && !allSelected
+                                        }
+                                        onCheckedChange={(checked) =>
+                                            setSelected(
+                                                checked
+                                                    ? staff.map(
+                                                          (member) => member.id,
+                                                      )
+                                                    : [],
+                                            )
+                                        }
+                                    />
+                                </TableHead>
+                            )}
+                            <TableHead>Name</TableHead>
+                            <TableHead>Email</TableHead>
+                            <TableHead>Role</TableHead>
+                            <TableHead>Joined</TableHead>
+                            <TableHead>Status</TableHead>
+                            {canManage && (
+                                <TableHead>
+                                    <span className="sr-only">Actions</span>
+                                </TableHead>
                             )}
                         </TableRow>
-                    ))}
-                </TableBody>
-            </Table>
+                    </TableHeader>
+                    <TableBody>
+                        {staff.map((member) => (
+                            <TableRow
+                                key={member.id}
+                                data-state={
+                                    selected.includes(member.id)
+                                        ? 'selected'
+                                        : undefined
+                                }
+                            >
+                                {canManage && (
+                                    <TableCell>
+                                        <Checkbox
+                                            aria-label={`Select ${member.name}`}
+                                            checked={selected.includes(
+                                                member.id,
+                                            )}
+                                            onCheckedChange={(checked) =>
+                                                toggle(member.id, checked)
+                                            }
+                                        />
+                                    </TableCell>
+                                )}
+                                <TableCell className="font-medium">
+                                    <span className="flex items-center gap-2">
+                                        {member.name}
+                                        {member.isYou && (
+                                            <Badge variant="outline">You</Badge>
+                                        )}
+                                    </span>
+                                </TableCell>
+                                <TableCell>{member.email}</TableCell>
+                                <TableCell>
+                                    {member.role ?? (
+                                        <span className="text-muted-foreground">
+                                            No role
+                                        </span>
+                                    )}
+                                </TableCell>
+                                <TableCell>
+                                    <DateText date={member.joinedAt} />
+                                </TableCell>
+                                <TableCell>
+                                    <StaffStatus member={member} />
+                                </TableCell>
+                                {canManage && (
+                                    <TableCell>
+                                        {!member.isYou && (
+                                            <div className="flex justify-end gap-1">
+                                                {member.temporaryPasswordExpiresAt !==
+                                                    null &&
+                                                    temporaryPasswordDaysLeft(
+                                                        member.temporaryPasswordExpiresAt,
+                                                    ) !== null && (
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            onClick={() =>
+                                                                onShowMessage([
+                                                                    member.id,
+                                                                ])
+                                                            }
+                                                        >
+                                                            Copy message
+                                                        </Button>
+                                                    )}
+                                                {!member.isOwner && (
+                                                    <ResetTemporaryPassword
+                                                        userIds={[member.id]}
+                                                        target={member.name}
+                                                        onReset={onShowMessage}
+                                                    />
+                                                )}
+                                                <ChangeRoleDialog
+                                                    member={member}
+                                                    roles={roles}
+                                                />
+                                                <DeactivateStaff
+                                                    member={member}
+                                                />
+                                            </div>
+                                        )}
+                                    </TableCell>
+                                )}
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+            </div>
         </div>
     );
 }
@@ -650,6 +769,7 @@ export default function StaffIndex({
     counts,
     canManage,
     roles,
+    exportFormats,
     staff = [],
     invitations = [],
 }: {
@@ -657,6 +777,7 @@ export default function StaffIndex({
     counts: { active: number; invited: number; deactivated: number };
     canManage: boolean;
     roles: RoleOption[];
+    exportFormats: EnumOption[];
     staff?: StaffMember[];
     invitations?: Invitation[];
 }) {
@@ -709,6 +830,7 @@ export default function StaffIndex({
                             staff={staff}
                             roles={roles}
                             canManage={canManage}
+                            exportFormats={exportFormats}
                             onShowMessage={setMessageUserIds}
                         />
                     )}

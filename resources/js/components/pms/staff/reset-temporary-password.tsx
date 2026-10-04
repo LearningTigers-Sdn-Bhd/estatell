@@ -14,43 +14,47 @@ import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import { reset } from '@/routes/settings/staff/temp-passwords';
 
-type StaffMember = App.Data.Staff.StaffMemberData;
-
 /**
- * Replaces a staff member's password with a new temp password. They are signed out everywhere.
+ * Replaces the passwords of one or more staff with new temp passwords. They are signed out everywhere.
+ * The server skips Owners, deactivated staff and yourself.
  */
 export function ResetTemporaryPassword({
-    member,
+    userIds,
+    target,
+    variant = 'ghost',
     onReset,
 }: {
-    member: StaffMember;
-    onReset: (userId: number) => void;
+    userIds: number[];
+    /** Who is reset, for the title: a name or "3 staff". */
+    target: string;
+    variant?: 'ghost' | 'outline';
+    onReset: (userIds: number[]) => void;
 }) {
     const [open, setOpen] = useState(false);
 
     return (
         <AlertDialog open={open} onOpenChange={setOpen}>
-            <AlertDialogTrigger render={<Button variant="ghost" size="sm" />}>
+            <AlertDialogTrigger render={<Button variant={variant} size="sm" />}>
                 Reset password
             </AlertDialogTrigger>
             <AlertDialogContent>
                 <AlertDialogHeader>
                     <AlertDialogTitle>
-                        Reset the password of {member.name}?
+                        Reset the password of {target}?
                     </AlertDialogTitle>
                     <AlertDialogDescription>
                         Their current password stops working and they are signed
                         out everywhere. They get a new temp password that works
-                        for 14 days.
+                        for 14 days. Owners and your own account are skipped.
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <Form
                     {...reset.form()}
-                    transform={(data) => ({ ...data, user_ids: [member.id] })}
+                    transform={(data) => ({ ...data, user_ids: userIds })}
                     options={{ preserveScroll: true }}
                     onSuccess={() => {
                         setOpen(false);
-                        onReset(member.id);
+                        onReset(userIds);
                     }}
                 >
                     {({ processing }) => (

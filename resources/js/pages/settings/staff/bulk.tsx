@@ -10,8 +10,10 @@ import {
 } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { EnumSelect } from '@/components/pms/enum-select';
+import type { EnumOption } from '@/components/pms/enum-select';
 import { FormActions } from '@/components/pms/form-actions';
 import { PageHeader } from '@/components/pms/page-header';
+import { ExportTemporaryPasswordsMenu } from '@/components/pms/staff/export-temporary-passwords-menu';
 import { TemporaryPasswordMessageDialog } from '@/components/pms/staff/temporary-password-message-dialog';
 import { UnsavedChangesDialog } from '@/components/pms/unsaved-changes-dialog';
 import { Button, buttonVariants } from '@/components/ui/button';
@@ -65,7 +67,13 @@ function isBlank(row: Row): boolean {
     return row.name === '' && row.email === '' && row.role_id === '';
 }
 
-function AddedResult({ added }: { added: AddedStaff[] }) {
+function AddedResult({
+    added,
+    exportFormats,
+}: {
+    added: AddedStaff[];
+    exportFormats: EnumOption[];
+}) {
     const [copying, setCopying] = useState(false);
 
     return (
@@ -95,6 +103,10 @@ function AddedResult({ added }: { added: AddedStaff[] }) {
                     <Copy data-icon="inline-start" />
                     Copy all
                 </Button>
+                <ExportTemporaryPasswordsMenu
+                    userIds={added.map((person) => person.id)}
+                    formats={exportFormats}
+                />
                 <Link href={index()} className={buttonVariants()}>
                     Done
                 </Link>
@@ -111,9 +123,11 @@ function AddedResult({ added }: { added: AddedStaff[] }) {
 export default function StaffBulkAdd({
     roles,
     maxRows,
+    exportFormats,
 }: {
     roles: RoleOption[];
     maxRows: number;
+    exportFormats: EnumOption[];
 }) {
     const form = useForm<{ rows: Row[] }>({ rows: [emptyRow()] });
     const upload = useHttp<{ file: File | null }, { rows: ImportedRow[] }>(
@@ -210,7 +224,7 @@ export default function StaffBulkAdd({
                         description="Each has a temp password that works for 14 days. Copy the sign-in messages and pass them on."
                         back={{ href: index(), label: 'Staff' }}
                     />
-                    <AddedResult added={added} />
+                    <AddedResult added={added} exportFormats={exportFormats} />
                 </div>
             </>
         );

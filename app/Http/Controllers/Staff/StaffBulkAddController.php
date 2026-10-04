@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Staff;
 use App\Actions\Staff\BulkCreateStaff;
 use App\Data\Staff\RoleOptionData;
 use App\Enums\SpreadsheetFormat;
+use App\Enums\TemporaryPasswordExportFormat;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Staff\BulkAddStaffRequest;
 use App\Http\Requests\Staff\ImportStaffRequest;
@@ -30,6 +31,7 @@ class StaffBulkAddController extends Controller
         return Inertia::render('settings/staff/bulk', [
             'roles' => $assignableRoles->for($property, $request->user())->map(fn ($role): RoleOptionData => RoleOptionData::fromModel($role)),
             'maxRows' => StaffImportReader::MAX_ROWS,
+            'exportFormats' => TemporaryPasswordExportFormat::options(),
         ]);
     }
 

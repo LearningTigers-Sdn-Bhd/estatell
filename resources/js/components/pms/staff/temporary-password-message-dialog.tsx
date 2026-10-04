@@ -83,6 +83,12 @@ export function TemporaryPasswordMessageDialog({
                     </p>
                 )}
 
+                {answer !== null && answer.count > 0 && answer.skipped > 0 && (
+                    <p className="text-sm text-muted-foreground">
+                        {answer.skipped} skipped: no temp password.
+                    </p>
+                )}
+
                 {answer !== null && answer.count > 0 && (
                     <Textarea
                         readOnly

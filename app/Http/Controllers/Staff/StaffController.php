@@ -6,6 +6,7 @@ use App\Data\Staff\RoleOptionData;
 use App\Data\Staff\StaffInvitationData;
 use App\Data\Staff\StaffMemberData;
 use App\Enums\PermissionEnum;
+use App\Enums\TemporaryPasswordExportFormat;
 use App\Http\Controllers\Controller;
 use App\Models\Property;
 use App\Models\StaffInvitation;
@@ -72,6 +73,7 @@ class StaffController extends Controller
                 'deactivated' => $property->users()->whereNotNull('deactivated_at')->count(),
             ],
             'canManage' => $canManage,
+            'exportFormats' => $canManage ? TemporaryPasswordExportFormat::options() : [],
             'roles' => $canManage
                 ? $assignableRoles->for($property, $request->user())->map(fn ($role): RoleOptionData => RoleOptionData::fromModel($role))
                 : [],

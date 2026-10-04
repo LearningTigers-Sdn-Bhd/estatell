@@ -161,6 +161,7 @@ Route::prefix('settings')->name('settings.')->group(function () {
             Route::get('import-template.{format}', [StaffBulkAddController::class, 'template'])->name('import-template');
             Route::post('temp-passwords/reset', [StaffTemporaryPasswordController::class, 'reset'])->name('temp-passwords.reset');
             Route::post('temp-passwords/message', [StaffTemporaryPasswordController::class, 'message'])->name('temp-passwords.message');
+            Route::post('temp-passwords/export', [StaffTemporaryPasswordController::class, 'export'])->name('temp-passwords.export');
             Route::post('invitations', [StaffInvitationController::class, 'store'])->name('invitations.store');
             Route::post('invitations/{staffInvitation}/resend', [StaffInvitationController::class, 'resend'])->name('invitations.resend');
             Route::delete('invitations/{staffInvitation}', [StaffInvitationController::class, 'destroy'])->name('invitations.destroy');

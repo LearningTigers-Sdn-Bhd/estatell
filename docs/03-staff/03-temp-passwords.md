@@ -58,7 +58,7 @@ Staff                                      [Add staff ▾]
 Selected (1): [Copy message] [Export ▾ CSV · XLSX · PDF] [Reset temp password]
 ```
 
-- Rows can be selected only by users with `staff.manage`.
+- Rows can be selected only by users with `staff.manage`. A bar above the table shows **Selected (n)**, **Copy message**, **Export**, **Reset password** (one confirm for all) and **Clear**.
 - The Status column shows **Temp password · Nd** (days left) or **Temp password expired**.
 - Copy and export use only selected rows with an unexpired temp password. Other rows are skipped and the toast names the count, for example "1 skipped: no temp password".
 - The page never receives temp passwords as props. Copy fetches the text from the message route; exports are downloads.
@@ -93,9 +93,12 @@ Settings › Staff › Bulk add
 
 | Output       | Content                                                         | How                                               |
 | ------------ | --------------------------------------------------------------- | ------------------------------------------------- |
-| CSV / XLSX   | Property, name, email, role, temp password, expires, login URL  | `spatie/simple-excel`, streamed download          |
-| PDF          | One slip per person, 8 per A4 page, cut lines                   | `barryvdh/laravel-dompdf`                         |
+| CSV / XLSX   | Property, name, email, role, temp password, expires, login URL  | `spatie/simple-excel`, file download              |
+| PDF          | One slip per person, 8 per A4 page, dashed cut lines            | `barryvdh/laravel-dompdf`, file download          |
 | Copy message | The text below, one block per person, separated by a blank line | Message route returns text, the browser copies it |
+
+- Exports are a POST with `user_ids` and `format`. The browser sends it with `fetch` (Laravel's XSRF cookie as the `X-XSRF-TOKEN` header) and saves the file, so the PDF downloads instead of opening in a tab. The `X-Skipped` header counts selected staff without a usable temp password; the page shows it as a toast.
+- When none of the chosen staff has an unexpired temp password, the export returns a validation error and logs nothing.
 
 ```
 1. Open: estatell.com/login
@@ -108,19 +111,20 @@ The login URL is `route('login')`, so it follows `APP_URL`.
 
 ## Actions and services
 
-| Class                                        | Does                                                                                                                        |
-| -------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| `Staff\CreateStaffWithTemporaryPassword`     | Creates one verified user with a role and a temp password. Logs `staff.created-with-temp-password`                          |
-| `Staff\BulkCreateStaff`                      | Validates all rows, then calls the single create for each in one transaction                                                |
-| `Staff\ResetTemporaryPassword`               | New temp password and expiry, sets `must_change_password`, which ends the user's sessions. Logs `staff.temp-password-reset` |
-| `Staff\ExportTemporaryPasswords`             | Builds the CSV, XLSX, PDF or message text for selected users. Logs `staff.temp-passwords-exported` with format and user ids |
-| `Account\SetOwnPassword`                     | Saves the new password, clears the temp columns and `must_change_password`                                                  |
-| `Staff\TemporaryPasswordGenerator` (service) | Makes `Word-0000-Word` passwords                                                                                            |
-| `Staff\TemporaryPasswordMessage` (service)   | Builds the copy message text from the slips                                                                                 |
-| `Staff\StaffImportReader` (service)          | Reads CSV or XLSX into rows (`name`, `email`, `role`), at most 200                                                          |
-| `Staff\StaffImportTemplate` (service)        | Writes the empty import file for a `SpreadsheetFormat` (`csv`, `xlsx`)                                                      |
+| Class                                        | Does                                                                                                                             |
+| -------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `Staff\CreateStaffWithTemporaryPassword`     | Creates one verified user with a role and a temp password. Logs `staff.created-with-temp-password`                               |
+| `Staff\BulkCreateStaff`                      | Validates all rows, then calls the single create for each in one transaction                                                     |
+| `Staff\ResetTemporaryPassword`               | New temp password and expiry, sets `must_change_password`, which ends the user's sessions. Logs `staff.temp-password-reset`      |
+| `Staff\ExportTemporaryPasswords`             | Reads the slips of selected users with an unexpired temp password. Logs `staff.temp-passwords-exported` with format and user ids |
+| `Staff\TemporaryPasswordFile` (service)      | Writes the slips to a CSV, XLSX or PDF file (`pdf.temporary-password-slips` view)                                                |
+| `Account\SetOwnPassword`                     | Saves the new password, clears the temp columns and `must_change_password`                                                       |
+| `Staff\TemporaryPasswordGenerator` (service) | Makes `Word-0000-Word` passwords                                                                                                 |
+| `Staff\TemporaryPasswordMessage` (service)   | Builds the copy message text from the slips                                                                                      |
+| `Staff\StaffImportReader` (service)          | Reads CSV or XLSX into rows (`name`, `email`, `role`), at most 200                                                               |
+| `Staff\StaffImportTemplate` (service)        | Writes the empty import file for a `SpreadsheetFormat` (`csv`, `xlsx`)                                                           |
 
-- `TemporaryPasswordExportFormat` (enum) names the format in the export log: `message` now, `csv`, `xlsx` and `pdf` with the export commit.
+- `TemporaryPasswordExportFormat` (enum): `message`, `csv`, `xlsx`, `pdf`. `options()` lists only the file formats, for the Export menu (`exportFormats` prop).
 - Activity logs never contain a password.
 - Reset returns `false` for yourself, an Owner and a deactivated user.
 - Emails follow the invitation rules: stored lower case, and an email with an account or an open invitation cannot be used.
