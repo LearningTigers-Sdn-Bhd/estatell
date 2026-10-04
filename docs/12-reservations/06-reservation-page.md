@@ -256,7 +256,7 @@ Built: `AttachGuest`, `AttachGuestResult` and the Sheet. The Sheet's unit select
 
 ### Add-ons tab
 
-A title row (Add-ons, with the **+ Add add-on** button on the right) above one rounded, bordered table. Rows are grouped by unit, with a shaded group row per unit: charge item, quantity, service date, unit amount, total. A footer row shows the Total of all add-ons (a display sum of the row totals, in cents). A nightly add-on shows one row per night. **+ Add add-on** opens a Dialog (`AddUnitAddOn`, see [Add-ons](04-add-ons.md)). Each row has **Remove** with an AlertDialog confirm (`RemoveUnitAddOn`).
+A title row (Add-ons, with the **+ Add add-on** button on the right) above one rounded, bordered table. Rows are grouped by unit, with a shaded group row per unit: charge item, quantity, service date, unit amount, total. With no add-ons the table still shows its header, with the empty state in one body row and no footer. A footer row shows the Total of all add-ons (a display sum of the row totals, in cents). A nightly add-on shows one row per night. **+ Add add-on** opens a Dialog (`AddUnitAddOn`, see [Add-ons](04-add-ons.md)). Each row has **Remove** with an AlertDialog confirm (`RemoveUnitAddOn`).
 
 ### Activity tab
 
