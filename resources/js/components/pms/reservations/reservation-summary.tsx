@@ -1,4 +1,22 @@
 import { Link } from '@inertiajs/react';
+import {
+    BedDouble,
+    Building2,
+    CalendarArrowDown,
+    CalendarArrowUp,
+    CalendarPlus,
+    Globe,
+    Mail,
+    Moon,
+    Phone,
+    Receipt,
+    Scale,
+    StickyNote,
+    User,
+    UserRound,
+    Wallet,
+} from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { DateText } from '@/components/pms/date-text';
 import { MoneyText } from '@/components/pms/money-text';
@@ -9,10 +27,21 @@ import { show as showGuest } from '@/routes/guests';
 
 type Reservation = App.Data.Reservations.ReservationData;
 
-function Row({ label, children }: { label: string; children: ReactNode }) {
+function Row({
+    icon: Icon,
+    label,
+    children,
+}: {
+    icon: LucideIcon;
+    label: string;
+    children: ReactNode;
+}) {
     return (
         <div className="flex items-baseline justify-between gap-3 text-sm">
-            <dt className="text-muted-foreground">{label}</dt>
+            <dt className="flex items-center gap-2 text-muted-foreground">
+                <Icon aria-hidden className="size-4 shrink-0 self-center" />
+                {label}
+            </dt>
             <dd className="text-right">{children}</dd>
         </div>
     );
@@ -32,9 +61,10 @@ export function ReservationSummary({
     const { booker } = reservation;
 
     return (
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-4 ps-3 pt-2">
             <section className="flex flex-col gap-1">
-                <h2 className="text-sm font-medium text-muted-foreground">
+                <h2 className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                    <User aria-hidden className="size-4" />
                     Booker
                 </h2>
                 <p className="flex items-center gap-2 font-medium">
@@ -48,9 +78,23 @@ export function ReservationSummary({
                         </span>
                     )}
                 </p>
-                {booker.phone && <p className="text-sm">{booker.phone}</p>}
+                {booker.phone && (
+                    <p className="flex items-center gap-2 text-sm">
+                        <Phone
+                            aria-hidden
+                            className="size-4 text-muted-foreground"
+                        />
+                        {booker.phone}
+                    </p>
+                )}
                 {booker.email && (
-                    <p className="text-sm break-all">{booker.email}</p>
+                    <p className="flex items-center gap-2 text-sm break-all">
+                        <Mail
+                            aria-hidden
+                            className="size-4 shrink-0 text-muted-foreground"
+                        />
+                        {booker.email}
+                    </p>
                 )}
                 {booker.id !== null && (
                     <Link
@@ -67,29 +111,29 @@ export function ReservationSummary({
             </section>
             <Separator />
             <dl className="flex flex-col gap-2">
-                <Row label="Earliest arrival">
+                <Row icon={CalendarArrowDown} label="Earliest arrival">
                     <DateText date={reservation.firstArrival} />
                 </Row>
-                <Row label="Latest departure">
+                <Row icon={CalendarArrowUp} label="Latest departure">
                     <DateText date={reservation.lastDeparture} />
                 </Row>
-                <Row label="Units">
+                <Row icon={BedDouble} label="Units">
                     <span className="tabular-nums">
                         {reservation.unitCount}
                     </span>
                 </Row>
-                <Row label="Room nights">
+                <Row icon={Moon} label="Room nights">
                     <span className="tabular-nums">
                         {reservation.roomNights}
                     </span>
                 </Row>
-                <Row label="Stay total">
+                <Row icon={Wallet} label="Stay total">
                     <MoneyText
                         amount={reservation.stayTotal}
                         currency={currency}
                     />
                 </Row>
-                <Row label="Balance">
+                <Row icon={Scale} label="Balance">
                     {reservation.balance === null ? (
                         <span className="text-muted-foreground">—</span>
                     ) : (
@@ -110,20 +154,29 @@ export function ReservationSummary({
             <Separator />
             <dl className="flex flex-col gap-2">
                 {reservation.unitCount > 1 && (
-                    <Row label="Billing">{reservation.billingModeLabel}</Row>
+                    <Row icon={Receipt} label="Billing">
+                        {reservation.billingModeLabel}
+                    </Row>
                 )}
-                <Row label="Source">{reservation.sourceLabel}</Row>
-                <Row label="Company">—</Row>
-                <Row label="Created">
+                <Row icon={Globe} label="Source">
+                    {reservation.sourceLabel}
+                </Row>
+                <Row icon={Building2} label="Company">
+                    —
+                </Row>
+                <Row icon={CalendarPlus} label="Created at">
                     <DateText date={reservation.createdOn} />
-                    {reservation.createdBy && ` · ${reservation.createdBy}`}
+                </Row>
+                <Row icon={UserRound} label="Created by">
+                    {reservation.createdBy ?? 'System'}
                 </Row>
             </dl>
             {reservation.notes && (
                 <>
                     <Separator />
                     <section className="flex flex-col gap-1">
-                        <h2 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                        <h2 className="flex items-center gap-2 text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                            <StickyNote aria-hidden className="size-4" />
                             Notes
                         </h2>
                         <p className="text-sm whitespace-pre-line">
