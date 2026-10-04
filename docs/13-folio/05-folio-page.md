@@ -20,7 +20,7 @@ The server builds one list. The browser only draws it.
 
 ## Layout
 
-The folio panel has four rows: the title (folio name and status, with the invoice number under it when the folio has one), the figures, the action row, then the rows table. The action row holds Routing rules and Third-party folio on the left and the folio's own actions on the right (Reopen, Close, Apply discount, Record payment, Post charge). The whole panel scrolls. A reservation with no folio shows just the two reservation buttons above the empty state.
+The folio panel has four rows: the title (folio name and status, with the invoice number under it when the folio has one, and Reopen or Close folio on the right), the figures, the action row, then the rows table. The action row holds Routing rules and Third-party folio on the left and the folio's own actions on the right (Reopen, Close, Apply discount, Record payment, Post charge). The whole panel scrolls. A reservation with no folio shows just the two reservation buttons above the empty state.
 
 ## Figures
 
