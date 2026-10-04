@@ -18,6 +18,10 @@ The server builds one list. The browser only draws it.
 - Scheduled rows are muted and tagged "Scheduled". Tax on them is calculated live with `TaxCalculator`. Nothing is stored.
 - With `MasterPays`, the unit folio shows no Scheduled room rows. The master folio shows them (needs [Routing](03-routing.md)).
 
+## Layout
+
+The folio panel has four rows: the title (folio name and status, with the invoice number under it when the folio has one), the figures, the action row, then the rows table. The action row holds Routing rules and Third-party folio on the left and the folio's own actions on the right (Reopen, Close, Apply discount, Record payment, Post charge). The whole panel scrolls. A reservation with no folio shows just the two reservation buttons above the empty state.
+
 ## Figures
 
 - **Balance**: posted lines only (`FolioBalance`).
@@ -108,8 +112,8 @@ Row and folio actions call the existing Actions. A refusal writes and logs nothi
 | Close, Reopen   | `folio.close`, `folio.reopen`           | The folio header                                                     |
 | Record payment  | `payment.record`                        | The folio header of an Open folio, and a "not started" entry         |
 | Refund          | `payment.refund`                        | A Completed payment row with an amount left to refund                |
-| Third-party     | `folio.transfer`                        | Above the rail, for the reservation                                  |
-| Routing rules   | `folio.transfer`                        | Above the rail, for the reservation                                  |
+| Third-party     | `folio.transfer`                        | The action row, for the reservation                                  |
+| Routing rules   | `folio.transfer`                        | The action row, for the reservation                                  |
 
 A Scheduled row has no actions. A "not started" entry has only Record payment.
 
@@ -154,17 +158,15 @@ Two steps, as the quote requires. The dialog picks a discount (and an amount whe
 
 ## Routing rules and third-party folios
 
-Two reservation-level buttons sit above the rail, next to Record payment. The rules and decisions are in [Routing](03-routing.md#staff-screens).
+Two reservation-level buttons sit in the action row, before the folio's own actions. The rules and decisions are in [Routing](03-routing.md#staff-screens).
 
 ```
-┌───────────────────────────────────────────────────────────────────────┐
-│                            [Routing rules] [Third-party folio]        │
-├────────────────────┬──────────────────────────────────────────────────┤
-│ FOLIOS             │ Third party · Blue Reef Dive  F-0034             │
-│  Master · Acme     │ ● Open                                           │
-│  Unit 101 · Tan    │ ...                                              │
-│ ▌Third party ·     │                                                  │
-│   Blue Reef Dive   │                                                  │
+┌────────────────────┬──────────────────────────────────────────────────┐
+│ FOLIOS             │ Third party · Blue Reef Dive  ●Open              │
+│  Master · Acme     │ Invoice F-0034                                   │
+│  Unit 101 · Tan    │ [Balance] [Projected total] [Posted lines]       │
+│ ▌Third party ·     │ [Routing rules] [Third-party folio]  [Record …]  │
+│   Blue Reef Dive   │ ...                                              │
 └────────────────────┴──────────────────────────────────────────────────┘
 ```
 
@@ -216,7 +218,7 @@ Built (routing rules and third-party folios): `RoutingRuleList` (service, two qu
 
 Decisions made at build time (routing rules and third-party folios):
 
-- The two buttons sit in a row above the rail and also show when the reservation has no folio yet, so a third-party folio can be made before any charge.
+- The two buttons sit in the action row (below the figures) and also show when the reservation has no folio yet, so a third-party folio can be made before any charge.
 - The Routing rules button shows no count: the rules are an optional prop, and a count on every page load is not worth a query.
 - The Sheet reads `routingRules` again each time it opens and after each add or remove, so it never shows a folio or rule that changed in the meantime. Units come from the page's `units` prop, and charge codes from the `chargeCodes` optional prop.
 - Rules are listed in the order `FolioRouter` tries them: all units first, then by unit, and a charge code before a category before all charges.
