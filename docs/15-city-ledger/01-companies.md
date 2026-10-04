@@ -42,7 +42,10 @@ company_users        see Company portal
 - The company is picked on the [booking form](../12-reservations/05-booking-form.md) and changed from the [reservation page](../12-reservations/06-reservation-page.md) (**⋯ More › Change company**). Both need `company.view`; the change also needs `reservations.manage`. The list holds Active companies of the property. A Suspended or foreign company is refused as `company_not_available`. A reservation keeps its own Suspended company, and saving it unchanged is not a change.
 - Closed (Cancelled or Completed) reservations cannot change company.
 - `company_rate_plans` links negotiated derived rate plans. The booking form offers them when the company is selected.
-- A plan linked to any company is hidden on the booking form until one of those companies is selected. This stops staff giving company prices to walk-ins.
+- A plan linked to any company is hidden on the booking form and the Add unit Sheet until one of those companies is selected. Changing the company drops a line whose plan is now hidden. This stops staff giving company prices to walk-ins.
+- Only an active derived plan of the same property can be linked. `company_rate_plans` has a unique `(company_id, rate_plan_id)`; the company link cascades on delete and the plan link restricts. An archived plan is hidden everywhere but keeps its link, and restoring it brings the link back. A Suspended company keeps its links.
+- `AddUnit` refuses a linked plan unless the reservation's company is one of its companies: `rate_plan_not_linked_to_company`. The form filter is only a convenience. Channel ingestion skips this check.
+- `UpdateReservationCompany` refuses a change while a live unit uses a plan the new company cannot book: `company_plan_conflict`, "Units use plans only the old company can book."
 - `portal_enabled`, `portal_cancel_cutoff_days` and `company_users` belong to the [Company portal](../23-company-portal/01-company-portal.md). They are edited on the company's Portal tab, with its company users and invitations.
 
 ## Actions
@@ -53,6 +56,7 @@ company_users        see Company portal
 | `UpdateCompany`            | Updates the fields. Logs `company.updated` with diff                                                                                                                                                                                                                          |
 | `SuspendCompany`           | Active → Suspended. Logs `company.suspended`                                                                                                                                                                                                                                  |
 | `UpdateCompanyBilling`     | Saves the tax numbers and billing address. Returns false when `profile_managed_by_company`                                                                                                                                                                                    |
+| `SyncCompanyRatePlans`     | Replaces the company's linked plans with the given derived plan ids. Logs `company.rates_updated` with the added and removed plan ids. Returns false for an id that is not an active derived plan of the property                                                             |
 | `ReactivateCompany`        | Suspended → Active. Logs `company.reactivated`                                                                                                                                                                                                                                |
 | `UpdateReservationCompany` | Sets or clears `reservations.company_id` (module 12 folder). Refuses `reservation_closed`, `company_not_available`, `master_has_lines`. Points an empty Master folio's payer at the company, runs `SyncRoutingRules`, logs `reservation.company_updated` with old and new ids |
 
@@ -73,6 +77,7 @@ Suspend and reactivate return `false` when the company is already in the target 
 | Add company               | `POST .../companies` (Sheet on the list)                                              | `company.manage`                            |
 | Company page, Details tab | `GET .../companies/{company}`, saved with `PUT .../companies/{company}/details`       | `company.view`, save needs `company.manage` |
 | Company page, Credit tab  | `GET .../companies/{company}/credit`, saved with `PUT .../companies/{company}/credit` | `company.view`, save needs `company.manage` |
+| Company page, Rates tab   | `GET .../companies/{company}/rates`, saved with `PUT .../companies/{company}/rates`   | `company.view`, save needs `company.manage` |
 | Tax and billing form      | `PUT .../companies/{company}/billing` (Details tab)                                   | `company.manage`                            |
 | Suspend                   | `POST .../companies/{company}/suspend` (AlertDialog)                                  | `company.manage`                            |
 | Reactivate                | `POST .../companies/{company}/reactivate`                                             | `company.manage`                            |
@@ -86,7 +91,7 @@ Finance › City ledger › Companies                     [Add company]
 ```
 
 - **Add company** is a Sheet with 7 fields in two sections: Company (name, type, contact email, contact phone) and Credit (credit limit, payment terms, direct billing, on by default). After saving, the company page opens; tax numbers and the billing address are added there.
-- The company page follows the Settings pattern: each tab is a link with its own URL, and each section is one form saved on its own. **Details tab:** a Details form (name, type, contact email and phone), then a **Tax numbers and billing address** form (BRN, TIN, SST, address lines, city, postcode, state, country). When the company manages them, that second section is read-only with the address in a read-only text area. **Credit tab:** credit limit (empty means no limit), payment terms, direct billing. Later modules add Rates, Portal and Statement tabs.
+- The company page follows the Settings pattern: each tab is a link with its own URL, and each section is one form saved on its own. **Details tab:** a Details form (name, type, contact email and phone), then a **Tax numbers and billing address** form (BRN, TIN, SST, address lines, city, postcode, state, country). When the company manages them, that second section is read-only with the address in a read-only text area. **Credit tab:** credit limit (empty means no limit), payment terms, direct billing. **Rates tab:** a checklist of the property's active derived plans (name, "Follows Basic Rate -15%"), with one Save. With no derived plans, an empty state links to Rate plans. Later modules add Portal and Statement tabs.
 - Staff with only `company.view` see the same fields disabled, with no Save button.
 - Another property's company returns 404 (scoped binding).
 - The sidebar shows **City ledger › Companies** in the Finance context for users with `company.view`.
