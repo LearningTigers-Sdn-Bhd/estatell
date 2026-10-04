@@ -217,7 +217,7 @@ The Units list is hidden for one unit, and the Folio rail for one folio, so thos
 ### Units tab
 
 - **Choose unit** list on the left: room type, assigned room or bed (`—` unassigned, `auto` when `auto_assign_rooms` is on), status. Hidden when the reservation has one unit. Below `lg` it becomes a select.
-- The unit panel: room type and rate plan, status, stay dates with the expected times, and nights, adults and child ages, room or bed (per night when it changes mid-stay), primary guest, and a night table from `unit_nights` (date, room or bed, rate plan, amount). An override shows the reason from the activity log.
+- The unit panel: room type and rate plan, status, then three detail rows, each label with an icon before it: Stay (dates with the expected times, and nights); Room and Guests side by side (room or bed, per night when it changes mid-stay; adults and child ages); Primary guest. Below them a rounded, bordered night table from `unit_nights` (date, room or bed, rate plan, amount). An override shows the reason from the activity log.
 - The unit **⋯** menu shows only the actions that exist and that `UnitStatus::canTransitionTo()` allows: Change room, Cancel unit, Mark no-show, Change dates, Check in, Check out. They arrive with [front desk](../18-front-desk/01-check-in-and-check-out.md). Until then the menu is hidden.
 
 ### Guests tab
