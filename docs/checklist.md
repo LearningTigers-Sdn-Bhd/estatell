@@ -115,6 +115,8 @@ Legend: **Needs** lists items that must be done first.
 | `3004870` | feat(staff): export temp passwords as CSV, XLSX or PDF                   |
 | `0b7b2c7` | docs(portal): rename agent portal to company portal                      |
 | `ef33875` | refactor(reservations): rename the Agent source to Portal                |
+| `be882e2` | docs(city-ledger): settle company rules, permissions and pages           |
+| `c28c685` | feat(city-ledger): add companies                                         |
 
 Smaller fixes and reverts are in `git log`.
 
@@ -261,6 +263,7 @@ Smaller fixes and reverts are in `git log`.
 ### 15 City ledger
 
 - [x] `feat(city-ledger): add companies` — table, enums, foreign keys on `reservations.company_id` and `folios.payer_company_id`, create, edit, suspend and reactivate, list and company page, `company.view` and `company.manage`, Finance sidebar. Docs: [Companies](15-city-ledger/01-companies.md).
+- [ ] `feat(city-ledger): bulk add companies from a grid or CSV/XLSX` — Simple/Detailed toggle, upload, template per mode, `BulkCreateCompanies`. Needs: add companies. Docs: [Companies](15-city-ledger/01-companies.md#bulk-add).
 - [ ] `feat(reservations): pick the company on a booking` — company combobox on the booking form and the reservation page; refuse a change while the Master folio holds lines. Needs: add companies. Docs: [Companies](15-city-ledger/01-companies.md#rules).
 - [ ] `feat(rates): offer negotiated plans by company` — `company_rate_plans`, Rates tab on the company page, linked plans hidden until their company is picked. Needs: pick the company. Docs: [Companies](15-city-ledger/01-companies.md#rules).
 - [ ] `feat(city-ledger): add AR invoices and credit notes` — Docs: [AR invoices](15-city-ledger/02-ar-invoices.md).

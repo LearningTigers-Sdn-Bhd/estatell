@@ -88,6 +88,29 @@ Finance › City ledger › Companies                     [Add company]
 - Another property's company returns 404 (scoped binding).
 - The sidebar shows **City ledger › Companies** in the Finance context for users with `company.view`.
 
+## Bulk add
+
+A full page for loading many companies at once: typed into a grid or read from a CSV or XLSX file. Built like [Staff bulk add](../03-staff/03-temp-passwords.md#bulk-add-full-page).
+
+```
+Finance › City ledger › Companies › Bulk add
+[ Simple | Detailed ]        [Upload CSV / XLSX]  [Template ▾ CSV · XLSX]
+Simple:   # │ Name │ Type │ Email │ Phone │ Credit limit │ Terms │ Direct billing │ ✕
+Detailed: the Simple columns, then BRN │ TIN │ SST │ Address 1 │ Address 2 │ City │ Postcode │ State │ Country
+                                                    [Cancel]  [Create 3 companies]
+```
+
+| Part         | Rule                                                                                                                                                                                                                                                                                                                             |
+| ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Entry        | The list's button is a menu: **Add company ▾** → Add one (the sheet) / Bulk add                                                                                                                                                                                                                                                  |
+| Toggle       | Simple (the 7 add-sheet fields) or Detailed (all 16). Browser only, remembered per browser. Hiding columns keeps their values; they are still saved, and a note says how many rows have hidden values                                                                                                                            |
+| File columns | `name`, `type`, `email`, `phone`, `credit_limit`, `terms_days`, `direct_billing`; Detailed adds `brn`, `tin`, `sst`, `address_line1`, `address_line2`, `city`, `postcode`, `state`, `country`. Headers match ignoring case; only `name` is required. A file with any Detailed column switches the page to Detailed               |
+| File values  | Type by label or value (`Travel agent`, `travel_agent`). Direct billing `yes`/`no` (empty means yes). Country by code or name. A value that cannot be read is left empty with a problem on its row                                                                                                                               |
+| Template     | `GET .../companies/import-template.{csv                                                                                                                                                                                                                                                                                          | xlsx}?mode=simple | detailed`: the header row of the chosen mode |
+| Save         | Each row follows the add sheet and tax/address rules. Names are unique ignoring case, within the list and against existing companies. Up to 200 rows. All rows or none; errors point at their row (`rows.3.name`). `BulkCreateCompanies` runs `CreateCompany` per row in one transaction, so each company logs `company.created` |
+| After saving | Back to the list with "3 companies added."                                                                                                                                                                                                                                                                                       |
+| Permission   | `company.manage` for every bulk route                                                                                                                                                                                                                                                                                            |
+
 ## Lessons from wastays
 
 `corporate_accounts` + `hotel_corporate_accounts` (39 columns, including agent booking and payment holds) become one slim table.
