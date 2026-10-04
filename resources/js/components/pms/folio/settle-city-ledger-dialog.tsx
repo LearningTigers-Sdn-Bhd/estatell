@@ -1,4 +1,6 @@
 import { Form } from '@inertiajs/react';
+import { useState } from 'react';
+import { CreditOverrideField } from '@/components/pms/city-ledger/credit-override-field';
 import { MoneyText } from '@/components/pms/money-text';
 import { KEEP_OPTIONS } from '@/components/pms/reservations/use-form-options';
 import {
@@ -24,13 +26,17 @@ export function SettleCityLedgerDialog({
     reservationId,
     folio,
     currency,
+    canOverrideCredit,
 }: {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     reservationId: number;
     folio: App.Data.Folio.FolioData;
     currency: App.Enums.Currency | null;
+    canOverrideCredit: boolean;
 }) {
+    const [reason, setReason] = useState('');
+
     return (
         <AlertDialog open={open} onOpenChange={onOpenChange}>
             <AlertDialogContent>
@@ -56,20 +62,29 @@ export function SettleCityLedgerDialog({
                     options={{ preserveScroll: true, except: KEEP_OPTIONS }}
                     onSuccess={() => onOpenChange(false)}
                 >
-                    {({ processing }) => (
-                        <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <Button
-                                type="submit"
-                                disabled={processing}
-                                focusableWhenDisabled
-                            >
-                                {processing && (
-                                    <Spinner data-icon="inline-start" />
-                                )}
-                                Settle to City ledger
-                            </Button>
-                        </AlertDialogFooter>
+                    {({ processing, errors }) => (
+                        <>
+                            <CreditOverrideField
+                                id="settle-credit-reason"
+                                error={errors.credit_override_reason}
+                                canOverride={canOverrideCredit}
+                                value={reason}
+                                onChange={setReason}
+                            />
+                            <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <Button
+                                    type="submit"
+                                    disabled={processing}
+                                    focusableWhenDisabled
+                                >
+                                    {processing && (
+                                        <Spinner data-icon="inline-start" />
+                                    )}
+                                    Settle to City ledger
+                                </Button>
+                            </AlertDialogFooter>
+                        </>
                     )}
                 </Form>
             </AlertDialogContent>

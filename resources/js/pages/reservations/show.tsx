@@ -36,6 +36,7 @@ type Props = {
     canManage: boolean;
     billingModes: EnumOption[];
     canViewCompany: boolean;
+    canOverrideCredit: boolean;
     companies?: App.Data.CityLedger.CompanyOptionData[];
     addUnitOptions?: App.Data.Reservations.AddUnitOptionsData;
     chargeItems?: App.Data.Reservations.ChargeItemOptionData[];
@@ -65,6 +66,7 @@ export default function ReservationShow({
     canManage,
     billingModes,
     canViewCompany,
+    canOverrideCredit,
     companies,
     addUnitOptions,
     chargeItems,
@@ -176,6 +178,7 @@ export default function ReservationShow({
                                 billingModes={billingModes}
                                 addUnitOptions={addUnitOptions}
                                 canViewCompany={canViewCompany}
+                                canOverrideCredit={canOverrideCredit}
                                 companies={companies}
                                 currency={currency}
                             />
@@ -227,6 +230,7 @@ export default function ReservationShow({
                                 folioDiscounts={folioDiscounts}
                                 paymentOptions={paymentOptions}
                                 canManageRouting={canManageRouting}
+                                canOverrideCredit={canOverrideCredit}
                                 routingRules={routingRules}
                                 voucher={voucher}
                                 summaryHidden={summaryHidden}

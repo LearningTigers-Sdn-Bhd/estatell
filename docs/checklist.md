@@ -274,7 +274,7 @@ Smaller fixes and reverts are in `git log`.
 - [x] `feat(city-ledger): show AR payments` — Payments tab on the company page, Record payment and Allocate dialogs, allocations on the invoice page, receipt PDF. Needs: reverse allocations. Docs: [AR payments](15-city-ledger/03-ar-payments.md#pages).
 - [x] `feat(city-ledger): check credit limits` — `CreditExposure`, `CreditCheck`, `company.credit-override`, the checks in `SettleToCityLedger`, `CreateReservation` and `UpdateReservationCompany`, `credit.overridden` log. Backend only. Needs: AR payments. Docs: [Credit control](15-city-ledger/04-credit-control-and-reports.md#credit-check).
 - [x] `feat(city-ledger): add aging and statement services` — `AgingReport`, `StatementBuilder`. Needs: check credit limits. Docs: [Credit control and reports](15-city-ledger/04-credit-control-and-reports.md).
-- [ ] `feat(city-ledger): show aging, statements and credit warnings` — Aging page with CSV and PDF, Statement tab with PDF, credit override fields on settle, change company and booking, Over limit badges. Needs: aging and statement services. Docs: [Credit control and reports](15-city-ledger/04-credit-control-and-reports.md).
+- [x] `feat(city-ledger): show aging, statements and credit warnings` — Aging page with CSV and PDF, Statement tab with PDF, credit override fields on settle, change company and booking, Over limit badges. Needs: aging and statement services. Docs: [Credit control and reports](15-city-ledger/04-credit-control-and-reports.md).
 
 ### 16 Registration
 

@@ -194,6 +194,7 @@ paymentTermsDays: number | null,
 directBillEnabled: boolean,
 status: App.Data.Shared.BadgeData,
 createdAt: string,
+credit: App.Data.CityLedger.CreditExposureData | null,
 };
 export type CompanyOptionData = {
 id: number,
@@ -208,6 +209,15 @@ contactEmail: string | null,
 creditLimit: string | null,
 paymentTermsDays: number | null,
 status: App.Data.Shared.BadgeData,
+overLimit: boolean,
+};
+export type CreditExposureData = {
+openAr: string,
+inHouse: string,
+exposure: string,
+limit: string | null,
+headroom: string | null,
+overLimit: boolean,
 };
 export type NewArPaymentData = {
 paymentMethodId: number,

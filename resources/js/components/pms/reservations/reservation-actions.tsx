@@ -20,6 +20,7 @@ export function ReservationActions({
     billingModes,
     addUnitOptions,
     canViewCompany,
+    canOverrideCredit,
     companies,
     currency,
 }: {
@@ -27,6 +28,7 @@ export function ReservationActions({
     billingModes: EnumOption[];
     addUnitOptions?: App.Data.Reservations.AddUnitOptionsData;
     canViewCompany: boolean;
+    canOverrideCredit: boolean;
     companies?: App.Data.CityLedger.CompanyOptionData[];
     currency: App.Enums.Currency | null;
 }) {
@@ -86,6 +88,7 @@ export function ReservationActions({
                     onOpenChange={setChangingCompany}
                     reservation={reservation}
                     companies={companies}
+                    canOverrideCredit={canOverrideCredit}
                 />
             )}
         </>

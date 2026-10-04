@@ -114,6 +114,7 @@ class ReservationBookingController extends Controller
             'chargeItems' => $options->chargeItems($property),
             'discounts' => $options->roomDiscounts($property),
             'billingModes' => BillingMode::options(),
+            'canOverrideCredit' => $request->user()->can(PermissionEnum::CompanyCreditOverride->value),
             'companies' => $request->user()->can(PermissionEnum::CompanyView->value) ? app(CompanyOptions::class)->active($property) : [],
             'autoAssignRooms' => (bool) $property->settings?->auto_assign_rooms,
             'currency' => $property->settings?->currency,

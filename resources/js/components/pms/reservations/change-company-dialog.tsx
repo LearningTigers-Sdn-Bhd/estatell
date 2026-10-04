@@ -1,4 +1,5 @@
 import { useForm } from '@inertiajs/react';
+import { CreditOverrideField } from '@/components/pms/city-ledger/credit-override-field';
 import { CompanySelect } from '@/components/pms/company-select';
 import { FormError } from '@/components/pms/reservations/form-error';
 import {
@@ -31,14 +32,17 @@ type Company = App.Data.CityLedger.CompanyOptionData;
 function ChangeCompanyForm({
     reservation,
     companies,
+    canOverrideCredit,
     onDone,
 }: {
     reservation: Reservation;
     companies?: Company[];
+    canOverrideCredit: boolean;
     onDone: () => void;
 }) {
     const form = useForm({
         company_id: reservation.companyId ? String(reservation.companyId) : '',
+        credit_override_reason: '',
     });
     const { data, errors } = form;
 
@@ -72,6 +76,15 @@ function ChangeCompanyForm({
                     </FieldDescription>
                     <FieldError>{errors.company_id}</FieldError>
                 </Field>
+                <CreditOverrideField
+                    id="change-credit_override_reason"
+                    error={errors.credit_override_reason}
+                    canOverride={canOverrideCredit}
+                    value={data.credit_override_reason}
+                    onChange={(value) =>
+                        form.setData('credit_override_reason', value)
+                    }
+                />
             </FieldGroup>
             <DialogFooter>
                 <DialogClose render={<Button variant="outline" />}>
@@ -98,11 +111,13 @@ export function ChangeCompanyDialog({
     onOpenChange,
     reservation,
     companies,
+    canOverrideCredit,
 }: {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     reservation: Reservation;
     companies?: Company[];
+    canOverrideCredit: boolean;
 }) {
     useFormOptions(open, companies !== undefined, 'companies');
 
@@ -118,6 +133,7 @@ export function ChangeCompanyDialog({
                 <ChangeCompanyForm
                     reservation={reservation}
                     companies={companies}
+                    canOverrideCredit={canOverrideCredit}
                     onDone={() => onOpenChange(false)}
                 />
             </DialogContent>

@@ -6,7 +6,6 @@ use App\Enums\ArInvoiceStatus;
 use App\Enums\ArInvoiceType;
 use App\Models\ArInvoice;
 use App\Services\Folio\Letterhead;
-use App\Services\Guests\CountryOptions;
 use Carbon\CarbonImmutable;
 
 /**
@@ -16,7 +15,7 @@ use Carbon\CarbonImmutable;
  */
 class ArInvoicePrinter
 {
-    public function __construct(private Letterhead $letterhead, private ArInvoiceDetail $detail, private CountryOptions $countryOptions) {}
+    public function __construct(private Letterhead $letterhead, private ArInvoiceDetail $detail, private CompanyBillTo $billTo) {}
 
     public function forInvoice(ArInvoice $invoice): ArInvoiceDocument
     {
@@ -33,15 +32,7 @@ class ArInvoicePrinter
             contactLines: $letterhead['contactLines'],
             registrationLines: $letterhead['registrationLines'],
             companyName: $company->name,
-            billToLines: array_values(array_filter([
-                $company->billing_address_line1,
-                $company->billing_address_line2,
-                trim(($company->billing_postal_code ?? '').' '.($company->billing_city ?? '').' '.($company->billing_state_code ?? '')),
-                $this->countryOptions->name($company->billing_country_code),
-                filled($company->brn) ? __('Registration no. :number', ['number' => $company->brn]) : null,
-                filled($company->tin) ? __('TIN :number', ['number' => $company->tin]) : null,
-                filled($company->sst_registration_number) ? __('SST no. :number', ['number' => $company->sst_registration_number]) : null,
-            ], filled(...))),
+            billToLines: $this->billTo->lines($company),
             issuedOn: $invoice->issued_on->format('j M Y'),
             dueOn: $invoice->due_on?->format('j M Y'),
             folioNumber: $invoice->folio?->number,

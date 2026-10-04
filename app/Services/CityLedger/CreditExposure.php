@@ -8,14 +8,15 @@ use App\Enums\ReservationStatus;
 use App\Models\ArInvoice;
 use App\Models\ArPayment;
 use App\Models\Company;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 /**
  * What a company owes or may owe: its open AR (invoices and credit notes that are not Void, minus the payments it
  * made that are not voided, never below 0) plus the balances of its Open folios on reservations that are not
  * Cancelled or Completed. A folio balance below 0 counts as 0. Amounts are decimal strings with two places. The
- * limit is `companies.credit_limit`: empty means no limit. It writes nothing.
- * See docs/15-city-ledger/04-credit-control-and-reports.md#credit-exposure.
+ * limit is `companies.credit_limit`: empty means no limit. It writes nothing, and `forCompanies` reads any number of
+ * companies in three queries. See docs/15-city-ledger/04-credit-control-and-reports.md#credit-exposure.
  */
 class CreditExposure
 {
@@ -24,62 +25,108 @@ class CreditExposure
      */
     public function forCompany(Company $company): array
     {
-        $openAr = $this->openAr($company);
-        $inHouse = $this->inHouse($company);
-        $exposure = bcadd($openAr, $inHouse, 2);
-        $limit = $company->credit_limit === null ? null : (string) $company->credit_limit;
+        return $this->forCompanies(collect([$company]))[$company->id];
+    }
 
-        return [
-            'openAr' => $openAr,
-            'inHouse' => $inHouse,
-            'exposure' => $exposure,
-            'limit' => $limit,
-            'headroom' => $limit === null ? null : bcsub($limit, $exposure, 2),
-        ];
+    /**
+     * The figures of each company, by company id. The companies belong to one property.
+     *
+     * @param  Collection<int, Company>  $companies
+     * @return array<int, array{openAr: string, inHouse: string, exposure: string, limit: string|null, headroom: string|null}>
+     */
+    public function forCompanies(Collection $companies): array
+    {
+        $ids = $companies->pluck('id')->all();
+        $openAr = $this->openAr($ids);
+        $inHouse = $this->inHouse($ids, (int) $companies->first()?->property_id);
+        $figures = [];
+
+        foreach ($companies as $company) {
+            $exposure = bcadd($openAr[$company->id], $inHouse[$company->id], 2);
+            $limit = $company->credit_limit === null ? null : (string) $company->credit_limit;
+
+            $figures[$company->id] = [
+                'openAr' => $openAr[$company->id],
+                'inHouse' => $inHouse[$company->id],
+                'exposure' => $exposure,
+                'limit' => $limit,
+                'headroom' => $limit === null ? null : bcsub($limit, $exposure, 2),
+            ];
+        }
+
+        return $figures;
+    }
+
+    /**
+     * Whether the exposure is above the limit. A company with no limit never is.
+     *
+     * @param  array{exposure: string, limit: string|null}  $figures
+     */
+    public function isOverLimit(array $figures): bool
+    {
+        return $figures['limit'] !== null && bccomp($figures['exposure'], $figures['limit'], 2) > 0;
     }
 
     /**
      * Invoices plus credit notes (negative) that are not Void, minus payments that are not voided, never below 0.
      * Allocations move money between an invoice and a payment, so they cancel out of the total.
+     *
+     * @param  list<int>  $companyIds
+     * @return array<int, string>
      */
-    public function openAr(Company $company): string
+    public function openAr(array $companyIds): array
     {
-        $documents = (string) ArInvoice::query()
-            ->where('company_id', $company->id)
+        $documents = ArInvoice::query()
+            ->whereIn('company_id', $companyIds)
             ->where('status', '<>', ArInvoiceStatus::Void)
-            ->selectRaw('COALESCE(SUM(amount), 0)::numeric(14, 2) AS total')
-            ->value('total');
+            ->groupBy('company_id')
+            ->selectRaw('company_id, SUM(amount)::numeric(14, 2) AS total')
+            ->pluck('total', 'company_id');
 
-        $payments = (string) ArPayment::query()
-            ->where('company_id', $company->id)
+        $payments = ArPayment::query()
+            ->whereIn('company_id', $companyIds)
             ->whereNull('voided_at')
-            ->selectRaw('COALESCE(SUM(amount), 0)::numeric(14, 2) AS total')
-            ->value('total');
+            ->groupBy('company_id')
+            ->selectRaw('company_id, SUM(amount)::numeric(14, 2) AS total')
+            ->pluck('total', 'company_id');
 
-        $balance = bcsub($documents, $payments, 2);
+        $balances = [];
 
-        return bccomp($balance, '0', 2) > 0 ? $balance : '0.00';
+        foreach ($companyIds as $id) {
+            $balance = bcsub((string) ($documents[$id] ?? '0'), (string) ($payments[$id] ?? '0'), 2);
+            $balances[$id] = bccomp($balance, '0', 2) > 0 ? $balance : '0.00';
+        }
+
+        return $balances;
     }
 
     /**
-     * The balances above 0 of the company's Open folios on live reservations.
+     * The balances above 0 of the companies' Open folios on live reservations.
+     *
+     * @param  list<int>  $companyIds
+     * @return array<int, string>
      */
-    public function inHouse(Company $company): string
+    public function inHouse(array $companyIds, int $propertyId): array
     {
-        $balances = DB::table('folio_lines')
+        $folios = DB::table('folio_lines')
             ->join('folios', 'folios.id', '=', 'folio_lines.folio_id')
             ->join('reservations', 'reservations.id', '=', 'folios.reservation_id')
-            ->where('folios.property_id', $company->property_id)
-            ->where('folios.payer_company_id', $company->id)
+            ->where('folios.property_id', $propertyId)
+            ->whereIn('folios.payer_company_id', $companyIds)
             ->where('folios.status', FolioStatus::Open->value)
             ->whereNotIn('reservations.status', [ReservationStatus::Cancelled->value, ReservationStatus::Completed->value])
-            ->groupBy('folio_lines.folio_id')
-            ->selectRaw('SUM(folio_lines.amount)::numeric(14, 2) AS balance')
-            ->pluck('balance');
+            ->groupBy('folio_lines.folio_id', 'folios.payer_company_id')
+            ->selectRaw('folios.payer_company_id AS company_id, SUM(folio_lines.amount)::numeric(14, 2) AS balance')
+            ->get();
 
-        return $balances->reduce(
-            fn (string $sum, mixed $balance): string => bccomp((string) $balance, '0', 2) > 0 ? bcadd($sum, (string) $balance, 2) : $sum,
-            '0.00',
-        );
+        $totals = array_fill_keys($companyIds, '0.00');
+
+        foreach ($folios as $folio) {
+            if (bccomp((string) $folio->balance, '0', 2) > 0) {
+                $totals[(int) $folio->company_id] = bcadd($totals[(int) $folio->company_id], (string) $folio->balance, 2);
+            }
+        }
+
+        return $totals;
     }
 }

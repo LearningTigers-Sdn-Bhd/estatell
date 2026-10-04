@@ -70,6 +70,7 @@ import { Spinner } from '@/components/ui/spinner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useUnsavedChanges } from '@/hooks/use-unsaved-changes';
 import { cn } from '@/lib/utils';
+import { CreditOverrideField } from '@/components/pms/city-ledger/credit-override-field';
 import { CompanySelect } from '@/components/pms/company-select';
 import { index, newMethod, store, walkIn } from '@/routes/reservations';
 import { UnsavedChangesDialog } from '@/components/pms/unsaved-changes-dialog';
@@ -98,6 +99,7 @@ type Props = {
     discounts: App.Data.Reservations.DiscountOptionData[];
     billingModes: EnumOption[];
     companies: App.Data.CityLedger.CompanyOptionData[];
+    canOverrideCredit: boolean;
     autoAssignRooms: boolean;
     currency: App.Enums.Currency | null;
     canOverrideRestrictions: boolean;
@@ -145,6 +147,7 @@ export default function ReservationCreate({
     discounts,
     billingModes,
     companies,
+    canOverrideCredit,
     autoAssignRooms,
     currency,
     canOverrideRestrictions,
@@ -162,6 +165,7 @@ export default function ReservationCreate({
         departure_time: checkOutTime,
         group_name: '',
         company_id: '',
+        credit_override_reason: '',
         billing_mode: billingModes[0]?.value ?? 'master_pays',
         notes: '',
         guests: [emptyGuest()],
@@ -608,6 +612,24 @@ export default function ReservationCreate({
                                                 <FieldError>
                                                     {errors.company_id}
                                                 </FieldError>
+                                                <CreditOverrideField
+                                                    id="booking-credit_override_reason"
+                                                    error={
+                                                        errors.credit_override_reason
+                                                    }
+                                                    canOverride={
+                                                        canOverrideCredit
+                                                    }
+                                                    value={
+                                                        data.credit_override_reason
+                                                    }
+                                                    onChange={(value) =>
+                                                        form.setData(
+                                                            'credit_override_reason',
+                                                            value,
+                                                        )
+                                                    }
+                                                />
                                             </Field>
                                         )}
                                         {units > 1 && (

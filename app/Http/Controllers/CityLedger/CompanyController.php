@@ -8,6 +8,7 @@ use App\Actions\CityLedger\UpdateCompany;
 use App\Actions\CityLedger\UpdateCompanyBilling;
 use App\Data\CityLedger\CompanyData;
 use App\Data\CityLedger\CompanyRowData;
+use App\Data\CityLedger\CreditExposureData;
 use App\Data\Rates\RatePlanData;
 use App\Enums\CompanyStatus;
 use App\Enums\CompanyType;
@@ -18,7 +19,10 @@ use App\Http\Requests\CityLedger\UpdateCompanyRatePlansRequest;
 use App\Models\Company;
 use App\Models\Property;
 use App\Models\RatePlan;
+use App\Services\CityLedger\ArInvoiceDirectory;
 use App\Services\CityLedger\ArPaymentLedger;
+use App\Services\CityLedger\CreditExposure;
+use App\Services\CityLedger\StatementBuilder;
 use App\Services\Guests\CountryOptions;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -31,11 +35,14 @@ class CompanyController extends Controller
      * Every company of the property in name order. The list is bounded, so it loads once and filters in the browser.
      * The add company sheet opens on this page.
      */
-    public function index(Request $request, Property $property): Response
+    public function index(Request $request, Property $property, CreditExposure $creditExposure): Response
     {
+        $companies = $property->companies()->ordered()->get();
+        $figures = $creditExposure->forCompanies($companies);
+
         return Inertia::render('finance/city-ledger/companies/index', [
-            'companies' => $property->companies()->ordered()->get()
-                ->map(fn (Company $company): CompanyRowData => CompanyRowData::fromModel($company)),
+            'companies' => $companies
+                ->map(fn (Company $company): CompanyRowData => CompanyRowData::fromModel($company, $creditExposure->isOverLimit($figures[$company->id]))),
             'types' => CompanyType::options(),
             'statuses' => CompanyStatus::options(),
             'currency' => $property->settings?->currency,
@@ -97,6 +104,18 @@ class CompanyController extends Controller
         ]);
     }
 
+    /**
+     * Company page, Statement tab: the statement of account between two dates.
+     */
+    public function statement(Request $request, Property $property, Company $company, StatementBuilder $builder, ArInvoiceDirectory $directory): Response
+    {
+        [$from, $to] = CompanyStatementController::range($request, $directory->today($property));
+
+        return $this->renderTab($request, $property, $company, 'statement', [
+            'statement' => $builder->build($company, $from, $to),
+        ]);
+    }
+
     public function updateRates(UpdateCompanyRatePlansRequest $request, Property $property, Company $company, SyncCompanyRatePlans $syncCompanyRatePlans): RedirectResponse
     {
         Inertia::flash('toast', $syncCompanyRatePlans($request->user(), $company, $request->ratePlanIds())
@@ -131,13 +150,16 @@ class CompanyController extends Controller
      * Each tab has its own URL, so the open tab survives a refresh. Only the open tab's options are sent.
      * Staff without `company.manage` see the fields read-only.
      *
-     * @param  'details'|'credit'|'rates'|'payments'  $tab
+     * @param  'details'|'credit'|'rates'|'payments'|'statement'  $tab
      * @param  array<string, mixed>  $tabProps
      */
     private function renderTab(Request $request, Property $property, Company $company, string $tab, array $tabProps = []): Response
     {
+        $creditExposure = app(CreditExposure::class);
+        $figures = $creditExposure->forCompany($company);
+
         return Inertia::render('finance/city-ledger/companies/show', [
-            'company' => CompanyData::fromModel($company),
+            'company' => CompanyData::fromModel($company, CreditExposureData::fromFigures($figures, $creditExposure->isOverLimit($figures))),
             'tab' => $tab,
             'currency' => $property->settings?->currency,
             'canManage' => $request->user()->can(PermissionEnum::CompanyManage->value),

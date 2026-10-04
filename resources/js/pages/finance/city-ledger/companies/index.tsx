@@ -165,15 +165,26 @@ export default function CompaniesIndex({
                                             <TableRow key={company.id}>
                                                 <TableCell>
                                                     <div className="flex flex-col">
-                                                        <Link
-                                                            href={show({
-                                                                company:
-                                                                    company.id,
-                                                            })}
-                                                            className="font-medium hover:underline"
-                                                        >
-                                                            {company.name}
-                                                        </Link>
+                                                        <span className="flex items-center gap-2">
+                                                            <Link
+                                                                href={show({
+                                                                    company:
+                                                                        company.id,
+                                                                })}
+                                                                className="font-medium hover:underline"
+                                                            >
+                                                                {company.name}
+                                                            </Link>
+                                                            {company.overLimit && (
+                                                                <StatusBadge
+                                                                    status={{
+                                                                        value: 'over_limit',
+                                                                        label: 'Over limit',
+                                                                        tone: 'danger',
+                                                                    }}
+                                                                />
+                                                            )}
+                                                        </span>
                                                         {company.contactEmail && (
                                                             <span className="text-xs text-muted-foreground">
                                                                 {

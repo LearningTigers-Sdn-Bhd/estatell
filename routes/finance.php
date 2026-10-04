@@ -1,10 +1,12 @@
 <?php
 
 use App\Enums\PermissionEnum;
+use App\Http\Controllers\CityLedger\AgingController;
 use App\Http\Controllers\CityLedger\ArInvoiceController;
 use App\Http\Controllers\CityLedger\CompanyBulkAddController;
 use App\Http\Controllers\CityLedger\CompanyController;
 use App\Http\Controllers\CityLedger\CompanyPaymentController;
+use App\Http\Controllers\CityLedger\CompanyStatementController;
 use App\Http\Controllers\CityLedger\CompanyStatusController;
 use App\Http\Requests\CityLedger\CompanyRequest;
 use Illuminate\Support\Facades\Route;
@@ -27,6 +29,8 @@ Route::prefix('finance')->name('finance.')->group(function () {
                 Route::get('credit', [CompanyController::class, 'credit'])->name('credit');
                 Route::get('rates', [CompanyController::class, 'rates'])->name('rates');
                 Route::get('payments', [CompanyController::class, 'payments'])->name('payments');
+                Route::get('statement', [CompanyController::class, 'statement'])->name('statement');
+                Route::get('statement.pdf', [CompanyStatementController::class, 'pdf'])->name('statement.pdf');
                 Route::get('payments/{payment}/receipt', [CompanyPaymentController::class, 'receipt'])->name('payments.receipt');
             });
 
@@ -56,5 +60,11 @@ Route::prefix('finance')->name('finance.')->group(function () {
             Route::post('credit-notes', [ArInvoiceController::class, 'storeCreditNote'])->middleware('can:'.PermissionEnum::CityLedgerCreditNote->value)->name('credit-notes.store');
             Route::post('void', [ArInvoiceController::class, 'void'])->name('void');
         });
+    });
+
+    Route::prefix('city-ledger/aging')->middleware('can:'.PermissionEnum::CompanyView->value)->group(function () {
+        Route::get('/', [AgingController::class, 'index'])->name('city-ledger.aging');
+        Route::get('csv', [AgingController::class, 'csv'])->name('city-ledger.aging.csv');
+        Route::get('pdf', [AgingController::class, 'pdf'])->name('city-ledger.aging.pdf');
     });
 });

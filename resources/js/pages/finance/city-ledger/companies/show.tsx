@@ -1,10 +1,12 @@
 import { Form, Head } from '@inertiajs/react';
-import { CreditCard, Info, Tag, Wallet } from 'lucide-react';
+import { CreditCard, FileText, Info, Tag, Wallet } from 'lucide-react';
 import { useState } from 'react';
+import { CompanyStatement } from '@/components/pms/city-ledger/company-statement';
 import { ArPaymentsTab } from '@/components/pms/city-ledger/ar-payments-tab';
 import { CompanyRatesForm } from '@/components/pms/city-ledger/company-rates-form';
 import { CountrySelect } from '@/components/pms/country-select';
 import type { EnumOption } from '@/components/pms/enum-select';
+import { MoneyText } from '@/components/pms/money-text';
 import { PageHeader } from '@/components/pms/page-header';
 import { SettingsSection } from '@/components/pms/settings-section';
 import {
@@ -35,6 +37,7 @@ import {
     payments as paymentsTab,
     rates as ratesTab,
     reactivate,
+    statement as statementTab,
     show,
     suspend,
     update,
@@ -42,7 +45,13 @@ import {
 import { update as billingUpdate } from '@/routes/finance/city-ledger/companies/billing';
 
 type Company = App.Data.CityLedger.CompanyData;
-type Tab = 'details' | 'credit' | 'rates' | 'payments';
+
+const overLimitBadge: App.Data.Shared.BadgeData = {
+    value: 'over_limit',
+    label: 'Over limit',
+    tone: 'danger',
+};
+type Tab = 'details' | 'credit' | 'rates' | 'payments' | 'statement';
 
 /**
  * A value the company keeps up to date in the company portal. Shown, never sent with a form.
@@ -251,6 +260,33 @@ function TaxAndBillingForm({
     );
 }
 
+function CreditFigure({
+    label,
+    amount,
+    currency,
+    danger = false,
+}: {
+    label: string;
+    amount: string;
+    currency: App.Enums.Currency | null;
+    danger?: boolean;
+}) {
+    return (
+        <div className="flex flex-col gap-1 rounded-lg border p-3">
+            <dt className="text-xs text-muted-foreground">{label}</dt>
+            <dd
+                className={
+                    danger
+                        ? 'text-sm font-medium text-destructive'
+                        : 'text-sm font-medium'
+                }
+            >
+                <MoneyText amount={amount} currency={currency} />
+            </dd>
+        </div>
+    );
+}
+
 function StatusAction({ company }: { company: Company }) {
     const [open, setOpen] = useState(false);
 
@@ -328,6 +364,7 @@ export default function CompanyShow({
     openInvoices = [],
     methods = [],
     canRecordPayment = false,
+    statement = null,
 }: {
     company: Company;
     tab: Tab;
@@ -341,6 +378,7 @@ export default function CompanyShow({
     openInvoices?: App.Data.CityLedger.OpenArInvoiceData[];
     methods?: App.Data.CityLedger.ArPaymentMethodOptionData[];
     canRecordPayment?: boolean;
+    statement?: App.Data.CityLedger.StatementData | null;
 }) {
     const readOnly = !canManage;
     const form = (section: 'details' | 'credit') =>
@@ -355,7 +393,14 @@ export default function CompanyShow({
                     title={company.name}
                     description={company.typeLabel}
                     back={{ href: index(), label: 'Companies' }}
-                    badge={<StatusBadge status={company.status} />}
+                    badge={
+                        <>
+                            <StatusBadge status={company.status} />
+                            {company.credit?.overLimit && (
+                                <StatusBadge status={overLimitBadge} />
+                            )}
+                        </>
+                    }
                     actions={canManage && <StatusAction company={company} />}
                 />
 
@@ -386,6 +431,12 @@ export default function CompanyShow({
                             label: 'Payments',
                             icon: Wallet,
                             href: paymentsTab({ company: company.id }),
+                        },
+                        {
+                            value: 'statement',
+                            label: 'Statement',
+                            icon: FileText,
+                            href: statementTab({ company: company.id }),
                         },
                     ]}
                 >
@@ -455,6 +506,43 @@ export default function CompanyShow({
                                 countries={countries}
                             />
                         ))}
+                    {tab === 'credit' && company.credit && (
+                        <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                            <CreditFigure
+                                label="Open invoices"
+                                currency={currency}
+                                amount={company.credit.openAr}
+                            />
+                            <CreditFigure
+                                label="In-house folios"
+                                currency={currency}
+                                amount={company.credit.inHouse}
+                            />
+                            <CreditFigure
+                                label="Exposure"
+                                currency={currency}
+                                amount={company.credit.exposure}
+                                danger={company.credit.overLimit}
+                            />
+                            {company.credit.headroom === null ? (
+                                <div className="flex flex-col gap-1 rounded-lg border p-3">
+                                    <dt className="text-xs text-muted-foreground">
+                                        Headroom
+                                    </dt>
+                                    <dd className="text-sm text-muted-foreground">
+                                        No limit
+                                    </dd>
+                                </div>
+                            ) : (
+                                <CreditFigure
+                                    label="Headroom"
+                                    currency={currency}
+                                    amount={company.credit.headroom}
+                                    danger={company.credit.overLimit}
+                                />
+                            )}
+                        </dl>
+                    )}
                     {tab === 'credit' && (
                         <SettingsSection
                             key={`credit-${company.id}`}
@@ -497,6 +585,14 @@ export default function CompanyShow({
                                 </>
                             )}
                         </SettingsSection>
+                    )}
+                    {tab === 'statement' && statement && (
+                        <CompanyStatement
+                            key={`statement-${company.id}`}
+                            companyId={company.id}
+                            statement={statement}
+                            currency={currency}
+                        />
                     )}
                     {tab === 'payments' && (
                         <ArPaymentsTab

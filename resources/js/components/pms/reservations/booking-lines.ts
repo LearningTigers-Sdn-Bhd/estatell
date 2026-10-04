@@ -35,6 +35,7 @@ export type BookingForm = {
     departure_time: string;
     group_name: string;
     company_id: string;
+    credit_override_reason: string;
     billing_mode: string;
     notes: string;
     guests: BookingGuest[];

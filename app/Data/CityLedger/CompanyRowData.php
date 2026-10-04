@@ -21,9 +21,10 @@ class CompanyRowData extends Data
         public ?string $creditLimit,
         public ?int $paymentTermsDays,
         public BadgeData $status,
+        public bool $overLimit = false,
     ) {}
 
-    public static function fromModel(Company $company): self
+    public static function fromModel(Company $company, bool $overLimit = false): self
     {
         return new self(
             id: $company->id,
@@ -34,6 +35,7 @@ class CompanyRowData extends Data
             creditLimit: $company->credit_limit,
             paymentTermsDays: $company->payment_terms_days,
             status: BadgeData::fromCompanyStatus($company->status),
+            overLimit: $overLimit,
         );
     }
 }

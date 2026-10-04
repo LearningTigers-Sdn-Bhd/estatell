@@ -27,6 +27,7 @@ use App\Models\User;
 use App\Services\CityLedger\CreditCheck;
 use App\Services\CityLedger\CreditExposure;
 use App\Services\Reservations\StayTotal;
+use Illuminate\Support\Facades\DB;
 use Spatie\Activitylog\Models\Activity;
 
 /**
@@ -71,11 +72,11 @@ test('open AR is invoices and credit notes minus payments, never below 0', funct
     ArInvoice::factory()->create(['property_id' => $setup['property']->id]);
     $exposure = app(CreditExposure::class);
 
-    expect($exposure->openAr($setup['company']))->toBe('350.00');
+    expect($exposure->openAr([$setup['company']->id])[$setup['company']->id])->toBe('350.00');
 
     ArPayment::factory()->create(['property_id' => $setup['property']->id, 'company_id' => $setup['company']->id, 'amount' => '5000.00']);
 
-    expect($exposure->openAr($setup['company']))->toBe('0.00');
+    expect($exposure->openAr([$setup['company']->id])[$setup['company']->id])->toBe('0.00');
 });
 
 test('allocations do not change open AR', function () {
@@ -84,7 +85,7 @@ test('allocations do not change open AR', function () {
     $payment = ArPayment::factory()->create(['property_id' => $setup['property']->id, 'company_id' => $setup['company']->id, 'amount' => '150.00']);
     ArAllocation::factory()->create(['ar_payment_id' => $payment->id, 'ar_invoice_id' => $invoice->id, 'amount' => '150.00']);
 
-    expect(app(CreditExposure::class)->openAr($setup['company']))->toBe('250.00');
+    expect(app(CreditExposure::class)->openAr([$setup['company']->id])[$setup['company']->id])->toBe('250.00');
 });
 
 test('in-house balance counts the open folios of live reservations and ignores credit', function () {
@@ -96,7 +97,7 @@ test('in-house balance counts the open folios of live reservations and ignores c
     creditFolio($setup, '900.00', [], ['status' => ReservationStatus::Completed]);
     Folio::factory()->master()->create(['property_id' => $setup['property']->id]);
 
-    expect(app(CreditExposure::class)->inHouse($setup['company']))->toBe('300.00');
+    expect(app(CreditExposure::class)->inHouse([$setup['company']->id], $setup['property']->id)[$setup['company']->id])->toBe('300.00');
 });
 
 test('exposure adds both and the headroom follows the limit', function () {
@@ -242,3 +243,22 @@ test('the settle route passes the override reason only for users who may overrid
     'owner' => [DefaultRoleEnum::Owner, true],
     'finance' => [DefaultRoleEnum::Finance, false],
 ]);
+
+test('exposure for several companies runs in three queries and matches each company alone', function () {
+    $setup = creditSetup('1000.00');
+    $other = Company::factory()->for($setup['property'])->create(['credit_limit' => '100.00']);
+    ArInvoice::factory()->create(['property_id' => $setup['property']->id, 'company_id' => $setup['company']->id, 'amount' => '400.00']);
+    ArInvoice::factory()->create(['property_id' => $setup['property']->id, 'company_id' => $other->id, 'amount' => '250.00']);
+    creditFolio($setup, '100.00');
+    $exposure = app(CreditExposure::class);
+    $companies = collect([$setup['company'], $other]);
+
+    DB::enableQueryLog();
+    $both = $exposure->forCompanies($companies);
+
+    expect(count(DB::getQueryLog()))->toBe(3)
+        ->and($both[$setup['company']->id])->toBe($exposure->forCompany($setup['company']))
+        ->and($both[$other->id]['exposure'])->toBe('250.00')
+        ->and($exposure->isOverLimit($both[$other->id]))->toBeTrue()
+        ->and($exposure->isOverLimit($both[$setup['company']->id]))->toBeFalse();
+});

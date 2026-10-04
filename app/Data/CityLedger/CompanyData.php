@@ -37,9 +37,10 @@ class CompanyData extends Data
         public bool $directBillEnabled,
         public BadgeData $status,
         public string $createdAt,
+        public ?CreditExposureData $credit = null,
     ) {}
 
-    public static function fromModel(Company $company): self
+    public static function fromModel(Company $company, ?CreditExposureData $credit = null): self
     {
         return new self(
             id: $company->id,
@@ -64,6 +65,7 @@ class CompanyData extends Data
             directBillEnabled: $company->direct_bill_enabled,
             status: BadgeData::fromCompanyStatus($company->status),
             createdAt: $company->created_at->toDateString(),
+            credit: $credit,
         );
     }
 

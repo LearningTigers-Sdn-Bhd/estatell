@@ -196,6 +196,7 @@ class ReservationController extends Controller
             'canOverrideRestrictions' => $user->can(PermissionEnum::RatesOverrideRestrictions->value),
             'billingModes' => BillingMode::options(),
             'canViewCompany' => $user->can(PermissionEnum::CompanyView->value),
+            'canOverrideCredit' => $user->can(PermissionEnum::CompanyCreditOverride->value),
             'companies' => Inertia::optional(fn () => $user->can(PermissionEnum::CompanyView->value) ? app(CompanyOptions::class)->active($property) : []),
             'addUnitOptions' => Inertia::optional(fn () => $options->addUnit($property)),
             'chargeItems' => Inertia::optional(fn () => $options->chargeItems($property)),

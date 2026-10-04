@@ -79,6 +79,7 @@ export function FolioTab({
     folioDiscounts,
     paymentOptions,
     canManageRouting,
+    canOverrideCredit,
     routingRules,
     voucher,
     summaryHidden,
@@ -93,6 +94,7 @@ export function FolioTab({
     folioDiscounts?: App.Data.Folio.FolioDiscountOptionData[];
     paymentOptions?: App.Data.Payments.PaymentFormOptionsData;
     canManageRouting: boolean;
+    canOverrideCredit: boolean;
     routingRules?: App.Data.Folio.RoutingRulesData | null;
     voucher: VoucherOptions;
     summaryHidden: boolean;
@@ -440,6 +442,7 @@ export function FolioTab({
                         reservationId={reservationId}
                         folio={folio}
                         currency={currency}
+                        canOverrideCredit={canOverrideCredit}
                     />
                 )}
                 {folio.canClose && (
