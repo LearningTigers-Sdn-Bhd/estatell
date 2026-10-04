@@ -1,5 +1,5 @@
 import { Plus, Receipt } from 'lucide-react';
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import { DateText } from '@/components/pms/date-text';
 import { EmptyState } from '@/components/pms/empty-state';
 import { MoneyText } from '@/components/pms/money-text';
@@ -44,26 +44,27 @@ export function AddOnsTab({
     const canAdd = canManage && openUnits.length > 0;
     const groups = Map.groupBy(addOns, (addOn) => addOn.unitId);
 
+    const columns = canManage ? 6 : 5;
+
     return (
-        <div className="flex flex-col gap-6">
-            {canAdd && (
-                <div className="flex justify-end">
+        <div className="flex flex-col gap-4">
+            <div className="flex items-center justify-between gap-3 ps-3 pt-2">
+                <h2 className="font-heading text-base font-medium">Add-ons</h2>
+                {canAdd && (
                     <Button variant="outline" onClick={() => setAdding(true)}>
                         <Plus data-icon="inline-start" />
                         Add add-on
                     </Button>
-                </div>
-            )}
-            {addOns.length === 0 && (
+                )}
+            </div>
+            {addOns.length === 0 ? (
                 <EmptyState
                     icon={Receipt}
                     title="No add-ons"
                     description="Extras sold with a unit appear here."
                 />
-            )}
-            {[...groups.values()].map((rows) => (
-                <section key={rows[0].unitId} className="flex flex-col gap-2">
-                    <h2 className="text-sm font-medium">{rows[0].unitLabel}</h2>
+            ) : (
+                <div className="overflow-hidden rounded-xl border">
                     <Table>
                         <TableHeader>
                             <TableRow>
@@ -86,45 +87,63 @@ export function AddOnsTab({
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {rows.map((row) => (
-                                <TableRow key={row.id}>
-                                    <TableCell>{row.chargeItem}</TableCell>
-                                    <TableCell className="text-right tabular-nums">
-                                        {row.quantity}
-                                    </TableCell>
-                                    <TableCell>
-                                        <DateText date={row.serviceDate} />
-                                    </TableCell>
-                                    <TableCell className="text-right">
-                                        <MoneyText
-                                            amount={row.unitAmount}
-                                            currency={currency}
-                                        />
-                                    </TableCell>
-                                    <TableCell className="text-right">
-                                        <MoneyText
-                                            amount={row.total}
-                                            currency={currency}
-                                        />
-                                    </TableCell>
-                                    {canManage && (
-                                        <TableCell className="text-right">
-                                            {openIds.has(row.unitId) && (
-                                                <RemoveAddOnDialog
-                                                    reservationId={
-                                                        reservationId
-                                                    }
-                                                    addOn={row}
-                                                />
-                                            )}
+                            {[...groups.values()].map((rows) => (
+                                <Fragment key={rows[0].unitId}>
+                                    <TableRow className="bg-muted/50 hover:bg-muted/50">
+                                        <TableCell
+                                            colSpan={columns}
+                                            className="text-xs font-medium tracking-wide text-muted-foreground uppercase"
+                                        >
+                                            {rows[0].unitLabel}
                                         </TableCell>
-                                    )}
-                                </TableRow>
+                                    </TableRow>
+                                    {rows.map((row) => (
+                                        <TableRow key={row.id}>
+                                            <TableCell>
+                                                {row.chargeItem}
+                                            </TableCell>
+                                            <TableCell className="text-right tabular-nums">
+                                                {row.quantity}
+                                            </TableCell>
+                                            <TableCell>
+                                                <DateText
+                                                    date={row.serviceDate}
+                                                />
+                                            </TableCell>
+                                            <TableCell className="text-right">
+                                                <MoneyText
+                                                    amount={row.unitAmount}
+                                                    currency={currency}
+                                                />
+                                            </TableCell>
+                                            <TableCell className="text-right">
+                                                <MoneyText
+                                                    amount={row.total}
+                                                    currency={currency}
+                                                />
+                                            </TableCell>
+                                            {canManage && (
+                                                <TableCell className="text-right">
+                                                    {openIds.has(
+                                                        row.unitId,
+                                                    ) && (
+                                                        <RemoveAddOnDialog
+                                                            reservationId={
+                                                                reservationId
+                                                            }
+                                                            addOn={row}
+                                                        />
+                                                    )}
+                                                </TableCell>
+                                            )}
+                                        </TableRow>
+                                    ))}
+                                </Fragment>
                             ))}
                         </TableBody>
                     </Table>
-                </section>
-            ))}
+                </div>
+            )}
             <AddAddOnDialog
                 open={adding}
                 onOpenChange={setAdding}
