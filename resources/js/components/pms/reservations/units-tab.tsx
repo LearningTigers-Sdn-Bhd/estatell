@@ -189,6 +189,8 @@ export function UnitsTab({
                             href={showGuest.url({
                                 guest: unit.primaryGuestId,
                             })}
+                            target="_blank"
+                            rel="noopener noreferrer"
                             className="underline underline-offset-4"
                         >
                             {unit.primaryGuest}
