@@ -20,7 +20,6 @@ import type { LucideIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { DateText } from '@/components/pms/date-text';
 import { MoneyText } from '@/components/pms/money-text';
-import { buttonVariants } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { show as showGuest } from '@/routes/guests';
@@ -68,7 +67,18 @@ export function ReservationSummary({
                     Booker
                 </h2>
                 <p className="flex items-center gap-2 font-medium">
-                    {booker.name}
+                    {booker.id !== null ? (
+                        <Link
+                            href={showGuest.url({ guest: booker.id })}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="underline underline-offset-4"
+                        >
+                            {booker.name}
+                        </Link>
+                    ) : (
+                        booker.name
+                    )}
                     {booker.isVip && (
                         <span className="text-xs text-warning">VIP</span>
                     )}
@@ -95,18 +105,6 @@ export function ReservationSummary({
                         />
                         {booker.email}
                     </p>
-                )}
-                {booker.id !== null && (
-                    <Link
-                        href={showGuest.url({ guest: booker.id })}
-                        className={buttonVariants({
-                            variant: 'outline',
-                            size: 'sm',
-                            className: 'mt-1 w-fit',
-                        })}
-                    >
-                        Open guest
-                    </Link>
                 )}
             </section>
             <Separator />
