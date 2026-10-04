@@ -2,6 +2,7 @@
 
 namespace App\Actions\Rates;
 
+use App\Enums\PricingBasis;
 use App\Enums\RateDerivation;
 use App\Models\Property;
 use App\Models\Rate;
@@ -21,7 +22,7 @@ class SaveRatePlanDerivation
      * Following clears the plan's own prices and keeps its restrictions, because it takes the parent's price per date.
      * Stopping leaves the plan with no prices until staff set them.
      *
-     * Returns false for an archived plan, a parent that is not an eligible parent, or a percent of -100 or lower.
+     * Returns false for an archived plan, a parent that is not an eligible parent, a percent of -100 or lower, or an amount on a package.
      * A save that changes nothing is not logged.
      */
     public function __invoke(User $actor, RatePlan $ratePlan, ?int $parentId, ?RateDerivation $derivation = null, ?string $value = null): bool
@@ -38,7 +39,7 @@ class SaveRatePlanDerivation
                 return $this->stopFollowing($actor, $ratePlan);
             }
 
-            if ($derivation === null || $value === null || ($derivation === RateDerivation::Percent && (float) $value <= -100)) {
+            if ($derivation === null || $value === null || ($derivation === RateDerivation::Percent && (float) $value <= -100) || ($ratePlan->pricing_basis === PricingBasis::Package && $derivation !== RateDerivation::Percent)) {
                 return false;
             }
 
@@ -96,10 +97,14 @@ class SaveRatePlanDerivation
     }
 
     /**
-     * Removes the plan's own amounts and occupancy prices. Restriction columns stay.
+     * Removes the plan's own amounts, occupancy prices and package prices. Restriction columns and arrival weekdays stay.
      */
     private function clearOwnPrices(RatePlan $ratePlan): int
     {
+        if ($ratePlan->pricing_basis === PricingBasis::Package) {
+            return $ratePlan->packagePrices()->delete();
+        }
+
         $rateIds = Rate::query()->where('rate_plan_id', $ratePlan->id)->whereNotNull('amount')->pluck('id');
 
         RateOccupancyPrice::query()->whereIn('rate_id', Rate::query()->where('rate_plan_id', $ratePlan->id)->select('id'))->delete();

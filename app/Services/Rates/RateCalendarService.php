@@ -104,7 +104,7 @@ class RateCalendarService
         $own = $rates->get($plan->id.'-'.$roomType->id, new Collection);
 
         if ($plan->pricing_basis === PricingBasis::Package) {
-            return $this->packageCells($plan, $own, $packagePrices->get($plan->id.'-'.$roomType->id, new Collection), $start, $end);
+            return $this->packageCells($plan, $own, $packagePrices->get(($plan->parent_rate_plan_id ?? $plan->id).'-'.$roomType->id, new Collection), $start, $end, $currency);
         }
 
         if ($plan->parent_rate_plan_id === null) {
@@ -117,7 +117,7 @@ class RateCalendarService
             if ($parentRate->amount !== null) {
                 $cells[$parentRate->date->toDateString()] = RateCalendarCellData::priceOnly(
                     $parentRate->date->toDateString(),
-                    $this->derivedAmount($plan, $parentRate, $currency),
+                    $this->derivedAmount($plan, $parentRate->date, $parentRate->amount, $currency),
                 );
             }
         }
@@ -140,7 +140,7 @@ class RateCalendarService
      * @param  Collection<int, PackagePrice>  $prices
      * @return list<RateCalendarCellData>
      */
-    private function packageCells(RatePlan $plan, Collection $rates, Collection $prices, CarbonInterface $start, CarbonInterface $end): array
+    private function packageCells(RatePlan $plan, Collection $rates, Collection $prices, CarbonInterface $start, CarbonInterface $end, string $currency): array
     {
         $byDate = $rates->keyBy(fn (Rate $rate): string => $rate->date->toDateString());
         $allowed = $plan->arrivalWeekdays->map(fn ($row): Weekday => $row->weekday);
@@ -154,7 +154,7 @@ class RateCalendarService
                 $cells[$key] = RateCalendarCellData::forPackage(
                     $byDate->get($key),
                     $key,
-                    $price->amount,
+                    $plan->parent_rate_plan_id === null ? $price->amount : $this->derivedAmount($plan, $date, $price->amount, $currency),
                     $allowed->isNotEmpty() && ! $allowed->contains(Weekday::forDate($date)),
                 );
             }
@@ -166,12 +166,12 @@ class RateCalendarService
     }
 
     /**
-     * The parent's room price for the date after the derivation, as the preview on the Pricing tab shows it.
+     * The parent's price for the date after the derivation, as the preview on the Pricing tab shows it.
      */
-    private function derivedAmount(RatePlan $plan, Rate $parentRate, string $currency): string
+    private function derivedAmount(RatePlan $plan, CarbonInterface $date, string $amount, string $currency): string
     {
         $zero = Money::zero($currency);
-        $night = NightPrice::of($parentRate->date, Money::of($parentRate->amount, $currency), $zero, $zero);
+        $night = NightPrice::of($date, Money::of($amount, $currency), $zero, $zero);
 
         return (string) $this->resolver->resolve($night, $plan, 1)->total()->getAmount();
     }

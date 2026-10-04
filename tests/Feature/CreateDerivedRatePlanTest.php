@@ -2,8 +2,6 @@
 
 use App\Actions\Rates\CreateDerivedRatePlan;
 use App\Enums\DefaultRoleEnum;
-use App\Enums\PackageUnit;
-use App\Enums\PricingBasis;
 use App\Enums\RateDerivation;
 use App\Models\Company;
 use App\Models\Property;
@@ -74,7 +72,6 @@ test('it writes nothing when the request is refused', function (Closure $arrange
         ->and(Activity::query()->count())->toBe(0);
 })->with([
     'archived parent' => [fn (Property $property, RatePlan $parent) => $parent->update(['archived_at' => now()])],
-    'package parent' => [fn (Property $property, RatePlan $parent) => $parent->update(['pricing_basis' => PricingBasis::Package, 'fixed_nights' => 2, 'package_unit' => PackageUnit::PerRoom])],
     'follower parent' => [function (Property $property, RatePlan $parent) {
         $other = RatePlan::factory()->for($property)->create();
         $other->roomTypes()->attach($parent->roomTypes);
@@ -183,15 +180,6 @@ test('the preview shows the parent price and the derived price for the parent ro
         ->assertJsonPath('0.parentAmount', '800.00')
         ->assertJsonPath('0.derivedAmount', '680.00')
         ->assertJsonPath('1.derivedAmount', null);
-});
-
-test('the preview is not found for a package parent', function () {
-    [$owner, $property, $parent] = quickDerivedSetup();
-    $parent->update(['pricing_basis' => PricingBasis::Package, 'fixed_nights' => 2, 'package_unit' => PackageUnit::PerRoom]);
-
-    $this->actingAs($owner)
-        ->postJson(route('settings.rate-plans.derived.preview', [$property->code, $parent]), ['parent_rate_plan_id' => $parent->id, 'derivation' => 'percent', 'direction' => 'down', 'value' => '15'])
-        ->assertNotFound();
 });
 
 test('the list offers active companies only to staff who manage companies', function () {

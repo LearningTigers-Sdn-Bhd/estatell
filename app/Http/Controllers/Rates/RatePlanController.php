@@ -143,7 +143,7 @@ class RatePlanController extends Controller
      */
     public function previewDerived(RatePlanDerivationRequest $request, Property $property, RatePlan $ratePlan, DerivedRatePreview $derivedRatePreview): JsonResponse
     {
-        abort_if($ratePlan->archived_at !== null || $ratePlan->parent_rate_plan_id !== null || $ratePlan->pricing_basis === PricingBasis::Package, 404);
+        abort_if($ratePlan->archived_at !== null || $ratePlan->parent_rate_plan_id !== null, 404);
 
         if ($request->derivation() === null || $request->signedValue() === null) {
             return response()->json([]);
@@ -226,7 +226,7 @@ class RatePlanController extends Controller
      * The Pricing tab of a package plan: the stay price by room type and arrival period, and the arrival weekdays.
      * A plan with no stored weekdays starts on any day, so all seven are ticked.
      */
-    private function editPackagePricing(Property $property, RatePlan $ratePlan): Response
+    private function editPackagePricing(Property $property, RatePlan $ratePlan, DerivedRatePlans $derivedRatePlans): Response
     {
         $stored = $ratePlan->arrivalWeekdays()->get()->map(fn ($row): string => $row->weekday->value)->all();
 
@@ -238,6 +238,8 @@ class RatePlanController extends Controller
                 ->map(fn (PackagePrice $price): PackagePriceData => PackagePriceData::fromModel($price)),
             'weekdays' => $stored === [] ? array_map(fn (Weekday $day): string => $day->value, Weekday::cases()) : $stored,
             'weekdayOptions' => Weekday::options(),
+            'derivation' => RatePlanDerivationData::forPlan($ratePlan, $derivedRatePlans),
+            'derivations' => RateDerivation::options(),
             'currency' => $property->settings->currency,
         ]);
     }
@@ -302,7 +304,7 @@ class RatePlanController extends Controller
     public function editPricing(Property $property, RatePlan $ratePlan, RatesEndingCheck $ratesEndingCheck, DerivedRatePlans $derivedRatePlans): Response
     {
         if ($ratePlan->pricing_basis === PricingBasis::Package) {
-            return $this->editPackagePricing($property, $ratePlan);
+            return $this->editPackagePricing($property, $ratePlan, $derivedRatePlans);
         }
 
         $today = now($property->settings->time_zone);
@@ -329,7 +331,9 @@ class RatePlanController extends Controller
     {
         Inertia::flash('toast', $updateRatePlan($request->user(), $ratePlan, $request->validated())
             ? ['type' => 'success', 'message' => __(':name saved.', ['name' => $request->string('name')->trim()])]
-            : ['type' => 'error', 'message' => __(':name is archived. Restore it before editing.', ['name' => $ratePlan->name])]);
+            : ['type' => 'error', 'message' => $ratePlan->archived_at !== null
+                ? __(':name is archived. Restore it before editing.', ['name' => $ratePlan->name])
+                : __('The rate plan changed. Reload the page and try again.')]);
 
         return to_route('settings.rate-plans.edit', ['property' => $property, 'ratePlan' => $ratePlan]);
     }
@@ -405,8 +409,6 @@ class RatePlanController extends Controller
 
     public function updateDerivation(RatePlanDerivationRequest $request, Property $property, RatePlan $ratePlan, SaveRatePlanDerivation $saveRatePlanDerivation): RedirectResponse
     {
-        abort_if($ratePlan->pricing_basis === PricingBasis::Package, 404);
-
         Inertia::flash('toast', $saveRatePlanDerivation($request->user(), $ratePlan, $request->parentId(), $request->derivation(), $request->signedValue())
             ? ['type' => 'success', 'message' => $request->parentId() === null ? __('This plan sets its own prices.') : __('Pricing saved.')]
             : ['type' => 'error', 'message' => __('The rate plan changed. Reload the page and try again.')]);
@@ -419,8 +421,6 @@ class RatePlanController extends Controller
      */
     public function previewDerivation(RatePlanDerivationRequest $request, Property $property, RatePlan $ratePlan, DerivedRatePlans $derivedRatePlans, DerivedRatePreview $derivedRatePreview): JsonResponse
     {
-        abort_if($ratePlan->pricing_basis === PricingBasis::Package, 404);
-
         $parent = $request->parentId() === null
             ? null
             : $derivedRatePlans->eligibleParents($ratePlan)->firstWhere('id', $request->parentId());

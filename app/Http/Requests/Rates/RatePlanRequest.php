@@ -6,6 +6,7 @@ use App\Enums\PackageUnit;
 use App\Enums\PricingBasis;
 use App\Models\Property;
 use App\Models\RatePlan;
+use App\Services\Rates\DerivedRatePlans;
 use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -65,7 +66,16 @@ class RatePlanRequest extends FormRequest
                 PricingBasis::PerGuest => ['single_supplement' => $amount],
                 PricingBasis::PerBed => [],
                 PricingBasis::Package => [
-                    'fixed_nights' => ['required', 'integer', 'between:1,30'],
+                    'fixed_nights' => [
+                        'required', 'integer', 'between:1,30',
+                        function (string $attribute, mixed $value, Closure $fail) use ($current): void {
+                            $locked = (int) $value === $current->fixed_nights ? null : app(DerivedRatePlans::class)->nightsLockMessage($current);
+
+                            if ($locked !== null) {
+                                $fail($locked);
+                            }
+                        },
+                    ],
                     ...($current->package_unit === PackageUnit::PerRoom ? ['extra_adult_amount' => $amount, 'extra_child_amount' => $amount] : []),
                 ],
             },

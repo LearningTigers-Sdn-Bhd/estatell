@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Rates;
 
+use App\Enums\PricingBasis;
 use App\Enums\RateDerivation;
 use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
@@ -27,7 +28,14 @@ class RatePlanDerivationRequest extends FormRequest
     {
         return [
             'parent_rate_plan_id' => ['nullable', 'integer'],
-            'derivation' => ['required_with:parent_rate_plan_id', 'nullable', Rule::enum(RateDerivation::class)],
+            'derivation' => [
+                'required_with:parent_rate_plan_id', 'nullable', Rule::enum(RateDerivation::class),
+                function (string $attribute, mixed $value, Closure $fail): void {
+                    if ($value !== null && $this->route('ratePlan')->pricing_basis === PricingBasis::Package && $value !== RateDerivation::Percent->value) {
+                        $fail(__('A package can only follow by a percentage.'));
+                    }
+                },
+            ],
             'direction' => ['required_with:parent_rate_plan_id', 'nullable', Rule::in(['down', 'up'])],
             'value' => [
                 'required_with:parent_rate_plan_id', 'nullable', 'decimal:0,2', 'min:0', 'max:9999999999',

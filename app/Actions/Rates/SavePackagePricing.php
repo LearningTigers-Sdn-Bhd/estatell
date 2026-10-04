@@ -18,7 +18,9 @@ class SavePackagePricing
      * are added, and rows left out are removed. A plan that can start on all seven weekdays stores none, which means
      * any day.
      *
-     * Returns false for an archived plan, a plan that is not a package, a price row whose `id` is not the plan's, a room
+     * A package that follows another has no prices of its own, so only its arrival weekdays save.
+     *
+     * Returns false for an archived plan, a plan that is not a package, prices on a package that follows another, a price row whose `id` is not the plan's, a room
      * type the plan does not sell, or periods that overlap for one room type. A save that changes nothing is not logged.
      *
      * @param  list<array{id: int|null, room_type_id: int, arrival_from: string, arrival_to: string, amount: string|int|float}>  $prices  Dates as `Y-m-d`.
@@ -29,7 +31,7 @@ class SavePackagePricing
         return DB::transaction(function () use ($actor, $ratePlan, $prices, $weekdays): bool {
             $ratePlan = RatePlan::query()->lockForUpdate()->findOrFail($ratePlan->id);
 
-            if ($ratePlan->archived_at !== null || $ratePlan->pricing_basis !== PricingBasis::Package) {
+            if ($ratePlan->archived_at !== null || $ratePlan->pricing_basis !== PricingBasis::Package || ($ratePlan->parent_rate_plan_id !== null && $prices !== [])) {
                 return false;
             }
 

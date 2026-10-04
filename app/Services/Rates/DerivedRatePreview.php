@@ -2,7 +2,9 @@
 
 namespace App\Services\Rates;
 
+use App\Enums\PricingBasis;
 use App\Enums\RateDerivation;
+use App\Models\PackagePrice;
 use App\Models\Rate;
 use App\Models\RatePlan;
 use App\Models\RoomType;
@@ -11,7 +13,8 @@ use Brick\Money\Money;
 use Carbon\CarbonInterface;
 
 /**
- * Shows what a derivation would do to the parent's room price on one date, before it is saved. It reads only.
+ * Shows what a derivation would do to the parent's room price on one date, before it is saved. For a package it is the
+ * package price of the period that holds the date. It reads only.
  */
 class DerivedRatePreview
 {
@@ -27,12 +30,19 @@ class DerivedRatePreview
     {
         $derived = new RatePlan(['derivation' => $derivation, 'derivation_value' => $value]);
         $roomTypes = $plan->roomTypes()->active()->ordered()->get();
-        $rates = Rate::query()
-            ->where('rate_plan_id', $parent->id)
-            ->whereIn('room_type_id', $roomTypes->pluck('id'))
-            ->whereDate('date', $date->toDateString())
-            ->whereNotNull('amount')
-            ->pluck('amount', 'room_type_id');
+        $rates = $parent->pricing_basis === PricingBasis::Package
+            ? PackagePrice::query()
+                ->where('rate_plan_id', $parent->id)
+                ->whereIn('room_type_id', $roomTypes->pluck('id'))
+                ->whereDate('arrival_from', '<=', $date->toDateString())
+                ->whereDate('arrival_to', '>=', $date->toDateString())
+                ->pluck('amount', 'room_type_id')
+            : Rate::query()
+                ->where('rate_plan_id', $parent->id)
+                ->whereIn('room_type_id', $roomTypes->pluck('id'))
+                ->whereDate('date', $date->toDateString())
+                ->whereNotNull('amount')
+                ->pluck('amount', 'room_type_id');
 
         return $roomTypes->map(function (RoomType $roomType) use ($rates, $derived, $date, $currency): array {
             $amount = $rates->get($roomType->id);

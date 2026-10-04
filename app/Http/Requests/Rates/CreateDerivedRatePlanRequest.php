@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Rates;
 
 use App\Enums\PermissionEnum;
+use App\Enums\PricingBasis;
 use App\Enums\RateDerivation;
 use App\Models\Property;
 use App\Models\RatePlan;
@@ -51,7 +52,14 @@ class CreateDerivedRatePlanRequest extends FormRequest
                     }
                 },
             ],
-            'derivation' => ['required', Rule::enum(RateDerivation::class)],
+            'derivation' => [
+                'required', Rule::enum(RateDerivation::class),
+                function (string $attribute, mixed $value, Closure $fail): void {
+                    if ($this->route('ratePlan')->pricing_basis === PricingBasis::Package && $value !== RateDerivation::Percent->value) {
+                        $fail(__('A package can only follow by a percentage.'));
+                    }
+                },
+            ],
             'direction' => ['required', Rule::in(['down', 'up'])],
             'value' => [
                 'required', 'decimal:0,2', 'min:0', 'max:9999999999',

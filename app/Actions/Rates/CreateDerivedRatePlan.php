@@ -23,8 +23,10 @@ class CreateDerivedRatePlan
      * Create a plan that follows the parent, sell it on the chosen room types and link it to the chosen companies.
      * See docs/08-rates/04-derived-rate-plans.md.
      *
-     * Returns null, without writing, when the parent is archived, a Package or already a follower, when a room type
-     * is not an active room type of the parent, when a company is not an Active company of the property, or when
+     * A package parent gives a package. Its nights and charged unit are copied, and only a percent is allowed.
+     *
+     * Returns null, without writing, when the parent is archived or already a follower, when an amount follows a package,
+     * when a room type is not an active room type of the parent, when a company is not an Active company of the property, or when
      * the derivation is refused.
      *
      * @param  string  $name  Already checked to be free among the property's active plans.
@@ -44,12 +46,12 @@ class CreateDerivedRatePlan
 
             $refused = $parent->archived_at !== null
                 || $parent->parent_rate_plan_id !== null
-                || $parent->pricing_basis === PricingBasis::Package
+                || ($parent->pricing_basis === PricingBasis::Package && $derivation !== RateDerivation::Percent)
                 || $roomTypeIds === []
                 || array_diff($roomTypeIds, $parentRoomTypeIds) !== []
                 || $companies->count() !== count(array_unique($companyIds));
 
-            $ratePlan = $refused ? null : ($this->createRatePlan)($property, $actor, ['name' => $name, 'pricing_basis' => $parent->pricing_basis->value], $roomTypeIds);
+            $ratePlan = $refused ? null : ($this->createRatePlan)($property, $actor, $this->attributes($parent, $name), $roomTypeIds);
 
             if ($ratePlan === null || ! ($this->saveRatePlanDerivation)($actor, $ratePlan, $parent->id, $derivation, $signedValue)) {
                 DB::rollBack();
@@ -76,5 +78,17 @@ class CreateDerivedRatePlan
         }
 
         return $ratePlan->refresh();
+    }
+
+    /**
+     * @return array{name: string, pricing_basis: string, fixed_nights?: int|null, package_unit?: string}
+     */
+    private function attributes(RatePlan $parent, string $name): array
+    {
+        $attributes = ['name' => $name, 'pricing_basis' => $parent->pricing_basis->value];
+
+        return $parent->pricing_basis === PricingBasis::Package
+            ? [...$attributes, 'fixed_nights' => $parent->fixed_nights, 'package_unit' => $parent->package_unit->value]
+            : $attributes;
     }
 }

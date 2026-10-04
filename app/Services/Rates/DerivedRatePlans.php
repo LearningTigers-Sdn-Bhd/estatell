@@ -35,7 +35,9 @@ class DerivedRatePlans
             ->whereKeyNot($plan->id)
             ->whereNull('parent_rate_plan_id')
             ->where('pricing_basis', $plan->pricing_basis)
-            ->where('pricing_basis', '!=', PricingBasis::Package)
+            ->when($plan->pricing_basis === PricingBasis::Package, fn ($query) => $query
+                ->where('package_unit', $plan->package_unit)
+                ->where('fixed_nights', $plan->fixed_nights))
             ->ordered()
             ->get()
             ->filter(fn (RatePlan $parent): bool => array_diff($sold, $parent->roomTypes->pluck('id')->all()) === [])
@@ -47,10 +49,6 @@ class DerivedRatePlans
      */
     public function cannotFollowReason(RatePlan $plan): ?string
     {
-        if ($plan->pricing_basis === PricingBasis::Package) {
-            return __('Package plans have no nightly price to follow.');
-        }
-
         $followers = $this->followers($plan)->pluck('name')->all();
 
         if ($followers !== []) {
@@ -98,6 +96,27 @@ class DerivedRatePlans
         }
 
         return trans_choice('{1} :names follows this plan.|[2,*] :names follow this plan.', count($names), [
+            'names' => Arr::join($names, ', ', __(' and ')),
+        ]);
+    }
+
+    /**
+     * Why the nights of a package cannot change, or null when they can. A package that follows another takes its
+     * nights from it, and a package that other plans follow must keep them.
+     */
+    public function nightsLockMessage(RatePlan $plan): ?string
+    {
+        if ($plan->parent_rate_plan_id !== null) {
+            return __('The nights follow :name.', ['name' => $plan->loadMissing('parent')->parent->name]);
+        }
+
+        $names = $this->followers($plan)->pluck('name')->all();
+
+        if ($names === []) {
+            return null;
+        }
+
+        return trans_choice('{1} :names follows this plan, so its nights cannot change.|[2,*] :names follow this plan, so its nights cannot change.', count($names), [
             'names' => Arr::join($names, ', ', __(' and ')),
         ]);
     }
