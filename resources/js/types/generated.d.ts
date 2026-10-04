@@ -812,6 +812,7 @@ fixedNights: number | null,
 };
 export type ReservationActivityData = {
 id: number,
+kind: string | null,
 text: string,
 reason: string | null,
 causerName: string | null,

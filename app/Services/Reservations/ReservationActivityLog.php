@@ -103,6 +103,7 @@ class ReservationActivityLog
 
         return new ReservationActivityData(
             id: $activity->id,
+            kind: $activity->event,
             text: $text,
             reason: $reason,
             causerName: $activity->causer?->name,

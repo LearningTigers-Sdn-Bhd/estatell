@@ -361,6 +361,7 @@ test('the activity tab lists entries newest first, 25 to a page, in readable wor
         ->where('activity.meta.total', 30)
         ->where('activity.data.0.text', 'Ahmad Faiz added to a unit')
         ->where('activity.data.0.causerName', 'Aina')
+        ->where('activity.data.0.kind', 'reservation.guest_attached')
         ->where('activity.data.1.text', 'Group updated: group name — → Tan trip, billing Master folio pays → Each unit pays')
         ->where('activity.data.2.text', "Unit added: {$roomType->name}, 2026-10-12 to 2026-10-15")
         ->where('activity.data.2.reason', 'Price override to 240.00: Corporate rate')

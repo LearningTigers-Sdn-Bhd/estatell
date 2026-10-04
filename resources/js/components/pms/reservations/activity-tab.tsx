@@ -1,4 +1,15 @@
-import { History } from 'lucide-react';
+import {
+    BedDouble,
+    Banknote,
+    CalendarPlus,
+    Circle,
+    CreditCard,
+    History,
+    Pencil,
+    Receipt,
+    UserPlus,
+} from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { EmptyState } from '@/components/pms/empty-state';
 import {
     PaginationFooter,
@@ -6,6 +17,33 @@ import {
 } from '@/components/pms/pagination-footer';
 
 type Activity = App.Data.Reservations.ReservationActivityData;
+
+const kindIcons: Record<string, LucideIcon> = {
+    'reservation.created': CalendarPlus,
+    'reservation.unit_added': BedDouble,
+    'reservation.room_assigned': BedDouble,
+    'reservation.bed_assigned': BedDouble,
+    'reservation.guest_attached': UserPlus,
+    'reservation.add_on_added': Receipt,
+    'reservation.add_on_removed': Receipt,
+    'reservation.group_updated': Pencil,
+};
+
+function iconFor(kind: string | null): LucideIcon {
+    if (kind === null) {
+        return Circle;
+    }
+
+    if (kind.startsWith('payment.')) {
+        return Banknote;
+    }
+
+    if (kind.startsWith('folio.')) {
+        return CreditCard;
+    }
+
+    return kindIcons[kind] ?? Circle;
+}
 
 const dayFormat = new Intl.DateTimeFormat('en-GB', {
     weekday: 'short',
@@ -49,36 +87,44 @@ export function ActivityTab({
                             {day}
                         </h3>
                         <ol className="flex flex-col border-s">
-                            {entries.map((entry) => (
-                                <li
-                                    key={entry.id}
-                                    className="relative flex flex-col gap-0.5 ps-5 pb-4 last:pb-0"
-                                >
-                                    <span
-                                        aria-hidden
-                                        className="absolute start-0 top-1.5 size-2 -translate-x-1/2 rounded-full bg-primary ring-4 ring-card"
-                                    />
-                                    <div className="flex items-baseline justify-between gap-3 pe-3">
-                                        <p className="text-sm">{entry.text}</p>
-                                        <time
-                                            dateTime={entry.createdAt}
-                                            className="shrink-0 text-xs text-muted-foreground tabular-nums"
+                            {entries.map((entry) => {
+                                const Icon = iconFor(entry.kind);
+
+                                return (
+                                    <li
+                                        key={entry.id}
+                                        className="relative flex flex-col gap-0.5 ps-8 pb-4 last:pb-0"
+                                    >
+                                        <span
+                                            aria-hidden
+                                            className="absolute start-0 top-0 flex size-6 -translate-x-1/2 items-center justify-center rounded-full bg-muted text-muted-foreground ring-4 ring-card"
                                         >
-                                            {timeFormat.format(
-                                                new Date(entry.createdAt),
-                                            )}
-                                        </time>
-                                    </div>
-                                    {entry.reason && (
-                                        <p className="text-sm text-muted-foreground">
-                                            {entry.reason}
+                                            <Icon className="size-3.5" />
+                                        </span>
+                                        <div className="flex items-baseline justify-between gap-3 pe-3">
+                                            <p className="text-sm">
+                                                {entry.text}
+                                            </p>
+                                            <time
+                                                dateTime={entry.createdAt}
+                                                className="shrink-0 text-xs text-muted-foreground tabular-nums"
+                                            >
+                                                {timeFormat.format(
+                                                    new Date(entry.createdAt),
+                                                )}
+                                            </time>
+                                        </div>
+                                        {entry.reason && (
+                                            <p className="text-sm text-muted-foreground">
+                                                {entry.reason}
+                                            </p>
+                                        )}
+                                        <p className="text-xs text-muted-foreground">
+                                            {entry.causerName ?? 'System'}
                                         </p>
-                                    )}
-                                    <p className="text-xs text-muted-foreground">
-                                        {entry.causerName ?? 'System'}
-                                    </p>
-                                </li>
-                            ))}
+                                    </li>
+                                );
+                            })}
                         </ol>
                     </section>
                 ))}
