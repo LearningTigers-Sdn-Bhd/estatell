@@ -38,11 +38,11 @@ rate_occupancy_prices     id, rate_id, adults, amount
 - On a PerGuest plan, each adult-count price shows its share per person under the field ("475.00 each"). It is display only. The field stays a room total, so a per person price typed there shows up as half.
 - Restrictions (`stop_sell`, `closed_to_arrival`, `closed_to_departure`, `min_stay`, `max_stay`, and a package's arrival weekdays) are checked by one service, `RestrictionCheck`, for every channel.
 
-| Channel                   | When a restriction fails                                                                                                           |
-| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| Public site, agent portal | Blocked. The plan is shown with the reason, for example "Min stay 2 nights".                                                       |
-| Front desk                | Warning. Staff with `rates.override-restrictions` can continue after entering a reason. The override is logged on the reservation. |
-| Channel bookings          | Accepted. The OTA already checked its own copy of the restrictions.                                                                |
+| Channel                     | When a restriction fails                                                                                                           |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| Public site, company portal | Blocked. The plan is shown with the reason, for example "Min stay 2 nights".                                                       |
+| Front desk                  | Warning. Staff with `rates.override-restrictions` can continue after entering a reason. The override is logged on the reservation. |
+| Channel bookings            | Accepted. The OTA already checked its own copy of the restrictions.                                                                |
 
 - Weekend and holiday prices are daily rates edited in bulk with the pricing form. No weekday arrays.
 - Any change records a channel sync range (see [ARI sync](../21-channels/04-ari-sync.md)). Not built yet: `SaveRates` and `ExtendRates` are the places to hook it when channels arrive.

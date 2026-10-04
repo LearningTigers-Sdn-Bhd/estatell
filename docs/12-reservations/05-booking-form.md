@@ -57,7 +57,7 @@ The page header has a description in both modes: "Reserve rooms or beds for a gu
     - Package plans lock the departure date, not the time.
     - Reservation mode: a select after Departure, on the same row from `lg` (about 12rem wide; below `lg` it wraps to the next line). Options: **New booking** and **Walk-in**. Picking the other mode visits `reservations.walk-in` or `reservations.new` as a partial Inertia visit with `preserveState`, so the same page stays mounted and the dates, lines and guests are kept. The URL and the breadcrumb change, and no unsaved-changes prompt appears. To Walk-in: the source becomes WalkIn and is locked, and the arrival becomes today with the current time and is locked. To New booking: the source goes back to Direct and the arrival unlocks. A departure that is then not after the arrival gets the normal error on save. Both pages need `reservations.manage`, and the backend does not change.
     - Group name: the third field of the row after External reference, shown when the form has 2 or more units. Leave it empty to show the booker's name. `billing_mode` stays in the rail.
-    - Source: **New booking** offers the sources Direct and Phone. **Walk-in** fixes the source to WalkIn. Channel and Agent are not offered: they come from ingestion and the agent portal.
+    - Source: **New booking** offers the sources Direct and Phone. **Walk-in** fixes the source to WalkIn. Channel and Portal are not offered: they come from ingestion and the company portal.
 2. **Rooms and beds** (tab **Rooms & guests**): one line per room type + rate plan.
     - Room lines: adults and children. When children > 0, one required age field per child, under the line.
     - Bed lines: "Beds: N", expanded into N units, with one bed picker per unit.

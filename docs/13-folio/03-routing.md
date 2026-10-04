@@ -61,12 +61,12 @@ The router follows one rule and stops. A rule target is final, so there are no c
 
 ## Examples
 
-| Case                                  | Rules                         | Result                                     |
-| ------------------------------------- | ----------------------------- | ------------------------------------------ |
-| Master pays rooms, units pay extras   | Room to FM                    | Extras stay on each unit's folio           |
-| Master pays all                       | All to FM                     | Unit folios stay empty                     |
-| Company pays rooms, agent pays diving | Room to FM, DIVING code to FA | Everything else stays on each unit's folio |
-| Each unit pays for the other (Manual) | Unit 1 to F2, unit 2 to F1    | Made in the Routing rules Sheet            |
+| Case                                         | Rules                         | Result                                     |
+| -------------------------------------------- | ----------------------------- | ------------------------------------------ |
+| Master pays rooms, units pay extras          | Room to FM                    | Extras stay on each unit's folio           |
+| Master pays all                              | All to FM                     | Unit folios stay empty                     |
+| Company pays rooms, travel agent pays diving | Room to FM, DIVING code to FA | Everything else stays on each unit's folio |
+| Each unit pays for the other (Manual)        | Unit 1 to F2, unit 2 to F1    | Made in the Routing rules Sheet            |
 
 FM is the Master folio and FA a third-party folio for the travel agent.
 

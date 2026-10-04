@@ -306,9 +306,13 @@ Needs the Channex staging checks in [Staging verification](21-channels/06-stagin
 
 - [ ] `feat(reports): add core reports` — Docs: [Core reports](22-reports/01-core-reports.md).
 
-### 23 Agent portal
+### 23 Company portal
 
-- [ ] `feat(agent-portal): let agents book and view their stays` — scope to be revised first. Docs: [Agent portal](23-agent-portal/01-agent-portal.md).
+- [ ] `refactor(reservations): rename the Agent source to Portal` — `ReservationSource::Agent` → `Portal`, generated TS, icon map. Docs: [Reservation shape](12-reservations/01-reservation-shape.md).
+- [ ] `feat(portal): add company users and company links` — `is_company_user`, users CHECK, `company_users`, Portal tab with invite, temp password and bulk add, existing-account invitations. Docs: [Company portal](23-company-portal/01-company-portal.md#adding-company-users).
+- [ ] `feat(portal): add the portal property list and invitations` — `/portal`, accept and decline, `portal` middleware, home redirect. Docs: [Company portal](23-company-portal/01-company-portal.md#pages).
+- [ ] `feat(portal): let company users book and manage stays` — `portal_access`, booking checks, cancel and request. Docs: [Company portal](23-company-portal/01-company-portal.md#rules).
+- [ ] `feat(portal): show company statements` — read-only invoices, payments and statement PDF. Docs: [Company portal](23-company-portal/01-company-portal.md#pages).
 
 ### Deferred items to pick up along the way
 

@@ -7,24 +7,22 @@ A property has many staff users. Staff join by an emailed invitation or are adde
 ## Data model
 
 ```
-users                id, property_id, company_id (nullable), name, email, password, is_admin, deactivated_at,
+users                id, property_id, name, email, password, is_admin, is_company_user, deactivated_at,
                      temporary_password, temporary_password_expires_at, must_change_password,
                      two_factor columns, timestamps
-                     CHECK company_id IS NULL OR is_admin = false
-staff_invitations    id, property_id, email, role_id (nullable), company_id (nullable),
+staff_invitations    id, property_id, email, role_id,
                      token_hash, expires_at, last_sent_at,
                      accepted_at, revoked_at, invited_by, timestamps
                      UNIQUE (property_id, email) WHERE accepted_at IS NULL AND revoked_at IS NULL
                      CHECK email = lower(email); CHECK accepted_at and revoked_at are not both set
-                     CHECK exactly one of role_id, company_id is set
 ```
 
 - `token_hash` is the SHA-256 of the token. The plain token lives only in the emailed link.
 - An invitation is **open** while it is neither accepted nor revoked (`StaffInvitation::open()`). An open invitation can be expired; resending opens it again.
 
 - A user belongs to one property (`users.property_id`).
-- `users.property_id` is nullable only for platform admins (`is_admin`). A CHECK enforces: admin without property, staff with property. See [Platform admins](../01-platform/01-platform-admins.md).
-- `users.company_id` marks an agent user (module 23). Agents have no staff role and cannot open `/p/{code}` routes. An invitation with `company_id` creates an agent. See [Agent portal](../23-agent-portal/01-agent-portal.md).
+- `users.property_id` is null only for platform admins (`is_admin`) and company users (`is_company_user`). A CHECK enforces exactly one kind: admin, company user or staff. See [Platform admins](../01-platform/01-platform-admins.md).
+- Company users (module 23) have no staff role and cannot open `/p/{code}` routes. They join through `company_users`, not `staff_invitations`. See [Company portal](../23-company-portal/01-company-portal.md).
 - The owner is created by Fortify registration or by an admin invite (see [Account creation](../17-onboarding/01-account-creation.md)).
 
 ## Actions

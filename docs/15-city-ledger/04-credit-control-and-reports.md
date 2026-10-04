@@ -13,6 +13,6 @@
 
 ## Out of scope
 
-Payment submissions by companies, payment intents, agent payment holds, MyInvois e-invoicing.
+Payment submissions by companies, payment intents, company payment holds, MyInvois e-invoicing.
 
-The agent portal is planned as the last module: see [Agent portal](../23-agent-portal/01-agent-portal.md).
+The company portal is planned as the last module: see [Company portal](../23-company-portal/01-company-portal.md).

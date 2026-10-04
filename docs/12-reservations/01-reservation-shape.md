@@ -54,7 +54,7 @@ erDiagram
 - `ReservationStatus`: Confirmed, InHouse, Completed, Cancelled.
 - `UnitStatus`: Confirmed, CheckedIn, CheckedOut, Cancelled, NoShow (with `canTransitionTo()`).
 - `BillingMode`: MasterPays, MasterPaysAll, EachPays.
-- `ReservationSource`: Direct, WalkIn, Phone, Channel, Agent.
+- `ReservationSource`: Direct, WalkIn, Phone, Channel, Portal.
 
 ### Unit transitions
 
@@ -90,8 +90,8 @@ It has no `canTransitionTo()` because nothing sets it by hand.
 - Every action works on one unit. Group actions loop over units.
 - `reference` comes from `document_sequences`.
 - `company_id` is a nullable column without a foreign key until [Companies](../15-city-ledger/01-companies.md) adds the table and the key.
-- `external_reference` holds the OTA booking number or the agency's voucher number.
-- `cancellation_requested_*` is set only by an agent after the cancel cut-off (see [Agent portal](../23-agent-portal/01-agent-portal.md)).
+- `external_reference` holds the OTA booking number or the company reference (the company's voucher number).
+- `cancellation_requested_*` is set only by a company user after the cancel cut-off (see [Company portal](../23-company-portal/01-company-portal.md)).
 - Status transitions are one Action per transition, checked by `UnitStatus::canTransitionTo()`. Each one calls `SyncReservationStatus` afterwards.
 - `MergeGuests` calls `RepointGuestReservations` (booker and unit guests), and `AnonymizeGuest` refuses an in-house guest through `GuestInHouse` (an occupant of a CheckedIn unit).
 - `notes` holds the booking form's free text. The creation log records only that notes exist.
