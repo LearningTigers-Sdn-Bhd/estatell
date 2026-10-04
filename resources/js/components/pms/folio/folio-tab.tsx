@@ -2,6 +2,7 @@ import { Form } from '@inertiajs/react';
 import {
     BadgePercent,
     Banknote,
+    ChevronDown,
     CreditCard,
     Lock,
     LockOpen,
@@ -25,6 +26,12 @@ import { TransferLineDialog } from '@/components/pms/folio/transfer-line-dialog'
 import { MoneyText } from '@/components/pms/money-text';
 import { StatusBadge } from '@/components/pms/status-badge';
 import { Button } from '@/components/ui/button';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Spinner } from '@/components/ui/spinner';
 import { KEEP_OPTIONS } from '@/components/pms/reservations/use-form-options';
 import { reopen } from '@/routes/reservations/folios';
@@ -88,19 +95,23 @@ export function FolioTab({
         useState<App.Data.Folio.FolioRowData | null>(null);
 
     const routingButtons = canManageRouting && (
-        <>
-            <Button variant="outline" onClick={() => setRouting(true)}>
+        <DropdownMenu>
+            <DropdownMenuTrigger render={<Button variant="outline" />}>
                 <Split data-icon="inline-start" />
-                Routing rules
-            </Button>
-            <Button
-                variant="outline"
-                onClick={() => setCreatingThirdParty(true)}
-            >
-                <UserPlus data-icon="inline-start" />
-                Third-party folio
-            </Button>
-        </>
+                Routing
+                <ChevronDown data-icon="inline-end" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start">
+                <DropdownMenuItem onClick={() => setRouting(true)}>
+                    <Split />
+                    Routing rules
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setCreatingThirdParty(true)}>
+                    <UserPlus />
+                    Third-party folio
+                </DropdownMenuItem>
+            </DropdownMenuContent>
+        </DropdownMenu>
     );
 
     const routingOverlays = canManageRouting && (
