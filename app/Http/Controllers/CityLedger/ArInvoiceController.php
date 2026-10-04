@@ -4,6 +4,7 @@ namespace App\Http\Controllers\CityLedger;
 
 use App\Actions\CityLedger\IssueCreditNote;
 use App\Actions\CityLedger\VoidArInvoice;
+use App\Data\CityLedger\ArInvoiceRowData;
 use App\Enums\ArInvoiceStatus;
 use App\Enums\ArInvoiceType;
 use App\Enums\PermissionEnum;
@@ -20,6 +21,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
+use Spatie\LaravelData\PaginatedDataCollection;
 use Symfony\Component\HttpFoundation\Response as HttpResponse;
 
 class ArInvoiceController extends Controller
@@ -30,7 +32,7 @@ class ArInvoiceController extends Controller
     public function index(Request $request, Property $property, ArInvoiceDirectory $directory): Response
     {
         return Inertia::render('finance/city-ledger/invoices/index', [
-            'invoices' => $directory->paginate($property, $request),
+            'invoices' => ArInvoiceRowData::collect($directory->paginate($property, $request), PaginatedDataCollection::class),
             'filters' => [
                 'search' => $request->string('filter.search')->toString(),
                 'type' => $request->string('filter.type')->toString(),

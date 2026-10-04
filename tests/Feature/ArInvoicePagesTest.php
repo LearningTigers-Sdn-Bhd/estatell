@@ -50,6 +50,8 @@ test('the list shows invoices with balances and flags the overdue ones', functio
     $this->actingAs($setup['user'])->get(invoiceUrl($setup, '?sort=number'))->assertInertia(fn (Assert $page) => $page
         ->component('finance/city-ledger/invoices/index')
         ->has('invoices.data', 3)
+        ->where('invoices.meta.total', 3)
+        ->where('invoices.meta.current_page', 1)
         ->where('invoices.data.0.number', 'CN-1')
         ->where('invoices.data.0.balance', null)
         ->where('invoices.data.1.number', 'F-1')
