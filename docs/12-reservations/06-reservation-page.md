@@ -216,7 +216,9 @@ The Units list is hidden for one unit, and the Folio rail for one folio, so thos
 
 ### Units tab
 
-- **Choose unit** list on the left: room type, assigned room or bed (`—` unassigned, `auto` when `auto_assign_rooms` is on), status. Hidden when the reservation has one unit. Below `lg` it becomes a select.
+The page shows no dash for an empty value: a missing room is `Not assigned` (an `Unassigned` badge in the night table), no primary guest says so, a missing balance says `No folio` or `Not started`, and the company says `None`.
+
+- **Choose unit** list on the left: room type, assigned room or bed (`Not assigned`, or `Auto` when `auto_assign_rooms` is on), status. Hidden when the reservation has one unit. Below `lg` it becomes a select.
 - The unit panel: room type and rate plan, status, then three detail rows, each label with an icon before it: Stay (dates with the expected times, and nights); Room and Guests side by side (room or bed, per night when it changes mid-stay; adults and child ages); Primary guest. Below them a rounded, bordered night table from `unit_nights` (date, room or bed, rate plan, amount). An override shows the reason from the activity log.
 - The unit **⋯** menu shows only the actions that exist and that `UnitStatus::canTransitionTo()` allows: Change room, Cancel unit, Mark no-show, Change dates, Check in, Check out. They arrive with [front desk](../18-front-desk/01-check-in-and-check-out.md). Until then the menu is hidden.
 
@@ -232,7 +234,7 @@ The Units list is hidden for one unit, and the Folio rail for one folio, so thos
 │ Aina Tan         +60 12-345 1111   (Guest)                   │
 │ DORM BED · D1-2                                              │
 │ Ahmad Faiz       +60 13-888 2211   (Primary)                 │
-│ DORM BED · —                                                 │
+│ DORM BED · Not assigned                                      │
 │ No guest yet                       [Attach guest]            │
 └──────────────────────────────────────────────────────────────┘
 ```
