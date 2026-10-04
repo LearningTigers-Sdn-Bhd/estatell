@@ -87,21 +87,24 @@ export function FolioTab({
     const [transferring, setTransferring] =
         useState<App.Data.Folio.FolioRowData | null>(null);
 
-    const routingActions = canManageRouting && (
+    const routingButtons = canManageRouting && (
         <>
-            <div className="flex flex-wrap justify-end gap-2">
-                <Button variant="outline" onClick={() => setRouting(true)}>
-                    <Split data-icon="inline-start" />
-                    Routing rules
-                </Button>
-                <Button
-                    variant="outline"
-                    onClick={() => setCreatingThirdParty(true)}
-                >
-                    <UserPlus data-icon="inline-start" />
-                    Third-party folio
-                </Button>
-            </div>
+            <Button variant="outline" onClick={() => setRouting(true)}>
+                <Split data-icon="inline-start" />
+                Routing rules
+            </Button>
+            <Button
+                variant="outline"
+                onClick={() => setCreatingThirdParty(true)}
+            >
+                <UserPlus data-icon="inline-start" />
+                Third-party folio
+            </Button>
+        </>
+    );
+
+    const routingOverlays = canManageRouting && (
+        <>
             <ThirdPartyFolioDialog
                 open={creatingThirdParty}
                 onOpenChange={setCreatingThirdParty}
@@ -121,7 +124,8 @@ export function FolioTab({
     if (folio === null) {
         return (
             <div className="flex flex-col gap-4">
-                {routingActions}
+                <div className="flex flex-wrap gap-2">{routingButtons}</div>
+                {routingOverlays}
                 <EmptyState
                     icon={CreditCard}
                     title="No folio yet"
@@ -133,24 +137,59 @@ export function FolioTab({
 
     return (
         <div className="flex flex-col gap-4">
-            {routingActions}
+            {routingOverlays}
             <div className="flex flex-col gap-4">
                 <div className="flex flex-col gap-4">
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                        <div className="flex flex-col gap-1">
+                    <div className="flex flex-col gap-1">
+                        <div className="flex items-center gap-2">
                             <h2 className="font-heading text-base font-medium">
                                 {folio.name}
                             </h2>
-                            {folio.invoiceNumber && (
-                                <p className="text-sm text-muted-foreground">
-                                    Invoice {folio.invoiceNumber}
-                                </p>
-                            )}
-                        </div>
-                        <div className="flex items-center gap-2">
                             {folio.status && (
                                 <StatusBadge status={folio.status} />
                             )}
+                        </div>
+                        {folio.invoiceNumber && (
+                            <p className="text-sm text-muted-foreground">
+                                Invoice {folio.invoiceNumber}
+                            </p>
+                        )}
+                    </div>
+                    <dl className="grid gap-2 sm:grid-cols-3">
+                        <Figure label="Balance">
+                            {folio.balance === null ? (
+                                <span className="text-muted-foreground">—</span>
+                            ) : (
+                                <span
+                                    className={cn(
+                                        Number(folio.balance) > 0 &&
+                                            'text-destructive',
+                                    )}
+                                >
+                                    <MoneyText
+                                        amount={folio.balance}
+                                        currency={currency}
+                                    />
+                                </span>
+                            )}
+                        </Figure>
+                        <Figure label="Projected total">
+                            <MoneyText
+                                amount={folio.projectedTotal}
+                                currency={currency}
+                            />
+                        </Figure>
+                        <Figure label="Posted lines">
+                            <span className="tabular-nums">
+                                {folio.lineCount}
+                            </span>
+                        </Figure>
+                    </dl>
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                            {routingButtons}
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2">
                             {folio.canReopen && (
                                 <Form
                                     {...reopen.form({
@@ -218,65 +257,31 @@ export function FolioTab({
                             )}
                         </div>
                     </div>
-                    <div className="flex flex-col gap-4">
-                        <dl className="grid gap-2 sm:grid-cols-3">
-                            <Figure label="Balance">
-                                {folio.balance === null ? (
-                                    <span className="text-muted-foreground">
-                                        —
-                                    </span>
-                                ) : (
-                                    <span
-                                        className={cn(
-                                            Number(folio.balance) > 0 &&
-                                                'text-destructive',
-                                        )}
-                                    >
-                                        <MoneyText
-                                            amount={folio.balance}
-                                            currency={currency}
-                                        />
-                                    </span>
-                                )}
-                            </Figure>
-                            <Figure label="Projected total">
-                                <MoneyText
-                                    amount={folio.projectedTotal}
-                                    currency={currency}
-                                />
-                            </Figure>
-                            <Figure label="Posted lines">
-                                <span className="tabular-nums">
-                                    {folio.lineCount}
-                                </span>
-                            </Figure>
-                        </dl>
-                        {folio.rows.length === 0 ? (
-                            <EmptyState
-                                icon={CreditCard}
-                                title="Nothing on this folio"
-                                description="Posted and scheduled charges appear here."
-                            />
-                        ) : (
-                            <FolioRowsTable
-                                reservationId={reservationId}
-                                folioId={Number(folio.key)}
-                                rows={folio.rows}
-                                currency={currency}
-                                onAction={(row, action) => {
-                                    if (action === 'reverse') {
-                                        setReversing(row);
-                                    } else if (action === 'transfer') {
-                                        setTransferring(row);
-                                    } else if (action === 'refund') {
-                                        setRefunding(row);
-                                    } else {
-                                        setRemoving(row);
-                                    }
-                                }}
-                            />
-                        )}
-                    </div>
+                    {folio.rows.length === 0 ? (
+                        <EmptyState
+                            icon={CreditCard}
+                            title="Nothing on this folio"
+                            description="Posted and scheduled charges appear here."
+                        />
+                    ) : (
+                        <FolioRowsTable
+                            reservationId={reservationId}
+                            folioId={Number(folio.key)}
+                            rows={folio.rows}
+                            currency={currency}
+                            onAction={(row, action) => {
+                                if (action === 'reverse') {
+                                    setReversing(row);
+                                } else if (action === 'transfer') {
+                                    setTransferring(row);
+                                } else if (action === 'refund') {
+                                    setRefunding(row);
+                                } else {
+                                    setRemoving(row);
+                                }
+                            }}
+                        />
+                    )}
                 </div>
                 {folio.canPostCharge && (
                     <PostChargeDialog
