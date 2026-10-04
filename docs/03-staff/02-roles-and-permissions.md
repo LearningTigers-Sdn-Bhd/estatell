@@ -59,6 +59,7 @@ roles    spatie columns + property_id (NOT NULL, FK) + default_role (nullable)
 | `payment.refund`              | Refund a payment                                                      | ✓     | ✓       | Finance                           |
 | `company.view`                | Companies list and page, pick a company on a booking                  | ✓     | ✓       | Front desk, Finance               |
 | `company.manage`              | Create, edit, suspend and reactivate companies                        | ✓     | ✓       | Finance                           |
+| `company.credit-override`     | Pass a credit limit check, with a reason                              | ✓     | ✓       |                                   |
 | `city-ledger.invoice`         | Settle a folio to City ledger, void an AR invoice                     | ✓     | ✓       | Finance                           |
 | `city-ledger.credit-note`     | Issue and void AR credit notes                                        | ✓     | ✓       | Finance                           |
 | `city-ledger.payment`         | Record and void AR payments                                           | ✓     | ✓       | Finance                           |

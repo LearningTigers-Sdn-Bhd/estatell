@@ -40,7 +40,7 @@ The settle action does not go through `RecordPayment`: a City ledger line has no
     - the company is Suspended or has `direct_bill_enabled` off (`direct_bill_not_allowed`);
     - the balance is not above 0 (`nothing_to_settle`);
     - there is no business date (`no_business_date`).
-- The credit limit is not checked here. `CreditExposure` comes with [Credit control](04-credit-control-and-reports.md), which adds the check to `SettleToCityLedger`.
+- The credit limit is checked with `CreditCheck` ([Credit control](04-credit-control-and-reports.md#credit-check)): a company already over its limit is refused (`credit_limit_exceeded`) unless the user passes `company.credit-override` with a reason.
 - `ReopenFolio` refuses a folio that has an AR invoice that is not Void (`folio_has_ar_invoice`): fix it with a credit note.
 - An AR invoice reuses the folio's invoice number. Credit notes take their own sequence (`DocumentType::CreditNote`).
 - Issued invoices are never edited. A correction is a credit note: a negative row with `credit_for_invoice_id`, issued with a reason, for at most the invoice's balance (`credit_exceeds_balance`). It is Settled at once, because it is applied to its invoice as it is issued.
