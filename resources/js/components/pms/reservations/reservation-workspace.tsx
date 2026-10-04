@@ -43,7 +43,7 @@ export function ReservationWorkspace({
     return (
         <div
             className={cn(
-                'grid gap-3 lg:min-h-0 lg:flex-1 lg:grid-rows-[minmax(0,1fr)]',
+                'grid gap-1.5 lg:min-h-0 lg:flex-1 lg:grid-rows-[minmax(0,1fr)]',
                 list
                     ? 'lg:grid-cols-[14rem_minmax(0,1fr)_20rem]'
                     : 'lg:grid-cols-[minmax(0,1fr)_20rem]',
