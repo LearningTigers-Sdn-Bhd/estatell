@@ -27,6 +27,7 @@ export function PricingSource({
     currency,
     hasOwnPrices,
     direct,
+    whileFollowing,
 }: {
     ratePlan: RatePlan;
     derivation: Derivation;
@@ -34,6 +35,8 @@ export function PricingSource({
     currency: App.Enums.Currency;
     hasOwnPrices: boolean;
     direct: ReactNode;
+    /** Shown below the follow form while the plan follows another, for example a package's arrival days. */
+    whileFollowing?: ReactNode;
 }) {
     const following = derivation.parentRatePlanId !== null;
     const [source, setSource] = useState<Source>(
@@ -115,6 +118,7 @@ export function PricingSource({
             ) : (
                 direct
             )}
+            {following && whileFollowing}
         </div>
     );
 }

@@ -10,15 +10,21 @@ type RatePlan = App.Data.Rates.RatePlanData;
 export default function RatePlanEdit({
     ratePlan,
     currency,
+    nightsLockedReason,
 }: {
     ratePlan: RatePlan;
     currency: App.Enums.Currency;
+    nightsLockedReason: string | null;
 }) {
     return (
         <>
             <Head title={ratePlan.name} />
             <RatePlanShell ratePlan={ratePlan} activeTab="details">
-                <DetailsForm ratePlan={ratePlan} currency={currency} />
+                <DetailsForm
+                    ratePlan={ratePlan}
+                    currency={currency}
+                    nightsLockedReason={nightsLockedReason}
+                />
             </RatePlanShell>
         </>
     );

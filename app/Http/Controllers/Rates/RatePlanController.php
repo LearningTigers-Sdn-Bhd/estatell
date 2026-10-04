@@ -158,11 +158,12 @@ class RatePlanController extends Controller
     /**
      * The Details tab of the plan editor. Each tab is its own URL and loads only its own data.
      */
-    public function edit(Property $property, RatePlan $ratePlan): Response
+    public function edit(Property $property, RatePlan $ratePlan, DerivedRatePlans $derivedRatePlans): Response
     {
         return Inertia::render('settings/rate-plans/edit', [
             'ratePlan' => RatePlanData::fromModel($ratePlan->load('roomTypes')),
             'currency' => $property->settings->currency,
+            'nightsLockedReason' => $ratePlan->pricing_basis === PricingBasis::Package ? $derivedRatePlans->nightsLockMessage($ratePlan) : null,
         ]);
     }
 

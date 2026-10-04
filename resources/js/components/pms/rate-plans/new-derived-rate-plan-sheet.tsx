@@ -50,6 +50,7 @@ export function NewDerivedRatePlanSheet({
     roomTypes,
     companies,
     derivations,
+    packageUnits,
     currency,
     open,
     onOpenChange,
@@ -58,10 +59,15 @@ export function NewDerivedRatePlanSheet({
     roomTypes: RoomType[];
     companies: Company[];
     derivations: { value: string; label: string }[];
+    packageUnits: { value: string; label: string }[];
     currency: App.Enums.Currency;
     open: boolean;
     onOpenChange: (open: boolean) => void;
 }) {
+    const isPackage = parent.pricingBasis === 'package';
+    const units = isPackage
+        ? derivations.filter((option) => option.value === 'percent')
+        : derivations;
     const parentRoomTypes = roomTypes.filter((roomType) =>
         parent.roomTypeIds.includes(roomType.id),
     );
@@ -236,7 +242,7 @@ export function NewDerivedRatePlanSheet({
                                 <EnumSelect
                                     id="derived-plan-unit"
                                     name="derivation"
-                                    options={derivations.map((option) => ({
+                                    options={units.map((option) => ({
                                         value: option.value,
                                         label:
                                             option.value === 'percent'
@@ -251,6 +257,21 @@ export function NewDerivedRatePlanSheet({
                                 <FieldError>{errors.derivation}</FieldError>
                             </Field>
                         </div>
+                        {isPackage && (
+                            <FieldDescription>
+                                A package of {parent.fixedNights}{' '}
+                                {parent.fixedNights === 1 ? 'night' : 'nights'},
+                                charged{' '}
+                                {packageUnits
+                                    .find(
+                                        (unit) =>
+                                            unit.value === parent.packageUnit,
+                                    )
+                                    ?.label.toLowerCase()}
+                                . The new plan keeps both, and follows by a
+                                percentage only.
+                            </FieldDescription>
+                        )}
                         <section
                             aria-label="Today's prices"
                             aria-busy={http.processing}

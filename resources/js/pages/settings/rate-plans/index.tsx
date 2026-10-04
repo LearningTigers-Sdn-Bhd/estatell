@@ -136,13 +136,9 @@ function ArchiveRatePlan({
     );
 }
 
-/** An active plan that prices nights and does not follow another plan can be a parent. */
+/** An active plan that does not follow another plan can be a parent. A package can have package followers. */
 function canBeParent(ratePlan: RatePlan): boolean {
-    return (
-        !ratePlan.archived &&
-        !ratePlan.isDerived &&
-        ratePlan.pricingBasis !== 'package'
-    );
+    return !ratePlan.archived && !ratePlan.isDerived;
 }
 
 function RatePlanActions({
@@ -491,6 +487,7 @@ export default function RatePlansIndex({
                     roomTypes={roomTypes}
                     companies={companies}
                     derivations={derivations}
+                    packageUnits={packageUnits}
                     currency={currency}
                     open
                     onOpenChange={(next) => !next && setDerivingFrom(null)}

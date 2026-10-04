@@ -68,9 +68,12 @@ function AmountField({
 export function DetailsForm({
     ratePlan,
     currency,
+    nightsLockedReason = null,
 }: {
     ratePlan: RatePlan;
     currency: App.Enums.Currency;
+    /** Why the nights of a package cannot change, or null when they can. */
+    nightsLockedReason?: string | null;
 }) {
     const form = useForm({
         name: ratePlan.name,
@@ -148,6 +151,7 @@ export function DetailsForm({
                             max="30"
                             inputMode="numeric"
                             className="sm:max-w-32"
+                            disabled={nightsLockedReason !== null}
                             value={form.data.fixed_nights}
                             onChange={(event) =>
                                 form.setData('fixed_nights', event.target.value)
@@ -155,9 +159,8 @@ export function DetailsForm({
                             aria-invalid={!!form.errors.fixed_nights}
                         />
                         <FieldDescription>
-                            The stay is fixed. The booking form sets departure
-                            to arrival plus these nights. Existing bookings keep
-                            their prices.
+                            {nightsLockedReason ??
+                                'The stay is fixed. The booking form sets departure to arrival plus these nights. Existing bookings keep their prices.'}
                         </FieldDescription>
                         <FieldError>{form.errors.fixed_nights}</FieldError>
                     </Field>

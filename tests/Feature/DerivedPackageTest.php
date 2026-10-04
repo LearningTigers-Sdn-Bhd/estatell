@@ -228,3 +228,15 @@ test('the pricing tab of a package sends the follow options', function () {
             ->where('derivation.parents.0.id', $parent->id)
             ->has('derivations'));
 });
+
+test('the details tab says why the nights of a package are locked', function () {
+    [$owner, $property, $parent, $roomType] = derivedPackageSetup();
+    $child = derivedPackage($property, $parent, $roomType);
+    $free = RatePlan::factory()->for($property)->package()->create(['name' => 'Free']);
+
+    $reason = fn (RatePlan $plan) => $this->actingAs($owner)->get(route('settings.rate-plans.edit', [$property->code, $plan]));
+
+    $reason($parent)->assertInertia(fn (Assert $page) => $page->where('nightsLockedReason', 'Dive Package - Petronas follows this plan, so its nights cannot change.'));
+    $reason($child)->assertInertia(fn (Assert $page) => $page->where('nightsLockedReason', 'The nights follow Dive Package.'));
+    $reason($free)->assertInertia(fn (Assert $page) => $page->where('nightsLockedReason', null));
+});

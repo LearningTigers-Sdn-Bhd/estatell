@@ -52,6 +52,7 @@ export function PackagePricingForm({
     weekdays,
     weekdayOptions,
     currency,
+    following = false,
 }: {
     ratePlan: RatePlan;
     roomTypes: RoomType[];
@@ -59,6 +60,8 @@ export function PackagePricingForm({
     weekdays: string[];
     weekdayOptions: WeekdayOption[];
     currency: App.Enums.Currency;
+    /** A package that follows another has no prices of its own, so only its arrival days show. */
+    following?: boolean;
 }) {
     const form = useForm<{ prices: Row[]; weekdays: string[] }>({
         prices: prices.map((price) => ({
@@ -128,7 +131,7 @@ export function PackagePricingForm({
         save();
     };
 
-    if (roomTypes.length === 0) {
+    if (roomTypes.length === 0 && !following) {
         return (
             <EmptyState
                 title="No room types"
@@ -168,7 +171,7 @@ export function PackagePricingForm({
                 <FieldError>{errors.weekdays}</FieldError>
             </FieldSet>
             <FieldError>{errors.prices}</FieldError>
-            {roomTypes.map((roomType) => {
+            {(following ? [] : roomTypes).map((roomType) => {
                 const group = rows
                     .map((row, index) => ({ row, index }))
                     .filter(({ row }) => row.room_type_id === roomType.id);
@@ -319,7 +322,7 @@ export function PackagePricingForm({
                     focusableWhenDisabled
                 >
                     {form.processing && <Spinner data-icon="inline-start" />}
-                    Save pricing
+                    {following ? 'Save arrival days' : 'Save pricing'}
                 </Button>
             </footer>
             <UnsavedChangesDialog
