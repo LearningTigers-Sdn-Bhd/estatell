@@ -63,6 +63,12 @@ class FortifyServiceProvider extends ServiceProvider
                 ]);
             }
 
+            if ($user->temporary_password_expires_at?->isPast()) {
+                throw ValidationException::withMessages([
+                    Fortify::username() => __('This temporary password has expired. Ask your property owner for a new one.'),
+                ]);
+            }
+
             return $user;
         });
     }

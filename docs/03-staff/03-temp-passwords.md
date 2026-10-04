@@ -62,6 +62,7 @@ Selected (1): [Copy message] [Export ▾ CSV · XLSX · PDF] [Reset temp passwor
 - The Status column shows **Temp password · Nd** (days left) or **Temp password expired**.
 - Copy and export use only selected rows with an unexpired temp password. Other rows are skipped and the toast names the count, for example "1 skipped: no temp password".
 - The page never receives temp passwords as props. Copy fetches the text from the message route; exports are downloads.
+- Each active row also has **Copy message** (when its temp password is unexpired) and **Reset password** (not for Owners or yourself). After a reset, the copy message opens for that person.
 
 ### Add with temp password (Dialog, 3 fields)
 
@@ -115,8 +116,10 @@ The login URL is `route('login')`, so it follows `APP_URL`.
 | `Staff\ExportTemporaryPasswords`             | Builds the CSV, XLSX, PDF or message text for selected users. Logs `staff.temp-passwords-exported` with format and user ids |
 | `Account\SetOwnPassword`                     | Saves the new password, clears the temp columns and `must_change_password`                                                  |
 | `Staff\TemporaryPasswordGenerator` (service) | Makes `Word-0000-Word` passwords                                                                                            |
+| `Staff\TemporaryPasswordMessage` (service)   | Builds the copy message text from the slips                                                                                 |
 | `Staff\StaffImportReader` (service)          | Reads CSV or XLSX into rows (`name`, `email`, `role`), at most 200                                                          |
 
+- `TemporaryPasswordExportFormat` (enum) names the format in the export log: `message` now, `csv`, `xlsx` and `pdf` with the export commit.
 - Activity logs never contain a password.
 - Reset returns `false` for yourself, an Owner and a deactivated user.
 - Emails follow the invitation rules: stored lower case, and an email with an account or an open invitation cannot be used.

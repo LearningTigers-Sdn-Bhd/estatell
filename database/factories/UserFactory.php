@@ -75,6 +75,19 @@ class UserFactory extends Factory
     }
 
     /**
+     * Indicate that the staff user signs in with a temp password and must set their own.
+     */
+    public function withTemporaryPassword(string $temporaryPassword = 'Kopi-7342-Meja'): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'password' => $temporaryPassword,
+            'temporary_password' => $temporaryPassword,
+            'temporary_password_expires_at' => now()->addDays(14),
+            'must_change_password' => true,
+        ]);
+    }
+
+    /**
      * Indicate that the user is a platform admin.
      */
     public function admin(): static

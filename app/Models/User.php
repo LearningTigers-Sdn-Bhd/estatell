@@ -22,6 +22,9 @@ use Spatie\Permission\Traits\HasRoles;
  * @property string $email
  * @property Carbon|null $email_verified_at
  * @property string $password
+ * @property string|null $temporary_password
+ * @property Carbon|null $temporary_password_expires_at
+ * @property bool $must_change_password
  * @property bool $is_admin
  * @property Carbon|null $deactivated_at
  * @property string|null $two_factor_secret
@@ -32,7 +35,7 @@ use Spatie\Permission\Traits\HasRoles;
  * @property Carbon|null $updated_at
  */
 #[Fillable(['name', 'email', 'password'])]
-#[Hidden(['password', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token'])]
+#[Hidden(['password', 'temporary_password', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token'])]
 class User extends Authenticatable implements MustVerifyEmail
 {
     /** @use HasFactory<UserFactory> */
@@ -48,6 +51,9 @@ class User extends Authenticatable implements MustVerifyEmail
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'temporary_password' => 'encrypted',
+            'temporary_password_expires_at' => 'datetime',
+            'must_change_password' => 'boolean',
             'is_admin' => 'boolean',
             'deactivated_at' => 'datetime',
             'two_factor_confirmed_at' => 'datetime',

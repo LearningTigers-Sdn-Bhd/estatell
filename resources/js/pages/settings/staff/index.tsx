@@ -1,10 +1,13 @@
 import { Form, Head } from '@inertiajs/react';
-import { Mail, UserMinus, UserPlus, Users } from 'lucide-react';
+import { ChevronDown, KeyRound, Mail, UserMinus, Users } from 'lucide-react';
 import { useState } from 'react';
 import { DateText } from '@/components/pms/date-text';
 import { EmptyState } from '@/components/pms/empty-state';
 import { EnumSelect } from '@/components/pms/enum-select';
 import { PageHeader } from '@/components/pms/page-header';
+import { AddStaffDialog } from '@/components/pms/staff/add-staff-dialog';
+import { ResetTemporaryPassword } from '@/components/pms/staff/reset-temporary-password';
+import { TemporaryPasswordMessageDialog } from '@/components/pms/staff/temporary-password-message-dialog';
 import { TabLinks } from '@/components/pms/tab-links';
 import {
     AlertDialog,
@@ -28,6 +31,12 @@ import {
     DialogTitle,
     DialogTrigger,
 } from '@/components/ui/dialog';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import {
     Field,
     FieldError,
@@ -59,15 +68,17 @@ type Invitation = App.Data.Staff.StaffInvitationData;
 type RoleOption = App.Data.Staff.RoleOptionData;
 type Tab = 'active' | 'invited' | 'deactivated';
 
-function InviteStaffDialog({ roles }: { roles: RoleOption[] }) {
-    const [open, setOpen] = useState(false);
-
+function InviteStaffDialog({
+    roles,
+    open,
+    onOpenChange: setOpen,
+}: {
+    roles: RoleOption[];
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+}) {
     return (
         <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger render={<Button />}>
-                <UserPlus data-icon="inline-start" />
-                Invite staff
-            </DialogTrigger>
             <DialogContent>
                 <DialogHeader>
                     <DialogTitle>Invite staff</DialogTitle>
@@ -134,6 +145,74 @@ function InviteStaffDialog({ roles }: { roles: RoleOption[] }) {
                 </Form>
             </DialogContent>
         </Dialog>
+    );
+}
+
+function AddStaffMenu({
+    roles,
+    onShowMessage,
+}: {
+    roles: RoleOption[];
+    onShowMessage: (userIds: number[]) => void;
+}) {
+    const [inviting, setInviting] = useState(false);
+    const [adding, setAdding] = useState(false);
+
+    return (
+        <>
+            <DropdownMenu>
+                <DropdownMenuTrigger render={<Button />}>
+                    Add staff
+                    <ChevronDown data-icon="inline-end" />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                    <DropdownMenuItem onClick={() => setInviting(true)}>
+                        <Mail />
+                        Invite by email
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setAdding(true)}>
+                        <KeyRound />
+                        Add with temp password
+                    </DropdownMenuItem>
+                </DropdownMenuContent>
+            </DropdownMenu>
+            <InviteStaffDialog
+                roles={roles}
+                open={inviting}
+                onOpenChange={setInviting}
+            />
+            <AddStaffDialog
+                roles={roles}
+                open={adding}
+                onOpenChange={setAdding}
+                onAdded={(userId) => onShowMessage([userId])}
+            />
+        </>
+    );
+}
+
+/**
+ * Days left on a temp password, counted in the browser for display only. Null when expired.
+ */
+function temporaryPasswordDaysLeft(expiresAt: string): number | null {
+    const msLeft = new Date(expiresAt).getTime() - Date.now();
+
+    return msLeft > 0 ? Math.ceil(msLeft / 86_400_000) : null;
+}
+
+function StaffStatus({ member }: { member: StaffMember }) {
+    if (member.temporaryPasswordExpiresAt === null) {
+        return <span className="text-muted-foreground">Active</span>;
+    }
+
+    const daysLeft = temporaryPasswordDaysLeft(
+        member.temporaryPasswordExpiresAt,
+    );
+
+    return daysLeft === null ? (
+        <Badge variant="destructive">Temp password expired</Badge>
+    ) : (
+        <Badge variant="outline">Temp password · {daysLeft}d</Badge>
     );
 }
 
@@ -257,10 +336,12 @@ function ActiveStaff({
     staff,
     roles,
     canManage,
+    onShowMessage,
 }: {
     staff: StaffMember[];
     roles: RoleOption[];
     canManage: boolean;
+    onShowMessage: (userIds: number[]) => void;
 }) {
     return (
         <div className="overflow-hidden rounded-lg border">
@@ -271,6 +352,7 @@ function ActiveStaff({
                         <TableHead>Email</TableHead>
                         <TableHead>Role</TableHead>
                         <TableHead>Joined</TableHead>
+                        <TableHead>Status</TableHead>
                         {canManage && (
                             <TableHead>
                                 <span className="sr-only">Actions</span>
@@ -300,10 +382,38 @@ function ActiveStaff({
                             <TableCell>
                                 <DateText date={member.joinedAt} />
                             </TableCell>
+                            <TableCell>
+                                <StaffStatus member={member} />
+                            </TableCell>
                             {canManage && (
                                 <TableCell>
                                     {!member.isYou && (
                                         <div className="flex justify-end gap-1">
+                                            {member.temporaryPasswordExpiresAt !==
+                                                null &&
+                                                temporaryPasswordDaysLeft(
+                                                    member.temporaryPasswordExpiresAt,
+                                                ) !== null && (
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        onClick={() =>
+                                                            onShowMessage([
+                                                                member.id,
+                                                            ])
+                                                        }
+                                                    >
+                                                        Copy message
+                                                    </Button>
+                                                )}
+                                            {!member.isOwner && (
+                                                <ResetTemporaryPassword
+                                                    member={member}
+                                                    onReset={(userId) =>
+                                                        onShowMessage([userId])
+                                                    }
+                                                />
+                                            )}
                                             <ChangeRoleDialog
                                                 member={member}
                                                 roles={roles}
@@ -538,6 +648,8 @@ export default function StaffIndex({
     staff?: StaffMember[];
     invitations?: Invitation[];
 }) {
+    const [messageUserIds, setMessageUserIds] = useState<number[] | null>(null);
+
     return (
         <>
             <Head title="Staff" />
@@ -546,7 +658,14 @@ export default function StaffIndex({
                 <PageHeader
                     title="Staff"
                     description="People who can sign in to this property."
-                    actions={canManage && <InviteStaffDialog roles={roles} />}
+                    actions={
+                        canManage && (
+                            <AddStaffMenu
+                                roles={roles}
+                                onShowMessage={setMessageUserIds}
+                            />
+                        )
+                    }
                 />
 
                 <TabLinks
@@ -578,6 +697,7 @@ export default function StaffIndex({
                             staff={staff}
                             roles={roles}
                             canManage={canManage}
+                            onShowMessage={setMessageUserIds}
                         />
                     )}
                     {tab === 'deactivated' && (
@@ -591,6 +711,14 @@ export default function StaffIndex({
                     )}
                 </TabLinks>
             </div>
+
+            {canManage && (
+                <TemporaryPasswordMessageDialog
+                    userIds={messageUserIds ?? []}
+                    open={messageUserIds !== null}
+                    onOpenChange={(open) => !open && setMessageUserIds(null)}
+                />
+            )}
         </>
     );
 }

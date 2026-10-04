@@ -1083,9 +1083,25 @@ name: string,
 email: string,
 roleId: number | null,
 role: string | null,
+isOwner: boolean,
 isYou: boolean,
 joinedAt: string,
 deactivatedAt: string | null,
+temporaryPasswordExpiresAt: string | null,
+};
+export type TemporaryPasswordMessageData = {
+text: string,
+count: number,
+skipped: number,
+};
+export type TemporaryPasswordSlipData = {
+property: string,
+name: string,
+email: string,
+role: string | null,
+temporaryPassword: string,
+expiresOn: string,
+loginUrl: string,
 };
 }
 }
@@ -1142,6 +1158,7 @@ export type StayDiscountType = 'percent' | 'amount';
 export type SurchargeType = 'none' | 'fixed' | 'percent';
 export type SystemTransactionCode = 'room_revenue' | 'no_show_revenue' | 'cancellation_revenue' | 'late_checkout_revenue' | 'early_departure_revenue' | 'food_and_beverage_revenue' | 'laundry_revenue' | 'minibar_revenue' | 'fee_revenue' | 'sst_tax' | 'tourism_tax' | 'cash_payment' | 'card_payment' | 'bank_transfer_payment' | 'ewallet_payment' | 'ota_collected_payment' | 'direct_bill_payment' | 'security_deposit' | 'refund' | 'adjustment' | 'discount';
 export type TaxRateType = 'percent' | 'flat';
+export type TemporaryPasswordExportFormat = 'message';
 export type Tone = 'neutral' | 'info' | 'success' | 'warning' | 'danger';
 export type TransactionCategory = 'room' | 'food_and_beverage' | 'laundry' | 'minibar' | 'fee' | 'tax' | 'discount' | 'cash' | 'card' | 'bank_transfer' | 'e_wallet' | 'ota_collected' | 'direct_bill' | 'deposit' | 'refund' | 'adjustment' | 'other';
 export type TransactionKind = 'charge' | 'payment' | 'adjustment' | 'tax';

@@ -20,6 +20,7 @@ use App\Http\Controllers\Staff\StaffController;
 use App\Http\Controllers\Staff\StaffInvitationController;
 use App\Http\Controllers\Staff\StaffRoleController;
 use App\Http\Controllers\Staff\StaffStatusController;
+use App\Http\Controllers\Staff\StaffTemporaryPasswordController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('settings')->name('settings.')->group(function () {
@@ -152,6 +153,9 @@ Route::prefix('settings')->name('settings.')->group(function () {
         });
 
         Route::middleware('can:'.PermissionEnum::StaffManage->value)->scopeBindings()->group(function () {
+            Route::post('/', [StaffTemporaryPasswordController::class, 'store'])->name('store');
+            Route::post('temp-passwords/reset', [StaffTemporaryPasswordController::class, 'reset'])->name('temp-passwords.reset');
+            Route::post('temp-passwords/message', [StaffTemporaryPasswordController::class, 'message'])->name('temp-passwords.message');
             Route::post('invitations', [StaffInvitationController::class, 'store'])->name('invitations.store');
             Route::post('invitations/{staffInvitation}/resend', [StaffInvitationController::class, 'resend'])->name('invitations.resend');
             Route::delete('invitations/{staffInvitation}', [StaffInvitationController::class, 'destroy'])->name('invitations.destroy');
