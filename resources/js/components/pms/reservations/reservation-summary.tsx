@@ -172,18 +172,15 @@ export function ReservationSummary({
                 </Row>
             </dl>
             {reservation.notes && (
-                <>
-                    <Separator />
-                    <section className="flex flex-col gap-1">
-                        <h2 className="flex items-center gap-2 text-xs font-medium tracking-wide text-muted-foreground uppercase">
-                            <StickyNote aria-hidden className="size-4" />
-                            Notes
-                        </h2>
-                        <p className="text-sm whitespace-pre-line">
-                            {reservation.notes}
-                        </p>
-                    </section>
-                </>
+                <section className="flex flex-col gap-1 rounded-xl border p-3">
+                    <h2 className="flex items-center gap-2 text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                        <StickyNote aria-hidden className="size-4" />
+                        Notes
+                    </h2>
+                    <p className="text-sm whitespace-pre-line">
+                        {reservation.notes}
+                    </p>
+                </section>
             )}
         </div>
     );
