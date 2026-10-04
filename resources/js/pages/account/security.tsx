@@ -3,6 +3,7 @@ import { useRef } from 'react';
 import SecurityController from '@/actions/App/Http/Controllers/Account/SecurityController';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
+import LogoutOtherDevices from '@/components/logout-other-devices';
 import PasswordInput from '@/components/password-input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -128,6 +129,8 @@ export default function Security(props: Props) {
                 requiresConfirmation={props.requiresConfirmation}
                 twoFactorEnabled={props.twoFactorEnabled}
             />
+
+            <LogoutOtherDevices />
         </>
     );
 }

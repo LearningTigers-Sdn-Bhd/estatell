@@ -29,5 +29,9 @@ Route::middleware(['auth', 'verified'])->prefix('account')->name('account.')->gr
         ->middleware('throttle:6,1')
         ->name('password.update');
 
+    Route::delete('sessions', [SecurityController::class, 'logoutOtherDevices'])
+        ->middleware('throttle:6,1')
+        ->name('sessions.destroy');
+
     Route::inertia('appearance', 'account/appearance')->name('appearance.edit');
 });

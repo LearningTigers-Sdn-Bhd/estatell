@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers\Account;
 
+use App\Actions\Account\LogOutOtherDevices;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Account\LogOutOtherDevicesRequest;
 use App\Http\Requests\Account\PasswordUpdateRequest;
 use App\Http\Requests\Account\TwoFactorAuthenticationRequest;
 use Illuminate\Http\RedirectResponse;
@@ -43,6 +45,18 @@ class SecurityController extends Controller
         ]);
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Password updated.')]);
+
+        return back();
+    }
+
+    /**
+     * Sign the user out of every other browser and device.
+     */
+    public function logoutOtherDevices(LogOutOtherDevicesRequest $request, LogOutOtherDevices $logOutOtherDevices): RedirectResponse
+    {
+        $logOutOtherDevices($request->string('password')->value());
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Other devices are signed out.')]);
 
         return back();
     }
