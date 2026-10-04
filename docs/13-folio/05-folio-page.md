@@ -20,7 +20,7 @@ The server builds one list. The browser only draws it.
 
 ## Layout
 
-The folio panel has four rows: the title (folio name and status, with the invoice number under it when the folio has one, and Reopen or Close folio on the right), the figures, the action row, then the rows table. The action row holds Routing rules and Third-party folio on the left and the folio's own actions on the right (Reopen, Close, Apply discount, Record payment, Post charge). The whole panel scrolls. A reservation with no folio shows just the two reservation buttons above the empty state.
+The folio panel has four rows: the title (folio name and status, with the invoice number under it when the folio has one, and Reopen or Close folio on the right), the figures, the action row, then the rows table. The action row holds one **Routing** dropdown (Routing rules, Third-party folio) on the left and the folio's own actions on the right (Apply discount, Record payment, Post charge). The whole panel scrolls. A reservation with no folio shows just the Routing dropdown above the empty state.
 
 ## Figures
 
@@ -158,14 +158,14 @@ Two steps, as the quote requires. The dialog picks a discount (and an amount whe
 
 ## Routing rules and third-party folios
 
-Two reservation-level buttons sit in the action row, before the folio's own actions. The rules and decisions are in [Routing](03-routing.md#staff-screens).
+Two reservation-level actions sit in a **Routing** dropdown in the action row, before the folio's own actions. The rules and decisions are in [Routing](03-routing.md#staff-screens).
 
 ```
 ┌────────────────────┬──────────────────────────────────────────────────┐
 │ FOLIOS             │ Third party · Blue Reef Dive  ●Open              │
 │  Master · Acme     │ Invoice F-0034                                   │
 │  Unit 101 · Tan    │ [Balance] [Projected total] [Posted lines]       │
-│ ▌Third party ·     │ [Routing rules] [Third-party folio]  [Record …]  │
+│ ▌Third party ·     │ [Routing ▾]                      [Record …]      │
 │   Blue Reef Dive   │ ...                                              │
 └────────────────────┴──────────────────────────────────────────────────┘
 ```
@@ -218,7 +218,7 @@ Built (routing rules and third-party folios): `RoutingRuleList` (service, two qu
 
 Decisions made at build time (routing rules and third-party folios):
 
-- The two buttons sit in the action row (below the figures) and also show when the reservation has no folio yet, so a third-party folio can be made before any charge.
+- The two actions sit in the Routing dropdown (action row, below the figures) and also show when the reservation has no folio yet, so a third-party folio can be made before any charge.
 - The Routing rules button shows no count: the rules are an optional prop, and a count on every page load is not worth a query.
 - The Sheet reads `routingRules` again each time it opens and after each add or remove, so it never shows a folio or rule that changed in the meantime. Units come from the page's `units` prop, and charge codes from the `chargeCodes` optional prop.
 - Rules are listed in the order `FolioRouter` tries them: all units first, then by unit, and a charge code before a category before all charges.
