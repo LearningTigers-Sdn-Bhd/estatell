@@ -70,6 +70,7 @@ Viewing the Payments tab and the receipt needs `company.view`.
 - **Record payment Dialog:** method, amount, received on, reference (required when the method requires it), notes and an **Allocate to oldest invoices** tick, on by default.
 - **Allocate Dialog:** the payment's unallocated amount at the top, then the company's open invoices (number, due date, balance) with an amount box each.
 - **Invoice page:** an **Allocations** section (payment receipt number, date, amount, status) with **Reverse** on each active allocation, which asks for a reason.
+- The tab, the open invoices and the payment methods are read in a constant number of queries (grouped sums, no query per row).
 - **Receipt PDF:** titled "Receipt", with the shared letterhead, the company name and "Received against the city ledger", the method, reference, date, amount and who received it. It is rendered on demand and not stored.
 
 ## Build order

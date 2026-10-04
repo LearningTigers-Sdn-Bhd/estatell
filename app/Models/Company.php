@@ -85,6 +85,16 @@ class Company extends Model
         return $this->belongsToMany(RatePlan::class, 'company_rate_plans')->withTimestamps();
     }
 
+    /**
+     * The payments the company made against its city ledger.
+     *
+     * @return HasMany<ArPayment, $this>
+     */
+    public function payments(): HasMany
+    {
+        return $this->hasMany(ArPayment::class);
+    }
+
     /** @return HasMany<Reservation, $this> */
     public function reservations(): HasMany
     {

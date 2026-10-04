@@ -18,6 +18,7 @@ use App\Http\Requests\CityLedger\UpdateCompanyRatePlansRequest;
 use App\Models\Company;
 use App\Models\Property;
 use App\Models\RatePlan;
+use App\Services\CityLedger\ArPaymentLedger;
 use App\Services\Guests\CountryOptions;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -82,6 +83,20 @@ class CompanyController extends Controller
         ]);
     }
 
+    /**
+     * Company page, Payments tab: the company's AR payments, the invoices that still owe money and the methods.
+     */
+    public function payments(Request $request, Property $property, Company $company, ArPaymentLedger $ledger): Response
+    {
+        return $this->renderTab($request, $property, $company, 'payments', [
+            'payments' => $ledger->payments($company, $request->user()),
+            'openInvoices' => $ledger->openInvoices($company),
+            'methods' => $ledger->methods($company),
+            'canRecordPayment' => $request->user()->can(PermissionEnum::CityLedgerPayment->value),
+            'canAllocate' => $request->user()->can(PermissionEnum::CityLedgerAllocate->value),
+        ]);
+    }
+
     public function updateRates(UpdateCompanyRatePlansRequest $request, Property $property, Company $company, SyncCompanyRatePlans $syncCompanyRatePlans): RedirectResponse
     {
         Inertia::flash('toast', $syncCompanyRatePlans($request->user(), $company, $request->ratePlanIds())
@@ -116,7 +131,7 @@ class CompanyController extends Controller
      * Each tab has its own URL, so the open tab survives a refresh. Only the open tab's options are sent.
      * Staff without `company.manage` see the fields read-only.
      *
-     * @param  'details'|'credit'|'rates'  $tab
+     * @param  'details'|'credit'|'rates'|'payments'  $tab
      * @param  array<string, mixed>  $tabProps
      */
     private function renderTab(Request $request, Property $property, Company $company, string $tab, array $tabProps = []): Response

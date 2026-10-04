@@ -4,6 +4,7 @@ use App\Enums\PermissionEnum;
 use App\Http\Controllers\CityLedger\ArInvoiceController;
 use App\Http\Controllers\CityLedger\CompanyBulkAddController;
 use App\Http\Controllers\CityLedger\CompanyController;
+use App\Http\Controllers\CityLedger\CompanyPaymentController;
 use App\Http\Controllers\CityLedger\CompanyStatusController;
 use App\Http\Requests\CityLedger\CompanyRequest;
 use Illuminate\Support\Facades\Route;
@@ -25,6 +26,15 @@ Route::prefix('finance')->name('finance.')->group(function () {
                 Route::get('/', [CompanyController::class, 'show'])->name('show');
                 Route::get('credit', [CompanyController::class, 'credit'])->name('credit');
                 Route::get('rates', [CompanyController::class, 'rates'])->name('rates');
+                Route::get('payments', [CompanyController::class, 'payments'])->name('payments');
+                Route::get('payments/{payment}/receipt', [CompanyPaymentController::class, 'receipt'])->name('payments.receipt');
+            });
+
+            Route::prefix('payments')->name('payments.')->group(function () {
+                Route::post('/', [CompanyPaymentController::class, 'store'])->middleware('can:'.PermissionEnum::CityLedgerPayment->value)->name('store');
+                Route::post('{payment}/void', [CompanyPaymentController::class, 'void'])->middleware('can:'.PermissionEnum::CityLedgerPayment->value)->name('void');
+                Route::post('{payment}/allocations', [CompanyPaymentController::class, 'allocate'])->middleware('can:'.PermissionEnum::CityLedgerAllocate->value)->name('allocations.store');
+                Route::post('{payment}/allocations/{allocation}/reverse', [CompanyPaymentController::class, 'reverse'])->middleware('can:'.PermissionEnum::CityLedgerAllocate->value)->name('allocations.reverse');
             });
 
             Route::middleware('can:'.PermissionEnum::CompanyManage->value)->group(function () {

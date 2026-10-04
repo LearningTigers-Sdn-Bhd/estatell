@@ -13,6 +13,7 @@ class ArInvoiceData extends Data
     /**
      * @param  list<ArInvoiceRowData>  $creditNotes
      * @param  list<ArInvoiceLineData>  $lines
+     * @param  list<ArAllocationRowData>  $allocations
      */
     public function __construct(
         public ArInvoiceRowData $row,
@@ -25,6 +26,7 @@ class ArInvoiceData extends Data
         public string $credited,
         public array $creditNotes,
         public array $lines,
+        public array $allocations,
         public bool $canVoid,
         public bool $canCreditNote,
     ) {}

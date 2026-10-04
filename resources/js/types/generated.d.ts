@@ -92,6 +92,17 @@ postingTransactionCode: string,
 };
 }
 namespace CityLedger {
+export type ArAllocationRowData = {
+id: number,
+paymentId: number,
+companyId: number,
+receiptNumber: string,
+receivedOn: string,
+amount: string,
+isReversed: boolean,
+reversalReason: string | null,
+canReverse: boolean,
+};
 export type ArInvoiceData = {
 row: App.Data.CityLedger.ArInvoiceRowData,
 reason: string | null,
@@ -103,6 +114,7 @@ reservationReference: string | null,
 credited: string,
 creditNotes: App.Data.CityLedger.ArInvoiceRowData[],
 lines: App.Data.CityLedger.ArInvoiceLineData[],
+allocations: App.Data.CityLedger.ArAllocationRowData[],
 canVoid: boolean,
 canCreditNote: boolean,
 };
@@ -124,6 +136,24 @@ amount: string,
 balance: string | null,
 status: App.Data.Shared.BadgeData,
 overdue: boolean,
+};
+export type ArPaymentMethodOptionData = {
+id: number,
+name: string,
+requiresReference: boolean,
+};
+export type ArPaymentRowData = {
+id: number,
+receiptNumber: string,
+receivedOn: string,
+methodName: string,
+reference: string | null,
+notes: string | null,
+amount: string,
+unallocated: string,
+isVoided: boolean,
+canAllocate: boolean,
+canVoid: boolean,
 };
 export type CompanyData = {
 id: number,
@@ -170,6 +200,12 @@ idempotencyKey: string,
 receivedOn: string | null,
 reference: string | null,
 notes: string | null,
+};
+export type OpenArInvoiceData = {
+id: number,
+number: string,
+dueOn: string | null,
+balance: string,
 };
 }
 namespace Folio {

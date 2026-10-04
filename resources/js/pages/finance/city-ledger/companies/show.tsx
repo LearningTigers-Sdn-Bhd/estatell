@@ -1,6 +1,7 @@
 import { Form, Head } from '@inertiajs/react';
-import { CreditCard, Info, Tag } from 'lucide-react';
+import { CreditCard, Info, Tag, Wallet } from 'lucide-react';
 import { useState } from 'react';
+import { ArPaymentsTab } from '@/components/pms/city-ledger/ar-payments-tab';
 import { CompanyRatesForm } from '@/components/pms/city-ledger/company-rates-form';
 import { CountrySelect } from '@/components/pms/country-select';
 import type { EnumOption } from '@/components/pms/enum-select';
@@ -31,6 +32,7 @@ import { Textarea } from '@/components/ui/textarea';
 import {
     credit as creditTab,
     index,
+    payments as paymentsTab,
     rates as ratesTab,
     reactivate,
     show,
@@ -40,7 +42,7 @@ import {
 import { update as billingUpdate } from '@/routes/finance/city-ledger/companies/billing';
 
 type Company = App.Data.CityLedger.CompanyData;
-type Tab = 'details' | 'credit' | 'rates';
+type Tab = 'details' | 'credit' | 'rates' | 'payments';
 
 /**
  * A value the company keeps up to date in the company portal. Shown, never sent with a form.
@@ -322,6 +324,10 @@ export default function CompanyShow({
     countries = [],
     ratePlans = [],
     linkedPlanIds = [],
+    payments = [],
+    openInvoices = [],
+    methods = [],
+    canRecordPayment = false,
 }: {
     company: Company;
     tab: Tab;
@@ -331,6 +337,10 @@ export default function CompanyShow({
     countries?: EnumOption[];
     ratePlans?: App.Data.Rates.RatePlanData[];
     linkedPlanIds?: number[];
+    payments?: App.Data.CityLedger.ArPaymentRowData[];
+    openInvoices?: App.Data.CityLedger.OpenArInvoiceData[];
+    methods?: App.Data.CityLedger.ArPaymentMethodOptionData[];
+    canRecordPayment?: boolean;
 }) {
     const readOnly = !canManage;
     const form = (section: 'details' | 'credit') =>
@@ -370,6 +380,12 @@ export default function CompanyShow({
                             label: 'Rates',
                             icon: Tag,
                             href: ratesTab({ company: company.id }),
+                        },
+                        {
+                            value: 'payments',
+                            label: 'Payments',
+                            icon: Wallet,
+                            href: paymentsTab({ company: company.id }),
                         },
                     ]}
                 >
@@ -481,6 +497,17 @@ export default function CompanyShow({
                                 </>
                             )}
                         </SettingsSection>
+                    )}
+                    {tab === 'payments' && (
+                        <ArPaymentsTab
+                            key={`payments-${company.id}`}
+                            companyId={company.id}
+                            payments={payments}
+                            openInvoices={openInvoices}
+                            methods={methods}
+                            currency={currency}
+                            canRecordPayment={canRecordPayment}
+                        />
                     )}
                     {tab === 'rates' && (
                         <CompanyRatesForm

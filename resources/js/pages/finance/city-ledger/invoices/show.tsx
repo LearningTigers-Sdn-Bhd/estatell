@@ -1,6 +1,7 @@
 import { Form, Head, Link } from '@inertiajs/react';
 import { FilePlus2, Printer } from 'lucide-react';
 import { useState } from 'react';
+import { ReverseAllocationDialog } from '@/components/pms/city-ledger/reverse-allocation-dialog';
 import { IssueCreditNoteDialog } from '@/components/pms/city-ledger/issue-credit-note-dialog';
 import { DateText } from '@/components/pms/date-text';
 import { MoneyText } from '@/components/pms/money-text';
@@ -105,6 +106,8 @@ export default function InvoiceShow({
     currency: App.Enums.Currency | null;
 }) {
     const [crediting, setCrediting] = useState(false);
+    const [reversing, setReversing] =
+        useState<App.Data.CityLedger.ArAllocationRowData | null>(null);
     const { row } = invoice;
     const isInvoice = row.type === 'invoice';
     const money = (amount: string) => (
@@ -268,6 +271,72 @@ export default function InvoiceShow({
                     </section>
                 )}
 
+                {isInvoice && invoice.allocations.length > 0 && (
+                    <section className="flex flex-col gap-3">
+                        <h2 className="text-base font-medium">Payments</h2>
+                        <div className="overflow-hidden rounded-lg border">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Receipt</TableHead>
+                                        <TableHead>Received</TableHead>
+                                        <TableHead>Amount</TableHead>
+                                        <TableHead>Status</TableHead>
+                                        <TableHead className="w-10" />
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {invoice.allocations.map((allocation) => (
+                                        <TableRow key={allocation.id}>
+                                            <TableCell className="font-medium">
+                                                {allocation.receiptNumber}
+                                            </TableCell>
+                                            <TableCell>
+                                                <DateText
+                                                    date={allocation.receivedOn}
+                                                />
+                                            </TableCell>
+                                            <TableCell>
+                                                {money(allocation.amount)}
+                                            </TableCell>
+                                            <TableCell>
+                                                {allocation.isReversed ? (
+                                                    <span
+                                                        title={
+                                                            allocation.reversalReason ??
+                                                            undefined
+                                                        }
+                                                        className="text-muted-foreground"
+                                                    >
+                                                        Reversed
+                                                    </span>
+                                                ) : (
+                                                    'Applied'
+                                                )}
+                                            </TableCell>
+                                            <TableCell>
+                                                {allocation.canReverse && (
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        onClick={() =>
+                                                            setReversing(
+                                                                allocation,
+                                                            )
+                                                        }
+                                                    >
+                                                        Reverse
+                                                    </Button>
+                                                )}
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </div>
+                    </section>
+                )}
+
                 {invoice.lines.length > 0 && (
                     <section className="flex flex-col gap-3">
                         <h2 className="text-base font-medium">Folio lines</h2>
@@ -304,6 +373,12 @@ export default function InvoiceShow({
                     </section>
                 )}
             </div>
+
+            <ReverseAllocationDialog
+                allocation={reversing}
+                onClose={() => setReversing(null)}
+                currency={currency}
+            />
 
             {invoice.canCreditNote && (
                 <IssueCreditNoteDialog

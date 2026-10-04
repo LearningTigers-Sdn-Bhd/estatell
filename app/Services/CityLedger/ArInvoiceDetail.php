@@ -2,12 +2,14 @@
 
 namespace App\Services\CityLedger;
 
+use App\Data\CityLedger\ArAllocationRowData;
 use App\Data\CityLedger\ArInvoiceData;
 use App\Data\CityLedger\ArInvoiceLineData;
 use App\Data\CityLedger\ArInvoiceRowData;
 use App\Enums\ArInvoiceStatus;
 use App\Enums\ArInvoiceType;
 use App\Enums\PermissionEnum;
+use App\Models\ArAllocation;
 use App\Models\ArInvoice;
 use App\Models\FolioLine;
 use App\Models\User;
@@ -40,11 +42,30 @@ class ArInvoiceDetail
             credited: $credited,
             creditNotes: $notes->map(fn (ArInvoice $note): ArInvoiceRowData => ArInvoiceRowData::fromModel($note, null, $today))->all(),
             lines: $this->lines($invoice),
+            allocations: $isInvoice ? $this->allocations($invoice, $user) : [],
             canVoid: $isInvoice
                 ? $invoice->status === ArInvoiceStatus::Open && $notes->where('status', '<>', ArInvoiceStatus::Void)->isEmpty() && $user->can(PermissionEnum::CityLedgerInvoice->value)
                 : $invoice->status === ArInvoiceStatus::Settled && $user->can(PermissionEnum::CityLedgerCreditNote->value),
             canCreditNote: $isInvoice && $invoice->status !== ArInvoiceStatus::Void && bccomp($balance, '0', 2) > 0 && $user->can(PermissionEnum::CityLedgerCreditNote->value),
         );
+    }
+
+    /**
+     * The allocations of AR payments to the invoice, newest first, reversed ones included.
+     *
+     * @return list<ArAllocationRowData>
+     */
+    private function allocations(ArInvoice $invoice, User $user): array
+    {
+        $mayReverse = $user->can(PermissionEnum::CityLedgerAllocate->value);
+
+        return ArAllocation::query()
+            ->where('ar_invoice_id', $invoice->id)
+            ->with('payment:id,company_id,receipt_number,received_on')
+            ->latest('id')
+            ->get()
+            ->map(fn (ArAllocation $allocation): ArAllocationRowData => ArAllocationRowData::fromModel($allocation, $mayReverse))
+            ->all();
     }
 
     /**
