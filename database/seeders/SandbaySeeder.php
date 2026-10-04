@@ -7,10 +7,18 @@ use App\Actions\Catalogues\CreateDiscount;
 use App\Actions\Catalogues\CreateTax;
 use App\Actions\Catalogues\UpdateRoomRevenueTaxes;
 use App\Actions\Catalogues\UpdateTax;
+use App\Actions\Folio\CloseFolio;
+use App\Actions\Folio\CreateFolio;
+use App\Actions\Folio\CreateRoutingRule;
+use App\Actions\Folio\PostCharge;
+use App\Actions\Folio\ReverseLine;
+use App\Actions\Folio\TransferLines;
 use App\Actions\Guests\BlacklistGuest;
 use App\Actions\Guests\CreateGuest;
 use App\Actions\Guests\SetVip;
 use App\Actions\NightAudit\OpenBusinessDate;
+use App\Actions\Payments\RecordPayment;
+use App\Actions\Payments\RefundPayment;
 use App\Actions\Property\GenerateDocumentPrefix;
 use App\Actions\Property\SeedPropertyDefaults;
 use App\Actions\Rates\CreateRatePlan;
@@ -25,6 +33,8 @@ use App\Actions\Rooms\CreateRoomType;
 use App\Actions\Rooms\GenerateRooms;
 use App\Actions\Staff\AssignOwnerRole;
 use App\Actions\Staff\AssignStaffRole;
+use App\Data\Folio\NewChargeData;
+use App\Data\Payments\NewPaymentData;
 use App\Data\Reservations\NewAddOnData;
 use App\Data\Reservations\NewBookingData;
 use App\Data\Reservations\NewBookingGuestData;
@@ -37,6 +47,8 @@ use App\Enums\DiscountScope;
 use App\Enums\DiscountType;
 use App\Enums\InclusionEnd;
 use App\Enums\InclusionStart;
+use App\Enums\PaymentMethodType;
+use App\Enums\PaymentPurpose;
 use App\Enums\PricingBasis;
 use App\Enums\PropertyStatus;
 use App\Enums\PropertyType;
@@ -47,8 +59,12 @@ use App\Enums\TransactionCategory;
 use App\Enums\UnitStatus;
 use App\Models\ChargeItem;
 use App\Models\Discount;
+use App\Models\Folio;
+use App\Models\FolioLine;
 use App\Models\Guest;
 use App\Models\MealPeriod;
+use App\Models\Payment;
+use App\Models\PaymentMethod;
 use App\Models\Property;
 use App\Models\Rate;
 use App\Models\RatePlan;
@@ -61,17 +77,23 @@ use App\Models\Tax;
 use App\Models\UnitAddOn;
 use App\Models\UnitNight;
 use App\Models\User;
+use App\Services\Folio\FolioBalance;
 use App\Services\Property\PropertyToday;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use RuntimeException;
 
 /**
  * Seeds Sandbay Resort, a 30-room resort in Semporna, Sabah: a live property with an open business date, its
  * catalogues, rooms, rate plans, rates, staff, guests and about 20 reservations. Dates are relative to the
  * property's business date. It runs on demand (`php artisan db:seed --class=SandbaySeeder`), uses the production
- * Actions, and skips when a property named Sandbay Resort exists. Folios are not seeded: posting is not built yet.
+ * Actions, and skips when a property named Sandbay Resort exists. Three in-house units have folios with manual
+ * postings, a reversal, a transfer to a third-party folio, routing, payments, a refund and a closed folio. Room
+ * charges are not seeded: the night audit does not post them yet, and no Action checks a unit in, so the seeder
+ * writes that status itself, as it does for a no-show.
  */
 class SandbaySeeder extends Seeder
 {
@@ -87,7 +109,7 @@ class SandbaySeeder extends Seeder
     /**
      * Shared by every Sandbay staff account. For local development only.
      */
-    private const string STAFF_PASSWORD = 'sandbay-demo-2026';
+    private const string STAFF_PASSWORD = '12345678';
 
     /**
      * Room types: name, rooms, group, number prefix, occupancy, weekday and weekend nightly price, package price for each guest.
@@ -146,7 +168,8 @@ class SandbaySeeder extends Seeder
         $roomTypes = $this->seedRooms($property, $owner);
         $plans = $this->seedRatePlans($property, $owner, $roomTypes, $items, $today);
         $guests = $this->seedGuests($property, $owner);
-        $this->seedReservations($property, $owner, $roomTypes, $plans, $items, $discounts, $guests, $today);
+        $reservations = $this->seedReservations($property, $owner, $roomTypes, $plans, $items, $discounts, $guests, $today);
+        $this->seedFolios($property, $owner, $items, $reservations);
 
         $this->command?->info(self::NAME.' seeded: '.Reservation::query()->where('property_id', $property->id)->count().' reservations, '.count($guests).' guests, '.$taxes.' taxes.');
         $this->printMetrics($property, $startedAt);
@@ -175,6 +198,9 @@ class SandbaySeeder extends Seeder
             ['Reservations', Reservation::query()->where('property_id', $property->id)->count()],
             ['Units', (clone $units)->count()],
             ['Unit nights', UnitNight::query()->whereIn('reservation_unit_id', (clone $units)->select('id'))->count()],
+            ['Folios', Folio::query()->where('property_id', $property->id)->count()],
+            ['Folio lines', FolioLine::query()->whereIn('folio_id', Folio::query()->where('property_id', $property->id)->select('id'))->count()],
+            ['Payments', Payment::query()->whereIn('folio_id', Folio::query()->where('property_id', $property->id)->select('id'))->count()],
             ['Add-ons', UnitAddOn::query()->whereIn('reservation_unit_id', (clone $units)->select('id'))->count()],
             ['Booked room amount (RM, confirmed units)', number_format((float) UnitNight::query()->whereIn('reservation_unit_id', $confirmedUnitIds)->sum('amount'), 2)],
             ['Seeding time', number_format(microtime(true) - $startedAt, 1).' s'],
@@ -541,8 +567,9 @@ class SandbaySeeder extends Seeder
      * @param  array<string, ChargeItem>  $items
      * @param  array<string, Discount>  $discounts
      * @param  list<Guest>  $guests
+     * @return array{walkIn: Reservation, villa: Reservation, anniversary: Reservation, dive: Reservation}
      */
-    private function seedReservations(Property $property, User $owner, array $roomTypes, array $plans, array $items, array $discounts, array $guests, CarbonImmutable $today): void
+    private function seedReservations(Property $property, User $owner, array $roomTypes, array $plans, array $items, array $discounts, array $guests, CarbonImmutable $today): array
     {
         $rooms = Room::query()->where('property_id', $property->id)->orderBy('position')->get()->groupBy('room_type_id');
         $roomCursor = [];
@@ -586,7 +613,7 @@ class SandbaySeeder extends Seeder
 
         $book('Garden Room', 'Room Only', 3, 2, 2, 0);
         $book('Garden Room', 'Bed & Breakfast', 5, 3, 2, 1, ['addOns' => [$addOn('JETTY_FEE')]]);
-        $book('Sea View Room', 'Bed & Breakfast', 6, 4, 2, 2, ['discount' => $discounts['EARLY_BIRD']->id, 'notes' => 'Anniversary trip. Please add a cake.']);
+        $anniversary = $book('Sea View Room', 'Bed & Breakfast', 6, 4, 2, 2, ['discount' => $discounts['EARLY_BIRD']->id, 'notes' => 'Anniversary trip. Please add a cake.']);
         $book('Sea View Room', 'Half Board', 8, 3, 2, 3, ['addOns' => [$addOn('AIRPORT_TRANSFER'), $addOn('EXTRA_TOWEL', 2)]]);
         $book('Family Suite', 'Bed & Breakfast', 10, 5, 4, 4, ['addOns' => [$addOn('EXTRA_BED')]]);
         $book('Water Villa', 'Half Board', 12, 3, 2, 9, ['addOns' => [$addOn('ISLAND_HOPPING')]]);
@@ -600,7 +627,8 @@ class SandbaySeeder extends Seeder
         $book('Water Villa', 'Room Only', 40, 4, 2, 22, ['discount' => $discounts['EARLY_BIRD']->id]);
         $book('Sea View Room', 'Bed & Breakfast', 45, 6, 2, 23, ['assign' => false]);
 
-        $book('Garden Room', 'Room Only', 0, 1, 2, 24, ['source' => ReservationSource::WalkIn]);
+        $walkIn = $book('Garden Room', 'Room Only', 0, 1, 2, 24, ['source' => ReservationSource::WalkIn]);
+        $villa = $book('Water Villa', 'Half Board', 0, 3, 2, 6);
 
         $noShow = $book('Garden Room', 'Room Only', 0, 2, 2, 7);
         $this->setUnitStatuses($noShow, UnitStatus::NoShow);
@@ -608,7 +636,9 @@ class SandbaySeeder extends Seeder
         $cancelled = $book('Sea View Room', 'Bed & Breakfast', 14, 3, 2, 8);
         $this->setUnitStatuses($cancelled, UnitStatus::Cancelled);
 
-        $this->diveGroup($property, $owner, $roomTypes, $plans, $guests, $today, $nextRoom);
+        $dive = $this->diveGroup($property, $owner, $roomTypes, $plans, $guests, $today, $nextRoom);
+
+        return ['walkIn' => $walkIn, 'villa' => $villa, 'anniversary' => $anniversary, 'dive' => $dive];
     }
 
     /**
@@ -618,7 +648,7 @@ class SandbaySeeder extends Seeder
      * @param  array<string, RatePlan>  $plans
      * @param  list<Guest>  $guests
      */
-    private function diveGroup(Property $property, User $owner, array $roomTypes, array $plans, array $guests, CarbonImmutable $today, callable $nextRoom): void
+    private function diveGroup(Property $property, User $owner, array $roomTypes, array $plans, array $guests, CarbonImmutable $today, callable $nextRoom): Reservation
     {
         $roomType = $roomTypes['Sea View Room'];
         $units = [];
@@ -653,6 +683,142 @@ class SandbaySeeder extends Seeder
         if ($result->isRefused()) {
             throw new RuntimeException("The dive group was refused: {$result->refusal}.");
         }
+
+        return $result->reservation;
+    }
+
+    /**
+     * Give the walk-in, the water villa stay and the dive group their folios, and an advance payment to the
+     * anniversary booking. Every posting goes through the production Actions, so a refusal stops the run.
+     *
+     * @param  array<string, ChargeItem>  $items
+     * @param  array{walkIn: Reservation, villa: Reservation, anniversary: Reservation, dive: Reservation}  $reservations
+     */
+    private function seedFolios(Property $property, User $owner, array $items, array $reservations): void
+    {
+        $methods = PaymentMethod::query()->where('property_id', $property->id)->where('active', true)->get()->keyBy(fn (PaymentMethod $method): string => $method->type->value);
+        $cash = $methods[PaymentMethodType::Cash->value];
+        $card = $methods[PaymentMethodType::Card->value];
+
+        $this->advance($owner, $reservations['anniversary'], $reservations['anniversary']->units()->firstOrFail(), $card, '300.00');
+
+        // Walk-in: a small bill, paid in full, checked out and closed with an invoice number.
+        $walkInUnit = $this->checkIn($reservations['walkIn'])->first();
+        $this->charge($owner, $walkInUnit, $items['EXTRA_TOWEL'], 2);
+        $this->charge($owner, $walkInUnit, $items['AIRPORT_TRANSFER']);
+        $folio = $this->unitFolio($walkInUnit);
+        $this->pay($owner, $reservations['walkIn'], $folio, $cash, PaymentPurpose::Settlement, app(FolioBalance::class)->forFolio($folio));
+        $this->checkOut($walkInUnit);
+        $closed = app(CloseFolio::class)($owner, $folio);
+
+        if ($closed->isRefused()) {
+            throw new RuntimeException("Closing the walk-in folio was refused: {$closed->refusal}.");
+        }
+
+        // Water villa: a mistaken charge reversed, a diving trip moved to a third-party folio, a part payment and a refund.
+        $villaUnit = $this->checkIn($reservations['villa'])->first();
+        $this->charge($owner, $villaUnit, $items['ISLAND_HOPPING'], 2);
+        $mistake = $this->charge($owner, $villaUnit, $items['EXTRA_BED']);
+        $reversed = app(ReverseLine::class)($owner, $mistake);
+
+        if ($reversed->isRefused()) {
+            throw new RuntimeException("The reversal was refused: {$reversed->refusal}.");
+        }
+
+        $diving = $this->charge($owner, $villaUnit, $items['DIVING_TRIP'], 2);
+        $payer = $reservations['villa']->booker;
+        $thirdParty = app(CreateFolio::class)->thirdParty($reservations['villa'], $payer);
+        $transferred = app(TransferLines::class)($owner, [$diving], $thirdParty);
+
+        if ($transferred->isRefused()) {
+            throw new RuntimeException("The transfer was refused: {$transferred->refusal}.");
+        }
+
+        $villaFolio = $this->unitFolio($villaUnit);
+        $payment = $this->pay($owner, $reservations['villa'], $villaFolio, $card, PaymentPurpose::Advance, '400.00');
+        $refund = app(RefundPayment::class)($owner, $payment, '50.00', 'Goodwill after a late boat.', (string) Str::uuid());
+
+        if ($refund->isRefused()) {
+            throw new RuntimeException("The refund was refused: {$refund->refusal}.");
+        }
+
+        // Dive group: all four units in-house. Diving trips follow a manual rule to the club's third-party folio.
+        $diveUnits = $this->checkIn($reservations['dive']);
+        $clubFolio = app(CreateFolio::class)->thirdParty($reservations['dive'], $reservations['dive']->booker);
+        $rule = app(CreateRoutingRule::class)->manual($owner, $reservations['dive'], $clubFolio, null, TransactionCategory::Other);
+
+        if ($rule->isRefused()) {
+            throw new RuntimeException("The routing rule was refused: {$rule->refusal}.");
+        }
+
+        foreach ($diveUnits as $unit) {
+            $this->charge($owner, $unit, $items['DIVING_TRIP'], 2);
+            $this->charge($owner, $unit, $items['EXTRA_TOWEL'], 2);
+        }
+
+        $this->pay($owner, $reservations['dive'], $clubFolio, $methods[PaymentMethodType::BankTransfer->value], PaymentPurpose::Advance, '1000.00');
+    }
+
+    /**
+     * No Action checks a unit in yet, so write the status and sync the reservation, as `setUnitStatuses()` does.
+     *
+     * @return Collection<int, ReservationUnit>
+     */
+    private function checkIn(Reservation $reservation): Collection
+    {
+        $reservation->units()->update(['status' => UnitStatus::CheckedIn->value, 'checked_in_at' => now()]);
+        app(SyncReservationStatus::class)($reservation);
+
+        return $reservation->units()->orderBy('id')->get();
+    }
+
+    private function unitFolio(ReservationUnit $unit): Folio
+    {
+        return Folio::query()->where('reservation_unit_id', $unit->id)->firstOrFail();
+    }
+
+    private function checkOut(ReservationUnit $unit): void
+    {
+        $unit->forceFill(['status' => UnitStatus::CheckedOut, 'checked_out_at' => now()])->save();
+        app(SyncReservationStatus::class)($unit->reservation);
+    }
+
+    private function charge(User $owner, ReservationUnit $unit, ChargeItem $item, int $quantity = 1): FolioLine
+    {
+        $result = app(PostCharge::class)($owner, $unit, new NewChargeData(
+            chargeItemId: $item->id,
+            transactionCodeId: null,
+            description: null,
+            quantity: $quantity,
+            unitAmount: (string) $item->default_amount,
+            idempotencyKey: 'manual:'.Str::uuid(),
+        ));
+
+        if ($result->isRefused()) {
+            throw new RuntimeException("Posting {$item->name} was refused: {$result->refusal}.");
+        }
+
+        return $result->lines[0];
+    }
+
+    private function advance(User $owner, Reservation $reservation, ReservationUnit $unit, PaymentMethod $method, string $amount): void
+    {
+        $result = app(RecordPayment::class)($owner, $reservation, null, $unit, new NewPaymentData($method->id, PaymentPurpose::Advance, $amount, 'ADV-'.Str::upper(Str::random(6)), (string) Str::uuid()));
+
+        if ($result->isRefused()) {
+            throw new RuntimeException("The advance payment was refused: {$result->refusal}.");
+        }
+    }
+
+    private function pay(User $owner, Reservation $reservation, Folio $folio, PaymentMethod $method, PaymentPurpose $purpose, string $amount): Payment
+    {
+        $result = app(RecordPayment::class)($owner, $reservation, $folio, null, new NewPaymentData($method->id, $purpose, $amount, $method->requires_reference ? 'REF-'.Str::upper(Str::random(6)) : null, (string) Str::uuid()));
+
+        if ($result->isRefused()) {
+            throw new RuntimeException("The payment was refused: {$result->refusal}.");
+        }
+
+        return $result->payment;
     }
 
     /**

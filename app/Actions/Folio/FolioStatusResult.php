@@ -15,6 +15,8 @@ class FolioStatusResult
 
     public const REFUSAL_BALANCE_NOT_ZERO = 'balance_not_zero';
 
+    public const REFUSAL_HAS_AR_INVOICE = 'folio_has_ar_invoice';
+
     private function __construct(
         public readonly ?Folio $folio,
         public readonly ?string $refusal,
