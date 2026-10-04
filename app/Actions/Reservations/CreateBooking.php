@@ -58,6 +58,7 @@ class CreateBooking
                     channelName: $data->channelName,
                     externalReference: $data->externalReference,
                     companyId: $data->companyId,
+                    creditOverrideReason: $data->creditOverrideReason,
                     groupName: $data->groupName,
                     notes: $data->notes,
                 ), $fromChannel);

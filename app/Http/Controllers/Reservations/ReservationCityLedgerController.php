@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Reservations;
 
 use App\Actions\CityLedger\SettleToCityLedger;
+use App\Enums\PermissionEnum;
 use App\Http\Controllers\Controller;
 use App\Models\Folio;
 use App\Models\Property;
@@ -19,7 +20,7 @@ class ReservationCityLedgerController extends Controller
      */
     public function settle(Request $request, Property $property, Reservation $reservation, Folio $folio, SettleToCityLedger $settleToCityLedger, ArInvoiceRefusals $refusals): RedirectResponse
     {
-        $result = $settleToCityLedger($request->user(), $folio);
+        $result = $settleToCityLedger($request->user(), $folio, $request->user()->can(PermissionEnum::CompanyCreditOverride->value) ? $request->input('credit_override_reason') : null);
 
         Inertia::flash('toast', $result->isRefused()
             ? ['type' => 'error', 'message' => $refusals->message((string) $result->refusal)]

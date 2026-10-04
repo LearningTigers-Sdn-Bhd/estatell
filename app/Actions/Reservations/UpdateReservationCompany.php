@@ -2,6 +2,7 @@
 
 namespace App\Actions\Reservations;
 
+use App\Actions\CityLedger\RecordCreditOverride;
 use App\Actions\Folio\FollowCompanyOnMasterFolio;
 use App\Actions\Folio\SyncRoutingRules;
 use App\Enums\CompanyStatus;
@@ -10,22 +11,29 @@ use App\Enums\UnitStatus;
 use App\Models\Company;
 use App\Models\Reservation;
 use App\Models\User;
+use App\Services\CityLedger\CreditCheck;
+use App\Services\Reservations\StayTotal;
 use Illuminate\Support\Facades\DB;
 
 class UpdateReservationCompany
 {
-    public function __construct(private FollowCompanyOnMasterFolio $followCompany, private SyncRoutingRules $syncRoutingRules) {}
+    public function __construct(private FollowCompanyOnMasterFolio $followCompany,
+        private SyncRoutingRules $syncRoutingRules,
+        private CreditCheck $creditCheck,
+        private RecordCreditOverride $recordCreditOverride,
+        private StayTotal $stayTotal,
+    ) {}
 
     /**
      * Set or clear the billed company. Refused when the reservation is closed (`reservation_closed`), when the company
      * is not an Active company of the property (`company_not_available`), or while the Master folio holds lines
-     * (`master_has_lines`), or while a live unit uses a plan the new company cannot book (`company_plan_conflict`). The same company is not a change: nothing is written or logged, and a Suspended company a
+     * (`master_has_lines`), or while a live unit uses a plan the new company cannot book (`company_plan_conflict`), or when the stay total would take the company over its credit limit without an override reason (`credit_limit_exceeded`). The same company is not a change: nothing is written or logged, and a Suspended company a
      * reservation already holds can stay. An empty Master folio's payer follows, and `SyncRoutingRules` runs so a new
      * company gets its Master folio. See docs/15-city-ledger/01-companies.md.
      */
-    public function __invoke(User $actor, Reservation $reservation, ?int $companyId): ReservationResult
+    public function __invoke(User $actor, Reservation $reservation, ?int $companyId, ?string $overrideReason = null): ReservationResult
     {
-        return DB::transaction(function () use ($actor, $reservation, $companyId): ReservationResult {
+        return DB::transaction(function () use ($actor, $reservation, $companyId, $overrideReason): ReservationResult {
             $locked = Reservation::query()->lockForUpdate()->findOrFail($reservation->id);
 
             if (in_array($locked->status, [ReservationStatus::Cancelled, ReservationStatus::Completed], true)) {
@@ -38,6 +46,17 @@ class UpdateReservationCompany
 
             if ($companyId !== null && ! Company::query()->where('property_id', $locked->property_id)->where('status', CompanyStatus::Active)->whereKey($companyId)->exists()) {
                 return ReservationResult::refused(ReservationResult::REFUSAL_COMPANY_NOT_AVAILABLE);
+            }
+
+            $check = null;
+            $company = $companyId === null ? null : Company::query()->find($companyId);
+
+            if ($company !== null) {
+                $check = $this->creditCheck->check($company, $this->stayTotal->forReservation($locked));
+
+                if (! $check->allowed && trim((string) $overrideReason) === '') {
+                    return ReservationResult::refused(ReservationResult::REFUSAL_CREDIT_LIMIT_EXCEEDED);
+                }
             }
 
             $usesPlanOfOldCompany = $locked->units()
@@ -54,6 +73,10 @@ class UpdateReservationCompany
 
             if (! ($this->followCompany)($locked, $companyId)) {
                 return ReservationResult::refused(ReservationResult::REFUSAL_MASTER_HAS_LINES);
+            }
+
+            if ($company !== null && $check !== null && ! $check->allowed) {
+                ($this->recordCreditOverride)($actor, $company, $check, (string) $overrideReason, 'change_reservation_company');
             }
 
             $oldCompanyId = $locked->company_id;

@@ -19,6 +19,8 @@ class ArInvoiceResult
 
     public const REFUSAL_NO_BUSINESS_DATE = 'no_business_date';
 
+    public const REFUSAL_CREDIT_LIMIT_EXCEEDED = 'credit_limit_exceeded';
+
     public const REFUSAL_NOT_AN_OPEN_INVOICE = 'not_an_open_invoice';
 
     public const REFUSAL_AMOUNT_INVALID = 'amount_invalid';

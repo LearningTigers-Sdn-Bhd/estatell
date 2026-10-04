@@ -47,6 +47,7 @@ class StoreBookingRequest extends FormRequest
             'departure_time' => ['nullable', 'date_format:H:i'],
             'group_name' => ['nullable', 'string', 'max:150'],
             'company_id' => ['nullable', 'integer'],
+            'credit_override_reason' => ['nullable', 'string', 'max:500'],
             'billing_mode' => ['nullable', Rule::enum(BillingMode::class)],
             'notes' => ['nullable', 'string', 'max:2000'],
             'guests' => ['required', 'array', 'min:1', 'max:20'],
@@ -167,6 +168,7 @@ class StoreBookingRequest extends FormRequest
             externalReference: $this->validated('external_reference'),
             groupName: $this->validated('group_name'),
             companyId: $this->user()->can(PermissionEnum::CompanyView->value) && $this->filled('company_id') ? $this->integer('company_id') : null,
+            creditOverrideReason: $this->user()->can(PermissionEnum::CompanyCreditOverride->value) ? $this->validated('credit_override_reason') : null,
             notes: $this->validated('notes'),
         );
     }

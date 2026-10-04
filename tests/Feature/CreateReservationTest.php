@@ -127,6 +127,31 @@ test('it refuses a suspended company and one from another property', function (s
     expectNothingCreated();
 })->with(['suspended', 'foreign']);
 
+test('a booking that takes the company over its credit limit is refused unless a reason is given', function () {
+    $setup = createSetup();
+    $company = Company::factory()->for($setup['property'])->create(['credit_limit' => '50.00']);
+
+    $refused = createReservation($setup, [roomLine($setup)], ['companyId' => $company->id]);
+
+    expect($refused->refusal)->toBe(ReservationResult::REFUSAL_CREDIT_LIMIT_EXCEEDED);
+    expectNothingCreated();
+
+    $done = createReservation($setup, [roomLine($setup)], ['companyId' => $company->id, 'creditOverrideReason' => 'Owner agreed']);
+
+    expect($done->isRefused())->toBeFalse()
+        ->and($done->reservation->company_id)->toBe($company->id)
+        ->and(Activity::query()->where('event', 'credit.overridden')->sole()->properties['action'])->toBe('create_reservation');
+});
+
+test('a booking under the limit or with no company is never credit checked', function () {
+    $setup = createSetup();
+    $roomy = Company::factory()->for($setup['property'])->create(['credit_limit' => '100000.00']);
+
+    expect(createReservation($setup, [roomLine($setup)], ['companyId' => $roomy->id, 'creditOverrideReason' => 'x'])->isRefused())->toBeFalse()
+        ->and(createReservation($setup, [roomLine($setup, 2, ['adults' => 1])])->isRefused())->toBeFalse()
+        ->and(Activity::query()->where('event', 'credit.overridden')->count())->toBe(0);
+});
+
 test('it creates a single room reservation', function () {
     $setup = createSetup();
     $company = Company::factory()->for($setup['property'])->create();

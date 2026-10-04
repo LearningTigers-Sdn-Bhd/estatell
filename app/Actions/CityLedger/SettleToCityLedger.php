@@ -12,6 +12,7 @@ use App\Models\Folio;
 use App\Models\FolioLine;
 use App\Models\TransactionCode;
 use App\Models\User;
+use App\Services\CityLedger\CreditCheck;
 use App\Services\Folio\FolioBalance;
 use App\Services\NightAudit\CurrentBusinessDate;
 use Illuminate\Support\Facades\DB;
@@ -24,18 +25,20 @@ class SettleToCityLedger
         private FolioBalance $folioBalance,
         private CloseFolio $closeFolio,
         private CreateArInvoiceFromFolio $createArInvoiceFromFolio,
+        private CreditCheck $creditCheck,
+        private RecordCreditOverride $recordCreditOverride,
     ) {}
 
     /**
      * Move the whole balance of an Open folio to the city ledger: post one negative `DIRECT_BILL` line on the business
      * date (key `city-ledger:{folio_id}`), close the folio, and make the AR invoice, in one transaction. The folio
      * row is locked first and every check runs before the first write, so a refusal writes and logs nothing. It does
-     * not use `RecordPayment`: there is no `payments` row and no receipt. The credit limit check arrives with
-     * `CreditExposure`. Permissions are checked by the route. See docs/15-city-ledger/02-ar-invoices.md.
+     * not use `RecordPayment`: there is no `payments` row and no receipt. A company over its credit limit is refused unless
+     * `$overrideReason` is given, which the route passes only to users with `company.credit-override`. Permissions are checked by the route. See docs/15-city-ledger/02-ar-invoices.md.
      */
-    public function __invoke(User $actor, Folio $folio): ArInvoiceResult
+    public function __invoke(User $actor, Folio $folio, ?string $overrideReason = null): ArInvoiceResult
     {
-        return DB::transaction(function () use ($actor, $folio): ArInvoiceResult {
+        return DB::transaction(function () use ($actor, $folio, $overrideReason): ArInvoiceResult {
             $locked = Folio::query()->lockForUpdate()->findOrFail($folio->id);
 
             if ($locked->status !== FolioStatus::Open) {
@@ -52,6 +55,12 @@ class SettleToCityLedger
 
             if ($company->status !== CompanyStatus::Active || ! $company->direct_bill_enabled) {
                 return ArInvoiceResult::refused(ArInvoiceResult::REFUSAL_DIRECT_BILL_NOT_ALLOWED);
+            }
+
+            $check = $this->creditCheck->check($company);
+
+            if (! $check->allowed && trim((string) $overrideReason) === '') {
+                return ArInvoiceResult::refused(ArInvoiceResult::REFUSAL_CREDIT_LIMIT_EXCEEDED);
             }
 
             $businessDate = $this->currentBusinessDate->date($locked->property);
@@ -89,6 +98,10 @@ class SettleToCityLedger
 
             if ($closed->isRefused()) {
                 throw new RuntimeException('A folio with a zero balance must close: '.$closed->refusal);
+            }
+
+            if (! $check->allowed) {
+                ($this->recordCreditOverride)($actor, $company, $check, (string) $overrideReason, 'settle_to_city_ledger');
             }
 
             $invoice = ($this->createArInvoiceFromFolio)($actor, $closed->folio, $balance, $businessDate);

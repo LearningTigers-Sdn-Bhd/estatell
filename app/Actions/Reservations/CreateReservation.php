@@ -2,6 +2,7 @@
 
 namespace App\Actions\Reservations;
 
+use App\Actions\CityLedger\RecordCreditOverride;
 use App\Actions\Folio\SyncRoutingRules;
 use App\Data\Reservations\NewReservationData;
 use App\Data\Reservations\NewUnitData;
@@ -15,12 +16,21 @@ use App\Models\Property;
 use App\Models\Reservation;
 use App\Models\RoomType;
 use App\Models\User;
+use App\Services\CityLedger\CreditCheck;
 use App\Services\NightAudit\NextDocumentNumber;
+use App\Services\Reservations\StayTotal;
 use Illuminate\Support\Facades\DB;
 
 class CreateReservation
 {
-    public function __construct(private AddUnit $addUnit, private NextDocumentNumber $nextDocumentNumber, private SyncRoutingRules $syncRoutingRules) {}
+    public function __construct(
+        private AddUnit $addUnit,
+        private NextDocumentNumber $nextDocumentNumber,
+        private SyncRoutingRules $syncRoutingRules,
+        private CreditCheck $creditCheck,
+        private RecordCreditOverride $recordCreditOverride,
+        private StayTotal $stayTotal,
+    ) {}
 
     /**
      * Create a reservation and its units in one transaction.
@@ -79,6 +89,8 @@ class CreateReservation
                     }
                 }
 
+                $this->checkCredit($actor, $reservation, $data);
+
                 ($this->syncRoutingRules)($reservation);
 
                 activity()
@@ -99,6 +111,34 @@ class CreateReservation
         } catch (ReservationRefused $refused) {
             return $refused->result;
         }
+    }
+
+    /**
+     * Refuse a company that the stay total would take over its credit limit, unless `creditOverrideReason` is given
+     * (the route passes it only to users with `company.credit-override`), which is then logged. A reservation without
+     * a company is never checked. See docs/15-city-ledger/04-credit-control-and-reports.md.
+     *
+     * @throws ReservationRefused when the company would go over its limit and there is no override reason
+     */
+    private function checkCredit(User $actor, Reservation $reservation, NewReservationData $data): void
+    {
+        $company = $data->companyId === null ? null : Company::query()->find($data->companyId);
+
+        if ($company === null) {
+            return;
+        }
+
+        $check = $this->creditCheck->check($company, $this->stayTotal->forReservation($reservation));
+
+        if ($check->allowed) {
+            return;
+        }
+
+        if (trim((string) $data->creditOverrideReason) === '') {
+            throw new ReservationRefused(ReservationResult::refused(ReservationResult::REFUSAL_CREDIT_LIMIT_EXCEEDED));
+        }
+
+        ($this->recordCreditOverride)($actor, $company, $check, (string) $data->creditOverrideReason, 'create_reservation');
     }
 
     /**

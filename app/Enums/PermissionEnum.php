@@ -39,6 +39,7 @@ enum PermissionEnum: string
     case PaymentRefund = 'payment.refund';
     case CompanyView = 'company.view';
     case CompanyManage = 'company.manage';
+    case CompanyCreditOverride = 'company.credit-override';
     case CityLedgerInvoice = 'city-ledger.invoice';
     case CityLedgerCreditNote = 'city-ledger.credit-note';
     case CityLedgerPayment = 'city-ledger.payment';
@@ -78,6 +79,7 @@ enum PermissionEnum: string
             self::PaymentRefund => __('Refund payments'),
             self::CompanyView => __('View companies'),
             self::CompanyManage => __('Manage companies'),
+            self::CompanyCreditOverride => __('Pass a company credit limit check'),
             self::CityLedgerInvoice => __('Settle folios to City ledger and void AR invoices'),
             self::CityLedgerCreditNote => __('Issue and void AR credit notes'),
             self::CityLedgerPayment => __('Record and void AR payments'),
@@ -100,7 +102,7 @@ enum PermissionEnum: string
             self::ReservationsView, self::ReservationsManage => __('Reservations'),
             self::FolioPostCharge, self::FolioReverse, self::FolioTransfer, self::FolioDiscount, self::FolioDiscountOpen, self::FolioClose, self::FolioReopen, self::FolioPrintVoucher => __('Folio'),
             self::PaymentRecord, self::PaymentRefund => __('Payments'),
-            self::CompanyView, self::CompanyManage, self::CityLedgerInvoice, self::CityLedgerCreditNote, self::CityLedgerPayment, self::CityLedgerAllocate => __('City ledger'),
+            self::CompanyView, self::CompanyManage, self::CompanyCreditOverride, self::CityLedgerInvoice, self::CityLedgerCreditNote, self::CityLedgerPayment, self::CityLedgerAllocate => __('City ledger'),
         };
     }
 

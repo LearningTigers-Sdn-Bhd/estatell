@@ -22,6 +22,7 @@ class UpdateReservationCompanyRequest extends FormRequest
     {
         return [
             'company_id' => ['nullable', 'integer'],
+            'credit_override_reason' => ['nullable', 'string', 'max:500'],
         ];
     }
 }
