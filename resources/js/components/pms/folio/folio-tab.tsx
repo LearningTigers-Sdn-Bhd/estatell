@@ -140,56 +140,23 @@ export function FolioTab({
             {routingOverlays}
             <div className="flex flex-col gap-4">
                 <div className="flex flex-col gap-4">
-                    <div className="flex flex-col gap-1">
+                    <div className="flex flex-wrap items-center justify-between gap-2 px-3">
+                        <div className="flex flex-col gap-1">
+                            <div className="flex items-center gap-2">
+                                <h2 className="font-heading text-base font-medium">
+                                    {folio.name}
+                                </h2>
+                                {folio.status && (
+                                    <StatusBadge status={folio.status} />
+                                )}
+                            </div>
+                            {folio.invoiceNumber && (
+                                <p className="text-sm text-muted-foreground">
+                                    Invoice {folio.invoiceNumber}
+                                </p>
+                            )}
+                        </div>
                         <div className="flex items-center gap-2">
-                            <h2 className="font-heading text-base font-medium">
-                                {folio.name}
-                            </h2>
-                            {folio.status && (
-                                <StatusBadge status={folio.status} />
-                            )}
-                        </div>
-                        {folio.invoiceNumber && (
-                            <p className="text-sm text-muted-foreground">
-                                Invoice {folio.invoiceNumber}
-                            </p>
-                        )}
-                    </div>
-                    <dl className="grid gap-2 sm:grid-cols-3">
-                        <Figure label="Balance">
-                            {folio.balance === null ? (
-                                <span className="text-muted-foreground">—</span>
-                            ) : (
-                                <span
-                                    className={cn(
-                                        Number(folio.balance) > 0 &&
-                                            'text-destructive',
-                                    )}
-                                >
-                                    <MoneyText
-                                        amount={folio.balance}
-                                        currency={currency}
-                                    />
-                                </span>
-                            )}
-                        </Figure>
-                        <Figure label="Projected total">
-                            <MoneyText
-                                amount={folio.projectedTotal}
-                                currency={currency}
-                            />
-                        </Figure>
-                        <Figure label="Posted lines">
-                            <span className="tabular-nums">
-                                {folio.lineCount}
-                            </span>
-                        </Figure>
-                    </dl>
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                        <div className="flex flex-wrap items-center gap-2">
-                            {routingButtons}
-                        </div>
-                        <div className="flex flex-wrap items-center gap-2">
                             {folio.canReopen && (
                                 <Form
                                     {...reopen.form({
@@ -227,6 +194,43 @@ export function FolioTab({
                                     Close folio
                                 </Button>
                             )}
+                        </div>
+                    </div>
+                    <dl className="grid gap-2 sm:grid-cols-3">
+                        <Figure label="Balance">
+                            {folio.balance === null ? (
+                                <span className="text-muted-foreground">—</span>
+                            ) : (
+                                <span
+                                    className={cn(
+                                        Number(folio.balance) > 0 &&
+                                            'text-destructive',
+                                    )}
+                                >
+                                    <MoneyText
+                                        amount={folio.balance}
+                                        currency={currency}
+                                    />
+                                </span>
+                            )}
+                        </Figure>
+                        <Figure label="Projected total">
+                            <MoneyText
+                                amount={folio.projectedTotal}
+                                currency={currency}
+                            />
+                        </Figure>
+                        <Figure label="Posted lines">
+                            <span className="tabular-nums">
+                                {folio.lineCount}
+                            </span>
+                        </Figure>
+                    </dl>
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                            {routingButtons}
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2">
                             {folio.canApplyDiscount && (
                                 <Button
                                     variant="outline"
