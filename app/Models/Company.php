@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
 
@@ -72,6 +73,16 @@ class Company extends Model
     public function property(): BelongsTo
     {
         return $this->belongsTo(Property::class);
+    }
+
+    /**
+     * The derived plans only this company can book.
+     *
+     * @return BelongsToMany<RatePlan, $this>
+     */
+    public function ratePlans(): BelongsToMany
+    {
+        return $this->belongsToMany(RatePlan::class, 'company_rate_plans')->withTimestamps();
     }
 
     /** @return HasMany<Reservation, $this> */

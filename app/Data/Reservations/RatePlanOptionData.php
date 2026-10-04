@@ -13,12 +13,14 @@ class RatePlanOptionData extends Data
 {
     /**
      * @param  list<int>  $roomTypeIds
+     * @param  list<int>  $companyIds  The companies the plan is linked to. Empty means open to everyone.
      */
     public function __construct(
         public int $id,
         public string $name,
         public array $roomTypeIds,
         public ?int $fixedNights,
+        public array $companyIds = [],
     ) {}
 
     public static function fromModel(RatePlan $ratePlan): self
@@ -28,6 +30,7 @@ class RatePlanOptionData extends Data
             $ratePlan->name,
             $ratePlan->roomTypes->pluck('id')->map(intval(...))->values()->all(),
             $ratePlan->pricing_basis === PricingBasis::Package ? $ratePlan->fixed_nights : null,
+            $ratePlan->companies->pluck('id')->map(intval(...))->values()->all(),
         );
     }
 }

@@ -5,6 +5,7 @@ import { BookingQuoteCell } from '@/components/pms/reservations/booking-quote-ce
 import { BookingUnitPicker } from '@/components/pms/reservations/booking-unit-picker';
 import {
     isQuotable,
+    plansFor,
     resizeAges,
     resizeBeds,
     roomTypeOf,
@@ -51,6 +52,7 @@ export function BookingLineRow({
     index,
     line,
     options,
+    companyId,
     arrival,
     departure,
     currency,
@@ -65,6 +67,8 @@ export function BookingLineRow({
     index: number;
     line: BookingLine;
     options: Options;
+    /** The booking's company id as text, or an empty string: it decides which linked plans show. */
+    companyId: string;
     arrival: string;
     departure: string;
     currency: App.Enums.Currency | null;
@@ -78,11 +82,7 @@ export function BookingLineRow({
 }) {
     const roomType = roomTypeOf(line, options.roomTypes);
     const isBed = roomType?.isBed === true;
-    const plans = options.ratePlans.filter(
-        (plan) =>
-            line.room_type_id === '' ||
-            plan.roomTypeIds.includes(Number(line.room_type_id)),
-    );
+    const plans = plansFor(options.ratePlans, line.room_type_id, companyId);
     const quotable = isQuotable(line, arrival, departure);
     const { quote, loading } = useBookingQuote(
         line,

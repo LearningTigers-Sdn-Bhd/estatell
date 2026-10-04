@@ -93,6 +93,16 @@ class RatePlan extends Model
     }
 
     /**
+     * The companies this plan is linked to. A plan with none is open to everyone.
+     *
+     * @return BelongsToMany<Company, $this>
+     */
+    public function companies(): BelongsToMany
+    {
+        return $this->belongsToMany(Company::class, 'company_rate_plans')->withTimestamps();
+    }
+
+    /**
      * @return BelongsToMany<RoomType, $this>
      */
     public function roomTypes(): BelongsToMany

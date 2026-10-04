@@ -854,6 +854,7 @@ id: number,
 name: string,
 roomTypeIds: number[],
 fixedNights: number | null,
+companyIds: number[],
 };
 export type ReservationActivityData = {
 id: number,

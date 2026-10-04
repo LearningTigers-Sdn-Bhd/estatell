@@ -32,6 +32,7 @@ import {
     bookingPayload,
     emptyLine,
     nightsBetween,
+    plansFor,
     totalUnits,
     unitOptions,
 } from '@/components/pms/reservations/booking-lines';
@@ -572,10 +573,32 @@ export default function ReservationCreate({
                                                     id="booking-company_id"
                                                     value={data.company_id}
                                                     onValueChange={(value) =>
-                                                        form.setData(
-                                                            'company_id',
-                                                            value,
-                                                        )
+                                                        form.setData({
+                                                            ...data,
+                                                            company_id: value,
+                                                            lines: data.lines.map(
+                                                                (line) =>
+                                                                    plansFor(
+                                                                        addUnitOptions.ratePlans,
+                                                                        '',
+                                                                        value,
+                                                                    ).some(
+                                                                        (
+                                                                            plan,
+                                                                        ) =>
+                                                                            String(
+                                                                                plan.id,
+                                                                            ) ===
+                                                                            line.rate_plan_id,
+                                                                    )
+                                                                        ? line
+                                                                        : {
+                                                                              ...line,
+                                                                              rate_plan_id:
+                                                                                  '',
+                                                                          },
+                                                            ),
+                                                        })
                                                     }
                                                     companies={companies}
                                                     invalid={
@@ -691,6 +714,9 @@ export default function ReservationCreate({
                                                                 line={line}
                                                                 options={
                                                                     addUnitOptions
+                                                                }
+                                                                companyId={
+                                                                    data.company_id
                                                                 }
                                                                 arrival={
                                                                     data.arrival_date

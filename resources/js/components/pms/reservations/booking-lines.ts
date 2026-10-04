@@ -274,3 +274,22 @@ export function moveAddOn(
             : line;
     });
 }
+
+/**
+ * The plans a line can pick: the ones sold for its room type, and a plan linked to companies only when the booking's
+ * company is one of them. An empty `roomTypeId` keeps every room type.
+ */
+export function plansFor(
+    plans: App.Data.Reservations.RatePlanOptionData[],
+    roomTypeId: string,
+    companyId: string,
+): App.Data.Reservations.RatePlanOptionData[] {
+    return plans.filter(
+        (plan) =>
+            (roomTypeId === '' ||
+                plan.roomTypeIds.includes(Number(roomTypeId))) &&
+            (plan.companyIds.length === 0 ||
+                (companyId !== '' &&
+                    plan.companyIds.includes(Number(companyId)))),
+    );
+}

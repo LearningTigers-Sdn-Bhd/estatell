@@ -70,6 +70,7 @@ export function ReservationActions({
                 open={addingUnit}
                 onOpenChange={setAddingUnit}
                 reservationId={reservation.id}
+                companyId={reservation.companyId}
                 options={addUnitOptions}
                 currency={currency}
             />

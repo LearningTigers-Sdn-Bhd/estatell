@@ -45,6 +45,10 @@ class ReservationResult
 
     public const REFUSAL_COMPANY_NOT_AVAILABLE = 'company_not_available';
 
+    public const REFUSAL_RATE_PLAN_NOT_LINKED_TO_COMPANY = 'rate_plan_not_linked_to_company';
+
+    public const REFUSAL_COMPANY_PLAN_CONFLICT = 'company_plan_conflict';
+
     public const REFUSAL_MASTER_HAS_LINES = 'master_has_lines';
 
     private function __construct(

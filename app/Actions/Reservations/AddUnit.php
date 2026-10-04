@@ -84,6 +84,14 @@ class AddUnit
             return $refuse(ReservationResult::REFUSAL_RATE_PLAN_NOT_LINKED);
         }
 
+        if (! $fromChannel && $ratePlan->companies()->exists()) {
+            $companyId = Reservation::query()->whereKey($reservation->id)->value('company_id');
+
+            if ($companyId === null || ! $ratePlan->companies()->whereKey($companyId)->exists()) {
+                return $refuse(ReservationResult::REFUSAL_RATE_PLAN_NOT_LINKED_TO_COMPANY);
+            }
+        }
+
         $arrival = $data->arrivalDate->startOfDay();
         $departure = $data->departureDate->startOfDay();
 

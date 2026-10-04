@@ -48,6 +48,8 @@ class ReservationRefusals
         return match ($code) {
             ReservationResult::REFUSAL_RESERVATION_CLOSED => [self::FORM, __('This reservation is closed, so it cannot change.')],
             ReservationResult::REFUSAL_COMPANY_NOT_AVAILABLE => ['company_id', __('This company is not available. Pick an active company.')],
+            ReservationResult::REFUSAL_RATE_PLAN_NOT_LINKED_TO_COMPANY => ['rate_plan_id', __('This rate plan is for certain companies only. Pick one of them on the reservation first.')],
+            ReservationResult::REFUSAL_COMPANY_PLAN_CONFLICT => ['company_id', __('Units use plans only the old company can book.')],
             ReservationResult::REFUSAL_MASTER_HAS_LINES => ['company_id', __('Move or void the master folio\'s charges first.')],
             ReservationResult::REFUSAL_UNITS_REQUIRED => [self::FORM, __('Add at least one room or bed.')],
             ReservationResult::REFUSAL_BOOKER_NOT_FOUND => ['guest_id', __('The booker is not one of this property\'s guests.')],

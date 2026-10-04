@@ -1,6 +1,7 @@
 import { Form, Head } from '@inertiajs/react';
-import { CreditCard, Info } from 'lucide-react';
+import { CreditCard, Info, Tag } from 'lucide-react';
 import { useState } from 'react';
+import { CompanyRatesForm } from '@/components/pms/city-ledger/company-rates-form';
 import { CountrySelect } from '@/components/pms/country-select';
 import type { EnumOption } from '@/components/pms/enum-select';
 import { PageHeader } from '@/components/pms/page-header';
@@ -30,6 +31,7 @@ import { Textarea } from '@/components/ui/textarea';
 import {
     credit as creditTab,
     index,
+    rates as ratesTab,
     reactivate,
     show,
     suspend,
@@ -38,7 +40,7 @@ import {
 import { update as billingUpdate } from '@/routes/finance/city-ledger/companies/billing';
 
 type Company = App.Data.CityLedger.CompanyData;
-type Tab = 'details' | 'credit';
+type Tab = 'details' | 'credit' | 'rates';
 
 /**
  * A value the company keeps up to date in the company portal. Shown, never sent with a form.
@@ -318,6 +320,8 @@ export default function CompanyShow({
     canManage,
     types = [],
     countries = [],
+    ratePlans = [],
+    linkedPlanIds = [],
 }: {
     company: Company;
     tab: Tab;
@@ -325,9 +329,11 @@ export default function CompanyShow({
     canManage: boolean;
     types?: EnumOption[];
     countries?: EnumOption[];
+    ratePlans?: App.Data.Rates.RatePlanData[];
+    linkedPlanIds?: number[];
 }) {
     const readOnly = !canManage;
-    const form = (section: Tab) =>
+    const form = (section: 'details' | 'credit') =>
         update.form({ company: company.id, section });
 
     return (
@@ -358,6 +364,12 @@ export default function CompanyShow({
                             label: 'Credit',
                             icon: CreditCard,
                             href: creditTab({ company: company.id }),
+                        },
+                        {
+                            value: 'rates',
+                            label: 'Rates',
+                            icon: Tag,
+                            href: ratesTab({ company: company.id }),
                         },
                     ]}
                 >
@@ -469,6 +481,15 @@ export default function CompanyShow({
                                 </>
                             )}
                         </SettingsSection>
+                    )}
+                    {tab === 'rates' && (
+                        <CompanyRatesForm
+                            key={`rates-${company.id}`}
+                            companyId={company.id}
+                            ratePlans={ratePlans}
+                            linkedPlanIds={linkedPlanIds}
+                            readOnly={readOnly}
+                        />
                     )}
                 </TabLinks>
             </div>

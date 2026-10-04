@@ -10,6 +10,7 @@ import {
     KEEP_OPTIONS,
     useFormOptions,
 } from '@/components/pms/reservations/use-form-options';
+import { plansFor } from '@/components/pms/reservations/booking-lines';
 import { Button } from '@/components/ui/button';
 import {
     Collapsible,
@@ -41,6 +42,8 @@ type Props = {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     reservationId: number;
+    /** The reservation's company: a plan linked to companies shows only for one of them. */
+    companyId: number | null;
     options?: Options;
     currency: App.Enums.Currency | null;
 };
@@ -73,6 +76,7 @@ export function AddUnitSheet({
     open,
     onOpenChange,
     reservationId,
+    companyId,
     options,
     currency,
 }: Props) {
@@ -122,10 +126,10 @@ export function AddUnitSheet({
     };
 
     const roomTypes = options?.roomTypes ?? [];
-    const ratePlans = (options?.ratePlans ?? []).filter(
-        (plan) =>
-            data.room_type_id === '' ||
-            plan.roomTypeIds.includes(Number(data.room_type_id)),
+    const ratePlans = plansFor(
+        options?.ratePlans ?? [],
+        data.room_type_id,
+        companyId === null ? '' : String(companyId),
     );
     const roomType = roomTypes.find(
         (type) => String(type.id) === data.room_type_id,

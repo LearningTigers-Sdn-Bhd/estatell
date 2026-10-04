@@ -3,17 +3,21 @@
 namespace App\Http\Controllers\CityLedger;
 
 use App\Actions\CityLedger\CreateCompany;
+use App\Actions\CityLedger\SyncCompanyRatePlans;
 use App\Actions\CityLedger\UpdateCompany;
 use App\Actions\CityLedger\UpdateCompanyBilling;
 use App\Data\CityLedger\CompanyData;
 use App\Data\CityLedger\CompanyRowData;
+use App\Data\Rates\RatePlanData;
 use App\Enums\CompanyStatus;
 use App\Enums\CompanyType;
 use App\Enums\PermissionEnum;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\CityLedger\CompanyRequest;
+use App\Http\Requests\CityLedger\UpdateCompanyRatePlansRequest;
 use App\Models\Company;
 use App\Models\Property;
+use App\Models\RatePlan;
 use App\Services\Guests\CountryOptions;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -66,6 +70,27 @@ class CompanyController extends Controller
         return $this->renderTab($request, $property, $company, 'credit');
     }
 
+    /**
+     * Company page, Rates tab: the derived plans only this company can book.
+     */
+    public function rates(Request $request, Property $property, Company $company): Response
+    {
+        return $this->renderTab($request, $property, $company, 'rates', [
+            'ratePlans' => $property->ratePlans()->active()->whereNotNull('parent_rate_plan_id')->with('roomTypes', 'parent')->ordered()->get()
+                ->map(fn (RatePlan $ratePlan): RatePlanData => RatePlanData::fromModel($ratePlan)),
+            'linkedPlanIds' => $company->ratePlans()->pluck('rate_plans.id')->all(),
+        ]);
+    }
+
+    public function updateRates(UpdateCompanyRatePlansRequest $request, Property $property, Company $company, SyncCompanyRatePlans $syncCompanyRatePlans): RedirectResponse
+    {
+        Inertia::flash('toast', $syncCompanyRatePlans($request->user(), $company, $request->ratePlanIds())
+            ? ['type' => 'success', 'message' => __('Rates saved.')]
+            : ['type' => 'error', 'message' => __('The rate plans changed. Reload the page and try again.')]);
+
+        return to_route('finance.city-ledger.companies.rates', ['property' => $property, 'company' => $company]);
+    }
+
     public function update(CompanyRequest $request, Property $property, Company $company, string $section, UpdateCompany $updateCompany): RedirectResponse
     {
         $updateCompany($request->user(), $company, $request->companyAttributes());
@@ -91,7 +116,7 @@ class CompanyController extends Controller
      * Each tab has its own URL, so the open tab survives a refresh. Only the open tab's options are sent.
      * Staff without `company.manage` see the fields read-only.
      *
-     * @param  'details'|'credit'  $tab
+     * @param  'details'|'credit'|'rates'  $tab
      * @param  array<string, mixed>  $tabProps
      */
     private function renderTab(Request $request, Property $property, Company $company, string $tab, array $tabProps = []): Response

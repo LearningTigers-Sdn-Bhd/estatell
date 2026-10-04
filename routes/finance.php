@@ -23,10 +23,12 @@ Route::prefix('finance')->name('finance.')->group(function () {
             Route::middleware('can:'.PermissionEnum::CompanyView->value)->group(function () {
                 Route::get('/', [CompanyController::class, 'show'])->name('show');
                 Route::get('credit', [CompanyController::class, 'credit'])->name('credit');
+                Route::get('rates', [CompanyController::class, 'rates'])->name('rates');
             });
 
             Route::middleware('can:'.PermissionEnum::CompanyManage->value)->group(function () {
                 Route::put('billing', [CompanyController::class, 'updateBilling'])->name('billing.update');
+                Route::put('rates', [CompanyController::class, 'updateRates'])->name('rates.update');
                 Route::put('{section}', [CompanyController::class, 'update'])->whereIn('section', CompanyRequest::SECTIONS)->name('update');
                 Route::post('suspend', [CompanyStatusController::class, 'suspend'])->name('suspend');
                 Route::post('reactivate', [CompanyStatusController::class, 'reactivate'])->name('reactivate');
