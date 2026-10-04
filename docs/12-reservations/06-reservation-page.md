@@ -264,7 +264,7 @@ A title row (Activity), then a timeline grouped by day (`ActivityTab`): a muted 
 
 ### Summary card
 
-Booker (name, VIP, phone, email, link to the guest), earliest arrival, latest departure, units, room nights, stay total (sum of `unit_nights.amount` of units that hold inventory), balance ("from folio" until the [folio page](../13-folio/05-folio-page.md) lands), billing mode (2 or more units, with the `BillingMode` label), source, company ("—" until [Companies](../15-city-ledger/01-companies.md)), Created at (the date) and Created by (the user, or "System" when there is none) as two rows. Every row has an icon before its label, and only the top row (the Booker block) has `ps-3 pt-2`, like the title rows of the tab panels. Notes, when the booking has them, show under the summary figures (added with the booking form).
+Booker (name, VIP, phone, email, link to the guest), earliest arrival, latest departure, units, room nights, stay total (sum of `unit_nights.amount` of units that hold inventory), balance ("from folio" until the [folio page](../13-folio/05-folio-page.md) lands), billing mode (2 or more units, with the `BillingMode` label), source, company ("—" until [Companies](../15-city-ledger/01-companies.md)), Created at (the date) and Created by (the user, or "System" when there is none) as two rows. Every row has an icon before its label, and only the top row (the Booker block) has `ps-3 pt-2`, like the title rows of the tab panels. Notes, when the booking has them, show in a rounded, bordered box under the summary figures (added with the booking form).
 
 ### Page build status
 
