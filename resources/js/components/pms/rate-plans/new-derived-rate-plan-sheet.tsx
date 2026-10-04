@@ -1,5 +1,5 @@
 import { useForm, useHttp } from '@inertiajs/react';
-import { ArrowRight } from 'lucide-react';
+import { ArrowDown, ArrowRight, ArrowUp } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { EnumSelect } from '@/components/pms/enum-select';
 import { MultiCombobox } from '@/components/pms/multi-combobox';
@@ -184,6 +184,7 @@ export function NewDerivedRatePlanSheet({
                             </FieldLabel>
                             <Input
                                 id="derived-plan-name"
+                                placeholder={`e.g. ${parent.name} – Petronas`}
                                 maxLength={100}
                                 value={data.name}
                                 onChange={(event) =>
@@ -207,9 +208,11 @@ export function NewDerivedRatePlanSheet({
                                     aria-label="Direction"
                                 >
                                     <ToggleGroupItem value="down">
+                                        <ArrowDown data-icon="inline-start" />
                                         Down
                                     </ToggleGroupItem>
                                     <ToggleGroupItem value="up">
+                                        <ArrowUp data-icon="inline-start" />
                                         Up
                                     </ToggleGroupItem>
                                 </ToggleGroup>
@@ -228,6 +231,7 @@ export function NewDerivedRatePlanSheet({
                                     min="0"
                                     step="0.01"
                                     inputMode="decimal"
+                                    placeholder="e.g. 10"
                                     value={data.value}
                                     onChange={(event) =>
                                         form.setData(

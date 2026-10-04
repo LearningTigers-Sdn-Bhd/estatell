@@ -1,5 +1,5 @@
 import { useForm, useHttp } from '@inertiajs/react';
-import { ArrowRight, TriangleAlert } from 'lucide-react';
+import { ArrowDown, ArrowRight, ArrowUp, TriangleAlert } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { EnumSelect } from '@/components/pms/enum-select';
 import { UnsavedChangesDialog } from '@/components/pms/unsaved-changes-dialog';
@@ -147,8 +147,14 @@ export function DerivationForm({
                             }
                             aria-label="Direction"
                         >
-                            <ToggleGroupItem value="down">Down</ToggleGroupItem>
-                            <ToggleGroupItem value="up">Up</ToggleGroupItem>
+                            <ToggleGroupItem value="down">
+                                <ArrowDown data-icon="inline-start" />
+                                Down
+                            </ToggleGroupItem>
+                            <ToggleGroupItem value="up">
+                                <ArrowUp data-icon="inline-start" />
+                                Up
+                            </ToggleGroupItem>
                         </ToggleGroup>
                         <FieldError>{errors.direction}</FieldError>
                     </Field>
@@ -162,6 +168,7 @@ export function DerivationForm({
                             min="0"
                             step="0.01"
                             inputMode="decimal"
+                            placeholder="e.g. 10"
                             value={data.value}
                             onChange={(event) =>
                                 form.setData('value', event.target.value)
