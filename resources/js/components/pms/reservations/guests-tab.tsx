@@ -1,5 +1,5 @@
 import { Link } from '@inertiajs/react';
-import { UserPlus } from 'lucide-react';
+import { BookUser, UserPlus } from 'lucide-react';
 import { Fragment, useState } from 'react';
 import { AttachGuestSheet } from '@/components/pms/reservations/attach-guest-sheet';
 import { StatusBadge } from '@/components/pms/status-badge';
@@ -19,6 +19,23 @@ type Row = App.Data.Reservations.ReservationGuestData;
 type Unit = App.Data.Reservations.ReservationUnitOptionData;
 
 const OPEN = ['confirmed', 'checked_in'];
+
+function RoleBadge({ role }: { role: string }) {
+    if (role === 'Booker') {
+        return (
+            <Badge variant="secondary" className="bg-info/10 text-info">
+                <BookUser aria-hidden />
+                Booker
+            </Badge>
+        );
+    }
+
+    return (
+        <Badge variant={role === 'Primary' ? 'default' : 'secondary'}>
+            {role}
+        </Badge>
+    );
+}
 
 /**
  * The Guests tab: each guest on a unit with their roles, the booker when they do not stay, and units with no guest.
@@ -146,19 +163,14 @@ export function GuestsTab({
                                                         ) : (
                                                             row.roles.map(
                                                                 (role) => (
-                                                                    <Badge
+                                                                    <RoleBadge
                                                                         key={
                                                                             role
                                                                         }
-                                                                        variant={
-                                                                            role ===
-                                                                            'Primary'
-                                                                                ? 'default'
-                                                                                : 'secondary'
+                                                                        role={
+                                                                            role
                                                                         }
-                                                                    >
-                                                                        {role}
-                                                                    </Badge>
+                                                                    />
                                                                 ),
                                                             )
                                                         )}
