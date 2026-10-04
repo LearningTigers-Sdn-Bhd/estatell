@@ -45,8 +45,10 @@ A row can carry markers. The server sends them as `tags`, a list of `FolioRowTag
 
 ## Figures
 
-- **Balance**: posted lines only (`FolioBalance`).
-- **Projected total**: posted lines plus Scheduled rows.
+- **Balance**: posted lines only (`FolioBalance`, `SUM(folio_lines.amount)`). Charges and taxes are positive, discounts and payments negative, and a refund is positive. A reversal cancels its original. A positive Balance is what the payer still owes, and a negative one is a deposit or an overpayment.
+- **Projected total**: Balance plus the sum of the Scheduled rows (with their tax and discounts). It is the folio total if nothing changes and nothing else is paid. It is not an amount due.
+
+Decision: **Balance never includes Scheduled rows.** A Scheduled row is a forecast and not a ledger line. It can still change (price override, stay change, cancellation) or drop before it posts. Counting it would show the guest owing nights that may change, and would stop a folio from closing at 0.00 until the nights post. Projected total is the combined view. The same Balance feeds the summary card (all folios that are not Voided) and the reservations list. A "not started" entry has no Balance and shows its Projected total.
 
 ## Discounts on a Scheduled night
 
