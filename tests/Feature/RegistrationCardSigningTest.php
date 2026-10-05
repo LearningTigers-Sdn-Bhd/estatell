@@ -547,6 +547,17 @@ function signedCard(array $setup, array $changes = []): RegistrationCard
     return RegistrationCard::query()->sole()->refresh();
 }
 
+test('the staff page of a signed card sends the checklist items ticked at signing', function () {
+    $setup = cardSetup();
+    $card = signedCard($setup);
+    $ticked = array_column($card->snapshot['terms']['items'], 'position');
+
+    $this->get(route('registration.show', [$setup['property']->code, $setup['unitGuest']]))
+        ->assertInertia(fn (Assert $page) => $page->where('card.signedTicks', $ticked));
+
+    expect($ticked)->not->toBeEmpty();
+});
+
 test('the signed card downloads as a PDF that is rendered once and kept', function () {
     $setup = cardSetup();
     $card = signedCard($setup);

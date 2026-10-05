@@ -934,6 +934,7 @@ signedFields: {
 label: string,
 value: string | null,
 }[] | null,
+signedTicks: number[] | null,
 draftFields: {
 label: string,
 value: string,

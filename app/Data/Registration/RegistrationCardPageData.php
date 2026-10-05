@@ -29,6 +29,7 @@ class RegistrationCardPageData extends Data
      * @param  list<array{value: string, label: string}>  $localeOptions
      * @param  array<string, string>  $labels  English text to the text in the open language
      * @param  list<array{label: string, value: string|null}>|null  $signedFields  Set once the card is signed
+     * @param  list<int>|null  $signedTicks  Positions of the checklist items ticked at signing, set once the card is signed
      * @param  list<array{label: string, value: string}>|null  $draftFields  The current answers of a draft, for the staff page
      * @param  int|null  $walkPosition  This guest's place among the unit's guests that need a card, or null when not one of them
      */
@@ -53,6 +54,7 @@ class RegistrationCardPageData extends Data
         public array $labels,
         public bool $canVoid,
         public ?array $signedFields,
+        public ?array $signedTicks,
         public ?array $draftFields,
         public ?int $cardDocumentId,
         public ?int $walkPosition,
@@ -129,6 +131,7 @@ class RegistrationCardPageData extends Data
             labels: $labels,
             canVoid: $canVoid && $card->status !== RegistrationCardStatus::Void,
             signedFields: $signed === null ? null : array_map(fn (array $field): array => ['label' => $field['label'], 'value' => $field['value']], $signed['fields']),
+            signedTicks: $signed === null ? null : array_values(array_map(fn (array $item): int => $item['position'], array_filter($signed['terms']['items'], fn (array $item): bool => $item['ticked_at'] !== null))),
             draftFields: $draftFields === null ? null : array_map(fn (array $field): array => ['label' => $field['label'], 'value' => $field['value']], $draftFields),
             cardDocumentId: $card->identity_document_id,
             walkPosition: $walkPosition,

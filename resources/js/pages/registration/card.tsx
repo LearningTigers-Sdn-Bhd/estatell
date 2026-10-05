@@ -270,7 +270,11 @@ function SignedCard({ card }: { card: Card }) {
         <div className="flex flex-col gap-6">
             <Details fields={card.signedFields ?? []} />
             <div className="max-h-72 overflow-y-auto rounded-lg border p-4">
-                <TermsPreview body={card.termsText} values={{}} />
+                <TermsPreview
+                    body={card.termsText}
+                    values={{}}
+                    ticks={card.signedTicks ?? []}
+                />
             </div>
             <p className="text-sm text-muted-foreground">
                 Signed by {card.signerName}
