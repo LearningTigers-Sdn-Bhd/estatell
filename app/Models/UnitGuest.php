@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * An occupant of a unit. A guest appears once per unit and one occupant is primary. It has no timestamps.
@@ -40,6 +41,14 @@ class UnitGuest extends Model
     public function reservationUnit(): BelongsTo
     {
         return $this->belongsTo(ReservationUnit::class);
+    }
+
+    /**
+     * @return HasMany<RegistrationCard, $this>
+     */
+    public function registrationCards(): HasMany
+    {
+        return $this->hasMany(RegistrationCard::class);
     }
 
     /**

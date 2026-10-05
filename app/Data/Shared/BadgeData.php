@@ -8,6 +8,7 @@ use App\Enums\FolioRowTag;
 use App\Enums\FolioStatus;
 use App\Enums\PropertyStatus;
 use App\Enums\RatePlanStatus;
+use App\Enums\RegistrationCardStatus;
 use App\Enums\ReservationStatus;
 use App\Enums\Tone;
 use App\Enums\UnitStatus;
@@ -23,6 +24,11 @@ class BadgeData extends Data
         public string $label,
         public Tone $tone,
     ) {}
+
+    public static function fromRegistrationCardStatus(RegistrationCardStatus $status): self
+    {
+        return new self($status->value, $status->label(), $status->tone());
+    }
 
     public static function fromStatus(PropertyStatus $status): self
     {

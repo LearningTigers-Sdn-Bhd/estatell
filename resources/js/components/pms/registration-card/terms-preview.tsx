@@ -96,9 +96,12 @@ function parse(body: string): Block[] {
 export function TermsPreview({
     body,
     values,
+    hideChecklist = false,
 }: {
     body: string;
     values: Record<string, string>;
+    /** Leave the tick boxes out, when the page draws its own interactive ones. */
+    hideChecklist?: boolean;
 }) {
     const blocks = parse(fillPlaceholders(body, values));
 
@@ -122,6 +125,10 @@ export function TermsPreview({
                 }
 
                 if (block.type === 'tasks') {
+                    if (hideChecklist) {
+                        return null;
+                    }
+
                     return (
                         <ul key={index} className="flex flex-col gap-2">
                             {block.items.map((item, position) => (

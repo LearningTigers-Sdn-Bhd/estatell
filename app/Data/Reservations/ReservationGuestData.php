@@ -7,7 +7,8 @@ use Spatie\LaravelData\Data;
 
 /**
  * One row of the Guests tab: a guest on a unit, the booker who does not stay, or a unit without a guest (`name` null).
- * `guestId` and `phone` are null for staff without `guests.view`.
+ * `guestId` and `phone` are null for staff without `guests.view`. `cardUnitGuestId` opens the registration card and is
+ * null for staff without `registration-card.sign`.
  */
 class ReservationGuestData extends Data
 {
@@ -22,5 +23,6 @@ class ReservationGuestData extends Data
         public ?string $unitLabel,
         public ?BadgeData $unitStatus,
         public array $roles,
+        public ?int $cardUnitGuestId = null,
     ) {}
 }

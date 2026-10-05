@@ -4,7 +4,7 @@ import { Fragment, useState } from 'react';
 import { AttachGuestSheet } from '@/components/pms/reservations/attach-guest-sheet';
 import { StatusBadge } from '@/components/pms/status-badge';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import {
     Table,
     TableBody,
@@ -14,6 +14,7 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { show as showGuest } from '@/routes/guests';
+import { show as showCard } from '@/routes/registration';
 
 type Row = App.Data.Reservations.ReservationGuestData;
 type Unit = App.Data.Reservations.ReservationUnitOptionData;
@@ -81,6 +82,9 @@ export function GuestsTab({
                             <TableHead>Guest</TableHead>
                             <TableHead>Phone</TableHead>
                             <TableHead>Role</TableHead>
+                            <TableHead>
+                                <span className="sr-only">Card</span>
+                            </TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -91,7 +95,7 @@ export function GuestsTab({
                                 <Fragment key={first.unitId ?? 'not-staying'}>
                                     <TableRow className="bg-muted/50 hover:bg-muted/50">
                                         <TableCell
-                                            colSpan={3}
+                                            colSpan={4}
                                             className="text-xs font-medium tracking-wide text-muted-foreground uppercase"
                                         >
                                             <span className="flex items-center gap-2">
@@ -176,6 +180,29 @@ export function GuestsTab({
                                                         )}
                                                     </span>
                                                 )}
+                                            </TableCell>
+                                            <TableCell className="text-right">
+                                                {row.cardUnitGuestId !== null &&
+                                                    row.unitStatus !== null &&
+                                                    OPEN.includes(
+                                                        row.unitStatus.value,
+                                                    ) && (
+                                                        <Link
+                                                            href={showCard.url({
+                                                                unitGuest:
+                                                                    row.cardUnitGuestId,
+                                                            })}
+                                                            className={buttonVariants(
+                                                                {
+                                                                    variant:
+                                                                        'outline',
+                                                                    size: 'sm',
+                                                                },
+                                                            )}
+                                                        >
+                                                            Registration card
+                                                        </Link>
+                                                    )}
                                             </TableCell>
                                         </TableRow>
                                     ))}

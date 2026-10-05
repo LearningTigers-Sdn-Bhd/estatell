@@ -886,6 +886,46 @@ canHide: boolean,
 canRequire: boolean,
 note: string | null,
 };
+export type RegistrationCardPageData = {
+unitGuestId: number,
+reservationId: number,
+guestName: string,
+unitLabel: string,
+cardId: number,
+number: string | null,
+status: App.Data.Shared.BadgeData,
+signedAt: string | null,
+signerName: string | null,
+voidReason: string | null,
+locale: string,
+localeOptions: {
+value: string,
+label: string,
+}[],
+fields: {
+field: string,
+label: string,
+group: string,
+visibility: string,
+value: string | null,
+}[],
+values: Record<string, string | boolean | null>,
+documents: {
+id: number,
+label: string,
+}[],
+termsText: string,
+checklist: {
+position: number,
+text: string,
+}[],
+labels: Record<string, string>,
+canVoid: boolean,
+signedFields: {
+label: string,
+value: string | null,
+}[] | null,
+};
 export type TermsDocumentData = {
 id: number,
 name: string,
@@ -1089,6 +1129,7 @@ unitId: number | null,
 unitLabel: string | null,
 unitStatus: App.Data.Shared.BadgeData | null,
 roles: string[],
+cardUnitGuestId: number | null,
 };
 export type ReservationListItemData = {
 id: number,
@@ -1358,7 +1399,7 @@ export type PackageUnit = 'per_guest' | 'per_room';
 export type PaymentMethodType = 'cash' | 'card' | 'bank_transfer' | 'e_wallet' | 'ota_collected' | 'direct_bill';
 export type PaymentPurpose = 'advance' | 'settlement' | 'security_deposit';
 export type PaymentStatus = 'pending' | 'completed' | 'failed';
-export type PermissionEnum = 'settings.manage' | 'staff.view' | 'staff.manage' | 'roles.manage' | 'rooms.view' | 'rooms.manage' | 'rooms.block' | 'notification.manage' | 'rates.view' | 'rates.manage' | 'rates.override-restrictions' | 'guests.view' | 'guests.manage' | 'guests.blacklist' | 'guests.view-documents' | 'guests.merge' | 'guests.anonymize' | 'reservations.view' | 'reservations.manage' | 'folio.post-charge' | 'folio.reverse' | 'folio.transfer' | 'folio.discount' | 'folio.discount-open' | 'folio.close' | 'folio.reopen' | 'folio.print-voucher' | 'payment.record' | 'payment.refund' | 'company.view' | 'company.manage' | 'company.credit-override' | 'city-ledger.invoice' | 'city-ledger.credit-note' | 'city-ledger.payment' | 'city-ledger.allocate' | 'registration-card.manage-terms';
+export type PermissionEnum = 'settings.manage' | 'staff.view' | 'staff.manage' | 'roles.manage' | 'rooms.view' | 'rooms.manage' | 'rooms.block' | 'notification.manage' | 'rates.view' | 'rates.manage' | 'rates.override-restrictions' | 'guests.view' | 'guests.manage' | 'guests.blacklist' | 'guests.view-documents' | 'guests.merge' | 'guests.anonymize' | 'reservations.view' | 'reservations.manage' | 'folio.post-charge' | 'folio.reverse' | 'folio.transfer' | 'folio.discount' | 'folio.discount-open' | 'folio.close' | 'folio.reopen' | 'folio.print-voucher' | 'payment.record' | 'payment.refund' | 'company.view' | 'company.manage' | 'company.credit-override' | 'city-ledger.invoice' | 'city-ledger.credit-note' | 'city-ledger.payment' | 'city-ledger.allocate' | 'registration-card.manage-terms' | 'registration-card.sign' | 'registration-card.send-link' | 'registration-card.void';
 export type PlatformFeature = 'channel-manager';
 export type PricingBasis = 'per_room' | 'per_guest' | 'per_bed' | 'package';
 export type PropertyStatus = 'onboarding' | 'pending_approval' | 'live' | 'suspended';
@@ -1368,6 +1409,7 @@ export type RatePlanStatus = 'active' | 'archived';
 export type RegistrationCardField = 'full_name' | 'nationality' | 'identity_document' | 'date_of_birth' | 'gender' | 'address' | 'phone' | 'email' | 'vehicle_plate' | 'marketing_consent' | 'booking_number' | 'check_in' | 'check_out' | 'nights' | 'guest_count' | 'room' | 'rate_per_night' | 'total_charges';
 export type RegistrationCardFieldGroup = 'guest' | 'stay' | 'prices';
 export type RegistrationCardScope = 'primary_only' | 'every_adult';
+export type RegistrationCardStatus = 'draft' | 'signed' | 'void';
 export type ReservationRoomBoxState = 'assigned' | 'unassigned' | 'auto_assign' | 'cancelled' | 'no_show';
 export type ReservationSource = 'direct' | 'walk_in' | 'phone' | 'channel' | 'portal';
 export type ReservationStatus = 'confirmed' | 'in_house' | 'completed' | 'cancelled';

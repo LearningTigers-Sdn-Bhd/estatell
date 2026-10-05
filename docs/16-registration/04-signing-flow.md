@@ -16,10 +16,11 @@ Capture guest details, ID and signature at check-in, at the desk or remotely.
 
 ```
 registration_cards    id, property_id, unit_guest_id, number, status (RegistrationCardStatus),
-                      identity_document_id (nullable), terms_id, signed_at, signer_name,
+                      identity_document_id (nullable), terms_id, vehicle_plate (nullable), signed_at, signer_name,
                       void_reason (nullable), voided_at (nullable), snapshot (jsonb, frozen at signing), timestamps
 ```
 
+- `vehicle_plate` belongs to the stay, not to the guest, so it lives on the card.
 - `property_id` scopes every query. `unit_guest_id` has a foreign key (restrict). `terms_id` has a foreign key to `registration_card_terms` (restrict), so signed terms can never be removed. `identity_document_id` has a foreign key (null on delete).
 - A partial unique index allows one non-void card per `unit_guest_id`.
 - `number` comes from `DocumentSequence` with `DocumentType::RegistrationCard`.
@@ -33,27 +34,27 @@ registration_cards    id, property_id, unit_guest_id, number, status (Registrati
 
 1. `PrepareRegistrationCard` finds or creates the draft card and pre-fills guest, ID document and stay details.
 2. Sign:
-    - At the desk: full-screen `signature_pad`, then `SignRegistrationCard`.
+    - At the desk: `signature_pad` in a large dialog, then `SignRegistrationCard`.
     - Remote (step 3): `SendRegistrationCardLink` emails a `URL::temporarySignedRoute` link that lasts 7 days, with a Resend button. The guest completes fields, uploads ID and signs.
-3. `CheckInUnit` (module 18) checks cards against `registration_card_scope` (PrimaryOnly or EveryAdult) when `card_required_for_check_in` is on. Users with `front-desk.check-in-without-card` can override. The override is logged. `RegistrationCardRequirement` (a Service, step 1) tells it which guests still need a card.
+3. `CheckInUnit` (module 18) checks cards against `registration_card_scope` (PrimaryOnly, or EveryAdult, which skips a guest known to be under 18 on arrival) when `card_required_for_check_in` is on. Users with `front-desk.check-in-without-card` can override. The override is logged. `RegistrationCardRequirement` (a Service, step 1) tells it which guests still need a card.
 
 ## Actions
 
-| Action                    | Does                                                                                                                                                                                      |
-| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `PrepareRegistrationCard` | Finds or creates the draft for a unit guest.                                                                                                                                              |
-| `SignRegistrationCard`    | Checks Required fields and the checklist, updates the guest with `UpdateGuest`, sets `guests.preferred_locale`, stores the signature, freezes the snapshot and sets the status to Signed. |
-| `VoidRegistrationCard`    | Voids a Draft or Signed card with a reason and logs it.                                                                                                                                   |
+| Action                    | Does                                                                                                                                                                                    |
+| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `PrepareRegistrationCard` | Finds or creates the draft for a unit guest.                                                                                                                                            |
+| `SignRegistrationCard`    | Checks the checklist and the signature, updates the guest with `UpdateGuest`, sets `guests.preferred_locale`, stores the signature, freezes the snapshot and sets the status to Signed. |
+| `VoidRegistrationCard`    | Voids a Draft or Signed card with a reason and logs it.                                                                                                                                 |
 
-Expected refusals (already signed, missing field, missing tick) return a result, not an HTTP error. The controller shows a toast.
+`SignRegistrationCardRequest` checks the Required fields by the Layout tab, so errors show on the field. Expected refusals (already signed, closed unit, missing tick, bad signature, language with no terms) return false, not an HTTP error. The controller shows a toast.
 
 ## Staff card page
 
-- `GET /p/{code}/registration/{unitGuest}` (`registration.show`), `POST …/sign` (`registration.sign`) and `POST /registration/cards/{card}/void` (`registration.void`). Routes are in `routes/registration.php`, the page is `pages/registration/card.tsx`. The guest row on the reservation page links to it.
+- `GET /p/{code}/registration/{unitGuest}` (`registration.show`), `POST …/sign` (`registration.sign`) and `POST …/void` (`registration.void`). Routes are in `routes/registration.php`, the page is `pages/registration/card.tsx`. The guest row on the reservation page links to it.
 - Form archetype, full page. The fields follow the Layout tab. The terms are in a scroll box, and the checklist boxes are under it.
 - The language Select lists the languages from `RegistrationTermsResolver`. Switching resets the ticks and keeps the typed values.
-- Signing opens a full-screen signature pad. The Sign button stays disabled until every Required field, every checklist box and the signature are done.
-- A signed card is read-only and shows Void.
+- Signing opens a large dialog with a signature pad. The Sign button stays disabled until every Required field, every checklist box and the signature are done.
+- A signed card is read-only and shows Void. A unit that is cancelled, a no-show or checked out has no card, and neither has a guest who was merged or anonymized.
 
 ## Terms checklist
 

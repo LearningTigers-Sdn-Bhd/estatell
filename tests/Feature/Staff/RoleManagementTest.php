@@ -37,12 +37,12 @@ test('owners see every role as a column with its permissions', function () {
                 'isDefault' => true,
                 'isLocked' => true,
                 'staffCount' => 1,
-                'permissions' => ['city-ledger.allocate', 'city-ledger.credit-note', 'city-ledger.invoice', 'city-ledger.payment', 'company.credit-override', 'company.manage', 'company.view', 'folio.close', 'folio.discount', 'folio.discount-open', 'folio.post-charge', 'folio.print-voucher', 'folio.reopen', 'folio.reverse', 'folio.transfer', 'guests.anonymize', 'guests.blacklist', 'guests.manage', 'guests.merge', 'guests.view', 'guests.view-documents', 'notification.manage', 'payment.record', 'payment.refund', 'rates.manage', 'rates.override-restrictions', 'rates.view', 'registration-card.manage-terms', 'reservations.manage', 'reservations.view', 'roles.manage', 'rooms.block', 'rooms.manage', 'rooms.view', 'settings.manage', 'staff.manage', 'staff.view'],
+                'permissions' => ['city-ledger.allocate', 'city-ledger.credit-note', 'city-ledger.invoice', 'city-ledger.payment', 'company.credit-override', 'company.manage', 'company.view', 'folio.close', 'folio.discount', 'folio.discount-open', 'folio.post-charge', 'folio.print-voucher', 'folio.reopen', 'folio.reverse', 'folio.transfer', 'guests.anonymize', 'guests.blacklist', 'guests.manage', 'guests.merge', 'guests.view', 'guests.view-documents', 'notification.manage', 'payment.record', 'payment.refund', 'rates.manage', 'rates.override-restrictions', 'rates.view', 'registration-card.manage-terms', 'registration-card.send-link', 'registration-card.sign', 'registration-card.void', 'reservations.manage', 'reservations.view', 'roles.manage', 'rooms.block', 'rooms.manage', 'rooms.view', 'settings.manage', 'staff.manage', 'staff.view'],
             ])
             ->where('roles.1.name', 'Manager')
             ->where('roles.1.staffCount', 0)
-            ->where('roles.1.permissions', ['city-ledger.allocate', 'city-ledger.credit-note', 'city-ledger.invoice', 'city-ledger.payment', 'company.credit-override', 'company.manage', 'company.view', 'folio.close', 'folio.discount', 'folio.discount-open', 'folio.post-charge', 'folio.print-voucher', 'folio.reopen', 'folio.reverse', 'folio.transfer', 'guests.blacklist', 'guests.manage', 'guests.merge', 'guests.view', 'guests.view-documents', 'payment.record', 'payment.refund', 'rates.manage', 'rates.override-restrictions', 'rates.view', 'registration-card.manage-terms', 'reservations.manage', 'reservations.view', 'rooms.block', 'rooms.manage', 'rooms.view', 'settings.manage', 'staff.manage', 'staff.view'])
-            ->has('permissions', 37)
+            ->where('roles.1.permissions', ['city-ledger.allocate', 'city-ledger.credit-note', 'city-ledger.invoice', 'city-ledger.payment', 'company.credit-override', 'company.manage', 'company.view', 'folio.close', 'folio.discount', 'folio.discount-open', 'folio.post-charge', 'folio.print-voucher', 'folio.reopen', 'folio.reverse', 'folio.transfer', 'guests.blacklist', 'guests.manage', 'guests.merge', 'guests.view', 'guests.view-documents', 'payment.record', 'payment.refund', 'rates.manage', 'rates.override-restrictions', 'rates.view', 'registration-card.manage-terms', 'registration-card.send-link', 'registration-card.sign', 'registration-card.void', 'reservations.manage', 'reservations.view', 'rooms.block', 'rooms.manage', 'rooms.view', 'settings.manage', 'staff.manage', 'staff.view'])
+            ->has('permissions', 40)
             ->where('permissions.0', ['value' => 'settings.manage', 'label' => 'Manage property settings', 'group' => 'Property']));
 });
 
@@ -85,8 +85,8 @@ test('saving the grid updates only changed roles and gives the role holders acce
     $this->actingAs($owner)
         ->put(route('settings.roles.update', $property->code), ['roles' => [
             $role->id => ['staff.view'],
-            $manager->id => ['city-ledger.allocate', 'city-ledger.credit-note', 'city-ledger.invoice', 'city-ledger.payment', 'company.credit-override', 'company.manage', 'company.view', 'folio.close', 'folio.discount', 'folio.discount-open', 'folio.post-charge', 'folio.print-voucher', 'folio.reopen', 'folio.reverse', 'folio.transfer', 'guests.blacklist', 'guests.manage', 'guests.merge', 'guests.view', 'guests.view-documents', 'payment.record', 'payment.refund', 'rates.manage', 'rates.override-restrictions', 'rates.view', 'registration-card.manage-terms', 'reservations.manage', 'reservations.view', 'rooms.block', 'rooms.manage', 'rooms.view', 'settings.manage', 'staff.manage', 'staff.view'],
-            roleOf($property, DefaultRoleEnum::FrontDesk)->id => ['company.view', 'folio.close', 'folio.discount', 'folio.post-charge', 'folio.print-voucher', 'guests.manage', 'guests.view', 'guests.view-documents', 'payment.record', 'rates.view', 'reservations.manage', 'reservations.view', 'rooms.block'],
+            $manager->id => ['city-ledger.allocate', 'city-ledger.credit-note', 'city-ledger.invoice', 'city-ledger.payment', 'company.credit-override', 'company.manage', 'company.view', 'folio.close', 'folio.discount', 'folio.discount-open', 'folio.post-charge', 'folio.print-voucher', 'folio.reopen', 'folio.reverse', 'folio.transfer', 'guests.blacklist', 'guests.manage', 'guests.merge', 'guests.view', 'guests.view-documents', 'payment.record', 'payment.refund', 'rates.manage', 'rates.override-restrictions', 'rates.view', 'registration-card.manage-terms', 'registration-card.send-link', 'registration-card.sign', 'registration-card.void', 'reservations.manage', 'reservations.view', 'rooms.block', 'rooms.manage', 'rooms.view', 'settings.manage', 'staff.manage', 'staff.view'],
+            roleOf($property, DefaultRoleEnum::FrontDesk)->id => ['company.view', 'folio.close', 'folio.discount', 'folio.post-charge', 'folio.print-voucher', 'guests.manage', 'guests.view', 'guests.view-documents', 'payment.record', 'rates.view', 'registration-card.send-link', 'registration-card.sign', 'reservations.manage', 'reservations.view', 'rooms.block'],
         ]])
         ->assertRedirect(route('settings.roles.index', $property->code))
         ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Permissions saved for 1 role.']);
@@ -122,8 +122,8 @@ test('the owner column is skipped, and unknown permissions or other properties\'
     $this->put($update, ['roles' => [roleOf($other, DefaultRoleEnum::Manager)->id => []]])
         ->assertSessionHasErrors('roles');
 
-    expect($ownerRole->permissions()->count())->toBe(37)
-        ->and(roleOf($other, DefaultRoleEnum::Manager)->permissions()->count())->toBe(34)
+    expect($ownerRole->permissions()->count())->toBe(40)
+        ->and(roleOf($other, DefaultRoleEnum::Manager)->permissions()->count())->toBe(37)
         ->and(Activity::query()->count())->toBe(0);
 });
 

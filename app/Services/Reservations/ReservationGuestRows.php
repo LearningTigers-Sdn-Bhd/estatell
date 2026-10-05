@@ -18,7 +18,7 @@ class ReservationGuestRows
      * @param  list<ReservationUnitOptionData>  $units
      * @return list<ReservationGuestData>
      */
-    public function rows(Reservation $reservation, array $units, bool $canViewGuest): array
+    public function rows(Reservation $reservation, array $units, bool $canViewGuest, bool $canOpenCard = false): array
     {
         $options = collect($units)->keyBy('id');
         $occupants = UnitGuest::query()
@@ -59,6 +59,7 @@ class ReservationGuestRows
                         $unitGuest->guest_id === $booker->id ? __('Booker') : null,
                         $unitGuest->is_primary ? __('Primary') : null,
                     ])),
+                    cardUnitGuestId: $canOpenCard ? $unitGuest->id : null,
                 );
             }
         }

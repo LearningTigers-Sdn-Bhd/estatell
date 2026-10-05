@@ -45,6 +45,9 @@ enum PermissionEnum: string
     case CityLedgerPayment = 'city-ledger.payment';
     case CityLedgerAllocate = 'city-ledger.allocate';
     case RegistrationCardManageTerms = 'registration-card.manage-terms';
+    case RegistrationCardSign = 'registration-card.sign';
+    case RegistrationCardSendLink = 'registration-card.send-link';
+    case RegistrationCardVoid = 'registration-card.void';
 
     public function label(): string
     {
@@ -86,6 +89,9 @@ enum PermissionEnum: string
             self::CityLedgerPayment => __('Record and void AR payments'),
             self::CityLedgerAllocate => __('Allocate AR payments and reverse allocations'),
             self::RegistrationCardManageTerms => __('Manage registration terms'),
+            self::RegistrationCardSign => __('Prepare and sign registration cards'),
+            self::RegistrationCardSendLink => __('Send registration card links'),
+            self::RegistrationCardVoid => __('Void registration cards'),
         };
     }
 
@@ -105,7 +111,7 @@ enum PermissionEnum: string
             self::FolioPostCharge, self::FolioReverse, self::FolioTransfer, self::FolioDiscount, self::FolioDiscountOpen, self::FolioClose, self::FolioReopen, self::FolioPrintVoucher => __('Folio'),
             self::PaymentRecord, self::PaymentRefund => __('Payments'),
             self::CompanyView, self::CompanyManage, self::CompanyCreditOverride, self::CityLedgerInvoice, self::CityLedgerCreditNote, self::CityLedgerPayment, self::CityLedgerAllocate => __('City ledger'),
-            self::RegistrationCardManageTerms => __('Registration card'),
+            self::RegistrationCardManageTerms, self::RegistrationCardSign, self::RegistrationCardSendLink, self::RegistrationCardVoid => __('Registration card'),
         };
     }
 

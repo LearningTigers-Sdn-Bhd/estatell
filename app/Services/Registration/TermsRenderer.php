@@ -43,7 +43,7 @@ class TermsRenderer
      * The checklist lines are left out of the html, because the card draws them as checkboxes.
      *
      * @param  array<string, string>  $values  keyed by `TermsPlaceholder` value
-     * @return array{html: string, items: list<array{position: int, text: string}>}
+     * @return array{html: string, text: string, items: list<array{position: int, text: string}>}
      */
     public function render(string $body, array $values): array
     {
@@ -53,6 +53,7 @@ class TermsRenderer
 
         return [
             'html' => Str::markdown(preg_replace(self::ITEM_PATTERN, '', $filled) ?? $filled, ['html_input' => 'strip', 'allow_unsafe_links' => false]),
+            'text' => $filled,
             'items' => array_map(
                 fn (string $text, int $position): array => ['position' => $position, 'text' => $text],
                 $items,

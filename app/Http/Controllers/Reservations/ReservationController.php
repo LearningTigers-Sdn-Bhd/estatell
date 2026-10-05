@@ -102,7 +102,7 @@ class ReservationController extends Controller
     public function guests(Request $request, Property $property, Reservation $reservation, ReservationGuestRows $guestRows): Response
     {
         return $this->renderTab($request->user(), $property, $reservation, 'guests', fn (array $units): array => [
-            'guests' => $guestRows->rows($reservation, $units, $request->user()->can(PermissionEnum::GuestsView->value)),
+            'guests' => $guestRows->rows($reservation, $units, $request->user()->can(PermissionEnum::GuestsView->value), $request->user()->can(PermissionEnum::RegistrationCardSign->value)),
         ]);
     }
 
