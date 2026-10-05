@@ -26,7 +26,7 @@ The page has five tabs, each with its own URL, controller method and page: **Tax
 
 Two columns, no cards. They stack on narrow screens.
 
-- **Left, taxes**: one checkbox card per tax. The title is the tax name. The description states the rule, for example "8.00% of the room price · added to the price · all guests". Taxes that are turned off can be ticked and show an "Off" badge; they are skipped until they are turned on. **Save taxes** saves the selection.
+- **Left, taxes**: a multiselect (`MultiCombobox`). Each option has the tax name and a description of the rule, for example "8.00% of the room price · added to the price · all guests". Taxes that are turned off can be chosen and say "Off, not added until it is turned on" in the description; they are skipped until they are turned on. **Save taxes** saves the selection.
 - **Right, posting preview**: a MYR 100.00 room night for a Malaysian guest and a foreign guest, because foreign-only taxes need a nationality. It updates while boxes are ticked: the page posts the unsaved selection to `settings.room-revenue.preview`, and `RoomRevenuePreview` calculates it with `TaxCalculator::calculateWithTaxes()`. Nothing is saved by the preview. Ticked taxes that are off show as "Off". When included taxes exceed the sample price, the preview shows a message instead of amounts.
 - The browser never calculates tax; it only shows the server's numbers.
 
@@ -85,11 +85,12 @@ A form on the left and a preview on the right, like the Taxes tab. The preview p
 
 ### Own taxes
 
-Planned, its own checklist item after the policy tabs. Posting and the preview already read the taxes of the policy's own code, so `TaxCalculator` and `PostFolioCharge` do not change.
+Planned, its own checklist item after the policy tabs. Both the Taxes tab and the policy tabs pick taxes with the same multiselect. Posting and the preview already read the taxes of the policy's own code, so `TaxCalculator` and `PostFolioCharge` do not change.
 
 - `room_revenue_policies.own_taxes` (boolean, default false). False means the policy follows the Taxes tab. True means its code keeps its own taxes.
 - The Taxes tab save links the chosen taxes to ROOM and to each policy whose `own_taxes` is false. It never touches a policy with its own taxes. A tax added later reaches every policy that still follows.
-- A policy tab has a **Taxes** section with a **Follow the Taxes tab** switch. Off shows the same checkbox cards as the Taxes tab, saved with the policy. An empty choice is allowed, for example an untaxed no-show fee. Turning the switch back on links the code to the Taxes tab selection again.
+- A policy tab has a **Taxes** section with a **Follow the Taxes tab** switch. On shows the Taxes tab selection in a disabled multiselect. Off makes the multiselect editable, saved with the policy. An empty choice is allowed, for example an untaxed no-show fee. Turning the switch back on links the code to the Taxes tab selection again. A short note says that a policy with its own taxes does not change when the Taxes tab changes.
+- Row 1 of a policy tab has three columns. **How it charges** spans two (the charge cards, then the charge form) and **Taxes** spans one. Row 2 holds **Policy text** and **Preview**. On narrow screens they stack.
 - The policy preview posts the unsaved tax choice, like the Taxes tab preview, so staff see the effect before saving.
 - Charges already posted keep the taxes they were posted with. The ledger is not changed.
 - Saving logs the change, with the tax ids and whether the policy follows.
