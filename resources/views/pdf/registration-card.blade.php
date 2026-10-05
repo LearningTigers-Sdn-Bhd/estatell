@@ -25,6 +25,7 @@
         .grid td { width: 50%; padding: 0 12pt 4pt 0; }
         .grid .label-text { font-size: 7.5pt; color: #6b6b6b; }
         .grid .value { font-size: 9pt; font-weight: bold; min-height: 11pt; }
+        .grid .fill { font-size: 9pt; height: 11pt; border-bottom: 0.75pt dotted #6b6b6b; margin-right: 8pt; }
         .box { font-family: 'Noto Sans Symbols 2', sans-serif; font-size: 12pt; width: 20pt; }
         .items td { vertical-align: middle; padding: 1pt 0; }
         .terms { font-size: 7.5pt; line-height: 1.5; }
@@ -70,7 +71,11 @@
                             @foreach ($pair as $field)
                                 <td>
                                     <div class="label-text">{{ $field['label'] }}</div>
-                                    <div class="value">{{ $field['value'] !== '' ? $field['value'] : "\u{00a0}" }}</div>
+                                    @if ($field['value'] !== '')
+                                        <div class="value">{{ $field['value'] }}</div>
+                                    @else
+                                        <div class="fill">&nbsp;</div>
+                                    @endif
                                 </td>
                             @endforeach
                             @if (count($pair) === 1)
