@@ -32,7 +32,7 @@ Two columns, no cards. They stack on narrow screens.
 
 ## Policies
 
-One row per property and code in `room_revenue_policies`, for `NO_SHOW`, `CANCEL`, `EARLY_DEPARTURE` and `LATE_CHECKOUT`. `SeedPropertyDefaults` creates the four rows as Free. Typed columns only, no jsonb.
+One row per property and code in `room_revenue_policies`, for `NO_SHOW`, `CANCEL`, `EARLY_DEPARTURE` and `LATE_CHECKOUT`. `SeedPropertyDefaults` creates the four rows through `SeedRoomRevenuePolicies`, as Free, with a short default text in English and Malay, for example "No charge for cancellation." The seeder is idempotent and keeps edited rows. Typed columns only, no jsonb.
 
 ```
 room_revenue_policies   id, property_id, code (SystemTransactionCode), charge_mode (PolicyChargeMode),
