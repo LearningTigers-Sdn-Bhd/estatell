@@ -242,7 +242,7 @@ The page shows no dash for an empty value: a missing room is `Not assigned` (an 
 
 A title row with the Attach guest button sits above a rounded, bordered table. Rows are grouped by unit, with one group row per unit (a booker who does not stay goes under "Not staying"), so the Unit column is gone. The Role column shows badges: Booker, Primary, and a plain Guest badge for anyone else, so no cell shows a dash.
 
-Attach guest opens a Sheet with `GuestPicker` (existing guests only, through `guests.search`) and "Stays in". Creating a guest here is not supported; the booking form adds the autocomplete field that can.
+Attach guest opens a Dialog (2 fields, see [form containers](../design-system/05-form-containers.md)) with `GuestPicker` (existing guests only, through `guests.search`) and "Stays in". Creating a guest here is not supported; the booking form adds the autocomplete field that can.
 
 `AttachGuest(User $actor, ReservationUnit $unit, Guest $guest): AttachGuestResult` locks the unit, writes a `unit_guests` row (the unit's first guest becomes `is_primary`) and logs `reservation.guest_attached` with ids only. A blacklisted guest is allowed, with a warning in the Sheet.
 
@@ -255,7 +255,7 @@ Attach guest opens a Sheet with `GuestPicker` (existing guests only, through `gu
 
 Room units have no guest limit. Detaching a guest and changing the primary guest come later.
 
-Built: `AttachGuest`, `AttachGuestResult` and the Sheet. The Sheet's unit select lists only open units, and a blacklisted guest shows a warning. The header button and the **Attach guest** button on a unit without a guest both open it.
+Built: `AttachGuest`, `AttachGuestResult` and the form, first built as a Sheet and moved to a Dialog by a checklist item. Its unit select lists only open units, and a blacklisted guest shows a warning. The header button and the **Attach guest** button on a unit without a guest both open it.
 
 ### Add-ons tab
 

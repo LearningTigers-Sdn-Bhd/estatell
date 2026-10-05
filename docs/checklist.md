@@ -4,7 +4,7 @@ The build plan as a list of commits, in build order. Any agent (Claude Code, Cod
 
 ## How to use
 
-1. Take the **first open item** whose "Needs" items are all done. Do not skip ahead unless the user says so.
+1. Take the **first open item** in **Now**, then **Next**, then **Later**, whose "Needs" items are all done. Do not skip ahead unless the user says so.
 2. Read `AGENTS.md`, `.ai/rules/index.md` and the matching rule files, then the linked doc. The doc is the spec. If the doc and the code disagree, stop and ask.
 3. Propose an overview first. Write code only after the user approves.
 4. One item is one commit. Use the commit subject as written. The `commit-msg` hook enforces `type(scope): summary`, 72 characters or fewer, and no trailing period.
@@ -14,7 +14,66 @@ The build plan as a list of commits, in build order. Any agent (Claude Code, Cod
 
 Legend: **Needs** lists items that must be done first.
 
+## Now
+
+The critical path: the front desk actions on the reservation, then the night audit. Build in this order.
+
+1. [ ] `feat(ui): add FormOverlay` — the Dialog and Sheet shell from [Form containers](design-system/05-form-containers.md): sizes, sticky footer for a Sheet, the discard confirm for a dirty Sheet, `FormError`, optional-prop loading. Move Add unit, Attach guest, Add add-on, Edit group and Change company onto it. UI only. Docs: [Form containers](design-system/05-form-containers.md), [Reservations list and reservation page](12-reservations/06-reservation-page.md).
+2. [ ] `fix(reservations): attach a guest from a Dialog` — the Attach guest Sheet has 2 fields, so it becomes a Dialog. UI only. Needs: FormOverlay. Docs: [Reservations list and reservation page](12-reservations/06-reservation-page.md#guests-tab).
+3. [ ] `feat(front-desk): check in and check out units` — `CheckInUnit`, `CheckOutUnit`, `front-desk.check-in`, `front-desk.check-out` and `front-desk.check-in-without-card` with a syncing migration, each calling `SyncReservationStatus`. Backend only. Docs: [Check-in and check-out](18-front-desk/01-check-in-and-check-out.md).
+4. [ ] `feat(front-desk): cancel, no-show and reinstate units` — `CancelUnit`, `MarkNoShow`, `ReinstateUnit` (re-prices from `reservation_unit_children`). Backend only. Needs: check in and check out. Docs: [Check-in and check-out](18-front-desk/01-check-in-and-check-out.md).
+5. [ ] `feat(front-desk): extend and change stay dates` — `ExtendStay`, `ChangeUnitDates`, `ProcessEarlyDeparture`. Backend only. Needs: cancel, no-show and reinstate. Docs: [Check-in and check-out](18-front-desk/01-check-in-and-check-out.md).
+6. [ ] `feat(front-desk): add unit actions to the reservation page` — the unit ⋯ menu (only what `canTransitionTo()` allows), the check-in and check-out Dialogs, the cancel, no-show and reinstate AlertDialogs, the change dates Dialog with a price difference, check in all for a group. Needs: FormOverlay, items 3 to 5. Docs: [Check-in and check-out](18-front-desk/01-check-in-and-check-out.md#forms-on-the-reservation-page).
+7. [ ] `feat(front-desk): assign and move rooms and beds` — `MoveUnit`, `AutoAssignRooms`, the Postgres constraint, the Move room Dialog in the unit ⋯ menu. Needs: unit actions on the page. Docs: [Room and bed assignment](18-front-desk/02-room-and-bed-assignment.md).
+8. [ ] `feat(onboarding): add go live and the live middleware` — **moved forward from 17**: the night audit needs an open business date. `GoLive` calls `OpenBusinessDate`, starts document numbering and sets `Live`; the readiness check starts empty and fills as the wizard steps land. `EnsurePropertyIsLive` on operational routes. Docs: [Go live](17-onboarding/03-go-live.md#build-order).
+9. [ ] `feat(night-audit): post room charges and scheduled add-ons` — `InclusionAllocator`, `PostRoomCharges`, `PostScheduledAddOns`. Needs: go live, post charges, folio routing. Docs: [Posting charges](13-folio/02-posting-charges.md).
+10. [ ] `feat(folio): show the unit on posted folio rows` — night lines carry `source_type` and `source_id` (the unit night), as add-on lines already do; `FolioStatement` reads the unit through the source, and the Unit column shows for posted rows too. Needs: post room charges and scheduled add-ons. Docs: [Folio page](13-folio/05-folio-page.md).
+11. [ ] `feat(night-audit): run the night audit` — Needs: no-show and check-out Actions, room assignment, post room charges. Docs: [Audit run](20-night-audit/03-audit-run.md).
+12. [ ] `feat(night-audit): add the readiness panel` — the one-click fixes call the front desk Actions. Needs: run the night audit. Docs: [Readiness panel](20-night-audit/02-readiness-panel.md).
+13. [ ] `feat(night-audit): schedule the night audit per property` — Docs: [Scheduling](20-night-audit/04-scheduling.md).
+14. [ ] `feat(night-audit): snapshot statistics and notify results` — Docs: [Statistics](20-night-audit/05-statistics.md).
+
+## Next
+
+Needed for go-live, but nothing in Now waits for them.
+
+- [ ] `feat(housekeeping): add the room status board` — Docs: [Room status board](19-housekeeping/01-room-status-board.md).
+- [ ] `feat(front-desk): add the stay view` — Docs: [Stay View](18-front-desk/03-stay-view.md).
+- [ ] `feat(reservations): preview the price in the Add unit Sheet` — reuse the booking form quote route. Docs: [Reservations list and reservation page](12-reservations/06-reservation-page.md#header).
+- [ ] `feat(onboarding): add the onboarding wizard steps` — Docs: [Wizard steps](17-onboarding/02-wizard-steps.md).
+- [ ] `feat(onboarding): add reminders and the admin onboarding board` — Docs: [Engagement and admin board](17-onboarding/04-engagement-and-admin-board.md).
+- [ ] `feat(reports): add core reports` — Docs: [Core reports](22-reports/01-core-reports.md).
+- [ ] `feat(ui): add the command palette` — ⌘K search across contexts; admin search by code, name, city. Docs: [Search patterns](design-system/07-search-patterns.md).
+
+## Later
+
+### 21 Channels
+
+Needs the Channex staging checks in [Staging verification](21-channels/06-staging-verification.md) before `NativeDorm` work.
+
+- [ ] `feat(channels): connect Channex behind the channel manager flag` — `EnsureFeaturesAreActive`, upsell page. Docs: [Connections and feature gate](21-channels/01-connections-and-feature-gate.md).
+- [ ] `feat(channels): map room types and rate plans` — Docs: [Mappings and capability](21-channels/02-mappings-and-capability.md).
+- [ ] `feat(channels): add dorm strategies` — Docs: [Dorm strategies](21-channels/03-dorm-strategies.md).
+- [ ] `feat(channels): sync availability, rates and restrictions` — Docs: [ARI sync](21-channels/04-ari-sync.md).
+- [ ] `feat(channels): ingest channel bookings` — Docs: [Booking ingestion](21-channels/05-booking-ingestion.md).
+
+### 23 Company portal
+
+- [ ] `feat(portal): add company users and company links` — `is_company_user`, users CHECK, `company_users`, Portal tab with invite, temp password and bulk add, existing-account invitations. Docs: [Company portal](23-company-portal/01-company-portal.md#adding-company-users).
+- [ ] `feat(portal): add the portal property list and invitations` — `/portal`, accept and decline, `portal` middleware, home redirect. Docs: [Company portal](23-company-portal/01-company-portal.md#pages).
+- [ ] `feat(portal): let company users book and manage stays` — `portal_access`, booking checks, cancel and request. Docs: [Company portal](23-company-portal/01-company-portal.md#rules).
+- [ ] `feat(portal): show company statements` — read-only invoices, payments and statement PDF. Docs: [Company portal](23-company-portal/01-company-portal.md#pages).
+
+### Registration and platform
+
+- [ ] `feat(registration): sign the card remotely` — `SendRegistrationCardLink`, signed `/g` routes on the step 1b guest screen, ID upload, a QR code of the link on the staff page (the QR package is chosen and approved at this step). Docs: [Signing flow](16-registration/04-signing-flow.md).
+- [ ] Parked: `feat(registration): pair a signing tablet` — pairing code, Send to tablet, polling idle screen, per-property switch. Docs: [Signing tablet (parked)](16-registration/04-signing-flow.md#signing-tablet-parked).
+- [ ] `feat(platform): view a property as its staff` — view-as page, `StartImpersonation`, `StopImpersonation`, banner, `EnsurePropertyAccess` steps 2 and 3. Needs: staff, property settings (`allow_support_access`). Docs: [Impersonation](01-platform/04-impersonation.md).
+- [ ] `feat(platform): block risky actions during impersonation` — `block.impersonation` middleware.
+
 ## Done
+
+### Commits
 
 | Commit    | Subject                                                                  |
 | --------- | ------------------------------------------------------------------------ |
@@ -122,7 +181,7 @@ Legend: **Needs** lists items that must be done first.
 
 Smaller fixes and reverts are in `git log`.
 
-## Planned
+### Ticked items by module
 
 ### 01 Platform and 02 Property
 
@@ -155,11 +214,6 @@ Smaller fixes and reverts are in `git log`.
 
 - [x] `feat(property): seed property defaults from type and country` — `SeedPropertyDefaults`, first with roles and settings. Later modules add their defaults. Docs: [Seed property defaults](02-property/03-seed-property-defaults.md).
 - [x] `feat(onboarding): let admins create a property for an owner` — `CreatePropertyForOwner`, signed "Set your password" link. Needs: seeding, owner role. Docs: [Account creation](17-onboarding/01-account-creation.md).
-
-### 01 Platform (impersonation)
-
-- [ ] `feat(platform): view a property as its staff` — view-as page, `StartImpersonation`, `StopImpersonation`, banner, `EnsurePropertyAccess` steps 2 and 3. Needs: staff, property settings (`allow_support_access`). Docs: [Impersonation](01-platform/04-impersonation.md).
-- [ ] `feat(platform): block risky actions during impersonation` — `block.impersonation` middleware.
 
 ### 04 Notifications
 
@@ -287,54 +341,11 @@ Smaller fixes and reverts are in `git log`.
 - [x] `feat(registration): hand the card to the guest` — read-only staff page with `SaveRegistrationCardDraft` (ID document, vehicle plate), the bare guest layout and guest screen, Agree to all, the inline signature pad with a full-screen mode, the thank-you screen that walks to the next guest of the unit. Replaces the signature dialog. Docs: [Signing flow](16-registration/04-signing-flow.md).
 - [x] `feat(registration): render the signed card as a PDF` — `RegistrationCardDocumentBuilder` (signed snapshot or blank draft), `RegistrationCardPdf`, `StoreRegistrationCardPdf` (the `pdf` media, rendered on first download), `pdf.registration-card`, `registration.pdf` and `registration.blank` routes, Download PDF and Print blank form buttons, a Noto Sans SC subset (GB2312) and Noto Sans Symbols 2 in `resources/fonts`, the signature block kept off the footer. Docs: [Signing flow](16-registration/04-signing-flow.md).
 - [x] `feat(registration): add remarks to the registration card` — `RegistrationCardField::Remarks` (19 fields, Optional by default), `registration_cards.remarks`, a back-fill migration, remarks in `SaveRegistrationCardDraft` and the snapshot, the staff page textarea, the guest screen Preferences textarea, the PDF and blank form. Docs: [Card fields](16-registration/01-card-fields.md), [Signing flow](16-registration/04-signing-flow.md).
-- [ ] `feat(registration): sign the card remotely` — `SendRegistrationCardLink`, signed `/g` routes on the step 1b guest screen, ID upload, a QR code of the link on the staff page (the QR package is chosen and approved at this step). Docs: [Signing flow](16-registration/04-signing-flow.md).
-- [ ] Parked: `feat(registration): pair a signing tablet` — pairing code, Send to tablet, polling idle screen, per-property switch. Docs: [Signing tablet (parked)](16-registration/04-signing-flow.md#signing-tablet-parked).
-
-### 17 Onboarding
-
-- [ ] `feat(onboarding): add the onboarding wizard steps` — Docs: [Wizard steps](17-onboarding/02-wizard-steps.md).
-- [ ] `feat(onboarding): add go live and the live middleware` — `GoLive`, `EnsurePropertyIsLive` on operational routes. Docs: [Go live](17-onboarding/03-go-live.md).
-- [ ] `feat(onboarding): add reminders and the admin onboarding board` — Docs: [Engagement and admin board](17-onboarding/04-engagement-and-admin-board.md).
-
-### 18 Front desk and 19 Housekeeping
-
-- [ ] `feat(front-desk): check in, check out and stay changes` — Docs: [Check-in and check-out](18-front-desk/01-check-in-and-check-out.md).
-- [ ] `feat(front-desk): assign and move rooms and beds` — Docs: [Room and bed assignment](18-front-desk/02-room-and-bed-assignment.md).
-- [ ] `feat(front-desk): add the stay view` — Docs: [Stay View](18-front-desk/03-stay-view.md).
-- [ ] `feat(housekeeping): add the room status board` — Docs: [Room status board](19-housekeeping/01-room-status-board.md).
-
-### 20 Night audit
-
-- [ ] `feat(night-audit): add the readiness panel` — Docs: [Readiness panel](20-night-audit/02-readiness-panel.md).
-- [ ] `feat(night-audit): post room charges and scheduled add-ons` — `InclusionAllocator`, `PostRoomCharges`, `PostScheduledAddOns`. Needs: post charges, folio routing. Docs: [Posting charges](13-folio/02-posting-charges.md).
-- [ ] `feat(folio): show the unit on posted folio rows` — night lines carry `source_type` and `source_id` (the unit night), as add-on lines already do; `FolioStatement` reads the unit through the source, and the Unit column shows for posted rows too. Needs: post room charges and scheduled add-ons. Docs: [Folio page](13-folio/05-folio-page.md).
-- [ ] `feat(night-audit): run the night audit` — Docs: [Audit run](20-night-audit/03-audit-run.md).
-- [ ] `feat(night-audit): schedule the night audit per property` — Docs: [Scheduling](20-night-audit/04-scheduling.md).
-- [ ] `feat(night-audit): snapshot statistics and notify results` — Docs: [Statistics](20-night-audit/05-statistics.md).
-
-### 21 Channels
-
-Needs the Channex staging checks in [Staging verification](21-channels/06-staging-verification.md) before `NativeDorm` work.
-
-- [ ] `feat(channels): connect Channex behind the channel manager flag` — `EnsureFeaturesAreActive`, upsell page. Docs: [Connections and feature gate](21-channels/01-connections-and-feature-gate.md).
-- [ ] `feat(channels): map room types and rate plans` — Docs: [Mappings and capability](21-channels/02-mappings-and-capability.md).
-- [ ] `feat(channels): add dorm strategies` — Docs: [Dorm strategies](21-channels/03-dorm-strategies.md).
-- [ ] `feat(channels): sync availability, rates and restrictions` — Docs: [ARI sync](21-channels/04-ari-sync.md).
-- [ ] `feat(channels): ingest channel bookings` — Docs: [Booking ingestion](21-channels/05-booking-ingestion.md).
-
-### 22 Reports
-
-- [ ] `feat(reports): add core reports` — Docs: [Core reports](22-reports/01-core-reports.md).
 
 ### 23 Company portal
 
 - [x] `refactor(reservations): rename the Agent source to Portal` — `ReservationSource::Agent` → `Portal`, generated TS, icon map. Docs: [Reservation shape](12-reservations/01-reservation-shape.md).
-- [ ] `feat(portal): add company users and company links` — `is_company_user`, users CHECK, `company_users`, Portal tab with invite, temp password and bulk add, existing-account invitations. Docs: [Company portal](23-company-portal/01-company-portal.md#adding-company-users).
-- [ ] `feat(portal): add the portal property list and invitations` — `/portal`, accept and decline, `portal` middleware, home redirect. Docs: [Company portal](23-company-portal/01-company-portal.md#pages).
-- [ ] `feat(portal): let company users book and manage stays` — `portal_access`, booking checks, cancel and request. Docs: [Company portal](23-company-portal/01-company-portal.md#rules).
-- [ ] `feat(portal): show company statements` — read-only invoices, payments and statement PDF. Docs: [Company portal](23-company-portal/01-company-portal.md#pages).
 
 ### Deferred items to pick up along the way
 
 - [x] `feat(platform): store uploads on the chosen media disk` — with the first media collection (guest ID scans). Docs: [Platform settings](01-platform/02-platform-settings.md#media-storage).
-- [ ] `feat(ui): add the command palette` — ⌘K search across contexts; admin search by code, name, city. Docs: [Search patterns](design-system/07-search-patterns.md).

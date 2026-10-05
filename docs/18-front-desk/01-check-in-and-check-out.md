@@ -23,3 +23,24 @@ Move a unit through its stay.
 ## Permissions
 
 `front-desk.check-in`, `front-desk.check-out`, `front-desk.check-in-without-card`.
+
+## Build order
+
+One checklist item per group, in this order. The Actions come first and the reservation page forms follow.
+
+1. `CheckInUnit` and `CheckOutUnit`, with the three permissions.
+2. `CancelUnit`, `MarkNoShow` and `ReinstateUnit`.
+3. `ExtendStay`, `ChangeUnitDates` and `ProcessEarlyDeparture`.
+4. The unit **⋯** menu on the [reservation page](../12-reservations/06-reservation-page.md#units-tab), with the forms below.
+
+## Forms on the reservation page
+
+Each form uses `FormOverlay` and the container from [Form containers](../design-system/05-form-containers.md).
+
+| Action                              | Container   | Fields and notes                                                              |
+| ----------------------------------- | ----------- | ----------------------------------------------------------------------------- |
+| Check in                            | Dialog      | Shows the room, the registration card status and a card override (permission) |
+| Check out                           | Dialog      | Shows the folio balance. Settle, or transfer to the master folio              |
+| Cancel unit, Mark no-show           | AlertDialog | Optional reason                                                               |
+| Reinstate                           | AlertDialog | Re-prices the unit. Shows the new total                                       |
+| Change dates, Extend, Early depart. | Dialog      | Dates and a live price difference from the quote service                      |

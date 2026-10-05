@@ -15,6 +15,10 @@ Switch a property from setup to operation in one clear moment.
 5. Enables notifications and the night audit.
 6. Sets `status = Live` and `went_live_at`, or `PendingApproval` when `platform_settings.require_go_live_approval` is on.
 
+## Build order
+
+`GoLive` is built before the wizard, because the night audit needs an open business date. The first version creates the business date through `OpenBusinessDate`, starts document numbering and sets `Live`. The readiness check reads the wizard steps, so it starts empty and fills as each step lands in [Wizard steps](02-wizard-steps.md).
+
 ## After go-live
 
 - A short celebration (`canvas-confetti`).
