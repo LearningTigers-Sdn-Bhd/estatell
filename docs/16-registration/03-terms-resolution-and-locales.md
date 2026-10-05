@@ -6,11 +6,11 @@ Show the right terms, in the guest's language, on every card.
 
 ## Service
 
-`RegistrationTermsResolver` returns the terms version row and the available locales.
+`RegistrationTermsResolver::resolve($property, $roomType, $guest, $requestedLocale)` returns a `ResolvedTerms` (document, chosen locale, terms version row, available locales), or null when the property has no published terms. A room type document with no published version is skipped, and a document of another property is never used. An explicitly requested locale (the card's selector) wins over the guest's, if the document has it.
 
 1. **Document**: the unit's room type `terms_document_id`, else the property default.
 2. **Locales offered**: locales with a published version in that document.
-3. **Starting locale**: `guests.preferred_locale` if available, else `property_settings.default_locale`.
+3. **Starting locale**: the requested locale, else `guests.preferred_locale`, else `property_settings.default_locale`, each only if available, else the first available locale.
 4. **Version**: the latest published version for that document and locale.
 
 Used by the card page, the remote signing link and the PDF.
