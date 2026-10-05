@@ -32,7 +32,8 @@
         .terms ul, .terms ol { margin: 0 0 2pt 0; padding-left: 12pt; }
         .terms li { margin: 0; padding: 0; }
         .checks { font-size: 8pt; }
-        .checks .box { font-size: 10pt; width: 16pt; line-height: 1; }
+        .checks td { padding: 0; }
+        .checks .box { font-size: 8pt; width: 14pt; line-height: 0.6; height: 11pt; }
         .signature { page-break-inside: avoid; }
         .signature img { max-height: 64pt; max-width: 220pt; }
         .sign-line { border-bottom: 0.5pt solid #1a1a1a; height: 32pt; }
