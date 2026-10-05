@@ -26,11 +26,11 @@
         .grid .value { font-weight: bold; min-height: 11pt; }
         .box { font-family: 'Noto Sans Symbols 2', sans-serif; font-size: 12pt; width: 20pt; }
         .items td { vertical-align: middle; padding: 1pt 0; }
-        .terms { font-size: 7.5pt; line-height: 1.25; }
-        .terms p { margin: 0 0 3pt 0; }
-        .terms h1, .terms h2, .terms h3, .terms h4 { font-size: 8.5pt; font-weight: bold; margin: 4pt 0 1pt 0; }
-        .terms ul, .terms ol { margin: 0 0 2pt 0; padding-left: 12pt; }
-        .terms li { margin: 0; padding: 0; }
+        .terms { font-size: 7.5pt; line-height: 1.5; }
+        .terms p { margin: 0 0 6pt 0; }
+        .terms h1, .terms h2, .terms h3, .terms h4 { font-size: 8.5pt; font-weight: bold; margin: 8pt 0 3pt 0; }
+        .terms ul, .terms ol { margin: 0 0 6pt 0; padding-left: 12pt; }
+        .terms li { margin: 0 0 2pt 0; padding: 0; }
         .checks { font-size: 8pt; }
         .checks td { padding: 0; }
         .checks .box { font-size: 8pt; width: 14pt; line-height: 0.6; height: 11pt; }
