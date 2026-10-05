@@ -1,5 +1,5 @@
-import { Head, Link, useForm } from '@inertiajs/react';
-import { Download, Printer } from 'lucide-react';
+import { Head, useForm } from '@inertiajs/react';
+import { Ban, Download, Printer, Tablet } from 'lucide-react';
 import { useState } from 'react';
 import type { EnumOption } from '@/components/pms/enum-select';
 import { PageHeader } from '@/components/pms/page-header';
@@ -324,6 +324,7 @@ export default function RegistrationCardPage({
                                     variant="outline"
                                     onClick={() => setVoiding(true)}
                                 >
+                                    <Ban data-icon="inline-start" />
                                     Void card
                                 </Button>
                             )}
@@ -357,14 +358,17 @@ export default function RegistrationCardPage({
                                 </a>
                             )}
                             {card.status.value === 'draft' && (
-                                <Link
+                                <a
                                     href={guest.url({
                                         unitGuest: card.unitGuestId,
                                     })}
+                                    target="_blank"
+                                    rel="noreferrer"
                                     className={buttonVariants()}
                                 >
+                                    <Tablet data-icon="inline-start" />
                                     Hand to guest
-                                </Link>
+                                </a>
                             )}
                         </>
                     }
