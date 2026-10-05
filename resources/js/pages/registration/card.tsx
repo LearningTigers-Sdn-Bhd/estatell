@@ -33,7 +33,7 @@ import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
 import {
     index as reservationsIndex,
-    show as showReservation,
+    guests as reservationGuests,
 } from '@/routes/reservations';
 import {
     blank,
@@ -310,7 +310,7 @@ export default function RegistrationCardPage({
                     title={card.guestName}
                     description={`${card.unitLabel}${card.number ? ` · ${card.number}` : ''}`}
                     back={{
-                        href: showReservation.url({
+                        href: reservationGuests.url({
                             reservation: card.reservationId,
                         }),
                         label: 'reservation',
