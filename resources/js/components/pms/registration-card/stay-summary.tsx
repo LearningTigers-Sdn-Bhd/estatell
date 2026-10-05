@@ -1,3 +1,5 @@
+import { ArrowRight } from 'lucide-react';
+
 type Field = {
     field: string;
     label: string;
@@ -100,7 +102,7 @@ export function StaySummary({
                 )}
             </div>
             {(checkIn || checkOut) && (
-                <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+                <div className="grid grid-cols-[auto_1fr_auto] items-center gap-4">
                     {checkIn ? (
                         <DateBlock
                             label={checkIn.label}
@@ -116,7 +118,10 @@ export function StaySummary({
                                 {nights.value} {nights.label.toLowerCase()}
                             </span>
                         )}
-                        <span className="h-px w-12 bg-border sm:w-24" />
+                        <div className="flex w-full items-center" aria-hidden>
+                            <span className="h-px flex-1 bg-border" />
+                            <ArrowRight className="size-4 shrink-0" />
+                        </div>
                     </div>
                     {checkOut ? (
                         <DateBlock
