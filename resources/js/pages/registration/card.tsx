@@ -140,10 +140,10 @@ export default function RegistrationCardPage({
                     <Heading
                         title={card.guestName}
                         description={`${card.unitLabel}${card.number ? ` · ${card.number}` : ''}`}
+                        badge={<StatusBadge status={card.status} />}
                         className="mb-0"
                     />
                     <div className="flex items-center gap-2">
-                        <StatusBadge status={card.status} />
                         {card.canVoid && (
                             <Button
                                 type="button"
