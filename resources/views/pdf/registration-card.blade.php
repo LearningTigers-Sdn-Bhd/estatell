@@ -36,9 +36,12 @@
         .checks td { padding: 0; }
         .checks .box { font-size: 8pt; width: 14pt; line-height: 0.6; height: 11pt; }
         .signature { page-break-inside: avoid; }
-        .signature img { max-height: 64pt; max-width: 220pt; }
-        .sign-line { border-bottom: 0.5pt solid #1a1a1a; height: 32pt; }
-        .sign-line img { margin-top: 0; }
+        .signature td { width: 33.33%; padding: 0 12pt 0 0; }
+        .sign-space { height: 40pt; }
+        .sign-space img { max-height: 40pt; max-width: 100%; }
+        .sign-line { border-top: 0.75pt solid #1a1a1a; }
+        .sign-label { font-size: 7.5pt; color: #6b6b6b; margin-top: 2pt; }
+        .sign-meta { font-size: 7.5pt; margin-top: 2pt; }
     </style>
 @endpush
 
@@ -100,16 +103,20 @@
         </table>
     </div>
 
-    <div class="signature gap-16">
-        <div class="sign-line">
-            @if ($document->signatureDataUri)
-                <img src="{{ $document->signatureDataUri }}" alt="">
-            @endif
-        </div>
-        <div class="small muted">{{ __('Guest signature') }}
-            @if ($document->signatureDataUri)
-                · {{ $document->signerName }} · {{ $document->signedAt }}
-            @endif
-        </div>
-    </div>
+    <table class="signature gap-16">
+        <tr>
+            <td class="sign-cell">
+                <div class="sign-space">
+                    @if ($document->signatureDataUri)
+                        <img src="{{ $document->signatureDataUri }}" alt="">
+                    @endif
+                </div>
+                <div class="sign-line"></div>
+                <div class="sign-label">{{ __('Guest signature') }}</div>
+                <div class="sign-meta">{{ __('Name') }}: {{ $document->signerName }} &nbsp; {{ __('Date') }}: {{ $document->signedAt }}</div>
+            </td>
+            <td></td>
+            <td></td>
+        </tr>
+    </table>
 @endsection
