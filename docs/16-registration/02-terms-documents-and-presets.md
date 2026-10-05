@@ -51,6 +51,25 @@ room_types.terms_document_id (nullable, foreign key, null on delete)
 - Fees such as a late check-out fee, a smoking fine or a key card fee have no setting. Hotels type the amount into the terms text. A placeholder can be added later with its own setting.
 - Placeholders are filled at signing and frozen in the card snapshot. `TermsRenderer` (a Service) fills them and renders the markdown. The editor preview uses it now, and signing and the PDF use it later.
 
+## Checklist items
+
+Key clauses the guest ticks one by one before signing. They live in the terms markdown as a task list under a `## I confirm that` heading. There is no extra table.
+
+```md
+## I confirm that
+
+- [ ] I will check out by {{check_out_time}}.
+- [ ] I accept the {{property_name}} PDPA notice.
+```
+
+- `TermsRenderer` returns the rendered body and the list of items. An item is a `- [ ]` line. Its position is its identity.
+- Placeholders work in items and are filled at signing.
+- A version has at most 10 items. The Form Request rejects more.
+- Every item is required. A version with no items needs only the signature.
+- Each preset ships 3 to 5 items in English and Bahasa Malaysia (no-smoking fine, deposit, PDPA notice, tourism tax, and quiet hours for Hostel). This raises each preset to `version: 2`.
+- The editor preview shows the items as read-only checkboxes. A hint says task-list lines become tick boxes.
+- Items are part of the body, so the "same as latest version" refusal covers them.
+
 ## Rules
 
 - Property creation seeds one "Standard" default document, version 1, in English and Bahasa Malaysia, from the preset for the property type. `SeedRegistrationTerms` is idempotent. A migration back-fills existing properties.

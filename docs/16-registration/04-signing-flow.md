@@ -26,6 +26,14 @@ registration_cards    id, unit_guest_id, number, status (RegistrationCardStatus)
     - Remote: `SendRegistrationCardLink` emails a `URL::temporarySignedRoute` link. The guest completes fields, uploads ID and signs.
 3. `CheckInUnit` checks cards against `registration_card_scope` (PrimaryOnly or EveryAdult) when `card_required_for_check_in` is on. Users with `front-desk.check-in-without-card` can override. The override is logged.
 
+## Terms checklist
+
+- The card page shows the terms text, then one checkbox per checklist item (see [Terms documents and presets](02-terms-documents-and-presets.md)). Desk and remote signing use the same component.
+- Sign stays disabled until every item is ticked.
+- `SignRegistrationCard` parses the resolved terms version again and refuses unless the submitted ticks cover every item. The browser does not decide this.
+- `snapshot` keeps each item's rendered text, its position and the tick time.
+- The PDF prints the items as ticked boxes in the signed locale.
+
 ## Rules
 
 - Signed cards are never edited. Changes void the card and a new card is signed.

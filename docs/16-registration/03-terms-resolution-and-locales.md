@@ -18,7 +18,7 @@ Used by the card page, the remote signing link and the PDF.
 ## Locale selector
 
 - Switching locale re-renders the terms and the field labels (`lang/{locale}.json`, passed as a prop to this page).
-- Guest input is kept when switching.
+- Guest input is kept when switching. Checklist ticks reset, because the wording changes.
 - On signing, `guests.preferred_locale` is updated.
 
 ## Edge cases
