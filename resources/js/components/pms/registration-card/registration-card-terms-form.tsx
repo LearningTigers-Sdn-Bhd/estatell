@@ -44,6 +44,7 @@ import {
 } from '@/components/ui/sheet';
 import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
+import { cn } from '@/lib/utils';
 import { useUnsavedChanges } from '@/hooks/use-unsaved-changes';
 import { terms } from '@/routes/settings/registration-card';
 import {
@@ -499,7 +500,12 @@ export function RegistrationCardTermsForm({
                         signed.
                     </p>
                 </div>
-                <div className="flex w-full flex-wrap items-center gap-2">
+                <div
+                    className={cn(
+                        'flex w-full flex-wrap items-center gap-2',
+                        documents.length <= 1 && 'justify-end',
+                    )}
+                >
                     {documents.length > 1 && editor && (
                         <EnumSelect
                             aria-label="Document"
@@ -525,11 +531,7 @@ export function RegistrationCardTermsForm({
                     {editor && (
                         <EnumSelect
                             aria-label="Language"
-                            className={
-                                documents.length > 1
-                                    ? 'w-56'
-                                    : 'min-w-48 flex-1'
-                            }
+                            className="w-56"
                             options={editor.localeOptions}
                             value={editor.locale}
                             onValueChange={(value) =>
