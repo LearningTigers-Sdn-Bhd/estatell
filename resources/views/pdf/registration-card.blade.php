@@ -20,22 +20,22 @@
         @page { margin: 32pt 40pt 64pt 40pt; }
         body { font-family: {!! $body !!}, sans-serif; }
         .footer { position: fixed; bottom: -40pt; left: 0; right: 0; }
-        .section { border-top: 0.5pt solid #c8c8c8; margin-top: 12pt; padding-top: 8pt; }
+        .section { border-top: 0.5pt solid #c8c8c8; margin-top: 8pt; padding-top: 6pt; }
         .section-title { font-size: 7pt; letter-spacing: 0.5pt; text-transform: uppercase; color: #6b6b6b; margin-bottom: 4pt; }
-        .grid td { width: 50%; padding: 0 12pt 8pt 0; }
+        .grid td { width: 50%; padding: 0 12pt 4pt 0; }
         .grid .value { font-weight: bold; min-height: 11pt; }
         .box { font-family: 'Noto Sans Symbols 2', sans-serif; font-size: 12pt; width: 20pt; }
-        .items td { vertical-align: middle; }
-        .terms { font-size: 7.5pt; line-height: 1.3; }
-        .terms p { margin: 0 0 4pt 0; }
-        .terms h1, .terms h2, .terms h3, .terms h4 { font-size: 8.5pt; font-weight: bold; margin: 6pt 0 2pt 0; }
-        .terms ul, .terms ol { margin: 0 0 4pt 0; padding-left: 12pt; }
-        .terms li { margin: 0 0 1pt 0; }
+        .items td { vertical-align: middle; padding: 1pt 0; }
+        .terms { font-size: 7.5pt; line-height: 1.25; }
+        .terms p { margin: 0 0 3pt 0; }
+        .terms h1, .terms h2, .terms h3, .terms h4 { font-size: 8.5pt; font-weight: bold; margin: 4pt 0 1pt 0; }
+        .terms ul, .terms ol { margin: 0 0 2pt 0; padding-left: 12pt; }
+        .terms li { margin: 0; padding: 0; }
         .checks { font-size: 8pt; }
-        .checks .box { font-size: 10pt; width: 16pt; }
+        .checks .box { font-size: 10pt; width: 16pt; line-height: 1; }
         .signature { page-break-inside: avoid; }
         .signature img { max-height: 64pt; max-width: 220pt; }
-        .sign-line { border-bottom: 0.5pt solid #1a1a1a; height: 40pt; }
+        .sign-line { border-bottom: 0.5pt solid #1a1a1a; height: 32pt; }
         .sign-line img { margin-top: 0; }
     </style>
 @endpush
@@ -100,7 +100,7 @@
         </table>
     </div>
 
-    <div class="signature gap-24">
+    <div class="signature gap-16">
         <div class="sign-line">
             @if ($document->signatureDataUri)
                 <img src="{{ $document->signatureDataUri }}" alt="">
