@@ -166,7 +166,7 @@ export function RegistrationCardForm({
                 </div>
             </div>
 
-            <div className="shrink-0 border-t bg-background">
+            <div className="shrink-0 border-t bg-muted">
                 <div className="mx-auto flex h-16 w-full max-w-5xl items-center justify-between gap-3 px-4">
                     <p className="text-sm text-muted-foreground">
                         {missing.join(' · ')}
