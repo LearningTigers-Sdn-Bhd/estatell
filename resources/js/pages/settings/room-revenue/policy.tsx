@@ -40,6 +40,7 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { useUnsavedChanges } from '@/hooks/use-unsaved-changes';
+import { cn } from '@/lib/utils';
 import { index } from '@/routes/settings/room-revenue';
 import {
     preview as previewRoute,
@@ -110,6 +111,7 @@ function Section({
     description,
     action,
     busy,
+    className,
     children,
 }: {
     id: string;
@@ -117,13 +119,14 @@ function Section({
     description: string;
     action?: ReactNode;
     busy?: boolean;
+    className?: string;
     children: ReactNode;
 }) {
     return (
         <section
             aria-labelledby={id}
             aria-busy={busy}
-            className="flex w-full min-w-0 flex-col gap-4"
+            className={cn('flex min-w-0 flex-col gap-4', className)}
         >
             <div className="flex items-start justify-between gap-2">
                 <div className="flex flex-col gap-1">
@@ -151,10 +154,12 @@ function PolicyPreview({
     preview,
     money,
     loading,
+    className,
 }: {
     preview: Preview;
     money: Intl.NumberFormat;
     loading: boolean;
+    className?: string;
 }) {
     const amount = (value: string | null) =>
         value === null ? '—' : money.format(Number(value));
@@ -166,6 +171,7 @@ function PolicyPreview({
             description={`A stay of ${preview.sampleNights} nights at ${money.format(Number(preview.sampleNight))} a night, with the taxes on this charge.`}
             action={loading ? <Spinner /> : null}
             busy={loading}
+            className={className}
         >
             <div className="overflow-auto rounded-lg border">
                 <Table>
@@ -314,377 +320,349 @@ export default function RoomRevenuePolicy({
                 <RoomRevenueTabs activeTab={tab}>
                     <form onSubmit={submit} className="flex flex-col gap-10">
                         <div className="flex flex-col gap-10 lg:flex-row lg:items-start">
-                            <div className="min-w-0">
-                                <Section
-                                    id="policy-charge"
-                                    title="How it charges"
-                                    description={heading.description}
-                                >
-                                    <div className="flex flex-col gap-6 md:flex-row md:items-start">
-                                        <Field className="md:w-80 md:shrink-0">
-                                            <FieldLabel>Charge</FieldLabel>
-                                            <RadioGroup
-                                                className="grid-cols-1"
-                                                value={data.charge_mode}
-                                                onValueChange={(value) =>
-                                                    http.setData(
-                                                        'charge_mode',
-                                                        value as App.Enums.PolicyChargeMode,
-                                                    )
-                                                }
-                                            >
-                                                {chargeModes.map((mode) => (
-                                                    <FieldLabel
-                                                        key={mode.value}
-                                                        htmlFor={`charge-mode-${mode.value}`}
-                                                    >
-                                                        <Field orientation="horizontal">
-                                                            <FieldContent>
-                                                                <FieldTitle>
-                                                                    {mode.label}
-                                                                </FieldTitle>
-                                                                <FieldDescription>
-                                                                    {
-                                                                        modeHints[
-                                                                            mode
-                                                                                .value
-                                                                        ]
-                                                                    }
-                                                                </FieldDescription>
-                                                            </FieldContent>
-                                                            <RadioGroupItem
-                                                                id={`charge-mode-${mode.value}`}
-                                                                value={
-                                                                    mode.value
+                            <Section
+                                id="policy-charge"
+                                title="How it charges"
+                                description={heading.description}
+                            >
+                                <div className="flex flex-col gap-6 md:flex-row md:items-start">
+                                    <Field className="md:w-80 md:shrink-0">
+                                        <FieldLabel>Charge</FieldLabel>
+                                        <RadioGroup
+                                            className="grid-cols-1"
+                                            value={data.charge_mode}
+                                            onValueChange={(value) =>
+                                                http.setData(
+                                                    'charge_mode',
+                                                    value as App.Enums.PolicyChargeMode,
+                                                )
+                                            }
+                                        >
+                                            {chargeModes.map((mode) => (
+                                                <FieldLabel
+                                                    key={mode.value}
+                                                    htmlFor={`charge-mode-${mode.value}`}
+                                                >
+                                                    <Field orientation="horizontal">
+                                                        <FieldContent>
+                                                            <FieldTitle>
+                                                                {mode.label}
+                                                            </FieldTitle>
+                                                            <FieldDescription>
+                                                                {
+                                                                    modeHints[
+                                                                        mode
+                                                                            .value
+                                                                    ]
                                                                 }
-                                                            />
-                                                        </Field>
-                                                    </FieldLabel>
-                                                ))}
-                                            </RadioGroup>
-                                            <FieldError>
-                                                {errors.charge_mode}
-                                            </FieldError>
-                                        </Field>
-
-                                        <FieldGroup className="min-w-0 gap-4 md:w-80 md:shrink-0">
-                                            {data.charge_mode === 'free' && (
-                                                <FieldDescription>
-                                                    Nothing to set. Guests are
-                                                    not charged.
-                                                </FieldDescription>
-                                            )}
-                                            {data.charge_mode ===
-                                                'fixed_amount' && (
-                                                <Field>
-                                                    <FieldLabel htmlFor="amount">
-                                                        Amount
-                                                    </FieldLabel>
-                                                    <MoneyInput
-                                                        id="amount"
-                                                        value={data.amount}
-                                                        onChange={(value) =>
-                                                            http.setData(
-                                                                'amount',
-                                                                value,
-                                                            )
-                                                        }
-                                                        currency={currency}
-                                                        invalid={
-                                                            !!errors.amount
-                                                        }
-                                                    />
-                                                    <FieldDescription>
-                                                        One charge, whatever the
-                                                        number of nights.
-                                                    </FieldDescription>
-                                                    <FieldError>
-                                                        {errors.amount}
-                                                    </FieldError>
-                                                </Field>
-                                            )}
-
-                                            {data.charge_mode ===
-                                                'percentage' && (
-                                                <>
-                                                    <Field>
-                                                        <FieldLabel htmlFor="percent">
-                                                            Percent
-                                                        </FieldLabel>
-                                                        <Input
-                                                            id="percent"
-                                                            inputMode="decimal"
-                                                            autoComplete="off"
-                                                            className="tabular-nums"
-                                                            value={data.percent}
-                                                            onChange={(event) =>
-                                                                http.setData(
-                                                                    'percent',
-                                                                    event.target
-                                                                        .value,
-                                                                )
-                                                            }
-                                                            aria-invalid={
-                                                                !!errors.percent
-                                                            }
+                                                            </FieldDescription>
+                                                        </FieldContent>
+                                                        <RadioGroupItem
+                                                            id={`charge-mode-${mode.value}`}
+                                                            value={mode.value}
                                                         />
-                                                        <FieldError>
-                                                            {errors.percent}
-                                                        </FieldError>
                                                     </Field>
-                                                    <Field>
-                                                        <FieldLabel htmlFor="percent_basis">
-                                                            Percent of the
-                                                        </FieldLabel>
-                                                        <EnumSelect
-                                                            id="percent_basis"
-                                                            options={rateBases}
-                                                            value={
-                                                                data.percent_basis
-                                                            }
-                                                            onValueChange={(
-                                                                value,
-                                                            ) =>
-                                                                http.setData(
-                                                                    'percent_basis',
-                                                                    value as App.Enums.PolicyRateBasis,
-                                                                )
-                                                            }
-                                                            aria-invalid={
-                                                                !!errors.percent_basis
-                                                            }
-                                                        />
-                                                        <FieldDescription>
-                                                            The current rate is
-                                                            a new price for the
-                                                            same plan, room type
-                                                            and dates. It falls
-                                                            back to the booked
-                                                            rate when none
-                                                            exists.
-                                                        </FieldDescription>
-                                                        <FieldError>
-                                                            {
-                                                                errors.percent_basis
-                                                            }
-                                                        </FieldError>
-                                                    </Field>
-                                                </>
-                                            )}
+                                                </FieldLabel>
+                                            ))}
+                                        </RadioGroup>
+                                        <FieldError>
+                                            {errors.charge_mode}
+                                        </FieldError>
+                                    </Field>
 
-                                            {data.charge_mode !== 'free' && (
-                                                <Field>
-                                                    <FieldLabel htmlFor="applies_to">
-                                                        Applies to
-                                                    </FieldLabel>
-                                                    <EnumSelect
-                                                        id="applies_to"
-                                                        options={scopes}
-                                                        value={data.applies_to}
-                                                        disabled={
-                                                            scopes.length === 1
-                                                        }
-                                                        onValueChange={(
+                                    <FieldGroup className="min-w-0 gap-4 md:w-80 md:shrink-0">
+                                        {data.charge_mode ===
+                                            'fixed_amount' && (
+                                            <Field>
+                                                <FieldLabel htmlFor="amount">
+                                                    Amount
+                                                </FieldLabel>
+                                                <MoneyInput
+                                                    id="amount"
+                                                    value={data.amount}
+                                                    onChange={(value) =>
+                                                        http.setData(
+                                                            'amount',
                                                             value,
-                                                        ) =>
-                                                            http.setData(
-                                                                'applies_to',
-                                                                value as App.Enums.PolicyScope,
-                                                            )
-                                                        }
-                                                        aria-invalid={
-                                                            !!errors.applies_to
-                                                        }
-                                                    />
-                                                    <FieldError>
-                                                        {errors.applies_to}
-                                                    </FieldError>
-                                                </Field>
-                                            )}
+                                                        )
+                                                    }
+                                                    currency={currency}
+                                                    invalid={!!errors.amount}
+                                                />
+                                                <FieldDescription>
+                                                    One charge, whatever the
+                                                    number of nights.
+                                                </FieldDescription>
+                                                <FieldError>
+                                                    {errors.amount}
+                                                </FieldError>
+                                            </Field>
+                                        )}
 
-                                            {tab === 'cancellation' && (
+                                        {data.charge_mode === 'percentage' && (
+                                            <>
                                                 <Field>
-                                                    <FieldLabel htmlFor="free_until_days">
-                                                        Free until (days before
-                                                        arrival)
+                                                    <FieldLabel htmlFor="percent">
+                                                        Percent
                                                     </FieldLabel>
                                                     <Input
-                                                        id="free_until_days"
-                                                        type="number"
-                                                        min={0}
-                                                        max={365}
+                                                        id="percent"
+                                                        inputMode="decimal"
+                                                        autoComplete="off"
                                                         className="tabular-nums"
-                                                        value={
-                                                            data.free_until_days
-                                                        }
+                                                        value={data.percent}
                                                         onChange={(event) =>
                                                             http.setData(
-                                                                'free_until_days',
+                                                                'percent',
                                                                 event.target
                                                                     .value,
                                                             )
                                                         }
                                                         aria-invalid={
-                                                            !!errors.free_until_days
+                                                            !!errors.percent
+                                                        }
+                                                    />
+                                                    <FieldError>
+                                                        {errors.percent}
+                                                    </FieldError>
+                                                </Field>
+                                                <Field>
+                                                    <FieldLabel htmlFor="percent_basis">
+                                                        Percent of the
+                                                    </FieldLabel>
+                                                    <EnumSelect
+                                                        id="percent_basis"
+                                                        options={rateBases}
+                                                        value={
+                                                            data.percent_basis
+                                                        }
+                                                        onValueChange={(
+                                                            value,
+                                                        ) =>
+                                                            http.setData(
+                                                                'percent_basis',
+                                                                value as App.Enums.PolicyRateBasis,
+                                                            )
+                                                        }
+                                                        aria-invalid={
+                                                            !!errors.percent_basis
                                                         }
                                                     />
                                                     <FieldDescription>
-                                                        A cancellation this many
-                                                        days or more before
-                                                        arrival is free. Leave
-                                                        empty to charge every
-                                                        cancellation.
+                                                        The current rate is a
+                                                        new price for the same
+                                                        plan, room type and
+                                                        dates. It falls back to
+                                                        the booked rate when
+                                                        none exists.
                                                     </FieldDescription>
                                                     <FieldError>
-                                                        {errors.free_until_days}
+                                                        {errors.percent_basis}
                                                     </FieldError>
                                                 </Field>
-                                            )}
-                                        </FieldGroup>
-                                    </div>
-                                </Section>
-                            </div>
+                                            </>
+                                        )}
 
-                            <div className="min-w-0 lg:w-96 lg:shrink-0">
-                                <Section
-                                    id="policy-taxes"
-                                    title="Taxes"
-                                    description="The taxes added to this charge."
-                                >
-                                    <FieldGroup className="gap-4">
-                                        <Field
-                                            orientation="horizontal"
-                                            className="items-start justify-start"
-                                        >
-                                            <Switch
-                                                id="follow_taxes"
-                                                checked={!data.own_taxes}
-                                                onCheckedChange={followTaxes}
-                                                className="mt-0.5"
-                                            />
-                                            <FieldContent className="min-w-0">
-                                                <FieldLabel htmlFor="follow_taxes">
-                                                    Follow the Taxes tab
+                                        {data.charge_mode !== 'free' && (
+                                            <Field>
+                                                <FieldLabel htmlFor="applies_to">
+                                                    Applies to
                                                 </FieldLabel>
+                                                <EnumSelect
+                                                    id="applies_to"
+                                                    options={scopes}
+                                                    value={data.applies_to}
+                                                    disabled={
+                                                        scopes.length === 1
+                                                    }
+                                                    onValueChange={(value) =>
+                                                        http.setData(
+                                                            'applies_to',
+                                                            value as App.Enums.PolicyScope,
+                                                        )
+                                                    }
+                                                    aria-invalid={
+                                                        !!errors.applies_to
+                                                    }
+                                                />
+                                                <FieldError>
+                                                    {errors.applies_to}
+                                                </FieldError>
+                                            </Field>
+                                        )}
+
+                                        {tab === 'cancellation' && (
+                                            <Field>
+                                                <FieldLabel htmlFor="free_until_days">
+                                                    Free until (days before
+                                                    arrival)
+                                                </FieldLabel>
+                                                <Input
+                                                    id="free_until_days"
+                                                    type="number"
+                                                    min={0}
+                                                    max={365}
+                                                    className="tabular-nums"
+                                                    value={data.free_until_days}
+                                                    onChange={(event) =>
+                                                        http.setData(
+                                                            'free_until_days',
+                                                            event.target.value,
+                                                        )
+                                                    }
+                                                    aria-invalid={
+                                                        !!errors.free_until_days
+                                                    }
+                                                />
                                                 <FieldDescription>
-                                                    On: this charge uses the
-                                                    taxes chosen on the Taxes
-                                                    tab. Off: choose taxes for
-                                                    this charge only.
+                                                    A cancellation this many
+                                                    days or more before arrival
+                                                    is free. Leave empty to
+                                                    charge every cancellation.
                                                 </FieldDescription>
-                                            </FieldContent>
-                                        </Field>
-                                        <Field data-invalid={!!errors.tax_ids}>
-                                            <FieldLabel htmlFor="policy-taxes-select">
-                                                Taxes
-                                            </FieldLabel>
-                                            <MultiCombobox
-                                                id="policy-taxes-select"
-                                                name="tax_ids"
-                                                items={taxOptions(taxes, money)}
-                                                value={data.tax_ids.map(String)}
-                                                onValueChange={(value) =>
-                                                    http.setData(
-                                                        'tax_ids',
-                                                        value.map(Number),
-                                                    )
-                                                }
-                                                placeholder="No taxes"
-                                                emptyLabel="No matching taxes."
-                                                disabled={!data.own_taxes}
-                                                invalid={!!errors.tax_ids}
-                                            />
-                                            {data.own_taxes && (
-                                                <FieldDescription>
-                                                    Own taxes. Changing the
-                                                    Taxes tab does not change
-                                                    them.
-                                                </FieldDescription>
-                                            )}
-                                            <FieldError>
-                                                {errors.tax_ids ??
-                                                    errors['tax_ids.0']}
-                                            </FieldError>
-                                        </Field>
+                                                <FieldError>
+                                                    {errors.free_until_days}
+                                                </FieldError>
+                                            </Field>
+                                        )}
                                     </FieldGroup>
-                                </Section>
-                            </div>
+                                </div>
+                            </Section>
+
+                            <Section
+                                className="lg:w-96 lg:shrink-0"
+                                id="policy-taxes"
+                                title="Taxes"
+                                description="The taxes added to this charge."
+                            >
+                                <FieldGroup className="gap-4">
+                                    <Field
+                                        orientation="horizontal"
+                                        className="items-start justify-start"
+                                    >
+                                        <Switch
+                                            id="follow_taxes"
+                                            checked={!data.own_taxes}
+                                            onCheckedChange={followTaxes}
+                                            className="mt-0.5"
+                                        />
+                                        <FieldContent className="min-w-0">
+                                            <FieldLabel htmlFor="follow_taxes">
+                                                Follow the Taxes tab
+                                            </FieldLabel>
+                                            <FieldDescription>
+                                                On: this charge uses the taxes
+                                                chosen on the Taxes tab. Off:
+                                                choose taxes for this charge
+                                                only.
+                                            </FieldDescription>
+                                        </FieldContent>
+                                    </Field>
+                                    <Field data-invalid={!!errors.tax_ids}>
+                                        <FieldLabel htmlFor="policy-taxes-select">
+                                            Taxes
+                                        </FieldLabel>
+                                        <MultiCombobox
+                                            id="policy-taxes-select"
+                                            name="tax_ids"
+                                            items={taxOptions(taxes, money)}
+                                            value={data.tax_ids.map(String)}
+                                            onValueChange={(value) =>
+                                                http.setData(
+                                                    'tax_ids',
+                                                    value.map(Number),
+                                                )
+                                            }
+                                            placeholder="No taxes"
+                                            emptyLabel="No matching taxes."
+                                            disabled={!data.own_taxes}
+                                            invalid={!!errors.tax_ids}
+                                        />
+                                        {data.own_taxes && (
+                                            <FieldDescription>
+                                                Own taxes. Changing the Taxes
+                                                tab does not change them.
+                                            </FieldDescription>
+                                        )}
+                                        <FieldError>
+                                            {errors.tax_ids ??
+                                                errors['tax_ids.0']}
+                                        </FieldError>
+                                    </Field>
+                                </FieldGroup>
+                            </Section>
                         </div>
 
                         <div className="flex flex-col gap-10 lg:flex-row lg:items-start lg:gap-6">
-                            <div className="min-w-0 lg:w-80 lg:shrink-0">
-                                <Section
-                                    id="policy-text"
-                                    title="Policy text"
-                                    description="The words guests read on their documents. Write one for each language."
-                                >
-                                    <Field>
-                                        <InputGroup>
-                                            <InputGroupAddon
-                                                align="block-start"
-                                                className="justify-end border-b"
-                                            >
-                                                <EnumSelect
-                                                    options={locales}
-                                                    value={language}
-                                                    onValueChange={(value) =>
-                                                        setLanguage(
-                                                            value as
-                                                                | 'text_en'
-                                                                | 'text_ms',
-                                                        )
-                                                    }
-                                                    aria-label="Language"
-                                                    className="w-56"
-                                                    icon={
-                                                        <Globe
-                                                            aria-hidden
-                                                            className="text-muted-foreground"
-                                                        />
-                                                    }
-                                                />
-                                            </InputGroupAddon>
-                                            <InputGroupTextarea
-                                                key={textField}
-                                                id={textField}
-                                                aria-label={`Policy text in ${languageLabel}`}
-                                                value={data[textField]}
-                                                onChange={(event) =>
-                                                    http.setData(
-                                                        textField,
-                                                        event.target.value,
+                            <Section
+                                className="lg:w-80 lg:shrink-0"
+                                id="policy-text"
+                                title="Policy text"
+                                description="The words guests read on their documents. Write one for each language."
+                            >
+                                <Field>
+                                    <InputGroup>
+                                        <InputGroupAddon
+                                            align="block-start"
+                                            className="justify-end border-b"
+                                        >
+                                            <EnumSelect
+                                                options={locales}
+                                                value={language}
+                                                onValueChange={(value) =>
+                                                    setLanguage(
+                                                        value as
+                                                            | 'text_en'
+                                                            | 'text_ms',
                                                     )
                                                 }
-                                                aria-invalid={
-                                                    !!errors[textField]
+                                                aria-label="Language"
+                                                className="w-56"
+                                                icon={
+                                                    <Globe
+                                                        aria-hidden
+                                                        className="text-muted-foreground"
+                                                    />
                                                 }
                                             />
-                                            <InputGroupAddon
-                                                align="block-end"
-                                                className="border-t"
-                                            >
-                                                <InputGroupText className="tabular-nums">
-                                                    {wordCount(data[textField])}{' '}
-                                                    words
-                                                </InputGroupText>
-                                                <InputGroupText className="ml-auto">
-                                                    Shown to the guest
-                                                </InputGroupText>
-                                            </InputGroupAddon>
-                                        </InputGroup>
-                                        <FieldError>
-                                            {errors.text_en ?? errors.text_ms}
-                                        </FieldError>
-                                    </Field>
-                                </Section>
-                            </div>
-                            <div className="min-w-0 lg:flex-1">
-                                <PolicyPreview
-                                    preview={preview}
-                                    money={money}
-                                    loading={http.processing}
-                                />
-                            </div>
+                                        </InputGroupAddon>
+                                        <InputGroupTextarea
+                                            key={textField}
+                                            id={textField}
+                                            aria-label={`Policy text in ${languageLabel}`}
+                                            value={data[textField]}
+                                            onChange={(event) =>
+                                                http.setData(
+                                                    textField,
+                                                    event.target.value,
+                                                )
+                                            }
+                                            aria-invalid={!!errors[textField]}
+                                        />
+                                        <InputGroupAddon
+                                            align="block-end"
+                                            className="border-t"
+                                        >
+                                            <InputGroupText className="tabular-nums">
+                                                {wordCount(data[textField])}{' '}
+                                                words
+                                            </InputGroupText>
+                                            <InputGroupText className="ml-auto">
+                                                Shown to the guest
+                                            </InputGroupText>
+                                        </InputGroupAddon>
+                                    </InputGroup>
+                                    <FieldError>
+                                        {errors.text_en ?? errors.text_ms}
+                                    </FieldError>
+                                </Field>
+                            </Section>
+                            <PolicyPreview
+                                className="lg:flex-1"
+                                preview={preview}
+                                money={money}
+                                loading={http.processing}
+                            />
                         </div>
 
                         <div className="flex justify-end">
