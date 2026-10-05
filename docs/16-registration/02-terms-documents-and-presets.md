@@ -53,7 +53,7 @@ room_types.terms_document_id (nullable, foreign key, null on delete)
 
 ## Checklist items
 
-Key clauses the guest ticks one by one before signing. They live in the terms markdown as a task list under a `## I confirm that` heading. There is no extra table.
+Key clauses the guest ticks one by one before signing. They live in the terms markdown as task lists, usually under a `## I confirm that` heading. A text may have several task lists, in different sections. There is no extra table.
 
 ```md
 ## I confirm that
@@ -64,10 +64,11 @@ Key clauses the guest ticks one by one before signing. They live in the terms ma
 
 - `TermsRenderer` returns the rendered body and the list of items. An item is a `- [ ]` line. Its position is its identity.
 - Placeholders work in items and are filled at signing.
-- A version has at most 10 items. The Form Request rejects more.
+- A version has at most 10 items in total, across all sections. The Form Request rejects more.
+- Each tick box shows in the section where the author wrote it, in the editor preview, on the guest screen and in the PDF. The guest screen does not collect them into one list.
 - Every item is required. A version with no items needs only the signature.
 - Each preset ships 3 to 5 items in English and Bahasa Malaysia (no-smoking fine, deposit, PDPA notice, tourism tax, and quiet hours for Hostel).
-- The editor preview shows the items as read-only checkboxes. A hint says task-list lines become tick boxes.
+- The editor preview shows the items in place as read-only checkboxes. A hint says task-list lines become tick boxes.
 - Items are part of the body, so the "same as latest version" refusal covers them.
 
 ## Rules

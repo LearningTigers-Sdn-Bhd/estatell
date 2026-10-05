@@ -91,21 +91,26 @@ Routes are in `routes/registration.php`. All need `registration-card.sign`, exce
 `pages/registration/guest.tsx`, in a new bare `layouts/guest-layout.tsx`: the property name, no sidebar, no breadcrumbs, no staff actions. Step 3 shows the same page behind the signed link.
 
 ```
-┌──────────────────────────────── [English ▾] ┐
-│  Welcome, Aisyah · Guest 1 of 3              │
-│  Check your details      (editable, large)   │
-│  Terms (scroll)                              │
-│                          [ Agree to all ]    │
-│  ☐ item 1                                    │
-│  ☐ item 2                                    │
-│  Signature                   [Clear] [⤢]     │
-│  ┌──────────── inline pad ────────────┐      │
-│  └────────────────────────────────────┘      │
-│                         [ Sign card ]        │
-│                     Staff: back to desk      │
-└──────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────┐
+│ Welcome, Aisyah · Guest 1 of 3             [English ▾] │
+│ ┌ Your stay ─────────────────────────────── RC-0012 ┐  │
+│ │ CHECK-IN         3 nights          CHECK-OUT      │  │
+│ │ Sun, 04 Oct      ────────●         Wed, 07 Oct    │  │
+│ │ Room · Guests · Rate plan · Meals                 │  │
+│ └───────────────────────────────────────────────────┘  │
+│ ┌ 1 Personal ───────┐ ┌ 5 Terms ─ 3 of 8 [Agree all] ┐  │
+│ ┌ 2 Contact ────────┐ │ text, then its own boxes     │  │
+│ ┌ 3 Identity ───────┐ │ ☐ item (in place)            │  │
+│ ┌ 4 Preferences ────┐ ┌ 6 Sign ─────── [Clear] [⤢] ──┐  │
+│                       │ inline pad                   │  │
+│ 5 boxes left · signature needed        [ Sign card ]   │
+│                   Staff: back to desk                  │
+└────────────────────────────────────────────────────────┘
 ```
 
+- The page is a set of section cards: Personal, Contact, Identity, Preferences, Terms and Sign. Personal to Preferences are the left column on wide screens, Terms and Sign the right. On a phone they stack in one scroll.
+- The stay card at the top has the check-in and check-out dates large, with the weekday, and the night count between them. The booking number is small at the top right. The other visible stay fields sit in an even grid (4 columns, 2 on a phone). A field the Layout tab hides does not show. Prices, when visible, sit in their own row under a divider.
+- The sticky footer says what is missing ("5 boxes left", "signature needed") beside Sign card.
 - The fields follow the Layout tab. The ID document picked by staff shows masked and read-only. If none is picked and the field is Required, the guest types it.
 - The language Select lists the languages from `RegistrationTermsResolver`. Switching resets the ticks and keeps the typed values.
 - The signature pad is on the page, not in a dialog. Clear sits above the pad, away from Sign card. ⤢ opens the pad full screen with the strokes so far. Done copies the strokes back to the page. Cancel (or Escape) drops what was drawn full screen and keeps the page as it was.
@@ -122,8 +127,9 @@ Routes are in `routes/registration.php`. All need `registration-card.sign`, exce
 
 ## Terms checklist
 
-- The card page shows the terms text, then one checkbox per checklist item (see [Terms documents and presets](02-terms-documents-and-presets.md)). Desk and remote signing use the same component.
-- Agree to all ticks every box in one tap. The boxes stay visible and each one can be unticked. When every box is ticked, the button reads Untick all.
+- The card page shows the terms text with each checklist item as a checkbox in the section where the author wrote it (see [Terms documents and presets](02-terms-documents-and-presets.md)). Desk and remote signing use the same component.
+- A counter beside Agree to all shows how many items are ticked, for example "3 of 8".
+- Agree to all ticks every box in the text in one tap. The boxes stay visible and each one can be unticked. When every box is ticked, the button reads Untick all.
 - Sign stays disabled until every item is ticked.
 - `SignRegistrationCard` resolves the terms version again and refuses unless the submitted ticks cover every item. The browser does not decide this.
 - `snapshot` keeps each item's rendered text, its position and the tick time.
