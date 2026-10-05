@@ -1,22 +1,31 @@
 import { Head, router, useHttp } from '@inertiajs/react';
+import { Globe } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 import { EnumSelect } from '@/components/pms/enum-select';
 import type { EnumOption } from '@/components/pms/enum-select';
 import { MoneyInput } from '@/components/pms/money-input';
 import { PageHeader } from '@/components/pms/page-header';
+import { UnsavedChangesDialog } from '@/components/pms/unsaved-changes-dialog';
 import { RoomRevenueTabs } from '@/components/pms/room-revenue/room-revenue-tabs';
 import type { RoomRevenueTab } from '@/components/pms/room-revenue/room-revenue-tabs';
 import { Button } from '@/components/ui/button';
 import {
     Field,
+    FieldContent,
     FieldDescription,
     FieldError,
     FieldGroup,
     FieldLabel,
-    FieldLegend,
-    FieldSet,
+    FieldTitle,
 } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
+import {
+    InputGroup,
+    InputGroupAddon,
+    InputGroupText,
+    InputGroupTextarea,
+} from '@/components/ui/input-group';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Spinner } from '@/components/ui/spinner';
 import {
@@ -27,8 +36,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Textarea } from '@/components/ui/textarea';
+import { useUnsavedChanges } from '@/hooks/use-unsaved-changes';
 import { index } from '@/routes/settings/room-revenue';
 import {
     preview as previewRoute,
@@ -69,6 +77,12 @@ const titles: Record<string, { title: string; description: string }> = {
     },
 };
 
+const modeHints: Record<string, string> = {
+    free: 'No charge.',
+    fixed_amount: 'One amount, whatever the number of nights.',
+    percentage: 'A percent of the room rate.',
+};
+
 function formFrom(policy: Policy): PolicyForm {
     return {
         charge_mode: policy.chargeMode,
@@ -81,6 +95,49 @@ function formFrom(policy: Policy): PolicyForm {
         text_en: policy.textEn,
         text_ms: policy.textMs,
     };
+}
+
+function Section({
+    id,
+    title,
+    description,
+    action,
+    busy,
+    children,
+}: {
+    id: string;
+    title: string;
+    description: string;
+    action?: ReactNode;
+    busy?: boolean;
+    children: ReactNode;
+}) {
+    return (
+        <section
+            aria-labelledby={id}
+            aria-busy={busy}
+            className="flex w-full min-w-0 flex-col gap-4"
+        >
+            <div className="flex items-start justify-between gap-2">
+                <div className="flex flex-col gap-1">
+                    <h2 id={id} className="text-sm font-medium">
+                        {title}
+                    </h2>
+                    <p className="text-sm text-muted-foreground">
+                        {description}
+                    </p>
+                </div>
+                {action}
+            </div>
+            {children}
+        </section>
+    );
+}
+
+function wordCount(text: string): number {
+    const trimmed = text.trim();
+
+    return trimmed === '' ? 0 : trimmed.split(/\s+/).length;
 }
 
 function PolicyPreview({
@@ -96,24 +153,13 @@ function PolicyPreview({
         value === null ? '—' : money.format(Number(value));
 
     return (
-        <section
-            aria-labelledby="policy-preview"
-            aria-busy={loading}
-            className="flex w-full min-w-0 flex-col gap-3 lg:col-span-2"
+        <Section
+            id="policy-preview"
+            title="Preview"
+            description={`A stay of ${preview.sampleNights} nights at ${money.format(Number(preview.sampleNight))} a night, with the taxes on this charge.`}
+            action={loading ? <Spinner /> : null}
+            busy={loading}
         >
-            <div className="flex items-center justify-between gap-2">
-                <div className="flex flex-col gap-1">
-                    <h2 id="policy-preview" className="text-sm font-medium">
-                        Preview
-                    </h2>
-                    <p className="text-sm text-muted-foreground">
-                        A stay of {preview.sampleNights} nights at{' '}
-                        {money.format(Number(preview.sampleNight))} a night,
-                        with the taxes on this charge.
-                    </p>
-                </div>
-                {loading && <Spinner />}
-            </div>
             <div className="overflow-auto rounded-lg border">
                 <Table>
                     <TableHeader>
@@ -157,7 +203,7 @@ function PolicyPreview({
                     </TableBody>
                 </Table>
             </div>
-        </section>
+        </Section>
     );
 }
 
@@ -169,6 +215,7 @@ export default function RoomRevenuePolicy({
     chargeModes,
     rateBases,
     scopes,
+    locales,
 }: {
     tab: Exclude<RoomRevenueTab, 'taxes'>;
     policy: Policy;
@@ -177,12 +224,18 @@ export default function RoomRevenuePolicy({
     chargeModes: EnumOption[];
     rateBases: EnumOption[];
     scopes: EnumOption[];
+    locales: EnumOption[];
 }) {
     const http = useHttp<PolicyForm, Preview>(formFrom(policy));
+    const guard = useUnsavedChanges(http.isDirty);
     const [preview, setPreview] = useState(savedPreview);
     const [saving, setSaving] = useState(false);
     const [errors, setErrors] = useState<Record<string, string>>({});
+    const [language, setLanguage] = useState(locales[0]?.value ?? 'en');
     const data = http.data;
+    const textField = `text_${language}` as 'text_en' | 'text_ms';
+    const languageLabel =
+        locales.find((locale) => locale.value === language)?.label ?? language;
     const key = JSON.stringify(data);
     const previewedKey = useRef(key);
     const money = new Intl.NumberFormat(undefined, {
@@ -207,16 +260,26 @@ export default function RoomRevenuePolicy({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [key]);
 
-    const submit = (event: React.FormEvent) => {
-        event.preventDefault();
-
+    const save = (onSaved?: () => void) => {
         router.put(update.url({ tab }), data, {
             preserveScroll: true,
             onStart: () => setSaving(true),
             onFinish: () => setSaving(false),
-            onSuccess: () => setErrors({}),
-            onError: (next) => setErrors(next),
+            onSuccess: () => {
+                setErrors({});
+                http.setDefaults();
+                onSaved?.();
+            },
+            onError: (next) => {
+                setErrors(next);
+                guard.stay();
+            },
         });
+    };
+
+    const submit = (event: React.FormEvent) => {
+        event.preventDefault();
+        save();
     };
 
     return (
@@ -230,49 +293,57 @@ export default function RoomRevenuePolicy({
                 />
 
                 <RoomRevenueTabs activeTab={tab}>
-                    <form onSubmit={submit} className="flex flex-col gap-6">
-                        <div className="grid items-start gap-8 lg:w-4/5 lg:grid-cols-3">
-                            <FieldSet className="min-w-0">
-                                <FieldLegend variant="label">
-                                    {heading.title} policy
-                                </FieldLegend>
-                                <FieldDescription>
-                                    {heading.description}
-                                </FieldDescription>
-                                <FieldGroup className="gap-4">
-                                    <Field>
-                                        <FieldLabel>Charge</FieldLabel>
-                                        <RadioGroup
-                                            value={data.charge_mode}
-                                            onValueChange={(value) =>
-                                                http.setData(
-                                                    'charge_mode',
-                                                    value as App.Enums.PolicyChargeMode,
-                                                )
-                                            }
-                                        >
-                                            {chargeModes.map((mode) => (
-                                                <Field
-                                                    key={mode.value}
-                                                    orientation="horizontal"
-                                                >
+                    <form onSubmit={submit} className="flex flex-col gap-10">
+                        <Section
+                            id="policy-charge"
+                            title="How it charges"
+                            description={heading.description}
+                        >
+                            <div className="grid items-start gap-6 md:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]">
+                                <Field>
+                                    <FieldLabel>Charge</FieldLabel>
+                                    <RadioGroup
+                                        className="grid-cols-1"
+                                        value={data.charge_mode}
+                                        onValueChange={(value) =>
+                                            http.setData(
+                                                'charge_mode',
+                                                value as App.Enums.PolicyChargeMode,
+                                            )
+                                        }
+                                    >
+                                        {chargeModes.map((mode) => (
+                                            <FieldLabel
+                                                key={mode.value}
+                                                htmlFor={`charge-mode-${mode.value}`}
+                                            >
+                                                <Field orientation="horizontal">
+                                                    <FieldContent>
+                                                        <FieldTitle>
+                                                            {mode.label}
+                                                        </FieldTitle>
+                                                        <FieldDescription>
+                                                            {
+                                                                modeHints[
+                                                                    mode.value
+                                                                ]
+                                                            }
+                                                        </FieldDescription>
+                                                    </FieldContent>
                                                     <RadioGroupItem
                                                         id={`charge-mode-${mode.value}`}
                                                         value={mode.value}
                                                     />
-                                                    <FieldLabel
-                                                        htmlFor={`charge-mode-${mode.value}`}
-                                                    >
-                                                        {mode.label}
-                                                    </FieldLabel>
                                                 </Field>
-                                            ))}
-                                        </RadioGroup>
-                                        <FieldError>
-                                            {errors.charge_mode}
-                                        </FieldError>
-                                    </Field>
+                                            </FieldLabel>
+                                        ))}
+                                    </RadioGroup>
+                                    <FieldError>
+                                        {errors.charge_mode}
+                                    </FieldError>
+                                </Field>
 
+                                <FieldGroup className="gap-4">
                                     {data.charge_mode === 'fixed_amount' && (
                                         <Field>
                                             <FieldLabel htmlFor="amount">
@@ -417,63 +488,73 @@ export default function RoomRevenuePolicy({
                                             </FieldError>
                                         </Field>
                                     )}
-
-                                    <Field>
-                                        <FieldLabel>Policy text</FieldLabel>
-                                        <Tabs defaultValue="en">
-                                            <TabsList variant="line">
-                                                <TabsTrigger value="en">
-                                                    English
-                                                </TabsTrigger>
-                                                <TabsTrigger value="ms">
-                                                    Malay
-                                                </TabsTrigger>
-                                            </TabsList>
-                                            <TabsContent value="en">
-                                                <Textarea
-                                                    id="text_en"
-                                                    aria-label="Policy text in English"
-                                                    value={data.text_en}
-                                                    onChange={(event) =>
-                                                        http.setData(
-                                                            'text_en',
-                                                            event.target.value,
-                                                        )
-                                                    }
-                                                    aria-invalid={
-                                                        !!errors.text_en
-                                                    }
-                                                />
-                                                <FieldError>
-                                                    {errors.text_en}
-                                                </FieldError>
-                                            </TabsContent>
-                                            <TabsContent value="ms">
-                                                <Textarea
-                                                    id="text_ms"
-                                                    aria-label="Policy text in Malay"
-                                                    value={data.text_ms}
-                                                    onChange={(event) =>
-                                                        http.setData(
-                                                            'text_ms',
-                                                            event.target.value,
-                                                        )
-                                                    }
-                                                    aria-invalid={
-                                                        !!errors.text_ms
-                                                    }
-                                                />
-                                                <FieldError>
-                                                    {errors.text_ms}
-                                                </FieldError>
-                                            </TabsContent>
-                                        </Tabs>
-                                        <FieldDescription>
-                                            Shown to guests on documents.
-                                        </FieldDescription>
-                                    </Field>
                                 </FieldGroup>
-                            </FieldSet>
+                            </div>
+                        </Section>
+
+                        <div className="grid items-start gap-10 md:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]">
+                            <Section
+                                id="policy-text"
+                                title="Policy text"
+                                description="The words guests read on their documents. Write one for each language."
+                            >
+                                <Field>
+                                    <InputGroup>
+                                        <InputGroupAddon
+                                            align="block-start"
+                                            className="justify-end border-b"
+                                        >
+                                            <EnumSelect
+                                                options={locales}
+                                                value={language}
+                                                onValueChange={(value) =>
+                                                    setLanguage(
+                                                        value as
+                                                            | 'text_en'
+                                                            | 'text_ms',
+                                                    )
+                                                }
+                                                aria-label="Language"
+                                                className="w-56"
+                                                icon={
+                                                    <Globe
+                                                        aria-hidden
+                                                        className="text-muted-foreground"
+                                                    />
+                                                }
+                                            />
+                                        </InputGroupAddon>
+                                        <InputGroupTextarea
+                                            key={textField}
+                                            id={textField}
+                                            aria-label={`Policy text in ${languageLabel}`}
+                                            value={data[textField]}
+                                            onChange={(event) =>
+                                                http.setData(
+                                                    textField,
+                                                    event.target.value,
+                                                )
+                                            }
+                                            aria-invalid={!!errors[textField]}
+                                        />
+                                        <InputGroupAddon
+                                            align="block-end"
+                                            className="border-t"
+                                        >
+                                            <InputGroupText className="tabular-nums">
+                                                {wordCount(data[textField])}{' '}
+                                                words
+                                            </InputGroupText>
+                                            <InputGroupText className="ml-auto">
+                                                Shown to the guest
+                                            </InputGroupText>
+                                        </InputGroupAddon>
+                                    </InputGroup>
+                                    <FieldError>
+                                        {errors.text_en ?? errors.text_ms}
+                                    </FieldError>
+                                </Field>
+                            </Section>
 
                             <PolicyPreview
                                 preview={preview}
@@ -481,10 +562,11 @@ export default function RoomRevenuePolicy({
                                 loading={http.processing}
                             />
                         </div>
-                        <div className="flex justify-end lg:w-4/5">
+
+                        <div className="flex justify-end">
                             <Button
                                 type="submit"
-                                disabled={saving}
+                                disabled={saving || !http.isDirty}
                                 focusableWhenDisabled
                             >
                                 {saving && <Spinner data-icon="inline-start" />}
@@ -494,6 +576,13 @@ export default function RoomRevenuePolicy({
                     </form>
                 </RoomRevenueTabs>
             </div>
+
+            <UnsavedChangesDialog
+                guard={guard}
+                name={`${heading.title} policy`}
+                saving={saving}
+                onSave={() => save(guard.proceed)}
+            />
         </>
     );
 }

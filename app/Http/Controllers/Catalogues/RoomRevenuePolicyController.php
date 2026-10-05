@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Catalogues;
 
 use App\Actions\Catalogues\SaveRoomRevenuePolicy;
 use App\Data\Catalogues\RoomRevenuePolicyData;
+use App\Enums\Locale;
 use App\Enums\PolicyChargeMode;
 use App\Enums\PolicyRateBasis;
 use App\Enums\PolicyTab;
@@ -36,6 +37,7 @@ class RoomRevenuePolicyController extends Controller
             'chargeModes' => PolicyChargeMode::options(),
             'rateBases' => PolicyRateBasis::options(),
             'scopes' => $tab->scopeOptions(),
+            'locales' => Locale::options(),
         ]);
     }
 

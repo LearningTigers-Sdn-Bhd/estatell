@@ -51,6 +51,7 @@ test('each policy tab renders its form, options and a free preview', function (s
             ->where('scopes', fn ($options) => collect($options)->pluck('value')->all() === $scopes)
             ->has('chargeModes', 3)
             ->has('rateBases', 2)
+            ->where('locales.0.value', 'en')
             ->where('preview.sampleNight', '100.00')
             ->where('preview.lines.0.free', true)
             ->where('navigation.contexts.2.groups.3.items.3.active', true));

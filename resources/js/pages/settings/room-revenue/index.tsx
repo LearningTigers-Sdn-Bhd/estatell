@@ -3,6 +3,7 @@ import { Landmark } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { EmptyState } from '@/components/pms/empty-state';
 import { PageHeader } from '@/components/pms/page-header';
+import { UnsavedChangesDialog } from '@/components/pms/unsaved-changes-dialog';
 import { RoomRevenueTabs } from '@/components/pms/room-revenue/room-revenue-tabs';
 import { Badge } from '@/components/ui/badge';
 import { Button, buttonVariants } from '@/components/ui/button';
@@ -27,6 +28,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { useUnsavedChanges } from '@/hooks/use-unsaved-changes';
 import {
     index,
     preview as previewRoute,
@@ -69,7 +71,7 @@ function PostingPreview({
         <section
             aria-labelledby="room-revenue-preview"
             aria-busy={loading}
-            className="flex w-full min-w-0 flex-col gap-3 lg:col-span-2"
+            className="flex w-full min-w-0 flex-col gap-3"
         >
             <div className="flex items-center justify-between gap-2">
                 <div className="flex flex-col gap-1">
@@ -179,6 +181,7 @@ export default function RoomRevenue({
     currency: App.Enums.Currency;
 }) {
     const http = useHttp<Selection, Preview>({ tax_ids: taxIds });
+    const guard = useUnsavedChanges(http.isDirty);
     const [preview, setPreview] = useState(savedPreview);
     const [saving, setSaving] = useState(false);
     const [errors, setErrors] = useState<Record<string, string>>({});
@@ -220,16 +223,26 @@ export default function RoomRevenue({
         );
     };
 
-    const submit = (event: React.FormEvent) => {
-        event.preventDefault();
-
+    const save = (onSaved?: () => void) => {
         router.put(update.url(), http.data, {
             preserveScroll: true,
             onStart: () => setSaving(true),
             onFinish: () => setSaving(false),
-            onSuccess: () => setErrors({}),
-            onError: (next) => setErrors(next),
+            onSuccess: () => {
+                setErrors({});
+                http.setDefaults();
+                onSaved?.();
+            },
+            onError: (next) => {
+                setErrors(next);
+                guard.stay();
+            },
         });
+    };
+
+    const submit = (event: React.FormEvent) => {
+        event.preventDefault();
+        save();
     };
 
     return (
@@ -259,7 +272,7 @@ export default function RoomRevenue({
                         />
                     ) : (
                         <form onSubmit={submit} className="flex flex-col gap-6">
-                            <div className="grid items-start gap-8 lg:w-4/5 lg:grid-cols-3">
+                            <div className="flex flex-col gap-8">
                                 <FieldSet className="min-w-0">
                                     <FieldLegend variant="label">
                                         Taxes on room revenue
@@ -324,10 +337,10 @@ export default function RoomRevenue({
                                     loading={http.processing}
                                 />
                             </div>
-                            <div className="flex justify-end lg:w-4/5">
+                            <div className="flex justify-end">
                                 <Button
                                     type="submit"
-                                    disabled={saving}
+                                    disabled={saving || !http.isDirty}
                                     focusableWhenDisabled
                                 >
                                     {saving && (
@@ -340,6 +353,13 @@ export default function RoomRevenue({
                     )}
                 </RoomRevenueTabs>
             </div>
+
+            <UnsavedChangesDialog
+                guard={guard}
+                name="room revenue taxes"
+                saving={saving}
+                onSave={() => save(guard.proceed)}
+            />
         </>
     );
 }
