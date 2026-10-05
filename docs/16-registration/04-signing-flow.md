@@ -96,7 +96,7 @@ Routes are in `routes/registration.php`. All need `registration-card.sign`, exce
 │ ┌ Your stay ─────────────────────────────── RC-0012 ┐  │
 │ │ CHECK-IN         3 nights          CHECK-OUT      │  │
 │ │ Sun, 04 Oct      ────────●         Wed, 07 Oct    │  │
-│ │ Room · Guests · Rate plan · Meals                 │  │
+│ │ Room · Guests                                     │  │
 │ └───────────────────────────────────────────────────┘  │
 │ ┌ 1 Personal ───────┐ ┌ 5 Terms ─ 3 of 8 [Agree all] ┐  │
 │ ┌ 2 Contact ────────┐ │ text, then its own boxes     │  │
