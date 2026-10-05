@@ -9,6 +9,7 @@ use App\Actions\Catalogues\SeedTaxes;
 use App\Actions\Catalogues\SeedTransactionCodes;
 use App\Actions\Meals\SeedMealPeriods;
 use App\Actions\Rates\SeedRatePlans;
+use App\Actions\Registration\SeedRegistrationCardFields;
 use App\Actions\Staff\SeedDefaultRoles;
 use App\Enums\Currency;
 use App\Enums\Locale;
@@ -34,6 +35,7 @@ class SeedPropertyDefaults
         private SeedMealPeriods $seedMealPeriods,
         private SeedAgeGroups $seedAgeGroups,
         private SeedRatePlans $seedRatePlans,
+        private SeedRegistrationCardFields $seedRegistrationCardFields,
     ) {}
 
     /**
@@ -54,6 +56,7 @@ class SeedPropertyDefaults
             ($this->seedMealPeriods)($property, $countryCode);
             ($this->seedAgeGroups)($property, $countryCode);
             ($this->seedRatePlans)($property);
+            ($this->seedRegistrationCardFields)($property);
         });
     }
 

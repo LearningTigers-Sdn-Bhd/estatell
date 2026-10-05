@@ -98,7 +98,7 @@ test('settings sections save independently', function () {
         'missed_arrival_policy' => 'mark_no_show', 'overdue_departure_policy' => 'extend_one_night',
         'no_show_charge' => 'first_night', 'weekend_nights' => 'sat_sun',
     ])->assertRedirect(route('settings.operations', $property->code))->assertSessionHasNoErrors();
-    $this->put(route('settings.update', [$property->code, 'registration']), [
+    $this->put(route('settings.registration-card.update', $property->code), [
         'registration_card_scope' => 'every_adult', 'card_required_for_check_in' => 'on',
         'id_document_retention_days' => 30, 'security_deposit_amount' => '150.00',
     ])->assertSessionHasNoErrors();
@@ -131,11 +131,8 @@ test('each settings tab has its own url and sends only its options', function ()
     $this->get(route('settings.operations', $property->code))
         ->assertInertia(fn (Assert $page) => $page->where('tab', 'operations')
             ->has('noShowCharges')->missing('currencies'));
-    $this->get(route('settings.registration', $property->code))
-        ->assertInertia(fn (Assert $page) => $page->where('tab', 'registration')
-            ->has('registrationCardScopes')->missing('noShowCharges'));
     $this->get(route('settings.support', $property->code))
-        ->assertInertia(fn (Assert $page) => $page->where('tab', 'support')->missing('registrationCardScopes'));
+        ->assertInertia(fn (Assert $page) => $page->where('tab', 'support')->missing('noShowCharges'));
 });
 
 test('invalid values and missing setup cannot update settings', function () {
@@ -148,7 +145,7 @@ test('invalid values and missing setup cannot update settings', function () {
     $this->put(route('settings.update', [$property->code, 'general']), generalInput([
         'currency' => 'USD', 'time_zone' => 'Somewhere',
     ]))->assertSessionHasErrors(['currency', 'time_zone']);
-    $this->put(route('settings.update', [$property->code, 'registration']), [
+    $this->put(route('settings.registration-card.update', $property->code), [
         'registration_card_scope' => 'primary_only', 'security_deposit_amount' => '1.999',
     ])->assertSessionHasErrors(['security_deposit_amount']);
     $this->put(route('onboarding.basics.update', $property->code), basicsInput(['type' => 'invalid']))
@@ -192,7 +189,7 @@ test('the ID document retention is blank or at least one day', function () {
     $staff = User::factory()->owner()->create();
     $property = $staff->property;
     $settings = PropertySetting::factory()->for($property)->create();
-    $url = route('settings.update', [$property->code, 'registration']);
+    $url = route('settings.registration-card.update', $property->code);
     $payload = ['registration_card_scope' => 'primary_only', 'security_deposit_amount' => '0.00'];
 
     $this->actingAs($staff)->put($url, [...$payload, 'id_document_retention_days' => 0])->assertSessionHasErrors('id_document_retention_days');

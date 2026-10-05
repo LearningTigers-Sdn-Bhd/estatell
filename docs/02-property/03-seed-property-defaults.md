@@ -35,7 +35,7 @@ Roles are the exception during self sign-up: `SeedDefaultRoles` runs when the pr
 | Settings          | Currency, time zone, locale, check-in and check-out times (built), weekend nights FriSat    | Country and type               |
 | Rate plan         | "Basic Rate", an ordinary plan with no prices yet. PerRoom, linked to room-sold room types. | `SeedRatePlans`                |
 | Age groups        | Infant 0–3, Child 4–11 (adults from 12)                                                     | [Age groups](04-age-groups.md) |
-| Registration card | 19 field rows, Full name locked, prices hidden                                              | `SeedRegistrationCardFields`   |
+| Registration card | 18 field rows, Full name locked, prices hidden                                              | `SeedRegistrationCardFields`   |
 | Terms             | Default terms document, version 1, English and Bahasa Malaysia                              | `TermsPreset` for the type     |
 
 ## Rules

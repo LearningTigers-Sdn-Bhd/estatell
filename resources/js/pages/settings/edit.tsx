@@ -1,7 +1,6 @@
 import { Head, Link } from '@inertiajs/react';
 import {
     Baby,
-    IdCard,
     LifeBuoy,
     MoonStar,
     SlidersHorizontal,
@@ -33,14 +32,12 @@ import {
     edit as general,
     mealPeriods as mealPeriodsTab,
     operations,
-    registration,
     support,
 } from '@/routes/settings';
 
 type Section =
     | 'general'
     | 'operations'
-    | 'registration'
     | 'support'
     | 'age-groups'
     | 'meal-periods';
@@ -57,7 +54,6 @@ export default function PropertySettings({
     overdueDeparturePolicies = [],
     noShowCharges = [],
     weekendNightsOptions = [],
-    registrationCardScopes = [],
     ageGroups = [],
     maxAge = 17,
     mealPeriods = [],
@@ -71,7 +67,6 @@ export default function PropertySettings({
     overdueDeparturePolicies?: EnumOption[];
     noShowCharges?: EnumOption[];
     weekendNightsOptions?: EnumOption[];
-    registrationCardScopes?: EnumOption[];
     ageGroups?: App.Data.Property.PropertyAgeGroupData[];
     maxAge?: number;
     mealPeriods?: App.Data.Meals.MealPeriodData[];
@@ -136,12 +131,6 @@ export default function PropertySettings({
                             label: 'Operations',
                             icon: MoonStar,
                             href: operations(),
-                        },
-                        {
-                            value: 'registration',
-                            label: 'Registration card',
-                            icon: IdCard,
-                            href: registration(),
                         },
                         {
                             value: 'age-groups',
@@ -285,57 +274,6 @@ export default function PropertySettings({
                                         description="On: the night audit runs by itself after the audit time. Off: staff start it by hand."
                                         checked={settings.autoAuditEnabled}
                                         error={errors.auto_audit_enabled}
-                                    />
-                                </>
-                            )}
-                        </SettingsSection>
-                    )}
-                    {tab === 'registration' && (
-                        <SettingsSection
-                            form={form('registration')}
-                            title="Registration card"
-                            description="Guest signature, ID document, and deposit rules."
-                        >
-                            {(errors) => (
-                                <>
-                                    <SettingsSelect
-                                        name="registration_card_scope"
-                                        label="Who completes a card"
-                                        value={settings.registrationCardScope}
-                                        options={registrationCardScopes}
-                                        error={errors.registration_card_scope}
-                                    />
-                                    <SettingsInput
-                                        name="id_document_retention_days"
-                                        label="ID document retention (days)"
-                                        type="number"
-                                        min={1}
-                                        max={3650}
-                                        value={settings.idDocumentRetentionDays}
-                                        error={
-                                            errors.id_document_retention_days
-                                        }
-                                        description="ID scans older than this many days are deleted every night. The number stays. Leave blank to keep scans."
-                                    />
-                                    <SettingsInput
-                                        name="security_deposit_amount"
-                                        label="Security deposit amount"
-                                        type="number"
-                                        min={0}
-                                        step="0.01"
-                                        value={settings.securityDepositAmount}
-                                        error={errors.security_deposit_amount}
-                                    />
-                                    <SettingsSwitch
-                                        name="card_required_for_check_in"
-                                        label="Require card before check-in"
-                                        description="On: a guest cannot check in until the registration card is complete. Off: staff can check guests in without a card."
-                                        checked={
-                                            settings.cardRequiredForCheckIn
-                                        }
-                                        error={
-                                            errors.card_required_for_check_in
-                                        }
                                     />
                                 </>
                             )}

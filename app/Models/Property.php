@@ -132,6 +132,12 @@ class Property extends Model implements FeatureScopeSerializeable
         return $this->hasMany(PropertyAgeGroup::class);
     }
 
+    /** @return HasMany<RegistrationCardFieldSetting, $this> */
+    public function registrationCardFields(): HasMany
+    {
+        return $this->hasMany(RegistrationCardFieldSetting::class);
+    }
+
     /** @return HasMany<RatePlan, $this> */
     public function ratePlans(): HasMany
     {

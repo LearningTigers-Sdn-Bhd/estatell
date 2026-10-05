@@ -25,7 +25,13 @@ class SettingsNavigation
                     title: __('Details'),
                     href: route('settings.edit', ['property' => $property->code], absolute: false),
                     icon: 'building',
-                    active: request()->routeIs('settings.edit', 'settings.operations', 'settings.registration', 'settings.support', 'settings.age-groups', 'settings.meal-periods'),
+                    active: request()->routeIs('settings.edit', 'settings.operations', 'settings.support', 'settings.age-groups', 'settings.meal-periods'),
+                ) : null,
+                $user->can(PermissionEnum::SettingsManage->value) ? new NavItemData(
+                    title: __('Registration card'),
+                    href: route('settings.registration-card.general', ['property' => $property->code], absolute: false),
+                    icon: 'id-card',
+                    active: request()->routeIs('settings.registration-card.*'),
                 ) : null,
             ]))),
             new NavGroupData(label: __('Rooms'), items: array_values(array_filter([

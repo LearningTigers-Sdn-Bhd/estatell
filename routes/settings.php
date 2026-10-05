@@ -11,6 +11,7 @@ use App\Http\Controllers\Property\AgeGroupController;
 use App\Http\Controllers\Property\NotificationSettingController;
 use App\Http\Controllers\Property\PropertySettingsController;
 use App\Http\Controllers\Rates\RatePlanController;
+use App\Http\Controllers\Registration\RegistrationCardController;
 use App\Http\Controllers\Rooms\BedController;
 use App\Http\Controllers\Rooms\RoomController;
 use App\Http\Controllers\Rooms\RoomGroupController;
@@ -33,12 +34,17 @@ Route::prefix('settings')->name('settings.')->group(function () {
     Route::middleware('can:'.PermissionEnum::SettingsManage->value)->group(function () {
         Route::get('/', [PropertySettingsController::class, 'edit'])->name('edit');
         Route::get('operations', [PropertySettingsController::class, 'operations'])->name('operations');
-        Route::get('registration', [PropertySettingsController::class, 'registration'])->name('registration');
         Route::get('support', [PropertySettingsController::class, 'support'])->name('support');
         Route::get('age-groups', [PropertySettingsController::class, 'ageGroups'])->name('age-groups');
         Route::get('meal-periods', [PropertySettingsController::class, 'mealPeriods'])->name('meal-periods');
+        Route::prefix('registration-card')->name('registration-card.')->group(function () {
+            Route::get('/', [RegistrationCardController::class, 'general'])->name('general');
+            Route::put('/', [RegistrationCardController::class, 'update'])->name('update');
+            Route::get('layout', [RegistrationCardController::class, 'layout'])->name('layout');
+            Route::put('layout', [RegistrationCardController::class, 'updateFields'])->name('fields.update');
+        });
         Route::put('{section}', [PropertySettingsController::class, 'update'])
-            ->whereIn('section', ['general', 'operations', 'registration', 'support'])
+            ->whereIn('section', ['general', 'operations', 'support'])
             ->name('update');
     });
 

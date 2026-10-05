@@ -11,7 +11,6 @@ use App\Enums\Locale;
 use App\Enums\MissedArrivalPolicy;
 use App\Enums\NoShowCharge;
 use App\Enums\OverdueDeparturePolicy;
-use App\Enums\RegistrationCardScope;
 use App\Enums\WeekendNights;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Meals\SaveMealPeriodsRequest;
@@ -48,16 +47,6 @@ class PropertySettingsController extends Controller
             'overdueDeparturePolicies' => OverdueDeparturePolicy::options(),
             'noShowCharges' => NoShowCharge::options(),
             'weekendNightsOptions' => WeekendNights::options(),
-        ]);
-    }
-
-    /**
-     * Settings page, Registration card tab.
-     */
-    public function registration(Property $property, SettingsLock $settingsLock): Response
-    {
-        return $this->renderTab($property, $settingsLock, 'registration', [
-            'registrationCardScopes' => RegistrationCardScope::options(),
         ]);
     }
 
@@ -111,7 +100,7 @@ class PropertySettingsController extends Controller
     /**
      * Each tab has its own URL, so the open tab survives a refresh. Only the open tab's options are sent.
      *
-     * @param  'general'|'operations'|'registration'|'support'|'age-groups'|'meal-periods'  $tab
+     * @param  'general'|'operations'|'support'|'age-groups'|'meal-periods'  $tab
      * @param  array<string, mixed>  $tabProps
      */
     private function renderTab(Property $property, SettingsLock $settingsLock, string $tab, array $tabProps = []): Response

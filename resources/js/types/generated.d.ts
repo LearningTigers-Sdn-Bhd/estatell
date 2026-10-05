@@ -874,6 +874,19 @@ discount: string,
 nightAmounts: string[],
 };
 }
+namespace Registration {
+export type RegistrationCardFieldData = {
+field: string,
+label: string,
+group: string,
+groupLabel: string,
+visibility: string,
+displayOnly: boolean,
+canHide: boolean,
+canRequire: boolean,
+note: string | null,
+};
+}
 namespace Reservations {
 export type AddUnitOptionsData = {
 roomTypes: App.Data.Reservations.RoomTypeOptionData[],
@@ -1291,6 +1304,7 @@ export type DiscountType = 'percent' | 'fixed' | 'open';
 export type DocumentType = 'reservation' | 'folio' | 'invoice' | 'credit_note' | 'receipt' | 'registration_card';
 export type DormStrategy = 'bed_as_unit' | 'native_dorm';
 export type EarlyDeparturePolicy = 'charge_full' | 'charge_used_nights';
+export type FieldVisibility = 'hidden' | 'optional' | 'required';
 export type FolioRowTag = 'scheduled' | 'overridden' | 'reversed' | 'reversal' | 'refund';
 export type FolioStatus = 'open' | 'closed' | 'voided';
 export type FolioType = 'master' | 'unit' | 'third_party';
@@ -1320,6 +1334,8 @@ export type PropertyStatus = 'onboarding' | 'pending_approval' | 'live' | 'suspe
 export type PropertyType = 'hotel' | 'hostel' | 'resort' | 'serviced_apartment' | 'homestay';
 export type RateDerivation = 'percent' | 'amount';
 export type RatePlanStatus = 'active' | 'archived';
+export type RegistrationCardField = 'full_name' | 'nationality' | 'identity_document' | 'date_of_birth' | 'gender' | 'address' | 'phone' | 'email' | 'vehicle_plate' | 'marketing_consent' | 'booking_number' | 'check_in' | 'check_out' | 'nights' | 'guest_count' | 'room' | 'rate_per_night' | 'total_charges';
+export type RegistrationCardFieldGroup = 'guest' | 'stay' | 'prices';
 export type RegistrationCardScope = 'primary_only' | 'every_adult';
 export type ReservationRoomBoxState = 'assigned' | 'unassigned' | 'auto_assign' | 'cancelled' | 'no_show';
 export type ReservationSource = 'direct' | 'walk_in' | 'phone' | 'channel' | 'portal';

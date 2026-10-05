@@ -7,7 +7,6 @@ use App\Enums\Locale;
 use App\Enums\MissedArrivalPolicy;
 use App\Enums\NoShowCharge;
 use App\Enums\OverdueDeparturePolicy;
-use App\Enums\RegistrationCardScope;
 use App\Enums\WeekendNights;
 use App\Models\Property;
 use App\Services\Property\SettingsLock;
@@ -30,7 +29,6 @@ class UpdatePropertySettingsRequest extends FormRequest
         $booleanFields = match ($this->route('section')) {
             'general' => ['auto_assign_rooms'],
             'operations' => ['auto_audit_enabled'],
-            'registration' => ['card_required_for_check_in'],
             'support' => ['allow_support_access'],
             default => [],
         };
@@ -68,12 +66,6 @@ class UpdatePropertySettingsRequest extends FormRequest
                 'overdue_departure_policy' => ['required', Rule::enum(OverdueDeparturePolicy::class)],
                 'no_show_charge' => ['required', Rule::enum(NoShowCharge::class)],
                 'weekend_nights' => ['required', Rule::enum(WeekendNights::class)],
-            ],
-            'registration' => [
-                'registration_card_scope' => ['required', Rule::enum(RegistrationCardScope::class)],
-                'card_required_for_check_in' => ['required', 'boolean'],
-                'id_document_retention_days' => ['nullable', 'integer', 'min:1', 'max:3650'],
-                'security_deposit_amount' => ['required', 'numeric', 'decimal:0,2', 'min:0', 'max:9999999999.99'],
             ],
             'support' => ['allow_support_access' => ['required', 'boolean']],
             default => [],
