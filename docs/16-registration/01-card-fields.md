@@ -65,11 +65,11 @@ One preset for every property type, seeded by `SeedRegistrationCardFields`.
 
 The Registration card page is its own Settings sidebar item (`settings.manage`), below Details. It has tabs with their own URLs:
 
-| Tab     | URL                                    | Content                                                                                                        |
-| ------- | -------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| General | `/p/{code}/settings/registration-card` | Who completes a card, card required for check-in, ID retention, security deposit. These left the Details page. |
-| Layout  | `…/registration-card/layout`           | The fields table and a live preview.                                                                           |
-| Terms   | `…/registration-card/terms`            | Added with [Terms documents and presets](02-terms-documents-and-presets.md). Not shown until then.             |
+| Tab     | URL                                    | Content                                                                                                                                                 |
+| ------- | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| General | `/p/{code}/settings/registration-card` | Who completes a card, card required for check-in, ID retention, security deposit. These left the Details page.                                          |
+| Layout  | `…/registration-card/layout`           | The fields table and a live preview.                                                                                                                    |
+| Terms   | `…/registration-card/terms`            | The terms editor, with a language Select. See [Terms documents and presets](02-terms-documents-and-presets.md). Needs `registration-card.manage-terms`. |
 
 General opens first. The Layout tab is full width, in a three-column grid. The table takes two columns and the preview takes one:
 

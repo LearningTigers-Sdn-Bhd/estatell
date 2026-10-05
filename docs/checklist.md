@@ -117,6 +117,8 @@ Legend: **Needs** lists items that must be done first.
 | `ef33875` | refactor(reservations): rename the Agent source to Portal                |
 | `be882e2` | docs(city-ledger): settle company rules, permissions and pages           |
 | `c28c685` | feat(city-ledger): add companies                                         |
+| `35f8d23` | docs(registration): plan the registration card page and field layout     |
+| `0fc898c` | feat(registration): add registration card fields                         |
 
 Smaller fixes and reverts are in `git log`.
 
@@ -279,7 +281,7 @@ Smaller fixes and reverts are in `git log`.
 ### 16 Registration
 
 - [x] `feat(registration): add registration card fields` — a Registration card Settings page (General and Layout tabs, the old Details tab moves there), 18 field rows with Hidden, Optional or Required, display-only stay details and prices, `SeedRegistrationCardFields`, `SaveRegistrationCardFields`, the Layout table with a live preview. Settings only; the card itself comes with the signing flow. Docs: [Card fields](16-registration/01-card-fields.md).
-- [ ] `feat(registration): add terms documents and presets` — Docs: [Terms documents and presets](16-registration/02-terms-documents-and-presets.md).
+- [ ] `feat(registration): add terms documents and presets` — `terms_documents` and versioned `registration_card_terms`, the `room_types.terms_document_id` foreign key and a Terms document Select on the room type form, ten preset files (five presets in English and Bahasa Malaysia), `TermsPreset`, `TermsPlaceholder` (five placeholders), `TermsRenderer`, `SeedRegistrationTerms`, `CreateTermsDocument`, `PublishRegistrationTerms`, `ApplyTermsPreset`, `DeleteTermsDocument`, `registration-card.manage-terms` with a syncing migration, and the Terms tab with a language Select, version history and a newer-template banner. Docs: [Terms documents and presets](16-registration/02-terms-documents-and-presets.md).
 - [ ] `feat(registration): resolve terms by locale` — Docs: [Terms resolution and locales](16-registration/03-terms-resolution-and-locales.md).
 - [ ] `feat(registration): add the card signing flow` — guest layout, signed links. Docs: [Signing flow](16-registration/04-signing-flow.md).
 

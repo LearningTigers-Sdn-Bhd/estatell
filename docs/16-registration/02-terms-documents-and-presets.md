@@ -13,15 +13,19 @@ registration_card_terms    id, terms_document_id, locale, version, body (markdow
                            preset (TermsPreset, nullable), preset_version (nullable),
                            published_at, published_by
                            unique (terms_document_id, locale, version)
-room_types.terms_document_id (nullable)
+room_types.terms_document_id (nullable, foreign key, null on delete)
 ```
+
+- `room_types.terms_document_id` exists already. This item adds its foreign key.
+- Versions count per document and language. Publishing makes version N+1.
 
 ## Presets
 
-- Markdown files in the repository: `resources/terms/{preset}/{locale}.md`, version in front-matter.
-- `TermsPreset` enum: StandardHotel, Hostel, Resort, ServicedApartment, Homestay, with `path(locale)` and `version()`.
+- Markdown files in the repository: `resources/terms/{preset}/{locale}.md`, version in front-matter (one `version: 1` line, read by the app without a YAML package).
+- `TermsPreset` enum: StandardHotel, Hostel, Resort, ServicedApartment, Homestay, with `forPropertyType()`, `path(locale)` and `version(locale)`.
+- All five presets ship in English and Bahasa Malaysia. The Bahasa Malaysia text is a first draft and needs a native reader before real use.
 - Rendered with `Str::markdown()` and `html_input => strip`.
-- A property gets a **copy**. When the app ships a newer preset version, settings show "A newer template is available, compare / apply". Nothing changes automatically.
+- A property gets a **copy**. When the app ships a newer preset version, the Terms tab shows "A newer template is available". Nothing changes automatically.
 - The UI states that presets are templates, not legal advice.
 
 | Preset                       | Key clauses                                                                                                                        |
@@ -33,24 +37,63 @@ room_types.terms_document_id (nullable)
 
 ## Placeholders
 
-`{{property_name}}`, `{{check_in_time}}`, `{{check_out_time}}`, `{{late_checkout_fee}}`, `{{smoking_fine}}`, `{{key_card_fee}}`, `{{security_deposit}}`, `{{tourism_tax_rate}}`.
+`{{property_name}}`, `{{check_in_time}}`, `{{check_out_time}}`, `{{security_deposit}}`, `{{tourism_tax_rate}}`.
+
+| Placeholder        | Source                                                     |
+| ------------------ | ---------------------------------------------------------- |
+| `property_name`    | `properties.name`                                          |
+| `check_in_time`    | `property_settings.check_in_time`                          |
+| `check_out_time`   | `property_settings.check_out_time`                         |
+| `security_deposit` | `property_settings.security_deposit_amount`                |
+| `tourism_tax_rate` | The property's Tourism tax. Empty text when it is not set. |
 
 - Allowed names live in the `TermsPlaceholder` enum. The Form Request rejects unknown placeholders.
-- Placeholders are filled at signing and frozen in the card snapshot.
+- Fees such as a late check-out fee, a smoking fine or a key card fee have no setting. Hotels type the amount into the terms text. A placeholder can be added later with its own setting.
+- Placeholders are filled at signing and frozen in the card snapshot. `TermsRenderer` (a Service) fills them and renders the markdown. The editor preview uses it now, and signing and the PDF use it later.
 
 ## Rules
 
-- Property creation seeds one "Standard" default document, version 1, in English and Bahasa Malaysia, from the preset for the property type.
-- Versions are never deleted. Signed cards reference them.
-- The UI shows one document at first. Multiple documents and per-room-type assignment are available when needed.
+- Property creation seeds one "Standard" default document, version 1, in English and Bahasa Malaysia, from the preset for the property type. `SeedRegistrationTerms` is idempotent. A migration back-fills existing properties.
+- Versions are never deleted or edited. Signed cards reference them.
+- Publishing text that is the same as the latest version of that language is refused.
+- A document is deleted only when it is not the default and no room type uses it. The signing flow adds a refusal for signed cards.
+- The default document cannot be deleted. Another document becomes the default only through a later change, so there is no action for it now.
+- The UI shows one document at first. Multiple documents and per-room-type assignment appear when a second document exists.
 
 ## Actions
 
-`PublishRegistrationTerms`, `ApplyTermsPreset`, `CreateTermsDocument`.
+`SeedRegistrationTerms`, `CreateTermsDocument`, `PublishRegistrationTerms`, `ApplyTermsPreset` (copies a preset as a new version with `preset` and `preset_version` set), `DeleteTermsDocument`.
 
 ## Permissions
 
-`registration-card.manage-terms`.
+`registration-card.manage-terms` (Owner and Manager). The Terms tab and its routes need it. The tab is hidden for users without it.
+
+## UI
+
+The Terms tab is full width, in a three-column grid like the Layout tab. The editor takes two columns and the preview takes one.
+
+```
+Terms   [Document: Standard ⌄]  [+ Add document]    [Language: English ⌄]
+┌──────────────────────────────────┬─────────────────────────┐
+│ v3 · published 5 Oct · Standard  │ Preview                 │
+│ template                         │ (placeholders filled)   │
+│ ┌──────────────────────────────┐ │                         │
+│ │ markdown editor              │ │                         │
+│ └──────────────────────────────┘ │                         │
+│ [Version history]  [Publish new version]                   │
+└──────────────────────────────────┴─────────────────────────┘
+ ⓘ A newer template is available.  [Preview] [Apply]
+```
+
+- **Language** is a Select menu with every property locale (`Locale::options()`), not tabs or a toggle. A language the document has no version for is listed as "Bahasa Malaysia (not published)". Choosing it opens the editor with the property type's preset text, as an unpublished draft with a note. Publishing makes version 1 in that language.
+- The **document** Select and **Add document** appear only when a second document exists or the user adds one. With one document the toolbar shows the language Select only.
+- The open document and language are in the URL (`?document=` and `?locale=`), so a refresh and a shared link keep them. Changing either is a partial reload that sends only the editor data.
+- **Version history** is a Sheet with a read-only list (version, date, who). **Use as starting point** copies an old version into the editor. It does not publish.
+- **Apply** (and the "newer template" banner) calls `ApplyTermsPreset`. It makes a new version, so nothing is lost. **Preview** shows the new template text read only. There is no line-by-line compare.
+- The preview is drawn in the browser from the editor text. The server sends the placeholder values.
+- Each version is saved only by **Publish new version**. There is no autosave on this tab, because a published version cannot be edited.
+- Routes are under `/p/{code}/settings/registration-card/terms` (see [Routing](../routing.md)).
+- The room type form has a **Terms document** Select (Default, or one of the property's documents). It shows only when a second document exists.
 
 ## Lessons from wastays
 
