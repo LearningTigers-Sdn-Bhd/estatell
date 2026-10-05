@@ -18,11 +18,17 @@ class RoomRevenuePolicyData extends Data
         public ?PolicyRateBasis $percentBasis,
         public PolicyScope $appliesTo,
         public ?int $freeUntilDays,
+        public bool $ownTaxes,
+        /** @var list<int> The taxes of the policy: its own when `ownTaxes`, otherwise the Taxes tab selection. */
+        public array $taxIds,
         public string $textEn,
         public string $textMs,
     ) {}
 
-    public static function fromModel(RoomRevenuePolicy $policy): self
+    /**
+     * @param  list<int>  $taxIds
+     */
+    public static function fromModel(RoomRevenuePolicy $policy, array $taxIds): self
     {
         return new self(
             chargeMode: $policy->charge_mode,
@@ -31,6 +37,8 @@ class RoomRevenuePolicyData extends Data
             percentBasis: $policy->percent_basis,
             appliesTo: $policy->applies_to,
             freeUntilDays: $policy->free_until_days,
+            ownTaxes: $policy->own_taxes,
+            taxIds: $taxIds,
             textEn: $policy->text_en,
             textMs: $policy->text_ms,
         );

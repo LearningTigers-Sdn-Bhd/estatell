@@ -28,6 +28,7 @@ export function MultiCombobox({
     placeholder,
     emptyLabel = 'No matching charge codes.',
     invalid,
+    disabled,
 }: {
     id: string;
     name: string;
@@ -37,6 +38,7 @@ export function MultiCombobox({
     placeholder: string;
     emptyLabel?: string;
     invalid?: boolean;
+    disabled?: boolean;
 }) {
     const anchor = useComboboxAnchor();
     const selected = items.filter((item) => value.includes(item.value));
@@ -46,6 +48,7 @@ export function MultiCombobox({
             items={items}
             multiple
             name={name}
+            disabled={disabled}
             value={selected}
             onValueChange={(next) =>
                 onValueChange(

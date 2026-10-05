@@ -25,6 +25,7 @@ use Illuminate\Support\Carbon;
  * @property PolicyRateBasis|null $percent_basis
  * @property PolicyScope $applies_to
  * @property int|null $free_until_days
+ * @property bool $own_taxes True when the policy code keeps its own taxes instead of following the Taxes tab.
  * @property string $text_en
  * @property string $text_ms
  * @property Carbon|null $created_at
@@ -32,7 +33,7 @@ use Illuminate\Support\Carbon;
  */
 #[Fillable([
     'code', 'charge_mode', 'amount', 'percent', 'percent_basis', 'applies_to',
-    'free_until_days', 'text_en', 'text_ms',
+    'free_until_days', 'own_taxes', 'text_en', 'text_ms',
 ])]
 class RoomRevenuePolicy extends Model
 {
@@ -50,6 +51,7 @@ class RoomRevenuePolicy extends Model
             'percent_basis' => PolicyRateBasis::class,
             'applies_to' => PolicyScope::class,
             'free_until_days' => 'integer',
+            'own_taxes' => 'boolean',
         ];
     }
 

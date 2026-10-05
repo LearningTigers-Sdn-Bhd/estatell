@@ -63,6 +63,8 @@ percent: string | null,
 percentBasis: App.Enums.PolicyRateBasis | null,
 appliesTo: App.Enums.PolicyScope,
 freeUntilDays: number | null,
+ownTaxes: boolean,
+taxIds: number[],
 textEn: string,
 textMs: string,
 };

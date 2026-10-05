@@ -2,19 +2,15 @@ import { Link, Head, router, useHttp } from '@inertiajs/react';
 import { Landmark } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { EmptyState } from '@/components/pms/empty-state';
+import { MultiCombobox } from '@/components/pms/multi-combobox';
 import { PageHeader } from '@/components/pms/page-header';
 import { UnsavedChangesDialog } from '@/components/pms/unsaved-changes-dialog';
 import { RoomRevenueTabs } from '@/components/pms/room-revenue/room-revenue-tabs';
-import { Badge } from '@/components/ui/badge';
+import { taxOptions } from '@/components/pms/room-revenue/tax-options';
 import { Button, buttonVariants } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import {
-    Field,
-    FieldContent,
     FieldDescription,
     FieldError,
-    FieldGroup,
-    FieldLabel,
     FieldLegend,
     FieldSet,
 } from '@/components/ui/field';
@@ -39,19 +35,6 @@ import { index as taxesIndex } from '@/routes/settings/taxes';
 type Tax = App.Data.Catalogues.ChargeItemTaxData;
 type Preview = App.Data.Catalogues.RoomRevenuePreviewData;
 type Selection = { tax_ids: number[] };
-
-function taxRule(tax: Tax, money: Intl.NumberFormat): string {
-    const rate =
-        tax.rateType === 'percent'
-            ? `${Number(tax.rate).toFixed(2)}% of the room price`
-            : `${money.format(Number(tax.rate))} per night`;
-    const how = tax.isInclusive
-        ? 'included in the price'
-        : 'added to the price';
-    const who = tax.foreignGuestsOnly ? 'foreign guests only' : 'all guests';
-
-    return `${rate} · ${how} · ${who}`;
-}
 
 function PostingPreview({
     preview,
@@ -214,15 +197,6 @@ export default function RoomRevenue({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [key]);
 
-    const toggle = (taxId: number, checked: boolean) => {
-        http.setData(
-            'tax_ids',
-            checked
-                ? [...selected, taxId]
-                : selected.filter((id) => id !== taxId),
-        );
-    };
-
     const save = (onSaved?: () => void) => {
         router.put(update.url(), http.data, {
             preserveScroll: true,
@@ -282,49 +256,21 @@ export default function RoomRevenue({
                                         and to no-show, cancellation, late
                                         checkout and early departure charges.
                                     </FieldDescription>
-                                    <FieldGroup className="gap-3">
-                                        {taxes.map((tax) => (
-                                            <FieldLabel
-                                                key={tax.id}
-                                                htmlFor={`room-revenue-tax-${tax.id}`}
-                                            >
-                                                <Field orientation="horizontal">
-                                                    <Checkbox
-                                                        id={`room-revenue-tax-${tax.id}`}
-                                                        checked={selected.includes(
-                                                            tax.id,
-                                                        )}
-                                                        onCheckedChange={(
-                                                            checked,
-                                                        ) =>
-                                                            toggle(
-                                                                tax.id,
-                                                                checked,
-                                                            )
-                                                        }
-                                                    />
-                                                    <FieldContent>
-                                                        <span className="flex items-center gap-2 text-sm font-medium">
-                                                            {tax.name}
-                                                            {!tax.enabled && (
-                                                                <Badge variant="secondary">
-                                                                    Off
-                                                                </Badge>
-                                                            )}
-                                                        </span>
-                                                        <FieldDescription>
-                                                            {taxRule(
-                                                                tax,
-                                                                money,
-                                                            )}
-                                                            {!tax.enabled &&
-                                                                '. Turned off in Taxes, so it is not added yet.'}
-                                                        </FieldDescription>
-                                                    </FieldContent>
-                                                </Field>
-                                            </FieldLabel>
-                                        ))}
-                                    </FieldGroup>
+                                    <MultiCombobox
+                                        id="room-revenue-taxes"
+                                        name="tax_ids"
+                                        items={taxOptions(taxes, money)}
+                                        value={selected.map(String)}
+                                        onValueChange={(value) =>
+                                            http.setData(
+                                                'tax_ids',
+                                                value.map(Number),
+                                            )
+                                        }
+                                        placeholder="No taxes"
+                                        emptyLabel="No matching taxes."
+                                        invalid={!!errors.tax_ids}
+                                    />
                                     <FieldError>
                                         {errors.tax_ids ?? errors['tax_ids.0']}
                                     </FieldError>

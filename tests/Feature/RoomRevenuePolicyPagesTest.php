@@ -10,6 +10,7 @@ use App\Enums\PolicyScope;
 use App\Enums\SystemTransactionCode;
 use App\Models\Property;
 use App\Models\PropertySetting;
+use App\Models\Tax;
 use App\Models\User;
 use Inertia\Testing\AssertableInertia as Assert;
 
@@ -23,7 +24,7 @@ function policyProperty(User $owner): Property
     $property->taxes()->where('code', 'SST')->update(['enabled' => true]);
     $property->taxes()->where('code', 'TTX')->update(['enabled' => false]);
     $sst = $property->taxes()->where('code', 'SST')->sole();
-    foreach (SystemTransactionCode::policyCases() as $code) {
+    foreach ([SystemTransactionCode::RoomRevenue, ...SystemTransactionCode::policyCases()] as $code) {
         $property->transactionCodes()->where('system_key', $code->value)->sole()->applicableTaxes()->sync([$sst->id]);
     }
 
@@ -34,7 +35,7 @@ function policyProperty(User $owner): Property
 function policyInput(array $overrides = []): array
 {
     return [
-        'charge_mode' => 'percentage', 'percent' => '50', 'percent_basis' => 'booked_rate', 'applies_to' => 'first_night',
+        'own_taxes' => false, 'charge_mode' => 'percentage', 'percent' => '50', 'percent_basis' => 'booked_rate', 'applies_to' => 'first_night',
         'text_en' => 'Half a night.', 'text_ms' => 'Separuh malam.', ...$overrides,
     ];
 }
@@ -92,7 +93,7 @@ test('the early departure preview charges the unused nights and a fixed amount i
     $this->actingAs($owner)->postJson(route('settings.room-revenue.policies.preview', [$property->code, 'early-departure']), policyInput())
         ->assertJsonPath('lines.0.net', '100.00');
 
-    $this->postJson(route('settings.room-revenue.policies.preview', [$property->code, 'no-show']), ['charge_mode' => 'fixed_amount', 'amount' => '40', 'applies_to' => 'whole_stay', 'text_en' => 'x', 'text_ms' => 'y'])
+    $this->postJson(route('settings.room-revenue.policies.preview', [$property->code, 'no-show']), ['own_taxes' => false, 'charge_mode' => 'fixed_amount', 'amount' => '40', 'applies_to' => 'whole_stay', 'text_en' => 'x', 'text_ms' => 'y'])
         ->assertJsonPath('lines.0.net', '40.00');
 });
 
@@ -150,4 +151,90 @@ test('policy routes enforce settings permission and property scoping', function 
     $this->postJson(route('settings.room-revenue.policies.preview', [$frontDesk->property->code, 'no-show']), policyInput())->assertForbidden();
 
     $this->actingAs($owner)->get(route('settings.room-revenue.policies.show', [$otherProperty->code, 'no-show']))->assertNotFound();
+});
+
+function codeTaxIds(Property $property, SystemTransactionCode $code): array
+{
+    return $property->transactionCodes()->where('system_key', $code->value)->sole()->applicableTaxes()->pluck('taxes.id')->sort()->values()->all();
+}
+
+test('a policy with its own taxes links them to its code and the page shows them', function () {
+    $owner = User::factory()->owner()->create();
+    $property = policyProperty($owner);
+    $sst = $property->taxes()->where('code', 'SST')->sole();
+    $tourism = $property->taxes()->where('code', 'TTX')->sole();
+
+    $this->actingAs($owner)->put(route('settings.room-revenue.policies.update', [$property->code, 'cancellation']), policyInput(['own_taxes' => true, 'tax_ids' => [$tourism->id]]))
+        ->assertSessionHasNoErrors();
+
+    expect(codeTaxIds($property, SystemTransactionCode::CancellationRevenue))->toBe([$tourism->id])
+        ->and(codeTaxIds($property, SystemTransactionCode::NoShowRevenue))->toBe([$sst->id])
+        ->and($property->roomRevenuePolicies()->where('code', SystemTransactionCode::CancellationRevenue->value)->sole()->own_taxes)->toBeTrue();
+    $this->assertDatabaseHas('activity_log', ['event' => 'room_revenue_policy.updated']);
+
+    $this->get(route('settings.room-revenue.policies.show', [$property->code, 'cancellation']))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('policy.ownTaxes', true)
+            ->where('policy.taxIds', [$tourism->id])
+            ->where('roomTaxIds', [$sst->id])
+            ->has('taxes', 2));
+});
+
+test('saving the Taxes tab keeps a policy with its own taxes and updates the rest', function () {
+    $owner = User::factory()->owner()->create();
+    $property = policyProperty($owner);
+    $sst = $property->taxes()->where('code', 'SST')->sole();
+    $tourism = $property->taxes()->where('code', 'TTX')->sole();
+    $this->actingAs($owner)->put(route('settings.room-revenue.policies.update', [$property->code, 'cancellation']), policyInput(['own_taxes' => true, 'tax_ids' => []]));
+
+    $this->put(route('settings.room-revenue.update', $property->code), ['tax_ids' => [$sst->id, $tourism->id]])->assertSessionHasNoErrors();
+
+    expect(codeTaxIds($property, SystemTransactionCode::CancellationRevenue))->toBe([])
+        ->and(codeTaxIds($property, SystemTransactionCode::RoomRevenue))->toBe([$sst->id, $tourism->id])
+        ->and(codeTaxIds($property, SystemTransactionCode::NoShowRevenue))->toBe([$sst->id, $tourism->id]);
+});
+
+test('turning own taxes off links the code to the Taxes tab selection again', function () {
+    $owner = User::factory()->owner()->create();
+    $property = policyProperty($owner);
+    $sst = $property->taxes()->where('code', 'SST')->sole();
+    $url = route('settings.room-revenue.policies.update', [$property->code, 'no-show']);
+    $this->actingAs($owner)->put($url, policyInput(['own_taxes' => true, 'tax_ids' => []]));
+    expect(codeTaxIds($property, SystemTransactionCode::NoShowRevenue))->toBe([]);
+
+    $this->put($url, policyInput(['own_taxes' => false, 'tax_ids' => [999]]))->assertSessionHasNoErrors();
+
+    expect(codeTaxIds($property, SystemTransactionCode::NoShowRevenue))->toBe([$sst->id])
+        ->and($property->roomRevenuePolicies()->where('code', SystemTransactionCode::NoShowRevenue->value)->sole()->own_taxes)->toBeFalse();
+});
+
+test('own taxes must be chosen from the property taxes', function (array $overrides, string $field) {
+    $owner = User::factory()->owner()->create();
+    $property = policyProperty($owner);
+    $foreign = Tax::factory()->create();
+
+    $input = policyInput($overrides);
+    $input['tax_ids'] = ($overrides['tax_ids'] ?? null) === 'foreign' ? [$foreign->id] : ($overrides['tax_ids'] ?? null);
+    if ($input['tax_ids'] === null) {
+        unset($input['tax_ids']);
+    }
+
+    $this->actingAs($owner)->put(route('settings.room-revenue.policies.update', [$property->code, 'no-show']), $input)->assertSessionHasErrors($field);
+})->with([
+    'a tax of another property' => [['own_taxes' => true, 'tax_ids' => 'foreign'], 'tax_ids.0'],
+    'no tax list' => [['own_taxes' => true], 'tax_ids'],
+    'no own taxes flag' => [['own_taxes' => null], 'own_taxes'],
+]);
+
+test('the preview uses the unsaved own taxes', function () {
+    $owner = User::factory()->owner()->create();
+    $property = policyProperty($owner);
+    $tourism = $property->taxes()->where('code', 'TTX')->sole();
+    $tourism->update(['enabled' => true]);
+
+    $this->actingAs($owner)->postJson(route('settings.room-revenue.policies.preview', [$property->code, 'no-show']), policyInput(['own_taxes' => true, 'tax_ids' => [$tourism->id], 'applies_to' => 'whole_stay', 'percent' => '100']))
+        ->assertOk()
+        ->assertJsonPath('lines.0.net', '300.00')
+        ->assertJsonPath('lines.0.localTotal', '300.00')
+        ->assertJsonPath('lines.0.foreignTotal', '310.00');
 });

@@ -38,6 +38,7 @@ One row per property and code in `room_revenue_policies`, for `NO_SHOW`, `CANCEL
 room_revenue_policies   id, property_id, code (SystemTransactionCode), charge_mode (PolicyChargeMode),
                         amount (nullable), percent (nullable), percent_basis (PolicyRateBasis, nullable),
                         applies_to (PolicyScope), free_until_days (nullable, Cancel only),
+                        own_taxes (bool, default false),
                         text_en, text_ms, timestamps
                         unique (property_id, code)
 ```
@@ -85,9 +86,9 @@ A form on the left and a preview on the right, like the Taxes tab. The preview p
 
 ### Own taxes
 
-Planned, its own checklist item after the policy tabs. Both the Taxes tab and the policy tabs pick taxes with the same multiselect. Posting and the preview already read the taxes of the policy's own code, so `TaxCalculator` and `PostFolioCharge` do not change.
+Both the Taxes tab and the policy tabs pick taxes with the same multiselect. Posting and the preview already read the taxes of the policy's own code, so `TaxCalculator` and `PostFolioCharge` do not change.
 
-- `room_revenue_policies.own_taxes` (boolean, default false). False means the policy follows the Taxes tab. True means its code keeps its own taxes.
+- `room_revenue_policies.own_taxes` (boolean, default false). `RoomRevenueTaxIds` reads the taxes of a code: ROOM for the Taxes tab and a policy that follows, the policy's own code otherwise. False means the policy follows the Taxes tab. True means its code keeps its own taxes.
 - The Taxes tab save links the chosen taxes to ROOM and to each policy whose `own_taxes` is false. It never touches a policy with its own taxes. A tax added later reaches every policy that still follows.
 - A policy tab has a **Taxes** section with a **Follow the Taxes tab** switch. On shows the Taxes tab selection in a disabled multiselect. Off makes the multiselect editable, saved with the policy. An empty choice is allowed, for example an untaxed no-show fee. Turning the switch back on links the code to the Taxes tab selection again. A short note says that a policy with its own taxes does not change when the Taxes tab changes.
 - Row 1 of a policy tab has three columns. **How it charges** spans two (the charge cards, then the charge form) and **Taxes** spans one. Row 2 holds **Policy text** and **Preview**. On narrow screens they stack.

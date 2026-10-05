@@ -27,15 +27,16 @@ class RoomRevenuePolicyPreview
     public function __construct(
         private PolicyChargeCalculator $calculator,
         private TaxCalculator $taxCalculator,
+        private RoomRevenueTaxIds $roomRevenueTaxIds,
     ) {}
 
-    public function calculate(Property $property, RoomRevenuePolicy $policy): RoomRevenuePolicyPreviewData
+    /**
+     * @param  list<int>|null  $taxIds  Unsaved tax choice of a policy with its own taxes. Null uses the saved taxes of the policy.
+     */
+    public function calculate(Property $property, RoomRevenuePolicy $policy, ?array $taxIds = null): RoomRevenuePolicyPreviewData
     {
         $night = Money::of(self::SAMPLE_AMOUNT, $property->settings->currency->value);
-        $taxes = $property->transactionCodes()
-            ->where('system_key', $policy->code->value)
-            ->with('applicableTaxes')
-            ->first()?->applicableTaxes ?? new Collection;
+        $taxes = $property->taxes()->whereKey($taxIds ?? $this->roomRevenueTaxIds->forPolicy($property, $policy))->get();
 
         $lines = array_map(
             fn (array $case): RoomRevenuePolicyPreviewLineData => $this->line($property, $policy, $taxes, $case['label'], $case['free'], $case['base']),

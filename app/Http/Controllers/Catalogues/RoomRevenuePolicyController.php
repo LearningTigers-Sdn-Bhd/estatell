@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Catalogues;
 
 use App\Actions\Catalogues\SaveRoomRevenuePolicy;
+use App\Data\Catalogues\ChargeItemTaxData;
 use App\Data\Catalogues\RoomRevenuePolicyData;
 use App\Enums\Locale;
 use App\Enums\PolicyChargeMode;
@@ -12,7 +13,9 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Catalogues\RoomRevenuePolicyRequest;
 use App\Models\Property;
 use App\Models\RoomRevenuePolicy;
+use App\Models\Tax;
 use App\Services\Catalogues\RoomRevenuePolicyPreview;
+use App\Services\Catalogues\RoomRevenueTaxIds;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
@@ -23,7 +26,7 @@ class RoomRevenuePolicyController extends Controller
     /**
      * Show one policy tab: the form and what the saved policy charges on a sample stay.
      */
-    public function show(Property $property, PolicyTab $tab, RoomRevenuePolicyPreview $preview): Response
+    public function show(Property $property, PolicyTab $tab, RoomRevenuePolicyPreview $preview, RoomRevenueTaxIds $roomRevenueTaxIds): Response
     {
         abort_if($property->settings === null, 404);
 
@@ -31,7 +34,13 @@ class RoomRevenuePolicyController extends Controller
 
         return Inertia::render('settings/room-revenue/policy', [
             'tab' => $tab->value,
-            'policy' => RoomRevenuePolicyData::fromModel($policy),
+            'policy' => RoomRevenuePolicyData::fromModel($policy, $roomRevenueTaxIds->forPolicy($property, $policy)),
+            'roomTaxIds' => $roomRevenueTaxIds->forRoom($property),
+            'taxes' => $property->taxes()
+                ->orderByDesc('enabled')
+                ->orderBy('name')
+                ->get()
+                ->map(fn (Tax $tax): ChargeItemTaxData => ChargeItemTaxData::fromModel($tax)),
             'preview' => $preview->calculate($property, $policy),
             'currency' => $property->settings->currency,
             'chargeModes' => PolicyChargeMode::options(),
@@ -48,7 +57,7 @@ class RoomRevenuePolicyController extends Controller
     {
         abort_if($property->settings === null, 404);
 
-        return response()->json($preview->calculate($property, $request->unsavedPolicy()));
+        return response()->json($preview->calculate($property, $request->unsavedPolicy(), $request->ownTaxIds()));
     }
 
     public function update(RoomRevenuePolicyRequest $request, Property $property, PolicyTab $tab, SaveRoomRevenuePolicy $saveRoomRevenuePolicy): RedirectResponse

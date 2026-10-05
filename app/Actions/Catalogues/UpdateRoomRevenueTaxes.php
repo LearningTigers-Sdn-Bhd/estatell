@@ -4,6 +4,7 @@ namespace App\Actions\Catalogues;
 
 use App\Enums\SystemTransactionCode;
 use App\Models\Property;
+use App\Models\RoomRevenuePolicy;
 use App\Models\TransactionCode;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -11,8 +12,8 @@ use Illuminate\Support\Facades\DB;
 class UpdateRoomRevenueTaxes
 {
     /**
-     * Link the same taxes to every room revenue code: room nights, no-shows,
-     * cancellations, late checkouts and early departures.
+     * Link the same taxes to ROOM and to every policy code that follows the Taxes tab: no-shows,
+     * cancellations, late checkouts and early departures. A policy with its own taxes is skipped.
      *
      * @param  list<int>  $taxIds  Validated tax ids from the property.
      */
@@ -22,8 +23,13 @@ class UpdateRoomRevenueTaxes
             sort($taxIds);
             $changed = false;
 
+            $ownTaxKeys = $property->roomRevenuePolicies()->where('own_taxes', true)->get()
+                ->map(fn (RoomRevenuePolicy $policy): string => $policy->code->value)
+                ->all();
+
             $roomCodes = $property->transactionCodes()
                 ->whereIn('system_key', SystemTransactionCode::roomRevenueKeys())
+                ->whereNotIn('system_key', $ownTaxKeys)
                 ->with('applicableTaxes')
                 ->lockForUpdate()
                 ->get();

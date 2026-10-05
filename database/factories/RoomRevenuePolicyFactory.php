@@ -31,6 +31,7 @@ class RoomRevenuePolicyFactory extends Factory
             'percent_basis' => null,
             'applies_to' => PolicyScope::FirstNight,
             'free_until_days' => null,
+            'own_taxes' => false,
             'text_en' => 'No charge for cancellation.',
             'text_ms' => 'Tiada caj untuk pembatalan.',
         ];
