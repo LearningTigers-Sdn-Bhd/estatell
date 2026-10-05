@@ -17,7 +17,7 @@ export default function RegistrationDonePage({ done }: { done: Done }) {
             : null;
 
     return (
-        <>
+        <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 overflow-y-auto p-4">
             <Head title={word('Thank you.')} />
             <div className="flex flex-1 flex-col items-center justify-center gap-4 text-center">
                 <CircleCheck className="size-12 text-success" />
@@ -51,6 +51,6 @@ export default function RegistrationDonePage({ done }: { done: Done }) {
             >
                 {word('Staff: back to desk')}
             </Link>
-        </>
+        </div>
     );
 }

@@ -1,6 +1,6 @@
 import SignaturePad from 'signature_pad';
 import type { PointGroup } from 'signature_pad';
-import { Maximize2 } from 'lucide-react';
+import { Check, Eraser, Maximize2, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -174,6 +174,7 @@ export function SignatureField({
                             emit();
                         }}
                     >
+                        <Eraser data-icon="inline-start" />
                         {labels.clear}
                     </Button>
                     <Button
@@ -207,6 +208,7 @@ export function SignatureField({
                             size="sm"
                             onClick={() => largePad.current?.clear()}
                         >
+                            <Eraser data-icon="inline-start" />
                             {labels.clear}
                         </Button>
                     </DialogHeader>
@@ -221,9 +223,11 @@ export function SignatureField({
                             variant="outline"
                             onClick={() => setExpanded(false)}
                         >
+                            <X data-icon="inline-start" />
                             {labels.cancel}
                         </Button>
                         <Button type="button" onClick={keep}>
+                            <Check data-icon="inline-start" />
                             {labels.done}
                         </Button>
                     </DialogFooter>

@@ -1,5 +1,7 @@
 import { router } from '@inertiajs/react';
+import { PenLine } from 'lucide-react';
 import { useEffect } from 'react';
+import type { ReactNode } from 'react';
 import { EnumSelect } from '@/components/pms/enum-select';
 import type { EnumOption } from '@/components/pms/enum-select';
 import {
@@ -34,7 +36,12 @@ export function RegistrationCardForm({
     genders,
     identityTypes,
     countries,
-}: { card: Card } & Options) {
+    children,
+}: {
+    card: Card;
+    /** Shown at the end of the scrolling body, for example the staff link. */
+    children?: ReactNode;
+} & Options) {
     const word = (text: string) => card.labels[text] ?? text;
     const visibility = Object.fromEntries(
         card.fields.map((field) => [field.field, field.visibility]),
@@ -84,7 +91,7 @@ export function RegistrationCardForm({
 
     return (
         <form
-            className="flex flex-col gap-6"
+            className="flex min-h-0 flex-1 flex-col"
             onSubmit={(event) => {
                 event.preventDefault();
                 form.post(sign.url({ unitGuest: card.unitGuestId }), {
@@ -92,70 +99,91 @@ export function RegistrationCardForm({
                 });
             }}
         >
-            <div className="flex flex-wrap items-start justify-between gap-3">
-                <div className="flex flex-col gap-1">
-                    <h1 className="font-heading text-xl font-semibold">
-                        {word('Welcome, :name').replace(
-                            ':name',
-                            card.guestName,
+            <div className="flex-1 overflow-y-auto">
+                <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 p-4">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div className="flex flex-col gap-1">
+                            <h1 className="font-heading text-xl font-semibold">
+                                {word('Welcome, :name').replace(
+                                    ':name',
+                                    card.guestName,
+                                )}
+                            </h1>
+                            {card.walkPosition !== null &&
+                                card.walkTotal > 1 && (
+                                    <p className="text-sm text-muted-foreground tabular-nums">
+                                        {word('Guest :position of :total')
+                                            .replace(
+                                                ':position',
+                                                String(card.walkPosition),
+                                            )
+                                            .replace(
+                                                ':total',
+                                                String(card.walkTotal),
+                                            )}
+                                    </p>
+                                )}
+                        </div>
+                        <EnumSelect
+                            aria-label={word('Language')}
+                            className="w-56"
+                            options={card.localeOptions}
+                            value={card.locale}
+                            onValueChange={switchLanguage}
+                        />
+                    </div>
+
+                    <StaySummary
+                        fields={stayFields}
+                        title={word('Your stay')}
+                        locale={card.locale}
+                    />
+
+                    <div className="grid gap-6 lg:grid-cols-2">
+                        <div className="flex flex-col gap-6">
+                            <PersonalSection
+                                {...section}
+                                genders={genders}
+                                countries={countries}
+                            />
+                            <ContactSection
+                                {...section}
+                                countries={countries}
+                            />
+                            <IdentitySection
+                                {...section}
+                                identityTypes={identityTypes}
+                                countries={countries}
+                            />
+                            <PreferencesSection {...section} />
+                        </div>
+                        <div className="flex flex-col gap-6">
+                            <TermsSection {...section} />
+                            <SignSection {...section} />
+                        </div>
+                    </div>
+                    {children}
+                </div>
+            </div>
+
+            <div className="shrink-0 border-t bg-background">
+                <div className="mx-auto flex h-16 w-full max-w-5xl items-center justify-between gap-3 px-4">
+                    <p className="text-sm text-muted-foreground">
+                        {missing.join(' · ')}
+                    </p>
+                    <Button
+                        type="submit"
+                        disabled={!ready || form.processing}
+                        focusableWhenDisabled
+                    >
+                        {form.processing ? (
+                            <Spinner data-icon="inline-start" />
+                        ) : (
+                            <PenLine data-icon="inline-start" />
                         )}
-                    </h1>
-                    {card.walkPosition !== null && card.walkTotal > 1 && (
-                        <p className="text-sm text-muted-foreground tabular-nums">
-                            {word('Guest :position of :total')
-                                .replace(':position', String(card.walkPosition))
-                                .replace(':total', String(card.walkTotal))}
-                        </p>
-                    )}
+                        {word('Sign card')}
+                    </Button>
                 </div>
-                <EnumSelect
-                    aria-label={word('Language')}
-                    className="w-56"
-                    options={card.localeOptions}
-                    value={card.locale}
-                    onValueChange={switchLanguage}
-                />
-            </div>
-
-            <StaySummary
-                fields={stayFields}
-                title={word('Your stay')}
-                locale={card.locale}
-            />
-
-            <div className="grid gap-6 lg:grid-cols-2">
-                <div className="flex flex-col gap-6">
-                    <PersonalSection
-                        {...section}
-                        genders={genders}
-                        countries={countries}
-                    />
-                    <ContactSection {...section} countries={countries} />
-                    <IdentitySection
-                        {...section}
-                        identityTypes={identityTypes}
-                        countries={countries}
-                    />
-                    <PreferencesSection {...section} />
-                </div>
-                <div className="flex flex-col gap-6">
-                    <TermsSection {...section} />
-                    <SignSection {...section} />
-                </div>
-            </div>
-
-            <div className="sticky bottom-0 flex items-center justify-between gap-3 border-t bg-background py-3">
-                <p className="text-sm text-muted-foreground">
-                    {missing.join(' · ')}
-                </p>
-                <Button
-                    type="submit"
-                    disabled={!ready || form.processing}
-                    focusableWhenDisabled
-                >
-                    {form.processing && <Spinner />}
-                    {word('Sign card')}
-                </Button>
             </div>
         </form>
     );

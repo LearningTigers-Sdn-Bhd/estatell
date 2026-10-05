@@ -1,3 +1,4 @@
+import { CheckCheck, ListX } from 'lucide-react';
 import { CardSection } from '@/components/pms/registration-card/card-section';
 import { TermsPreview } from '@/components/pms/registration-card/terms-preview';
 import type { CardSectionProps } from '@/components/pms/registration-card/use-card-form';
@@ -38,6 +39,11 @@ export function TermsSection({ card, form, word }: CardSectionProps) {
                             )
                         }
                     >
+                        {allTicked ? (
+                            <ListX data-icon="inline-start" />
+                        ) : (
+                            <CheckCheck data-icon="inline-start" />
+                        )}
                         {word(allTicked ? 'Untick all' : 'Agree to all')}
                     </Button>
                 )

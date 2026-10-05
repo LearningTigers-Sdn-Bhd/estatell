@@ -28,13 +28,14 @@ export default function RegistrationGuestPage({
                 genders={genders}
                 identityTypes={identityTypes}
                 countries={countries}
-            />
-            <Link
-                href={show.url({ unitGuest: card.unitGuestId })}
-                className="self-center text-xs text-muted-foreground underline-offset-4 hover:underline"
             >
-                {word('Staff: back to desk')}
-            </Link>
+                <Link
+                    href={show.url({ unitGuest: card.unitGuestId })}
+                    className="self-center text-xs text-muted-foreground underline-offset-4 hover:underline"
+                >
+                    {word('Staff: back to desk')}
+                </Link>
+            </RegistrationCardForm>
         </>
     );
 }
