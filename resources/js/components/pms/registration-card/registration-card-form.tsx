@@ -266,8 +266,8 @@ export function RegistrationCardForm({
                                 'text',
                                 word('Unit, floor or building'),
                             )}
-                            {text('city', 'City', null)}
-                            {text('state', 'State', null)}
+                            {text('city', 'City', null, 'text', 'Kuala Lumpur')}
+                            {text('state', 'State', null, 'text', 'Selangor')}
                             {text(
                                 'postal_code',
                                 'Postal code',
