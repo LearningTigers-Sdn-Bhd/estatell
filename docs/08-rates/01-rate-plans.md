@@ -29,6 +29,7 @@ rate_plan_stay_discounts
 - `rate_plan_room_types` is a many-to-many link. It holds no prices. Prices live only in [daily rates](02-daily-rates-and-restrictions.md).
 - The number of guests a price covers is the room type's `base_occupancy` ("Guests included"), not a plan column (see [Room types](../05-rooms/01-room-types.md)).
 - There is no default plan flag. `position` sets the order.
+- `early_departure_policy` is replaced by the property-level [early departure policy](../06-catalogues/06-room-revenue.md#policies). A later item makes it an optional per-plan override that follows the property by default. The column stays until then.
 
 ## Built first slice
 

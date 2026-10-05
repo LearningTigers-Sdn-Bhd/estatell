@@ -11,7 +11,7 @@ property_settings    property_id (unique), currency, time_zone, default_locale,
                      check_in_time, check_out_time, arrival_grace_minutes,
                      auto_assign_rooms,
                      audit_time, auto_audit_enabled,
-                     missed_arrival_policy, overdue_departure_policy, no_show_charge,
+                     missed_arrival_policy, overdue_departure_policy,
                      registration_card_scope, card_required_for_check_in,
                      id_document_retention_days, security_deposit_amount,
                      allow_support_access (bool, default true),
@@ -29,7 +29,7 @@ property_settings    property_id (unique), currency, time_zone, default_locale,
 - `Locale`: English, Malay.
 - `MissedArrivalPolicy`: MarkNoShow, KeepAsLateArrival.
 - `OverdueDeparturePolicy`: ExtendOneNight, Block.
-- `NoShowCharge`: FirstNight, FullStay, None.
+- `NoShowCharge` (FirstNight, FullStay, None) is replaced by the no-show [room revenue policy](../06-catalogues/06-room-revenue.md#policies). The column and enum are removed by the policies item in the [checklist](../checklist.md).
 - `RegistrationCardScope`: PrimaryOnly, EveryAdult.
 - `WeekendNights`: FriSat ("Friday + Saturday"), SatSun ("Saturday + Sunday").
 
@@ -47,4 +47,4 @@ property_settings    property_id (unique), currency, time_zone, default_locale,
 - Currency and time zone are fixed once the property has gone live (`went_live_at` is set). The page shows them disabled, and the request drops them (`SettingsLock`).
 - All business dates and schedules use `time_zone`.
 - The Details page has five tabs, each with its own URL: General, Operations, Age groups, Meal periods and Support access. Each tab saves separately. The Age groups tab saves through its own route (see [Age groups](04-age-groups.md)). The registration card settings (scope, card required, ID retention, deposit) are on their own Registration card page, General tab. See [Card fields](../16-registration/01-card-fields.md#ui). Before Basics is complete, it links to `/p/{code}/onboarding/basics`.
-- Initial values are MYR, `Asia/Kuala_Lumpur`, English, 15:00 check-in, 11:00 check-out, 02:00 audit, no automatic audit or room assignment, no no-show charge, blocked overdue departures, primary-only registration cards, no card requirement, zero deposit, Friday + Saturday weekend nights and support access on. ID retention is unset, so scans are kept until a number of days (at least 1) is set.
+- Initial values are MYR, `Asia/Kuala_Lumpur`, English, 15:00 check-in, 11:00 check-out, 02:00 audit, no automatic audit or room assignment, no room revenue policy charges, blocked overdue departures, primary-only registration cards, no card requirement, zero deposit, Friday + Saturday weekend nights and support access on. ID retention is unset, so scans are kept until a number of days (at least 1) is set.

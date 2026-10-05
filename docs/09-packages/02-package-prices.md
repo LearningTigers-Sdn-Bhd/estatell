@@ -61,7 +61,7 @@ A package can follow another package of the same charged unit and the same night
 | Case                       | Behaviour                                                                                    |
 | -------------------------- | -------------------------------------------------------------------------------------------- |
 | Guest extends by one night | The extra night uses another rate plan on its `unit_nights.rate_plan_id`                     |
-| Guest leaves early         | `early_departure_policy`: ChargeFull or ChargeUsedNights                                     |
+| Guest leaves early         | The [early departure policy](../06-catalogues/06-room-revenue.md#policies) of the property   |
 | Package price edited       | Existing bookings keep their stored nightly amounts                                          |
 | `fixed_nights` edited      | Existing bookings keep their stored nights. Refused while an active package follows the plan |
 
