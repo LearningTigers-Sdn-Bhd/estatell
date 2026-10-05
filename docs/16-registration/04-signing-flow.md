@@ -6,11 +6,13 @@ Capture guest details, ID and signature at check-in, at the desk or remotely.
 
 ## Build order
 
-| Step | Commit                                                | Delivers                                                                                 |
-| ---- | ----------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| 1    | `feat(registration): add the desk signing flow`       | Card table, Actions, staff card page, signature pad, checklist ticks, void, Malay labels |
-| 2    | `feat(registration): render the signed card as a PDF` | PDF, signature and PDF media, Download button                                            |
-| 3    | `feat(registration): sign the card remotely`          | Signed link, guest layout, guest page, ID upload, language selector                      |
+| Step | Commit                                                | Delivers                                                                                                    |
+| ---- | ----------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| 1    | `feat(registration): add the desk signing flow`       | Card table, Actions, staff card page, signature pad, checklist ticks, void, Malay labels                    |
+| 1b   | `feat(registration): hand the card to the guest`      | Read-only staff page, guest layout and guest screen, Agree to all, inline pad, guest walk, thank-you screen |
+| 2    | `feat(registration): render the signed card as a PDF` | PDF, signature and PDF media, Download button, blank form to print, CJK and symbol fonts                    |
+| 3    | `feat(registration): sign the card remotely`          | Signed link, the step 1b guest screen behind it, ID upload, QR code on the staff page                       |
+| –    | `feat(registration): pair a signing tablet`           | Parked. See [Signing tablet (parked)](#signing-tablet-parked)                                               |
 
 ## Data model
 
@@ -33,32 +35,93 @@ registration_cards    id, property_id, unit_guest_id, number, status (Registrati
 ## Flow
 
 1. `PrepareRegistrationCard` finds or creates the draft card and pre-fills guest, ID document and stay details.
-2. Sign:
-    - At the desk: `signature_pad` in a large dialog, then `SignRegistrationCard`.
-    - Remote (step 3): `SendRegistrationCardLink` emails a `URL::temporarySignedRoute` link that lasts 7 days, with a Resend button. The guest completes fields, uploads ID and signs.
-3. `CheckInUnit` (module 18) checks cards against `registration_card_scope` (PrimaryOnly, or EveryAdult, which skips a guest known to be under 18 on arrival) when `card_required_for_check_in` is on. Users with `front-desk.check-in-without-card` can override. The override is logged. `RegistrationCardRequirement` (a Service, step 1) tells it which guests still need a card.
+2. Staff check the card on the staff page and, if needed, pick the ID document and type the vehicle plate (`SaveRegistrationCardDraft`).
+3. Hand to guest:
+    - This device: staff open the guest screen. The guest checks the details, ticks the terms, signs and taps Sign card (`SignRegistrationCard`).
+    - Guest's phone (step 3): the staff page shows a QR code of the signed link. `SendRegistrationCardLink` also emails it. The link lasts 7 days and has a Resend button. The guest completes fields, uploads ID and signs on the same guest screen.
+4. `CheckInUnit` (module 18) checks cards against `registration_card_scope` (PrimaryOnly, or EveryAdult, which skips a guest known to be under 18 on arrival) when `card_required_for_check_in` is on. Users with `front-desk.check-in-without-card` can override. The override is logged. `RegistrationCardRequirement` (a Service, step 1) tells it which guests still need a card.
 
 ## Actions
 
-| Action                    | Does                                                                                                                                                                                    |
-| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `PrepareRegistrationCard` | Finds or creates the draft for a unit guest.                                                                                                                                            |
-| `SignRegistrationCard`    | Checks the checklist and the signature, updates the guest with `UpdateGuest`, sets `guests.preferred_locale`, stores the signature, freezes the snapshot and sets the status to Signed. |
-| `VoidRegistrationCard`    | Voids a Draft or Signed card with a reason and logs it.                                                                                                                                 |
+| Action                      | Does                                                                                                                                                                                    |
+| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `PrepareRegistrationCard`   | Finds or creates the draft for a unit guest.                                                                                                                                            |
+| `SaveRegistrationCardDraft` | Sets `identity_document_id` (an existing document, or a new one through `AddIdentityDocument`) and `vehicle_plate` on a draft. Refuses a card that is not a draft.                      |
+| `SignRegistrationCard`      | Checks the checklist and the signature, updates the guest with `UpdateGuest`, sets `guests.preferred_locale`, stores the signature, freezes the snapshot and sets the status to Signed. |
+| `VoidRegistrationCard`      | Voids a Draft or Signed card with a reason and logs it.                                                                                                                                 |
 
 `SignRegistrationCardRequest` checks the Required fields by the Layout tab, so errors show on the field. Expected refusals (already signed, closed unit, missing tick, bad signature, language with no terms) return false, not an HTTP error. The controller shows a toast.
 
+## Routes
+
+Routes are in `routes/registration.php`. All need `registration-card.sign`, except void.
+
+| Method and URL                           | Name                  | Does                                                                                        |
+| ---------------------------------------- | --------------------- | ------------------------------------------------------------------------------------------- |
+| `GET /p/{code}/registration/{unitGuest}` | `registration.show`   | Staff page                                                                                  |
+| `PUT …/{unitGuest}`                      | `registration.update` | Saves the ID document and vehicle plate on the draft                                        |
+| `GET …/{unitGuest}/guest`                | `registration.guest`  | Guest screen, with `?locale=`                                                               |
+| `POST …/{unitGuest}/sign`                | `registration.sign`   | Signs. Success goes to `registration.done`, a refusal back to the guest screen with a toast |
+| `GET …/{unitGuest}/done`                 | `registration.done`   | Thank-you screen                                                                            |
+| `POST …/{unitGuest}/void`                | `registration.void`   | Voids, needs `registration-card.void`                                                       |
+
 ## Staff card page
 
-- `GET /p/{code}/registration/{unitGuest}` (`registration.show`), `POST …/sign` (`registration.sign`) and `POST …/void` (`registration.void`). Routes are in `routes/registration.php`, the page is `pages/registration/card.tsx`. The guest row on the reservation page links to it.
-- Form archetype, full page. The fields follow the Layout tab. The terms are in a scroll box, and the checklist boxes are under it.
+`pages/registration/card.tsx`, in the app layout. The guest row on the reservation page links to it. Staff check the card here. Nobody signs here.
+
+```
+┌ Aisyah Rahman · Room 204 · RC-0012   [Draft] ────────────────┐
+│ Details (read-only)                 │ Hand to guest          │
+│ ID document  [MyKad •••• 1234 ▾]    │  This device           │
+│ Vehicle plate [WXY 1234]   [Save]   │  Guest's phone (QR)    │ (step 3)
+│                                     │ Print blank form       │ (step 2)
+│                                     │ Void                   │
+└─────────────────────────────────────┴────────────────────────┘
+```
+
+- The details are the visible fields and the stay details, read-only. Only the ID document and the vehicle plate can be edited here, and only on a draft.
+- "This device" opens `registration.guest` in the same tab.
+- A signed card shows what was frozen at signing and Void. Hand to guest is hidden.
+- A unit that is cancelled, a no-show or checked out has no card, and neither has a guest who was merged or anonymized.
+
+## Guest screen
+
+`pages/registration/guest.tsx`, in a new bare `layouts/guest-layout.tsx`: the property name, no sidebar, no breadcrumbs, no staff actions. Step 3 shows the same page behind the signed link.
+
+```
+┌──────────────────────────────── [English ▾] ┐
+│  Welcome, Aisyah · Guest 1 of 3              │
+│  Check your details      (editable, large)   │
+│  Terms (scroll)                              │
+│                          [ Agree to all ]    │
+│  ☐ item 1                                    │
+│  ☐ item 2                                    │
+│  Signature                   [Clear] [⤢]     │
+│  ┌──────────── inline pad ────────────┐      │
+│  └────────────────────────────────────┘      │
+│                         [ Sign card ]        │
+│                     Staff: back to desk      │
+└──────────────────────────────────────────────┘
+```
+
+- The fields follow the Layout tab. The ID document picked by staff shows masked and read-only. If none is picked and the field is Required, the guest types it.
 - The language Select lists the languages from `RegistrationTermsResolver`. Switching resets the ticks and keeps the typed values.
-- Signing opens a large dialog with a signature pad. The Sign button stays disabled until every Required field, every checklist box and the signature are done.
-- A signed card is read-only and shows Void. A unit that is cancelled, a no-show or checked out has no card, and neither has a guest who was merged or anonymized.
+- The signature pad is on the page, not in a dialog. Clear sits above the pad, away from Sign card. ⤢ opens the pad full screen and keeps the strokes when it closes.
+- Sign card stays disabled until every Required field, every checklist box and the signature are done.
+- "Guest X of N": N is the guests of the unit that need a card (`RegistrationCardRequirement::requiredFor`). It shows only when the open guest is one of them.
+- The only way out is the small "Staff: back to desk" link to `registration.show`. Staff are present, so it has no PIN.
+
+## Thank-you screen
+
+`registration.done`, in the guest layout. It shows no details of the guest who signed.
+
+- The next guest is the first of `RegistrationCardRequirement::missingFor` on the same unit: primary guest first, then by id. It is derived, not stored, so a card signed elsewhere drops out. "Thank you. Next: Ali Hassan (2 of 3)" with Continue to that guest's screen.
+- When no guest is left: "All done. Please return the device." and "Staff: back to desk".
 
 ## Terms checklist
 
 - The card page shows the terms text, then one checkbox per checklist item (see [Terms documents and presets](02-terms-documents-and-presets.md)). Desk and remote signing use the same component.
+- Agree to all ticks every box in one tap. The boxes stay visible and each one can be unticked. When every box is ticked, the button reads Untick all.
 - Sign stays disabled until every item is ticked.
 - `SignRegistrationCard` resolves the terms version again and refuses unless the submitted ticks cover every item. The browser does not decide this.
 - `snapshot` keeps each item's rendered text, its position and the tick time.
@@ -75,7 +138,8 @@ The card's labels are in `lang/ms.json` (new folder `lang/` at the project root,
 ## Rules
 
 - Signed cards are never edited. Changes void the card and a new card is signed.
-- The PDF is rendered with dompdf in the signed locale.
+- The PDF is rendered with dompdf in the signed locale. It bundles Noto Sans SC and Noto Sans Symbols 2 (approved, about 10 MB each) so Chinese terms and symbols print on every host. The signature block never overlaps the footer after long terms.
+- Print blank form renders the draft as a PDF without a signature, for a guest who signs on paper.
 - `snapshot` jsonb is allowed: it is an issued document.
 - Remote ID upload accepts JPEG, PNG or WebP up to 10 MB, on a throttled POST.
 
@@ -83,6 +147,14 @@ The card's labels are in `lang/ms.json` (new folder `lang/` at the project root,
 
 `registration-card.sign` (Owner, Manager, Front desk), `registration-card.send-link` (Owner, Manager, Front desk), `registration-card.void` (Owner, Manager).
 
+## Signing tablet (parked)
+
+wastays pairs a counter tablet (QR or 6-character code, 10 minutes, single use), parks it on an idle screen and lets staff press Send to tablet. The tablet never signs in, has a Back button for a wrong reservation, and is switched on per property. If we build it, the idle screen polls every few seconds instead of using Reverb, and it opens the same guest screen. Parked: the guest's phone and this device cover small properties.
+
 ## Lessons from wastays
 
-The signature was a base64 `signature_data_url` text column. `pre_checkins` needed a token table. Signed URLs replace it.
+- The signature was a base64 `signature_data_url` text column. `pre_checkins` needed a token table. Signed URLs replace it.
+- A staff page that also held the signature pad showed staff actions to the guest. Staff review and guest signing are separate pages, and every hand-over path opens one guest screen.
+- Clear next to Sign lost signatures. A cramped pad on a phone needed a full-screen mode.
+- After signing, the screen must not keep the last guest's ID number on a counter.
+- The "show pricing" setting is already covered here by the Prices visibility on the Layout tab.
