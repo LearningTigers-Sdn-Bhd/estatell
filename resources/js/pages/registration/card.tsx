@@ -1,7 +1,7 @@
-import { Head, Link, useForm } from '@inertiajs/react';
+import { Head, useForm } from '@inertiajs/react';
 import { useState } from 'react';
-import Heading from '@/components/heading';
 import type { EnumOption } from '@/components/pms/enum-select';
+import { PageHeader } from '@/components/pms/page-header';
 import { RegistrationCardForm } from '@/components/pms/registration-card/registration-card-form';
 import { StatusBadge } from '@/components/pms/status-badge';
 import { TermsPreview } from '@/components/pms/registration-card/terms-preview';
@@ -14,7 +14,7 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Button, buttonVariants } from '@/components/ui/button';
+import { Button } from '@/components/ui/button';
 import { Field, FieldError, FieldLabel } from '@/components/ui/field';
 import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
@@ -136,15 +136,18 @@ export default function RegistrationCardPage({
         <>
             <Head title="Registration card" />
             <div className="flex max-w-6xl flex-col gap-4 p-4">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                    <Heading
-                        title={card.guestName}
-                        description={`${card.unitLabel}${card.number ? ` · ${card.number}` : ''}`}
-                        badge={<StatusBadge status={card.status} />}
-                        className="mb-0"
-                    />
-                    <div className="flex items-center gap-2">
-                        {card.canVoid && (
+                <PageHeader
+                    title={card.guestName}
+                    description={`${card.unitLabel}${card.number ? ` · ${card.number}` : ''}`}
+                    back={{
+                        href: showReservation.url({
+                            reservation: card.reservationId,
+                        }),
+                        label: 'reservation',
+                    }}
+                    badge={<StatusBadge status={card.status} />}
+                    actions={
+                        card.canVoid && (
                             <Button
                                 type="button"
                                 variant="outline"
@@ -152,17 +155,9 @@ export default function RegistrationCardPage({
                             >
                                 Void card
                             </Button>
-                        )}
-                        <Link
-                            href={showReservation.url({
-                                reservation: card.reservationId,
-                            })}
-                            className={buttonVariants({ variant: 'ghost' })}
-                        >
-                            Back to reservation
-                        </Link>
-                    </div>
-                </div>
+                        )
+                    }
+                />
                 {card.status.value === 'signed' ? (
                     <SignedCard card={card} />
                 ) : (
