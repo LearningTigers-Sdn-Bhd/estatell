@@ -65,6 +65,14 @@ class RoomType extends Model implements HasMedia
     }
 
     /**
+     * @return BelongsTo<TermsDocument, $this>
+     */
+    public function termsDocument(): BelongsTo
+    {
+        return $this->belongsTo(TermsDocument::class);
+    }
+
+    /**
      * @return HasMany<Room, $this>
      */
     public function rooms(): HasMany

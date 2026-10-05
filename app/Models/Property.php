@@ -138,6 +138,12 @@ class Property extends Model implements FeatureScopeSerializeable
         return $this->hasMany(RegistrationCardFieldSetting::class);
     }
 
+    /** @return HasMany<TermsDocument, $this> */
+    public function termsDocuments(): HasMany
+    {
+        return $this->hasMany(TermsDocument::class);
+    }
+
     /** @return HasMany<RatePlan, $this> */
     public function ratePlans(): HasMany
     {

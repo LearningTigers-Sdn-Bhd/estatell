@@ -21,6 +21,7 @@ class RoomTypeData extends Data
         public int $baseOccupancy,
         public bool $smokingAllowed,
         public bool $petsAllowed,
+        public ?int $termsDocumentId,
         public bool $archived,
     ) {}
 
@@ -36,6 +37,7 @@ class RoomTypeData extends Data
             baseOccupancy: $roomType->base_occupancy,
             smokingAllowed: $roomType->smoking_allowed,
             petsAllowed: $roomType->pets_allowed,
+            termsDocumentId: $roomType->terms_document_id,
             archived: $roomType->archived_at !== null,
         );
     }

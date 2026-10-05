@@ -33,6 +33,7 @@ class RoomTypeController extends Controller
                 ->get()
                 ->map(fn (RoomType $roomType): RoomTypeData => RoomTypeData::fromModel($roomType)),
             'sellUnits' => SellUnit::options(),
+            'termsDocuments' => $this->termsDocumentOptions($property),
         ]);
     }
 
@@ -79,5 +80,21 @@ class RoomTypeController extends Controller
             : ['type' => 'error', 'message' => __(':name cannot be restored. Another room type uses the same name.', ['name' => $roomType->name])]);
 
         return to_route('settings.room-types.index', $property);
+    }
+
+    /**
+     * The terms documents to pick from, or none while the property has only its default one.
+     *
+     * @return list<array{value: int, label: string}>
+     */
+    private function termsDocumentOptions(Property $property): array
+    {
+        $documents = $property->termsDocuments()->orderByDesc('is_default')->orderBy('name')->get();
+
+        if ($documents->count() < 2) {
+            return [];
+        }
+
+        return $documents->map(fn ($document): array => ['value' => $document->id, 'label' => $document->name])->all();
     }
 }

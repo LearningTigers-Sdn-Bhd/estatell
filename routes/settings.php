@@ -12,6 +12,7 @@ use App\Http\Controllers\Property\NotificationSettingController;
 use App\Http\Controllers\Property\PropertySettingsController;
 use App\Http\Controllers\Rates\RatePlanController;
 use App\Http\Controllers\Registration\RegistrationCardController;
+use App\Http\Controllers\Registration\RegistrationTermsController;
 use App\Http\Controllers\Rooms\BedController;
 use App\Http\Controllers\Rooms\RoomController;
 use App\Http\Controllers\Rooms\RoomGroupController;
@@ -46,6 +47,14 @@ Route::prefix('settings')->name('settings.')->group(function () {
         Route::put('{section}', [PropertySettingsController::class, 'update'])
             ->whereIn('section', ['general', 'operations', 'support'])
             ->name('update');
+    });
+
+    Route::prefix('registration-card/terms')->name('registration-card.terms')->middleware('can:'.PermissionEnum::RegistrationCardManageTerms->value)->scopeBindings()->group(function () {
+        Route::get('/', [RegistrationTermsController::class, 'index']);
+        Route::post('documents', [RegistrationTermsController::class, 'storeDocument'])->name('.documents.store');
+        Route::delete('documents/{termsDocument}', [RegistrationTermsController::class, 'destroyDocument'])->name('.documents.destroy');
+        Route::post('documents/{termsDocument}/versions', [RegistrationTermsController::class, 'storeVersion'])->name('.versions.store');
+        Route::post('documents/{termsDocument}/preset', [RegistrationTermsController::class, 'applyPreset'])->name('.preset.apply');
     });
 
     Route::prefix('room-types')->name('room-types.')->group(function () {

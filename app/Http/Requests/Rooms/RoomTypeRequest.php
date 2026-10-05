@@ -28,6 +28,10 @@ class RoomTypeRequest extends FormRequest
             'max_children' => $this->input('max_children', 0),
             'description' => filled($this->input('description')) ? trim((string) $this->input('description')) : null,
         ]);
+
+        if ($this->has('terms_document_id')) {
+            $this->merge(['terms_document_id' => filled($this->input('terms_document_id')) ? $this->input('terms_document_id') : null]);
+        }
     }
 
     /**
@@ -69,6 +73,7 @@ class RoomTypeRequest extends FormRequest
             'base_occupancy' => ['required', 'integer', 'min:1'],
             'smoking_allowed' => ['boolean'],
             'pets_allowed' => ['boolean'],
+            'terms_document_id' => ['nullable', 'integer', Rule::exists('terms_documents', 'id')->where('property_id', $property->id)],
         ];
     }
 

@@ -886,6 +886,36 @@ canHide: boolean,
 canRequire: boolean,
 note: string | null,
 };
+export type TermsDocumentData = {
+id: number,
+name: string,
+isDefault: boolean,
+canDelete: boolean,
+};
+export type TermsEditorData = {
+documentId: number,
+locale: string,
+localeOptions: {
+value: string,
+label: string,
+}[],
+version: number | null,
+body: string,
+isDraft: boolean,
+publishedAt: string | null,
+publishedBy: string | null,
+presetLabel: string | null,
+newerTemplateBody: string | null,
+placeholderValues: Record<string, string>,
+history: App.Data.Registration.TermsVersionData[],
+};
+export type TermsVersionData = {
+version: number,
+body: string,
+publishedAt: string,
+publishedBy: string | null,
+isTemplate: boolean,
+};
 }
 namespace Reservations {
 export type AddUnitOptionsData = {
@@ -1216,6 +1246,7 @@ maxChildren: number,
 baseOccupancy: number,
 smokingAllowed: boolean,
 petsAllowed: boolean,
+termsDocumentId: number | null,
 archived: boolean,
 };
 }
@@ -1327,7 +1358,7 @@ export type PackageUnit = 'per_guest' | 'per_room';
 export type PaymentMethodType = 'cash' | 'card' | 'bank_transfer' | 'e_wallet' | 'ota_collected' | 'direct_bill';
 export type PaymentPurpose = 'advance' | 'settlement' | 'security_deposit';
 export type PaymentStatus = 'pending' | 'completed' | 'failed';
-export type PermissionEnum = 'settings.manage' | 'staff.view' | 'staff.manage' | 'roles.manage' | 'rooms.view' | 'rooms.manage' | 'rooms.block' | 'notification.manage' | 'rates.view' | 'rates.manage' | 'rates.override-restrictions' | 'guests.view' | 'guests.manage' | 'guests.blacklist' | 'guests.view-documents' | 'guests.merge' | 'guests.anonymize' | 'reservations.view' | 'reservations.manage' | 'folio.post-charge' | 'folio.reverse' | 'folio.transfer' | 'folio.discount' | 'folio.discount-open' | 'folio.close' | 'folio.reopen' | 'folio.print-voucher' | 'payment.record' | 'payment.refund' | 'company.view' | 'company.manage' | 'company.credit-override' | 'city-ledger.invoice' | 'city-ledger.credit-note' | 'city-ledger.payment' | 'city-ledger.allocate';
+export type PermissionEnum = 'settings.manage' | 'staff.view' | 'staff.manage' | 'roles.manage' | 'rooms.view' | 'rooms.manage' | 'rooms.block' | 'notification.manage' | 'rates.view' | 'rates.manage' | 'rates.override-restrictions' | 'guests.view' | 'guests.manage' | 'guests.blacklist' | 'guests.view-documents' | 'guests.merge' | 'guests.anonymize' | 'reservations.view' | 'reservations.manage' | 'folio.post-charge' | 'folio.reverse' | 'folio.transfer' | 'folio.discount' | 'folio.discount-open' | 'folio.close' | 'folio.reopen' | 'folio.print-voucher' | 'payment.record' | 'payment.refund' | 'company.view' | 'company.manage' | 'company.credit-override' | 'city-ledger.invoice' | 'city-ledger.credit-note' | 'city-ledger.payment' | 'city-ledger.allocate' | 'registration-card.manage-terms';
 export type PlatformFeature = 'channel-manager';
 export type PricingBasis = 'per_room' | 'per_guest' | 'per_bed' | 'package';
 export type PropertyStatus = 'onboarding' | 'pending_approval' | 'live' | 'suspended';
@@ -1349,6 +1380,8 @@ export type SurchargeType = 'none' | 'fixed' | 'percent';
 export type SystemTransactionCode = 'room_revenue' | 'no_show_revenue' | 'cancellation_revenue' | 'late_checkout_revenue' | 'early_departure_revenue' | 'food_and_beverage_revenue' | 'laundry_revenue' | 'minibar_revenue' | 'fee_revenue' | 'sst_tax' | 'tourism_tax' | 'cash_payment' | 'card_payment' | 'bank_transfer_payment' | 'ewallet_payment' | 'ota_collected_payment' | 'direct_bill_payment' | 'security_deposit' | 'refund' | 'adjustment' | 'discount';
 export type TaxRateType = 'percent' | 'flat';
 export type TemporaryPasswordExportFormat = 'message' | 'csv' | 'xlsx' | 'pdf';
+export type TermsPlaceholder = 'property_name' | 'check_in_time' | 'check_out_time' | 'security_deposit' | 'tourism_tax_rate';
+export type TermsPreset = 'standard_hotel' | 'hostel' | 'resort' | 'serviced_apartment' | 'homestay';
 export type Tone = 'neutral' | 'info' | 'success' | 'warning' | 'danger';
 export type TransactionCategory = 'room' | 'food_and_beverage' | 'laundry' | 'minibar' | 'fee' | 'tax' | 'discount' | 'cash' | 'card' | 'bank_transfer' | 'e_wallet' | 'ota_collected' | 'direct_bill' | 'deposit' | 'refund' | 'adjustment' | 'other';
 export type TransactionKind = 'charge' | 'payment' | 'adjustment' | 'tax';

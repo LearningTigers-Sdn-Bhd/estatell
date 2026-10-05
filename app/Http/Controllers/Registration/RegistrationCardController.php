@@ -6,6 +6,7 @@ use App\Actions\Property\UpdatePropertySettings;
 use App\Actions\Registration\SaveRegistrationCardFields;
 use App\Data\Property\PropertySettingsData;
 use App\Data\Registration\RegistrationCardFieldData;
+use App\Enums\PermissionEnum;
 use App\Enums\RegistrationCardScope;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Registration\SaveRegistrationCardFieldsRequest;
@@ -85,6 +86,7 @@ class RegistrationCardController extends Controller
             'settings' => PropertySettingsData::fromModel($property->settings, $settingsLock->locksCurrencyAndTimeZone($property)),
             'propertyName' => $property->name,
             'tab' => $tab,
+            'canManageTerms' => request()->user()?->can(PermissionEnum::RegistrationCardManageTerms->value) ?? false,
             ...$tabProps,
         ]);
     }

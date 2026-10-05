@@ -1,9 +1,10 @@
 import { Head } from '@inertiajs/react';
-import { SlidersHorizontal, TableProperties } from 'lucide-react';
+import { FileText, SlidersHorizontal, TableProperties } from 'lucide-react';
 import RegistrationCardController from '@/actions/App/Http/Controllers/Registration/RegistrationCardController';
 import Heading from '@/components/heading';
 import type { EnumOption } from '@/components/pms/enum-select';
 import { RegistrationCardLayoutForm } from '@/components/pms/registration-card/registration-card-layout-form';
+import { RegistrationCardTermsForm } from '@/components/pms/registration-card/registration-card-terms-form';
 import { SettingsSection } from '@/components/pms/settings-section';
 import {
     SettingsInput,
@@ -12,22 +13,28 @@ import {
 } from '@/components/pms/settings/form-fields';
 import { TabLinks } from '@/components/pms/tab-links';
 import { edit as settingsEdit } from '@/routes/settings';
-import { general, layout } from '@/routes/settings/registration-card';
+import { general, layout, terms } from '@/routes/settings/registration-card';
 
-type Tab = 'general' | 'layout';
+type Tab = 'general' | 'layout' | 'terms';
 
 export default function RegistrationCard({
     settings,
     propertyName,
     tab,
+    canManageTerms,
     registrationCardScopes = [],
     fields = [],
+    termsDocuments = [],
+    termsEditor = null,
 }: {
     settings: App.Data.Property.PropertySettingsData;
     propertyName: string;
     tab: Tab;
+    canManageTerms: boolean;
     registrationCardScopes?: EnumOption[];
     fields?: App.Data.Registration.RegistrationCardFieldData[];
+    termsDocuments?: App.Data.Registration.TermsDocumentData[];
+    termsEditor?: App.Data.Registration.TermsEditorData | null;
 }) {
     return (
         <>
@@ -41,7 +48,7 @@ export default function RegistrationCard({
                 <TabLinks
                     activeTab={tab}
                     className="flex flex-col gap-4"
-                    panelWidth={tab === 'layout' ? 'full' : 'default'}
+                    panelWidth={tab === 'general' ? 'default' : 'full'}
                     tabs={[
                         {
                             value: 'general',
@@ -55,6 +62,16 @@ export default function RegistrationCard({
                             icon: TableProperties,
                             href: layout(),
                         },
+                        ...(canManageTerms
+                            ? [
+                                  {
+                                      value: 'terms',
+                                      label: 'Terms',
+                                      icon: FileText,
+                                      href: terms(),
+                                  },
+                              ]
+                            : []),
                     ]}
                 >
                     {tab === 'general' && (
@@ -112,6 +129,12 @@ export default function RegistrationCard({
                         <RegistrationCardLayoutForm
                             fields={fields}
                             propertyName={propertyName}
+                        />
+                    )}
+                    {tab === 'terms' && (
+                        <RegistrationCardTermsForm
+                            documents={termsDocuments}
+                            editor={termsEditor}
                         />
                     )}
                 </TabLinks>

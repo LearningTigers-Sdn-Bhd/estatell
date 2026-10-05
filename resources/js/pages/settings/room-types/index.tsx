@@ -70,6 +70,7 @@ type FormData = {
     base_occupancy: string;
     smoking_allowed: boolean;
     pets_allowed: boolean;
+    terms_document_id: string;
 };
 
 /**
@@ -109,6 +110,9 @@ function formValues(roomType: RoomType | null): FormData {
         base_occupancy: String(roomType?.baseOccupancy ?? 2),
         smoking_allowed: roomType?.smokingAllowed ?? false,
         pets_allowed: roomType?.petsAllowed ?? false,
+        terms_document_id: roomType?.termsDocumentId
+            ? String(roomType.termsDocumentId)
+            : '',
     };
 }
 
@@ -118,10 +122,12 @@ function formValues(roomType: RoomType | null): FormData {
 function RoomTypeForm({
     roomType,
     sellUnits,
+    termsDocuments,
     onDone,
 }: {
     roomType: RoomType | null;
     sellUnits: SellUnitOption[];
+    termsDocuments: SellUnitOption[];
     onDone: () => void;
 }) {
     const form = useForm<FormData>(formValues(roomType));
@@ -243,6 +249,28 @@ function RoomTypeForm({
                         <FieldError>{form.errors.base_occupancy}</FieldError>
                     </Field>
                 </div>
+                {termsDocuments.length > 0 && (
+                    <Field>
+                        <FieldLabel htmlFor="room-type-terms">
+                            Terms document
+                        </FieldLabel>
+                        <EnumSelect
+                            id="room-type-terms"
+                            options={termsDocuments}
+                            allLabel="Default"
+                            value={form.data.terms_document_id}
+                            onValueChange={(value) =>
+                                form.setData('terms_document_id', value)
+                            }
+                            aria-invalid={!!form.errors.terms_document_id}
+                        />
+                        <FieldDescription>
+                            The registration terms guests in this room type
+                            sign.
+                        </FieldDescription>
+                        <FieldError>{form.errors.terms_document_id}</FieldError>
+                    </Field>
+                )}
                 <Field orientation="horizontal">
                     <Switch
                         id="room-type-smoking"
@@ -342,9 +370,11 @@ function ArchiveRoomType({ roomType }: { roomType: RoomType }) {
 export default function RoomTypesIndex({
     roomTypes,
     sellUnits,
+    termsDocuments,
 }: {
     roomTypes: RoomType[];
     sellUnits: SellUnitOption[];
+    termsDocuments: { value: number; label: string }[];
 }) {
     // `undefined` = closed, `null` = creating, a room type = editing.
     const [editing, setEditing] = useState<RoomType | null | undefined>(
@@ -547,6 +577,10 @@ export default function RoomTypesIndex({
                             key={editing?.id ?? 'new'}
                             roomType={editing}
                             sellUnits={sellUnits}
+                            termsDocuments={termsDocuments.map((document) => ({
+                                value: String(document.value),
+                                label: document.label,
+                            }))}
                             onDone={() => setEditing(undefined)}
                         />
                     )}

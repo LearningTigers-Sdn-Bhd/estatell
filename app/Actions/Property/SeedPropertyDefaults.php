@@ -10,6 +10,7 @@ use App\Actions\Catalogues\SeedTransactionCodes;
 use App\Actions\Meals\SeedMealPeriods;
 use App\Actions\Rates\SeedRatePlans;
 use App\Actions\Registration\SeedRegistrationCardFields;
+use App\Actions\Registration\SeedRegistrationTerms;
 use App\Actions\Staff\SeedDefaultRoles;
 use App\Enums\Currency;
 use App\Enums\Locale;
@@ -36,6 +37,7 @@ class SeedPropertyDefaults
         private SeedAgeGroups $seedAgeGroups,
         private SeedRatePlans $seedRatePlans,
         private SeedRegistrationCardFields $seedRegistrationCardFields,
+        private SeedRegistrationTerms $seedRegistrationTerms,
     ) {}
 
     /**
@@ -45,7 +47,7 @@ class SeedPropertyDefaults
     {
         $settings = $this->settingsFor($type, $countryCode);
 
-        DB::transaction(function () use ($property, $settings, $countryCode): void {
+        DB::transaction(function () use ($property, $settings, $countryCode, $type): void {
             ($this->seedDefaultRoles)($property);
             $property->settings()->firstOrCreate([], $settings);
             ($this->seedTransactionCodes)($property, $countryCode);
@@ -57,6 +59,7 @@ class SeedPropertyDefaults
             ($this->seedAgeGroups)($property, $countryCode);
             ($this->seedRatePlans)($property);
             ($this->seedRegistrationCardFields)($property);
+            ($this->seedRegistrationTerms)($property, $type);
         });
     }
 

@@ -66,7 +66,7 @@ Key clauses the guest ticks one by one before signing. They live in the terms ma
 - Placeholders work in items and are filled at signing.
 - A version has at most 10 items. The Form Request rejects more.
 - Every item is required. A version with no items needs only the signature.
-- Each preset ships 3 to 5 items in English and Bahasa Malaysia (no-smoking fine, deposit, PDPA notice, tourism tax, and quiet hours for Hostel). This raises each preset to `version: 2`.
+- Each preset ships 3 to 5 items in English and Bahasa Malaysia (no-smoking fine, deposit, PDPA notice, tourism tax, and quiet hours for Hostel).
 - The editor preview shows the items as read-only checkboxes. A hint says task-list lines become tick boxes.
 - Items are part of the body, so the "same as latest version" refusal covers them.
 
@@ -105,11 +105,11 @@ Terms   [Document: Standard ⌄]  [+ Add document]    [Language: English ⌄]
 ```
 
 - **Language** is a Select menu with every property locale (`Locale::options()`), not tabs or a toggle. A language the document has no version for is listed as "Bahasa Malaysia (not published)". Choosing it opens the editor with the property type's preset text, as an unpublished draft with a note. Publishing makes version 1 in that language.
-- The **document** Select and **Add document** appear only when a second document exists or the user adds one. With one document the toolbar shows the language Select only.
+- The **document** Select appears only when a second document exists. **Add document** is always in the toolbar and opens a Dialog with a name field. The new document starts as a copy of the template in every language. With one document the toolbar shows Add document and the language Select.
 - The open document and language are in the URL (`?document=` and `?locale=`), so a refresh and a shared link keep them. Changing either is a partial reload that sends only the editor data.
 - **Version history** is a Sheet with a read-only list (version, date, who). **Use as starting point** copies an old version into the editor. It does not publish.
 - **Apply** (and the "newer template" banner) calls `ApplyTermsPreset`. It makes a new version, so nothing is lost. **Preview** shows the new template text read only. There is no line-by-line compare.
-- The preview is drawn in the browser from the editor text. The server sends the placeholder values.
+- The preview is drawn in the browser from the editor text. The server sends the placeholder values. It is a small renderer in the app (headings, lists, bold, italic and tick boxes), so no markdown package is added. The server renders the final text with `Str::markdown()`.
 - Each version is saved only by **Publish new version**. There is no autosave on this tab, because a published version cannot be edited.
 - Routes are under `/p/{code}/settings/registration-card/terms` (see [Routing](../routing.md)).
 - The room type form has a **Terms document** Select (Default, or one of the property's documents). It shows only when a second document exists.
