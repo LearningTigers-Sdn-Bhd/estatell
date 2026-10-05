@@ -140,7 +140,7 @@ Routes are in `routes/registration.php`. All need `registration-card.sign`, exce
 
 ## Snapshot
 
-`snapshot` is jsonb, allowed because it is an issued document. It holds the values of the visible fields, the stay details, the filled terms text, the ticked items, the locale, the signer name, and the ID type with a masked number. Remarks is part of the visible fields, so it is frozen with the rest. Prices appear only when their fields are visible. A signed card never reads the live ID document.
+`snapshot` is jsonb, allowed because it is an issued document. It holds the values of the visible fields, the stay details, the filled terms text, the terms parts (the text in reading order with the positions of the checklist items that follow each part, so the PDF draws the boxes in place; a card signed before this falls back to the boxes after the text), the ticked items, the locale, the signer name, and the ID type with a masked number. Remarks is part of the visible fields, so it is frozen with the rest. Prices appear only when their fields are visible. A signed card never reads the live ID document.
 
 ## Labels in Bahasa Malaysia
 
@@ -150,7 +150,7 @@ The card's labels are in `lang/ms.json` (new folder `lang/` at the project root,
 
 - Signed cards are never edited. Changes void the card and a new card is signed.
 - The PDF is rendered with dompdf in the signed locale, from the snapshot only. `StoreRegistrationCardPdf` keeps it as the `pdf` media on the first download. A signed card never changes, so the stored file is reused.
-- The PDF layout follows the preview on the Layout tab: property name and "Registration card", sections (Guest details, Stay details, Estimated charges at booking) with a small heading and two columns of label over value, the offers line as a checkbox, Remarks as a full-width line under Guest details (the blank form shows a ruled box to write in), Terms with the checklist as boxes, then the signature line with "Guest signature" below it.
+- The PDF layout follows the preview on the Layout tab: property name and "Registration card", sections (Guest details, Stay details, Estimated charges at booking) with a small heading and two columns of label over value, the offers line as a checkbox, Terms with each checklist box drawn where the terms put it, then Remarks as a full-width box just before the signature (the blank form shows it empty to write in), then the signature line with "Guest signature" below it.
 - Fonts are in `resources/fonts`. The body uses DejaVu Sans, and switches to Noto Sans SC when the text has Chinese, Japanese or Korean characters. The checkboxes use Noto Sans Symbols 2. dompdf runs out of memory at 128 MB on the full 10 MB Noto Sans SC, so the bundle is a static Regular subset (2 MB): the 6,763 GB2312 hanzi, Latin and common punctuation. Traditional-only and rare characters print as blanks. Bold is not available in that font. dompdf keeps its font cache in `storage/fonts` (git-ignored).
 - The signature block never splits across pages and the footer sits in the page margin, so long terms never overlap it.
 - Print blank form renders the draft as a PDF without a signature, for a guest who signs on paper. It lists every visible field (empty when unanswered), unticked boxes and a signature line, in the open language.

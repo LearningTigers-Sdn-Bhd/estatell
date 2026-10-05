@@ -486,6 +486,33 @@ test('signed remarks are frozen and printed on the card', function () {
         ->and(view('pdf.registration-card', ['document' => $document])->render())->toContain('Extra pillow');
 });
 
+test('the PDF draws each checklist box where the terms put it, and remarks sit before the signature', function () {
+    $setup = cardSetup();
+    $card = signedCard($setup, ['remarks' => 'Extra pillow']);
+    $document = app(RegistrationCardDocumentBuilder::class)->forSigned($card);
+    app()->setLocale('ms');
+    $html = view('pdf.registration-card', ['document' => $document])->render();
+
+    expect($document->termsParts)->not->toBeEmpty()
+        ->and(collect($document->termsParts)->sum(fn (array $part): int => count($part['items'])))->toBe(count($document->items))
+        ->and(collect($document->termsParts)->flatMap(fn (array $part) => $part['items'])->every(fn (array $item): bool => $item['ticked']))->toBeTrue()
+        ->and(strpos($html, 'Extra pillow'))->toBeGreaterThan(strpos($html, 'Terma'))
+        ->and(strpos($html, 'Extra pillow'))->toBeLessThan(strpos($html, 'Tandatangan tetamu'));
+});
+
+test('a card signed before the terms parts were kept still prints its checklist', function () {
+    $setup = cardSetup();
+    $card = signedCard($setup);
+    $snapshot = $card->snapshot;
+    unset($snapshot['terms']['parts']);
+    $card->forceFill(['snapshot' => $snapshot])->save();
+
+    $document = app(RegistrationCardDocumentBuilder::class)->forSigned($card->refresh());
+
+    expect($document->termsParts)->toBeNull()
+        ->and(view('pdf.registration-card', ['document' => $document])->render())->toContain($document->items[0]['text']);
+});
+
 test('a blank form shows an empty remarks box', function () {
     $setup = cardSetup();
     $card = app(PrepareRegistrationCard::class)($setup['unitGuest']);

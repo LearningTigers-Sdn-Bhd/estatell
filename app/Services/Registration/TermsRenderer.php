@@ -63,6 +63,35 @@ class TermsRenderer
     }
 
     /**
+     * The terms in reading order, split where the checklist lines are: each part is the rendered text
+     * followed by the checklist items that come right after it. A PDF draws the boxes where the author wrote them.
+     *
+     * @param  array<string, string>  $values  keyed by `TermsPlaceholder` value
+     * @return list<array{html: string, items: list<array{position: int, text: string}>}>
+     */
+    public function parts(string $body, array $values): array
+    {
+        $pieces = preg_split('/((?:^[ \t]*[-*+][ \t]+\[[ xX]\][ \t]+.+?[ \t]*(?:\R|$))+)/m', $this->fill($body, $values), -1, PREG_SPLIT_DELIM_CAPTURE) ?: [];
+        $position = 0;
+        $parts = [];
+
+        for ($index = 0; $index < count($pieces); $index += 2) {
+            $items = [];
+
+            foreach ($this->items($pieces[$index + 1] ?? '') as $text) {
+                $items[] = ['position' => $position++, 'text' => $text];
+            }
+
+            $parts[] = [
+                'html' => Str::markdown($pieces[$index], ['html_input' => 'strip', 'allow_unsafe_links' => false]),
+                'items' => $items,
+            ];
+        }
+
+        return $parts;
+    }
+
+    /**
      * The checklist items of a terms text, in order, as written.
      *
      * @return list<string>

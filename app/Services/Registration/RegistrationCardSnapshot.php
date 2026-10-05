@@ -46,6 +46,10 @@ class RegistrationCardSnapshot
                 'id' => $terms->id,
                 'version' => $terms->version,
                 'html' => $rendered['html'],
+                'parts' => array_map(
+                    fn (array $part): array => ['html' => $part['html'], 'positions' => array_column($part['items'], 'position')],
+                    $this->renderer->parts($terms->body, $this->renderer->valuesFor($property)),
+                ),
                 'items' => array_map(
                     fn (array $item): array => [...$item, 'ticked_at' => in_array($item['position'], $ticks, true) ? $signedAt->toIso8601String() : null],
                     $rendered['items'],

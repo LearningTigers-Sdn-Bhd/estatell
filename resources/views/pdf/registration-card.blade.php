@@ -25,7 +25,6 @@
         .grid td { width: 50%; padding: 0 12pt 4pt 0; }
         .grid .label-text { font-size: 7.5pt; color: #6b6b6b; }
         .grid .value { font-size: 9pt; font-weight: bold; min-height: 11pt; }
-        .remarks .label-text { font-size: 7.5pt; color: #6b6b6b; }
         .remarks-box { font-size: 9pt; font-weight: bold; white-space: pre-wrap; }
         .remarks-empty { height: 40pt; border: 0.5pt solid #c8c8c8; }
         .box { font-family: 'Noto Sans Symbols 2', sans-serif; font-size: 12pt; width: 20pt; }
@@ -36,8 +35,8 @@
         .terms ul, .terms ol { margin: 0 0 6pt 0; padding-left: 12pt; }
         .terms li { margin: 0 0 2pt 0; padding: 0; }
         .checks { font-size: 8pt; }
-        .checks td { padding: 0; }
-        .checks .box { font-size: 8pt; width: 14pt; line-height: 0.6; height: 11pt; }
+        .checks td { padding: 1pt 0; vertical-align: middle; }
+        .checks .box { font-size: 10pt; width: 16pt; line-height: 1; }
         .signature { page-break-inside: avoid; }
         .signature td { width: 33.33%; padding: 0 12pt 0 0; }
         .sign-space { height: 40pt; }
@@ -68,8 +67,7 @@
     @foreach ($sections as $key => $title)
         @php($inSection = array_values(array_filter($document->fields, fn (array $field): bool => $field['section'] === $key)))
         @php($rows = array_values(array_filter($inSection, fn (array $field): bool => $field['field'] !== 'remarks')))
-        @php($remarks = collect($inSection)->firstWhere('field', 'remarks'))
-        @if ($inSection !== [])
+        @if ($rows !== [])
             <div class="section">
                 <div class="section-title">{{ $title }}</div>
                 <table class="grid">
@@ -91,28 +89,45 @@
                         </tr>
                     @endforeach
                 </table>
-                @if ($remarks)
-                    <div class="remarks">
-                        <div class="label-text">{{ $remarks['label'] }}</div>
-                        <div class="remarks-box @if ($remarks['value'] === '') remarks-empty @endif">{{ $remarks['value'] }}</div>
-                    </div>
-                @endif
             </div>
         @endif
     @endforeach
 
     <div class="section">
         <div class="section-title">{{ __('Terms') }}</div>
-        <div class="terms">{!! $document->termsHtml !!}</div>
-        <table class="items checks gap-8">
-            @foreach ($document->items as $item)
-                <tr><td class="box">{{ $box($item['ticked']) }}</td><td>{{ $item['text'] }}</td></tr>
+        @if ($document->termsParts !== null)
+            @foreach ($document->termsParts as $part)
+                <div class="terms">{!! $part['html'] !!}</div>
+                @if ($part['items'] !== [])
+                    <table class="items checks gap-8">
+                        @foreach ($part['items'] as $item)
+                            <tr><td class="box">{{ $box($item['ticked']) }}</td><td>{{ $item['text'] }}</td></tr>
+                        @endforeach
+                    </table>
+                @endif
             @endforeach
-            @if ($document->marketing !== null)
+        @else
+            <div class="terms">{!! $document->termsHtml !!}</div>
+            <table class="items checks gap-8">
+                @foreach ($document->items as $item)
+                    <tr><td class="box">{{ $box($item['ticked']) }}</td><td>{{ $item['text'] }}</td></tr>
+                @endforeach
+            </table>
+        @endif
+        @if ($document->marketing !== null)
+            <table class="items checks gap-8">
                 <tr><td class="box">{{ $box($document->marketing) }}</td><td>{{ __('I agree to receive offers from :name.', ['name' => $document->propertyName]) }}</td></tr>
-            @endif
-        </table>
+            </table>
+        @endif
     </div>
+
+    @php($remarks = collect($document->fields)->firstWhere('field', 'remarks'))
+    @if ($remarks)
+        <div class="section remarks">
+            <div class="section-title">{{ $remarks['label'] }}</div>
+            <div class="remarks-box @if ($remarks['value'] === '') remarks-empty @endif">{{ $remarks['value'] }}</div>
+        </div>
+    @endif
 
     <table class="signature gap-16">
         <tr>

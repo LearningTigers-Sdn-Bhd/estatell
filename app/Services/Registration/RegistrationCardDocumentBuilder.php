@@ -43,6 +43,7 @@ class RegistrationCardDocumentBuilder
             $card->signed_at?->setTimezone($property->settings->time_zone ?? config('app.timezone'))->format('d M Y, H:i'),
             $signature === null ? null : 'data:image/png;base64,'.base64_encode((string) stream_get_contents($signature->stream())),
             in_array(RegistrationCardField::MarketingConsent->value, array_column($snapshot['fields'], 'field'), true) ? true : null,
+            $this->signedParts($snapshot['terms']),
         );
     }
 
@@ -79,6 +80,32 @@ class RegistrationCardDocumentBuilder
             null,
             null,
             in_array(RegistrationCardField::MarketingConsent->value, array_column($fields, 'field'), true) ? false : null,
+            array_map(
+                fn (array $part): array => ['html' => $part['html'], 'items' => array_map(fn (array $item): array => ['text' => $item['text'], 'ticked' => false], $part['items'])],
+                $this->termsRenderer->parts($resolved->terms->body, $this->termsRenderer->valuesFor($property)),
+            ),
+        );
+    }
+
+    /**
+     * @param  array<string, mixed>  $terms  the `terms` part of a snapshot
+     * @return list<array{html: string, items: list<array{text: string, ticked: bool}>}>|null
+     */
+    private function signedParts(array $terms): ?array
+    {
+        if (! isset($terms['parts'])) {
+            return null;
+        }
+
+        $items = [];
+
+        foreach ($terms['items'] as $item) {
+            $items[$item['position']] = ['text' => $item['text'], 'ticked' => $item['ticked_at'] !== null];
+        }
+
+        return array_map(
+            fn (array $part): array => ['html' => $part['html'], 'items' => array_map(fn (int $position): array => $items[$position], $part['positions'])],
+            $terms['parts'],
         );
     }
 
