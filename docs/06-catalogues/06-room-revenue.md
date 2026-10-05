@@ -67,6 +67,8 @@ room_revenue_policies   id, property_id, code (SystemTransactionCode), charge_mo
 
 ### Policy tab
 
+The tabs are at `/p/{code}/settings/room-revenue` (Taxes) and `/no-show`, `/cancellation`, `/early-departure` and `/late-checkout` under it (`settings.room-revenue.policies.show`, saved by `PUT` to the same URL as `.update`, previewed by `POST …/{tab}/preview` as `.preview`). `PolicyTab` maps the URL segment to the system code. A tab with one allowed scope (early departure, late check-out) sets it on the server. The preview prices a sample stay of 3 nights at 100.00 with the taxes of the code. It uses the booked rate, so a Current rate policy shows the same figures. A cancellation with a free window shows one case at the window and one a day later.
+
 A form on the left and a preview on the right, like the Taxes tab. The preview posts the unsaved form to a preview route and shows the server's numbers for a sample room night and stay, with the taxes. Hidden fields: "Free until" outside Cancellation, "Applies to" for Late check-out. The text has an English and a Malay field. Saving needs `settings.manage`.
 
 ```

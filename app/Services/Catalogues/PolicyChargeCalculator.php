@@ -52,13 +52,29 @@ class PolicyChargeCalculator
             return new PolicyCharge($zero);
         }
 
-        if ($policy->charge_mode === PolicyChargeMode::FixedAmount) {
-            return new PolicyCharge(Money::of($policy->amount, $currency));
-        }
+        return new PolicyCharge($this->amount($policy, $this->baseAmount($policy, $unit, $nights, $zero)));
+    }
 
-        $base = $this->baseAmount($policy, $unit, $nights, $zero);
+    /**
+     * What the policy charges when the nights it covers add up to `$base`. A fixed amount ignores `$base`.
+     */
+    public function amount(RoomRevenuePolicy $policy, Money $base): Money
+    {
+        return match ($policy->charge_mode) {
+            PolicyChargeMode::Free => Money::zero($base->getCurrency()),
+            PolicyChargeMode::FixedAmount => Money::of($policy->amount, $base->getCurrency()),
+            PolicyChargeMode::Percentage => $base->multipliedBy($policy->percent, RoundingMode::HalfUp)->dividedBy(100, RoundingMode::HalfUp),
+        };
+    }
 
-        return new PolicyCharge($base->multipliedBy($policy->percent, RoundingMode::HalfUp)->dividedBy(100, RoundingMode::HalfUp));
+    /**
+     * A cancellation made this many days or more before arrival is free.
+     */
+    public function isFreeWhenCancelledDaysBefore(RoomRevenuePolicy $policy, int $daysBeforeArrival): bool
+    {
+        return $policy->code === SystemTransactionCode::CancellationRevenue
+            && $policy->free_until_days !== null
+            && $daysBeforeArrival >= $policy->free_until_days;
     }
 
     /**
@@ -76,7 +92,7 @@ class PolicyChargeCalculator
             return false;
         }
 
-        return $businessDate->diffInDays($unit->arrival_date->toImmutable()->startOfDay(), false) >= $policy->free_until_days;
+        return $this->isFreeWhenCancelledDaysBefore($policy, (int) $businessDate->diffInDays($unit->arrival_date->toImmutable()->startOfDay(), false));
     }
 
     /**

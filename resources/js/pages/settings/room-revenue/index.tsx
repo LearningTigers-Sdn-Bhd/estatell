@@ -3,6 +3,7 @@ import { Landmark } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { EmptyState } from '@/components/pms/empty-state';
 import { PageHeader } from '@/components/pms/page-header';
+import { RoomRevenueTabs } from '@/components/pms/room-revenue/room-revenue-tabs';
 import { Badge } from '@/components/ui/badge';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -238,96 +239,106 @@ export default function RoomRevenue({
             <div className="flex flex-1 flex-col gap-6 p-4">
                 <PageHeader
                     title="Room revenue"
-                    description="How room nights and stay changes are taxed."
+                    description="How room nights and stay changes are taxed and charged."
                 />
 
-                {taxes.length === 0 ? (
-                    <EmptyState
-                        icon={Landmark}
-                        title="No taxes yet"
-                        description="Add a tax first, then choose it here."
-                        action={
-                            <Link
-                                href={taxesIndex()}
-                                className={buttonVariants()}
-                            >
-                                Go to taxes
-                            </Link>
-                        }
-                    />
-                ) : (
-                    <form onSubmit={submit} className="flex flex-col gap-6">
-                        <div className="grid items-start gap-8 lg:w-4/5 lg:grid-cols-3">
-                            <FieldSet className="min-w-0">
-                                <FieldLegend variant="label">
-                                    Taxes on room revenue
-                                </FieldLegend>
-                                <FieldDescription>
-                                    These taxes apply to every room night, and
-                                    to no-show, cancellation, late checkout and
-                                    early departure charges.
-                                </FieldDescription>
-                                <FieldGroup className="gap-3">
-                                    {taxes.map((tax) => (
-                                        <FieldLabel
-                                            key={tax.id}
-                                            htmlFor={`room-revenue-tax-${tax.id}`}
-                                        >
-                                            <Field orientation="horizontal">
-                                                <Checkbox
-                                                    id={`room-revenue-tax-${tax.id}`}
-                                                    checked={selected.includes(
-                                                        tax.id,
-                                                    )}
-                                                    onCheckedChange={(
-                                                        checked,
-                                                    ) =>
-                                                        toggle(tax.id, checked)
-                                                    }
-                                                />
-                                                <FieldContent>
-                                                    <span className="flex items-center gap-2 text-sm font-medium">
-                                                        {tax.name}
-                                                        {!tax.enabled && (
-                                                            <Badge variant="secondary">
-                                                                Off
-                                                            </Badge>
+                <RoomRevenueTabs activeTab="taxes">
+                    {taxes.length === 0 ? (
+                        <EmptyState
+                            icon={Landmark}
+                            title="No taxes yet"
+                            description="Add a tax first, then choose it here."
+                            action={
+                                <Link
+                                    href={taxesIndex()}
+                                    className={buttonVariants()}
+                                >
+                                    Go to taxes
+                                </Link>
+                            }
+                        />
+                    ) : (
+                        <form onSubmit={submit} className="flex flex-col gap-6">
+                            <div className="grid items-start gap-8 lg:w-4/5 lg:grid-cols-3">
+                                <FieldSet className="min-w-0">
+                                    <FieldLegend variant="label">
+                                        Taxes on room revenue
+                                    </FieldLegend>
+                                    <FieldDescription>
+                                        These taxes apply to every room night,
+                                        and to no-show, cancellation, late
+                                        checkout and early departure charges.
+                                    </FieldDescription>
+                                    <FieldGroup className="gap-3">
+                                        {taxes.map((tax) => (
+                                            <FieldLabel
+                                                key={tax.id}
+                                                htmlFor={`room-revenue-tax-${tax.id}`}
+                                            >
+                                                <Field orientation="horizontal">
+                                                    <Checkbox
+                                                        id={`room-revenue-tax-${tax.id}`}
+                                                        checked={selected.includes(
+                                                            tax.id,
                                                         )}
-                                                    </span>
-                                                    <FieldDescription>
-                                                        {taxRule(tax, money)}
-                                                        {!tax.enabled &&
-                                                            '. Turned off in Taxes, so it is not added yet.'}
-                                                    </FieldDescription>
-                                                </FieldContent>
-                                            </Field>
-                                        </FieldLabel>
-                                    ))}
-                                </FieldGroup>
-                                <FieldError>
-                                    {errors.tax_ids ?? errors['tax_ids.0']}
-                                </FieldError>
-                            </FieldSet>
+                                                        onCheckedChange={(
+                                                            checked,
+                                                        ) =>
+                                                            toggle(
+                                                                tax.id,
+                                                                checked,
+                                                            )
+                                                        }
+                                                    />
+                                                    <FieldContent>
+                                                        <span className="flex items-center gap-2 text-sm font-medium">
+                                                            {tax.name}
+                                                            {!tax.enabled && (
+                                                                <Badge variant="secondary">
+                                                                    Off
+                                                                </Badge>
+                                                            )}
+                                                        </span>
+                                                        <FieldDescription>
+                                                            {taxRule(
+                                                                tax,
+                                                                money,
+                                                            )}
+                                                            {!tax.enabled &&
+                                                                '. Turned off in Taxes, so it is not added yet.'}
+                                                        </FieldDescription>
+                                                    </FieldContent>
+                                                </Field>
+                                            </FieldLabel>
+                                        ))}
+                                    </FieldGroup>
+                                    <FieldError>
+                                        {errors.tax_ids ?? errors['tax_ids.0']}
+                                    </FieldError>
+                                </FieldSet>
 
-                            <PostingPreview
-                                preview={preview}
-                                offTaxes={offTaxes}
-                                money={money}
-                                loading={http.processing}
-                            />
-                        </div>
-                        <div className="flex justify-end lg:w-4/5">
-                            <Button
-                                type="submit"
-                                disabled={saving}
-                                focusableWhenDisabled
-                            >
-                                {saving && <Spinner data-icon="inline-start" />}
-                                Save taxes
-                            </Button>
-                        </div>
-                    </form>
-                )}
+                                <PostingPreview
+                                    preview={preview}
+                                    offTaxes={offTaxes}
+                                    money={money}
+                                    loading={http.processing}
+                                />
+                            </div>
+                            <div className="flex justify-end lg:w-4/5">
+                                <Button
+                                    type="submit"
+                                    disabled={saving}
+                                    focusableWhenDisabled
+                                >
+                                    {saving && (
+                                        <Spinner data-icon="inline-start" />
+                                    )}
+                                    Save taxes
+                                </Button>
+                            </div>
+                        </form>
+                    )}
+                </RoomRevenueTabs>
             </div>
         </>
     );

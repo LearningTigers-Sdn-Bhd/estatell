@@ -5,6 +5,7 @@ use App\Http\Controllers\Catalogues\ChargeItemController;
 use App\Http\Controllers\Catalogues\DiscountController;
 use App\Http\Controllers\Catalogues\PaymentMethodController;
 use App\Http\Controllers\Catalogues\RoomRevenueController;
+use App\Http\Controllers\Catalogues\RoomRevenuePolicyController;
 use App\Http\Controllers\Catalogues\TaxController;
 use App\Http\Controllers\Meals\MealPeriodController;
 use App\Http\Controllers\Property\AgeGroupController;
@@ -111,6 +112,9 @@ Route::prefix('settings')->name('settings.')->group(function () {
         Route::get('/', [RoomRevenueController::class, 'index'])->name('index');
         Route::put('/', [RoomRevenueController::class, 'update'])->name('update');
         Route::post('preview', [RoomRevenueController::class, 'preview'])->name('preview');
+        Route::get('{tab}', [RoomRevenuePolicyController::class, 'show'])->name('policies.show');
+        Route::put('{tab}', [RoomRevenuePolicyController::class, 'update'])->name('policies.update');
+        Route::post('{tab}/preview', [RoomRevenuePolicyController::class, 'preview'])->name('policies.preview');
     });
 
     Route::prefix('payment-methods')->name('payment-methods.')->middleware('can:'.PermissionEnum::SettingsManage->value)->scopeBindings()->group(function () {

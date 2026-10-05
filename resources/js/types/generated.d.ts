@@ -56,6 +56,28 @@ surchargeChargeItem: string | null,
 requiresReference: boolean,
 active: boolean,
 };
+export type RoomRevenuePolicyData = {
+chargeMode: App.Enums.PolicyChargeMode,
+amount: string | null,
+percent: string | null,
+percentBasis: App.Enums.PolicyRateBasis | null,
+appliesTo: App.Enums.PolicyScope,
+freeUntilDays: number | null,
+textEn: string,
+textMs: string,
+};
+export type RoomRevenuePolicyPreviewData = {
+sampleNight: string,
+sampleNights: number,
+lines: App.Data.Catalogues.RoomRevenuePolicyPreviewLineData[],
+};
+export type RoomRevenuePolicyPreviewLineData = {
+label: string,
+free: boolean,
+net: string | null,
+localTotal: string | null,
+foreignTotal: string | null,
+};
 export type RoomRevenuePreviewData = {
 sampleAmount: string,
 refusal: string | null,
@@ -1419,6 +1441,7 @@ export type PlatformFeature = 'channel-manager';
 export type PolicyChargeMode = 'free' | 'fixed_amount' | 'percentage';
 export type PolicyRateBasis = 'booked_rate' | 'current_rate';
 export type PolicyScope = 'first_night' | 'whole_stay' | 'unused_nights' | 'one_charge';
+export type PolicyTab = 'no-show' | 'cancellation' | 'early-departure' | 'late-checkout';
 export type PricingBasis = 'per_room' | 'per_guest' | 'per_bed' | 'package';
 export type PropertyStatus = 'onboarding' | 'pending_approval' | 'live' | 'suspended';
 export type PropertyType = 'hotel' | 'hostel' | 'resort' | 'serviced_apartment' | 'homestay';
