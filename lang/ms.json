@@ -29,7 +29,6 @@
     "Terms": "Terma",
     "Language": "Bahasa",
     "Signature": "Tandatangan",
-    "Sign here": "Tandatangan di sini",
     "Clear": "Padam",
     "Done": "Selesai",
     "Sign card": "Tandatangani kad",
@@ -53,5 +52,16 @@
     "Street and number": "Jalan dan nombor",
     "Unit, floor or building": "Unit, tingkat atau bangunan",
     "Type your full name": "Taip nama penuh anda",
-    "Select": "Pilih"
+    "Select": "Pilih",
+    "Welcome, :name": "Selamat datang, :name",
+    "Guest :position of :total": "Tetamu :position daripada :total",
+    "Agree to all": "Setuju semua",
+    "Untick all": "Nyahtanda semua",
+    "Full screen": "Skrin penuh",
+    "Thank you.": "Terima kasih.",
+    "Next: :name (:position of :total)": "Seterusnya: :name (:position daripada :total)",
+    "Continue": "Teruskan",
+    "All done. Please return the device to the front desk.": "Selesai. Sila pulangkan peranti ini ke kaunter hadapan.",
+    "Staff: back to desk": "Staf: kembali ke kaunter",
+    "Cancel": "Batal"
 }

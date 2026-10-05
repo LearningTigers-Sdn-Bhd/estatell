@@ -1,6 +1,7 @@
 <?php
 
 use App\Actions\Registration\PrepareRegistrationCard;
+use App\Actions\Registration\SaveRegistrationCardDraft;
 use App\Actions\Registration\SeedRegistrationCardFields;
 use App\Actions\Registration\SeedRegistrationTerms;
 use App\Actions\Registration\SignRegistrationCard;
@@ -107,9 +108,14 @@ test('a card page of another property is not found and a user without the permis
 
     $this->actingAs($setup['owner'])->get(route('registration.show', [$setup['property']->code, $other['unitGuest']]))->assertNotFound();
     $this->post(route('registration.sign', [$setup['property']->code, $other['unitGuest']]), cardPayload($setup))->assertNotFound();
+    $this->get(route('registration.guest', [$setup['property']->code, $other['unitGuest']]))->assertNotFound();
+    $this->get(route('registration.done', [$setup['property']->code, $other['unitGuest']]))->assertNotFound();
+    $this->put(route('registration.update', [$setup['property']->code, $other['unitGuest']]), ['vehicle_plate' => 'X'])->assertNotFound();
 
     $housekeeping = User::factory()->withRole(DefaultRoleEnum::Housekeeping)->create();
     $this->actingAs($housekeeping)->get(route('registration.show', [$housekeeping->property->code, $setup['unitGuest']]))->assertForbidden();
+    $this->get(route('registration.guest', [$housekeeping->property->code, $setup['unitGuest']]))->assertForbidden();
+    $this->put(route('registration.update', [$housekeeping->property->code, $setup['unitGuest']]), [])->assertForbidden();
 });
 
 test('a cancelled unit cannot have a card', function () {
@@ -129,7 +135,7 @@ test('signing saves the guest, freezes the snapshot, stores the signature and nu
     $this->actingAs($setup['owner'])
         ->post(signUrl($setup), cardPayload($setup))
         ->assertSessionHasNoErrors()
-        ->assertSessionHas('inertia.flash_data.toast.type', 'success');
+        ->assertRedirect(route('registration.done', [$setup['property']->code, $setup['unitGuest']]));
 
     $card = RegistrationCard::query()->sole()->refresh();
     $guest = $setup['guest']->refresh();
@@ -198,7 +204,7 @@ test('ticks for a version with no checklist items are not needed', function () {
 
     $this->actingAs($setup['owner'])
         ->post(signUrl($setup), cardPayload($setup, ['locale' => 'en', 'ticks' => []]))
-        ->assertSessionHas('inertia.flash_data.toast.type', 'success');
+        ->assertRedirect(route('registration.done', [$setup['property']->code, $setup['unitGuest']]));
 });
 
 test('a signature that is not a PNG is refused', function () {
@@ -241,7 +247,7 @@ test('a missing ID document is refused when the field is Required, and an existi
     $this->actingAs($setup['owner'])
         ->post(signUrl($setup), cardPayload($setup, ['identity' => null]))
         ->assertSessionHasErrors('identity_document_id');
-    $this->post(signUrl($setup), cardPayload($setup, ['identity' => null, 'identity_document_id' => $document->id]))->assertSessionHasNoErrors();
+    $this->post(signUrl($setup), cardPayload($setup, ['identity' => null, 'identity_document_id' => $document->id, 'vehicle_plate' => 'WXY 1234']))->assertSessionHasNoErrors();
 
     expect(RegistrationCard::query()->sole()->identity_document_id)->toBe($document->id);
 });
@@ -374,5 +380,105 @@ test('every action refuses a card that is not a draft, without writing', functio
         'marketing_consent' => false, 'locale' => Locale::English, 'ticks' => cardTicks($setup['property']), 'signature' => CARD_SIGNATURE, 'signer_name' => 'X',
     ]);
 
-    expect($signed)->toBeFalse()->and($setup['guest']->refresh()->full_name)->not->toBe('X');
+    $saved = app(SaveRegistrationCardDraft::class)($setup['owner'], $card, ['identity' => null, 'identity_document_id' => null, 'vehicle_plate' => 'WXY 1']);
+
+    expect($signed)->toBeFalse()
+        ->and($saved)->toBeFalse()
+        ->and($setup['guest']->refresh()->full_name)->not->toBe('X')
+        ->and($card->refresh()->vehicle_plate)->toBeNull();
+});
+
+test('the staff page shows a draft read-only and the guest screen shows the card to sign', function () {
+    $setup = cardSetup();
+
+    $this->actingAs($setup['owner'])
+        ->get(route('registration.show', [$setup['property']->code, $setup['unitGuest']]))
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('registration/card')
+            ->where('card.draftFields.0.value', $setup['guest']->full_name));
+
+    $this->get(route('registration.guest', [$setup['property']->code, $setup['unitGuest'], 'locale' => 'ms']))
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('registration/guest')
+            ->where('card.locale', 'ms')
+            ->where('card.walkPosition', 1)
+            ->where('card.walkTotal', 1)
+            ->where('card.labels.Agree to all', 'Setuju semua'));
+});
+
+test('staff save the ID document and the vehicle plate on a draft, and the guest screen keeps them', function () {
+    $setup = cardSetup();
+    $setup['property']->registrationCardFields()->where('field', 'vehicle_plate')->update(['visibility' => 'optional']);
+    $url = route('registration.update', [$setup['property']->code, $setup['unitGuest']]);
+
+    $this->actingAs($setup['owner'])
+        ->put($url, ['identity' => ['type' => 'mykad', 'number' => '900101-14-1234'], 'vehicle_plate' => 'WXY 1234'])
+        ->assertSessionHasNoErrors()
+        ->assertSessionHas('inertia.flash_data.toast.type', 'success');
+
+    $card = RegistrationCard::query()->sole();
+    $document = $setup['guest']->documents()->sole();
+
+    expect($card->identity_document_id)->toBe($document->id)
+        ->and($card->vehicle_plate)->toBe('WXY 1234');
+
+    $this->get(route('registration.guest', [$setup['property']->code, $setup['unitGuest']]))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('card.cardDocumentId', $document->id)
+            ->where('card.values.vehicle_plate', 'WXY 1234'));
+
+    $this->post(signUrl($setup), cardPayload($setup, ['identity' => null, 'identity_document_id' => $document->id, 'vehicle_plate' => 'WXY 1234']))
+        ->assertSessionHasNoErrors();
+
+    expect($card->refresh()->status)->toBe(RegistrationCardStatus::Signed)
+        ->and($card->identity_document_id)->toBe($document->id)
+        ->and($setup['guest']->documents()->count())->toBe(1);
+
+    $this->put($url, ['vehicle_plate' => 'Changed'])->assertSessionHas('inertia.flash_data.toast.type', 'error');
+
+    expect($card->refresh()->vehicle_plate)->toBe('WXY 1234');
+});
+
+test('the draft cannot use another guest\'s ID document', function () {
+    $setup = cardSetup();
+    $stranger = GuestIdentityDocument::factory()->create();
+
+    $this->actingAs($setup['owner'])
+        ->put(route('registration.update', [$setup['property']->code, $setup['unitGuest']]), ['identity_document_id' => $stranger->id])
+        ->assertSessionHasErrors('identity_document_id');
+});
+
+test('after signing, the thank-you screen names the next guest of the unit until none is left', function () {
+    $setup = cardSetup();
+    $setup['property']->settings->update(['registration_card_scope' => RegistrationCardScope::EveryAdult]);
+    $second = UnitGuest::factory()->for($setup['unit'])->create();
+    $done = route('registration.done', [$setup['property']->code, $setup['unitGuest']]);
+
+    $this->actingAs($setup['owner'])->post(signUrl($setup), cardPayload($setup))->assertRedirect($done);
+
+    $this->get($done)->assertInertia(fn (Assert $page) => $page
+        ->component('registration/done')
+        ->where('done.nextUnitGuestId', $second->id)
+        ->where('done.nextGuestName', $second->guest->full_name)
+        ->where('done.nextPosition', 2)
+        ->where('done.total', 2)
+        ->where('done.locale', 'ms')
+        ->where('done.labels.Continue', 'Teruskan'));
+
+    $this->get(route('registration.guest', [$setup['property']->code, $setup['unitGuest']]))->assertRedirect($done);
+
+    $this->post(route('registration.sign', [$setup['property']->code, $second]), cardPayload($setup, ['full_name' => 'Ali Hassan', 'signer_name' => 'Ali Hassan']))
+        ->assertRedirect(route('registration.done', [$setup['property']->code, $second]));
+
+    $this->get(route('registration.done', [$setup['property']->code, $second]))
+        ->assertInertia(fn (Assert $page) => $page->where('done.nextUnitGuestId', null));
+});
+
+test('a refused signature goes back to the guest screen in the same language', function () {
+    $setup = cardSetup();
+
+    $this->actingAs($setup['owner'])
+        ->post(signUrl($setup), cardPayload($setup, ['ticks' => []]))
+        ->assertRedirect(route('registration.guest', [$setup['property']->code, $setup['unitGuest'], 'locale' => 'ms']))
+        ->assertSessionHas('inertia.flash_data.toast.type', 'error');
 });

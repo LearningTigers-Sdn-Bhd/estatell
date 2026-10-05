@@ -34,26 +34,13 @@ class RegistrationCardSnapshot
         string $signerName,
         CarbonInterface $signedAt,
     ): array {
-        $visible = $property->registrationCardFields()->ordered()->get()
-            ->filter(fn ($setting): bool => $setting->visibility !== FieldVisibility::Hidden);
         $rendered = $this->renderer->render($terms->body, $this->renderer->valuesFor($property));
-        $guestValues = $this->guestValues($guest, $document, $card);
-        $fields = [];
-
-        foreach ($visible as $setting) {
-            $key = $setting->field->value;
-            $value = $guestValues[$key] ?? $stay[$key] ?? null;
-
-            if ($value !== null && $value !== '') {
-                $fields[] = ['field' => $key, 'label' => $setting->field->label(), 'value' => $value];
-            }
-        }
 
         return [
             'locale' => $terms->locale->value,
             'property_name' => $property->name,
             'guest_id' => $guest->id,
-            'fields' => $fields,
+            'fields' => $this->fields($property, $card, $guest, $document, $stay),
             'terms' => [
                 'id' => $terms->id,
                 'version' => $terms->version,
@@ -66,6 +53,31 @@ class RegistrationCardSnapshot
             'signer_name' => $signerName,
             'signed_at' => $signedAt->toIso8601String(),
         ];
+    }
+
+    /**
+     * The visible fields that have a value, in card order, as printed text. The staff page also shows them on a draft.
+     *
+     * @param  array<string, string>  $stay  from `RegistrationCardStay`
+     * @return list<array{field: string, label: string, value: string}>
+     */
+    public function fields(Property $property, RegistrationCard $card, Guest $guest, ?GuestIdentityDocument $document, array $stay): array
+    {
+        $visible = $property->registrationCardFields()->ordered()->get()
+            ->filter(fn ($setting): bool => $setting->visibility !== FieldVisibility::Hidden);
+        $guestValues = $this->guestValues($guest, $document, $card);
+        $fields = [];
+
+        foreach ($visible as $setting) {
+            $key = $setting->field->value;
+            $value = $guestValues[$key] ?? $stay[$key] ?? null;
+
+            if ($value !== null && $value !== '') {
+                $fields[] = ['field' => $key, 'label' => $setting->field->label(), 'value' => $value];
+            }
+        }
+
+        return $fields;
     }
 
     /**

@@ -7,7 +7,10 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('registration')->name('registration.')->group(function () {
     Route::middleware('can:'.PermissionEnum::RegistrationCardSign->value)->group(function () {
         Route::get('{unitGuest}', [GuestCardController::class, 'show'])->name('show');
+        Route::put('{unitGuest}', [GuestCardController::class, 'update'])->name('update');
+        Route::get('{unitGuest}/guest', [GuestCardController::class, 'guest'])->name('guest');
         Route::post('{unitGuest}/sign', [GuestCardController::class, 'sign'])->name('sign');
+        Route::get('{unitGuest}/done', [GuestCardController::class, 'done'])->name('done');
     });
 
     Route::post('{unitGuest}/void', [GuestCardController::class, 'void'])

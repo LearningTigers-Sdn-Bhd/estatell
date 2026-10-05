@@ -29,6 +29,8 @@ class RegistrationCardPageData extends Data
      * @param  list<array{value: string, label: string}>  $localeOptions
      * @param  array<string, string>  $labels  English text to the text in the open language
      * @param  list<array{label: string, value: string|null}>|null  $signedFields  Set once the card is signed
+     * @param  list<array{label: string, value: string}>|null  $draftFields  The current answers of a draft, for the staff page
+     * @param  int|null  $walkPosition  This guest's place among the unit's guests that need a card, or null when not one of them
      */
     public function __construct(
         public int $unitGuestId,
@@ -51,6 +53,10 @@ class RegistrationCardPageData extends Data
         public array $labels,
         public bool $canVoid,
         public ?array $signedFields,
+        public ?array $draftFields,
+        public ?int $cardDocumentId,
+        public ?int $walkPosition,
+        public int $walkTotal,
     ) {}
 
     /**
@@ -59,6 +65,7 @@ class RegistrationCardPageData extends Data
      * @param  array{html: string, text: string, items: list<array{position: int, text: string}>}  $rendered  the terms, filled and rendered
      * @param  array<string, string>  $stay  printed Stay and Prices values
      * @param  array<string, string>  $labels
+     * @param  list<array{field: string, label: string, value: string}>|null  $draftFields
      */
     public static function forCard(
         RegistrationCard $card,
@@ -72,6 +79,9 @@ class RegistrationCardPageData extends Data
         array $labels,
         Collection $documents,
         bool $canVoid,
+        ?array $draftFields,
+        ?int $walkPosition,
+        int $walkTotal,
     ): self {
         $visible = $settings->filter(fn (RegistrationCardFieldSetting $setting): bool => $setting->visibility !== FieldVisibility::Hidden);
         $signed = $card->snapshot;
@@ -118,6 +128,10 @@ class RegistrationCardPageData extends Data
             labels: $labels,
             canVoid: $canVoid && $card->status !== RegistrationCardStatus::Void,
             signedFields: $signed === null ? null : array_map(fn (array $field): array => ['label' => $field['label'], 'value' => $field['value']], $signed['fields']),
+            draftFields: $draftFields === null ? null : array_map(fn (array $field): array => ['label' => $field['label'], 'value' => $field['value']], $draftFields),
+            cardDocumentId: $card->identity_document_id,
+            walkPosition: $walkPosition,
+            walkTotal: $walkTotal,
         );
     }
 }

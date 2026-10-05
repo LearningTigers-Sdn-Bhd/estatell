@@ -15,10 +15,12 @@ class RegistrationCardLabels
 {
     /** Words that are not field labels. */
     private const array INTERFACE_WORDS = [
-        'Registration card', 'Guest details', 'Stay details', 'Prices', 'Terms', 'Language', 'Signature', 'Sign here',
-        'Clear', 'Done', 'Sign card', 'Name of signer', 'ID document', 'Use this document', 'Enter a different document',
+        'Registration card', 'Guest details', 'Stay details', 'Prices', 'Terms', 'Language', 'Signature',
+        'Clear', 'Done', 'Cancel', 'Sign card', 'Name of signer', 'ID document', 'Use this document', 'Enter a different document',
         'Document type', 'Document number', 'Issuing country', 'Address line 1', 'Address line 2', 'City', 'State',
         'Postal code', 'Country', 'I agree to receive offers', 'Please sign in the box.', 'Street and number', 'Unit, floor or building', 'Type your full name', 'Select',
+        'Welcome, :name', 'Guest :position of :total', 'Agree to all', 'Untick all', 'Full screen', 'Thank you.',
+        'Next: :name (:position of :total)', 'Continue', 'All done. Please return the device to the front desk.', 'Staff: back to desk',
     ];
 
     /**

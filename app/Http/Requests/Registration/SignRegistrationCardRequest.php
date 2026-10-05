@@ -3,14 +3,11 @@
 namespace App\Http\Requests\Registration;
 
 use App\Enums\FieldVisibility;
-use App\Enums\IdentityDocumentType;
 use App\Enums\Locale;
 use App\Enums\RegistrationCardField;
 use App\Http\Requests\Guests\GuestProfileRules;
 use App\Models\Property;
 use App\Models\UnitGuest;
-use App\Services\Guests\CountryOptions;
-use App\Services\Guests\IdentityNumber;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -26,10 +23,9 @@ class SignRegistrationCardRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
-        $identity = $this->input('identity');
+        $identity = CardIdentityRules::normalize($this->input('identity'));
 
-        if (is_array($identity) && is_string($identity['number'] ?? null)) {
-            $identity['number'] = app(IdentityNumber::class)->normalize($identity['number']);
+        if ($identity !== null) {
             $this->merge(['identity' => $identity]);
         }
     }
@@ -84,20 +80,12 @@ class SignRegistrationCardRequest extends FormRequest
 
         if ($identity !== FieldVisibility::Hidden) {
             $needed = $identity === FieldVisibility::Required;
-            $rules['identity_document_id'] = [
-                'nullable', 'integer',
-                Rule::exists('guest_identity_documents', 'id')->where('guest_id', $this->unitGuest()->guest_id),
-                Rule::requiredIf($needed && ! $this->filled('identity.number')),
-            ];
-            $rules['identity'] = ['nullable', 'array'];
-            $rules['identity.type'] = ['required_with:identity.number', 'nullable', Rule::enum(IdentityDocumentType::class)];
-            $rules['identity.number'] = [
-                'nullable', 'string', 'min:4', 'max:40',
-                Rule::when($this->input('identity.type') === IdentityDocumentType::MyKad->value, ['digits:12']),
-                Rule::requiredIf($needed && ! $this->filled('identity_document_id')),
-            ];
-            $rules['identity.issuing_country_code'] = ['nullable', Rule::in(app(CountryOptions::class)->codes())];
-            $rules['identity.expires_on'] = ['nullable', 'date_format:Y-m-d'];
+            $rules = [...$rules, ...CardIdentityRules::for(
+                $this->unitGuest()->guest_id,
+                $this->input('identity.type'),
+                $needed && ! $this->filled('identity.number'),
+                $needed && ! $this->filled('identity_document_id'),
+            )];
         }
 
         return [
@@ -116,16 +104,10 @@ class SignRegistrationCardRequest extends FormRequest
     public function actionInput(): array
     {
         $validated = $this->validated();
-        $identity = $validated['identity'] ?? null;
 
         return [
             'profile' => GuestProfileRules::attributes($validated, $this->phoneRegion()),
-            'identity' => filled($identity['number'] ?? null) ? [
-                'type' => $identity['type'],
-                'number' => $identity['number'],
-                'issuing_country_code' => $identity['issuing_country_code'] ?? null,
-                'expires_on' => $identity['expires_on'] ?? null,
-            ] : null,
+            'identity' => CardIdentityRules::newDocument($validated),
             'identity_document_id' => isset($validated['identity_document_id']) ? (int) $validated['identity_document_id'] : null,
             'vehicle_plate' => $validated['vehicle_plate'] ?? null,
             'marketing_consent' => (bool) ($validated['marketing_consent'] ?? false),

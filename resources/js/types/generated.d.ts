@@ -875,6 +875,15 @@ nightAmounts: string[],
 };
 }
 namespace Registration {
+export type RegistrationCardDoneData = {
+unitGuestId: number,
+nextUnitGuestId: number | null,
+nextGuestName: string | null,
+nextPosition: number | null,
+total: number,
+locale: string,
+labels: Record<string, string>,
+};
 export type RegistrationCardFieldData = {
 field: string,
 label: string,
@@ -925,6 +934,13 @@ signedFields: {
 label: string,
 value: string | null,
 }[] | null,
+draftFields: {
+label: string,
+value: string,
+}[] | null,
+cardDocumentId: number | null,
+walkPosition: number | null,
+walkTotal: number,
 };
 export type TermsDocumentData = {
 id: number,

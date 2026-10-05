@@ -106,7 +106,7 @@ Routes are in `routes/registration.php`. All need `registration-card.sign`, exce
 
 - The fields follow the Layout tab. The ID document picked by staff shows masked and read-only. If none is picked and the field is Required, the guest types it.
 - The language Select lists the languages from `RegistrationTermsResolver`. Switching resets the ticks and keeps the typed values.
-- The signature pad is on the page, not in a dialog. Clear sits above the pad, away from Sign card. ⤢ opens the pad full screen and keeps the strokes when it closes.
+- The signature pad is on the page, not in a dialog. Clear sits above the pad, away from Sign card. ⤢ opens the pad full screen with the strokes so far. Done copies the strokes back to the page. Cancel (or Escape) drops what was drawn full screen and keeps the page as it was.
 - Sign card stays disabled until every Required field, every checklist box and the signature are done.
 - "Guest X of N": N is the guests of the unit that need a card (`RegistrationCardRequirement::requiredFor`). It shows only when the open guest is one of them.
 - The only way out is the small "Staff: back to desk" link to `registration.show`. Staff are present, so it has no PIN.

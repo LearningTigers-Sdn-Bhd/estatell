@@ -1,8 +1,8 @@
-import { Head, useForm } from '@inertiajs/react';
+import { Head, Link, useForm } from '@inertiajs/react';
 import { useState } from 'react';
 import type { EnumOption } from '@/components/pms/enum-select';
 import { PageHeader } from '@/components/pms/page-header';
-import { RegistrationCardForm } from '@/components/pms/registration-card/registration-card-form';
+import { IdentityDocumentFields } from '@/components/pms/registration-card/identity-document-fields';
 import { StatusBadge } from '@/components/pms/status-badge';
 import { TermsPreview } from '@/components/pms/registration-card/terms-preview';
 import {
@@ -14,15 +14,21 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Button } from '@/components/ui/button';
-import { Field, FieldError, FieldLabel } from '@/components/ui/field';
+import { Button, buttonVariants } from '@/components/ui/button';
+import {
+    Field,
+    FieldError,
+    FieldGroup,
+    FieldLabel,
+} from '@/components/ui/field';
+import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
 import {
     index as reservationsIndex,
     show as showReservation,
 } from '@/routes/reservations';
-import { voidMethod as voidCard } from '@/routes/registration';
+import { guest, update, voidMethod as voidCard } from '@/routes/registration';
 
 type Card = App.Data.Registration.RegistrationCardPageData;
 
@@ -93,18 +99,125 @@ function VoidDialog({
     );
 }
 
+function Details({
+    fields,
+}: {
+    fields: { label: string; value: string | null }[];
+}) {
+    return (
+        <dl className="grid gap-x-4 gap-y-2 text-sm sm:grid-cols-2">
+            {fields.map((field) => (
+                <div key={field.label} className="flex flex-col gap-0.5">
+                    <dt className="text-muted-foreground">{field.label}</dt>
+                    <dd className="font-medium tabular-nums">{field.value}</dd>
+                </div>
+            ))}
+        </dl>
+    );
+}
+
+/**
+ * A draft: the current answers, read-only, and the two things staff set before handing over:
+ * the ID document and the vehicle plate. The guest fills the rest on the guest screen.
+ */
+function DraftCard({
+    card,
+    identityTypes,
+    countries,
+}: {
+    card: Card;
+    identityTypes: EnumOption[];
+    countries: EnumOption[];
+}) {
+    const shown = new Set(card.fields.map((field) => field.field));
+    const form = useForm({
+        identity_document_id:
+            card.cardDocumentId !== null ? String(card.cardDocumentId) : '',
+        identity: {
+            type: 'mykad',
+            number: '',
+            issuing_country_code: '',
+            expires_on: '',
+        },
+        vehicle_plate: (card.values.vehicle_plate as string) ?? '',
+    });
+    const errors = form.errors as Record<string, string>;
+
+    return (
+        <div className="flex flex-col gap-6">
+            <Details fields={card.draftFields ?? []} />
+            {(shown.has('identity_document') || shown.has('vehicle_plate')) && (
+                <form
+                    className="flex flex-col gap-4 rounded-lg border p-4"
+                    onSubmit={(event) => {
+                        event.preventDefault();
+                        form.put(update.url({ unitGuest: card.unitGuestId }), {
+                            preserveScroll: true,
+                        });
+                    }}
+                >
+                    <h4 className="text-sm font-medium">Before handing over</h4>
+                    <FieldGroup className="grid gap-4 sm:grid-cols-2">
+                        {shown.has('identity_document') && (
+                            <IdentityDocumentFields
+                                documents={card.documents}
+                                documentId={form.data.identity_document_id}
+                                identity={form.data.identity}
+                                onDocumentChange={(value) =>
+                                    form.setData('identity_document_id', value)
+                                }
+                                onIdentityChange={(value) =>
+                                    form.setData('identity', value)
+                                }
+                                identityTypes={identityTypes}
+                                countries={countries}
+                                errors={errors}
+                                label="ID document"
+                            />
+                        )}
+                        {shown.has('vehicle_plate') && (
+                            <Field data-invalid={!!errors.vehicle_plate}>
+                                <FieldLabel htmlFor="card-vehicle_plate">
+                                    Vehicle plate
+                                </FieldLabel>
+                                <Input
+                                    id="card-vehicle_plate"
+                                    placeholder="WXY 1234"
+                                    value={form.data.vehicle_plate}
+                                    onChange={(event) =>
+                                        form.setData(
+                                            'vehicle_plate',
+                                            event.target.value,
+                                        )
+                                    }
+                                    aria-invalid={!!errors.vehicle_plate}
+                                />
+                                <FieldError>{errors.vehicle_plate}</FieldError>
+                            </Field>
+                        )}
+                    </FieldGroup>
+                    <div className="flex justify-end">
+                        <Button
+                            type="submit"
+                            variant="outline"
+                            disabled={form.processing}
+                            focusableWhenDisabled
+                        >
+                            {form.processing && <Spinner />}
+                            Save
+                        </Button>
+                    </div>
+                </form>
+            )}
+        </div>
+    );
+}
+
 /** A signed card: what was frozen at signing. It is never edited. */
 function SignedCard({ card }: { card: Card }) {
     return (
         <div className="flex flex-col gap-6">
-            <dl className="grid gap-x-4 gap-y-2 text-sm sm:grid-cols-2">
-                {(card.signedFields ?? []).map((field) => (
-                    <div key={field.label} className="flex flex-col gap-0.5">
-                        <dt className="text-muted-foreground">{field.label}</dt>
-                        <dd className="font-medium">{field.value}</dd>
-                    </div>
-                ))}
-            </dl>
+            <Details fields={card.signedFields ?? []} />
             <div className="max-h-72 overflow-y-auto rounded-lg border p-4">
                 <TermsPreview body={card.termsText} values={{}} />
             </div>
@@ -119,9 +232,9 @@ function SignedCard({ card }: { card: Card }) {
     );
 }
 
+/** The staff page of a card: check it here, then hand it to the guest. Nobody signs on this page. */
 export default function RegistrationCardPage({
     card,
-    genders,
     identityTypes,
     countries,
 }: {
@@ -147,24 +260,35 @@ export default function RegistrationCardPage({
                     }}
                     badge={<StatusBadge status={card.status} />}
                     actions={
-                        card.canVoid && (
-                            <Button
-                                type="button"
-                                variant="outline"
-                                onClick={() => setVoiding(true)}
-                            >
-                                Void card
-                            </Button>
-                        )
+                        <>
+                            {card.canVoid && (
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => setVoiding(true)}
+                                >
+                                    Void card
+                                </Button>
+                            )}
+                            {card.status.value === 'draft' && (
+                                <Link
+                                    href={guest.url({
+                                        unitGuest: card.unitGuestId,
+                                    })}
+                                    className={buttonVariants()}
+                                >
+                                    Hand to guest
+                                </Link>
+                            )}
+                        </>
                     }
                 />
                 {card.status.value === 'signed' ? (
                     <SignedCard card={card} />
                 ) : (
-                    <RegistrationCardForm
+                    <DraftCard
                         key={card.cardId}
                         card={card}
-                        genders={genders}
                         identityTypes={identityTypes}
                         countries={countries}
                     />

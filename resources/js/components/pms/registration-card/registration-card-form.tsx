@@ -1,10 +1,10 @@
 import { router, useForm } from '@inertiajs/react';
-import { PenLine } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { CountrySelect } from '@/components/pms/country-select';
 import { EnumSelect } from '@/components/pms/enum-select';
 import type { EnumOption } from '@/components/pms/enum-select';
-import { SignatureDialog } from '@/components/pms/registration-card/signature-dialog';
+import { IdentityDocumentFields } from '@/components/pms/registration-card/identity-document-fields';
+import { SignatureField } from '@/components/pms/registration-card/signature-field';
 import { TermsPreview } from '@/components/pms/registration-card/terms-preview';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -17,7 +17,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
 import { Switch } from '@/components/ui/switch';
-import { show, sign } from '@/routes/registration';
+import { guest, sign } from '@/routes/registration';
 
 type Card = App.Data.Registration.RegistrationCardPageData;
 
@@ -28,8 +28,9 @@ type Options = {
 };
 
 /**
- * The open card: the guest's details by the Layout tab, the terms, one tick box for each checklist item, and the signature.
+ * The guest screen's card: the guest's details by the Layout tab, the terms, one tick box for each checklist item, and the signature.
  * Typed values stay when the language changes, but the ticks reset because the wording changes.
+ * An ID document picked by staff shows read-only.
  */
 export function RegistrationCardForm({
     card,
@@ -62,9 +63,12 @@ export function RegistrationCardForm({
         country_code: (card.values.country_code as string) ?? '',
         vehicle_plate: (card.values.vehicle_plate as string) ?? '',
         marketing_consent: card.values.marketing_consent as boolean,
-        identity_document_id: card.documents[0]
-            ? String(card.documents[0].id)
-            : '',
+        identity_document_id:
+            card.cardDocumentId !== null
+                ? String(card.cardDocumentId)
+                : card.documents[0]
+                  ? String(card.documents[0].id)
+                  : '',
         identity: {
             type: 'mykad',
             number: '',
@@ -76,7 +80,6 @@ export function RegistrationCardForm({
         signer_name: card.guestName,
         signature: '',
     });
-    const [signing, setSigning] = useState(false);
     const errors = form.errors as Record<string, string>;
 
     // A new language has new wording, so earlier ticks no longer apply.
@@ -112,7 +115,7 @@ export function RegistrationCardForm({
 
     const switchLanguage = (locale: string) =>
         router.get(
-            show.url({ unitGuest: card.unitGuestId }),
+            guest.url({ unitGuest: card.unitGuestId }),
             { locale },
             {
                 only: ['card'],
@@ -129,8 +132,16 @@ export function RegistrationCardForm({
         allTicked &&
         form.data.signature !== '' &&
         form.data.signer_name.trim() !== '';
+    const toggleAll = () =>
+        form.setData(
+            'ticks',
+            allTicked ? [] : card.checklist.map((item) => item.position),
+        );
     const displayFields = card.fields.filter((field) => field.value !== null);
-    const newDocument = form.data.identity_document_id === '';
+    const pickedDocument = card.documents.find(
+        (document) => document.id === card.cardDocumentId,
+    );
+    const welcome = word('Welcome, :name').replace(':name', card.guestName);
 
     return (
         <form
@@ -142,7 +153,19 @@ export function RegistrationCardForm({
                 });
             }}
         >
-            <div className="flex justify-end">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="flex flex-col gap-1">
+                    <h1 className="font-heading text-xl font-semibold">
+                        {welcome}
+                    </h1>
+                    {card.walkPosition !== null && card.walkTotal > 1 && (
+                        <p className="text-sm text-muted-foreground tabular-nums">
+                            {word('Guest :position of :total')
+                                .replace(':position', String(card.walkPosition))
+                                .replace(':total', String(card.walkTotal))}
+                        </p>
+                    )}
+                </div>
                 <EnumSelect
                     aria-label={word('Language')}
                     className="w-56"
@@ -294,119 +317,41 @@ export function RegistrationCardForm({
                     )}
                     {has('identity_document') && (
                         <FieldGroup className="grid gap-4 sm:grid-cols-2">
-                            {card.documents.length > 0 && (
-                                <Field
-                                    data-invalid={!!errors.identity_document_id}
-                                >
-                                    <FieldLabel htmlFor="card-identity_document_id">
+                            {pickedDocument ? (
+                                <Field>
+                                    <FieldLabel>
                                         {mark(
                                             'identity_document',
                                             'ID document',
                                         )}
                                     </FieldLabel>
-                                    <EnumSelect
-                                        id="card-identity_document_id"
-                                        options={[
-                                            ...card.documents.map(
-                                                (document) => ({
-                                                    value: String(document.id),
-                                                    label: document.label,
-                                                }),
-                                            ),
-                                            {
-                                                value: '',
-                                                label: word(
-                                                    'Enter a different document',
-                                                ),
-                                            },
-                                        ]}
-                                        value={form.data.identity_document_id}
-                                        onValueChange={(value) =>
-                                            form.setData(
-                                                'identity_document_id',
-                                                value,
-                                            )
-                                        }
-                                    />
-                                    <FieldError>
-                                        {errors.identity_document_id}
-                                    </FieldError>
+                                    <p className="text-sm font-medium tabular-nums">
+                                        {pickedDocument.label}
+                                    </p>
                                 </Field>
-                            )}
-                            {newDocument && (
-                                <>
-                                    <Field
-                                        data-invalid={!!errors['identity.type']}
-                                    >
-                                        <FieldLabel htmlFor="card-identity-type">
-                                            {word('Document type')}
-                                        </FieldLabel>
-                                        <EnumSelect
-                                            id="card-identity-type"
-                                            options={identityTypes.map(
-                                                (option) => ({
-                                                    ...option,
-                                                    label: word(option.label),
-                                                }),
-                                            )}
-                                            value={form.data.identity.type}
-                                            onValueChange={(value) =>
-                                                form.setData('identity', {
-                                                    ...form.data.identity,
-                                                    type: value,
-                                                })
-                                            }
-                                        />
-                                        <FieldError>
-                                            {errors['identity.type']}
-                                        </FieldError>
-                                    </Field>
-                                    <Field
-                                        data-invalid={
-                                            !!errors['identity.number']
-                                        }
-                                    >
-                                        <FieldLabel htmlFor="card-identity-number">
-                                            {word('Document number')}
-                                        </FieldLabel>
-                                        <Input
-                                            id="card-identity-number"
-                                            placeholder="900101-14-1234"
-                                            value={form.data.identity.number}
-                                            onChange={(event) =>
-                                                form.setData('identity', {
-                                                    ...form.data.identity,
-                                                    number: event.target.value,
-                                                })
-                                            }
-                                            aria-invalid={
-                                                !!errors['identity.number']
-                                            }
-                                        />
-                                        <FieldError>
-                                            {errors['identity.number']}
-                                        </FieldError>
-                                    </Field>
-                                    <Field>
-                                        <FieldLabel htmlFor="card-identity-country">
-                                            {word('Issuing country')}
-                                        </FieldLabel>
-                                        <CountrySelect
-                                            id="card-identity-country"
-                                            value={
-                                                form.data.identity
-                                                    .issuing_country_code
-                                            }
-                                            onValueChange={(value) =>
-                                                form.setData('identity', {
-                                                    ...form.data.identity,
-                                                    issuing_country_code: value,
-                                                })
-                                            }
-                                            options={countries}
-                                        />
-                                    </Field>
-                                </>
+                            ) : (
+                                <IdentityDocumentFields
+                                    documents={card.documents}
+                                    documentId={form.data.identity_document_id}
+                                    identity={form.data.identity}
+                                    onDocumentChange={(value) =>
+                                        form.setData(
+                                            'identity_document_id',
+                                            value,
+                                        )
+                                    }
+                                    onIdentityChange={(value) =>
+                                        form.setData('identity', value)
+                                    }
+                                    identityTypes={identityTypes}
+                                    countries={countries}
+                                    errors={errors}
+                                    label={mark(
+                                        'identity_document',
+                                        'ID document',
+                                    )}
+                                    word={word}
+                                />
                             )}
                         </FieldGroup>
                     )}
@@ -428,7 +373,25 @@ export function RegistrationCardForm({
 
                 <div className="flex flex-col gap-6">
                     <section className="flex flex-col gap-3">
-                        <h4 className="text-sm font-medium">{word('Terms')}</h4>
+                        <div className="flex items-center justify-between gap-2">
+                            <h4 className="text-sm font-medium">
+                                {word('Terms')}
+                            </h4>
+                            {card.checklist.length > 1 && (
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={toggleAll}
+                                >
+                                    {word(
+                                        allTicked
+                                            ? 'Untick all'
+                                            : 'Agree to all',
+                                    )}
+                                </Button>
+                            )}
+                        </div>
                         <div className="h-64 overflow-y-auto rounded-lg border p-4">
                             <TermsPreview
                                 body={card.termsText}
@@ -482,24 +445,20 @@ export function RegistrationCardForm({
                                 word('Type your full name'),
                             )}
                         </FieldGroup>
-                        {form.data.signature !== '' && (
-                            <img
-                                src={form.data.signature}
-                                alt={word('Signature')}
-                                className="h-24 w-fit rounded-lg border bg-white"
-                            />
-                        )}
+                        <SignatureField
+                            onChange={(dataUrl) =>
+                                form.setData('signature', dataUrl)
+                            }
+                            invalid={!!errors.signature}
+                            labels={{
+                                title: word('Signature'),
+                                clear: word('Clear'),
+                                fullScreen: word('Full screen'),
+                                done: word('Done'),
+                                cancel: word('Cancel'),
+                            }}
+                        />
                         <FieldError>{errors.signature}</FieldError>
-                        <div>
-                            <Button
-                                type="button"
-                                variant="outline"
-                                onClick={() => setSigning(true)}
-                            >
-                                <PenLine data-icon="inline-start" />
-                                {word('Sign here')}
-                            </Button>
-                        </div>
                     </section>
                 </div>
             </div>
@@ -514,18 +473,6 @@ export function RegistrationCardForm({
                     {word('Sign card')}
                 </Button>
             </div>
-
-            <SignatureDialog
-                open={signing}
-                onOpenChange={setSigning}
-                onDone={(dataUrl) => form.setData('signature', dataUrl)}
-                labels={{
-                    title: word('Signature'),
-                    clear: word('Clear'),
-                    done: word('Done'),
-                    empty: word('Please sign in the box.'),
-                }}
-            />
         </form>
     );
 }
