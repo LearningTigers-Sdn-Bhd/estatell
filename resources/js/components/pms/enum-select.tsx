@@ -27,7 +27,7 @@ type Props = {
     allLabel?: string;
     /** Shown while nothing is picked. */
     placeholder?: string;
-    /** An icon shown at the start of the trigger. */
+    /** An icon shown at the start of the trigger. The menu then opens below the trigger instead of over it. */
     icon?: ReactNode;
     name?: string;
     id?: string;
@@ -92,7 +92,10 @@ export function EnumSelect({
                     }}
                 </SelectValue>
             </SelectTrigger>
-            <SelectContent className="max-h-72 w-max max-w-sm min-w-(--anchor-width)">
+            <SelectContent
+                alignItemWithTrigger={!icon}
+                className="max-h-72 w-max max-w-sm min-w-(--anchor-width)"
+            >
                 <SelectGroup>
                     {items.map((option) => (
                         <SelectItem
