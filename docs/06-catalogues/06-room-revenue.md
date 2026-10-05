@@ -6,7 +6,7 @@ Choose the taxes on room revenue in one place, show what a guest pays for a samp
 
 ## Room revenue codes
 
-One set of taxes covers all five room revenue codes (`SystemTransactionCode::roomRevenueCases()`):
+One set of taxes covers all five room revenue codes (`SystemTransactionCode::roomRevenueCases()`) by default. A policy can have its own taxes instead, see [Own taxes](#own-taxes):
 
 | Code            | Charge              |
 | --------------- | ------------------- |
@@ -16,7 +16,7 @@ One set of taxes covers all five room revenue codes (`SystemTransactionCode::roo
 | LATE_CHECKOUT   | Late checkout       |
 | EARLY_DEPARTURE | Early departure     |
 
-`UpdateRoomRevenueTaxes` links the chosen taxes to every one of these codes in the `tax_transaction_code` pivot, so they cannot drift apart. There is no per-code setting.
+`UpdateRoomRevenueTaxes` links the chosen taxes to ROOM and to every policy code that follows the Taxes tab, in the `tax_transaction_code` pivot, so they cannot drift apart. A policy code with its own taxes is skipped.
 
 ## Page
 
@@ -83,6 +83,17 @@ A form on the left and a preview on the right, like the Taxes tab. The preview p
 └────────────────────────────────────┘
 ```
 
+### Own taxes
+
+Planned, its own checklist item after the policy tabs. Posting and the preview already read the taxes of the policy's own code, so `TaxCalculator` and `PostFolioCharge` do not change.
+
+- `room_revenue_policies.own_taxes` (boolean, default false). False means the policy follows the Taxes tab. True means its code keeps its own taxes.
+- The Taxes tab save links the chosen taxes to ROOM and to each policy whose `own_taxes` is false. It never touches a policy with its own taxes. A tax added later reaches every policy that still follows.
+- A policy tab has a **Taxes** section with a **Follow the Taxes tab** switch. Off shows the same checkbox cards as the Taxes tab, saved with the policy. An empty choice is allowed, for example an untaxed no-show fee. Turning the switch back on links the code to the Taxes tab selection again.
+- The policy preview posts the unsaved tax choice, like the Taxes tab preview, so staff see the effect before saving.
+- Charges already posted keep the taxes they were posted with. The ledger is not changed.
+- Saving logs the change, with the tax ids and whether the policy follows.
+
 ## Deferred
 
 - A per-rate-plan override of the early departure policy.
@@ -91,4 +102,4 @@ A form on the left and a preview on the right, like the Taxes tab. The preview p
 
 ## Lessons from wastays
 
-wastays had one Room revenue page that edited ROOM only; late checkout, early departure and cancellation inherited ROOM's rules in code, and no-show used the booking snapshot. estatell links all five codes directly, so `TaxCalculator` needs no inheritance rule.
+wastays had one Room revenue page that edited ROOM only; late checkout, early departure and cancellation inherited ROOM's rules in code, and no-show used the booking snapshot. estatell links all five codes directly, so `TaxCalculator` needs no inheritance rule, and an own-taxes policy only changes which taxes are linked to its code.
