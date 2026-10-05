@@ -407,6 +407,12 @@ export default function CompanyShow({
                 <TabLinks
                     activeTab={tab}
                     className="flex flex-col gap-4"
+                    panelClassName="flex flex-col gap-6"
+                    panelWidth={
+                        tab === 'details' || tab === 'credit'
+                            ? 'default'
+                            : 'full'
+                    }
                     tabs={[
                         {
                             value: 'details',

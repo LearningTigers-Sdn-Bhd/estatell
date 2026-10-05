@@ -1,12 +1,12 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { Download, Printer, Scale } from 'lucide-react';
-import { useState } from 'react';
+import { DatePicker } from '@/components/pms/date-picker';
 import { EmptyState } from '@/components/pms/empty-state';
+import { EnumSelect } from '@/components/pms/enum-select';
 import { MoneyText } from '@/components/pms/money-text';
 import { PageHeader } from '@/components/pms/page-header';
-import { Button, buttonVariants } from '@/components/ui/button';
+import { buttonVariants } from '@/components/ui/button';
 import { Field, FieldLabel } from '@/components/ui/field';
-import { Input } from '@/components/ui/input';
 import {
     Table,
     TableBody,
@@ -21,6 +21,36 @@ import { csv, pdf } from '@/routes/finance/city-ledger/aging';
 import { show } from '@/routes/finance/city-ledger/companies';
 
 type Row = App.Data.CityLedger.AgingRowData;
+
+const quickDates = [
+    { value: 'today', label: 'Today' },
+    { value: 'last_month_end', label: 'End of last month' },
+    { value: 'last_quarter_end', label: 'End of last quarter' },
+    { value: 'last_year_end', label: 'End of last year' },
+];
+
+function ymd(date: Date): string {
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+
+    return `${date.getFullYear()}-${month}-${day}`;
+}
+
+/** The date of a quick pick, counted from the property's today. */
+function quickDate(value: string, today: string): string {
+    const [year, month] = today.split('-').map(Number);
+
+    switch (value) {
+        case 'last_month_end':
+            return ymd(new Date(year, month - 1, 0));
+        case 'last_quarter_end':
+            return ymd(new Date(year, Math.floor((month - 1) / 3) * 3, 0));
+        case 'last_year_end':
+            return ymd(new Date(year - 1, 11, 31));
+        default:
+            return today;
+    }
+}
 
 const columns: { key: keyof Row; label: string }[] = [
     { key: 'current', label: 'Current' },
@@ -41,8 +71,13 @@ export default function AgingIndex({
     today: string;
     currency: App.Enums.Currency | null;
 }) {
-    const [asAt, setAsAt] = useState(report.asAt);
     const query = { as_at: report.asAt };
+    const load = (asAt: string) =>
+        router.get(
+            aging.url(undefined, { query: { as_at: asAt } }),
+            {},
+            { preserveScroll: true },
+        );
 
     return (
         <>
@@ -81,28 +116,34 @@ export default function AgingIndex({
                 <div className="flex flex-wrap items-end gap-3">
                     <Field className="w-44">
                         <FieldLabel htmlFor="aging-as_at">As at</FieldLabel>
-                        <Input
+                        <DatePicker
                             id="aging-as_at"
-                            type="date"
+                            value={report.asAt}
                             max={today}
-                            value={asAt}
-                            onChange={(event) => setAsAt(event.target.value)}
+                            className="w-full"
+                            onChange={(value) => {
+                                if (value) {
+                                    load(value);
+                                }
+                            }}
                         />
                     </Field>
-                    <Button
-                        variant="outline"
-                        onClick={() =>
-                            router.get(
-                                aging.url(undefined, {
-                                    query: { as_at: asAt },
-                                }),
-                                {},
-                                { preserveScroll: true },
-                            )
-                        }
-                    >
-                        Show
-                    </Button>
+                    <Field className="w-48">
+                        <FieldLabel htmlFor="aging-quick">
+                            Quick date
+                        </FieldLabel>
+                        <EnumSelect
+                            id="aging-quick"
+                            options={quickDates}
+                            value=""
+                            placeholder="Pick a date"
+                            onValueChange={(value) => {
+                                if (value) {
+                                    load(quickDate(value, today));
+                                }
+                            }}
+                        />
+                    </Field>
                 </div>
 
                 {report.rows.length === 0 ? (

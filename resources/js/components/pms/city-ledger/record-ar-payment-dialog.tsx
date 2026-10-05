@@ -1,5 +1,6 @@
 import { useForm } from '@inertiajs/react';
 import { useState } from 'react';
+import { DatePicker } from '@/components/pms/date-picker';
 import { EnumSelect } from '@/components/pms/enum-select';
 import { MoneyInput } from '@/components/pms/money-input';
 import { FormError } from '@/components/pms/reservations/form-error';
@@ -102,13 +103,11 @@ function RecordForm({
                     <FieldLabel htmlFor="ar-received_on">
                         Received on
                     </FieldLabel>
-                    <Input
+                    <DatePicker
                         id="ar-received_on"
-                        type="date"
                         value={data.received_on}
-                        onChange={(event) =>
-                            form.setData('received_on', event.target.value)
-                        }
+                        onChange={(value) => form.setData('received_on', value)}
+                        placeholder="Today's business date"
                         aria-invalid={!!errors.received_on}
                     />
                     <FieldDescription>
@@ -142,6 +141,7 @@ function RecordForm({
                         onChange={(event) =>
                             form.setData('notes', event.target.value)
                         }
+                        placeholder="e.g. Bank transfer for September invoices"
                         maxLength={500}
                         rows={2}
                     />

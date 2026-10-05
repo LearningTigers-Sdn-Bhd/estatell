@@ -2,15 +2,16 @@ import { Link, useForm } from '@inertiajs/react';
 import { Tag } from 'lucide-react';
 import { EmptyState } from '@/components/pms/empty-state';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
+import { FieldError } from '@/components/ui/field';
+import { Switch } from '@/components/ui/switch';
 import {
-    Field,
-    FieldContent,
-    FieldDescription,
-    FieldError,
-    FieldLabel,
-} from '@/components/ui/field';
-import { Spinner } from '@/components/ui/spinner';
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from '@/components/ui/table';
 import { index as ratePlans } from '@/routes/settings/rate-plans';
 import { update } from '@/routes/finance/city-ledger/companies/rates';
 
@@ -56,70 +57,75 @@ export function CompanyRatesForm({
         );
     }
 
-    const toggle = (id: number, checked: boolean) =>
-        form.setData(
-            'rate_plan_ids',
-            checked
-                ? [...data.rate_plan_ids, id]
-                : data.rate_plan_ids.filter((one) => one !== id),
-        );
+    const toggle = (id: number, checked: boolean) => {
+        const previous = data.rate_plan_ids;
+        const next = checked
+            ? [...previous, id]
+            : previous.filter((one) => one !== id);
 
-    const submit = (event: React.FormEvent) => {
-        event.preventDefault();
-        form.put(update.url({ company: companyId }), { preserveScroll: true });
+        form.setData('rate_plan_ids', next);
+        form.transform(() => ({ rate_plan_ids: next }));
+        form.put(update.url({ company: companyId }), {
+            preserveScroll: true,
+            onError: () => form.setData('rate_plan_ids', previous),
+        });
     };
 
     return (
-        <form onSubmit={submit} className="flex flex-col gap-5">
+        <section className="flex flex-col gap-5">
             <header className="space-y-1">
                 <h3 className="text-base font-medium">Negotiated rates</h3>
                 <p className="text-sm text-muted-foreground">
-                    Tick the plans this company can book. Staff see a ticked
-                    plan on the booking form only when they pick one of its
-                    companies.
+                    Switch on the plans this company can book. Changes save at
+                    once. Staff see an enabled plan on the booking form only
+                    when they pick one of its companies.
                 </p>
             </header>
-            <div className="grid gap-3 md:grid-cols-2">
-                {plans.map((plan) => (
-                    <FieldLabel
-                        key={plan.id}
-                        htmlFor={`plan-${plan.id}`}
-                        className="has-[>[data-slot=field]]:rounded-md"
-                    >
-                        <Field orientation="horizontal">
-                            <Checkbox
-                                id={`plan-${plan.id}`}
-                                checked={data.rate_plan_ids.includes(plan.id)}
-                                disabled={readOnly}
-                                onCheckedChange={(checked) =>
-                                    toggle(plan.id, checked)
-                                }
-                            />
-                            <FieldContent>
-                                <span className="text-sm font-medium">
+            <div className="overflow-auto rounded-lg border">
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>Available</TableHead>
+                            <TableHead>Rate plan</TableHead>
+                            <TableHead>Pricing</TableHead>
+                            <TableHead>Room types</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {plans.map((plan) => (
+                            <TableRow key={plan.id}>
+                                <TableCell>
+                                    <Switch
+                                        size="sm"
+                                        checked={data.rate_plan_ids.includes(
+                                            plan.id,
+                                        )}
+                                        disabled={readOnly || form.processing}
+                                        aria-label={`Let this company book ${plan.name}`}
+                                        onCheckedChange={(checked) =>
+                                            toggle(plan.id, checked)
+                                        }
+                                    />
+                                </TableCell>
+                                <TableCell className="font-medium">
                                     {plan.name}
-                                </span>
-                                <FieldDescription>
-                                    {plan.pricingLabel}
-                                </FieldDescription>
-                            </FieldContent>
-                        </Field>
-                    </FieldLabel>
-                ))}
+                                </TableCell>
+                                <TableCell>{plan.pricingLabel}</TableCell>
+                                <TableCell>
+                                    {plan.roomTypeNames.length > 0 ? (
+                                        plan.roomTypeNames.join(', ')
+                                    ) : (
+                                        <span className="text-muted-foreground">
+                                            All
+                                        </span>
+                                    )}
+                                </TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
             </div>
             <FieldError>{errors.rate_plan_ids}</FieldError>
-            {!readOnly && (
-                <footer className="flex justify-end">
-                    <Button
-                        type="submit"
-                        disabled={form.processing}
-                        focusableWhenDisabled
-                    >
-                        {form.processing && <Spinner />}
-                        Save rates
-                    </Button>
-                </footer>
-            )}
-        </form>
+        </section>
     );
 }
