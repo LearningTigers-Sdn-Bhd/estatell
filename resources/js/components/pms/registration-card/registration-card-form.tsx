@@ -7,7 +7,6 @@ import { IdentityDocumentFields } from '@/components/pms/registration-card/ident
 import { SignatureField } from '@/components/pms/registration-card/signature-field';
 import { TermsPreview } from '@/components/pms/registration-card/terms-preview';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import {
     Field,
     FieldError,
@@ -28,7 +27,7 @@ type Options = {
 };
 
 /**
- * The guest screen's card: the guest's details by the Layout tab, the terms, one tick box for each checklist item, and the signature.
+ * The guest screen's card: the guest's details by the Layout tab, the terms with their tick boxes in place, and the signature.
  * Typed values stay when the language changes, but the ticks reset because the wording changes.
  * An ID document picked by staff shows read-only.
  */
@@ -378,58 +377,50 @@ export function RegistrationCardForm({
                                 {word('Terms')}
                             </h4>
                             {card.checklist.length > 1 && (
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={toggleAll}
-                                >
-                                    {word(
-                                        allTicked
-                                            ? 'Untick all'
-                                            : 'Agree to all',
-                                    )}
-                                </Button>
+                                <div className="flex items-center gap-3">
+                                    <span className="text-sm text-muted-foreground tabular-nums">
+                                        {word(':ticked of :total confirmed')
+                                            .replace(
+                                                ':ticked',
+                                                String(form.data.ticks.length),
+                                            )
+                                            .replace(
+                                                ':total',
+                                                String(card.checklist.length),
+                                            )}
+                                    </span>
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={toggleAll}
+                                    >
+                                        {word(
+                                            allTicked
+                                                ? 'Untick all'
+                                                : 'Agree to all',
+                                        )}
+                                    </Button>
+                                </div>
                             )}
                         </div>
-                        <div className="h-64 overflow-y-auto rounded-lg border p-4">
+                        <div className="max-h-96 overflow-y-auto rounded-lg border p-4">
                             <TermsPreview
                                 body={card.termsText}
                                 values={{}}
-                                hideChecklist
+                                ticks={form.data.ticks}
+                                onToggle={(position, checked) =>
+                                    form.setData(
+                                        'ticks',
+                                        checked
+                                            ? [...form.data.ticks, position]
+                                            : form.data.ticks.filter(
+                                                  (tick) => tick !== position,
+                                              ),
+                                    )
+                                }
                             />
                         </div>
-                        <ul className="flex flex-col gap-2">
-                            {card.checklist.map((item) => (
-                                <li key={item.position}>
-                                    <label className="flex items-start gap-2 text-sm">
-                                        <Checkbox
-                                            className="mt-0.5"
-                                            checked={form.data.ticks.includes(
-                                                item.position,
-                                            )}
-                                            onCheckedChange={(checked) =>
-                                                form.setData(
-                                                    'ticks',
-                                                    checked
-                                                        ? [
-                                                              ...form.data
-                                                                  .ticks,
-                                                              item.position,
-                                                          ]
-                                                        : form.data.ticks.filter(
-                                                              (position) =>
-                                                                  position !==
-                                                                  item.position,
-                                                          ),
-                                                )
-                                            }
-                                        />
-                                        <span>{item.text}</span>
-                                    </label>
-                                </li>
-                            ))}
-                        </ul>
                     </section>
 
                     <section className="flex flex-col gap-3">

@@ -90,20 +90,24 @@ function parse(body: string): Block[] {
 }
 
 /**
- * The terms as a guest sees them: the text, then one tick box per checklist item.
+ * The terms as a guest sees them: the text, with each checklist item as a tick box where the author wrote it.
  * Drawn in the browser from the editor text, so it follows every keystroke.
+ * The boxes are read-only until `onToggle` is given. An item's position is its order in the whole text.
  */
 export function TermsPreview({
     body,
     values,
-    hideChecklist = false,
+    ticks = [],
+    onToggle,
 }: {
     body: string;
     values: Record<string, string>;
-    /** Leave the tick boxes out, when the page draws its own interactive ones. */
-    hideChecklist?: boolean;
+    /** Positions of the ticked items. */
+    ticks?: number[];
+    onToggle?: (position: number, checked: boolean) => void;
 }) {
     const blocks = parse(fillPlaceholders(body, values));
+    let nextPosition = 0;
 
     return (
         <div className="flex flex-col gap-3 text-sm">
@@ -125,24 +129,33 @@ export function TermsPreview({
                 }
 
                 if (block.type === 'tasks') {
-                    if (hideChecklist) {
-                        return null;
-                    }
-
                     return (
                         <ul key={index} className="flex flex-col gap-2">
-                            {block.items.map((item, position) => (
-                                <li key={position}>
-                                    <label className="flex items-start gap-2">
-                                        <Checkbox
-                                            disabled
-                                            aria-label={item}
-                                            className="mt-0.5"
-                                        />
-                                        <span>{inline(item)}</span>
-                                    </label>
-                                </li>
-                            ))}
+                            {block.items.map((item) => {
+                                const position = nextPosition++;
+
+                                return (
+                                    <li key={position}>
+                                        <label className="flex items-start gap-2">
+                                            <Checkbox
+                                                disabled={!onToggle}
+                                                checked={ticks.includes(
+                                                    position,
+                                                )}
+                                                onCheckedChange={(checked) =>
+                                                    onToggle?.(
+                                                        position,
+                                                        checked,
+                                                    )
+                                                }
+                                                aria-label={item}
+                                                className="mt-0.5"
+                                            />
+                                            <span>{inline(item)}</span>
+                                        </label>
+                                    </li>
+                                );
+                            })}
                         </ul>
                     );
                 }

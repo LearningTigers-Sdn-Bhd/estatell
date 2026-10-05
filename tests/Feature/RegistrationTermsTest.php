@@ -62,6 +62,16 @@ test('the renderer fills placeholders, lists the checklist items and leaves them
         ->and($renderer->unknownPlaceholders('{{property_name}} {{room_rate}} {{room_rate}}'))->toBe(['room_rate']);
 });
 
+test('the renderer numbers checklist items across several sections in text order', function () {
+    $body = "## Stay\n\n- [ ] First.\n\nSome text.\n\n## Privacy\n\n- [ ] Second.\n- [ ] Third.\n";
+
+    expect(app(TermsRenderer::class)->render($body, [])['items'])->toBe([
+        ['position' => 0, 'text' => 'First.'],
+        ['position' => 1, 'text' => 'Second.'],
+        ['position' => 2, 'text' => 'Third.'],
+    ]);
+});
+
 test('the renderer strips raw html', function () {
     $result = app(TermsRenderer::class)->render("Safe text\n\n<script>alert(1)</script>", []);
 

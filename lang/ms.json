@@ -55,6 +55,7 @@
     "Select": "Pilih",
     "Welcome, :name": "Selamat datang, :name",
     "Guest :position of :total": "Tetamu :position daripada :total",
+    ":ticked of :total confirmed": ":ticked daripada :total disahkan",
     "Agree to all": "Setuju semua",
     "Untick all": "Nyahtanda semua",
     "Full screen": "Skrin penuh",
