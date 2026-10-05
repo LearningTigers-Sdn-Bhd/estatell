@@ -29,7 +29,7 @@ property_settings    property_id (unique), currency, time_zone, default_locale,
 - `Locale`: English, Malay.
 - `MissedArrivalPolicy`: MarkNoShow, KeepAsLateArrival.
 - `OverdueDeparturePolicy`: ExtendOneNight, Block.
-- `NoShowCharge` (FirstNight, FullStay, None) is replaced by the no-show [room revenue policy](../06-catalogues/06-room-revenue.md#policies). The policies item in the [checklist](../checklist.md) copies each property's value into its no-show policy, then drops the column and the enum.
+- `NoShowCharge` (FirstNight, FullStay, None) was replaced by the no-show [room revenue policy](../06-catalogues/06-room-revenue.md#policies). A migration copied each property's value into its no-show policy (First night and Full stay became 100% of the booked rate) and dropped the column and the enum.
 - `RegistrationCardScope`: PrimaryOnly, EveryAdult.
 - `WeekendNights`: FriSat ("Friday + Saturday"), SatSun ("Saturday + Sunday").
 

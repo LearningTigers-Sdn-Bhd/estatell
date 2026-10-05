@@ -5,7 +5,6 @@ namespace App\Http\Requests\Property;
 use App\Enums\Currency;
 use App\Enums\Locale;
 use App\Enums\MissedArrivalPolicy;
-use App\Enums\NoShowCharge;
 use App\Enums\OverdueDeparturePolicy;
 use App\Enums\WeekendNights;
 use App\Models\Property;
@@ -64,7 +63,6 @@ class UpdatePropertySettingsRequest extends FormRequest
                 'auto_audit_enabled' => ['required', 'boolean'],
                 'missed_arrival_policy' => ['required', Rule::enum(MissedArrivalPolicy::class)],
                 'overdue_departure_policy' => ['required', Rule::enum(OverdueDeparturePolicy::class)],
-                'no_show_charge' => ['required', Rule::enum(NoShowCharge::class)],
                 'weekend_nights' => ['required', Rule::enum(WeekendNights::class)],
             ],
             'support' => ['allow_support_access' => ['required', 'boolean']],

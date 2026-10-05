@@ -147,6 +147,21 @@ enum SystemTransactionCode: string
         ];
     }
 
+    /**
+     * The room revenue codes that carry a policy. Room nights have none.
+     *
+     * @return list<self>
+     */
+    public static function policyCases(): array
+    {
+        return [
+            self::NoShowRevenue,
+            self::CancellationRevenue,
+            self::EarlyDepartureRevenue,
+            self::LateCheckoutRevenue,
+        ];
+    }
+
     /** @return list<string> */
     public static function roomRevenueKeys(): array
     {

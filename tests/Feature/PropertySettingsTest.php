@@ -65,7 +65,6 @@ test('new owners see setup and saving basics creates defaults', function () {
         ->and($settings->auto_audit_enabled)->toBeFalse()
         ->and($settings->missed_arrival_policy->value)->toBe('keep_as_late_arrival')
         ->and($settings->overdue_departure_policy->value)->toBe('block')
-        ->and($settings->no_show_charge->value)->toBe('none')
         ->and($settings->registration_card_scope->value)->toBe('primary_only')
         ->and($settings->card_required_for_check_in)->toBeFalse()
         ->and($settings->id_document_retention_days)->toBeNull()
@@ -96,7 +95,7 @@ test('settings sections save independently', function () {
     $this->put(route('settings.update', [$property->code, 'operations']), [
         'audit_time' => '03:30', 'auto_audit_enabled' => 'on',
         'missed_arrival_policy' => 'mark_no_show', 'overdue_departure_policy' => 'extend_one_night',
-        'no_show_charge' => 'first_night', 'weekend_nights' => 'sat_sun',
+        'weekend_nights' => 'sat_sun',
     ])->assertRedirect(route('settings.operations', $property->code))->assertSessionHasNoErrors();
     $this->put(route('settings.registration-card.update', $property->code), [
         'registration_card_scope' => 'every_adult', 'card_required_for_check_in' => 'on',
@@ -117,7 +116,7 @@ test('settings sections save independently', function () {
 
     $this->get(route('settings.edit', $property->code))->assertInertia(fn (Assert $page) => $page
         ->component('settings/edit')->where('settings.defaultLocale', 'ms')
-        ->where('settings.noShowCharge', 'first_night')->where('settings.allowSupportAccess', false));
+        ->where('settings.allowSupportAccess', false));
 });
 
 test('each settings tab has its own url and sends only its options', function () {
@@ -127,12 +126,12 @@ test('each settings tab has its own url and sends only its options', function ()
 
     $this->actingAs($staff)->get(route('settings.edit', $property->code))
         ->assertInertia(fn (Assert $page) => $page->component('settings/edit')->where('tab', 'general')
-            ->has('currencies')->has('locales')->missing('noShowCharges'));
+            ->has('currencies')->has('locales')->missing('missedArrivalPolicies'));
     $this->get(route('settings.operations', $property->code))
         ->assertInertia(fn (Assert $page) => $page->where('tab', 'operations')
-            ->has('noShowCharges')->missing('currencies'));
+            ->has('missedArrivalPolicies')->missing('currencies'));
     $this->get(route('settings.support', $property->code))
-        ->assertInertia(fn (Assert $page) => $page->where('tab', 'support')->missing('noShowCharges'));
+        ->assertInertia(fn (Assert $page) => $page->where('tab', 'support')->missing('missedArrivalPolicies'));
 });
 
 test('invalid values and missing setup cannot update settings', function () {

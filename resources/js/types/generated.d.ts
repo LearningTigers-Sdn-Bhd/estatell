@@ -640,7 +640,6 @@ auditTime: string,
 autoAuditEnabled: boolean,
 missedArrivalPolicy: App.Enums.MissedArrivalPolicy,
 overdueDeparturePolicy: App.Enums.OverdueDeparturePolicy,
-noShowCharge: App.Enums.NoShowCharge,
 weekendNights: App.Enums.WeekendNights,
 registrationCardScope: App.Enums.RegistrationCardScope,
 cardRequiredForCheckIn: boolean,
@@ -1407,7 +1406,6 @@ export type Locale = 'en' | 'ms';
 export type MediaDisk = 'local' | 'r2';
 export type MissedArrivalPolicy = 'mark_no_show' | 'keep_as_late_arrival';
 export type NavigationContext = 'front-desk' | 'finance' | 'reports' | 'settings';
-export type NoShowCharge = 'first_night' | 'full_stay' | 'none';
 export type NotificationChannel = 'mail' | 'database';
 export type NotificationType = 'night_audit_completed' | 'night_audit_exceptions' | 'night_audit_failed' | 'registration_card_link' | 'onboarding_reminder' | 'dorm_strategy_changed' | 'support_access_used';
 export type OverdueDeparturePolicy = 'extend_one_night' | 'block';
@@ -1418,6 +1416,9 @@ export type PaymentPurpose = 'advance' | 'settlement' | 'security_deposit';
 export type PaymentStatus = 'pending' | 'completed' | 'failed';
 export type PermissionEnum = 'settings.manage' | 'staff.view' | 'staff.manage' | 'roles.manage' | 'rooms.view' | 'rooms.manage' | 'rooms.block' | 'notification.manage' | 'rates.view' | 'rates.manage' | 'rates.override-restrictions' | 'guests.view' | 'guests.manage' | 'guests.blacklist' | 'guests.view-documents' | 'guests.merge' | 'guests.anonymize' | 'reservations.view' | 'reservations.manage' | 'folio.post-charge' | 'folio.reverse' | 'folio.transfer' | 'folio.discount' | 'folio.discount-open' | 'folio.close' | 'folio.reopen' | 'folio.print-voucher' | 'payment.record' | 'payment.refund' | 'company.view' | 'company.manage' | 'company.credit-override' | 'city-ledger.invoice' | 'city-ledger.credit-note' | 'city-ledger.payment' | 'city-ledger.allocate' | 'registration-card.manage-terms' | 'registration-card.sign' | 'registration-card.send-link' | 'registration-card.void';
 export type PlatformFeature = 'channel-manager';
+export type PolicyChargeMode = 'free' | 'fixed_amount' | 'percentage';
+export type PolicyRateBasis = 'booked_rate' | 'current_rate';
+export type PolicyScope = 'first_night' | 'whole_stay' | 'unused_nights' | 'one_charge';
 export type PricingBasis = 'per_room' | 'per_guest' | 'per_bed' | 'package';
 export type PropertyStatus = 'onboarding' | 'pending_approval' | 'live' | 'suspended';
 export type PropertyType = 'hotel' | 'hostel' | 'resort' | 'serviced_apartment' | 'homestay';

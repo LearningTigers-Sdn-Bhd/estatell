@@ -9,7 +9,6 @@ use App\Data\Property\PropertySettingsData;
 use App\Enums\Currency;
 use App\Enums\Locale;
 use App\Enums\MissedArrivalPolicy;
-use App\Enums\NoShowCharge;
 use App\Enums\OverdueDeparturePolicy;
 use App\Enums\WeekendNights;
 use App\Http\Controllers\Controller;
@@ -45,7 +44,6 @@ class PropertySettingsController extends Controller
         return $this->renderTab($property, $settingsLock, 'operations', [
             'missedArrivalPolicies' => MissedArrivalPolicy::options(),
             'overdueDeparturePolicies' => OverdueDeparturePolicy::options(),
-            'noShowCharges' => NoShowCharge::options(),
             'weekendNightsOptions' => WeekendNights::options(),
         ]);
     }

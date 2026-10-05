@@ -52,7 +52,6 @@ export default function PropertySettings({
     locales = [],
     missedArrivalPolicies = [],
     overdueDeparturePolicies = [],
-    noShowCharges = [],
     weekendNightsOptions = [],
     ageGroups = [],
     maxAge = 17,
@@ -65,7 +64,6 @@ export default function PropertySettings({
     locales?: EnumOption[];
     missedArrivalPolicies?: EnumOption[];
     overdueDeparturePolicies?: EnumOption[];
-    noShowCharges?: EnumOption[];
     weekendNightsOptions?: EnumOption[];
     ageGroups?: App.Data.Property.PropertyAgeGroupData[];
     maxAge?: number;
@@ -253,13 +251,6 @@ export default function PropertySettings({
                                         value={settings.overdueDeparturePolicy}
                                         options={overdueDeparturePolicies}
                                         error={errors.overdue_departure_policy}
-                                    />
-                                    <SettingsSelect
-                                        name="no_show_charge"
-                                        label="No-show charge"
-                                        value={settings.noShowCharge}
-                                        options={noShowCharges}
-                                        error={errors.no_show_charge}
                                     />
                                     <SettingsSelect
                                         name="weekend_nights"

@@ -120,6 +120,12 @@ class Property extends Model implements FeatureScopeSerializeable
         return $this->hasMany(Discount::class);
     }
 
+    /** @return HasMany<RoomRevenuePolicy, $this> */
+    public function roomRevenuePolicies(): HasMany
+    {
+        return $this->hasMany(RoomRevenuePolicy::class);
+    }
+
     /** @return HasMany<Tax, $this> */
     public function taxes(): HasMany
     {

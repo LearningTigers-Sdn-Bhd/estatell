@@ -5,6 +5,7 @@ namespace App\Actions\Property;
 use App\Actions\Catalogues\SeedChargeItems;
 use App\Actions\Catalogues\SeedDiscounts;
 use App\Actions\Catalogues\SeedPaymentMethods;
+use App\Actions\Catalogues\SeedRoomRevenuePolicies;
 use App\Actions\Catalogues\SeedTaxes;
 use App\Actions\Catalogues\SeedTransactionCodes;
 use App\Actions\Meals\SeedMealPeriods;
@@ -15,7 +16,6 @@ use App\Actions\Staff\SeedDefaultRoles;
 use App\Enums\Currency;
 use App\Enums\Locale;
 use App\Enums\MissedArrivalPolicy;
-use App\Enums\NoShowCharge;
 use App\Enums\OverdueDeparturePolicy;
 use App\Enums\PropertyType;
 use App\Enums\RegistrationCardScope;
@@ -33,6 +33,7 @@ class SeedPropertyDefaults
         private SeedPaymentMethods $seedPaymentMethods,
         private SeedTaxes $seedTaxes,
         private SeedDiscounts $seedDiscounts,
+        private SeedRoomRevenuePolicies $seedRoomRevenuePolicies,
         private SeedMealPeriods $seedMealPeriods,
         private SeedAgeGroups $seedAgeGroups,
         private SeedRatePlans $seedRatePlans,
@@ -55,6 +56,7 @@ class SeedPropertyDefaults
             ($this->seedPaymentMethods)($property, $countryCode);
             ($this->seedTaxes)($property, $countryCode);
             ($this->seedDiscounts)($property, $countryCode);
+            ($this->seedRoomRevenuePolicies)($property);
             ($this->seedMealPeriods)($property, $countryCode);
             ($this->seedAgeGroups)($property, $countryCode);
             ($this->seedRatePlans)($property);
@@ -89,7 +91,6 @@ class SeedPropertyDefaults
                 'auto_audit_enabled' => false,
                 'missed_arrival_policy' => MissedArrivalPolicy::KeepAsLateArrival,
                 'overdue_departure_policy' => OverdueDeparturePolicy::Block,
-                'no_show_charge' => NoShowCharge::None,
                 'registration_card_scope' => RegistrationCardScope::PrimaryOnly,
                 'card_required_for_check_in' => false,
                 'id_document_retention_days' => null,

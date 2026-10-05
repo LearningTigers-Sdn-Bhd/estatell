@@ -5,7 +5,6 @@ namespace App\Data\Property;
 use App\Enums\Currency;
 use App\Enums\Locale;
 use App\Enums\MissedArrivalPolicy;
-use App\Enums\NoShowCharge;
 use App\Enums\OverdueDeparturePolicy;
 use App\Enums\RegistrationCardScope;
 use App\Enums\WeekendNights;
@@ -26,7 +25,6 @@ class PropertySettingsData extends Data
         public bool $autoAuditEnabled,
         public MissedArrivalPolicy $missedArrivalPolicy,
         public OverdueDeparturePolicy $overdueDeparturePolicy,
-        public NoShowCharge $noShowCharge,
         public WeekendNights $weekendNights,
         public RegistrationCardScope $registrationCardScope,
         public bool $cardRequiredForCheckIn,
@@ -50,7 +48,6 @@ class PropertySettingsData extends Data
             autoAuditEnabled: $settings->auto_audit_enabled,
             missedArrivalPolicy: $settings->missed_arrival_policy,
             overdueDeparturePolicy: $settings->overdue_departure_policy,
-            noShowCharge: $settings->no_show_charge,
             weekendNights: $settings->weekend_nights,
             registrationCardScope: $settings->registration_card_scope,
             cardRequiredForCheckIn: $settings->card_required_for_check_in,

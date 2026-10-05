@@ -5,7 +5,6 @@ namespace App\Models;
 use App\Enums\Currency;
 use App\Enums\Locale;
 use App\Enums\MissedArrivalPolicy;
-use App\Enums\NoShowCharge;
 use App\Enums\OverdueDeparturePolicy;
 use App\Enums\RegistrationCardScope;
 use App\Enums\WeekendNights;
@@ -29,7 +28,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property bool $auto_audit_enabled
  * @property MissedArrivalPolicy $missed_arrival_policy
  * @property OverdueDeparturePolicy $overdue_departure_policy
- * @property NoShowCharge $no_show_charge
  * @property RegistrationCardScope $registration_card_scope
  * @property bool $card_required_for_check_in
  * @property int|null $id_document_retention_days
@@ -40,7 +38,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 #[Fillable([
     'currency', 'time_zone', 'default_locale', 'check_in_time', 'check_out_time',
     'arrival_grace_minutes', 'auto_assign_rooms', 'audit_time', 'auto_audit_enabled',
-    'missed_arrival_policy', 'overdue_departure_policy', 'no_show_charge',
+    'missed_arrival_policy', 'overdue_departure_policy',
     'registration_card_scope', 'card_required_for_check_in', 'id_document_retention_days',
     'security_deposit_amount', 'allow_support_access', 'weekend_nights',
 ])]
@@ -59,7 +57,6 @@ class PropertySetting extends Model
             'auto_audit_enabled' => 'boolean',
             'missed_arrival_policy' => MissedArrivalPolicy::class,
             'overdue_departure_policy' => OverdueDeparturePolicy::class,
-            'no_show_charge' => NoShowCharge::class,
             'registration_card_scope' => RegistrationCardScope::class,
             'card_required_for_check_in' => 'boolean',
             'id_document_retention_days' => 'integer',

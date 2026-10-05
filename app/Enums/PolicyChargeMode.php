@@ -2,18 +2,21 @@
 
 namespace App\Enums;
 
-enum NoShowCharge: string
+/**
+ * How a room revenue policy works out its charge.
+ */
+enum PolicyChargeMode: string
 {
-    case FirstNight = 'first_night';
-    case FullStay = 'full_stay';
-    case None = 'none';
+    case Free = 'free';
+    case FixedAmount = 'fixed_amount';
+    case Percentage = 'percentage';
 
     public function label(): string
     {
         return match ($this) {
-            self::FirstNight => __('First night'),
-            self::FullStay => __('Full stay'),
-            self::None => __('No charge'),
+            self::Free => __('Free'),
+            self::FixedAmount => __('Fixed amount'),
+            self::Percentage => __('Percentage'),
         };
     }
 

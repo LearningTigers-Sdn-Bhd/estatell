@@ -5,7 +5,6 @@ use App\Enums\Currency;
 use App\Enums\DefaultRoleEnum;
 use App\Enums\Locale;
 use App\Enums\MissedArrivalPolicy;
-use App\Enums\NoShowCharge;
 use App\Enums\OverdueDeparturePolicy;
 use App\Enums\PaymentMethodType;
 use App\Enums\PermissionEnum;
@@ -30,6 +29,7 @@ test('each property type receives the Malaysia defaults', function (PropertyType
         ->and($property->paymentMethods()->where('active', true)->count())->toBe(4)
         ->and($property->chargeItems()->count())->toBe(4)
         ->and($property->discounts()->count())->toBe(1)
+        ->and($property->roomRevenuePolicies()->count())->toBe(4)
         ->and($property->mealPeriods()->count())->toBe(3)
         ->and($property->ageGroups()->count())->toBe(2)
         ->and($settings->currency)->toBe(Currency::Myr)
@@ -43,7 +43,6 @@ test('each property type receives the Malaysia defaults', function (PropertyType
         ->and($settings->auto_audit_enabled)->toBeFalse()
         ->and($settings->missed_arrival_policy)->toBe(MissedArrivalPolicy::KeepAsLateArrival)
         ->and($settings->overdue_departure_policy)->toBe(OverdueDeparturePolicy::Block)
-        ->and($settings->no_show_charge)->toBe(NoShowCharge::None)
         ->and($settings->registration_card_scope)->toBe(RegistrationCardScope::PrimaryOnly)
         ->and($settings->card_required_for_check_in)->toBeFalse()
         ->and($settings->id_document_retention_days)->toBeNull()
