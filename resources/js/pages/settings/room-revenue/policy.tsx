@@ -313,15 +313,15 @@ export default function RoomRevenuePolicy({
 
                 <RoomRevenueTabs activeTab={tab}>
                     <form onSubmit={submit} className="flex flex-col gap-10">
-                        <div className="grid items-start gap-10 lg:grid-cols-3">
-                            <div className="lg:col-span-2">
+                        <div className="flex flex-col gap-10 lg:flex-row lg:items-start">
+                            <div className="min-w-0 lg:flex-1">
                                 <Section
                                     id="policy-charge"
                                     title="How it charges"
                                     description={heading.description}
                                 >
-                                    <div className="grid items-start gap-6 md:grid-cols-2">
-                                        <Field>
+                                    <div className="flex flex-col gap-6 md:flex-row md:items-start">
+                                        <Field className="md:w-96 md:shrink-0">
                                             <FieldLabel>Charge</FieldLabel>
                                             <RadioGroup
                                                 className="grid-cols-1"
@@ -367,7 +367,7 @@ export default function RoomRevenuePolicy({
                                             </FieldError>
                                         </Field>
 
-                                        <FieldGroup className="gap-4">
+                                        <FieldGroup className="min-w-0 gap-4 md:flex-1">
                                             {data.charge_mode ===
                                                 'fixed_amount' && (
                                                 <Field>
@@ -539,138 +539,146 @@ export default function RoomRevenuePolicy({
                                 </Section>
                             </div>
 
-                            <Section
-                                id="policy-taxes"
-                                title="Taxes"
-                                description="The taxes added to this charge."
-                            >
-                                <FieldGroup className="gap-4">
-                                    <Field
-                                        orientation="horizontal"
-                                        className="items-start justify-start"
-                                    >
-                                        <Switch
-                                            id="follow_taxes"
-                                            checked={!data.own_taxes}
-                                            onCheckedChange={followTaxes}
-                                            className="mt-0.5"
-                                        />
-                                        <FieldContent className="flex-none">
-                                            <FieldLabel htmlFor="follow_taxes">
-                                                Follow the Taxes tab
-                                            </FieldLabel>
-                                            <FieldDescription>
-                                                On: this charge uses the taxes
-                                                chosen on the Taxes tab. Off:
-                                                choose taxes for this charge
-                                                only.
-                                            </FieldDescription>
-                                        </FieldContent>
-                                    </Field>
-                                    <Field data-invalid={!!errors.tax_ids}>
-                                        <FieldLabel htmlFor="policy-taxes-select">
-                                            Taxes
-                                        </FieldLabel>
-                                        <MultiCombobox
-                                            id="policy-taxes-select"
-                                            name="tax_ids"
-                                            items={taxOptions(taxes, money)}
-                                            value={data.tax_ids.map(String)}
-                                            onValueChange={(value) =>
-                                                http.setData(
-                                                    'tax_ids',
-                                                    value.map(Number),
-                                                )
-                                            }
-                                            placeholder="No taxes"
-                                            emptyLabel="No matching taxes."
-                                            disabled={!data.own_taxes}
-                                            invalid={!!errors.tax_ids}
-                                        />
-                                        {data.own_taxes && (
-                                            <FieldDescription>
-                                                Own taxes. Changing the Taxes
-                                                tab does not change them.
-                                            </FieldDescription>
-                                        )}
-                                        <FieldError>
-                                            {errors.tax_ids ??
-                                                errors['tax_ids.0']}
-                                        </FieldError>
-                                    </Field>
-                                </FieldGroup>
-                            </Section>
-                        </div>
-
-                        <div className="grid items-start gap-10 md:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]">
-                            <Section
-                                id="policy-text"
-                                title="Policy text"
-                                description="The words guests read on their documents. Write one for each language."
-                            >
-                                <Field>
-                                    <InputGroup>
-                                        <InputGroupAddon
-                                            align="block-start"
-                                            className="justify-end border-b"
+                            <div className="min-w-0 lg:w-96 lg:shrink-0">
+                                <Section
+                                    id="policy-taxes"
+                                    title="Taxes"
+                                    description="The taxes added to this charge."
+                                >
+                                    <FieldGroup className="gap-4">
+                                        <Field
+                                            orientation="horizontal"
+                                            className="items-start justify-start"
                                         >
-                                            <EnumSelect
-                                                options={locales}
-                                                value={language}
+                                            <Switch
+                                                id="follow_taxes"
+                                                checked={!data.own_taxes}
+                                                onCheckedChange={followTaxes}
+                                                className="mt-0.5"
+                                            />
+                                            <FieldContent className="min-w-0">
+                                                <FieldLabel htmlFor="follow_taxes">
+                                                    Follow the Taxes tab
+                                                </FieldLabel>
+                                                <FieldDescription>
+                                                    On: this charge uses the
+                                                    taxes chosen on the Taxes
+                                                    tab. Off: choose taxes for
+                                                    this charge only.
+                                                </FieldDescription>
+                                            </FieldContent>
+                                        </Field>
+                                        <Field data-invalid={!!errors.tax_ids}>
+                                            <FieldLabel htmlFor="policy-taxes-select">
+                                                Taxes
+                                            </FieldLabel>
+                                            <MultiCombobox
+                                                id="policy-taxes-select"
+                                                name="tax_ids"
+                                                items={taxOptions(taxes, money)}
+                                                value={data.tax_ids.map(String)}
                                                 onValueChange={(value) =>
-                                                    setLanguage(
-                                                        value as
-                                                            | 'text_en'
-                                                            | 'text_ms',
+                                                    http.setData(
+                                                        'tax_ids',
+                                                        value.map(Number),
                                                     )
                                                 }
-                                                aria-label="Language"
-                                                className="w-56"
-                                                icon={
-                                                    <Globe
-                                                        aria-hidden
-                                                        className="text-muted-foreground"
-                                                    />
+                                                placeholder="No taxes"
+                                                emptyLabel="No matching taxes."
+                                                disabled={!data.own_taxes}
+                                                invalid={!!errors.tax_ids}
+                                            />
+                                            {data.own_taxes && (
+                                                <FieldDescription>
+                                                    Own taxes. Changing the
+                                                    Taxes tab does not change
+                                                    them.
+                                                </FieldDescription>
+                                            )}
+                                            <FieldError>
+                                                {errors.tax_ids ??
+                                                    errors['tax_ids.0']}
+                                            </FieldError>
+                                        </Field>
+                                    </FieldGroup>
+                                </Section>
+                            </div>
+                        </div>
+
+                        <div className="flex flex-col gap-10 lg:flex-row lg:items-start">
+                            <div className="min-w-0 lg:w-96 lg:shrink-0">
+                                <Section
+                                    id="policy-text"
+                                    title="Policy text"
+                                    description="The words guests read on their documents. Write one for each language."
+                                >
+                                    <Field>
+                                        <InputGroup>
+                                            <InputGroupAddon
+                                                align="block-start"
+                                                className="justify-end border-b"
+                                            >
+                                                <EnumSelect
+                                                    options={locales}
+                                                    value={language}
+                                                    onValueChange={(value) =>
+                                                        setLanguage(
+                                                            value as
+                                                                | 'text_en'
+                                                                | 'text_ms',
+                                                        )
+                                                    }
+                                                    aria-label="Language"
+                                                    className="w-56"
+                                                    icon={
+                                                        <Globe
+                                                            aria-hidden
+                                                            className="text-muted-foreground"
+                                                        />
+                                                    }
+                                                />
+                                            </InputGroupAddon>
+                                            <InputGroupTextarea
+                                                key={textField}
+                                                id={textField}
+                                                aria-label={`Policy text in ${languageLabel}`}
+                                                value={data[textField]}
+                                                onChange={(event) =>
+                                                    http.setData(
+                                                        textField,
+                                                        event.target.value,
+                                                    )
+                                                }
+                                                aria-invalid={
+                                                    !!errors[textField]
                                                 }
                                             />
-                                        </InputGroupAddon>
-                                        <InputGroupTextarea
-                                            key={textField}
-                                            id={textField}
-                                            aria-label={`Policy text in ${languageLabel}`}
-                                            value={data[textField]}
-                                            onChange={(event) =>
-                                                http.setData(
-                                                    textField,
-                                                    event.target.value,
-                                                )
-                                            }
-                                            aria-invalid={!!errors[textField]}
-                                        />
-                                        <InputGroupAddon
-                                            align="block-end"
-                                            className="border-t"
-                                        >
-                                            <InputGroupText className="tabular-nums">
-                                                {wordCount(data[textField])}{' '}
-                                                words
-                                            </InputGroupText>
-                                            <InputGroupText className="ml-auto">
-                                                Shown to the guest
-                                            </InputGroupText>
-                                        </InputGroupAddon>
-                                    </InputGroup>
-                                    <FieldError>
-                                        {errors.text_en ?? errors.text_ms}
-                                    </FieldError>
-                                </Field>
-                            </Section>
-
-                            <PolicyPreview
-                                preview={preview}
-                                money={money}
-                                loading={http.processing}
-                            />
+                                            <InputGroupAddon
+                                                align="block-end"
+                                                className="border-t"
+                                            >
+                                                <InputGroupText className="tabular-nums">
+                                                    {wordCount(data[textField])}{' '}
+                                                    words
+                                                </InputGroupText>
+                                                <InputGroupText className="ml-auto">
+                                                    Shown to the guest
+                                                </InputGroupText>
+                                            </InputGroupAddon>
+                                        </InputGroup>
+                                        <FieldError>
+                                            {errors.text_en ?? errors.text_ms}
+                                        </FieldError>
+                                    </Field>
+                                </Section>
+                            </div>
+                            <div className="min-w-0 lg:flex-1">
+                                <PolicyPreview
+                                    preview={preview}
+                                    money={money}
+                                    loading={http.processing}
+                                />
+                            </div>
                         </div>
 
                         <div className="flex justify-end">
