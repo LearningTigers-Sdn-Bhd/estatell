@@ -18,6 +18,7 @@ export function useCardForm(card: Card) {
         postal_code: (card.values.postal_code as string) ?? '',
         country_code: (card.values.country_code as string) ?? '',
         vehicle_plate: (card.values.vehicle_plate as string) ?? '',
+        remarks: (card.values.remarks as string) ?? '',
         marketing_consent: card.values.marketing_consent as boolean,
         identity_document_id:
             card.cardDocumentId !== null

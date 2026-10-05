@@ -13,6 +13,15 @@ import {
     FieldLabel,
 } from '@/components/ui/field';
 import { Checkbox } from '@/components/ui/checkbox';
+import {
+    InputGroup,
+    InputGroupAddon,
+    InputGroupText,
+    InputGroupTextarea,
+} from '@/components/ui/input-group';
+
+/** The longest remarks text, the same as the server's limit. */
+const REMARKS_LIMIT = 500;
 
 type Options = {
     genders: EnumOption[];
@@ -258,26 +267,66 @@ export function IdentitySection({
     );
 }
 
-/** The offers switch. Hidden when the Layout tab hides it. */
-export function PreferencesSection({ form, word, has }: CardSectionProps) {
-    if (!has('marketing_consent')) {
+/** The remarks box and the offers switch. Hidden when the Layout tab hides both. */
+export function PreferencesSection({
+    form,
+    word,
+    mark,
+    has,
+}: CardSectionProps) {
+    const error = (form.errors as Record<string, string>).remarks;
+
+    if (!has('remarks') && !has('marketing_consent')) {
         return null;
     }
 
     return (
         <CardSection title={word('Preferences')}>
-            <Field orientation="horizontal">
-                <Checkbox
-                    id="card-marketing_consent"
-                    checked={form.data.marketing_consent}
-                    onCheckedChange={(checked) =>
-                        form.setData('marketing_consent', checked)
-                    }
-                />
-                <FieldLabel htmlFor="card-marketing_consent">
-                    {word('I agree to receive offers')}
-                </FieldLabel>
-            </Field>
+            {has('remarks') && (
+                <Field data-invalid={!!error}>
+                    <FieldLabel htmlFor="card-remarks">
+                        {mark('remarks', 'Remarks')}
+                    </FieldLabel>
+                    <InputGroup>
+                        <InputGroupTextarea
+                            id="card-remarks"
+                            value={form.data.remarks}
+                            onChange={(event) =>
+                                form.setData('remarks', event.target.value)
+                            }
+                            maxLength={REMARKS_LIMIT}
+                            rows={3}
+                            placeholder={word(
+                                'Requests or notes about your stay',
+                            )}
+                            aria-invalid={!!error}
+                        />
+                        <InputGroupAddon
+                            align="block-end"
+                            className="justify-end"
+                        >
+                            <InputGroupText className="tabular-nums">
+                                {form.data.remarks.length}/{REMARKS_LIMIT}
+                            </InputGroupText>
+                        </InputGroupAddon>
+                    </InputGroup>
+                    <FieldError>{error}</FieldError>
+                </Field>
+            )}
+            {has('marketing_consent') && (
+                <Field orientation="horizontal">
+                    <Checkbox
+                        id="card-marketing_consent"
+                        checked={form.data.marketing_consent}
+                        onCheckedChange={(checked) =>
+                            form.setData('marketing_consent', checked)
+                        }
+                    />
+                    <FieldLabel htmlFor="card-marketing_consent">
+                        {word('I agree to receive offers')}
+                    </FieldLabel>
+                </Field>
+            )}
         </CardSection>
     );
 }

@@ -11,7 +11,7 @@ use App\Enums\Locale;
 class RegistrationCardDocument
 {
     /**
-     * @param  list<array{section: string, label: string, value: string}>  $fields  `section` is a `RegistrationCardFieldGroup` value
+     * @param  list<array{field: string, section: string, label: string, value: string}>  $fields  `field` is a `RegistrationCardField` value, `section` a `RegistrationCardFieldGroup` value
      * @param  bool|null  $marketing  the offers line: null hides it, true shows it ticked
      * @param  list<array{text: string, ticked: bool}>  $items
      */

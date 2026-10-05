@@ -98,6 +98,7 @@ class RegistrationCardSnapshot
             'phone' => $guest->phone,
             'email' => $guest->email,
             'vehicle_plate' => $card->vehicle_plate,
+            'remarks' => $card->remarks,
             'marketing_consent' => $guest->marketing_consent_at === null ? null : __('Yes'),
         ], fn (?string $value): bool => $value !== null && $value !== '');
     }

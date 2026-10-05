@@ -34,11 +34,12 @@ class SaveRegistrationCardDraftRequest extends FormRequest
         return [
             ...CardIdentityRules::for($this->unitGuest()->guest_id, $this->input('identity.type'), false, false),
             'vehicle_plate' => ['nullable', 'string', 'max:20'],
+            'remarks' => ['nullable', 'string', 'max:500'],
         ];
     }
 
     /**
-     * @return array{identity: array{type: string, number: string, issuing_country_code: string|null, expires_on: string|null}|null, identity_document_id: int|null, vehicle_plate: string|null}
+     * @return array{identity: array{type: string, number: string, issuing_country_code: string|null, expires_on: string|null}|null, identity_document_id: int|null, vehicle_plate: string|null, remarks: string|null}
      */
     public function actionInput(): array
     {
@@ -48,6 +49,7 @@ class SaveRegistrationCardDraftRequest extends FormRequest
             'identity' => CardIdentityRules::newDocument($validated),
             'identity_document_id' => isset($validated['identity_document_id']) ? (int) $validated['identity_document_id'] : null,
             'vehicle_plate' => $validated['vehicle_plate'] ?? null,
+            'remarks' => $validated['remarks'] ?? null,
         ];
     }
 

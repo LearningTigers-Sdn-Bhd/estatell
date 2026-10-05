@@ -89,9 +89,11 @@ test('the layout tab lists the fields in card order', function () {
             ->where('fields.1.field', 'nationality')
             ->where('fields.1.canHide', true)
             ->where('fields.1.canRequire', true)
-            ->where('fields.9.field', 'marketing_consent')
-            ->where('fields.9.canRequire', false)
-            ->where('fields.10.displayOnly', true)
+            ->where('fields.9.field', 'remarks')
+            ->where('fields.9.canRequire', true)
+            ->where('fields.10.field', 'marketing_consent')
+            ->where('fields.10.canRequire', false)
+            ->where('fields.11.displayOnly', true)
             ->where('propertyName', $property->name)
             ->missing('registrationCardScopes'));
 });
@@ -286,8 +288,8 @@ test('an order that leaves a group or repeats a field is refused', function (cal
     expect(registrationCardOrder($property))->toBe($original)
         ->and(Activity::query()->where('event', 'registration_card_fields.updated')->count())->toBe(0);
 })->with([
-    'a stay field before the guest fields' => [fn (array $order): array => [...array_slice($order, 10, 1), ...array_slice($order, 0, 10), ...array_slice($order, 11)]],
-    'a repeated field' => [fn (array $order): array => [...array_slice($order, 0, 17), 'phone']],
+    'a stay field before the guest fields' => [fn (array $order): array => [...array_slice($order, 11, 1), ...array_slice($order, 0, 11), ...array_slice($order, 12)]],
+    'a repeated field' => [fn (array $order): array => [...array_slice($order, 0, 18), 'phone']],
     'a missing field' => [fn (array $order): array => array_slice($order, 0, 17)],
 ]);
 

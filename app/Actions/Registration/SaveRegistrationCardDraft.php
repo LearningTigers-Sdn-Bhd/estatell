@@ -14,12 +14,12 @@ class SaveRegistrationCardDraft
     public function __construct(private AddIdentityDocument $addIdentityDocument) {}
 
     /**
-     * Staff pick the ID document and type the vehicle plate before the card goes to the guest.
+     * Staff pick the ID document and type the vehicle plate and remarks before the card goes to the guest.
      * A new document is added to the guest's profile.
      *
      * Returns false, without writing, when the card is not a draft or the guest's profile is closed.
      *
-     * @param  array{identity: array{type: string, number: string, issuing_country_code: string|null, expires_on: string|null}|null, identity_document_id: int|null, vehicle_plate: string|null}  $input
+     * @param  array{identity: array{type: string, number: string, issuing_country_code: string|null, expires_on: string|null}|null, identity_document_id: int|null, vehicle_plate: string|null, remarks: string|null}  $input
      */
     public function __invoke(User $actor, RegistrationCard $card, array $input): bool
     {
@@ -42,7 +42,7 @@ class SaveRegistrationCardDraft
                 $documentId = $document->id;
             }
 
-            $card->forceFill(['identity_document_id' => $documentId, 'vehicle_plate' => $input['vehicle_plate']])->save();
+            $card->forceFill(['identity_document_id' => $documentId, 'vehicle_plate' => $input['vehicle_plate'], 'remarks' => $input['remarks']])->save();
 
             return true;
         });

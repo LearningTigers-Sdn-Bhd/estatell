@@ -379,11 +379,11 @@ test('every action refuses a card that is not a draft, without writing', functio
     $card->forceFill(['status' => RegistrationCardStatus::Void])->save();
 
     $signed = app(SignRegistrationCard::class)($setup['owner'], $card, [
-        'profile' => ['full_name' => 'X'], 'identity' => null, 'identity_document_id' => null, 'vehicle_plate' => null,
+        'profile' => ['full_name' => 'X'], 'identity' => null, 'identity_document_id' => null, 'vehicle_plate' => null, 'remarks' => null,
         'marketing_consent' => false, 'locale' => Locale::English, 'ticks' => cardTicks($setup['property']), 'signature' => CARD_SIGNATURE, 'signer_name' => 'X',
     ]);
 
-    $saved = app(SaveRegistrationCardDraft::class)($setup['owner'], $card, ['identity' => null, 'identity_document_id' => null, 'vehicle_plate' => 'WXY 1']);
+    $saved = app(SaveRegistrationCardDraft::class)($setup['owner'], $card, ['identity' => null, 'identity_document_id' => null, 'vehicle_plate' => 'WXY 1', 'remarks' => null]);
 
     expect($signed)->toBeFalse()
         ->and($saved)->toBeFalse()
@@ -440,6 +440,60 @@ test('staff save the ID document and the vehicle plate on a draft, and the guest
     $this->put($url, ['vehicle_plate' => 'Changed'])->assertSessionHas('inertia.flash_data.toast.type', 'error');
 
     expect($card->refresh()->vehicle_plate)->toBe('WXY 1234');
+});
+
+test('remarks sit after the vehicle plate, are optional by default and are saved by staff on a draft', function () {
+    $setup = cardSetup();
+    $fields = $setup['property']->registrationCardFields()->ordered()->pluck('field')->map->value->all();
+    $url = route('registration.update', [$setup['property']->code, $setup['unitGuest']]);
+
+    expect($fields[array_search('vehicle_plate', $fields, true) + 1])->toBe('remarks')
+        ->and($setup['property']->registrationCardFields()->where('field', 'remarks')->sole()->visibility->value)->toBe('optional');
+
+    $this->actingAs($setup['owner'])->put($url, ['remarks' => 'Late arrival'])->assertSessionHasNoErrors();
+
+    expect(RegistrationCard::query()->sole()->remarks)->toBe('Late arrival');
+
+    $this->put($url, ['remarks' => str_repeat('a', 501)])->assertSessionHasErrors('remarks');
+
+    expect(RegistrationCard::query()->sole()->remarks)->toBe('Late arrival');
+});
+
+test('signing follows the Layout for remarks and freezes them in the snapshot and the PDF', function () {
+    $setup = cardSetup();
+    $field = $setup['property']->registrationCardFields()->where('field', 'remarks');
+
+    $field->update(['visibility' => 'required']);
+    $this->actingAs($setup['owner'])->post(signUrl($setup), cardPayload($setup))->assertSessionHasErrors('remarks');
+    $this->post(signUrl($setup), cardPayload($setup, ['remarks' => str_repeat('a', 501)]))->assertSessionHasErrors('remarks');
+
+    $field->update(['visibility' => 'hidden']);
+    $this->post(signUrl($setup), cardPayload($setup, ['remarks' => 'Ignored']))->assertSessionHasNoErrors();
+
+    expect(RegistrationCard::query()->sole()->remarks)->toBeNull();
+});
+
+test('signed remarks are frozen and printed on the card', function () {
+    $setup = cardSetup();
+    $this->actingAs($setup['owner'])->post(signUrl($setup), cardPayload($setup, ['remarks' => 'Extra pillow']))->assertSessionHasNoErrors();
+
+    $card = RegistrationCard::query()->sole();
+    $document = app(RegistrationCardDocumentBuilder::class)->forSigned($card);
+    $card->forceFill(['remarks' => 'Changed later'])->save();
+
+    expect(collect($card->snapshot['fields'])->firstWhere('field', 'remarks')['value'])->toBe('Extra pillow')
+        ->and(collect($document->fields)->firstWhere('field', 'remarks')['value'])->toBe('Extra pillow')
+        ->and(view('pdf.registration-card', ['document' => $document])->render())->toContain('Extra pillow');
+});
+
+test('a blank form shows an empty remarks box', function () {
+    $setup = cardSetup();
+    $card = app(PrepareRegistrationCard::class)($setup['unitGuest']);
+
+    $document = app(RegistrationCardDocumentBuilder::class)->forBlank($setup['property'], $card, Locale::English);
+
+    expect(collect($document->fields)->firstWhere('field', 'remarks')['value'])->toBe('')
+        ->and(view('pdf.registration-card', ['document' => $document])->render())->toContain('remarks-empty');
 });
 
 test('the draft cannot use another guest\'s ID document', function () {
@@ -562,7 +616,7 @@ test('a signed document is built from the snapshot in the signed language', func
 
     expect($document->locale)->toBe(Locale::Malay)
         ->and($document->number)->toBe($card->number)
-        ->and($document->fields[0])->toBe(['section' => 'guest', 'label' => 'Nama penuh', 'value' => 'Aisyah Rahman'])
+        ->and($document->fields[0])->toBe(['field' => 'full_name', 'section' => 'guest', 'label' => 'Nama penuh', 'value' => 'Aisyah Rahman'])
         ->and(collect($document->fields)->firstWhere('label', 'Kewarganegaraan')['value'])->toBe('Malaysia')
         ->and(array_column($document->items, 'ticked'))->each->toBeTrue()
         ->and($document->signatureDataUri)->toStartWith('data:image/png;base64,')
@@ -586,7 +640,7 @@ test('a blank document has every visible field, empty boxes and no signature', f
 });
 
 test('a document with Chinese text switches to the CJK font and still renders', function () {
-    $document = new RegistrationCardDocument(Locale::English, 'Hotel', 'RC-1', [['section' => 'guest', 'label' => 'Name', 'value' => '王小明']], '<p>入住须知 ✓</p>', [['text' => '我同意', 'ticked' => true]], null, null, null);
+    $document = new RegistrationCardDocument(Locale::English, 'Hotel', 'RC-1', [['field' => 'full_name', 'section' => 'guest', 'label' => 'Name', 'value' => '王小明']], '<p>入住须知 ✓</p>', [['text' => '我同意', 'ticked' => true]], null, null, null);
     $plain = new RegistrationCardDocument(Locale::English, 'Hotel', null, [], '<p>Terms</p>', [], null, null, null);
 
     expect($document->needsCjk())->toBeTrue()

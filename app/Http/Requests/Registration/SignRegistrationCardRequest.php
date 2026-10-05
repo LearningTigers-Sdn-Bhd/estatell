@@ -72,6 +72,10 @@ class SignRegistrationCardRequest extends FormRequest
             $rules['vehicle_plate'] = [($visibility[RegistrationCardField::VehiclePlate->value] === FieldVisibility::Required ? 'required' : 'nullable'), 'string', 'max:20'];
         }
 
+        if (($visibility[RegistrationCardField::Remarks->value] ?? FieldVisibility::Hidden) !== FieldVisibility::Hidden) {
+            $rules['remarks'] = [($visibility[RegistrationCardField::Remarks->value] === FieldVisibility::Required ? 'required' : 'nullable'), 'string', 'max:500'];
+        }
+
         if (($visibility[RegistrationCardField::MarketingConsent->value] ?? FieldVisibility::Hidden) !== FieldVisibility::Hidden) {
             $rules['marketing_consent'] = ['nullable', 'boolean'];
         }
@@ -110,6 +114,7 @@ class SignRegistrationCardRequest extends FormRequest
             'identity' => CardIdentityRules::newDocument($validated),
             'identity_document_id' => isset($validated['identity_document_id']) ? (int) $validated['identity_document_id'] : null,
             'vehicle_plate' => $validated['vehicle_plate'] ?? null,
+            'remarks' => $validated['remarks'] ?? null,
             'marketing_consent' => (bool) ($validated['marketing_consent'] ?? false),
             'locale' => Locale::from($validated['locale']),
             'ticks' => array_map('intval', $validated['ticks'] ?? []),

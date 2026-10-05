@@ -13,6 +13,7 @@ const samples: Record<string, string> = {
     phone: '+60 12 345 6789',
     email: 'aisyah@example.com',
     vehicle_plate: 'WXY 1234',
+    remarks: 'Late arrival, extra pillow',
     booking_number: 'BK-0142',
     check_in: '12 Jun 2026, 15:00',
     check_out: '15 Jun 2026, 11:00',

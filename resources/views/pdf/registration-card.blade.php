@@ -25,6 +25,9 @@
         .grid td { width: 50%; padding: 0 12pt 4pt 0; }
         .grid .label-text { font-size: 7.5pt; color: #6b6b6b; }
         .grid .value { font-size: 9pt; font-weight: bold; min-height: 11pt; }
+        .remarks .label-text { font-size: 7.5pt; color: #6b6b6b; }
+        .remarks-box { font-size: 9pt; font-weight: bold; white-space: pre-wrap; }
+        .remarks-empty { height: 40pt; border: 0.5pt solid #c8c8c8; }
         .box { font-family: 'Noto Sans Symbols 2', sans-serif; font-size: 12pt; width: 20pt; }
         .items td { vertical-align: middle; padding: 1pt 0; }
         .terms { font-size: 7.5pt; line-height: 1.5; }
@@ -63,8 +66,10 @@
     </table>
 
     @foreach ($sections as $key => $title)
-        @php($rows = array_values(array_filter($document->fields, fn (array $field): bool => $field['section'] === $key)))
-        @if ($rows !== [])
+        @php($inSection = array_values(array_filter($document->fields, fn (array $field): bool => $field['section'] === $key)))
+        @php($rows = array_values(array_filter($inSection, fn (array $field): bool => $field['field'] !== 'remarks')))
+        @php($remarks = collect($inSection)->firstWhere('field', 'remarks'))
+        @if ($inSection !== [])
             <div class="section">
                 <div class="section-title">{{ $title }}</div>
                 <table class="grid">
@@ -86,6 +91,12 @@
                         </tr>
                     @endforeach
                 </table>
+                @if ($remarks)
+                    <div class="remarks">
+                        <div class="label-text">{{ $remarks['label'] }}</div>
+                        <div class="remarks-box @if ($remarks['value'] === '') remarks-empty @endif">{{ $remarks['value'] }}</div>
+                    </div>
+                @endif
             </div>
         @endif
     @endforeach

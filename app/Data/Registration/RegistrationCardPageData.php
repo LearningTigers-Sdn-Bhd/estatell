@@ -120,6 +120,7 @@ class RegistrationCardPageData extends Data
                 'postal_code' => $guest->postal_code,
                 'country_code' => $guest->country_code,
                 'vehicle_plate' => $card->vehicle_plate,
+                'remarks' => $card->remarks,
                 'marketing_consent' => $guest->marketing_consent_at !== null,
             ],
             documents: $documents->map(fn (GuestIdentityDocument $document): array => ['id' => $document->id, 'label' => $document->type->label().' '.$document->maskedNumber()])->values()->all(),

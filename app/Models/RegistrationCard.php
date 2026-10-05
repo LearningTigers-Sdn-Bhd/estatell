@@ -23,6 +23,7 @@ use Spatie\MediaLibrary\InteractsWithMedia;
  * @property int|null $identity_document_id
  * @property int|null $terms_id
  * @property string|null $vehicle_plate
+ * @property string|null $remarks
  * @property Carbon|null $signed_at
  * @property string|null $signer_name
  * @property string|null $void_reason
@@ -31,7 +32,7 @@ use Spatie\MediaLibrary\InteractsWithMedia;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-#[Fillable(['vehicle_plate'])]
+#[Fillable(['vehicle_plate', 'remarks'])]
 class RegistrationCard extends Model implements HasMedia
 {
     /** @use HasFactory<RegistrationCardFactory> */

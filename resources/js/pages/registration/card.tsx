@@ -23,6 +23,12 @@ import {
     FieldLabel,
 } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
+import {
+    InputGroup,
+    InputGroupAddon,
+    InputGroupText,
+    InputGroupTextarea,
+} from '@/components/ui/input-group';
 import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
 import {
@@ -125,7 +131,7 @@ function Details({
 
 /**
  * A draft: the current answers, read-only, and the two things staff set before handing over:
- * the ID document and the vehicle plate. The guest fills the rest on the guest screen.
+ * the ID document, the vehicle plate and the remarks. The guest fills the rest on the guest screen.
  */
 function DraftCard({
     card,
@@ -147,13 +153,16 @@ function DraftCard({
             expires_on: '',
         },
         vehicle_plate: (card.values.vehicle_plate as string) ?? '',
+        remarks: (card.values.remarks as string) ?? '',
     });
     const errors = form.errors as Record<string, string>;
 
     return (
         <div className="flex flex-col gap-6">
             <Details fields={card.draftFields ?? []} />
-            {(shown.has('identity_document') || shown.has('vehicle_plate')) && (
+            {(shown.has('identity_document') ||
+                shown.has('vehicle_plate') ||
+                shown.has('remarks')) && (
                 <form
                     className="flex flex-col gap-4 rounded-lg border p-4"
                     onSubmit={(event) => {
@@ -200,6 +209,41 @@ function DraftCard({
                                     aria-invalid={!!errors.vehicle_plate}
                                 />
                                 <FieldError>{errors.vehicle_plate}</FieldError>
+                            </Field>
+                        )}
+                        {shown.has('remarks') && (
+                            <Field
+                                data-invalid={!!errors.remarks}
+                                className="sm:col-span-2"
+                            >
+                                <FieldLabel htmlFor="card-remarks">
+                                    Remarks
+                                </FieldLabel>
+                                <InputGroup>
+                                    <InputGroupTextarea
+                                        id="card-remarks"
+                                        value={form.data.remarks}
+                                        onChange={(event) =>
+                                            form.setData(
+                                                'remarks',
+                                                event.target.value,
+                                            )
+                                        }
+                                        maxLength={500}
+                                        rows={3}
+                                        placeholder="Requests or notes about the stay"
+                                        aria-invalid={!!errors.remarks}
+                                    />
+                                    <InputGroupAddon
+                                        align="block-end"
+                                        className="justify-end"
+                                    >
+                                        <InputGroupText className="tabular-nums">
+                                            {form.data.remarks.length}/500
+                                        </InputGroupText>
+                                    </InputGroupAddon>
+                                </InputGroup>
+                                <FieldError>{errors.remarks}</FieldError>
                             </Field>
                         )}
                     </FieldGroup>

@@ -46,7 +46,7 @@ class SignRegistrationCard
      * no published terms, the ticks do not cover every checklist item, or the signature is not a PNG image.
      * Required fields are checked by the Form Request.
      *
-     * @param  array{profile: array<string, mixed>, identity: array<string, mixed>|null, identity_document_id: int|null, vehicle_plate: string|null, marketing_consent: bool, locale: Locale, ticks: list<int>, signature: string, signer_name: string}  $input
+     * @param  array{profile: array<string, mixed>, identity: array<string, mixed>|null, identity_document_id: int|null, vehicle_plate: string|null, remarks: string|null, marketing_consent: bool, locale: Locale, ticks: list<int>, signature: string, signer_name: string}  $input
      */
     public function __invoke(User $actor, RegistrationCard $card, array $input): bool
     {
@@ -83,6 +83,7 @@ class SignRegistrationCard
             $signedAt = now();
             $guest->refresh();
             $card->vehicle_plate = $input['vehicle_plate'];
+            $card->remarks = $input['remarks'];
 
             $card->forceFill([
                 'status' => RegistrationCardStatus::Signed,

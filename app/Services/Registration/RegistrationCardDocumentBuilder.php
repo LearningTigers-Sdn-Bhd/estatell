@@ -95,7 +95,7 @@ class RegistrationCardDocumentBuilder
 
     /**
      * @param  list<array{field: string, label: string, value: string}>  $fields
-     * @return list<array{section: string, label: string, value: string}>
+     * @return list<array{field: string, section: string, label: string, value: string}>
      */
     private function translatedFields(Locale $locale, array $fields): array
     {
@@ -103,6 +103,7 @@ class RegistrationCardDocumentBuilder
             $case = RegistrationCardField::tryFrom($field['field']);
 
             return [
+                'field' => $field['field'],
                 'section' => $case?->group()->value ?? 'guest',
                 'label' => __($case?->label() ?? $field['label'], [], $locale->value),
                 'value' => $field['value'],

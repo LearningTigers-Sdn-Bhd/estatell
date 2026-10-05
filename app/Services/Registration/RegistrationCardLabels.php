@@ -19,7 +19,7 @@ class RegistrationCardLabels
         'Clear', 'Done', 'Cancel', 'Sign card', 'Name of signer', 'ID document', 'Use this document', 'Enter a different document',
         'Document type', 'Document number', 'Issuing country', 'Address line 1', 'Address line 2', 'City', 'State',
         'Postal code', 'Country', 'I agree to receive offers', 'Please sign in the box.', 'Street and number', 'Unit, floor or building', 'Type your full name', 'Select',
-        'Welcome, :name', 'Guest :position of :total', 'Agree to all', 'Untick all', ':ticked of :total confirmed', 'Your stay', 'Pick date of birth', 'Personal', 'Contact', 'Identity', 'Preferences', ':count to confirm', 'Signature needed', 'Full screen', 'Thank you.',
+        'Welcome, :name', 'Guest :position of :total', 'Agree to all', 'Untick all', ':ticked of :total confirmed', 'Your stay', 'Pick date of birth', 'Personal', 'Contact', 'Identity', 'Preferences', 'Requests or notes about your stay', ':count to confirm', 'Signature needed', 'Full screen', 'Thank you.',
         'Next: :name (:position of :total)', 'Continue', 'All done. Please return the device to the front desk.', 'Staff: back to desk',
     ];
 

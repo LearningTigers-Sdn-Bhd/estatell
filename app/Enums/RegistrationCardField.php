@@ -16,6 +16,7 @@ enum RegistrationCardField: string
     case Phone = 'phone';
     case Email = 'email';
     case VehiclePlate = 'vehicle_plate';
+    case Remarks = 'remarks';
     case MarketingConsent = 'marketing_consent';
     case BookingNumber = 'booking_number';
     case CheckIn = 'check_in';
@@ -38,6 +39,7 @@ enum RegistrationCardField: string
             self::Phone => __('Phone'),
             self::Email => __('Email'),
             self::VehiclePlate => __('Vehicle plate'),
+            self::Remarks => __('Remarks'),
             self::MarketingConsent => __('Marketing consent'),
             self::BookingNumber => __('Booking number'),
             self::CheckIn => __('Check-in'),
@@ -62,6 +64,7 @@ enum RegistrationCardField: string
             self::Phone,
             self::Email,
             self::VehiclePlate,
+            self::Remarks,
             self::MarketingConsent => RegistrationCardFieldGroup::Guest,
             self::BookingNumber,
             self::CheckIn,
@@ -104,6 +107,7 @@ enum RegistrationCardField: string
             self::Address,
             self::Email,
             self::VehiclePlate,
+            self::Remarks,
             self::MarketingConsent => FieldVisibility::Optional,
             self::Gender,
             self::RatePerNight,
