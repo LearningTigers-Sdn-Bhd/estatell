@@ -63,6 +63,8 @@ Routes are in `routes/registration.php`. All need `registration-card.sign`, exce
 | `GET …/{unitGuest}/guest`                | `registration.guest`  | Guest screen, with `?locale=`                                                               |
 | `POST …/{unitGuest}/sign`                | `registration.sign`   | Signs. Success goes to `registration.done`, a refusal back to the guest screen with a toast |
 | `GET …/{unitGuest}/done`                 | `registration.done`   | Thank-you screen                                                                            |
+| `GET …/{unitGuest}/pdf`                  | `registration.pdf`    | Downloads the signed card as a PDF (rendered on first download, then the stored file)       |
+| `GET …/{unitGuest}/blank`                | `registration.blank`  | Prints the draft as a PDF without a signature, with `?locale=`                              |
 | `POST …/{unitGuest}/void`                | `registration.void`   | Voids, needs `registration-card.void`                                                       |
 
 ## Staff card page
@@ -138,8 +140,11 @@ The card's labels are in `lang/ms.json` (new folder `lang/` at the project root,
 ## Rules
 
 - Signed cards are never edited. Changes void the card and a new card is signed.
-- The PDF is rendered with dompdf in the signed locale. It bundles Noto Sans SC and Noto Sans Symbols 2 (approved, about 10 MB each) so Chinese terms and symbols print on every host. The signature block never overlaps the footer after long terms.
-- Print blank form renders the draft as a PDF without a signature, for a guest who signs on paper.
+- The PDF is rendered with dompdf in the signed locale, from the snapshot only. `StoreRegistrationCardPdf` keeps it as the `pdf` media on the first download. A signed card never changes, so the stored file is reused.
+- The PDF layout follows the preview on the Layout tab: property name and "Registration card", sections (Guest details, Stay details, Estimated charges at booking) with a small heading and two columns of label over value, the offers line as a checkbox, Terms with the checklist as boxes, then the signature line with "Guest signature" below it.
+- Fonts are in `resources/fonts`. The body uses DejaVu Sans, and switches to Noto Sans SC when the text has Chinese, Japanese or Korean characters. The checkboxes use Noto Sans Symbols 2. dompdf runs out of memory at 128 MB on the full 10 MB Noto Sans SC, so the bundle is a static Regular subset (2 MB): the 6,763 GB2312 hanzi, Latin and common punctuation. Traditional-only and rare characters print as blanks. Bold is not available in that font. dompdf keeps its font cache in `storage/fonts` (git-ignored).
+- The signature block never splits across pages and the footer sits in the page margin, so long terms never overlap it.
+- Print blank form renders the draft as a PDF without a signature, for a guest who signs on paper. It lists every visible field (empty when unanswered), unticked boxes and a signature line, in the open language.
 - `snapshot` jsonb is allowed: it is an issued document.
 - Remote ID upload accepts JPEG, PNG or WebP up to 10 MB, on a throttled POST.
 

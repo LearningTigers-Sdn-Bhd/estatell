@@ -1,4 +1,5 @@
 import { Head, Link, useForm } from '@inertiajs/react';
+import { Download, Printer } from 'lucide-react';
 import { useState } from 'react';
 import type { EnumOption } from '@/components/pms/enum-select';
 import { PageHeader } from '@/components/pms/page-header';
@@ -28,7 +29,13 @@ import {
     index as reservationsIndex,
     show as showReservation,
 } from '@/routes/reservations';
-import { guest, update, voidMethod as voidCard } from '@/routes/registration';
+import {
+    blank,
+    guest,
+    pdf,
+    update,
+    voidMethod as voidCard,
+} from '@/routes/registration';
 
 type Card = App.Data.Registration.RegistrationCardPageData;
 
@@ -269,6 +276,35 @@ export default function RegistrationCardPage({
                                 >
                                     Void card
                                 </Button>
+                            )}
+                            {card.status.value === 'draft' && (
+                                <a
+                                    href={blank.url(
+                                        { unitGuest: card.unitGuestId },
+                                        { query: { locale: card.locale } },
+                                    )}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className={buttonVariants({
+                                        variant: 'outline',
+                                    })}
+                                >
+                                    <Printer data-icon="inline-start" />
+                                    Print blank form
+                                </a>
+                            )}
+                            {card.status.value === 'signed' && (
+                                <a
+                                    href={pdf.url({
+                                        unitGuest: card.unitGuestId,
+                                    })}
+                                    className={buttonVariants({
+                                        variant: 'outline',
+                                    })}
+                                >
+                                    <Download data-icon="inline-start" />
+                                    Download PDF
+                                </a>
                             )}
                             {card.status.value === 'draft' && (
                                 <Link

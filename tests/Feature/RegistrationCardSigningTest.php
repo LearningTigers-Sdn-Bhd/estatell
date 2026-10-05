@@ -20,7 +20,10 @@ use App\Models\Reservation;
 use App\Models\ReservationUnit;
 use App\Models\UnitGuest;
 use App\Models\User;
+use App\Services\Registration\RegistrationCardDocument;
+use App\Services\Registration\RegistrationCardDocumentBuilder;
 use App\Services\Registration\RegistrationCardLabels;
+use App\Services\Registration\RegistrationCardPdf;
 use App\Services\Registration\RegistrationCardRequirement;
 use App\Services\Registration\RegistrationCardStay;
 use App\Services\Registration\TermsRenderer;
@@ -481,4 +484,111 @@ test('a refused signature goes back to the guest screen in the same language', f
         ->post(signUrl($setup), cardPayload($setup, ['ticks' => []]))
         ->assertRedirect(route('registration.guest', [$setup['property']->code, $setup['unitGuest'], 'locale' => 'ms']))
         ->assertSessionHas('inertia.flash_data.toast.type', 'error');
+});
+
+function signedCard(array $setup, array $changes = []): RegistrationCard
+{
+    test()->actingAs($setup['owner'])->post(signUrl($setup), cardPayload($setup, $changes))->assertSessionHasNoErrors();
+
+    return RegistrationCard::query()->sole()->refresh();
+}
+
+test('the signed card downloads as a PDF that is rendered once and kept', function () {
+    $setup = cardSetup();
+    $card = signedCard($setup);
+    $url = route('registration.pdf', [$setup['property']->code, $setup['unitGuest']]);
+
+    $response = $this->get($url)->assertOk();
+
+    expect($response->headers->get('Content-Disposition'))->toContain('attachment')
+        ->and($response->headers->get('Content-Type'))->toBe('application/pdf')
+        ->and($card->getMedia(RegistrationCard::PDF))->toHaveCount(1);
+
+    $firstId = $card->getFirstMedia(RegistrationCard::PDF)->id;
+    $this->get($url)->assertOk();
+
+    expect($card->refresh()->getMedia(RegistrationCard::PDF))->toHaveCount(1)
+        ->and($card->getFirstMedia(RegistrationCard::PDF)->id)->toBe($firstId)
+        ->and(file_get_contents($card->getFirstMedia(RegistrationCard::PDF)->getPath()))->toStartWith('%PDF');
+});
+
+test('a draft card has no PDF to download', function () {
+    $setup = cardSetup();
+    $this->actingAs($setup['owner'])->get(route('registration.show', [$setup['property']->code, $setup['unitGuest']]));
+
+    $this->get(route('registration.pdf', [$setup['property']->code, $setup['unitGuest']]))
+        ->assertRedirect(route('registration.show', [$setup['property']->code, $setup['unitGuest']]))
+        ->assertInertiaFlash('toast', ['type' => 'error', 'message' => __('There is no signed card to download.')]);
+
+    expect(RegistrationCard::query()->first()->getMedia(RegistrationCard::PDF))->toHaveCount(0);
+});
+
+test('the blank form prints from a draft in the chosen language and is refused once signed', function () {
+    $setup = cardSetup();
+    $this->actingAs($setup['owner']);
+
+    $response = $this->get(route('registration.blank', [$setup['property']->code, $setup['unitGuest'], 'locale' => 'ms']))->assertOk();
+
+    expect($response->headers->get('Content-Type'))->toBe('application/pdf')
+        ->and($response->headers->get('Content-Disposition'))->toContain('inline')
+        ->and($response->getContent())->toStartWith('%PDF')
+        ->and(RegistrationCard::query()->sole()->getMedia(RegistrationCard::PDF))->toHaveCount(0);
+
+    signedCard($setup);
+
+    $this->get(route('registration.blank', [$setup['property']->code, $setup['unitGuest']]))
+        ->assertRedirect(route('registration.show', [$setup['property']->code, $setup['unitGuest']]));
+});
+
+test('the PDF routes need the sign permission and the right property', function () {
+    $setup = cardSetup();
+    $other = cardSetup();
+    $housekeeping = User::factory()->withRole(DefaultRoleEnum::Housekeeping)->create();
+
+    $this->actingAs($setup['owner'])->get(route('registration.pdf', [$setup['property']->code, $other['unitGuest']]))->assertNotFound();
+    $this->get(route('registration.blank', [$setup['property']->code, $other['unitGuest']]))->assertNotFound();
+    $this->actingAs($housekeeping)->get(route('registration.pdf', [$housekeeping->property->code, $setup['unitGuest']]))->assertForbidden();
+    $this->get(route('registration.blank', [$housekeeping->property->code, $setup['unitGuest']]))->assertForbidden();
+});
+
+test('a signed document is built from the snapshot in the signed language', function () {
+    $setup = cardSetup();
+    $card = signedCard($setup);
+    $setup['guest']->forceFill(['full_name' => 'Changed Later'])->save();
+
+    $document = app(RegistrationCardDocumentBuilder::class)->forSigned($card);
+    app()->setLocale('ms');
+    $html = view('pdf.registration-card', ['document' => $document])->render();
+
+    expect($document->locale)->toBe(Locale::Malay)
+        ->and($document->number)->toBe($card->number)
+        ->and($document->fields[0])->toBe(['section' => 'guest', 'label' => 'Nama penuh', 'value' => 'Aisyah Rahman'])
+        ->and(array_column($document->items, 'ticked'))->each->toBeTrue()
+        ->and($document->signatureDataUri)->toStartWith('data:image/png;base64,')
+        ->and($html)->toContain('Kad pendaftaran', 'Maklumat tetamu', 'Aisyah Rahman', 'Tandatangan tetamu')
+        ->and($html)->not->toContain('Changed Later');
+});
+
+test('a blank document has every visible field, empty boxes and no signature', function () {
+    $setup = cardSetup();
+    $card = app(PrepareRegistrationCard::class)($setup['unitGuest']);
+
+    $document = app(RegistrationCardDocumentBuilder::class)->forBlank($setup['property'], $card, Locale::Malay);
+
+    expect($document->locale)->toBe(Locale::Malay)
+        ->and($document->signatureDataUri)->toBeNull()
+        ->and($document->signedAt)->toBeNull()
+        ->and($document->fields)->not->toBeEmpty()
+        ->and(array_column($document->items, 'ticked'))->each->toBeFalse()
+        ->and(collect($document->fields)->contains('value', ''))->toBeTrue()
+        ->and(collect($document->fields)->pluck('label'))->not->toContain('Persetujuan pemasaran');
+});
+
+test('a document with Chinese text switches to the CJK font and still renders', function () {
+    $document = new RegistrationCardDocument(Locale::English, 'Hotel', 'RC-1', [['section' => 'guest', 'label' => 'Name', 'value' => '王小明']], '<p>入住须知 ✓</p>', [['text' => '我同意', 'ticked' => true]], null, null, null);
+    $plain = new RegistrationCardDocument(Locale::English, 'Hotel', null, [], '<p>Terms</p>', [], null, null, null);
+
+    expect($document->needsCjk())->toBeTrue()
+        ->and($plain->needsCjk())->toBeFalse()
+        ->and(app(RegistrationCardPdf::class)->render($document))->toStartWith('%PDF');
 });

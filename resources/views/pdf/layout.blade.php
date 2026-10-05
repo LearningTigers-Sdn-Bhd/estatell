@@ -25,6 +25,7 @@
         .rule td, .rule th { border-bottom: 0.5pt solid #c8c8c8; }
         .total td { border-top: 1pt solid #1a1a1a; font-weight: bold; padding-top: 8pt; }
     </style>
+    @stack('head')
 </head>
 <body>
     @yield('content')

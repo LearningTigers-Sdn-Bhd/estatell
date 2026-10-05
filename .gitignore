@@ -32,3 +32,4 @@ yarn-error.log
 /.agents/skills
 /.claude/skills
 /.grok/skills
+/storage/fonts
