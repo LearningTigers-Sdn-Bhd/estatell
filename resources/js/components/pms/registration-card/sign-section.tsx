@@ -10,7 +10,7 @@ export function SignSection({ form, word }: CardSectionProps) {
 
     return (
         <CardSection title={word('Signature')}>
-            <FieldGroup className="grid gap-4 sm:grid-cols-2">
+            <FieldGroup>
                 <CardTextField
                     form={form}
                     name="signer_name"
