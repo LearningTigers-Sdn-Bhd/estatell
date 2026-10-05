@@ -278,7 +278,7 @@ Smaller fixes and reverts are in `git log`.
 
 ### 16 Registration
 
-- [ ] `feat(registration): add registration card fields` — Docs: [Card fields](16-registration/01-card-fields.md).
+- [ ] `feat(registration): add registration card fields` — a Registration card Settings page (General and Layout tabs, the old Details tab moves there), 19 field rows with Hidden, Optional or Required, display-only stay details and prices, `SeedRegistrationCardFields`, `SaveRegistrationCardFields`, the Layout table with a live preview. Settings only; the card itself comes with the signing flow. Docs: [Card fields](16-registration/01-card-fields.md).
 - [ ] `feat(registration): add terms documents and presets` — Docs: [Terms documents and presets](16-registration/02-terms-documents-and-presets.md).
 - [ ] `feat(registration): resolve terms by locale` — Docs: [Terms resolution and locales](16-registration/03-terms-resolution-and-locales.md).
 - [ ] `feat(registration): add the card signing flow` — guest layout, signed links. Docs: [Signing flow](16-registration/04-signing-flow.md).
