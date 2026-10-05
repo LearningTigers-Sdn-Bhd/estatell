@@ -499,11 +499,11 @@ export function RegistrationCardTermsForm({
                         signed.
                     </p>
                 </div>
-                <div className="flex flex-wrap items-center gap-2">
+                <div className="flex w-full flex-wrap items-center gap-2">
                     {documents.length > 1 && editor && (
                         <EnumSelect
                             aria-label="Document"
-                            className="w-48"
+                            className="min-w-48 flex-1"
                             options={documents.map((document) => ({
                                 value: String(document.id),
                                 label: document.name,
@@ -525,7 +525,11 @@ export function RegistrationCardTermsForm({
                     {editor && (
                         <EnumSelect
                             aria-label="Language"
-                            className="w-56"
+                            className={
+                                documents.length > 1
+                                    ? 'w-56'
+                                    : 'min-w-48 flex-1'
+                            }
                             options={editor.localeOptions}
                             value={editor.locale}
                             onValueChange={(value) =>
