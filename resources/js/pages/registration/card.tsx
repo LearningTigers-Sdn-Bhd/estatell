@@ -158,7 +158,7 @@ function DraftCard({
     const errors = form.errors as Record<string, string>;
 
     return (
-        <div className="flex flex-col gap-6">
+        <div className="grid items-start gap-6 lg:grid-cols-2">
             <Details fields={card.draftFields ?? []} />
             {(shown.has('identity_document') ||
                 shown.has('vehicle_plate') ||
@@ -173,7 +173,7 @@ function DraftCard({
                     }}
                 >
                     <h4 className="text-sm font-medium">Before handing over</h4>
-                    <FieldGroup className="grid gap-4 sm:grid-cols-2">
+                    <FieldGroup className="grid gap-4">
                         {shown.has('identity_document') && (
                             <IdentityDocumentFields
                                 documents={card.documents}
@@ -264,22 +264,27 @@ function DraftCard({
 /** A signed card: what was frozen at signing. It is never edited. */
 function SignedCard({ card }: { card: Card }) {
     return (
-        <div className="flex flex-col gap-6">
+        <div className="grid items-start gap-6 lg:grid-cols-2">
             <Details fields={card.signedFields ?? []} />
-            <div className="max-h-72 overflow-y-auto rounded-lg border p-4">
-                <TermsPreview
-                    body={card.termsText}
-                    values={{}}
-                    ticks={card.signedTicks ?? []}
-                />
+            <div className="flex flex-col gap-3">
+                <div className="max-h-[32rem] overflow-y-auto rounded-lg border p-4">
+                    <TermsPreview
+                        body={card.termsText}
+                        values={{}}
+                        ticks={card.signedTicks ?? []}
+                    />
+                </div>
+                <p className="text-sm text-muted-foreground">
+                    Signed by {card.signerName}
+                    {card.signedAt && (
+                        <>
+                            {' '}
+                            on {new Date(card.signedAt).toLocaleString('en-GB')}
+                        </>
+                    )}
+                    .
+                </p>
             </div>
-            <p className="text-sm text-muted-foreground">
-                Signed by {card.signerName}
-                {card.signedAt && (
-                    <> on {new Date(card.signedAt).toLocaleString('en-GB')}</>
-                )}
-                .
-            </p>
         </div>
     );
 }

@@ -82,6 +82,7 @@ Routes are in `routes/registration.php`. All need `registration-card.sign`, exce
 └─────────────────────────────────────┴────────────────────────┘
 ```
 
+- On wide screens the page is two columns: the details on the left, the card on the right (the "Before handing over" form on a draft, the frozen terms on a signed card). On a phone they stack.
 - The details are the visible fields and the stay details, read-only. Only the ID document, the vehicle plate and the remarks (a textarea with a character counter) can be edited here, and only on a draft.
 - "This device" opens `registration.guest` in the same tab.
 - A signed card shows what was frozen at signing and Void. Hand to guest is hidden.
