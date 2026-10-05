@@ -14,6 +14,7 @@ export function TermsSection({ card, form, word }: CardSectionProps) {
     return (
         <CardSection
             title={word('Terms')}
+            fill
             action={
                 total > 1 && (
                     <div className="flex items-center gap-3">
@@ -43,7 +44,7 @@ export function TermsSection({ card, form, word }: CardSectionProps) {
                 )
             }
         >
-            <div className="max-h-96 overflow-y-auto rounded-lg border p-4">
+            <div className="min-h-80 grow basis-0 overflow-y-auto rounded-lg border p-4">
                 <TermsPreview
                     body={card.termsText}
                     values={{}}

@@ -123,7 +123,7 @@ export function RegistrationCardForm({
                 locale={card.locale}
             />
 
-            <div className="grid items-start gap-6 lg:grid-cols-2">
+            <div className="grid gap-6 lg:grid-cols-2">
                 <div className="flex flex-col gap-6">
                     <PersonalSection
                         {...section}
