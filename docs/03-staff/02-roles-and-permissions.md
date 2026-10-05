@@ -47,6 +47,9 @@ roles    spatie columns + property_id (NOT NULL, FK) + default_role (nullable)
 | `guests.merge`                   | Merge duplicate guests                                                | ✓     | ✓       | –                                 |
 | `guests.anonymize`               | Anonymize a guest (removes personal data)                             | ✓     | –       | –                                 |
 | `registration-card.manage-terms` | Registration terms: publish, add documents, apply templates           | ✓     | ✓       | –                                 |
+| `registration-card.sign`         | Prepare, complete and sign a registration card                        | ✓     | ✓       | Front desk                        |
+| `registration-card.send-link`    | Email a guest the link to sign remotely                               | ✓     | ✓       | Front desk                        |
+| `registration-card.void`         | Void a registration card                                              | ✓     | ✓       | –                                 |
 | `reservations.view`              | Reservations list and reservation page                                | ✓     | ✓       | Front desk, Finance               |
 | `reservations.manage`            | Create reservations, add units, attach guests, edit group and add-ons | ✓     | ✓       | Front desk                        |
 | `folio.post-charge`              | Post a manual charge to a unit's folio                                | ✓     | ✓       | Front desk, Finance               |
