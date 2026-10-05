@@ -1,4 +1,5 @@
 import { CountrySelect } from '@/components/pms/country-select';
+import { DatePicker } from '@/components/pms/date-picker';
 import { EnumSelect } from '@/components/pms/enum-select';
 import type { EnumOption } from '@/components/pms/enum-select';
 import { CardSection } from '@/components/pms/registration-card/card-section';
@@ -29,6 +30,7 @@ export function PersonalSection({
     countries,
 }: CardSectionProps & Pick<Options, 'genders' | 'countries'>) {
     const errors = form.errors as Record<string, string>;
+    const today = new Date().toLocaleDateString('en-CA');
 
     return (
         <CardSection title={word('Personal')}>
@@ -57,12 +59,23 @@ export function PersonalSection({
                     </Field>
                 )}
                 {has('date_of_birth') && (
-                    <CardTextField
-                        form={form}
-                        name="date_of_birth"
-                        label={mark('date_of_birth', 'Date of birth')}
-                        type="date"
-                    />
+                    <Field data-invalid={!!errors.date_of_birth}>
+                        <FieldLabel htmlFor="card-date_of_birth">
+                            {mark('date_of_birth', 'Date of birth')}
+                        </FieldLabel>
+                        <DatePicker
+                            id="card-date_of_birth"
+                            variant="dropdown"
+                            max={today}
+                            placeholder={word('Pick date of birth')}
+                            value={form.data.date_of_birth}
+                            onChange={(value) =>
+                                form.setData('date_of_birth', value)
+                            }
+                            aria-invalid={!!errors.date_of_birth}
+                        />
+                        <FieldError>{errors.date_of_birth}</FieldError>
+                    </Field>
                 )}
                 {has('gender') && (
                     <Field data-invalid={!!errors.gender}>
