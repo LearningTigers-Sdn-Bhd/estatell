@@ -58,7 +58,7 @@ room_revenue_policies   id, property_id, code (SystemTransactionCode), charge_mo
 
 - **Booked rate** is the stored nightly amount. **Current rate** is a quote for the same plan, room type and dates. When no current rate exists, the calculator falls back to the booked rate (to verify when built).
 - `PolicyChargeCalculator` (`app/Services/`) reads the policy and the unit and returns the amount. It does not post. The front desk Actions post it through `PostFolioCharge` with the policy's system code, so the taxes chosen on the Taxes tab apply. Each posting has a unique idempotency key.
-- A staff member with `front-desk.waive-fees` can waive the charge in the form. A waiver is logged with its reason.
+- A staff member with `front-desk.waive-fees` can choose **Do not charge** in the form. The reason is required and the choice is logged.
 - Free until: a cancellation made inside the window is free. Without it, every cancellation follows the charge settings.
 - Mapping from the old rules: no-show None is Free, FirstNight and FullStay are 100% of the booked rate; early departure ChargeUsedNights is Free and ChargeFull is 100% of the unused nights.
 - The policy applies at the moment of the action. A booking does not keep a copy of the policy. A snapshot waits for the confirmation document.
