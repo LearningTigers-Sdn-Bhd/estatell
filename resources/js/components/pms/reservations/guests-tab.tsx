@@ -1,10 +1,16 @@
 import { Link } from '@inertiajs/react';
-import { BookUser, UserPlus } from 'lucide-react';
+import { BookUser, IdCard, MoreHorizontal, UserPlus } from 'lucide-react';
 import { Fragment, useState } from 'react';
 import { AttachGuestSheet } from '@/components/pms/reservations/attach-guest-sheet';
 import { StatusBadge } from '@/components/pms/status-badge';
 import { Badge } from '@/components/ui/badge';
-import { Button, buttonVariants } from '@/components/ui/button';
+import { Button } from '@/components/ui/button';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import {
     Table,
     TableBody,
@@ -187,21 +193,37 @@ export function GuestsTab({
                                                     OPEN.includes(
                                                         row.unitStatus.value,
                                                     ) && (
-                                                        <Link
-                                                            href={showCard.url({
-                                                                unitGuest:
-                                                                    row.cardUnitGuestId,
-                                                            })}
-                                                            className={buttonVariants(
-                                                                {
-                                                                    variant:
-                                                                        'outline',
-                                                                    size: 'sm',
-                                                                },
-                                                            )}
-                                                        >
-                                                            Registration card
-                                                        </Link>
+                                                        <DropdownMenu>
+                                                            <DropdownMenuTrigger
+                                                                render={
+                                                                    <Button
+                                                                        variant="ghost"
+                                                                        size="icon"
+                                                                        aria-label={`Actions for ${row.name}`}
+                                                                    />
+                                                                }
+                                                            >
+                                                                <MoreHorizontal />
+                                                            </DropdownMenuTrigger>
+                                                            <DropdownMenuContent align="end">
+                                                                <DropdownMenuItem
+                                                                    render={
+                                                                        <Link
+                                                                            href={showCard.url(
+                                                                                {
+                                                                                    unitGuest:
+                                                                                        row.cardUnitGuestId,
+                                                                                },
+                                                                            )}
+                                                                        />
+                                                                    }
+                                                                >
+                                                                    <IdCard />
+                                                                    Registration
+                                                                    card
+                                                                </DropdownMenuItem>
+                                                            </DropdownMenuContent>
+                                                        </DropdownMenu>
                                                     )}
                                             </TableCell>
                                         </TableRow>
