@@ -11,7 +11,7 @@ import {
     FieldGroup,
     FieldLabel,
 } from '@/components/ui/field';
-import { Switch } from '@/components/ui/switch';
+import { Checkbox } from '@/components/ui/checkbox';
 
 type Options = {
     genders: EnumOption[];
@@ -254,7 +254,7 @@ export function PreferencesSection({ form, word, has }: CardSectionProps) {
     return (
         <CardSection title={word('Preferences')}>
             <Field orientation="horizontal">
-                <Switch
+                <Checkbox
                     id="card-marketing_consent"
                     checked={form.data.marketing_consent}
                     onCheckedChange={(checked) =>
