@@ -212,10 +212,7 @@ function DraftCard({
                             </Field>
                         )}
                         {shown.has('remarks') && (
-                            <Field
-                                data-invalid={!!errors.remarks}
-                                className="sm:col-span-2"
-                            >
+                            <Field data-invalid={!!errors.remarks}>
                                 <FieldLabel htmlFor="card-remarks">
                                     Remarks
                                 </FieldLabel>
