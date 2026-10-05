@@ -215,40 +215,40 @@ function TermsEditor({
         });
 
     return (
-        <div className="grid gap-4 lg:grid-cols-3">
-            <section className="flex flex-col gap-3 lg:col-span-2">
-                <p className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-                    {editor.isDraft ? (
-                        <>
-                            <Badge variant="outline">Draft</Badge>
-                            Not published in this language yet. It starts from
-                            the {editor.presetLabel} template.
-                        </>
-                    ) : (
-                        <>
-                            <span className="font-medium text-foreground tabular-nums">
-                                v{editor.version}
-                            </span>
-                            published{' '}
-                            {editor.publishedAt && (
-                                <time dateTime={editor.publishedAt}>
-                                    {formatDate(editor.publishedAt)}
-                                </time>
-                            )}
-                            {editor.publishedBy && <>by {editor.publishedBy}</>}
-                            {editor.presetLabel && (
-                                <Badge variant="secondary">
-                                    {editor.presetLabel} template
-                                </Badge>
-                            )}
-                        </>
-                    )}
-                </p>
+        <div className="flex flex-col gap-4">
+            <p className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                {editor.isDraft ? (
+                    <>
+                        <Badge variant="outline">Draft</Badge>
+                        Not published in this language yet. It starts from the{' '}
+                        {editor.presetLabel} template.
+                    </>
+                ) : (
+                    <>
+                        <span className="font-medium text-foreground tabular-nums">
+                            v{editor.version}
+                        </span>
+                        published{' '}
+                        {editor.publishedAt && (
+                            <time dateTime={editor.publishedAt}>
+                                {formatDate(editor.publishedAt)}
+                            </time>
+                        )}
+                        {editor.publishedBy && <>by {editor.publishedBy}</>}
+                        {editor.presetLabel && (
+                            <Badge variant="secondary">
+                                {editor.presetLabel} template
+                            </Badge>
+                        )}
+                    </>
+                )}
+            </p>
+            <div className="grid items-start gap-4 lg:grid-cols-2">
                 <Field>
                     <FieldLabel htmlFor="terms-body">Terms text</FieldLabel>
                     <Textarea
                         id="terms-body"
-                        className="min-h-96 font-mono"
+                        className="field-sizing-fixed h-128 resize-none overflow-y-auto font-mono"
                         value={form.data.body}
                         onChange={(event) =>
                             form.setData('body', event.target.value)
@@ -275,89 +275,89 @@ function TermsEditor({
                         ). Templates are a starting point, not legal advice.
                     </FieldDescription>
                 </Field>
-                {editor.newerTemplateBody !== null && (
-                    <Alert>
-                        <RefreshCw aria-hidden />
-                        <AlertTitle>A newer template is available.</AlertTitle>
-                        <AlertDescription className="flex flex-wrap items-center gap-2">
-                            Applying it makes a new version. Nothing is lost.
-                            <span className="flex gap-2">
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => setTemplateOpen(true)}
-                                >
-                                    Preview
-                                </Button>
-                                <Button
-                                    type="button"
-                                    size="sm"
-                                    disabled={applyForm.processing}
-                                    focusableWhenDisabled
-                                    onClick={() =>
-                                        applyForm.post(
-                                            apply.url({
-                                                termsDocument:
-                                                    editor.documentId,
-                                            }),
-                                            { preserveScroll: true },
-                                        )
-                                    }
-                                >
-                                    {applyForm.processing && <Spinner />}
-                                    Apply
-                                </Button>
-                            </span>
-                        </AlertDescription>
-                    </Alert>
-                )}
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div className="flex gap-2">
-                        <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => setHistoryOpen(true)}
-                        >
-                            <History data-icon="inline-start" />
-                            Version history
-                        </Button>
-                        {document?.canDelete && (
+                <section className="flex flex-col gap-2">
+                    <h4 className="text-sm leading-snug font-medium">
+                        Preview
+                    </h4>
+                    <div className="h-128 overflow-y-auto rounded-lg border p-4">
+                        <TermsPreview
+                            body={form.data.body}
+                            values={editor.placeholderValues}
+                        />
+                    </div>
+                </section>
+            </div>
+            {editor.newerTemplateBody !== null && (
+                <Alert>
+                    <RefreshCw aria-hidden />
+                    <AlertTitle>A newer template is available.</AlertTitle>
+                    <AlertDescription className="flex flex-wrap items-center gap-2">
+                        Applying it makes a new version. Nothing is lost.
+                        <span className="flex gap-2">
                             <Button
                                 type="button"
-                                variant="ghost"
-                                onClick={() => setDeleting(true)}
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setTemplateOpen(true)}
                             >
-                                <Trash2 data-icon="inline-start" />
-                                Delete document
+                                Preview
                             </Button>
-                        )}
-                    </div>
+                            <Button
+                                type="button"
+                                size="sm"
+                                disabled={applyForm.processing}
+                                focusableWhenDisabled
+                                onClick={() =>
+                                    applyForm.post(
+                                        apply.url({
+                                            termsDocument: editor.documentId,
+                                        }),
+                                        { preserveScroll: true },
+                                    )
+                                }
+                            >
+                                {applyForm.processing && <Spinner />}
+                                Apply
+                            </Button>
+                        </span>
+                    </AlertDescription>
+                </Alert>
+            )}
+            <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex gap-2">
                     <Button
                         type="button"
-                        disabled={
-                            form.processing ||
-                            (!editor.isDraft && !dirty) ||
-                            items > MAX_CHECKLIST_ITEMS
-                        }
-                        focusableWhenDisabled
-                        onClick={() => publish()}
+                        variant="outline"
+                        onClick={() => setHistoryOpen(true)}
                     >
-                        {form.processing && <Spinner />}
-                        Publish new version
+                        <History data-icon="inline-start" />
+                        Version history
                     </Button>
+                    {document?.canDelete && (
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            onClick={() => setDeleting(true)}
+                        >
+                            <Trash2 data-icon="inline-start" />
+                            Delete document
+                        </Button>
+                    )}
                 </div>
-            </section>
-
-            <aside className="flex flex-col gap-3 rounded-lg border p-4 lg:self-start">
-                <h4 className="text-[0.65rem] font-medium tracking-wide text-muted-foreground uppercase">
-                    Preview
-                </h4>
-                <TermsPreview
-                    body={form.data.body}
-                    values={editor.placeholderValues}
-                />
-            </aside>
+                <Button
+                    type="button"
+                    disabled={
+                        form.processing ||
+                        (!editor.isDraft && !dirty) ||
+                        items > MAX_CHECKLIST_ITEMS
+                    }
+                    focusableWhenDisabled
+                    onClick={() => publish()}
+                >
+                    {form.processing && <Spinner />}
+                    Publish new version
+                </Button>
+            </div>
 
             <Sheet open={historyOpen} onOpenChange={setHistoryOpen}>
                 <SheetContent className="data-[side=right]:sm:max-w-md">
