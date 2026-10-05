@@ -136,6 +136,7 @@ function AddDocumentDialog({
                         <EnumSelect
                             id="terms-document-preset"
                             name="preset"
+                            className="w-full"
                             options={presets}
                             value={form.data.preset}
                             onValueChange={(value) =>
