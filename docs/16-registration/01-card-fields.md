@@ -12,20 +12,20 @@ registration_card_fields    id, property_id, field (RegistrationCardField),
                             unique (property_id, field)
 ```
 
-- One row per field per property, always all 18. The model is `RegistrationCardFieldSetting`, because the enum already uses the name `RegistrationCardField`.
+- One row per field per property, always all 19. The model is `RegistrationCardFieldSetting`, because the enum already uses the name `RegistrationCardField`.
 - `position` is the card order. Seeding uses the enum order, and staff can move a field up or down inside its group (see [UI](#ui)). The groups keep their order: Guest details, Stay details, Prices.
 
 ## Enums
 
-- `RegistrationCardField` (18 cases, in card order). `group()`, `allowedVisibilities()`, `defaultVisibility()` and `label()` live on the enum.
+- `RegistrationCardField` (19 cases, in card order). `group()`, `allowedVisibilities()`, `defaultVisibility()` and `label()` live on the enum.
 - `RegistrationCardFieldGroup`: Guest, Stay, Prices.
 - `FieldVisibility`: Hidden, Optional, Required.
 
-| Group         | Fields                                                                                                              | Allowed values             |
-| ------------- | ------------------------------------------------------------------------------------------------------------------- | -------------------------- |
-| Guest details | FullName, Nationality, IdentityDocument, DateOfBirth, Gender, Address, Phone, Email, VehiclePlate, MarketingConsent | Hidden, Optional, Required |
-| Stay details  | BookingNumber, CheckIn, CheckOut, Nights, GuestCount, Room                                                          | Hidden, Required           |
-| Prices        | RatePerNight, TotalCharges                                                                                          | Hidden, Required           |
+| Group         | Fields                                                                                                                       | Allowed values             |
+| ------------- | ---------------------------------------------------------------------------------------------------------------------------- | -------------------------- |
+| Guest details | FullName, Nationality, IdentityDocument, DateOfBirth, Gender, Address, Phone, Email, VehiclePlate, Remarks, MarketingConsent | Hidden, Optional, Required |
+| Stay details  | BookingNumber, CheckIn, CheckOut, Nights, GuestCount, Room                                                                   | Hidden, Required           |
+| Prices        | RatePerNight, TotalCharges                                                                                                   | Hidden, Required           |
 
 The Room field prints the room type and the room number together, for example "Deluxe Queen · 204". It prints the room type alone until a room is assigned.
 
@@ -37,14 +37,14 @@ Stay details and prices are display-only. The guest does not fill them in. The U
 
 One preset for every property type, seeded by `SeedRegistrationCardFields`.
 
-| Field                                                       | Default           |
-| ----------------------------------------------------------- | ----------------- |
-| FullName                                                    | Required (locked) |
-| Nationality, IdentityDocument, Phone                        | Required          |
-| Email, Address, DateOfBirth, VehiclePlate, MarketingConsent | Optional          |
-| Gender                                                      | Hidden            |
-| BookingNumber, CheckIn, CheckOut, Nights, GuestCount, Room  | Required (shown)  |
-| RatePerNight, TotalCharges                                  | Hidden            |
+| Field                                                                | Default           |
+| -------------------------------------------------------------------- | ----------------- |
+| FullName                                                             | Required (locked) |
+| Nationality, IdentityDocument, Phone                                 | Required          |
+| Email, Address, DateOfBirth, VehiclePlate, Remarks, MarketingConsent | Optional          |
+| Gender                                                               | Hidden            |
+| BookingNumber, CheckIn, CheckOut, Nights, GuestCount, Room           | Required (shown)  |
+| RatePerNight, TotalCharges                                           | Hidden            |
 
 ## Rules
 
@@ -53,6 +53,7 @@ One preset for every property type, seeded by `SeedRegistrationCardFields`.
 - Nationality drives the `foreign_guests_only` tax rule. It cannot be Hidden while an enabled foreign-only tax exists. `SaveRegistrationCardFields` refuses the change and the page shows the reason. Enabling a foreign-only tax later does not change the card.
 - Seeding creates missing rows and never overwrites an edited row. A migration back-fills existing properties.
 - `VehiclePlate` has no guest column. The signing flow stores it on the card.
+- `Remarks` is free text, up to 500 characters, for requests or notes about the stay. Staff and the guest can both write it. Like `VehiclePlate`, it belongs to the stay, so it lives on the card (`registration_cards.remarks`), not on the guest. It is separate from `reservations.notes`, which stays internal. The signing flow freezes it in the snapshot and the PDF prints it. The Layout tab places it after VehiclePlate. The back-fill migration adds the row to existing properties at that position, so the later positions move by one.
 
 ## Booking summary
 
@@ -91,7 +92,7 @@ General opens first. The Layout tab is full width, in a three-column grid. The t
 
 ## Actions
 
-`SeedRegistrationCardFields`, `SaveRegistrationCardFields` (saves the visibility and order of all 18 rows in one transaction, returns false without writing when Nationality would be hidden while a foreign-only tax is enabled or the order moves a field out of its group, logs `registration_card_fields.updated` when something changed).
+`SeedRegistrationCardFields`, `SaveRegistrationCardFields` (saves the visibility and order of all 19 rows in one transaction, returns false without writing when Nationality would be hidden while a foreign-only tax is enabled or the order moves a field out of its group, logs `registration_card_fields.updated` when something changed).
 
 ## Lessons from wastays
 

@@ -18,11 +18,11 @@ Capture guest details, ID and signature at check-in, at the desk or remotely.
 
 ```
 registration_cards    id, property_id, unit_guest_id, number, status (RegistrationCardStatus),
-                      identity_document_id (nullable), terms_id, vehicle_plate (nullable), signed_at, signer_name,
+                      identity_document_id (nullable), terms_id, vehicle_plate (nullable), remarks (nullable), signed_at, signer_name,
                       void_reason (nullable), voided_at (nullable), snapshot (jsonb, frozen at signing), timestamps
 ```
 
-- `vehicle_plate` belongs to the stay, not to the guest, so it lives on the card.
+- `vehicle_plate` and `remarks` (text, up to 500 characters) belong to the stay, not to the guest, so they live on the card.
 - `property_id` scopes every query. `unit_guest_id` has a foreign key (restrict). `terms_id` has a foreign key to `registration_card_terms` (restrict), so signed terms can never be removed. `identity_document_id` has a foreign key (null on delete).
 - A partial unique index allows one non-void card per `unit_guest_id`.
 - `number` comes from `DocumentSequence` with `DocumentType::RegistrationCard`.
@@ -35,7 +35,7 @@ registration_cards    id, property_id, unit_guest_id, number, status (Registrati
 ## Flow
 
 1. `PrepareRegistrationCard` finds or creates the draft card and pre-fills guest, ID document and stay details.
-2. Staff check the card on the staff page and, if needed, pick the ID document and type the vehicle plate (`SaveRegistrationCardDraft`).
+2. Staff check the card on the staff page and, if needed, pick the ID document and type the vehicle plate and remarks (`SaveRegistrationCardDraft`).
 3. Hand to guest:
     - This device: staff open the guest screen. The guest checks the details, ticks the terms, signs and taps Sign card (`SignRegistrationCard`).
     - Guest's phone (step 3): the staff page shows a QR code of the signed link. `SendRegistrationCardLink` also emails it. The link lasts 7 days and has a Resend button. The guest completes fields, uploads ID and signs on the same guest screen.
@@ -46,7 +46,7 @@ registration_cards    id, property_id, unit_guest_id, number, status (Registrati
 | Action                      | Does                                                                                                                                                                                    |
 | --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `PrepareRegistrationCard`   | Finds or creates the draft for a unit guest.                                                                                                                                            |
-| `SaveRegistrationCardDraft` | Sets `identity_document_id` (an existing document, or a new one through `AddIdentityDocument`) and `vehicle_plate` on a draft. Refuses a card that is not a draft.                      |
+| `SaveRegistrationCardDraft` | Sets `identity_document_id` (an existing document, or a new one through `AddIdentityDocument`) `vehicle_plate` and `remarks` on a draft. Refuses a card that is not a draft.            |
 | `SignRegistrationCard`      | Checks the checklist and the signature, updates the guest with `UpdateGuest`, sets `guests.preferred_locale`, stores the signature, freezes the snapshot and sets the status to Signed. |
 | `VoidRegistrationCard`      | Voids a Draft or Signed card with a reason and logs it.                                                                                                                                 |
 
@@ -59,7 +59,7 @@ Routes are in `routes/registration.php`. All need `registration-card.sign`, exce
 | Method and URL                           | Name                  | Does                                                                                        |
 | ---------------------------------------- | --------------------- | ------------------------------------------------------------------------------------------- |
 | `GET /p/{code}/registration/{unitGuest}` | `registration.show`   | Staff page                                                                                  |
-| `PUT …/{unitGuest}`                      | `registration.update` | Saves the ID document and vehicle plate on the draft                                        |
+| `PUT …/{unitGuest}`                      | `registration.update` | Saves the ID document, vehicle plate and remarks on the draft                               |
 | `GET …/{unitGuest}/guest`                | `registration.guest`  | Guest screen, with `?locale=`                                                               |
 | `POST …/{unitGuest}/sign`                | `registration.sign`   | Signs. Success goes to `registration.done`, a refusal back to the guest screen with a toast |
 | `GET …/{unitGuest}/done`                 | `registration.done`   | Thank-you screen                                                                            |
@@ -76,12 +76,13 @@ Routes are in `routes/registration.php`. All need `registration-card.sign`, exce
 │ Details (read-only)                 │ Hand to guest          │
 │ ID document  [MyKad •••• 1234 ▾]    │  This device           │
 │ Vehicle plate [WXY 1234]   [Save]   │  Guest's phone (QR)    │ (step 3)
+│ Remarks       [Late arrival…]       │                        │
 │                                     │ Print blank form       │ (step 2)
 │                                     │ Void                   │
 └─────────────────────────────────────┴────────────────────────┘
 ```
 
-- The details are the visible fields and the stay details, read-only. Only the ID document and the vehicle plate can be edited here, and only on a draft.
+- The details are the visible fields and the stay details, read-only. Only the ID document, the vehicle plate and the remarks (a textarea with a character counter) can be edited here, and only on a draft.
 - "This device" opens `registration.guest` in the same tab.
 - A signed card shows what was frozen at signing and Void. Hand to guest is hidden.
 - A unit that is cancelled, a no-show or checked out has no card, and neither has a guest who was merged or anonymized.
@@ -112,6 +113,7 @@ Routes are in `routes/registration.php`. All need `registration-card.sign`, exce
 - The stay card at the top has the check-in and check-out dates large, with the weekday, and the night count between them. The booking number is small at the top right. The other visible stay fields sit in an even grid (4 columns, 2 on a phone). A field the Layout tab hides does not show. Prices, when visible, sit in their own row under a divider.
 - The sticky footer says what is missing ("5 boxes left", "signature needed") beside Sign card.
 - The fields follow the Layout tab. The ID document picked by staff shows masked and read-only. If none is picked and the field is Required, the guest types it.
+- Remarks is a textarea in the Preferences section, with a counter ("0/500") and a placeholder asking for requests or notes about the stay. The guest and staff can both write it, and staff see it on the staff page before handing over. A Hidden field does not show.
 - The language Select lists the languages from `RegistrationTermsResolver`. Switching resets the ticks and keeps the typed values.
 - The signature pad is on the page, not in a dialog. Clear sits above the pad, away from Sign card. ⤢ opens the pad full screen with the strokes so far. Done copies the strokes back to the page. Cancel (or Escape) drops what was drawn full screen and keeps the page as it was.
 - Sign card stays disabled until every Required field, every checklist box and the signature are done.
@@ -137,7 +139,7 @@ Routes are in `routes/registration.php`. All need `registration-card.sign`, exce
 
 ## Snapshot
 
-`snapshot` is jsonb, allowed because it is an issued document. It holds the values of the visible fields, the stay details, the filled terms text, the ticked items, the locale, the signer name, and the ID type with a masked number. Prices appear only when their fields are visible. A signed card never reads the live ID document.
+`snapshot` is jsonb, allowed because it is an issued document. It holds the values of the visible fields, the stay details, the filled terms text, the ticked items, the locale, the signer name, and the ID type with a masked number. Remarks is part of the visible fields, so it is frozen with the rest. Prices appear only when their fields are visible. A signed card never reads the live ID document.
 
 ## Labels in Bahasa Malaysia
 
@@ -147,7 +149,7 @@ The card's labels are in `lang/ms.json` (new folder `lang/` at the project root,
 
 - Signed cards are never edited. Changes void the card and a new card is signed.
 - The PDF is rendered with dompdf in the signed locale, from the snapshot only. `StoreRegistrationCardPdf` keeps it as the `pdf` media on the first download. A signed card never changes, so the stored file is reused.
-- The PDF layout follows the preview on the Layout tab: property name and "Registration card", sections (Guest details, Stay details, Estimated charges at booking) with a small heading and two columns of label over value, the offers line as a checkbox, Terms with the checklist as boxes, then the signature line with "Guest signature" below it.
+- The PDF layout follows the preview on the Layout tab: property name and "Registration card", sections (Guest details, Stay details, Estimated charges at booking) with a small heading and two columns of label over value, the offers line as a checkbox, Remarks as a full-width line under Guest details (the blank form shows a ruled box to write in), Terms with the checklist as boxes, then the signature line with "Guest signature" below it.
 - Fonts are in `resources/fonts`. The body uses DejaVu Sans, and switches to Noto Sans SC when the text has Chinese, Japanese or Korean characters. The checkboxes use Noto Sans Symbols 2. dompdf runs out of memory at 128 MB on the full 10 MB Noto Sans SC, so the bundle is a static Regular subset (2 MB): the 6,763 GB2312 hanzi, Latin and common punctuation. Traditional-only and rare characters print as blanks. Bold is not available in that font. dompdf keeps its font cache in `storage/fonts` (git-ignored).
 - The signature block never splits across pages and the footer sits in the page margin, so long terms never overlap it.
 - Print blank form renders the draft as a PDF without a signature, for a guest who signs on paper. It lists every visible field (empty when unanswered), unticked boxes and a signature line, in the open language.
