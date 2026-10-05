@@ -135,7 +135,7 @@ export default function RegistrationCardPage({
     return (
         <>
             <Head title="Registration card" />
-            <div className="flex max-w-4xl flex-col gap-4 p-4">
+            <div className="flex max-w-6xl flex-col gap-4 p-4">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                     <Heading
                         title={card.guestName}
