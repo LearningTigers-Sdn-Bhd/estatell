@@ -23,7 +23,8 @@
         .section { border-top: 0.5pt solid #c8c8c8; margin-top: 8pt; padding-top: 6pt; }
         .section-title { font-size: 7pt; letter-spacing: 0.5pt; text-transform: uppercase; color: #6b6b6b; margin-bottom: 4pt; }
         .grid td { width: 50%; padding: 0 12pt 4pt 0; }
-        .grid .value { font-weight: bold; min-height: 11pt; }
+        .grid .label-text { font-size: 7.5pt; color: #6b6b6b; }
+        .grid .value { font-size: 9pt; font-weight: bold; min-height: 11pt; }
         .box { font-family: 'Noto Sans Symbols 2', sans-serif; font-size: 12pt; width: 20pt; }
         .items td { vertical-align: middle; padding: 1pt 0; }
         .terms { font-size: 7.5pt; line-height: 1.5; }
@@ -68,7 +69,7 @@
                         <tr>
                             @foreach ($pair as $field)
                                 <td>
-                                    <div class="small muted">{{ $field['label'] }}</div>
+                                    <div class="label-text">{{ $field['label'] }}</div>
                                     <div class="value">{{ $field['value'] !== '' ? $field['value'] : "\u{00a0}" }}</div>
                                 </td>
                             @endforeach
@@ -82,15 +83,6 @@
         @endif
     @endforeach
 
-    @if ($document->marketing !== null)
-        <div class="section">
-            <table class="items"><tr>
-                <td class="box">{{ $box($document->marketing) }}</td>
-                <td>{{ __('I agree to receive offers from :name.', ['name' => $document->propertyName]) }}</td>
-            </tr></table>
-        </div>
-    @endif
-
     <div class="section">
         <div class="section-title">{{ __('Terms') }}</div>
         <div class="terms">{!! $document->termsHtml !!}</div>
@@ -98,6 +90,9 @@
             @foreach ($document->items as $item)
                 <tr><td class="box">{{ $box($item['ticked']) }}</td><td>{{ $item['text'] }}</td></tr>
             @endforeach
+            @if ($document->marketing !== null)
+                <tr><td class="box">{{ $box($document->marketing) }}</td><td>{{ __('I agree to receive offers from :name.', ['name' => $document->propertyName]) }}</td></tr>
+            @endif
         </table>
     </div>
 
