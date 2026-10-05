@@ -15,32 +15,31 @@ export function TermsSection({ card, form, word }: CardSectionProps) {
         <CardSection
             title={word('Terms')}
             fill
+            description={
+                total > 1 &&
+                word(':ticked of :total confirmed')
+                    .replace(':ticked', String(ticks.length))
+                    .replace(':total', String(total))
+            }
             action={
                 total > 1 && (
-                    <div className="flex items-center gap-3">
-                        <span className="text-sm text-muted-foreground tabular-nums">
-                            {word(':ticked of :total confirmed')
-                                .replace(':ticked', String(ticks.length))
-                                .replace(':total', String(total))}
-                        </span>
-                        <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() =>
-                                form.setData(
-                                    'ticks',
-                                    allTicked
-                                        ? []
-                                        : card.checklist.map(
-                                              (item) => item.position,
-                                          ),
-                                )
-                            }
-                        >
-                            {word(allTicked ? 'Untick all' : 'Agree to all')}
-                        </Button>
-                    </div>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() =>
+                            form.setData(
+                                'ticks',
+                                allTicked
+                                    ? []
+                                    : card.checklist.map(
+                                          (item) => item.position,
+                                      ),
+                            )
+                        }
+                    >
+                        {word(allTicked ? 'Untick all' : 'Agree to all')}
+                    </Button>
                 )
             }
         >

@@ -1,14 +1,23 @@
 import type { ReactNode } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+    Card,
+    CardAction,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from '@/components/ui/card';
 
 /** A titled card of the guest screen. */
 export function CardSection({
     title,
+    description,
     action,
     fill = false,
     children,
 }: {
     title: string;
+    description?: ReactNode;
     action?: ReactNode;
     /** Grow to the height of the column, so the last child can take the free space. */
     fill?: boolean;
@@ -16,11 +25,16 @@ export function CardSection({
 }) {
     return (
         <Card className={fill ? 'flex-1' : undefined}>
-            <CardHeader className="flex-row items-center justify-between gap-2">
+            <CardHeader>
                 <CardTitle className="font-heading text-base font-semibold">
                     {title}
                 </CardTitle>
-                {action}
+                {description && (
+                    <CardDescription className="tabular-nums">
+                        {description}
+                    </CardDescription>
+                )}
+                {action && <CardAction>{action}</CardAction>}
             </CardHeader>
             <CardContent
                 className={
