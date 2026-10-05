@@ -1,5 +1,5 @@
 import { router } from '@inertiajs/react';
-import { PenLine } from 'lucide-react';
+import { Globe, PenLine } from 'lucide-react';
 import { useEffect } from 'react';
 import type { ReactNode } from 'react';
 import { EnumSelect } from '@/components/pms/enum-select';
@@ -127,6 +127,12 @@ export function RegistrationCardForm({
                         <EnumSelect
                             aria-label={word('Language')}
                             className="w-56"
+                            icon={
+                                <Globe
+                                    aria-hidden
+                                    className="text-muted-foreground"
+                                />
+                            }
                             options={card.localeOptions}
                             value={card.locale}
                             onValueChange={switchLanguage}

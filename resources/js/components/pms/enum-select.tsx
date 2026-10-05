@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import {
     Select,
     SelectContent,
@@ -26,6 +27,8 @@ type Props = {
     allLabel?: string;
     /** Shown while nothing is picked. */
     placeholder?: string;
+    /** An icon shown at the start of the trigger. */
+    icon?: ReactNode;
     name?: string;
     id?: string;
     disabled?: boolean;
@@ -45,6 +48,7 @@ export function EnumSelect({
     onOpenChange,
     allLabel,
     placeholder,
+    icon,
     name,
     id,
     disabled,
@@ -73,6 +77,7 @@ export function EnumSelect({
                 aria-label={props['aria-label']}
                 aria-invalid={props['aria-invalid']}
             >
+                {icon}
                 <SelectValue placeholder={placeholder} className="min-w-0">
                     {(picked: string | null) => {
                         const label = items.find(
