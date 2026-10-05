@@ -314,14 +314,14 @@ export default function RoomRevenuePolicy({
                 <RoomRevenueTabs activeTab={tab}>
                     <form onSubmit={submit} className="flex flex-col gap-10">
                         <div className="flex flex-col gap-10 lg:flex-row lg:items-start">
-                            <div className="min-w-0 lg:flex-1">
+                            <div className="min-w-0">
                                 <Section
                                     id="policy-charge"
                                     title="How it charges"
                                     description={heading.description}
                                 >
                                     <div className="flex flex-col gap-6 md:flex-row md:items-start">
-                                        <Field className="md:w-96 md:shrink-0">
+                                        <Field className="md:w-80 md:shrink-0">
                                             <FieldLabel>Charge</FieldLabel>
                                             <RadioGroup
                                                 className="grid-cols-1"
@@ -367,7 +367,13 @@ export default function RoomRevenuePolicy({
                                             </FieldError>
                                         </Field>
 
-                                        <FieldGroup className="min-w-0 gap-4 md:flex-1">
+                                        <FieldGroup className="min-w-0 gap-4 md:w-80 md:shrink-0">
+                                            {data.charge_mode === 'free' && (
+                                                <FieldDescription>
+                                                    Nothing to set. Guests are
+                                                    not charged.
+                                                </FieldDescription>
+                                            )}
                                             {data.charge_mode ===
                                                 'fixed_amount' && (
                                                 <Field>
@@ -605,8 +611,8 @@ export default function RoomRevenuePolicy({
                             </div>
                         </div>
 
-                        <div className="flex flex-col gap-10 lg:flex-row lg:items-start">
-                            <div className="min-w-0 lg:w-96 lg:shrink-0">
+                        <div className="flex flex-col gap-10 lg:flex-row lg:items-start lg:gap-6">
+                            <div className="min-w-0 lg:w-80 lg:shrink-0">
                                 <Section
                                     id="policy-text"
                                     title="Policy text"
