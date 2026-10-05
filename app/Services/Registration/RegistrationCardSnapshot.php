@@ -8,6 +8,7 @@ use App\Models\GuestIdentityDocument;
 use App\Models\Property;
 use App\Models\RegistrationCard;
 use App\Models\RegistrationCardTerms;
+use App\Services\Guests\CountryOptions;
 use Carbon\CarbonInterface;
 
 /**
@@ -16,7 +17,7 @@ use Carbon\CarbonInterface;
  */
 class RegistrationCardSnapshot
 {
-    public function __construct(private TermsRenderer $renderer) {}
+    public function __construct(private TermsRenderer $renderer, private CountryOptions $countries) {}
 
     /**
      * @param  array<string, string>  $stay  from `RegistrationCardStay`
@@ -85,11 +86,11 @@ class RegistrationCardSnapshot
      */
     private function guestValues(Guest $guest, ?GuestIdentityDocument $document, RegistrationCard $card): array
     {
-        $address = array_filter([$guest->address_line1, $guest->address_line2, $guest->postal_code, $guest->city, $guest->state, $guest->country_code]);
+        $address = array_filter([$guest->address_line1, $guest->address_line2, $guest->postal_code, $guest->city, $guest->state, $this->countries->name($guest->country_code)]);
 
         return array_filter([
             'full_name' => $guest->full_name,
-            'nationality' => $guest->nationality_code,
+            'nationality' => $this->countries->name($guest->nationality_code),
             'identity_document' => $document === null ? null : $document->type->label().' '.$document->maskedNumber(),
             'date_of_birth' => $guest->date_of_birth?->format('d M Y'),
             'gender' => $guest->gender?->label(),

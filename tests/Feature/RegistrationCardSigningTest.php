@@ -563,6 +563,7 @@ test('a signed document is built from the snapshot in the signed language', func
     expect($document->locale)->toBe(Locale::Malay)
         ->and($document->number)->toBe($card->number)
         ->and($document->fields[0])->toBe(['section' => 'guest', 'label' => 'Nama penuh', 'value' => 'Aisyah Rahman'])
+        ->and(collect($document->fields)->firstWhere('label', 'Kewarganegaraan')['value'])->toBe('Malaysia')
         ->and(array_column($document->items, 'ticked'))->each->toBeTrue()
         ->and($document->signatureDataUri)->toStartWith('data:image/png;base64,')
         ->and($html)->toContain('Kad pendaftaran', 'Maklumat tetamu', 'Aisyah Rahman', 'Tandatangan tetamu')
