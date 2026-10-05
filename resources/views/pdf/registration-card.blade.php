@@ -26,8 +26,13 @@
         .grid .value { font-weight: bold; min-height: 11pt; }
         .box { font-family: 'Noto Sans Symbols 2', sans-serif; font-size: 12pt; width: 20pt; }
         .items td { vertical-align: middle; }
-        .terms p { margin: 0 0 6pt 0; }
-        .terms h1, .terms h2, .terms h3 { font-size: 10pt; margin: 8pt 0 4pt 0; }
+        .terms { font-size: 7.5pt; line-height: 1.3; }
+        .terms p { margin: 0 0 4pt 0; }
+        .terms h1, .terms h2, .terms h3, .terms h4 { font-size: 8.5pt; font-weight: bold; margin: 6pt 0 2pt 0; }
+        .terms ul, .terms ol { margin: 0 0 4pt 0; padding-left: 12pt; }
+        .terms li { margin: 0 0 1pt 0; }
+        .checks { font-size: 8pt; }
+        .checks .box { font-size: 10pt; width: 16pt; }
         .signature { page-break-inside: avoid; }
         .signature img { max-height: 64pt; max-width: 220pt; }
         .sign-line { border-bottom: 0.5pt solid #1a1a1a; height: 40pt; }
@@ -88,7 +93,7 @@
     <div class="section">
         <div class="section-title">{{ __('Terms') }}</div>
         <div class="terms">{!! $document->termsHtml !!}</div>
-        <table class="items gap-8">
+        <table class="items checks gap-8">
             @foreach ($document->items as $item)
                 <tr><td class="box">{{ $box($item['ticked']) }}</td><td>{{ $item['text'] }}</td></tr>
             @endforeach
