@@ -139,7 +139,8 @@
                 </div>
                 <div class="sign-line"></div>
                 <div class="sign-label">{{ __('Guest signature') }}</div>
-                <div class="sign-meta">{{ __('Name') }}: {{ $document->signerName }} &nbsp; {{ __('Date') }}: {{ $document->signedAt }}</div>
+                <div class="sign-meta">{{ __('Name') }}: {{ $document->signerName }}</div>
+                <div class="sign-meta">{{ __('Date') }}: {{ $document->signedAt }}</div>
             </td>
             <td></td>
             <td></td>
