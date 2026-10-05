@@ -26,6 +26,8 @@ export default function RegistrationCard({
     fields = [],
     termsDocuments = [],
     termsEditor = null,
+    termsPresets = [],
+    defaultTermsPreset = '',
 }: {
     settings: App.Data.Property.PropertySettingsData;
     propertyName: string;
@@ -35,6 +37,8 @@ export default function RegistrationCard({
     fields?: App.Data.Registration.RegistrationCardFieldData[];
     termsDocuments?: App.Data.Registration.TermsDocumentData[];
     termsEditor?: App.Data.Registration.TermsEditorData | null;
+    termsPresets?: EnumOption[];
+    defaultTermsPreset?: string;
 }) {
     return (
         <>
@@ -135,6 +139,8 @@ export default function RegistrationCard({
                         <RegistrationCardTermsForm
                             documents={termsDocuments}
                             editor={termsEditor}
+                            presets={termsPresets}
+                            defaultPreset={defaultTermsPreset}
                         />
                     )}
                 </TabLinks>

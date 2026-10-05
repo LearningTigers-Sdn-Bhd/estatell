@@ -46,6 +46,8 @@ class RegistrationTermsController extends Controller
             'propertyName' => $property->name,
             'tab' => 'terms',
             'canManageTerms' => true,
+            'termsPresets' => TermsPreset::options(),
+            'defaultTermsPreset' => TermsPreset::forPropertyType($property->type ?? PropertyType::Hotel)->value,
             'termsDocuments' => $documents->map(fn (TermsDocument $terms): TermsDocumentData => TermsDocumentData::fromModel($terms))->values(),
             'termsEditor' => fn (): ?TermsEditorData => $document === null ? null : $this->editor($property, $document, $locale, $renderer),
         ]);
@@ -53,7 +55,7 @@ class RegistrationTermsController extends Controller
 
     public function storeDocument(CreateTermsDocumentRequest $request, Property $property, CreateTermsDocument $createTermsDocument): RedirectResponse
     {
-        $document = $createTermsDocument($property, $request->user(), $request->validated('name'));
+        $document = $createTermsDocument($property, $request->user(), $request->validated('name'), $request->preset());
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __(':name created.', ['name' => $document->name])]);
 

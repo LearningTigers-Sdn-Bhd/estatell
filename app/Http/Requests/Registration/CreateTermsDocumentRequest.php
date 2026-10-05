@@ -2,10 +2,12 @@
 
 namespace App\Http\Requests\Registration;
 
+use App\Enums\TermsPreset;
 use App\Models\Property;
 use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class CreateTermsDocumentRequest extends FormRequest
 {
@@ -29,6 +31,7 @@ class CreateTermsDocumentRequest extends FormRequest
         $property = $this->route('property');
 
         return [
+            'preset' => ['required', Rule::enum(TermsPreset::class)],
             'name' => [
                 'required', 'string', 'max:100',
                 function (string $attribute, mixed $value, Closure $fail) use ($property): void {
@@ -42,5 +45,10 @@ class CreateTermsDocumentRequest extends FormRequest
                 },
             ],
         ];
+    }
+
+    public function preset(): TermsPreset
+    {
+        return TermsPreset::from($this->validated('preset'));
     }
 }

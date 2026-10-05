@@ -175,6 +175,16 @@ test('a document is deleted only when it is not the default and no room type use
         ->and($extra->versions()->count())->toBe(0);
 });
 
+test('a new document starts as a copy of the chosen template, or the property type template by default', function () {
+    [$owner, $property] = termsProperty();
+
+    $hostel = app(CreateTermsDocument::class)($property, $owner, 'Dorm', TermsPreset::Hostel);
+    $default = app(CreateTermsDocument::class)($property, $owner, 'Other');
+
+    expect($hostel->versions()->forLocale(Locale::English)->sole()->preset)->toBe(TermsPreset::Hostel)
+        ->and($default->versions()->forLocale(Locale::English)->sole()->preset)->toBe(TermsPreset::StandardHotel);
+});
+
 test('a new document starts as a copy of the template in both languages', function () {
     [$owner, $property] = termsProperty();
 
@@ -192,6 +202,8 @@ test('the terms tab sends the documents and the editor for the open language', f
         ->assertInertia(fn (Assert $page) => $page
             ->component('settings/registration-card/edit')
             ->where('tab', 'terms')
+            ->has('termsPresets', count(TermsPreset::cases()))
+            ->where('defaultTermsPreset', 'standard_hotel')
             ->has('termsDocuments', 1)
             ->where('termsDocuments.0.isDefault', true)
             ->where('termsEditor.documentId', $document->id)
@@ -276,9 +288,10 @@ test('adding a document needs a name the property does not use yet', function ()
     [$owner, $property] = termsProperty();
     $url = termsUrl($property, 'settings.registration-card.terms.documents.store');
 
-    $this->actingAs($owner)->post($url, ['name' => 'standard'])->assertSessionHasErrors('name');
-    $this->post($url, ['name' => ''])->assertSessionHasErrors('name');
-    $this->post($url, ['name' => 'Long stay'])->assertRedirect();
+    $this->actingAs($owner)->post($url, ['name' => 'standard', 'preset' => 'hostel'])->assertSessionHasErrors('name');
+    $this->post($url, ['name' => '', 'preset' => 'hostel'])->assertSessionHasErrors('name');
+    $this->post($url, ['name' => 'Long stay', 'preset' => 'hostel'])->assertRedirect();
+    $this->post($url, ['name' => 'No template'])->assertSessionHasErrors('preset');
 
     expect($property->termsDocuments()->count())->toBe(2);
 });

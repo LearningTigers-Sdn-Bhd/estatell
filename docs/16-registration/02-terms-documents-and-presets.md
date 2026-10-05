@@ -81,7 +81,7 @@ Key clauses the guest ticks one by one before signing. They live in the terms ma
 
 ## Actions
 
-`SeedRegistrationTerms`, `CreateTermsDocument`, `PublishRegistrationTerms`, `ApplyTermsPreset` (copies a preset as a new version with `preset` and `preset_version` set), `DeleteTermsDocument`.
+`SeedRegistrationTerms`, `CreateTermsDocument` (takes the chosen preset, default the property type's), `PublishRegistrationTerms`, `ApplyTermsPreset` (copies a preset as a new version with `preset` and `preset_version` set), `DeleteTermsDocument`.
 
 ## Permissions
 
@@ -105,7 +105,7 @@ Terms   [Document: Standard ⌄]  [+ Add document]    [Language: English ⌄]
 ```
 
 - **Language** is a Select menu with every property locale (`Locale::options()`), not tabs or a toggle. A language the document has no version for is listed as "Bahasa Malaysia (not published)". Choosing it opens the editor with the property type's preset text, as an unpublished draft with a note. Publishing makes version 1 in that language.
-- The **document** Select appears only when a second document exists. **Add document** is always in the toolbar and opens a Dialog with a name field. The new document starts as a copy of the template in every language. With one document the toolbar shows Add document and the language Select.
+- The **document** Select appears only when a second document exists. **Add document** is always in the toolbar and opens a Dialog with a name field and a **Start from** Select of the five templates (the property type's template is picked first). The new document starts as a copy of that template in every language. With one document the toolbar shows Add document and the language Select.
 - The open document and language are in the URL (`?document=` and `?locale=`), so a refresh and a shared link keep them. Changing either is a partial reload that sends only the editor data.
 - **Version history** is a Sheet with a read-only list (version, date, who). **Use as starting point** copies an old version into the editor. It does not publish.
 - **Apply** (and the "newer template" banner) calls `ApplyTermsPreset`. It makes a new version, so nothing is lost. **Preview** shows the new template text read only. There is no line-by-line compare.

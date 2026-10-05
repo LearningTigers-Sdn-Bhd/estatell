@@ -27,6 +27,17 @@ enum TermsPreset: string
         };
     }
 
+    /**
+     * @return list<array{value: string, label: string}>
+     */
+    public static function options(): array
+    {
+        return array_map(
+            fn (self $preset): array => ['value' => $preset->value, 'label' => $preset->label()],
+            self::cases(),
+        );
+    }
+
     public static function forPropertyType(PropertyType $type): self
     {
         return match ($type) {

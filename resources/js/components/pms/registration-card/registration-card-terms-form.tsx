@@ -2,6 +2,7 @@ import { router, useForm } from '@inertiajs/react';
 import { History, Plus, RefreshCw, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { EnumSelect } from '@/components/pms/enum-select';
+import type { EnumOption } from '@/components/pms/enum-select';
 import {
     TermsPreview,
     countChecklistItems,
@@ -80,11 +81,15 @@ const openEditor = (documentId: number, locale: string) =>
 function AddDocumentDialog({
     open,
     onOpenChange,
+    presets,
+    defaultPreset,
 }: {
     open: boolean;
     onOpenChange: (open: boolean) => void;
+    presets: EnumOption[];
+    defaultPreset: string;
 }) {
-    const form = useForm({ name: '' });
+    const form = useForm({ name: '', preset: defaultPreset });
 
     const submit = (event: React.FormEvent) => {
         event.preventDefault();
@@ -104,9 +109,8 @@ function AddDocumentDialog({
                     <DialogHeader>
                         <DialogTitle>Add terms document</DialogTitle>
                         <DialogDescription>
-                            It starts as a copy of the template for your
-                            property type. Assign it to room types on the room
-                            type form.
+                            It starts as a copy of the template you pick. Assign
+                            it to room types on the room type form.
                         </DialogDescription>
                     </DialogHeader>
                     <Field>
@@ -124,6 +128,26 @@ function AddDocumentDialog({
                             autoFocus
                         />
                         <FieldError>{form.errors.name}</FieldError>
+                    </Field>
+                    <Field>
+                        <FieldLabel htmlFor="terms-document-preset">
+                            Start from
+                        </FieldLabel>
+                        <EnumSelect
+                            id="terms-document-preset"
+                            name="preset"
+                            options={presets}
+                            value={form.data.preset}
+                            onValueChange={(value) =>
+                                form.setData('preset', value)
+                            }
+                            aria-invalid={!!form.errors.preset}
+                        />
+                        <FieldDescription>
+                            Templates are a starting point, not legal advice.
+                            You can edit the text after.
+                        </FieldDescription>
+                        <FieldError>{form.errors.preset}</FieldError>
                     </Field>
                     <DialogFooter>
                         <Button
@@ -453,9 +477,13 @@ function TermsEditor({
 export function RegistrationCardTermsForm({
     documents,
     editor,
+    presets,
+    defaultPreset,
 }: {
     documents: Document[];
     editor: Editor | null;
+    presets: EnumOption[];
+    defaultPreset: string;
 }) {
     const [adding, setAdding] = useState(false);
 
@@ -519,7 +547,12 @@ export function RegistrationCardTermsForm({
                     This property has no terms document yet.
                 </p>
             )}
-            <AddDocumentDialog open={adding} onOpenChange={setAdding} />
+            <AddDocumentDialog
+                open={adding}
+                onOpenChange={setAdding}
+                presets={presets}
+                defaultPreset={defaultPreset}
+            />
         </div>
     );
 }
