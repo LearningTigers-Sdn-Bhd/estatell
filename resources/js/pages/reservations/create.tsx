@@ -47,7 +47,7 @@ import {
     tabClass,
 } from '@/components/pms/reservations/booking-tabs';
 import type { BookingTab } from '@/components/pms/reservations/booking-tabs';
-import { FormError } from '@/components/pms/reservations/form-error';
+import { FormError } from '@/components/pms/form-error';
 import { StayDateTime } from '@/components/pms/reservations/stay-date-time';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';

@@ -1,5 +1,5 @@
 import { useForm } from '@inertiajs/react';
-import { FormError } from '@/components/pms/reservations/form-error';
+import { FormError } from '@/components/pms/form-error';
 import { MoneyText } from '@/components/pms/money-text';
 import { Button } from '@/components/ui/button';
 import {

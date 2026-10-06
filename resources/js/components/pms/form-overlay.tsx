@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { FormEvent, ReactNode } from 'react';
-import { DiscardChangesDialog } from '@/components/pms/reservations/discard-changes-dialog';
-import { FormError } from '@/components/pms/reservations/form-error';
+import { DiscardChangesDialog } from '@/components/pms/discard-changes-dialog';
+import { FormError } from '@/components/pms/form-error';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,

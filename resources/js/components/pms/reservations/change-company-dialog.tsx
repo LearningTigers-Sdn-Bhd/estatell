@@ -5,7 +5,7 @@ import { FormOverlay } from '@/components/pms/form-overlay';
 import {
     KEEP_OPTIONS,
     useFormOptions,
-} from '@/components/pms/reservations/use-form-options';
+} from '@/components/pms/use-form-options';
 import { useFreshOnOpen } from '@/components/pms/use-fresh-on-open';
 import {
     Field,

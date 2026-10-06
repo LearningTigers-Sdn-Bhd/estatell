@@ -2,7 +2,7 @@ import { useForm } from '@inertiajs/react';
 import { DateText } from '@/components/pms/date-text';
 import { MoneyInput } from '@/components/pms/money-input';
 import { MoneyText } from '@/components/pms/money-text';
-import { FormError } from '@/components/pms/reservations/form-error';
+import { FormError } from '@/components/pms/form-error';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,

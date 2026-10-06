@@ -2,7 +2,7 @@ import { useForm } from '@inertiajs/react';
 import { EnumSelect } from '@/components/pms/enum-select';
 import type { EnumOption } from '@/components/pms/enum-select';
 import { FormOverlay } from '@/components/pms/form-overlay';
-import { KEEP_OPTIONS } from '@/components/pms/reservations/use-form-options';
+import { KEEP_OPTIONS } from '@/components/pms/use-form-options';
 import { useFreshOnOpen } from '@/components/pms/use-fresh-on-open';
 import {
     Field,

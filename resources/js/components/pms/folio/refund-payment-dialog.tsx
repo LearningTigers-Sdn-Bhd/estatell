@@ -2,8 +2,8 @@ import { useForm } from '@inertiajs/react';
 import { useState } from 'react';
 import { MoneyInput } from '@/components/pms/money-input';
 import { MoneyText } from '@/components/pms/money-text';
-import { FormError } from '@/components/pms/reservations/form-error';
-import { KEEP_OPTIONS } from '@/components/pms/reservations/use-form-options';
+import { FormError } from '@/components/pms/form-error';
+import { KEEP_OPTIONS } from '@/components/pms/use-form-options';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,

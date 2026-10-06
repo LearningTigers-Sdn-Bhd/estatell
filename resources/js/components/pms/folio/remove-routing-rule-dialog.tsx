@@ -1,7 +1,7 @@
 import { Form, router } from '@inertiajs/react';
 import { Trash2 } from 'lucide-react';
 import { useState } from 'react';
-import { KEEP_OPTIONS } from '@/components/pms/reservations/use-form-options';
+import { KEEP_OPTIONS } from '@/components/pms/use-form-options';
 import {
     AlertDialog,
     AlertDialogCancel,

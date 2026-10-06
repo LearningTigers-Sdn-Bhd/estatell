@@ -2,11 +2,11 @@ import { useForm } from '@inertiajs/react';
 import { useState } from 'react';
 import { EnumSelect } from '@/components/pms/enum-select';
 import { MoneyInput } from '@/components/pms/money-input';
-import { FormError } from '@/components/pms/reservations/form-error';
+import { FormError } from '@/components/pms/form-error';
 import {
     KEEP_OPTIONS,
     useFormOptions,
-} from '@/components/pms/reservations/use-form-options';
+} from '@/components/pms/use-form-options';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,

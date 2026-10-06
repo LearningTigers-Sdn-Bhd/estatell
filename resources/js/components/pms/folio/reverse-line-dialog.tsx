@@ -1,5 +1,5 @@
 import { Form } from '@inertiajs/react';
-import { KEEP_OPTIONS } from '@/components/pms/reservations/use-form-options';
+import { KEEP_OPTIONS } from '@/components/pms/use-form-options';
 import {
     AlertDialog,
     AlertDialogCancel,

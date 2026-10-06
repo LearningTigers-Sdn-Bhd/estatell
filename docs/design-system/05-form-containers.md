@@ -85,7 +85,7 @@ Tailwind has no 400 px or 480 px step, so the sizes use the spacing scale (`max-
 
 The optional-prop request stays in `useFormOptions`. The page calls it and passes `loading` down.
 
-`FormError`, `DiscardChangesDialog` and `useFormOptions` stay in `components/pms/reservations/` for now, and `FormOverlay` imports them from there. About 17 folio and city-ledger files import them too, so the move to `components/pms/` waits for the follow-up item in the [checklist](../checklist.md).
+`FormError`, `DiscardChangesDialog` and `useFormOptions` live in `components/pms/` next to `FormOverlay`. The folio and city-ledger overlays import them from there.
 
 Not for every overlay. These stay as they are: AlertDialogs, read-only previews (print voucher) and a Sheet that is mostly a list (routing rules).
 

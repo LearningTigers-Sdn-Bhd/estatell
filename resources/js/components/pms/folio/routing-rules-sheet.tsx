@@ -3,11 +3,11 @@ import { Info } from 'lucide-react';
 import { useEffect } from 'react';
 import { EnumSelect } from '@/components/pms/enum-select';
 import { RemoveRoutingRuleDialog } from '@/components/pms/folio/remove-routing-rule-dialog';
-import { FormError } from '@/components/pms/reservations/form-error';
+import { FormError } from '@/components/pms/form-error';
 import {
     KEEP_OPTIONS,
     useFormOptions,
-} from '@/components/pms/reservations/use-form-options';
+} from '@/components/pms/use-form-options';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import {

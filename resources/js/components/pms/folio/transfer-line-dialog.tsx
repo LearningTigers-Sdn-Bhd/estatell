@@ -1,7 +1,7 @@
 import { useForm } from '@inertiajs/react';
 import { EnumSelect } from '@/components/pms/enum-select';
-import { FormError } from '@/components/pms/reservations/form-error';
-import { KEEP_OPTIONS } from '@/components/pms/reservations/use-form-options';
+import { FormError } from '@/components/pms/form-error';
+import { KEEP_OPTIONS } from '@/components/pms/use-form-options';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
