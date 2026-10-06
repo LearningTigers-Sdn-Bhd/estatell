@@ -40,3 +40,11 @@ Define every notification once, with its channels, defaults and recipients.
 ## Storage
 
 In-app notifications use the framework `notifications` table. Its `data` column is json and is allowed.
+
+## Viewing mail in development
+
+`.env.example` sets `MAIL_MAILER=mailbox`. The dev-only package `redberry/mailbox-for-laravel` stores every outgoing message in `storage/app/mailbox/mailbox.sqlite` (not in Postgres). Read them at `/mailbox`.
+
+- The package is off when `APP_ENV=production`, and the default gate allows viewing outside production only.
+- Before using it on staging, define a `viewMailbox` gate that uses the `admin` gate. Captured mail can hold reset tokens.
+- Tests are not affected: Laravel's test environment uses the `array` mailer.

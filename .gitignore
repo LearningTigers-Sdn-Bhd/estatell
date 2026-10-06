@@ -33,3 +33,4 @@ yarn-error.log
 /.claude/skills
 /.grok/skills
 /storage/fonts
+/public/vendor
