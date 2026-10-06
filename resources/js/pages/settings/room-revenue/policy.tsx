@@ -277,6 +277,9 @@ export default function RoomRevenuePolicy({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [key]);
 
+    const hasChargeDetails =
+        data.charge_mode !== 'free' || tab === 'cancellation';
+
     const followTaxes = (follow: boolean) => {
         http.setData((current) => ({
             ...current,
@@ -370,162 +373,176 @@ export default function RoomRevenuePolicy({
                                         </FieldError>
                                     </Field>
 
-                                    <FieldGroup className="min-w-0 gap-4 md:w-80 md:shrink-0">
-                                        {data.charge_mode ===
-                                            'fixed_amount' && (
-                                            <Field>
-                                                <FieldLabel htmlFor="amount">
-                                                    Amount
-                                                </FieldLabel>
-                                                <MoneyInput
-                                                    id="amount"
-                                                    value={data.amount}
-                                                    onChange={(value) =>
-                                                        http.setData(
-                                                            'amount',
-                                                            value,
-                                                        )
-                                                    }
-                                                    currency={currency}
-                                                    invalid={!!errors.amount}
-                                                />
-                                                <FieldDescription>
-                                                    One charge, whatever the
-                                                    number of nights.
-                                                </FieldDescription>
-                                                <FieldError>
-                                                    {errors.amount}
-                                                </FieldError>
-                                            </Field>
-                                        )}
-
-                                        {data.charge_mode === 'percentage' && (
-                                            <>
+                                    {hasChargeDetails && (
+                                        <FieldGroup className="min-w-0 gap-4 md:w-80 md:shrink-0">
+                                            {data.charge_mode ===
+                                                'fixed_amount' && (
                                                 <Field>
-                                                    <FieldLabel htmlFor="percent">
-                                                        Percent
+                                                    <FieldLabel htmlFor="amount">
+                                                        Amount
                                                     </FieldLabel>
-                                                    <Input
-                                                        id="percent"
-                                                        inputMode="decimal"
-                                                        autoComplete="off"
-                                                        className="tabular-nums"
-                                                        value={data.percent}
-                                                        onChange={(event) =>
+                                                    <MoneyInput
+                                                        id="amount"
+                                                        value={data.amount}
+                                                        onChange={(value) =>
                                                             http.setData(
-                                                                'percent',
-                                                                event.target
-                                                                    .value,
+                                                                'amount',
+                                                                value,
                                                             )
                                                         }
-                                                        aria-invalid={
-                                                            !!errors.percent
+                                                        currency={currency}
+                                                        invalid={
+                                                            !!errors.amount
                                                         }
                                                     />
+                                                    <FieldDescription>
+                                                        One charge, whatever the
+                                                        number of nights.
+                                                    </FieldDescription>
                                                     <FieldError>
-                                                        {errors.percent}
+                                                        {errors.amount}
                                                     </FieldError>
                                                 </Field>
+                                            )}
+
+                                            {data.charge_mode ===
+                                                'percentage' && (
+                                                <>
+                                                    <Field>
+                                                        <FieldLabel htmlFor="percent">
+                                                            Percent
+                                                        </FieldLabel>
+                                                        <Input
+                                                            id="percent"
+                                                            inputMode="decimal"
+                                                            autoComplete="off"
+                                                            className="tabular-nums"
+                                                            value={data.percent}
+                                                            onChange={(event) =>
+                                                                http.setData(
+                                                                    'percent',
+                                                                    event.target
+                                                                        .value,
+                                                                )
+                                                            }
+                                                            aria-invalid={
+                                                                !!errors.percent
+                                                            }
+                                                        />
+                                                        <FieldError>
+                                                            {errors.percent}
+                                                        </FieldError>
+                                                    </Field>
+                                                    <Field>
+                                                        <FieldLabel htmlFor="percent_basis">
+                                                            Percent of the
+                                                        </FieldLabel>
+                                                        <EnumSelect
+                                                            id="percent_basis"
+                                                            options={rateBases}
+                                                            value={
+                                                                data.percent_basis
+                                                            }
+                                                            onValueChange={(
+                                                                value,
+                                                            ) =>
+                                                                http.setData(
+                                                                    'percent_basis',
+                                                                    value as App.Enums.PolicyRateBasis,
+                                                                )
+                                                            }
+                                                            aria-invalid={
+                                                                !!errors.percent_basis
+                                                            }
+                                                        />
+                                                        <FieldDescription>
+                                                            The current rate is
+                                                            a new price for the
+                                                            same plan, room type
+                                                            and dates. It falls
+                                                            back to the booked
+                                                            rate when none
+                                                            exists.
+                                                        </FieldDescription>
+                                                        <FieldError>
+                                                            {
+                                                                errors.percent_basis
+                                                            }
+                                                        </FieldError>
+                                                    </Field>
+                                                </>
+                                            )}
+
+                                            {data.charge_mode !== 'free' && (
                                                 <Field>
-                                                    <FieldLabel htmlFor="percent_basis">
-                                                        Percent of the
+                                                    <FieldLabel htmlFor="applies_to">
+                                                        Applies to
                                                     </FieldLabel>
                                                     <EnumSelect
-                                                        id="percent_basis"
-                                                        options={rateBases}
-                                                        value={
-                                                            data.percent_basis
+                                                        id="applies_to"
+                                                        options={scopes}
+                                                        value={data.applies_to}
+                                                        disabled={
+                                                            scopes.length === 1
                                                         }
                                                         onValueChange={(
                                                             value,
                                                         ) =>
                                                             http.setData(
-                                                                'percent_basis',
-                                                                value as App.Enums.PolicyRateBasis,
+                                                                'applies_to',
+                                                                value as App.Enums.PolicyScope,
                                                             )
                                                         }
                                                         aria-invalid={
-                                                            !!errors.percent_basis
+                                                            !!errors.applies_to
+                                                        }
+                                                    />
+                                                    <FieldError>
+                                                        {errors.applies_to}
+                                                    </FieldError>
+                                                </Field>
+                                            )}
+
+                                            {tab === 'cancellation' && (
+                                                <Field>
+                                                    <FieldLabel htmlFor="free_until_days">
+                                                        Free until (days before
+                                                        arrival)
+                                                    </FieldLabel>
+                                                    <Input
+                                                        id="free_until_days"
+                                                        type="number"
+                                                        min={0}
+                                                        max={365}
+                                                        className="tabular-nums"
+                                                        value={
+                                                            data.free_until_days
+                                                        }
+                                                        onChange={(event) =>
+                                                            http.setData(
+                                                                'free_until_days',
+                                                                event.target
+                                                                    .value,
+                                                            )
+                                                        }
+                                                        aria-invalid={
+                                                            !!errors.free_until_days
                                                         }
                                                     />
                                                     <FieldDescription>
-                                                        The current rate is a
-                                                        new price for the same
-                                                        plan, room type and
-                                                        dates. It falls back to
-                                                        the booked rate when
-                                                        none exists.
+                                                        A cancellation this many
+                                                        days or more before
+                                                        arrival is free. Leave
+                                                        empty to charge every
+                                                        cancellation.
                                                     </FieldDescription>
                                                     <FieldError>
-                                                        {errors.percent_basis}
+                                                        {errors.free_until_days}
                                                     </FieldError>
                                                 </Field>
-                                            </>
-                                        )}
-
-                                        {data.charge_mode !== 'free' && (
-                                            <Field>
-                                                <FieldLabel htmlFor="applies_to">
-                                                    Applies to
-                                                </FieldLabel>
-                                                <EnumSelect
-                                                    id="applies_to"
-                                                    options={scopes}
-                                                    value={data.applies_to}
-                                                    disabled={
-                                                        scopes.length === 1
-                                                    }
-                                                    onValueChange={(value) =>
-                                                        http.setData(
-                                                            'applies_to',
-                                                            value as App.Enums.PolicyScope,
-                                                        )
-                                                    }
-                                                    aria-invalid={
-                                                        !!errors.applies_to
-                                                    }
-                                                />
-                                                <FieldError>
-                                                    {errors.applies_to}
-                                                </FieldError>
-                                            </Field>
-                                        )}
-
-                                        {tab === 'cancellation' && (
-                                            <Field>
-                                                <FieldLabel htmlFor="free_until_days">
-                                                    Free until (days before
-                                                    arrival)
-                                                </FieldLabel>
-                                                <Input
-                                                    id="free_until_days"
-                                                    type="number"
-                                                    min={0}
-                                                    max={365}
-                                                    className="tabular-nums"
-                                                    value={data.free_until_days}
-                                                    onChange={(event) =>
-                                                        http.setData(
-                                                            'free_until_days',
-                                                            event.target.value,
-                                                        )
-                                                    }
-                                                    aria-invalid={
-                                                        !!errors.free_until_days
-                                                    }
-                                                />
-                                                <FieldDescription>
-                                                    A cancellation this many
-                                                    days or more before arrival
-                                                    is free. Leave empty to
-                                                    charge every cancellation.
-                                                </FieldDescription>
-                                                <FieldError>
-                                                    {errors.free_until_days}
-                                                </FieldError>
-                                            </Field>
-                                        )}
-                                    </FieldGroup>
+                                            )}
+                                        </FieldGroup>
+                                    )}
                                 </div>
                             </Section>
 
