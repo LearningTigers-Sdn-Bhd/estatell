@@ -20,7 +20,9 @@ import {
     FieldLabel,
 } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
+import { cn } from '@/lib/utils';
 import { checkIn, checkInPreview } from '@/routes/reservations/units';
 
 type Unit = App.Data.Reservations.ReservationUnitData;
@@ -141,7 +143,13 @@ function CheckInForm({
             onSubmit={submit}
             submitLabel="Check in"
             processing={form.processing}
-            submitDisabled={preview === null || preview.error !== null}
+            submitDisabled={
+                preview === null ||
+                preview.error !== null ||
+                (data.collect_now &&
+                    collection !== null &&
+                    paymentOptions === undefined)
+            }
             loading={preview === null}
         >
             {preview !== null && (
@@ -350,7 +358,13 @@ function CheckInForm({
                                 </Field>
                             </FieldLabel>
                             {data.collect_now && (
-                                <div className="grid gap-4 sm:grid-cols-2">
+                                <div
+                                    className={cn(
+                                        'grid gap-4',
+                                        method?.requiresReference &&
+                                            'sm:grid-cols-2',
+                                    )}
+                                >
                                     <Field
                                         data-invalid={
                                             !!errors.payment_method_id
@@ -359,23 +373,27 @@ function CheckInForm({
                                         <FieldLabel htmlFor="check-in-payment_method_id">
                                             Method
                                         </FieldLabel>
-                                        <EnumSelect
-                                            id="check-in-payment_method_id"
-                                            options={methods.map((one) => ({
-                                                value: String(one.id),
-                                                label: one.name,
-                                            }))}
-                                            value={methodId}
-                                            onValueChange={(value) =>
-                                                form.setData(
-                                                    'payment_method_id',
-                                                    value,
-                                                )
-                                            }
-                                            aria-invalid={
-                                                !!errors.payment_method_id
-                                            }
-                                        />
+                                        {paymentOptions === undefined ? (
+                                            <Skeleton className="h-9 w-full" />
+                                        ) : (
+                                            <EnumSelect
+                                                id="check-in-payment_method_id"
+                                                options={methods.map((one) => ({
+                                                    value: String(one.id),
+                                                    label: one.name,
+                                                }))}
+                                                value={methodId}
+                                                onValueChange={(value) =>
+                                                    form.setData(
+                                                        'payment_method_id',
+                                                        value,
+                                                    )
+                                                }
+                                                aria-invalid={
+                                                    !!errors.payment_method_id
+                                                }
+                                            />
+                                        )}
                                         <FieldError>
                                             {errors.payment_method_id}
                                         </FieldError>

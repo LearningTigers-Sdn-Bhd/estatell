@@ -255,6 +255,7 @@ export default function ReservationShow({
                                 canOverrideRestrictions={
                                     canOverrideRestrictions
                                 }
+                                paymentOptions={paymentOptions}
                                 currency={currency}
                             />
                         )}
