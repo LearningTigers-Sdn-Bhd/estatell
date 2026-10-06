@@ -232,6 +232,17 @@ test('a change that moves the arrival too is not an early departure', function (
         ->and(array_keys(nightAmounts($setup['unit'])))->toBe([today()->toDateString(), today()->addDay()->toDateString(), today()->addDays(2)->toDateString()]);
 });
 
+test('a stay moved wholly before its old arrival keeps the dates valid while it is saved', function () {
+    $setup = datesSetup();
+
+    $result = changeDates($setup, arrival: today(), departure: today()->addDay());
+
+    expect($result->isRefused())->toBeFalse()
+        ->and($result->feeCharged)->toBeFalse()
+        ->and(array_keys(nightAmounts($setup['unit'])))->toBe([today()->toDateString()])
+        ->and($setup['unit']->refresh()->departure_date->toDateString())->toBe(today()->addDay()->toDateString());
+});
+
 test('a restriction on the new nights needs an override reason', function () {
     $setup = datesSetup();
     Rate::query()->where('rate_plan_id', $setup['plan']->id)->whereDate('date', today()->addDays(4))->update(['stop_sell' => true]);

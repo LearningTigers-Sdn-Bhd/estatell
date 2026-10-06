@@ -156,7 +156,7 @@ class ChangeUnitDates
             $feeCharged = false;
 
             if ($newDeparture->lt($oldDeparture)) {
-                $early = ($this->processEarlyDeparture)($actor, $locked, $newDeparture, $doNotCharge, $reason, $expectedFee, $newArrival->equalTo($oldArrival));
+                $early = ($this->processEarlyDeparture)($actor, $locked, $newDeparture, $doNotCharge, $reason, $expectedFee, $newArrival->equalTo($oldArrival), $newArrival);
 
                 if ($early->isRefused()) {
                     return $early;

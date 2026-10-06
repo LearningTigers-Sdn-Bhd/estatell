@@ -30,15 +30,17 @@ class ProcessEarlyDeparture
      * `$doNotCharge` needs a `$reason`, as in `CancelUnit`.
      *
      * With `$applyPolicy` false the stay is cut with no fee and no checks on the policy. `ChangeUnitDates` passes false
-     * when the arrival moves too, because that is a new booking of the unit, not an early departure.
+     * when the arrival moves too, because that is a new booking of the unit, not an early departure. It then also
+     * passes `$newArrival`, so both dates are saved in one write: a new departure alone can fall on or before the old
+     * arrival and break the `departure_date > arrival_date` check.
      *
      * An add-on row goes when it is unposted and its date is on or after the new departure (nightly items) or after
      * it (other items, whose date may be the departure date). A posted add-on stays.
      * See docs/18-front-desk/01-check-in-and-check-out.md.
      */
-    public function __invoke(User $actor, ReservationUnit $unit, CarbonInterface $newDeparture, bool $doNotCharge = false, ?string $reason = null, ?string $expectedFee = null, bool $applyPolicy = true): StayDatesResult
+    public function __invoke(User $actor, ReservationUnit $unit, CarbonInterface $newDeparture, bool $doNotCharge = false, ?string $reason = null, ?string $expectedFee = null, bool $applyPolicy = true, ?CarbonInterface $newArrival = null): StayDatesResult
     {
-        return DB::transaction(function () use ($actor, $unit, $newDeparture, $doNotCharge, $reason, $expectedFee, $applyPolicy): StayDatesResult {
+        return DB::transaction(function () use ($actor, $unit, $newDeparture, $doNotCharge, $reason, $expectedFee, $applyPolicy, $newArrival): StayDatesResult {
             $businessDate = $this->currentBusinessDate->date($unit->property);
 
             if ($businessDate === null) {
@@ -88,6 +90,11 @@ class ProcessEarlyDeparture
             $this->deleteUnpostedAddOns($unit, $departure);
 
             $unit->departure_date = $departure;
+
+            if ($newArrival !== null) {
+                $unit->arrival_date = $newArrival->startOfDay();
+            }
+
             $unit->save();
 
             return StayDatesResult::done($unit, $fee, $postsFee);

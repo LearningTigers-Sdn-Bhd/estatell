@@ -271,10 +271,10 @@ class UnitActionPreview
             $total = $total->plus($quote->total);
         }
 
-        $isEarlyDeparture = $newDeparture->lt($oldDeparture);
+        $isEarlyDeparture = $newDeparture->lt($oldDeparture) && $newArrival->equalTo($oldArrival);
         $fee = null;
 
-        if ($isEarlyDeparture && $newArrival->equalTo($oldArrival)) {
+        if ($isEarlyDeparture) {
             $policy = $this->policy($unit, SystemTransactionCode::EarlyDepartureRevenue);
 
             if ($policy === null) {

@@ -250,6 +250,18 @@ test('the dates preview shows the price difference of a longer and a shorter sta
         ->and($setup['unit']->fresh()->departure_date->toDateString())->toBe(today()->addDays(2)->toDateString());
 });
 
+test('the dates preview treats a shorter stay that also moves the arrival as a new booking, with no fee', function () {
+    $setup = uaSetup();
+    $setup['unit']->update(['arrival_date' => today()->addDay()->toDateString(), 'departure_date' => today()->addDays(3)->toDateString()]);
+    $setup['unit']->nights()->orderByDesc('date')->first()->update(['date' => today()->addDays(2)->toDateString()]);
+    $setup['unit']->nights()->orderBy('date')->first()->update(['date' => today()->addDay()->toDateString()]);
+
+    $this->actingAs($setup['user'])
+        ->postJson(uaUrl($setup, 'dates-preview'), ['arrival_date' => today()->toDateString(), 'departure_date' => today()->addDay()->toDateString()])
+        ->assertOk()
+        ->assertJson(['isEarlyDeparture' => false, 'fee' => null, 'error' => null]);
+});
+
 test('the dates preview refuses a departure that is not after arrival', function () {
     $setup = uaSetup();
 
