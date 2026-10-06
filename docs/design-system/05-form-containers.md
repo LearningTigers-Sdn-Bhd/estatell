@@ -58,16 +58,18 @@ For 4–5 fields: use a Dialog when opened from a detail page, and a Sheet when 
 
 One shell for every Dialog and Sheet form (`components/pms/form-overlay.tsx`). The page keeps `useForm`, the route and `onSuccess`. `FormOverlay` never submits anything.
 
-| Prop                                                      | Meaning                                                                                               |
-| --------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| `variant`, `size`                                         | `dialog` with `sm` or `md`, or `sheet` with `md` or `lg`. A pair that does not exist is a type error. |
-| `open`, `onOpenChange`                                    | Controlled by the page.                                                                               |
-| `title`, `description`                                    | The header.                                                                                           |
-| `errors`                                                  | The form's errors. `errors.form` shows as `FormError` at the top.                                     |
-| `dirty`                                                   | Sheet only. A dirty Sheet asks before it closes.                                                      |
-| `onSubmit`, `submitLabel`, `processing`, `submitDisabled` | The primary button: a verb and object, a spinner while processing, still focusable when disabled.     |
-| `loading`                                                 | Shows skeleton fields while an optional prop loads.                                                   |
-| `children`                                                | The fields only.                                                                                      |
+| Prop                                                      | Meaning                                                                                                                                                                                          |
+| --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `variant`, `size`                                         | `dialog` with `sm` or `md`, or `sheet` with `md` or `lg`. A pair that does not exist is a type error.                                                                                            |
+| `open`, `onOpenChange`                                    | Controlled by the page.                                                                                                                                                                          |
+| `title`, `description`                                    | The header.                                                                                                                                                                                      |
+| `errors`                                                  | The form's errors. `errors.form` shows as `FormError` at the top.                                                                                                                                |
+| `dirty`                                                   | Sheet only. A dirty Sheet asks before it closes.                                                                                                                                                 |
+| `discardTitle`                                            | The title of that confirm, for example "Discard this unit?".                                                                                                                                     |
+| `onSubmit`, `submitLabel`, `processing`, `submitDisabled` | The primary button: a verb and object, a spinner while processing, still focusable when disabled.                                                                                                |
+| `footer`                                                  | Optional. Replaces the Cancel and primary buttons for a form with more than one step (apply discount, record payment). The overlay still owns the footer container, its layout and its position. |
+| `loading`                                                 | Shows skeleton fields while an optional prop loads.                                                                                                                                              |
+| `children`                                                | The fields only.                                                                                                                                                                                 |
 
 It owns:
 
@@ -84,6 +86,8 @@ Tailwind has no 400 px or 480 px step, so the sizes use the spacing scale (`max-
 The optional-prop request stays in `useFormOptions`. The page calls it and passes `loading` down.
 
 `FormError`, `DiscardChangesDialog` and `useFormOptions` stay in `components/pms/reservations/` for now, and `FormOverlay` imports them from there. About 17 folio and city-ledger files import them too, so the move to `components/pms/` waits for the follow-up item in the [checklist](../checklist.md).
+
+Not for every overlay. These stay as they are: AlertDialogs, read-only previews (print voucher) and a Sheet that is mostly a list (routing rules).
 
 Built (see the [checklist](../checklist.md)) for the five reservation overlays first (Add unit, Attach guest, Add add-on, Edit group, Change company). The folio and city-ledger overlays still wire their own shell until the follow-up item in the [checklist](../checklist.md).
 
