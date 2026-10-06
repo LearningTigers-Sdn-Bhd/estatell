@@ -145,6 +145,7 @@ Composer:
 | `league/flysystem-aws-s3-v3`            | 3.35    | Needed by the `r2` disk (s3 driver)                                                                                              |
 | `spatie/laravel-query-builder`          | 7.3     | None                                                                                                                             |
 | `spatie/laravel-activitylog`            | 5.1     | `activity_log` table                                                                                                             |
+| `redberry/mailbox-for-laravel` (dev)    | 2.3     | `MAIL_MAILER=mailbox`. See [Viewing mail](04-notifications/01-notification-types.md#viewing-mail-in-development).                |
 
 npm:
 

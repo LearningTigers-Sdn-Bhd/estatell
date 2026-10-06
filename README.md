@@ -74,6 +74,14 @@ It is a focused rebuild of the PMS core of wastays, with a normalized database, 
     php artisan test --compact
     ```
 
+### Local mail (Mailbox)
+
+`.env.example` sets `MAIL_MAILER=mailbox`. The dev-only package `redberry/mailbox-for-laravel` captures every outgoing email in `storage/app/mailbox/mailbox.sqlite`, so nothing is delivered. Open `/mailbox` on the app URL (for example `http://localhost:8000/mailbox`) to read the mail.
+
+- It has no SMTP port, so the `MAIL_HOST` and `MAIL_PORT` values are not used.
+- Set `MAILBOX_DECORATE=smtp` to also deliver through the `smtp` mailer. Leave it empty in development.
+- It is off in production. Before using it on staging, define a `viewMailbox` gate that uses the `admin` gate.
+
 ### AI agents (Laravel Boost)
 
 Claude Code, Codex, Amp, Grok, OpenCode and Zed get the project guidelines, skills and the Boost MCP server. `composer run setup` installs the skills. On an existing checkout, run:
