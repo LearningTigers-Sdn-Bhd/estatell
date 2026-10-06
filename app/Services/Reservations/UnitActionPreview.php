@@ -3,22 +3,27 @@
 namespace App\Services\Reservations;
 
 use App\Actions\FrontDesk\UnitStayResult;
+use App\Actions\Reservations\AssignmentResult;
 use App\Data\Reservations\CheckInAllPreviewData;
 use App\Data\Reservations\UnitCheckInPreviewData;
 use App\Data\Reservations\UnitCheckOutPreviewData;
 use App\Data\Reservations\UnitDatesPreviewData;
 use App\Data\Reservations\UnitFeePreviewData;
 use App\Data\Reservations\UnitLateCheckOutPreviewData;
+use App\Data\Reservations\UnitMovePreviewData;
 use App\Data\Reservations\UnitReinstatePreviewData;
 use App\Enums\PermissionEnum;
+use App\Enums\SellUnit;
 use App\Enums\SystemTransactionCode;
 use App\Enums\UnitStatus;
 use App\Models\Reservation;
 use App\Models\ReservationUnit;
 use App\Models\RoomRevenuePolicy;
+use App\Models\RoomType;
 use App\Models\Tax;
 use App\Models\UnitNight;
 use App\Models\User;
+use App\Services\Availability\FreeUnits;
 use App\Services\Catalogues\PolicyChargeCalculator;
 use App\Services\CityLedger\CreditCheck;
 use App\Services\FrontDesk\CheckInCollection;
@@ -53,6 +58,7 @@ class UnitActionPreview
         private CheckInCollection $checkInCollection,
         private CheckOutSettlement $checkOutSettlement,
         private CountryOptions $countryOptions,
+        private FreeUnits $freeUnits,
     ) {}
 
     /**
@@ -134,6 +140,41 @@ class UnitActionPreview
         }
 
         return new CheckInAllPreviewData($rows, $user->can(PermissionEnum::FrontDeskCheckInWithoutCard->value), null);
+    }
+
+    /**
+     * The Move room form for a first night: the current room or bed, the room types the unit can move to and the free
+     * rooms or beds of the chosen type (its own when none is chosen). An unknown or unlinked type falls back to the
+     * unit's own.
+     */
+    public function move(ReservationUnit $unit, CarbonInterface $fromNight, ?int $roomTypeId): UnitMovePreviewData
+    {
+        $from = CarbonImmutable::instance($fromNight)->startOfDay();
+
+        if ($from->lt($unit->arrival_date->startOfDay()) || $from->gte($unit->departure_date->startOfDay())) {
+            return UnitMovePreviewData::refused($this->refusals->message(AssignmentResult::REFUSAL_NIGHT_INVALID));
+        }
+
+        $own = $unit->roomType()->firstOrFail();
+        $linkedIds = $unit->ratePlan()->firstOrFail()->roomTypes()->pluck('room_types.id');
+        $types = RoomType::query()
+            ->where('property_id', $unit->property_id)
+            ->where(fn ($query) => $query
+                ->where(fn ($linked) => $linked->whereIn('id', $linkedIds)->where('sell_unit', $own->sell_unit)->active())
+                ->orWhere('id', $own->id))
+            ->orderBy('name')
+            ->get(['id', 'name']);
+        $chosen = $types->firstWhere('id', $roomTypeId) ?? $types->firstWhere('id', $own->id);
+        $night = $unit->nights()->with(['room', 'bed'])->whereDate('date', $from->toDateString())->first();
+
+        return new UnitMovePreviewData(
+            current: $night?->room?->number ?? $night?->bed?->label,
+            roomTypes: $types->map(fn (RoomType $type): array => ['id' => $type->id, 'name' => $type->name])->all(),
+            roomTypeId: $chosen?->id,
+            sellsBeds: $own->sell_unit === SellUnit::Bed,
+            units: $chosen === null ? [] : $this->freeUnits->forStay(RoomType::query()->findOrFail($chosen->id), $from, $unit->departure_date, $unit->id),
+            error: null,
+        );
     }
 
     /**

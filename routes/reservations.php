@@ -103,6 +103,8 @@ Route::prefix('reservations')->name('reservations.')->scopeBindings()->group(fun
                 Route::post('reinstate', [ReservationUnitStayController::class, 'reinstate'])->name('reinstate');
                 Route::post('dates/preview', [ReservationUnitStayController::class, 'datesPreview'])->name('dates-preview');
                 Route::put('dates', [ReservationUnitStayController::class, 'changeDates'])->name('dates');
+                Route::post('move/preview', [ReservationUnitStayController::class, 'movePreview'])->name('move-preview');
+                Route::post('move', [ReservationUnitStayController::class, 'move'])->name('move');
             });
         });
     });

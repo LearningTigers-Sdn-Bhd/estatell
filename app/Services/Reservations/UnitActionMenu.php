@@ -34,7 +34,7 @@ class UnitActionMenu
     /**
      * The dates each Action accepts, so the menu never offers what it would refuse: check-in from the arrival date
      * until the departure date, check-out from the departure date, late check-out on the departure date, reinstate
-     * while the stay is still ahead. A checked-in unit past its departure can still be extended.
+     * and move room while the stay is still ahead. A checked-in unit past its departure can still be extended.
      */
     private function isTimely(UnitAction $action, ReservationUnit $unit, ?string $businessDate): bool
     {
@@ -49,7 +49,7 @@ class UnitActionMenu
             UnitAction::CheckIn => $businessDate >= $arrival && $businessDate < $departure,
             UnitAction::CheckOut => $businessDate >= $departure,
             UnitAction::LateCheckOut => $businessDate === $departure,
-            UnitAction::Reinstate => $businessDate < $departure,
+            UnitAction::Reinstate, UnitAction::MoveRoom => $businessDate < $departure,
             default => true,
         };
     }

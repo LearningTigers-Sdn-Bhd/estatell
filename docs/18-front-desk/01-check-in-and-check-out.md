@@ -6,7 +6,7 @@ Move a unit through its stay.
 
 ## Actions
 
-- `CheckInUnit`: requires an assigned room or bed for tonight, enforces the registration card scope, needs a known nationality when an enabled foreign-only tax exists (`nationality_required`), posts undated add-ons, sets `checked_in_at` and `UnitStatus::CheckedIn`.
+- `CheckInUnit`: requires an assigned room or bed for tonight (with `auto_assign_rooms` on, it first calls `AutoAssignRooms`), enforces the registration card scope, needs a known nationality when an enabled foreign-only tax exists (`nationality_required`), posts undated add-ons, sets `checked_in_at` and `UnitStatus::CheckedIn`.
 - `CheckOutUnit`: requires the unit folio balance to be 0 or transferred to the master folio (`balance_not_settled`). A held security deposit is a credit on the folio, so it must be refunded or used against charges first. It sets `checked_out_at`, `UnitStatus::CheckedOut` and marks the room Dirty.
 - `ChangeUnitDates`: changes the arrival and departure of a Confirmed unit, or the departure of a CheckedIn unit. Kept nights keep their prices, plan and rooms. Removed nights are deleted. Added nights are priced for the added stretch only and try to keep the neighbouring night's room or bed.
 - `ProcessEarlyDeparture`: called by `ChangeUnitDates` when the departure moves earlier. It applies the early departure [room revenue policy](../06-catalogues/06-room-revenue.md#policies) and removes the unused nights.

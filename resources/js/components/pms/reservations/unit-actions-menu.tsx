@@ -4,6 +4,7 @@ import {
     LogIn,
     LogOut,
     MoreHorizontal,
+    MoveRight,
     RotateCcw,
     UserX,
     XCircle,
@@ -13,6 +14,7 @@ import { useState } from 'react';
 import { CheckInDialog } from '@/components/pms/reservations/check-in-dialog';
 import { CheckOutDialog } from '@/components/pms/reservations/check-out-dialog';
 import { ChangeDatesDialog } from '@/components/pms/reservations/change-dates-dialog';
+import { MoveRoomDialog } from '@/components/pms/reservations/move-room-dialog';
 import { LateCheckOutDialog } from '@/components/pms/reservations/late-check-out-dialog';
 import { ReinstateUnitDialog } from '@/components/pms/reservations/reinstate-unit-dialog';
 import { UnitPolicyFeeDialog } from '@/components/pms/reservations/unit-policy-fee-dialog';
@@ -34,6 +36,7 @@ const ICONS: Record<App.Enums.UnitAction, LucideIcon> = {
     'no-show': UserX,
     reinstate: RotateCcw,
     'change-dates': CalendarClock,
+    'move-room': MoveRight,
 };
 
 /**
@@ -119,6 +122,7 @@ export function UnitActionsMenu({
                 canWaiveFees={canWaiveFees}
             />
             <ReinstateUnitDialog {...common} open={action === 'reinstate'} />
+            <MoveRoomDialog {...common} open={action === 'move-room'} />
             <ChangeDatesDialog
                 {...common}
                 open={action === 'change-dates'}

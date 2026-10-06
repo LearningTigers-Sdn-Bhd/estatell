@@ -25,6 +25,7 @@ class CheckInUnit
         private CreditCheck $creditCheck,
         private RecordCreditOverride $recordCreditOverride,
         private PostCharge $postCharge,
+        private AutoAssignRooms $autoAssignRooms,
         private SyncReservationStatus $syncReservationStatus,
     ) {}
 
@@ -36,6 +37,7 @@ class CheckInUnit
      *
      * `$withoutCard` skips the registration card rule, and `$creditOverrideReason` passes a company over its credit
      * limit. The route passes each only to a user with `front-desk.check-in-without-card` or `company.credit-override`.
+     * A unit with no room tonight gets one from `AutoAssignRooms` when the property has `auto_assign_rooms` on.
      * Permissions are checked by the route. See docs/18-front-desk/01-check-in-and-check-out.md.
      */
     public function __invoke(User $actor, ReservationUnit $unit, bool $withoutCard = false, ?string $creditOverrideReason = null): UnitStayResult
@@ -66,6 +68,11 @@ class CheckInUnit
                 }
 
                 $tonight = $locked->nights()->whereDate('date', $today)->first();
+
+                if ($tonight !== null && $tonight->room_id === null && $tonight->bed_id === null && $property->settings?->auto_assign_rooms) {
+                    ($this->autoAssignRooms)($actor, $locked);
+                    $tonight = $locked->nights()->whereDate('date', $today)->first();
+                }
 
                 if ($tonight === null || ($tonight->room_id === null && $tonight->bed_id === null)) {
                     return UnitStayResult::refused(UnitStayResult::REFUSAL_NO_ROOM_ASSIGNED);

@@ -430,14 +430,13 @@ test('staff with guests.view get the contact details and guest links', function 
 test('the page needs a constant number of queries however many units it has', function () {
     [$user, $property] = pageOwner();
     $roomType = RoomType::factory()->for($property)->create();
-    $room = Room::factory()->for($property)->create(['room_type_id' => $roomType->id]);
 
-    $queries = function (int $units, string $route) use ($user, $property, $roomType, $room): int {
+    $queries = function (int $units, string $route) use ($user, $property, $roomType): int {
         $reservation = pageReservation($property);
 
         foreach (range(1, $units) as $ignored) {
             $unit = pageUnit($reservation, ['room_type_id' => $roomType->id]);
-            UnitNight::query()->where('reservation_unit_id', $unit->id)->update(['room_id' => $room->id]);
+            UnitNight::query()->where('reservation_unit_id', $unit->id)->update(['room_id' => Room::factory()->for($property)->create(['room_type_id' => $roomType->id])->id]);
             UnitGuest::factory()->primary()->create(['reservation_unit_id' => $unit->id]);
             UnitAddOn::factory()->create(['reservation_unit_id' => $unit->id]);
             activity()->performedOn($reservation)->event('reservation.add_on_added')->withProperties(['charge_item_id' => 1])->log('x');

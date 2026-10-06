@@ -5,7 +5,7 @@ namespace App\Actions\Reservations;
 use Carbon\CarbonInterface;
 
 /**
- * What `AssignRoom` and `AssignBed` return: done, or a refusal code and the first night that is not free. The codes name the room or the bed.
+ * What `AssignRoom`, `AssignBed`, `MoveUnit` and `AutoAssignRooms` return: done, or a refusal code and the first night that is not free. The codes name the room or the bed.
  */
 class AssignmentResult
 {
@@ -18,6 +18,20 @@ class AssignmentResult
     public const REFUSAL_ROOM_NOT_FREE = 'room_not_free';
 
     public const REFUSAL_BED_NOT_FREE = 'bed_not_free';
+
+    public const REFUSAL_REASON_REQUIRED = 'reason_required';
+
+    public const REFUSAL_NIGHT_INVALID = 'night_invalid';
+
+    public const REFUSAL_NIGHT_IN_PAST = 'night_in_past';
+
+    public const REFUSAL_ROOM_TYPE_NOT_ALLOWED = 'room_type_not_allowed';
+
+    public const REFUSAL_WHOLE_STAY_REQUIRED = 'whole_stay_required';
+
+    public const REFUSAL_UNCHANGED = 'unchanged';
+
+    public const REFUSAL_NO_FREE_UNIT = 'no_free_unit';
 
     private function __construct(
         public readonly ?string $refusal,

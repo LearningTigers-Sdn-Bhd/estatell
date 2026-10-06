@@ -392,12 +392,13 @@ test('the room box shows the first night room or bed of each unit', function () 
     $room = Room::factory()->for($property)->create(['room_type_id' => $roomType->id, 'number' => '101']);
     $other = Room::factory()->for($property)->create(['room_type_id' => $roomType->id, 'number' => '102']);
     $third = Room::factory()->for($property)->create(['room_type_id' => $roomType->id, 'number' => '103']);
+    $fourth = Room::factory()->for($property)->create(['room_type_id' => $roomType->id, 'number' => '104']);
     $single = listReservation($property, [], [['room_type' => $roomType]]);
     UnitNight::query()->whereIn('reservation_unit_id', $single->units()->pluck('id'))->update(['room_id' => $room->id]);
     $group = listReservation($property, ['group_name' => 'Trip'], [['room_type' => $roomType], ['room_type' => $roomType], ['room_type' => $roomType], ['room_type' => $roomType]]);
     foreach ($group->units()->orderBy('id')->get()->take(3) as $index => $unit) {
-        UnitNight::query()->where('reservation_unit_id', $unit->id)->orderBy('date')->limit(1)->update(['room_id' => [$room, $other, $third][$index]->id]);
-        UnitNight::query()->where('reservation_unit_id', $unit->id)->where('date', '>', '2026-10-12')->update(['room_id' => $third->id]);
+        UnitNight::query()->where('reservation_unit_id', $unit->id)->orderBy('date')->limit(1)->update(['room_id' => [$other, $third, $fourth][$index]->id]);
+        UnitNight::query()->where('reservation_unit_id', $unit->id)->where('date', '>', '2026-10-12')->update(['room_id' => Room::factory()->for($property)->create(['room_type_id' => $roomType->id])->id]);
     }
 
     $this->actingAs($user)->get(listUrl($property))->assertInertia(fn (Assert $page) => $page
@@ -405,7 +406,7 @@ test('the room box shows the first night room or bed of each unit', function () 
         ->where('reservations.data.0.roomBox.numbers', ['101'])
         ->where('reservations.data.0.roomBox.units', [])
         ->where('reservations.data.1.roomBox.state', 'assigned')
-        ->where('reservations.data.1.roomBox.numbers', ['101', '102'])
+        ->where('reservations.data.1.roomBox.numbers', ['102', '103'])
         ->where('reservations.data.1.roomBox.more', 1)
         ->where('reservations.data.1.roomBox.count', 1)
         ->where('reservations.data.1.roomBox.units.3.assigned', null)
@@ -503,12 +504,15 @@ test('the title is the group name or the booker, and the booker link needs guest
 test('the list needs a constant number of queries with lazy loading prevented', function () {
     [$user, $property] = listOwner();
     $roomType = RoomType::factory()->for($property)->create();
-    $room = Room::factory()->for($property)->create(['room_type_id' => $roomType->id]);
 
-    $queries = function (int $added) use ($user, $property, $roomType, $room): int {
+    $queries = function (int $added) use ($user, $property, $roomType): int {
         foreach (range(1, $added) as $ignored) {
             $reservation = listReservation($property, ['group_name' => 'Trip'], [['room_type' => $roomType], ['room_type' => $roomType]]);
-            UnitNight::query()->whereIn('reservation_unit_id', $reservation->units()->pluck('id'))->update(['room_id' => $room->id]);
+
+            foreach ($reservation->units()->pluck('id') as $unitId) {
+                UnitNight::query()->where('reservation_unit_id', $unitId)->update(['room_id' => Room::factory()->for($property)->create(['room_type_id' => $roomType->id])->id]);
+            }
+
             $folio = Folio::factory()->create(['property_id' => $property->id, 'reservation_id' => $reservation->id]);
             FolioLine::factory()->for($folio)->create();
             FolioLine::factory()->for($folio)->payment()->create();

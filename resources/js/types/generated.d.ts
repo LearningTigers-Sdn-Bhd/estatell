@@ -1350,6 +1350,17 @@ departureTime: string,
 standardTime: string,
 error: string | null,
 };
+export type UnitMovePreviewData = {
+current: string | null,
+roomTypes: {
+id: number,
+name: string,
+}[],
+roomTypeId: number | null,
+sellsBeds: boolean,
+units: App.Data.Reservations.FreeUnitData[],
+error: string | null,
+};
 export type UnitPickData = {
 unitIndex: number,
 roomId: number | null,
@@ -1559,7 +1570,7 @@ export type TermsPreset = 'standard_hotel' | 'hostel' | 'resort' | 'serviced_apa
 export type Tone = 'neutral' | 'info' | 'success' | 'warning' | 'danger';
 export type TransactionCategory = 'room' | 'food_and_beverage' | 'laundry' | 'minibar' | 'fee' | 'tax' | 'discount' | 'cash' | 'card' | 'bank_transfer' | 'e_wallet' | 'ota_collected' | 'direct_bill' | 'deposit' | 'refund' | 'adjustment' | 'other';
 export type TransactionKind = 'charge' | 'payment' | 'adjustment' | 'tax';
-export type UnitAction = 'check-in' | 'check-out' | 'late-check-out' | 'change-dates' | 'cancel' | 'no-show' | 'reinstate';
+export type UnitAction = 'check-in' | 'check-out' | 'late-check-out' | 'change-dates' | 'cancel' | 'no-show' | 'reinstate' | 'move-room';
 export type UnitStatus = 'confirmed' | 'checked_in' | 'checked_out' | 'cancelled' | 'no_show';
 export type Weekday = 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday';
 export type WeekendNights = 'fri_sat' | 'sat_sun';

@@ -108,11 +108,10 @@ test('a room taken on one night by another unit is refused with that night and n
         ->and(Activity::query()->count())->toBe(0);
 });
 
-test('a room frees up when the unit that held it is cancelled or the stay ends before', function () {
+test('a room frees up when the stay that held it ends before', function () {
     $setup = assignSetup();
-    $cancelled = assignUnit($setup['property'], $setup['roomType'], ['status' => UnitStatus::Cancelled]);
     $earlier = assignUnit($setup['property'], $setup['roomType'], ['arrival_date' => '2026-10-18', 'departure_date' => '2026-10-20']);
-    UnitNight::query()->whereIn('reservation_unit_id', [$cancelled->id, $earlier->id])->update(['room_id' => $setup['rooms'][0]->id]);
+    UnitNight::query()->where('reservation_unit_id', $earlier->id)->update(['room_id' => $setup['rooms'][0]->id]);
 
     expect(app(AssignRoom::class)($setup['user'], $setup['unit'], $setup['rooms'][0])->isRefused())->toBeFalse();
 });

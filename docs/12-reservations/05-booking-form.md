@@ -87,7 +87,7 @@ Optional. A picked room or bed fills `room_id` or `bed_id` on every night of the
 
 - The list shows only rooms or beds free on every night of the unit, from `AvailabilityService`. A room picked on another line is disabled.
 - Changing the room type or dates reloads the list. A picked room that is no longer free is cleared.
-- `AssignRoom` and `AssignBed` lock the room type row, then check that the room or bed is free on every night. A refusal writes nothing and comes back as an inline error on the line. The database constraint on room or bed and night comes with [Room and bed assignment](../18-front-desk/02-room-and-bed-assignment.md) in module 18.
+- `AssignRoom` and `AssignBed` lock the room type row, then check that the room or bed is free on every night. A refusal writes nothing and comes back as an inline error on the line. Two unique indexes on `unit_nights` (room and night, bed and night) enforce it in the database. See [Room and bed assignment](../18-front-desk/02-room-and-bed-assignment.md).
 - Mid-stay moves, `AutoAssignRooms` and later changes are in [Room and bed assignment](../18-front-desk/02-room-and-bed-assignment.md).
 
 ## Guests section

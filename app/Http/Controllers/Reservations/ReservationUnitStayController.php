@@ -9,7 +9,9 @@ use App\Actions\FrontDesk\CheckInAndCollect;
 use App\Actions\FrontDesk\CheckOutAndRefund;
 use App\Actions\FrontDesk\ExtendDepartureTime;
 use App\Actions\FrontDesk\MarkNoShow;
+use App\Actions\FrontDesk\MoveUnit;
 use App\Actions\FrontDesk\ReinstateUnit;
+use App\Actions\Reservations\AssignmentResult;
 use App\Enums\PermissionEnum;
 use App\Enums\SystemTransactionCode;
 use App\Http\Controllers\Controller;
@@ -18,6 +20,8 @@ use App\Http\Requests\Reservations\CheckInAllRequest;
 use App\Http\Requests\Reservations\CheckInUnitRequest;
 use App\Http\Requests\Reservations\CheckOutUnitRequest;
 use App\Http\Requests\Reservations\LateCheckOutRequest;
+use App\Http\Requests\Reservations\MoveUnitPreviewRequest;
+use App\Http\Requests\Reservations\MoveUnitRequest;
 use App\Http\Requests\Reservations\ReinstateUnitRequest;
 use App\Http\Requests\Reservations\UnitPolicyFeeRequest;
 use App\Models\Property;
@@ -75,6 +79,11 @@ class ReservationUnitStayController extends Controller
     public function datesPreview(ChangeUnitDatesRequest $request, Property $property, Reservation $reservation, ReservationUnit $unit, UnitActionPreview $preview): JsonResponse
     {
         return response()->json($preview->dates($unit, $request->arrival(), $request->departure()));
+    }
+
+    public function movePreview(MoveUnitPreviewRequest $request, Property $property, Reservation $reservation, ReservationUnit $unit, UnitActionPreview $preview): JsonResponse
+    {
+        return response()->json($preview->move($unit, $request->fromNight(), $request->roomTypeId()));
     }
 
     /**
@@ -199,6 +208,30 @@ class ReservationUnitStayController extends Controller
         return $this->respond($property, $reservation, $result->refusal, $refusals, __('Dates changed.'), $result->unassignedNights > 0
             ? trans_choice(':count added night needs a room.|:count added nights need a room.', $result->unassignedNights)
             : null);
+    }
+
+    /**
+     * Move a unit to another room or bed from a night onward. A refusal goes back to the Dialog as an error on the
+     * field it belongs to.
+     */
+    public function move(MoveUnitRequest $request, Property $property, Reservation $reservation, ReservationUnit $unit, MoveUnit $moveUnit, ReservationRefusals $refusals): RedirectResponse
+    {
+        $target = $request->target($property);
+        $page = route('reservations.show', ['property' => $property, 'reservation' => $reservation]);
+
+        if ($target === null) {
+            return back(fallback: $page)->withErrors($refusals->unitErrors($request->filled('bed_id') ? AssignmentResult::REFUSAL_BED_NOT_FOUND : AssignmentResult::REFUSAL_ROOM_NOT_FOUND));
+        }
+
+        $result = $moveUnit($request->user(), $unit, $target, $request->fromNight(), $request->string('reason')->toString());
+
+        if ($result->isRefused()) {
+            return back(fallback: $page)->withErrors($refusals->unitErrors((string) $result->refusal, $result->date));
+        }
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Unit moved.')]);
+
+        return back(fallback: $page);
     }
 
     private function respond(Property $property, Reservation $reservation, ?string $refusal, ReservationRefusals $refusals, string $message, ?string $note = null): RedirectResponse
