@@ -9,7 +9,7 @@ Configure taxes once and apply them to the right charges automatically.
 ```
 taxes                   id, property_id, transaction_code_id, name, code,
                         rate_type (TaxRateType), rate, is_inclusive,
-                        foreign_guests_only, registration_number, enabled, timestamps
+                        foreign_guests_only, collect_at_check_in, registration_number, enabled, timestamps
 tax_transaction_code    tax_id, transaction_code_id
 ```
 
@@ -35,7 +35,8 @@ Names and short codes are unique within a property, ignoring case. A custom tax 
 - The pivot says which charge codes each tax applies to. Two screens edit it: [Room revenue](06-room-revenue.md) for the five room codes, and [Charge items](02-charge-items.md#taxes) for each item. Saving a tax never changes the pivot.
 - An enabled tax may apply to no charges yet. The tax list shows an **Applies to** summary ("Room revenue, Breakfast, Parking") and a "Not applied to any charge" badge when it is empty.
 - Tax lines are children of the charge line (`parent_line_id`). Reversing a charge reverses its taxes.
-- Malaysia presets are seeded disabled and apply to all five room revenue codes: 8% exclusive Service Tax for all guests and RM10 exclusive Tourism tax per room-night for foreign guests. The owner confirms them in onboarding.
+- `collect_at_check_in` (default false) marks a tax that staff ask for when a guest checks in. It does not change posting: the tax is still a child line of each night's room line. It decides which taxes the [check-in form](../18-front-desk/01-check-in-and-check-out.md#collect-now) adds up as one amount to collect. The tax form has a **Collect at check-in** switch.
+- Malaysia presets are seeded disabled and apply to all five room revenue codes: 8% exclusive Service Tax for all guests and RM10 exclusive Tourism tax per room-night for foreign guests, with **Collect at check-in** on. The owner confirms them in onboarding.
 
 ## Lessons from wastays
 
