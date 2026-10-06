@@ -194,6 +194,7 @@ class ReservationController extends Controller
             'currency' => $property->settings?->currency,
             'canViewGuest' => $canViewGuest,
             'canManage' => $user->can(PermissionEnum::ReservationsManage->value),
+            'canCheckIn' => $user->can(PermissionEnum::FrontDeskCheckIn->value),
             'canWaiveFees' => $user->can(PermissionEnum::FrontDeskWaiveFees->value),
             'canOverrideRestrictions' => $user->can(PermissionEnum::RatesOverrideRestrictions->value),
             'billingModes' => BillingMode::options(),

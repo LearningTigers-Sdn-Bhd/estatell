@@ -60,6 +60,11 @@ Route::prefix('reservations')->name('reservations.')->scopeBindings()->group(fun
                 Route::post('units/{unit}/payments', [ReservationPaymentController::class, 'storeForUnit'])->name('units.payments.store');
             });
 
+            Route::middleware('can:'.PermissionEnum::FrontDeskCheckIn->value)->group(function () {
+                Route::post('check-in-all/preview', [ReservationUnitStayController::class, 'checkInAllPreview'])->name('check-in-all-preview');
+                Route::post('check-in-all', [ReservationUnitStayController::class, 'checkInAll'])->name('check-in-all');
+            });
+
             Route::prefix('units/{unit}')->name('units.')->group(function () {
                 Route::middleware('can:'.PermissionEnum::FrontDeskCheckIn->value)->group(function () {
                     Route::post('check-in/preview', [ReservationUnitStayController::class, 'checkInPreview'])->name('check-in-preview');

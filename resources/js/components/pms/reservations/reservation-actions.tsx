@@ -1,7 +1,8 @@
-import { Building2, MoreHorizontal, Pencil, Plus } from 'lucide-react';
+import { Building2, LogIn, MoreHorizontal, Pencil, Plus } from 'lucide-react';
 import { useState } from 'react';
 import type { EnumOption } from '@/components/pms/enum-select';
 import { AddUnitSheet } from '@/components/pms/reservations/add-unit-sheet';
+import { CheckInAllDialog } from '@/components/pms/reservations/check-in-all-dialog';
 import { ChangeCompanyDialog } from '@/components/pms/reservations/change-company-dialog';
 import { EditGroupDialog } from '@/components/pms/reservations/edit-group-dialog';
 import { Button } from '@/components/ui/button';
@@ -13,13 +14,14 @@ import {
 } from '@/components/ui/dropdown-menu';
 
 /**
- * The page header buttons: Add unit (hidden once the reservation is closed) and More, which holds Edit group and Change company.
+ * The page header buttons: Add unit (hidden once the reservation is closed) and More, which holds Edit group, Change company and, for a group, Check in all.
  */
 export function ReservationActions({
     reservation,
     billingModes,
     addUnitOptions,
     canViewCompany,
+    canCheckIn,
     canOverrideCredit,
     companies,
     currency,
@@ -28,6 +30,7 @@ export function ReservationActions({
     billingModes: EnumOption[];
     addUnitOptions?: App.Data.Reservations.AddUnitOptionsData;
     canViewCompany: boolean;
+    canCheckIn: boolean;
     canOverrideCredit: boolean;
     companies?: App.Data.CityLedger.CompanyOptionData[];
     currency: App.Enums.Currency | null;
@@ -35,6 +38,9 @@ export function ReservationActions({
     const [addingUnit, setAddingUnit] = useState(false);
     const [editingGroup, setEditingGroup] = useState(false);
     const [changingCompany, setChangingCompany] = useState(false);
+    const [checkingInAll, setCheckingInAll] = useState(false);
+    const canCheckInAll =
+        canCheckIn && !reservation.isClosed && reservation.unitCount > 1;
 
     return (
         <>
@@ -57,6 +63,14 @@ export function ReservationActions({
                         <Pencil />
                         Edit group
                     </DropdownMenuItem>
+                    {canCheckInAll && (
+                        <DropdownMenuItem
+                            onClick={() => setCheckingInAll(true)}
+                        >
+                            <LogIn />
+                            Check in all
+                        </DropdownMenuItem>
+                    )}
                     {canViewCompany && !reservation.isClosed && (
                         <DropdownMenuItem
                             onClick={() => setChangingCompany(true)}
@@ -76,6 +90,13 @@ export function ReservationActions({
                 options={addUnitOptions}
                 currency={currency}
             />
+            {canCheckInAll && (
+                <CheckInAllDialog
+                    open={checkingInAll}
+                    onOpenChange={setCheckingInAll}
+                    reservation={reservation}
+                />
+            )}
             <EditGroupDialog
                 open={editingGroup}
                 onOpenChange={setEditingGroup}

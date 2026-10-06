@@ -180,6 +180,13 @@ Each form uses `FormOverlay` and the container from [Form containers](../design-
 - **Late check-out.** `reservations.units.late-check-out` calls `ExtendDepartureTime` with the same Do not charge and reason fields as the other fee forms.
 - **Routes.** `reservations.units.check-in`, `.check-out` and `.late-check-out` with their `-preview` routes. Check in uses `front-desk.check-in`. Check out and late check-out use `front-desk.check-out`.
 
+### Built: check in all
+
+- **Entry.** **Check in all** is in the **⋯ More** menu of the reservation page, for a reservation with 2 or more units that is not closed, to a user with `front-desk.check-in`. The page sends `canCheckIn`.
+- **Rows.** `UnitActionPreview::checkInAll()` lists each Confirmed unit with its room, primary guest and unsigned cards. A unit is **ready** inside its stay. A unit that is not ready is disabled with a note (for example "Arrives 15 Oct" or "No room assigned for tonight").
+- **Action.** `CheckInAllUnits` calls `CheckInUnit` once for each chosen unit, ignores an id that is not a unit of the reservation and returns each unit's refusal. It takes no payment, saves no nationality and takes no credit override, because those belong to one unit. A **Check in without a card** box shows for a user with `front-desk.check-in-without-card`.
+- **Errors.** A refused unit shows its message on its own row (the error key is `units.{id}`). The units that were checked in leave the list and the failed ones stay.
+
 ### Cancel unit
 
 ```

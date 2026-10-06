@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Reservations;
 
 use App\Actions\FrontDesk\CancelUnit;
 use App\Actions\FrontDesk\ChangeUnitDates;
+use App\Actions\FrontDesk\CheckInAllUnits;
 use App\Actions\FrontDesk\CheckInAndCollect;
 use App\Actions\FrontDesk\CheckOutAndRefund;
 use App\Actions\FrontDesk\ExtendDepartureTime;
@@ -13,6 +14,7 @@ use App\Enums\PermissionEnum;
 use App\Enums\SystemTransactionCode;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Reservations\ChangeUnitDatesRequest;
+use App\Http\Requests\Reservations\CheckInAllRequest;
 use App\Http\Requests\Reservations\CheckInUnitRequest;
 use App\Http\Requests\Reservations\CheckOutUnitRequest;
 use App\Http\Requests\Reservations\LateCheckOutRequest;
@@ -55,6 +57,11 @@ class ReservationUnitStayController extends Controller
         return response()->json($preview->checkIn($unit, $request->user()));
     }
 
+    public function checkInAllPreview(Request $request, Property $property, Reservation $reservation, UnitActionPreview $preview): JsonResponse
+    {
+        return response()->json($preview->checkInAll($reservation, $request->user()));
+    }
+
     public function checkOutPreview(Request $request, Property $property, Reservation $reservation, ReservationUnit $unit, UnitActionPreview $preview): JsonResponse
     {
         return response()->json($preview->checkOut($unit, $request->user()));
@@ -92,6 +99,35 @@ class ReservationUnitStayController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Unit checked in.')]);
 
         return back(fallback: $page);
+    }
+
+    /**
+     * Check in the chosen units of a group. A refused unit does not stop the others: it shows on its own row, as an
+     * error keyed `units.{id}`.
+     */
+    public function checkInAll(CheckInAllRequest $request, Property $property, Reservation $reservation, CheckInAllUnits $checkInAllUnits, ReservationRefusals $refusals): RedirectResponse
+    {
+        $results = $checkInAllUnits($request->user(), $reservation, $request->unitIds(), $request->withoutCard());
+        $refused = array_filter($results, fn (?string $refusal): bool => $refusal !== null);
+        $done = count($results) - count($refused);
+        $page = route('reservations.show', ['property' => $property, 'reservation' => $reservation]);
+
+        if ($refused === []) {
+            Inertia::flash('toast', ['type' => 'success', 'message' => trans_choice(':count unit checked in.|:count units checked in.', $done)]);
+
+            return back(fallback: $page);
+        }
+
+        $canOverrideCard = $request->user()->can(PermissionEnum::FrontDeskCheckInWithoutCard->value);
+        $errors = [];
+
+        foreach ($refused as $unitId => $refusal) {
+            $errors['units.'.$unitId] = array_values($refusals->unitErrors($refusal, canOverrideCard: $canOverrideCard))[0];
+        }
+
+        Inertia::flash('toast', ['type' => 'error', 'message' => __(':done checked in, :refused refused.', ['done' => $done, 'refused' => count($refused)])]);
+
+        return back(fallback: $page)->withErrors($errors);
     }
 
     /**

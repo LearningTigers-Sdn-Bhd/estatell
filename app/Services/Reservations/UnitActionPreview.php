@@ -3,6 +3,7 @@
 namespace App\Services\Reservations;
 
 use App\Actions\FrontDesk\UnitStayResult;
+use App\Data\Reservations\CheckInAllPreviewData;
 use App\Data\Reservations\UnitCheckInPreviewData;
 use App\Data\Reservations\UnitCheckOutPreviewData;
 use App\Data\Reservations\UnitDatesPreviewData;
@@ -11,6 +12,8 @@ use App\Data\Reservations\UnitLateCheckOutPreviewData;
 use App\Data\Reservations\UnitReinstatePreviewData;
 use App\Enums\PermissionEnum;
 use App\Enums\SystemTransactionCode;
+use App\Enums\UnitStatus;
+use App\Models\Reservation;
 use App\Models\ReservationUnit;
 use App\Models\RoomRevenuePolicy;
 use App\Models\Tax;
@@ -84,6 +87,53 @@ class UnitActionPreview
             collection: $collection === null || $collection->isEmpty() ? null : $collection,
             error: null,
         );
+    }
+
+    /**
+     * The rows of the group Check in all form: each Confirmed unit, ready when the business date is inside its stay.
+     */
+    public function checkInAll(Reservation $reservation, User $user): CheckInAllPreviewData
+    {
+        $property = $reservation->property()->with('settings')->firstOrFail();
+        $businessDate = $this->currentBusinessDate->date($property);
+
+        if ($businessDate === null) {
+            return CheckInAllPreviewData::refused($this->refusals->message(UnitStayResult::REFUSAL_NO_BUSINESS_DATE));
+        }
+
+        $today = $businessDate->toDateString();
+        $cardRequired = (bool) $property->settings?->card_required_for_check_in;
+        $rows = [];
+
+        $units = $reservation->units()
+            ->where('status', UnitStatus::Confirmed)
+            ->with(['roomType', 'guests.guest', 'nights' => fn ($nights) => $nights->whereDate('date', $today), 'nights.room', 'nights.bed'])
+            ->orderBy('id')
+            ->get();
+
+        foreach ($units as $unit) {
+            $tonight = $unit->nights->first();
+            $arrival = $unit->arrival_date->toDateString();
+            $ready = $today >= $arrival && $today < $unit->departure_date->toDateString();
+            $room = $tonight?->room?->number ?? $tonight?->bed?->label;
+
+            $rows[] = [
+                'unitId' => $unit->id,
+                'label' => $unit->roomType->name,
+                'guest' => $unit->guests->firstWhere('is_primary', true)?->guest->full_name,
+                'room' => $room,
+                'cardsMissing' => $cardRequired ? $this->registrationCardRequirement->missingFor($unit, $property)->count() : 0,
+                'ready' => $ready,
+                'note' => match (true) {
+                    ! $ready && $today < $arrival => __('Arrives :date', ['date' => $unit->arrival_date->format('d M Y')]),
+                    ! $ready => __('The stay has ended'),
+                    $room === null => __('No room assigned for tonight'),
+                    default => null,
+                },
+            ];
+        }
+
+        return new CheckInAllPreviewData($rows, $user->can(PermissionEnum::FrontDeskCheckInWithoutCard->value), null);
     }
 
     /**

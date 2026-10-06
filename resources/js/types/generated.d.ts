@@ -1035,6 +1035,19 @@ chargingUnitLabel: string,
 defaultAmount: string | null,
 allowOverride: boolean,
 };
+export type CheckInAllPreviewData = {
+rows: {
+unitId: number,
+label: string,
+guest: string | null,
+room: string | null,
+cardsMissing: number,
+ready: boolean,
+note: string | null,
+}[],
+canCheckInWithoutCard: boolean,
+error: string | null,
+};
 export type CheckInCollectionData = {
 taxes: {
 name: string,

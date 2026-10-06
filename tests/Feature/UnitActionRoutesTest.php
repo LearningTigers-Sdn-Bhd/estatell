@@ -583,3 +583,111 @@ test('the front desk routes need their own permission', function (string $route)
 
     $this->actingAs($outsider)->post(uaUrl($setup, $route), [])->assertForbidden();
 })->with(['check-in-preview', 'check-in', 'check-out-preview', 'check-out', 'late-check-out-preview', 'late-check-out']);
+
+/**
+ * A second Confirmed unit on the reservation, with its own room unless `$room` is false.
+ *
+ * @param  array<string, mixed>  $unit
+ */
+function uaSecondUnit(array $setup, bool $room = true, array $unit = []): ReservationUnit
+{
+    $first = $setup['unit'];
+    $second = ReservationUnit::factory()->for($setup['reservation'])->withNights()->create([
+        'room_type_id' => $first->room_type_id,
+        'rate_plan_id' => $first->rate_plan_id,
+        'arrival_date' => $first->arrival_date->toDateString(),
+        'departure_date' => $first->departure_date->toDateString(),
+        ...$unit,
+    ]);
+
+    if ($room) {
+        $second->nights()->update(['room_id' => Room::factory()->for($setup['property'])->create(['room_type_id' => $first->room_type_id])->id]);
+    }
+
+    return $second;
+}
+
+test('the group preview lists each confirmed unit and whether it is ready', function () {
+    $setup = uaSetup();
+    uaCheckInSetup($setup);
+    $later = uaSecondUnit($setup, unit: ['arrival_date' => today()->addDay()->toDateString(), 'departure_date' => today()->addDays(3)->toDateString()]);
+    uaSecondUnit($setup, unit: ['status' => UnitStatus::Cancelled]);
+    $noRoom = uaSecondUnit($setup, room: false);
+
+    $this->actingAs($setup['user'])
+        ->postJson(route('reservations.check-in-all-preview', ['property' => $setup['property']->code, 'reservation' => $setup['reservation']->id]))
+        ->assertOk()
+        ->assertJsonCount(3, 'rows')
+        ->assertJsonPath('rows.0.ready', true)
+        ->assertJsonPath('rows.1.unitId', $later->id)
+        ->assertJsonPath('rows.1.ready', false)
+        ->assertJsonPath('rows.1.note', 'Arrives '.today()->addDay()->format('d M Y'))
+        ->assertJsonPath('rows.2.unitId', $noRoom->id)
+        ->assertJsonPath('rows.2.note', 'No room assigned for tonight')
+        ->assertJsonPath('canCheckInWithoutCard', true);
+
+    expect(Activity::query()->count())->toBe(0);
+});
+
+test('check in all checks in what it can and shows each refusal on its own row', function () {
+    $setup = uaSetup();
+    uaCheckInSetup($setup);
+    $ready = uaSecondUnit($setup);
+    $noRoom = uaSecondUnit($setup, room: false);
+    $foreign = ReservationUnit::factory()->withNights()->create();
+
+    $this->actingAs($setup['user'])
+        ->post(route('reservations.check-in-all', ['property' => $setup['property']->code, 'reservation' => $setup['reservation']->id]), ['unit_ids' => [$setup['unit']->id, $ready->id, $noRoom->id, $foreign->id]])
+        ->assertRedirect()
+        ->assertSessionHasErrors(['units.'.$noRoom->id]);
+
+    expect($setup['unit']->fresh()->status)->toBe(UnitStatus::CheckedIn)
+        ->and($ready->fresh()->status)->toBe(UnitStatus::CheckedIn)
+        ->and($noRoom->fresh()->status)->toBe(UnitStatus::Confirmed)
+        ->and($foreign->fresh()->status)->toBe(UnitStatus::Confirmed)
+        ->and(Payment::query()->count())->toBe(0);
+});
+
+test('check in all closes cleanly when every unit is checked in', function () {
+    $setup = uaSetup();
+    uaCheckInSetup($setup);
+    $second = uaSecondUnit($setup);
+
+    $this->actingAs($setup['user'])
+        ->post(route('reservations.check-in-all', ['property' => $setup['property']->code, 'reservation' => $setup['reservation']->id]), ['unit_ids' => [$setup['unit']->id, $second->id]])
+        ->assertRedirect()
+        ->assertSessionHasNoErrors();
+
+    expect(ReservationUnit::query()->where('status', UnitStatus::CheckedIn)->count())->toBe(2);
+});
+
+test('check in all drops the card override for a user who may not use it', function () {
+    $setup = uaSetup(DefaultRoleEnum::FrontDesk);
+    uaCheckInSetup($setup, ['card_required_for_check_in' => true]);
+    UnitGuest::factory()->create(['reservation_unit_id' => $setup['unit']->id, 'is_primary' => true]);
+
+    $this->actingAs($setup['user'])
+        ->post(route('reservations.check-in-all', ['property' => $setup['property']->code, 'reservation' => $setup['reservation']->id]), ['unit_ids' => [$setup['unit']->id], 'without_card' => true])
+        ->assertSessionHasErrors(['units.'.$setup['unit']->id]);
+
+    expect($setup['unit']->fresh()->status)->toBe(UnitStatus::Confirmed);
+});
+
+test('check in all needs front-desk.check-in and a unit choice', function () {
+    $setup = uaSetup();
+    $outsider = uaStaffWith($setup['property'], ['reservations.view']);
+
+    $this->actingAs($outsider)->post(route('reservations.check-in-all', ['property' => $setup['property']->code, 'reservation' => $setup['reservation']->id]), ['unit_ids' => [$setup['unit']->id]])->assertForbidden();
+    $this->actingAs($outsider)->postJson(route('reservations.check-in-all-preview', ['property' => $setup['property']->code, 'reservation' => $setup['reservation']->id]))->assertForbidden();
+
+    $this->actingAs($setup['user'])->post(route('reservations.check-in-all', ['property' => $setup['property']->code, 'reservation' => $setup['reservation']->id]), ['unit_ids' => []])->assertSessionHasErrors('unit_ids');
+});
+
+test('the page tells the browser whether the user may check in', function () {
+    $setup = uaSetup();
+    $reader = uaStaffWith($setup['property'], ['reservations.view']);
+    $url = route('reservations.show', ['property' => $setup['property']->code, 'reservation' => $setup['reservation']->id]);
+
+    $this->actingAs($setup['user'])->get($url)->assertInertia(fn (Assert $page) => $page->where('canCheckIn', true));
+    $this->actingAs($reader)->get($url)->assertInertia(fn (Assert $page) => $page->where('canCheckIn', false));
+});
