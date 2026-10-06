@@ -194,6 +194,8 @@ Needs the Channex staging checks in [Staging verification](21-channels/06-stagin
 | `1d07769` | docs(ui): plan the overlay migration in three commits                    |
 | `83676f1` | refactor(ui): move form overlay helpers to the components root           |
 | `86a313f` | refactor(city-ledger): move overlays onto FormOverlay                    |
+| `5814211` | refactor(folio): move overlays onto FormOverlay                          |
+| `3e33cd8` | feat(front-desk): cancel, no-show and reinstate units                    |
 
 Smaller fixes and reverts are in `git log`.
 

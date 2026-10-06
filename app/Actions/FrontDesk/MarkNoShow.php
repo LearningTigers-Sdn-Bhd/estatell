@@ -19,13 +19,14 @@ class MarkNoShow
         private PolicyChargeCalculator $policyChargeCalculator,
         private PostUnitPolicyFee $postUnitPolicyFee,
         private RemoveUnpostedAddOns $removeUnpostedAddOns,
+        private ReleaseUnitRooms $releaseUnitRooms,
         private SyncReservationStatus $syncReservationStatus,
     ) {}
 
     /**
      * Mark one Confirmed unit as a no-show: set `UnitStatus::NoShow`, post the no-show policy fee and sync the
      * reservation status. A no-show is marked on or after the arrival date, by the business date. The arguments,
-     * the lock, the fee rules and the add-on option are those of `CancelUnit`. The night audit's
+     * the lock, the fee rules, the add-on option and the release of the rooms are those of `CancelUnit`. The night audit's
      * `ResolveMissedArrivals` calls this for each unit its policy marks.
      * Permissions are checked by the route. See docs/18-front-desk/01-check-in-and-check-out.md.
      */
@@ -82,6 +83,8 @@ class MarkNoShow
 
             $removedAddOnIds = $removeAddOns ? ($this->removeUnpostedAddOns)($actor, $locked) : [];
 
+            $released = ($this->releaseUnitRooms)($locked);
+
             $locked->status = UnitStatus::NoShow;
             $locked->save();
 
@@ -97,6 +100,8 @@ class MarkNoShow
                     'did_not_charge' => $doNotCharge,
                     'reason' => $reason,
                     'removed_add_on_ids' => $removedAddOnIds,
+                    'released_room_ids' => $released['room_ids'],
+                    'released_bed_ids' => $released['bed_ids'],
                     'business_date' => $businessDate->toDateString(),
                 ])
                 ->log('Unit marked as no-show');

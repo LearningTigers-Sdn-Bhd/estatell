@@ -33,8 +33,8 @@ class ReinstateUnit
      *
      * The unit is priced again with `RateQuoteService` from its plan, dates, adults and the ages in
      * `reservation_unit_children`. A stay override stays: a night with an `override_amount` keeps it as its amount.
-     * The room or bed of every night is cleared, because it may have been sold while the unit was off the books.
-     * Staff assign again with `AssignRoom` or `AssignBed`. A fee already posted stays on the folio, and the
+     * The room or bed of every night is cleared again, as a safeguard (cancel and no-show already released them).
+     * Staff assign with `AssignRoom` or `AssignBed`. A fee already posted stays on the folio, and the
      * correction is `ReverseLine`. Permissions are checked by the route.
      * See docs/18-front-desk/01-check-in-and-check-out.md.
      */

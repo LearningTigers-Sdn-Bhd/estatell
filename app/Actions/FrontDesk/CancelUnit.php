@@ -19,14 +19,15 @@ class CancelUnit
         private PolicyChargeCalculator $policyChargeCalculator,
         private PostUnitPolicyFee $postUnitPolicyFee,
         private RemoveUnpostedAddOns $removeUnpostedAddOns,
+        private ReleaseUnitRooms $releaseUnitRooms,
         private SyncReservationStatus $syncReservationStatus,
     ) {}
 
     /**
      * Cancel one Confirmed unit: set `UnitStatus::Cancelled`, post the cancellation policy fee and sync the
      * reservation status. The unit row is locked first, so a double click cannot cancel it twice. Every check runs
-     * before the first write, so a refusal writes and logs nothing. The nights stay as history and the unit stops
-     * holding inventory, because a Cancelled unit does not hold it.
+     * before the first write, so a refusal writes and logs nothing. The nights stay as history with their prices, and
+     * their rooms and beds are released (`ReleaseUnitRooms`).
      *
      * The fee comes from `PolicyChargeCalculator` on the business date and posts through `PostUnitPolicyFee`.
      * `$expectedFee` is the fee the form showed (a decimal string): when it differs from the fee now, the Action
@@ -84,6 +85,8 @@ class CancelUnit
 
             $removedAddOnIds = $removeAddOns ? ($this->removeUnpostedAddOns)($actor, $locked) : [];
 
+            $released = ($this->releaseUnitRooms)($locked);
+
             $locked->status = UnitStatus::Cancelled;
             $locked->save();
 
@@ -100,6 +103,8 @@ class CancelUnit
                     'within_free_window' => $charge->withinFreeWindow,
                     'reason' => $reason,
                     'removed_add_on_ids' => $removedAddOnIds,
+                    'released_room_ids' => $released['room_ids'],
+                    'released_bed_ids' => $released['bed_ids'],
                     'business_date' => $businessDate->toDateString(),
                 ])
                 ->log('Unit cancelled');

@@ -115,6 +115,32 @@ test('cancel posts the policy fee on a new unit folio, cancels the unit and logs
         ->and($log->properties['did_not_charge'])->toBeFalse();
 });
 
+test('cancel and no-show release the rooms and keep the nights', function (string $action, string $event) {
+    $setup = cancellationSetup();
+    $roomId = $setup['unit']->nights()->value('room_id');
+
+    $action($setup);
+
+    $log = Activity::query()->where('event', $event)->sole();
+
+    expect($setup['unit']->nights()->count())->toBe(2)
+        ->and($setup['unit']->nights()->whereNotNull('room_id')->count())->toBe(0)
+        ->and($setup['unit']->nights()->pluck('amount')->all())->toBe(['100.00', '100.00'])
+        ->and($log->properties['released_room_ids'])->toBe([$roomId])
+        ->and($log->properties['released_bed_ids'])->toBe([]);
+})->with([
+    ['cancelUnit', 'reservation.unit_cancelled'],
+    ['markNoShow', 'reservation.unit_no_show'],
+]);
+
+test('a refused cancel keeps the rooms', function () {
+    $setup = cancellationSetup();
+
+    cancelUnit($setup, doNotCharge: true);
+
+    expect($setup['unit']->nights()->whereNotNull('room_id')->count())->toBe(2);
+});
+
 test('a cancellation fee carries the taxes of its code as child lines', function () {
     $setup = cancellationSetup();
     addPolicyTax($setup['property'], SystemTransactionCode::CancellationRevenue);
