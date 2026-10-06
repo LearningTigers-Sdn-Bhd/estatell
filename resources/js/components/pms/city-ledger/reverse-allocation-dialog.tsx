@@ -1,85 +1,70 @@
 import { useForm } from '@inertiajs/react';
-import { FormError } from '@/components/pms/form-error';
+import { FormOverlay } from '@/components/pms/form-overlay';
 import { MoneyText } from '@/components/pms/money-text';
-import { Button } from '@/components/ui/button';
-import {
-    Dialog,
-    DialogClose,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from '@/components/ui/dialog';
-import {
-    Field,
-    FieldError,
-    FieldGroup,
-    FieldLabel,
-} from '@/components/ui/field';
-import { Spinner } from '@/components/ui/spinner';
+import { useFreshOnOpen } from '@/components/pms/use-fresh-on-open';
+import { useRetainedValue } from '@/components/pms/use-retained-value';
+import { Field, FieldError, FieldLabel } from '@/components/ui/field';
 import { Textarea } from '@/components/ui/textarea';
 import { reverse } from '@/routes/finance/city-ledger/companies/payments/allocations';
 
 type Allocation = App.Data.CityLedger.ArAllocationRowData;
 
-function ReverseForm({
-    allocation,
-    onDone,
-}: {
+type FormProps = {
+    open: boolean;
+    onClose: () => void;
     allocation: Allocation;
-    onDone: () => void;
-}) {
+    currency: App.Enums.Currency | null;
+};
+
+function ReverseForm({ open, onClose, allocation, currency }: FormProps) {
     const form = useForm({ reason: '' });
     const { data, errors } = form;
 
-    const submit = (event: React.FormEvent) => {
-        event.preventDefault();
+    const submit = () => {
         form.post(
             reverse.url({
                 company: allocation.companyId,
                 payment: allocation.paymentId,
                 allocation: allocation.id,
             }),
-            { preserveScroll: true, onSuccess: onDone },
+            { preserveScroll: true, onSuccess: onClose },
         );
     };
 
     return (
-        <form onSubmit={submit} className="flex flex-col gap-4">
-            <FieldGroup>
-                <FormError errors={errors} />
-                <Field data-invalid={!!errors.reason}>
-                    <FieldLabel htmlFor="reverse-reason">Reason</FieldLabel>
-                    <Textarea
-                        id="reverse-reason"
-                        value={data.reason}
-                        onChange={(event) =>
-                            form.setData('reason', event.target.value)
-                        }
-                        maxLength={500}
-                        rows={3}
-                        autoFocus
-                        aria-invalid={!!errors.reason}
-                    />
-                    <FieldError>{errors.reason}</FieldError>
-                </Field>
-            </FieldGroup>
-            <DialogFooter>
-                <DialogClose render={<Button variant="outline" />}>
-                    Cancel
-                </DialogClose>
-                <Button
-                    type="submit"
-                    variant="destructive"
-                    disabled={form.processing}
-                    focusableWhenDisabled
-                >
-                    {form.processing && <Spinner data-icon="inline-start" />}
-                    Reverse allocation
-                </Button>
-            </DialogFooter>
-        </form>
+        <FormOverlay
+            variant="dialog"
+            open={open}
+            onOpenChange={(next) => !next && onClose()}
+            title="Reverse allocation"
+            description={
+                <>
+                    {allocation.receiptNumber} ·{' '}
+                    <MoneyText amount={allocation.amount} currency={currency} />
+                </>
+            }
+            errors={errors}
+            onSubmit={submit}
+            submitLabel="Reverse allocation"
+            submitVariant="destructive"
+            processing={form.processing}
+        >
+            <Field data-invalid={!!errors.reason}>
+                <FieldLabel htmlFor="reverse-reason">Reason</FieldLabel>
+                <Textarea
+                    id="reverse-reason"
+                    value={data.reason}
+                    onChange={(event) =>
+                        form.setData('reason', event.target.value)
+                    }
+                    maxLength={500}
+                    rows={3}
+                    autoFocus
+                    aria-invalid={!!errors.reason}
+                />
+                <FieldError>{errors.reason}</FieldError>
+            </Field>
+        </FormOverlay>
     );
 }
 
@@ -95,30 +80,21 @@ export function ReverseAllocationDialog({
     onClose: () => void;
     currency: App.Enums.Currency | null;
 }) {
+    const open = allocation !== null;
+    const kept = useRetainedValue(allocation);
+    const fresh = useFreshOnOpen(open);
+
+    if (kept === null) {
+        return null;
+    }
+
     return (
-        <Dialog
-            open={allocation !== null}
-            onOpenChange={(open) => !open && onClose()}
-        >
-            <DialogContent>
-                <DialogHeader>
-                    <DialogTitle>Reverse allocation</DialogTitle>
-                    <DialogDescription>
-                        {allocation?.receiptNumber} ·{' '}
-                        <MoneyText
-                            amount={allocation?.amount ?? '0.00'}
-                            currency={currency}
-                        />
-                    </DialogDescription>
-                </DialogHeader>
-                {allocation && (
-                    <ReverseForm
-                        key={allocation.id}
-                        allocation={allocation}
-                        onDone={onClose}
-                    />
-                )}
-            </DialogContent>
-        </Dialog>
+        <ReverseForm
+            key={`${kept.id}-${fresh}`}
+            open={open}
+            onClose={onClose}
+            allocation={kept}
+            currency={currency}
+        />
     );
 }

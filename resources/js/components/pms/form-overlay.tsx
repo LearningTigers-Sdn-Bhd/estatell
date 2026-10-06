@@ -45,6 +45,8 @@ type Props = Shape & {
     submitLabel: string;
     processing: boolean;
     submitDisabled?: boolean;
+    /** `destructive` for a form that undoes something, such as reversing an allocation. */
+    submitVariant?: 'default' | 'destructive';
     /** Shows skeleton fields while an optional prop loads. */
     loading?: boolean;
     /** The fields only. */
@@ -93,6 +95,7 @@ export function FormOverlay(props: Props) {
         submitLabel,
         processing,
         submitDisabled = false,
+        submitVariant = 'default',
         loading = false,
         children,
     } = props;
@@ -124,6 +127,7 @@ export function FormOverlay(props: Props) {
     const primary = (
         <Button
             type="submit"
+            variant={submitVariant}
             disabled={processing || loading || submitDisabled}
             focusableWhenDisabled
         >

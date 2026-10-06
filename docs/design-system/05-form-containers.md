@@ -67,6 +67,7 @@ One shell for every Dialog and Sheet form (`components/pms/form-overlay.tsx`). T
 | `dirty`                                                   | Sheet only. A dirty Sheet asks before it closes.                                                                                                                                                 |
 | `discardTitle`                                            | The title of that confirm, for example "Discard this unit?".                                                                                                                                     |
 | `onSubmit`, `submitLabel`, `processing`, `submitDisabled` | The primary button: a verb and object, a spinner while processing, still focusable when disabled.                                                                                                |
+| `submitVariant`                                           | `default`, or `destructive` for a form that undoes something, such as reversing an allocation.                                                                                                   |
 | `footer`                                                  | Optional. Replaces the Cancel and primary buttons for a form with more than one step (apply discount, record payment). The overlay still owns the footer container, its layout and its position. |
 | `loading`                                                 | Shows skeleton fields while an optional prop loads.                                                                                                                                              |
 | `children`                                                | The fields only.                                                                                                                                                                                 |
@@ -82,6 +83,8 @@ It owns:
 Tailwind has no 400 px or 480 px step, so the sizes use the spacing scale (`max-w-100` for Dialog `sm`, `max-w-120` for Sheet `md`, `max-w-160` for Sheet `lg`).
 
 `useFreshOnOpen(open)` (`components/pms/use-fresh-on-open.ts`) returns a key that changes each time the overlay opens. The page puts `useForm` in an inner component and gives it that key, so a reopened overlay has no old values or errors and the exit animation is not cut short.
+
+A page that opens an overlay for a row (`row !== null`) passes the row through `useRetainedValue` (`components/pms/use-retained-value.ts`). It keeps the last row while the overlay closes, so the content stays for the exit animation. The inner form gets the row id and `useFreshOnOpen` in its key.
 
 The optional-prop request stays in `useFormOptions`. The page calls it and passes `loading` down.
 
