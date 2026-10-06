@@ -31,6 +31,7 @@ use App\Services\Reservations\ReservationFormOptions;
 use App\Services\Reservations\ReservationGuestRows;
 use App\Services\Reservations\ReservationOverview;
 use App\Services\Reservations\ReservationRoomBox;
+use App\Services\Reservations\UnitActionMenu;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Inertia\Inertia;
@@ -79,9 +80,9 @@ class ReservationController extends Controller
     /**
      * Reservation page, Units tab. `?unit=` picks the unit panel, and an unknown unit falls back to the first.
      */
-    public function show(Request $request, Property $property, Reservation $reservation, ReservationActivityLog $activityLog): Response
+    public function show(Request $request, Property $property, Reservation $reservation, ReservationActivityLog $activityLog, UnitActionMenu $actionMenu): Response
     {
-        return $this->renderTab($request->user(), $property, $reservation, 'units', function (array $units, Collection $unitModels) use ($request, $reservation, $activityLog): array {
+        return $this->renderTab($request->user(), $property, $reservation, 'units', function (array $units, Collection $unitModels) use ($request, $reservation, $activityLog, $actionMenu): array {
             $unitId = $request->integer('unit');
             $selected = $unitModels->firstWhere('id', $unitId) ?? $unitModels->first();
 
@@ -92,7 +93,7 @@ class ReservationController extends Controller
             $selected->load(['ratePlan', 'childAges', 'guests.guest', 'nights' => fn ($nights) => $nights->orderBy('date'), 'nights.room', 'nights.bed', 'nights.ratePlan']);
             $override = $activityLog->priceOverride($reservation, $selected->id);
 
-            return ['unit' => ReservationUnitData::fromModel($selected, $request->user()->can(PermissionEnum::GuestsView->value), $override['reason'] ?? null, $override['by'] ?? null)];
+            return ['unit' => ReservationUnitData::fromModel($selected, $request->user()->can(PermissionEnum::GuestsView->value), $override['reason'] ?? null, $override['by'] ?? null, $actionMenu->for($request->user(), $selected))];
         });
     }
 
@@ -193,6 +194,7 @@ class ReservationController extends Controller
             'currency' => $property->settings?->currency,
             'canViewGuest' => $canViewGuest,
             'canManage' => $user->can(PermissionEnum::ReservationsManage->value),
+            'canWaiveFees' => $user->can(PermissionEnum::FrontDeskWaiveFees->value),
             'canOverrideRestrictions' => $user->can(PermissionEnum::RatesOverrideRestrictions->value),
             'billingModes' => BillingMode::options(),
             'canViewCompany' => $user->can(PermissionEnum::CompanyView->value),

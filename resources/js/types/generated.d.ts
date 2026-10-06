@@ -1249,6 +1249,7 @@ total: string,
 nights: App.Data.Reservations.ReservationNightData[],
 priceOverrideReason: string | null,
 priceOverrideBy: string | null,
+actions: App.Data.Reservations.UnitActionData[],
 };
 export type ReservationUnitOptionData = {
 id: number,
@@ -1267,10 +1268,37 @@ isBed: boolean,
 maxAdults: number,
 maxChildren: number,
 };
+export type UnitActionData = {
+key: App.Enums.UnitAction,
+label: string,
+};
+export type UnitDatesPreviewData = {
+previousTotal: string | null,
+newTotal: string | null,
+difference: string | null,
+nights: number,
+isEarlyDeparture: boolean,
+fee: string | null,
+restricted: boolean,
+error: string | null,
+};
+export type UnitFeePreviewData = {
+fee: string | null,
+withinFreeWindow: boolean,
+freeUntilDays: number | null,
+daysBeforeArrival: number | null,
+unpostedAddOns: number,
+error: string | null,
+};
 export type UnitPickData = {
 unitIndex: number,
 roomId: number | null,
 bedId: number | null,
+};
+export type UnitReinstatePreviewData = {
+previousTotal: string | null,
+newTotal: string | null,
+error: string | null,
 };
 }
 namespace Rooms {
@@ -1471,6 +1499,7 @@ export type TermsPreset = 'standard_hotel' | 'hostel' | 'resort' | 'serviced_apa
 export type Tone = 'neutral' | 'info' | 'success' | 'warning' | 'danger';
 export type TransactionCategory = 'room' | 'food_and_beverage' | 'laundry' | 'minibar' | 'fee' | 'tax' | 'discount' | 'cash' | 'card' | 'bank_transfer' | 'e_wallet' | 'ota_collected' | 'direct_bill' | 'deposit' | 'refund' | 'adjustment' | 'other';
 export type TransactionKind = 'charge' | 'payment' | 'adjustment' | 'tax';
+export type UnitAction = 'cancel' | 'no-show' | 'reinstate' | 'change-dates';
 export type UnitStatus = 'confirmed' | 'checked_in' | 'checked_out' | 'cancelled' | 'no_show';
 export type Weekday = 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday';
 export type WeekendNights = 'fri_sat' | 'sat_sun';

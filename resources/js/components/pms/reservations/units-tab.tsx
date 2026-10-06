@@ -6,6 +6,7 @@ import { DateText } from '@/components/pms/date-text';
 import { EnumSelect } from '@/components/pms/enum-select';
 import { Badge } from '@/components/ui/badge';
 import { MoneyText } from '@/components/pms/money-text';
+import { UnitActionsMenu } from '@/components/pms/reservations/unit-actions-menu';
 import { StatusBadge } from '@/components/pms/status-badge';
 import {
     Table,
@@ -149,12 +150,18 @@ export function UnitsList({
  * The Units tab: the panel of the open unit. The unit list is a separate slot of the workspace.
  */
 export function UnitsTab({
+    reservationId,
     unit,
     autoAssignRooms,
+    canWaiveFees,
+    canOverrideRestrictions,
     currency,
 }: {
+    reservationId: number;
     unit: Unit | null;
     autoAssignRooms: boolean;
+    canWaiveFees: boolean;
+    canOverrideRestrictions: boolean;
     currency: App.Enums.Currency | null;
 }) {
     if (unit === null) {
@@ -167,7 +174,16 @@ export function UnitsTab({
                 <h2 className="font-heading text-base font-medium">
                     {unit.roomType} · {unit.ratePlan}
                 </h2>
-                <StatusBadge status={unit.status} />
+                <div className="flex items-center gap-2">
+                    <StatusBadge status={unit.status} />
+                    <UnitActionsMenu
+                        reservationId={reservationId}
+                        unit={unit}
+                        canWaiveFees={canWaiveFees}
+                        canOverrideRestrictions={canOverrideRestrictions}
+                        currency={currency}
+                    />
+                </div>
             </div>
             <div className="flex flex-col gap-2 ps-3 text-sm">
                 <Detail icon={CalendarDays} label="Stay">

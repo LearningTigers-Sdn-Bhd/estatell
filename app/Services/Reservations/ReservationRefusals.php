@@ -2,6 +2,7 @@
 
 namespace App\Services\Reservations;
 
+use App\Actions\FrontDesk\UnitStayResult;
 use App\Actions\Reservations\AddOnResult;
 use App\Actions\Reservations\AssignmentResult;
 use App\Actions\Reservations\AttachGuestResult;
@@ -31,11 +32,50 @@ class ReservationRefusals
     }
 
     /**
-     * The message alone, for a toast.
+     * The errors to flash back to a unit action form (cancel, no-show, reinstate, change dates), keyed by field name.
+     * A code the form does not know falls back to the shared list.
+     *
+     * @return array<string, string>
+     */
+    public function unitErrors(string $code, ?CarbonInterface $date = null, bool $canOverrideRestrictions = false): array
+    {
+        $entry = $this->unitEntry($code, $canOverrideRestrictions) ?? $this->entry($code, $date, $canOverrideRestrictions);
+
+        return [$entry[0] => $entry[1]];
+    }
+
+    /**
+     * The message alone, for a toast or a preview.
      */
     public function message(string $code, ?CarbonInterface $date = null): string
     {
-        return $this->entry($code, $date, false)[1];
+        return ($this->unitEntry($code, false) ?? $this->entry($code, $date, false))[1];
+    }
+
+    /**
+     * @return array{0: string, 1: string}|null
+     */
+    private function unitEntry(string $code, bool $canOverrideRestrictions): ?array
+    {
+        return match ($code) {
+            UnitStayResult::REFUSAL_INVALID_STATUS => [self::FORM, __('This unit cannot do that in its current status.')],
+            UnitStayResult::REFUSAL_NO_BUSINESS_DATE => [self::FORM, __('This property has no open business date yet.')],
+            UnitStayResult::REFUSAL_STAY_ENDED => [self::FORM, __('The stay has ended, so it cannot be reinstated.')],
+            UnitStayResult::REFUSAL_REASON_REQUIRED => ['reason', __('Enter a reason.')],
+            UnitStayResult::REFUSAL_FEE_CHANGED => ['expected_fee', __('The fee changed while this form was open. Check the new amount and confirm again.')],
+            UnitStayResult::REFUSAL_POLICY_NOT_FOUND => [self::FORM, __('The policy for this fee is missing. Check Room revenue in settings.')],
+            UnitStayResult::REFUSAL_NOT_AVAILABLE => [self::FORM, __('No unit of this room type is free for these dates.')],
+            UnitStayResult::REFUSAL_INVALID_STAY => ['departure_date', __('Departure must be after arrival.')],
+            UnitStayResult::REFUSAL_DATES_UNCHANGED => ['departure_date', __('The dates are the same as now.')],
+            UnitStayResult::REFUSAL_ARRIVAL_LOCKED => ['arrival_date', __('Arrival cannot change once the guest is in the house.')],
+            UnitStayResult::REFUSAL_ARRIVAL_IN_PAST => ['arrival_date', __('Arrival cannot be before the business date.')],
+            UnitStayResult::REFUSAL_DEPARTURE_IN_PAST => ['departure_date', __('Departure cannot be before the business date.')],
+            UnitStayResult::REFUSAL_PACKAGE_PLAN => [self::FORM, __('A package plan sells a fixed number of nights, so its dates cannot change here.')],
+            UnitStayResult::REFUSAL_RESTRICTED => $canOverrideRestrictions
+                ? ['restriction_override_reason', __('The new nights break a rate restriction. Enter a reason to change the dates anyway.')]
+                : [self::FORM, __('The new nights break a rate restriction, for example a minimum stay. Ask someone who may book past restrictions.')],
+            default => null,
+        };
     }
 
     /**

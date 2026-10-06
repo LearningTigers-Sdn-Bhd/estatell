@@ -34,6 +34,8 @@ type Props = {
     autoAssignRooms: boolean;
     currency: App.Enums.Currency | null;
     canManage: boolean;
+    canWaiveFees: boolean;
+    canOverrideRestrictions: boolean;
     billingModes: EnumOption[];
     canViewCompany: boolean;
     canOverrideCredit: boolean;
@@ -64,6 +66,8 @@ export default function ReservationShow({
     autoAssignRooms,
     currency,
     canManage,
+    canWaiveFees,
+    canOverrideRestrictions,
     billingModes,
     canViewCompany,
     canOverrideCredit,
@@ -241,8 +245,13 @@ export default function ReservationShow({
                             <ActivityTab activity={activity} />
                         ) : (
                             <UnitsTab
+                                reservationId={reservation.id}
                                 unit={unit}
                                 autoAssignRooms={autoAssignRooms}
+                                canWaiveFees={canWaiveFees}
+                                canOverrideRestrictions={
+                                    canOverrideRestrictions
+                                }
                                 currency={currency}
                             />
                         )}

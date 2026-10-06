@@ -154,12 +154,21 @@ Each form uses `FormOverlay` and the container from [Form containers](../design-
 4. Success closes the form with a toast. A refusal stays open and shows on the matching field, or as a form alert, through `ReservationRefusals`.
 5. Each Action writes an activity entry with ids and the reason (for example `reservation.unit_cancelled`) and calls `SyncReservationStatus`.
 
-- The cancellation window and "on the departure date" use the property business date, not the system date (to verify against `CurrentBusinessDate`).
+- The cancellation window and "on the departure date" use the property business date (`CurrentBusinessDate`), not the system date.
 - Cancel, no-show, reinstate, change dates and move room need `reservations.manage`. Check in and check out need their own permission. Late check-out needs `front-desk.check-out`.
 - If the policy changes while a form is open and the fee differs on submit, the server refuses with `fee_changed` and the form shows the new amount for staff to confirm again.
-- A fee posts through the folio routing rules. When the unit has no open folio, the Action creates it, as `RecordPayment` does for a deposit (to verify against `PostFolioCharge`).
+- A fee posts through the folio routing rules. When the unit has no open folio, the Action creates it, as `RecordPayment` does for a deposit (`PostUnitPolicyFee` through `PostFolioCharge`).
 - Reinstating a unit keeps a posted fee. The Reinstate form shows a note, and the fee is corrected with Reverse on the folio.
 - A group "Check in all" lists one row per unit in the same Dialog. A failed unit does not stop the others, and each failure shows on its own row. It takes no payment: staff collect per unit afterwards.
+
+### Built: cancel, no-show, reinstate and change dates
+
+- **Menu.** `UnitAction` (enum) lists the menu actions and `UnitActionMenu` (`app/Services/Reservations/`) picks those the status and the user's permissions allow. The list goes to the page as `unit.actions`, so the browser has no rules of its own. Reinstate hides once the business date reaches the departure date.
+- **Previews.** `UnitActionPreview` reads the fee, the price after a reinstate and the price after a date change. Each has a `POST .../units/{unit}/{action}/preview` route (`cancel`, `no-show`, `reinstate`, `dates`) that answers JSON and writes nothing, like the quote routes. The browser asks when the form opens and, for dates, again 300 ms after each change.
+- **Actions.** `reservations.units.cancel`, `.no-show`, `.reinstate` and `.dates` (PUT) take `reservations.manage` in the route and call the Action. The Form Requests drop **Do not charge** without `front-desk.waive-fees` and the restriction reason without `rates.override-restrictions`.
+- **Refusals.** `ReservationRefusals::unitErrors()` maps each refusal to a field. `fee_changed` lands on `expected_fee`, and the Dialog asks for a new preview.
+- **Dialogs.** Cancel and No-show share one Dialog. **Also remove add-ons** shows only when the unit has add-ons that are not posted. **Reason** is always visible and needed with Do not charge.
+- **Change dates** previews the extra nights without running the Action. Added nights are quoted alone, as in `ChangeUnitDates`. Extending an in-house unit uses the same Dialog with the arrival locked.
 
 ### Cancel unit
 

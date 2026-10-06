@@ -221,7 +221,7 @@ The page shows no dash for an empty value: a missing room is `Not assigned` (an 
 
 - **Choose unit** list on the left: room type, assigned room or bed (`Not assigned`, or `Auto` when `auto_assign_rooms` is on), status. Hidden when the reservation has one unit. Below `lg` it becomes a select.
 - The unit panel: room type and rate plan, status, then three detail rows, each label with an icon before it: Stay (dates with the expected times, and nights); Room and Guests side by side (room or bed, per night when it changes mid-stay; adults and child ages); Primary guest. Below them a rounded, bordered night table from `unit_nights` (date, room or bed, rate plan, amount). An override shows the reason from the activity log.
-- The unit **⋯** menu shows only the actions that exist and that `UnitStatus::canTransitionTo()` allows: Change room, Cancel unit, Mark no-show, Change dates, Check in, Check out. They arrive with [front desk](../18-front-desk/01-check-in-and-check-out.md). Until then the menu is hidden.
+- The unit **⋯** menu shows only the actions that exist and that `UnitStatus::canTransitionTo()` allows: Change room, Cancel unit, Mark no-show, Reinstate, Change dates, Check in, Check out. They arrive with [front desk](../18-front-desk/01-check-in-and-check-out.md). The server sends the list as `unit.actions`, and the menu is hidden when it is empty. Built so far: Cancel unit, Mark no-show, Reinstate and Change dates.
 
 ### Guests tab
 
@@ -281,7 +281,7 @@ Booker (name, VIP, phone, email; the name is an underlined link to the guest tha
 
 ### Page build status
 
-Built, view only: the four tab routes with `renderTab()`, the header with the Group badge and the Status by unit popover, the Units tab (Choose unit list or select, `?unit=`, night table, price override reason), the Guests, Add-ons and Activity tabs, and the summary card. The reservation page sends `ReservationData`, a `ReservationUnitOptionData` list and the open tab's own data. `ReservationOverview`, `ReservationGuestRows` and `ReservationActivityLog` (`app/Services/Reservations/`) read the data in a constant number of queries. The unit **⋯** menu is not built and has no button.
+Built, view only: the four tab routes with `renderTab()`, the header with the Group badge and the Status by unit popover, the Units tab (Choose unit list or select, `?unit=`, night table, price override reason), the Guests, Add-ons and Activity tabs, and the summary card. The reservation page sends `ReservationData`, a `ReservationUnitOptionData` list and the open tab's own data. `ReservationOverview`, `ReservationGuestRows` and `ReservationActivityLog` (`app/Services/Reservations/`) read the data in a constant number of queries. The unit **⋯** menu holds Cancel unit, Mark no-show, Reinstate and Change dates (see [Check-in and check-out](../18-front-desk/01-check-in-and-check-out.md#built-cancel-no-show-reinstate-and-change-dates)). Check in, Check out, Late check-out and Change room come later.
 
 Built, folio tab: `reservations.folio` with the folio rail, and the summary card's Balance from the folios (see [Folio page](../13-folio/05-folio-page.md#build-status)).
 

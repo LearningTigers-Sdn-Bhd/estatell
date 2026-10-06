@@ -11,6 +11,7 @@ use App\Http\Controllers\Reservations\ReservationPaymentController;
 use App\Http\Controllers\Reservations\ReservationRoutingController;
 use App\Http\Controllers\Reservations\ReservationUnitAddOnController;
 use App\Http\Controllers\Reservations\ReservationUnitController;
+use App\Http\Controllers\Reservations\ReservationUnitStayController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('reservations')->name('reservations.')->scopeBindings()->group(function () {
@@ -74,6 +75,15 @@ Route::prefix('reservations')->name('reservations.')->scopeBindings()->group(fun
                 Route::post('guests', [ReservationUnitController::class, 'storeGuest'])->name('guests.store');
                 Route::post('add-ons', [ReservationUnitAddOnController::class, 'store'])->name('add-ons.store');
                 Route::delete('add-ons/{addOn}', [ReservationUnitAddOnController::class, 'destroy'])->name('add-ons.destroy');
+
+                Route::post('cancel/preview', [ReservationUnitStayController::class, 'cancelPreview'])->name('cancel-preview');
+                Route::post('cancel', [ReservationUnitStayController::class, 'cancel'])->name('cancel');
+                Route::post('no-show/preview', [ReservationUnitStayController::class, 'noShowPreview'])->name('no-show-preview');
+                Route::post('no-show', [ReservationUnitStayController::class, 'noShow'])->name('no-show');
+                Route::post('reinstate/preview', [ReservationUnitStayController::class, 'reinstatePreview'])->name('reinstate-preview');
+                Route::post('reinstate', [ReservationUnitStayController::class, 'reinstate'])->name('reinstate');
+                Route::post('dates/preview', [ReservationUnitStayController::class, 'datesPreview'])->name('dates-preview');
+                Route::put('dates', [ReservationUnitStayController::class, 'changeDates'])->name('dates');
             });
         });
     });

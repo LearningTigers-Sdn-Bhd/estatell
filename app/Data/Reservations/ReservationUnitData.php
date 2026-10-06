@@ -12,7 +12,7 @@ use Spatie\LaravelData\Data;
 /**
  * The unit panel of the Units tab. Expects `roomType`, `ratePlan`, `childAges`, `guests.guest` and `nights` with their
  * `room`, `bed` and `ratePlan` to be loaded. `assigned` lists the distinct rooms or beds of the nights, and
- * `allNightsAssigned` says whether every night has one.
+ * `allNightsAssigned` says whether every night has one. `actions` is the unit ⋯ menu the user may use.
  */
 class ReservationUnitData extends Data
 {
@@ -20,6 +20,7 @@ class ReservationUnitData extends Data
      * @param  list<int>  $childAges
      * @param  list<string>  $assigned
      * @param  list<ReservationNightData>  $nights
+     * @param  list<UnitActionData>  $actions
      */
     public function __construct(
         public int $id,
@@ -42,9 +43,10 @@ class ReservationUnitData extends Data
         public array $nights,
         public ?string $priceOverrideReason,
         public ?string $priceOverrideBy,
+        public array $actions,
     ) {}
 
-    public static function fromModel(ReservationUnit $unit, bool $canViewGuest, ?string $overrideReason, ?string $overrideBy): self
+    public static function fromModel(ReservationUnit $unit, bool $canViewGuest, ?string $overrideReason, ?string $overrideBy, array $actions = []): self
     {
         $nights = $unit->nights->sortBy('date')->values();
         $assigned = $nights->map(fn (UnitNight $night): ?string => $night->room?->number ?? $night->bed?->label);
@@ -71,6 +73,7 @@ class ReservationUnitData extends Data
             nights: $nights->map(fn (UnitNight $night): ReservationNightData => ReservationNightData::fromModel($night))->all(),
             priceOverrideReason: $overrideReason,
             priceOverrideBy: $overrideBy,
+            actions: $actions,
         );
     }
 }
