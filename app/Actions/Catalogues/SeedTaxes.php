@@ -24,8 +24,8 @@ class SeedTaxes
                 ->pluck('id')
                 ->all();
             $presets = [
-                ['system_key' => SystemTransactionCode::SstTax->value, 'name' => 'Service Tax (SST)', 'code' => 'SST', 'rate_type' => TaxRateType::Percent, 'rate' => '8.00', 'foreign_guests_only' => false],
-                ['system_key' => SystemTransactionCode::TourismTax->value, 'name' => 'Tourism tax', 'code' => 'TTX', 'rate_type' => TaxRateType::Flat, 'rate' => '10.00', 'foreign_guests_only' => true],
+                ['system_key' => SystemTransactionCode::SstTax->value, 'name' => 'Service Tax (SST)', 'code' => 'SST', 'rate_type' => TaxRateType::Percent, 'rate' => '8.00', 'foreign_guests_only' => false, 'collect_at_check_in' => true],
+                ['system_key' => SystemTransactionCode::TourismTax->value, 'name' => 'Tourism tax', 'code' => 'TTX', 'rate_type' => TaxRateType::Flat, 'rate' => '10.00', 'foreign_guests_only' => true, 'collect_at_check_in' => true],
             ];
 
             foreach ($presets as $preset) {
@@ -44,6 +44,7 @@ class SeedTaxes
                     'rate' => $preset['rate'],
                     'is_inclusive' => false,
                     'foreign_guests_only' => $preset['foreign_guests_only'],
+                    'collect_at_check_in' => $preset['collect_at_check_in'],
                     'registration_number' => null,
                     'enabled' => false,
                 ]);

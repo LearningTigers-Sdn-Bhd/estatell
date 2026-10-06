@@ -299,6 +299,7 @@ class SandbaySeeder extends Seeder
             'rate' => '10.00',
             'is_inclusive' => false,
             'foreign_guests_only' => false,
+            'collect_at_check_in' => false,
             'registration_number' => null,
             'enabled' => true,
         ]);

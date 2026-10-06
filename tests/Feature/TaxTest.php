@@ -29,6 +29,7 @@ function taxPayload(array $overrides = []): array
         'rate' => '3.00',
         'is_inclusive' => false,
         'foreign_guests_only' => false,
+        'collect_at_check_in' => false,
         'registration_number' => ' dbkk 123 ',
         'enabled' => true,
     ], $overrides);
@@ -62,6 +63,7 @@ test('Malaysia properties receive disabled tax presets idempotently', function (
     expect($tourism->rate_type)->toBe(TaxRateType::Flat)
         ->and($tourism->rate)->toBe('10.00')
         ->and($tourism->foreign_guests_only)->toBeTrue()
+        ->and($tourism->collect_at_check_in)->toBeTrue()
         ->and($tourism->enabled)->toBeFalse();
 });
 

@@ -51,6 +51,7 @@ type FormData = {
     rate: string;
     is_inclusive: boolean;
     foreign_guests_only: boolean;
+    collect_at_check_in: boolean;
     registration_number: string;
     enabled: boolean;
 };
@@ -63,6 +64,7 @@ function formValues(tax: Tax | null): FormData {
         rate: tax?.rate ?? '',
         is_inclusive: tax?.isInclusive ?? false,
         foreign_guests_only: tax?.foreignGuestsOnly ?? false,
+        collect_at_check_in: tax?.collectAtCheckIn ?? false,
         registration_number: tax?.registrationNumber ?? '',
         enabled: tax?.enabled ?? true,
     };
@@ -223,6 +225,24 @@ function TaxForm({
                         <FieldDescription>
                             Nationality is required before this tax can be
                             calculated.
+                        </FieldDescription>
+                    </FieldContent>
+                </Field>
+                <Field orientation="horizontal">
+                    <Switch
+                        id="tax-collect-at-check-in"
+                        checked={form.data.collect_at_check_in}
+                        onCheckedChange={(checked) =>
+                            form.setData('collect_at_check_in', checked)
+                        }
+                    />
+                    <FieldContent>
+                        <FieldLabel htmlFor="tax-collect-at-check-in">
+                            Collect at check-in
+                        </FieldLabel>
+                        <FieldDescription>
+                            Staff ask the guest to pay this tax when they check
+                            in. It is still posted each night.
                         </FieldDescription>
                     </FieldContent>
                 </Field>
@@ -438,19 +458,29 @@ export default function TaxesIndex({
                                                 </TableCell>
                                                 <TableCell>
                                                     <div className="flex max-w-xs flex-wrap gap-1">
-                                                        {tax.appliesTo.map(
-                                                            (name) => (
+                                                        {tax.appliesTo
+                                                            .filter(
+                                                                (name) =>
+                                                                    name !==
+                                                                    'Room revenue',
+                                                            )
+                                                            .map((name) => (
                                                                 <Badge
                                                                     key={name}
                                                                     variant="secondary"
                                                                 >
                                                                     {name}
                                                                 </Badge>
-                                                            ),
-                                                        )}
+                                                            ))}
                                                         {tax.foreignGuestsOnly && (
                                                             <Badge variant="outline">
                                                                 Foreign guests
+                                                            </Badge>
+                                                        )}
+                                                        {tax.collectAtCheckIn && (
+                                                            <Badge variant="outline">
+                                                                Collect at
+                                                                check-in
                                                             </Badge>
                                                         )}
                                                         {tax.appliesTo

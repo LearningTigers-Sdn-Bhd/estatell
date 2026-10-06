@@ -24,6 +24,7 @@ use Illuminate\Support\Carbon;
  * @property string $rate
  * @property bool $is_inclusive
  * @property bool $foreign_guests_only
+ * @property bool $collect_at_check_in
  * @property string|null $registration_number
  * @property bool $enabled
  * @property Carbon|null $created_at
@@ -31,7 +32,7 @@ use Illuminate\Support\Carbon;
  */
 #[Fillable([
     'transaction_code_id', 'name', 'code', 'rate_type', 'rate', 'is_inclusive',
-    'foreign_guests_only', 'registration_number', 'enabled',
+    'foreign_guests_only', 'collect_at_check_in', 'registration_number', 'enabled',
 ])]
 class Tax extends Model
 {
@@ -46,6 +47,7 @@ class Tax extends Model
             'rate' => 'decimal:2',
             'is_inclusive' => 'boolean',
             'foreign_guests_only' => 'boolean',
+            'collect_at_check_in' => 'boolean',
             'enabled' => 'boolean',
         ];
     }

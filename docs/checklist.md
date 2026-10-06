@@ -41,7 +41,7 @@ The critical path: the front desk actions on the reservation, then the night aud
 Needed for go-live, but nothing in Now waits for them.
 
 - [ ] `feat(housekeeping): add the room status board` — Docs: [Room status board](19-housekeeping/01-room-status-board.md).
-- [ ] `feat(catalogues): add the collect at check-in switch to taxes` — `taxes.collect_at_check_in` (default false, on for the Tourism tax preset) and the switch on the tax form. Item 9 needs it for Collect now. Docs: [Taxes](06-catalogues/03-taxes.md).
+- [x] `feat(catalogues): add the collect at check-in switch to taxes` — `taxes.collect_at_check_in` (default false, on for the Tourism tax preset) and the switch on the tax form. Item 9 needs it for Collect now. Docs: [Taxes](06-catalogues/03-taxes.md).
 - [ ] `feat(front-desk): add the stay view` — Docs: [Stay View](18-front-desk/03-stay-view.md).
 - [ ] `feat(reservations): preview the price in the Add unit Sheet` — reuse the booking form quote route. Docs: [Reservations list and reservation page](12-reservations/06-reservation-page.md#header).
 - [ ] `feat(onboarding): add the onboarding wizard steps` — Docs: [Wizard steps](17-onboarding/02-wizard-steps.md).

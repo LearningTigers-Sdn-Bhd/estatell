@@ -78,6 +78,7 @@ class TaxRequest extends FormRequest
             ],
             'is_inclusive' => ['required', 'boolean'],
             'foreign_guests_only' => ['required', 'boolean'],
+            'collect_at_check_in' => ['required', 'boolean'],
             'registration_number' => ['nullable', 'string', 'max:100'],
             'enabled' => ['required', 'boolean'],
         ];
