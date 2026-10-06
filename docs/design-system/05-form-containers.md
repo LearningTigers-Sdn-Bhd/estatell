@@ -52,7 +52,36 @@ For 4–5 fields: use a Dialog when opened from a detail page, and a Sheet when 
 - A Dialog becomes full width, anchored to the bottom.
 - A Sheet becomes full screen.
 - A full page stays one column with the sticky footer.
-- `FormOverlay` (`variant="dialog" | "sheet"`, `size`) owns this behavior. Pages never handle it. Check whether the shadcn Drawer exists for the Base UI base when building `FormOverlay`; otherwise use responsive Dialog and Sheet classes.
+- `FormOverlay` owns this behavior. Pages never handle it. It uses responsive Dialog and Sheet classes, not the Drawer: a Drawer adds swipe gestures that a form does not need.
+
+## FormOverlay
+
+One shell for every Dialog and Sheet form (`components/pms/form-overlay.tsx`). The page keeps `useForm`, the route and `onSuccess`. `FormOverlay` never submits anything.
+
+| Prop                                                      | Meaning                                                                                               |
+| --------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `variant`, `size`                                         | `dialog` with `sm` or `md`, or `sheet` with `md` or `lg`. A pair that does not exist is a type error. |
+| `open`, `onOpenChange`                                    | Controlled by the page.                                                                               |
+| `title`, `description`                                    | The header.                                                                                           |
+| `errors`                                                  | The form's errors. `errors.form` shows as `FormError` at the top.                                     |
+| `dirty`                                                   | Sheet only. A dirty Sheet asks before it closes.                                                      |
+| `onSubmit`, `submitLabel`, `processing`, `submitDisabled` | The primary button: a verb and object, a spinner while processing, still focusable when disabled.     |
+| `loading`                                                 | Shows skeleton fields while an optional prop loads.                                                   |
+| `children`                                                | The fields only.                                                                                      |
+
+It owns:
+
+- The header, a scrolling field group and the `<form>` element.
+- The footer: right-aligned **Cancel** and the primary button in a Dialog, the same two in a sticky footer in a Sheet.
+- The discard confirm (`DiscardChangesDialog`) when a dirty Sheet closes by Esc, the close button, **Cancel** or an outside click. A Dialog never asks, because it has 1–5 fields.
+- Focus on the first invalid field after a failed submit.
+- The mobile layout above.
+
+The optional-prop request stays in `useFormOptions`. The page calls it and passes `loading` down.
+
+`FormError`, `DiscardChangesDialog` and `useFormOptions` stay in `components/pms/reservations/`. About 17 folio and city-ledger files import them, so they do not move.
+
+Built for the five reservation overlays first (Add unit, Attach guest, Add add-on, Edit group, Change company). The folio and city-ledger overlays still wire their own shell until the follow-up item in the [checklist](../checklist.md).
 
 ## Layout examples
 
