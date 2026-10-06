@@ -7,7 +7,7 @@ Move a unit through its stay.
 ## Actions
 
 - `CheckInUnit`: requires an assigned room or bed for tonight, enforces the registration card scope, needs a known nationality when an enabled foreign-only tax exists (`nationality_required`), posts undated add-ons, sets `checked_in_at` and `UnitStatus::CheckedIn`.
-- `CheckOutUnit`: requires the unit folio balance, **without the held security deposit**, to be 0 or transferred to the master folio. A held deposit must be refunded first, or the Action is refused as `deposit_unresolved`. It sets `checked_out_at`, `UnitStatus::CheckedOut` and marks the room Dirty.
+- `CheckOutUnit`: requires the unit folio balance to be 0 or transferred to the master folio (`balance_not_settled`). A held security deposit is a credit on the folio, so it must be refunded or used against charges first. It sets `checked_out_at`, `UnitStatus::CheckedOut` and marks the room Dirty.
 - `ProcessEarlyDeparture`: applies the early departure [room revenue policy](../06-catalogues/06-room-revenue.md#policies) when a stay is shortened.
 - `ExtendStay`, `ChangeUnitDates`.
 - `ExtendDepartureTime`: late check-out on the departure date. Sets a later `departure_time` and posts the late check-out policy charge. Refused unless the unit is CheckedIn, on its departure date, and the new time is later and before midnight.
@@ -21,12 +21,39 @@ Move a unit through its stay.
 - Group actions ("check in all") loop over units.
 - Credit exposure is checked at check-in for company-billed reservations.
 
+## Refusals
+
+Both Actions return a `UnitStayResult` and write nothing on a refusal. The unit row is locked first.
+
+| Action         | Check, in order                                                                          | Refusal                                    |
+| -------------- | ---------------------------------------------------------------------------------------- | ------------------------------------------ |
+| `CheckInUnit`  | `UnitStatus::canTransitionTo()` allows CheckedIn                                         | `invalid_status`                           |
+|                | A business date exists                                                                   | `no_business_date`                         |
+|                | The business date is on or after the arrival date                                        | `arrival_not_reached`                      |
+|                | The business date is before the departure date                                           | `stay_ended`                               |
+|                | The unit has a room or bed on tonight's night                                            | `no_room_assigned`                         |
+|                | The card rule: with `card_required_for_check_in`, every required guest has a signed card | `card_missing` (skipped with the override) |
+|                | The nationality is known when an enabled foreign-only tax exists                         | `nationality_required`                     |
+|                | A company-billed reservation passes `CreditCheck` (additional 0)                         | `credit_limit_exceeded`                    |
+|                | Each undated add-on posts through `PostCharge`                                           | the `PostCharge` refusal code              |
+| `CheckOutUnit` | `UnitStatus::canTransitionTo()` allows CheckedOut                                        | `invalid_status`                           |
+|                | A business date exists                                                                   | `no_business_date`                         |
+|                | The business date is on or after the departure date                                      | `before_departure_date`                    |
+|                | The unit's own folios each have a balance of 0                                           | `balance_not_settled`                      |
+
+- The route passes `$withoutCard` only to a user with `front-desk.check-in-without-card`, and `$creditOverrideReason` only to a user with `company.credit-override`. A credit override logs `credit.overridden` on the company with the action `check_in`.
+- An add-on refusal rolls the whole check-in back, so the unit stays Confirmed.
+- A check-out before the departure date is refused. Staff shorten the stay first with `ChangeUnitDates`, which applies the early departure policy ([module 18 build order](#build-order), step 3).
+- Check-out marks the room Dirty: the room of the unit's last night up to the business date, or the room of its bed.
+- A Master folio balance never blocks a unit check-out. Only the unit's own folios count.
+- Logged on the reservation: `reservation.unit_checked_in` and `reservation.unit_checked_out`.
+
 ## Taxes and deposit
 
 - **Nationality** for a foreign-only tax is the unit's primary guest, or the booker when the unit has no primary guest. Check-in shows a Nationality field when it is missing and saves it to the guest profile.
 - **Taxes stay on the room revenue line.** Check-in posts no tax. Each night's tax is a child line of the room line (see [Posting charges](../13-folio/02-posting-charges.md)). A tax with **Collect at check-in** ([Taxes](../06-catalogues/03-taxes.md)) only changes what the guest is asked to pay at check-in.
 - **Security deposit** is a payment with `PaymentPurpose::SecurityDeposit` on the unit's own folio. The default amount is `property_settings.security_deposit_amount`.
-- **Held deposit** ([Payments](../14-payments/01-payments-and-refunds.md)) is excluded from the check-out balance rule. The check-out form refunds it with `RefundPayment`. To keep part of it for damages, staff post a charge on the folio first, then refund the rest.
+- **Held deposit** is a credit, so the plain zero-balance rule at check-out covers it. The check-out form refunds the credit with `RefundPayment`. To keep part of it for damages, staff post a charge on the folio first (the deposit offsets it), then refund the rest.
 
 ## Permissions
 
@@ -48,7 +75,7 @@ Each form uses `FormOverlay` and the container from [Form containers](../design-
 | Action                                         | Container   | Fields and notes                                                                                                                      |
 | ---------------------------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------- |
 | Check in                                       | Dialog      | Shows the room, the registration card status, a card override (permission), Nationality when missing, and [Collect now](#collect-now) |
-| Check out                                      | Dialog      | Shows the folio balance and the held deposit. Settle or transfer the balance, and refund the deposit                                  |
+| Check out                                      | Dialog      | Shows the folio balance and the deposit credit. Settle, transfer or refund the balance                                                |
 | Cancel unit, Mark no-show                      | Dialog      | Shows the policy fee ("No charge" inside the free window), Do not charge, a reason                                                    |
 | Reinstate                                      | AlertDialog | Re-prices the unit. Shows the new total                                                                                               |
 | Change dates (also Extend and Early departure) | Dialog      | Dates and a live price difference. A shorter stay shows the early departure policy result                                             |
@@ -169,4 +196,4 @@ A section of the check-in Dialog, shown only with `payment.record`. The form sen
 └───────────────────────────────────────────────┘
 ```
 
-**Keep for damages** links to the folio to post the charge. It does not open a second Dialog. Without a held deposit, the deposit rows are hidden.
+**Keep for damages** links to the folio to post the charge. It does not open a second Dialog. Without a deposit credit, the deposit rows are hidden.

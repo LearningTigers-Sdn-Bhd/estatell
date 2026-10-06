@@ -15,6 +15,7 @@ use App\Models\User;
 use App\Services\Catalogues\TaxCalculator;
 use App\Services\Folio\FolioRouter;
 use App\Services\NightAudit\CurrentBusinessDate;
+use App\Services\Reservations\UnitNationality;
 use Brick\Money\Money;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -28,6 +29,7 @@ class PostCharge
         private TaxCalculator $taxCalculator,
         private CreateFolio $createFolio,
         private PostFolioCharge $postFolioCharge,
+        private UnitNationality $unitNationality,
     ) {}
 
     /**
@@ -105,7 +107,7 @@ class PostCharge
             }
 
             $entered = $unitAmount->multipliedBy($data->quantity);
-            $tax = $this->taxCalculator->calculate($property, $code, $entered, (string) $data->quantity, $locked->reservation->booker->nationality_code);
+            $tax = $this->taxCalculator->calculate($property, $code, $entered, (string) $data->quantity, $this->unitNationality->for($locked));
 
             if (! $tax->isCalculated()) {
                 return PostingResult::refused((string) $tax->refusalReason);

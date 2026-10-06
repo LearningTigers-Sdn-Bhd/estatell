@@ -23,7 +23,7 @@ The critical path: the front desk actions on the reservation, then the night aud
 3. [x] `feat(catalogues): add room revenue policy tabs` — Room revenue becomes five tabs (Taxes, No-show, Cancellation, Early departure, Late check-out), each with its own URL, the policy form, English and Malay text and the server preview. Needs: the policy charge calculator. Docs: [Room revenue](06-catalogues/06-room-revenue.md#policy-tab).
 4. [ ] `feat(ui): add FormOverlay` — the Dialog and Sheet shell from [Form containers](design-system/05-form-containers.md): sizes, sticky footer for a Sheet, the discard confirm for a dirty Sheet, `FormError`, optional-prop loading. Move Add unit, Attach guest, Add add-on, Edit group and Change company onto it. UI only. Docs: [Form containers](design-system/05-form-containers.md), [Reservations list and reservation page](12-reservations/06-reservation-page.md).
 5. [ ] `fix(reservations): attach a guest from a Dialog` — the Attach guest Sheet has 2 fields, so it becomes a Dialog. UI only. Needs: FormOverlay. Docs: [Reservations list and reservation page](12-reservations/06-reservation-page.md#guests-tab).
-6. [ ] `feat(front-desk): check in and check out units` — `CheckInUnit`, `CheckOutUnit`, `front-desk.check-in`, `front-desk.check-out` and `front-desk.check-in-without-card` with a syncing migration, each calling `SyncReservationStatus`. `CheckInUnit` refuses `nationality_required`, and `CheckOutUnit` excludes the held deposit (`HeldDeposit`, with `taxes.collect_at_check_in`) from its balance rule and refuses `deposit_unresolved`. Backend only. Docs: [Check-in and check-out](18-front-desk/01-check-in-and-check-out.md).
+6. [x] `feat(front-desk): check in and check out units` — `CheckInUnit`, `CheckOutUnit`, `front-desk.check-in`, `front-desk.check-out` and `front-desk.check-in-without-card` with a syncing migration, each calling `SyncReservationStatus`. `CheckInUnit` refuses `nationality_required` and `CheckOutUnit` refuses `balance_not_settled`. Backend only. Docs: [Check-in and check-out](18-front-desk/01-check-in-and-check-out.md).
 7. [ ] `feat(front-desk): cancel, no-show and reinstate units` — `CancelUnit`, `MarkNoShow` (each posts the policy fee through `PostFolioCharge` unless **Do not charge** is chosen, with `front-desk.waive-fees` and a syncing migration), `ReinstateUnit` (re-prices from `reservation_unit_children`). Backend only. Needs: room revenue policy tabs. Docs: [Check-in and check-out](18-front-desk/01-check-in-and-check-out.md).
 8. [ ] `feat(front-desk): extend and change stay dates` — `ExtendStay`, `ChangeUnitDates` (a shorter stay runs `ProcessEarlyDeparture` and the early departure policy), `ExtendDepartureTime` (late check-out and its policy fee). Backend only. Needs: cancel, no-show and reinstate. Docs: [Check-in and check-out](18-front-desk/01-check-in-and-check-out.md).
 9. [ ] `feat(front-desk): add unit actions to the reservation page` — the unit ⋯ menu (only what `canTransitionTo()` allows), the check-in and check-out Dialogs, the cancel and no-show Dialogs with the policy fee and Do not charge, the reinstate AlertDialog, the change dates Dialog with a price difference, the late check-out Dialog, check in all for a group, and Collect now (flagged taxes and the security deposit, two `RecordPayment` calls) with the check-out deposit refund. Needs: FormOverlay, the items before it. Docs: [Check-in and check-out](18-front-desk/01-check-in-and-check-out.md#forms-on-the-reservation-page).
@@ -41,6 +41,7 @@ The critical path: the front desk actions on the reservation, then the night aud
 Needed for go-live, but nothing in Now waits for them.
 
 - [ ] `feat(housekeeping): add the room status board` — Docs: [Room status board](19-housekeeping/01-room-status-board.md).
+- [ ] `feat(catalogues): add the collect at check-in switch to taxes` — `taxes.collect_at_check_in` (default false, on for the Tourism tax preset) and the switch on the tax form. Item 9 needs it for Collect now. Docs: [Taxes](06-catalogues/03-taxes.md).
 - [ ] `feat(front-desk): add the stay view` — Docs: [Stay View](18-front-desk/03-stay-view.md).
 - [ ] `feat(reservations): preview the price in the Add unit Sheet` — reuse the booking form quote route. Docs: [Reservations list and reservation page](12-reservations/06-reservation-page.md#header).
 - [ ] `feat(onboarding): add the onboarding wizard steps` — Docs: [Wizard steps](17-onboarding/02-wizard-steps.md).
@@ -183,6 +184,7 @@ Needs the Channex staging checks in [Staging verification](21-channels/06-stagin
 | `c28c685` | feat(city-ledger): add companies                                         |
 | `35f8d23` | docs(registration): plan the registration card page and field layout     |
 | `0fc898c` | feat(registration): add registration card fields                         |
+| `6e90572` | docs(front-desk): plan tax and deposit collection at check-in            |
 
 Smaller fixes and reverts are in `git log`.
 

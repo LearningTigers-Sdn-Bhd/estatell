@@ -48,6 +48,9 @@ enum PermissionEnum: string
     case RegistrationCardSign = 'registration-card.sign';
     case RegistrationCardSendLink = 'registration-card.send-link';
     case RegistrationCardVoid = 'registration-card.void';
+    case FrontDeskCheckIn = 'front-desk.check-in';
+    case FrontDeskCheckOut = 'front-desk.check-out';
+    case FrontDeskCheckInWithoutCard = 'front-desk.check-in-without-card';
 
     public function label(): string
     {
@@ -92,6 +95,9 @@ enum PermissionEnum: string
             self::RegistrationCardSign => __('Prepare and sign registration cards'),
             self::RegistrationCardSendLink => __('Send registration card links'),
             self::RegistrationCardVoid => __('Void registration cards'),
+            self::FrontDeskCheckIn => __('Check in units'),
+            self::FrontDeskCheckOut => __('Check out units'),
+            self::FrontDeskCheckInWithoutCard => __('Check in without a registration card'),
         };
     }
 
@@ -112,6 +118,7 @@ enum PermissionEnum: string
             self::PaymentRecord, self::PaymentRefund => __('Payments'),
             self::CompanyView, self::CompanyManage, self::CompanyCreditOverride, self::CityLedgerInvoice, self::CityLedgerCreditNote, self::CityLedgerPayment, self::CityLedgerAllocate => __('City ledger'),
             self::RegistrationCardManageTerms, self::RegistrationCardSign, self::RegistrationCardSendLink, self::RegistrationCardVoid => __('Registration card'),
+            self::FrontDeskCheckIn, self::FrontDeskCheckOut, self::FrontDeskCheckInWithoutCard => __('Front desk'),
         };
     }
 
