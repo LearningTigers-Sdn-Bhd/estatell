@@ -4,21 +4,29 @@ namespace App\Http\Controllers\Reservations;
 
 use App\Actions\FrontDesk\CancelUnit;
 use App\Actions\FrontDesk\ChangeUnitDates;
+use App\Actions\FrontDesk\CheckInAndCollect;
+use App\Actions\FrontDesk\CheckOutAndRefund;
+use App\Actions\FrontDesk\ExtendDepartureTime;
 use App\Actions\FrontDesk\MarkNoShow;
 use App\Actions\FrontDesk\ReinstateUnit;
 use App\Enums\PermissionEnum;
 use App\Enums\SystemTransactionCode;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Reservations\ChangeUnitDatesRequest;
+use App\Http\Requests\Reservations\CheckInUnitRequest;
+use App\Http\Requests\Reservations\CheckOutUnitRequest;
+use App\Http\Requests\Reservations\LateCheckOutRequest;
 use App\Http\Requests\Reservations\ReinstateUnitRequest;
 use App\Http\Requests\Reservations\UnitPolicyFeeRequest;
 use App\Models\Property;
 use App\Models\Reservation;
 use App\Models\ReservationUnit;
+use App\Services\Payments\PaymentRefusals;
 use App\Services\Reservations\ReservationRefusals;
 use App\Services\Reservations\UnitActionPreview;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 
 /**
@@ -42,9 +50,68 @@ class ReservationUnitStayController extends Controller
         return response()->json($preview->reinstate($unit));
     }
 
+    public function checkInPreview(Request $request, Property $property, Reservation $reservation, ReservationUnit $unit, UnitActionPreview $preview): JsonResponse
+    {
+        return response()->json($preview->checkIn($unit, $request->user()));
+    }
+
+    public function checkOutPreview(Request $request, Property $property, Reservation $reservation, ReservationUnit $unit, UnitActionPreview $preview): JsonResponse
+    {
+        return response()->json($preview->checkOut($unit, $request->user()));
+    }
+
+    public function lateCheckOutPreview(Property $property, Reservation $reservation, ReservationUnit $unit, UnitActionPreview $preview): JsonResponse
+    {
+        return response()->json($preview->lateCheckOut($unit));
+    }
+
     public function datesPreview(ChangeUnitDatesRequest $request, Property $property, Reservation $reservation, ReservationUnit $unit, UnitActionPreview $preview): JsonResponse
     {
         return response()->json($preview->dates($unit, $request->arrival(), $request->departure()));
+    }
+
+    /**
+     * Check one unit in and, with Collect now, take the taxes flagged for check-in and the security deposit. A
+     * refused payment leaves the unit checked in and goes back to the Dialog as an error on the method or reference.
+     */
+    public function checkIn(CheckInUnitRequest $request, Property $property, Reservation $reservation, ReservationUnit $unit, CheckInAndCollect $checkInAndCollect, ReservationRefusals $refusals, PaymentRefusals $paymentRefusals): RedirectResponse
+    {
+        $result = $checkInAndCollect($request->user(), $unit, $request->nationality(), $request->withoutCard(), $request->creditOverrideReason(), $request->collectNow());
+        $page = route('reservations.show', ['property' => $property, 'reservation' => $reservation]);
+
+        if ($result->stay->isRefused()) {
+            return back(fallback: $page)->withErrors($refusals->unitErrors((string) $result->stay->refusal, canOverrideCard: $request->user()->can(PermissionEnum::FrontDeskCheckInWithoutCard->value)));
+        }
+
+        if ($result->paymentRefusal !== null) {
+            Inertia::flash('toast', ['type' => 'error', 'message' => __('The unit is checked in, but the payment was refused.')]);
+
+            return back(fallback: $page)->withErrors($paymentRefusals->errors($result->paymentRefusal));
+        }
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Unit checked in.')]);
+
+        return back(fallback: $page);
+    }
+
+    /**
+     * Check one unit out, after giving back the security deposit when the form asks for it.
+     */
+    public function checkOut(CheckOutUnitRequest $request, Property $property, Reservation $reservation, ReservationUnit $unit, CheckOutAndRefund $checkOutAndRefund, ReservationRefusals $refusals): RedirectResponse
+    {
+        $result = $checkOutAndRefund($request->user(), $unit, $request->refundAmount(), $request->reference(), $request->string('idempotency_key')->toString());
+
+        return $this->respond($property, $reservation, $result->refusal, $refusals, __('Unit checked out.'));
+    }
+
+    /**
+     * Late check-out: a later departure time and its policy fee.
+     */
+    public function lateCheckOut(LateCheckOutRequest $request, Property $property, Reservation $reservation, ReservationUnit $unit, ExtendDepartureTime $extendDepartureTime, ReservationRefusals $refusals): RedirectResponse
+    {
+        $result = $extendDepartureTime($request->user(), $unit, $request->string('new_time')->toString(), $request->doNotCharge(), $request->reason(), $request->expectedFee());
+
+        return $this->respond($property, $reservation, $result->refusal, $refusals, __('Departure time extended.'));
     }
 
     /**

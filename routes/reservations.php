@@ -60,6 +60,20 @@ Route::prefix('reservations')->name('reservations.')->scopeBindings()->group(fun
                 Route::post('units/{unit}/payments', [ReservationPaymentController::class, 'storeForUnit'])->name('units.payments.store');
             });
 
+            Route::prefix('units/{unit}')->name('units.')->group(function () {
+                Route::middleware('can:'.PermissionEnum::FrontDeskCheckIn->value)->group(function () {
+                    Route::post('check-in/preview', [ReservationUnitStayController::class, 'checkInPreview'])->name('check-in-preview');
+                    Route::post('check-in', [ReservationUnitStayController::class, 'checkIn'])->name('check-in');
+                });
+
+                Route::middleware('can:'.PermissionEnum::FrontDeskCheckOut->value)->group(function () {
+                    Route::post('check-out/preview', [ReservationUnitStayController::class, 'checkOutPreview'])->name('check-out-preview');
+                    Route::post('check-out', [ReservationUnitStayController::class, 'checkOut'])->name('check-out');
+                    Route::post('late-check-out/preview', [ReservationUnitStayController::class, 'lateCheckOutPreview'])->name('late-check-out-preview');
+                    Route::post('late-check-out', [ReservationUnitStayController::class, 'lateCheckOut'])->name('late-check-out');
+                });
+            });
+
             Route::get('units/{unit}/voucher', [ReservationFolioController::class, 'unitVoucher'])->middleware('can:'.PermissionEnum::FolioPrintVoucher->value)->name('units.voucher');
         });
     });

@@ -8,14 +8,20 @@ namespace App\Enums;
  */
 enum UnitAction: string
 {
+    case CheckIn = 'check-in';
+    case CheckOut = 'check-out';
+    case LateCheckOut = 'late-check-out';
+    case ChangeDates = 'change-dates';
     case Cancel = 'cancel';
     case NoShow = 'no-show';
     case Reinstate = 'reinstate';
-    case ChangeDates = 'change-dates';
 
     public function label(): string
     {
         return match ($this) {
+            self::CheckIn => __('Check in'),
+            self::CheckOut => __('Check out'),
+            self::LateCheckOut => __('Late check-out'),
             self::Cancel => __('Cancel unit'),
             self::NoShow => __('Mark no-show'),
             self::Reinstate => __('Reinstate'),
@@ -26,6 +32,8 @@ enum UnitAction: string
     public function permission(): PermissionEnum
     {
         return match ($this) {
+            self::CheckIn => PermissionEnum::FrontDeskCheckIn,
+            self::CheckOut, self::LateCheckOut => PermissionEnum::FrontDeskCheckOut,
             self::Cancel, self::NoShow, self::Reinstate, self::ChangeDates => PermissionEnum::ReservationsManage,
         };
     }
@@ -37,6 +45,9 @@ enum UnitAction: string
     public function isOpenFor(UnitStatus $status): bool
     {
         return match ($this) {
+            self::CheckIn => $status->canTransitionTo(UnitStatus::CheckedIn),
+            self::CheckOut => $status->canTransitionTo(UnitStatus::CheckedOut),
+            self::LateCheckOut => $status === UnitStatus::CheckedIn,
             self::Cancel => $status->canTransitionTo(UnitStatus::Cancelled),
             self::NoShow => $status->canTransitionTo(UnitStatus::NoShow),
             self::Reinstate => $status->canTransitionTo(UnitStatus::Confirmed),

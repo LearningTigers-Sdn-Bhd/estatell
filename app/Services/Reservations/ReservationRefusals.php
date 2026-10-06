@@ -37,9 +37,9 @@ class ReservationRefusals
      *
      * @return array<string, string>
      */
-    public function unitErrors(string $code, ?CarbonInterface $date = null, bool $canOverrideRestrictions = false): array
+    public function unitErrors(string $code, ?CarbonInterface $date = null, bool $canOverrideRestrictions = false, bool $canOverrideCard = false): array
     {
-        $entry = $this->unitEntry($code, $canOverrideRestrictions) ?? $this->entry($code, $date, $canOverrideRestrictions);
+        $entry = $this->unitEntry($code, $canOverrideRestrictions, $canOverrideCard) ?? $this->entry($code, $date, $canOverrideRestrictions);
 
         return [$entry[0] => $entry[1]];
     }
@@ -55,12 +55,27 @@ class ReservationRefusals
     /**
      * @return array{0: string, 1: string}|null
      */
-    private function unitEntry(string $code, bool $canOverrideRestrictions): ?array
+    private function unitEntry(string $code, bool $canOverrideRestrictions, bool $canOverrideCard = false): ?array
     {
         return match ($code) {
             UnitStayResult::REFUSAL_INVALID_STATUS => [self::FORM, __('This unit cannot do that in its current status.')],
             UnitStayResult::REFUSAL_NO_BUSINESS_DATE => [self::FORM, __('This property has no open business date yet.')],
-            UnitStayResult::REFUSAL_STAY_ENDED => [self::FORM, __('The stay has ended, so it cannot be reinstated.')],
+            UnitStayResult::REFUSAL_STAY_ENDED => [self::FORM, __('The stay has ended.')],
+            UnitStayResult::REFUSAL_ARRIVAL_NOT_REACHED => [self::FORM, __('The guest cannot check in before the arrival date.')],
+            UnitStayResult::REFUSAL_NO_ROOM_ASSIGNED => [self::FORM, __('Assign a room or bed for tonight before checking in.')],
+            UnitStayResult::REFUSAL_CARD_MISSING => [self::FORM, $canOverrideCard
+                ? __('A registration card is not signed. Sign it, or tick Check in without a card.')
+                : __('A registration card is not signed. Sign it first, or ask someone who may check in without a card.')],
+            UnitStayResult::REFUSAL_NATIONALITY_REQUIRED => ['nationality_code', __('A tax depends on nationality. Choose the guest\'s nationality.')],
+            UnitStayResult::REFUSAL_CREDIT_LIMIT_EXCEEDED => ['credit_override_reason', __('This company is over its credit limit.')],
+            UnitStayResult::REFUSAL_BEFORE_DEPARTURE_DATE => [self::FORM, __('The guest cannot check out before the departure date. Change the dates first.')],
+            UnitStayResult::REFUSAL_BALANCE_NOT_SETTLED => [self::FORM, __('The unit folio is not settled. Collect the balance or refund the deposit first.')],
+            UnitStayResult::REFUSAL_NOT_DEPARTURE_DATE => [self::FORM, __('A late check-out is only for the departure date.')],
+            UnitStayResult::REFUSAL_TIME_NOT_LATER => ['new_time', __('Choose a time later than the current departure time.')],
+            'refund_exceeds_payment' => ['refund_amount', __('The refund is more than the deposit held.')],
+            'method_not_available' => ['payment_method_id', __('This payment method is not available.')],
+            'reference_required' => ['reference', __('This payment method needs a reference.')],
+            'folio_not_open' => [self::FORM, __('The unit folio is closed, so it cannot change.')],
             UnitStayResult::REFUSAL_REASON_REQUIRED => ['reason', __('Enter a reason.')],
             UnitStayResult::REFUSAL_FEE_CHANGED => ['expected_fee', __('The fee changed while this form was open. Check the new amount and confirm again.')],
             UnitStayResult::REFUSAL_POLICY_NOT_FOUND => [self::FORM, __('The policy for this fee is missing. Check Room revenue in settings.')],

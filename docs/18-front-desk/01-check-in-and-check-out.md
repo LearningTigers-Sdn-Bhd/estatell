@@ -170,6 +170,16 @@ Each form uses `FormOverlay` and the container from [Form containers](../design-
 - **Dialogs.** Cancel and No-show share one Dialog. **Also remove add-ons** shows only when the unit has add-ons that are not posted. **Reason** is always visible and needed with Do not charge.
 - **Change dates** previews the extra nights without running the Action. Added nights are quoted alone, as in `ChangeUnitDates`. Extending an in-house unit uses the same Dialog with the arrival locked.
 
+### Built: check in, check out and late check-out
+
+- **Menu.** The menu lists Check in from the arrival date until the departure date, Check out from the departure date, and Late check-out on the departure date, the days each Action accepts. A shorter stay is changed first with Change dates.
+- **Previews.** `UnitActionPreview` gains `checkIn()`, `checkOut()` and `lateCheckOut()`. `CheckInCollection` and `CheckOutSettlement` (`app/Services/FrontDesk/`) work out Collect now and the deposit.
+- **Check in.** `CheckInAndCollect` saves a missing nationality (to the primary guest, or the booker, through `UpdateGuest`) and runs `CheckInUnit` in one transaction, so a refused check-in saves nothing. Then Collect now takes the taxes as an Advance payment and the deposit as a SecurityDeposit payment, with the keys `{uuid}:taxes` and `{uuid}:deposit`. The Collect now amounts come from `CheckInCollection` and the form sends no amount. The tax rows are the Scheduled tax rows of the unit's nights, so the guest pays what the night audit will post. A deposit already held on the unit folio is not asked again. Collect now shows only with `payment.record`.
+- **More fields.** The Dialog adds a **Check in without a card** box (with `front-desk.check-in-without-card`, shown when a card is missing) and a **Credit limit override reason** (with `company.credit-override`, shown when the company is over its limit). They appear only when needed, so the usual form still has the five fields above.
+- **Check out.** `CheckOutAndRefund` refunds the deposit (oldest deposit payment first, each through `RefundPayment`) and then runs `CheckOutUnit`. It refuses a refund above what is held before it writes. The Dialog needs `payment.refund` for the refund and opens check-out when the folio will be 0. **Keep for damages** links to the folio tab.
+- **Late check-out.** `reservations.units.late-check-out` calls `ExtendDepartureTime` with the same Do not charge and reason fields as the other fee forms.
+- **Routes.** `reservations.units.check-in`, `.check-out` and `.late-check-out` with their `-preview` routes. Check in uses `front-desk.check-in`. Check out and late check-out use `front-desk.check-out`.
+
 ### Cancel unit
 
 ```

@@ -3,18 +3,29 @@
 namespace App\Services\Reservations;
 
 use App\Actions\FrontDesk\UnitStayResult;
+use App\Data\Reservations\UnitCheckInPreviewData;
+use App\Data\Reservations\UnitCheckOutPreviewData;
 use App\Data\Reservations\UnitDatesPreviewData;
 use App\Data\Reservations\UnitFeePreviewData;
+use App\Data\Reservations\UnitLateCheckOutPreviewData;
 use App\Data\Reservations\UnitReinstatePreviewData;
+use App\Enums\PermissionEnum;
 use App\Enums\SystemTransactionCode;
 use App\Models\ReservationUnit;
 use App\Models\RoomRevenuePolicy;
+use App\Models\Tax;
 use App\Models\UnitNight;
+use App\Models\User;
 use App\Services\Catalogues\PolicyChargeCalculator;
+use App\Services\CityLedger\CreditCheck;
+use App\Services\FrontDesk\CheckInCollection;
+use App\Services\FrontDesk\CheckOutSettlement;
+use App\Services\Guests\CountryOptions;
 use App\Services\NightAudit\CurrentBusinessDate;
 use App\Services\Rates\RateQuoteRequest;
 use App\Services\Rates\RateQuoteService;
 use App\Services\Rates\RestrictionCheck;
+use App\Services\Registration\RegistrationCardRequirement;
 use Brick\Money\Money;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
@@ -33,7 +44,74 @@ class UnitActionPreview
         private RateQuoteService $rateQuoteService,
         private RestrictionCheck $restrictionCheck,
         private ReservationRefusals $refusals,
+        private RegistrationCardRequirement $registrationCardRequirement,
+        private UnitNationality $unitNationality,
+        private CreditCheck $creditCheck,
+        private CheckInCollection $checkInCollection,
+        private CheckOutSettlement $checkOutSettlement,
+        private CountryOptions $countryOptions,
     ) {}
+
+    /**
+     * Tonight's room, the registration card status, the checks the user may override and Collect now.
+     */
+    public function checkIn(ReservationUnit $unit, User $user): UnitCheckInPreviewData
+    {
+        $property = $unit->property()->with('settings')->firstOrFail();
+        $businessDate = $this->currentBusinessDate->date($property);
+
+        if ($businessDate === null) {
+            return UnitCheckInPreviewData::refused($this->refusals->message(UnitStayResult::REFUSAL_NO_BUSINESS_DATE));
+        }
+
+        $tonight = $unit->nights()->with(['room', 'bed'])->whereDate('date', $businessDate->toDateString())->first();
+        $cardRequired = (bool) $property->settings?->card_required_for_check_in;
+        $needsNationality = $this->unitNationality->for($unit) === null
+            && Tax::query()->where('property_id', $unit->property_id)->where('enabled', true)->where('foreign_guests_only', true)->exists();
+        $company = $unit->reservation()->firstOrFail()->company;
+        $credit = $company === null ? null : $this->creditCheck->check($company);
+        $collection = $user->can(PermissionEnum::PaymentRecord->value) ? $this->checkInCollection->for($unit) : null;
+
+        return new UnitCheckInPreviewData(
+            room: $tonight?->room?->number ?? $tonight?->bed?->label,
+            cardsMissing: $cardRequired ? $this->registrationCardRequirement->missingFor($unit, $property)->count() : 0,
+            cardRequired: $cardRequired,
+            canCheckInWithoutCard: $user->can(PermissionEnum::FrontDeskCheckInWithoutCard->value),
+            needsNationality: $needsNationality,
+            countries: $needsNationality ? $this->countryOptions->options() : [],
+            creditExceeded: $credit !== null && ! $credit->allowed,
+            canOverrideCredit: $user->can(PermissionEnum::CompanyCreditOverride->value),
+            collection: $collection === null || $collection->isEmpty() ? null : $collection,
+            error: null,
+        );
+    }
+
+    /**
+     * The unit folio balance and the security deposit held.
+     */
+    public function checkOut(ReservationUnit $unit, User $user): UnitCheckOutPreviewData
+    {
+        return $this->checkOutSettlement->for($unit, $user->can(PermissionEnum::PaymentRefund->value));
+    }
+
+    /**
+     * The late check-out policy fee and the times the form shows.
+     */
+    public function lateCheckOut(ReservationUnit $unit): UnitLateCheckOutPreviewData
+    {
+        $policy = $this->policy($unit, SystemTransactionCode::LateCheckoutRevenue);
+
+        if ($policy === null) {
+            return UnitLateCheckOutPreviewData::refused($this->refusals->message(UnitStayResult::REFUSAL_POLICY_NOT_FOUND));
+        }
+
+        return new UnitLateCheckOutPreviewData(
+            fee: (string) $this->policyChargeCalculator->calculate($policy, $unit)->amount->getAmount(),
+            departureTime: substr($unit->departure_time, 0, 5),
+            standardTime: substr((string) $unit->property()->with('settings')->firstOrFail()->settings?->check_out_time, 0, 5),
+            error: null,
+        );
+    }
 
     /**
      * The fee of the cancellation or no-show policy on the business date, for the Cancel unit and Mark no-show forms.

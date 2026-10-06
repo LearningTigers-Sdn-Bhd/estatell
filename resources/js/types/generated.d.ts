@@ -1035,6 +1035,23 @@ chargingUnitLabel: string,
 defaultAmount: string | null,
 allowOverride: boolean,
 };
+export type CheckInCollectionData = {
+taxes: {
+name: string,
+amount: string,
+exempt: boolean,
+}[],
+taxesTotal: string,
+taxesHidden: boolean,
+deposit: string | null,
+};
+export type CollectNowData = {
+taxes: boolean,
+deposit: boolean,
+paymentMethodId: number,
+reference: string | null,
+idempotencyKey: string,
+};
 export type DiscountOptionData = {
 id: number,
 name: string,
@@ -1272,6 +1289,31 @@ export type UnitActionData = {
 key: App.Enums.UnitAction,
 label: string,
 };
+export type UnitCheckInPreviewData = {
+room: string | null,
+cardsMissing: number,
+cardRequired: boolean,
+canCheckInWithoutCard: boolean,
+needsNationality: boolean,
+countries: {
+value: string,
+label: string,
+}[],
+creditExceeded: boolean,
+canOverrideCredit: boolean,
+collection: App.Data.Reservations.CheckInCollectionData | null,
+error: string | null,
+};
+export type UnitCheckOutPreviewData = {
+balance: string,
+owing: string,
+depositHeld: string,
+refundDefault: string,
+depositMethod: string | null,
+canRefund: boolean,
+folioKey: string | null,
+error: string | null,
+};
 export type UnitDatesPreviewData = {
 previousTotal: string | null,
 newTotal: string | null,
@@ -1288,6 +1330,12 @@ withinFreeWindow: boolean,
 freeUntilDays: number | null,
 daysBeforeArrival: number | null,
 unpostedAddOns: number,
+error: string | null,
+};
+export type UnitLateCheckOutPreviewData = {
+fee: string | null,
+departureTime: string,
+standardTime: string,
 error: string | null,
 };
 export type UnitPickData = {
@@ -1499,7 +1547,7 @@ export type TermsPreset = 'standard_hotel' | 'hostel' | 'resort' | 'serviced_apa
 export type Tone = 'neutral' | 'info' | 'success' | 'warning' | 'danger';
 export type TransactionCategory = 'room' | 'food_and_beverage' | 'laundry' | 'minibar' | 'fee' | 'tax' | 'discount' | 'cash' | 'card' | 'bank_transfer' | 'e_wallet' | 'ota_collected' | 'direct_bill' | 'deposit' | 'refund' | 'adjustment' | 'other';
 export type TransactionKind = 'charge' | 'payment' | 'adjustment' | 'tax';
-export type UnitAction = 'cancel' | 'no-show' | 'reinstate' | 'change-dates';
+export type UnitAction = 'check-in' | 'check-out' | 'late-check-out' | 'change-dates' | 'cancel' | 'no-show' | 'reinstate';
 export type UnitStatus = 'confirmed' | 'checked_in' | 'checked_out' | 'cancelled' | 'no_show';
 export type Weekday = 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday';
 export type WeekendNights = 'fri_sat' | 'sat_sun';

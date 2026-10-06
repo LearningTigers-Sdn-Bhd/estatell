@@ -1,5 +1,8 @@
 import {
     CalendarClock,
+    Clock,
+    LogIn,
+    LogOut,
     MoreHorizontal,
     RotateCcw,
     UserX,
@@ -7,7 +10,10 @@ import {
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useState } from 'react';
+import { CheckInDialog } from '@/components/pms/reservations/check-in-dialog';
+import { CheckOutDialog } from '@/components/pms/reservations/check-out-dialog';
 import { ChangeDatesDialog } from '@/components/pms/reservations/change-dates-dialog';
+import { LateCheckOutDialog } from '@/components/pms/reservations/late-check-out-dialog';
 import { ReinstateUnitDialog } from '@/components/pms/reservations/reinstate-unit-dialog';
 import { UnitPolicyFeeDialog } from '@/components/pms/reservations/unit-policy-fee-dialog';
 import { Button } from '@/components/ui/button';
@@ -21,6 +27,9 @@ import {
 type Unit = App.Data.Reservations.ReservationUnitData;
 
 const ICONS: Record<App.Enums.UnitAction, LucideIcon> = {
+    'check-in': LogIn,
+    'check-out': LogOut,
+    'late-check-out': Clock,
     cancel: XCircle,
     'no-show': UserX,
     reinstate: RotateCcw,
@@ -36,12 +45,14 @@ export function UnitActionsMenu({
     unit,
     canWaiveFees,
     canOverrideRestrictions,
+    paymentOptions,
     currency,
 }: {
     reservationId: number;
     unit: Unit;
     canWaiveFees: boolean;
     canOverrideRestrictions: boolean;
+    paymentOptions?: App.Data.Payments.PaymentFormOptionsData;
     currency: App.Enums.Currency | null;
 }) {
     const [action, setAction] = useState<App.Enums.UnitAction | null>(null);
@@ -90,6 +101,17 @@ export function UnitActionsMenu({
                 </DropdownMenuContent>
             </DropdownMenu>
 
+            <CheckInDialog
+                {...common}
+                open={action === 'check-in'}
+                paymentOptions={paymentOptions}
+            />
+            <CheckOutDialog {...common} open={action === 'check-out'} />
+            <LateCheckOutDialog
+                {...common}
+                open={action === 'late-check-out'}
+                canWaiveFees={canWaiveFees}
+            />
             <UnitPolicyFeeDialog
                 {...common}
                 open={action === 'cancel' || action === 'no-show'}

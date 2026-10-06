@@ -155,6 +155,7 @@ export function UnitsTab({
     autoAssignRooms,
     canWaiveFees,
     canOverrideRestrictions,
+    paymentOptions,
     currency,
 }: {
     reservationId: number;
@@ -162,6 +163,7 @@ export function UnitsTab({
     autoAssignRooms: boolean;
     canWaiveFees: boolean;
     canOverrideRestrictions: boolean;
+    paymentOptions?: App.Data.Payments.PaymentFormOptionsData;
     currency: App.Enums.Currency | null;
 }) {
     if (unit === null) {
@@ -181,6 +183,7 @@ export function UnitsTab({
                         unit={unit}
                         canWaiveFees={canWaiveFees}
                         canOverrideRestrictions={canOverrideRestrictions}
+                        paymentOptions={paymentOptions}
                         currency={currency}
                     />
                 </div>

@@ -32,7 +32,7 @@ The critical path: the front desk actions on the reservation, then the night aud
 9. [x] `feat(front-desk): extend and change stay dates` — `ChangeUnitDates` (a shorter stay runs `ProcessEarlyDeparture` and the early departure policy; nights that stay keep their prices, added nights are quoted alone), `ExtendStay` (a wrapper over it), `ExtendDepartureTime` (late check-out and its policy fee), `AddNightlyAddOnRows`. Backend only. Needs: cancel, no-show and reinstate. Docs: [Check-in and check-out](18-front-desk/01-check-in-and-check-out.md).
 10. [ ] **Add the unit actions to the reservation page**, in three commits, in this order. UI, thin routes and read-only previews (`UnitActionPreview`, `UnitActionMenu`). Needs: FormOverlay, the items before it. Docs: [Check-in and check-out](18-front-desk/01-check-in-and-check-out.md#forms-on-the-reservation-page).
     - [x] `feat(front-desk): add unit actions to the reservation page` — the unit ⋯ menu (only what `canTransitionTo()` and the permissions allow), the previews, and the cancel and no-show Dialogs with the policy fee, Do not charge and **Also remove add-ons** (unticked by default), the reinstate Dialog with its required reason and the change dates Dialog with a price difference.
-    - [ ] `feat(front-desk): check in and check out from the reservation page` — the check-in Dialog with Collect now (flagged taxes and the security deposit, two `RecordPayment` calls), the check-out Dialog with the deposit refund, and the late check-out Dialog. Needs: the unit actions menu.
+    - [x] `feat(front-desk): check in and check out from the reservation page` — the check-in Dialog with Collect now (flagged taxes and the security deposit, two `RecordPayment` calls), the check-out Dialog with the deposit refund, and the late check-out Dialog. Needs: the unit actions menu.
     - [ ] `feat(front-desk): check in all units of a group` — one Dialog with a row for each unit. A failed unit does not stop the others, and no payment is taken. Needs: check in and check out from the page.
 11. [ ] `feat(front-desk): assign and move rooms and beds` — `MoveUnit`, `AutoAssignRooms`, the Postgres constraint, the Move room Dialog in the unit ⋯ menu. Needs: unit actions on the page. Docs: [Room and bed assignment](18-front-desk/02-room-and-bed-assignment.md).
 12. [ ] `feat(onboarding): add go live and the live middleware` — **moved forward from 17**: the night audit needs an open business date. `GoLive` calls `OpenBusinessDate`, starts document numbering and sets `Live`; the readiness check starts empty and fills as the wizard steps land. `EnsurePropertyIsLive` on operational routes. Docs: [Go live](17-onboarding/03-go-live.md#build-order).
@@ -200,6 +200,7 @@ Needs the Channex staging checks in [Staging verification](21-channels/06-stagin
 | `5814211` | refactor(folio): move overlays onto FormOverlay                          |
 | `3e33cd8` | feat(front-desk): cancel, no-show and reinstate units                    |
 | `e82a392` | fix(front-desk): release rooms on cancel and no-show                     |
+| `065e49f` | feat(front-desk): add unit actions to the reservation page               |
 
 Smaller fixes and reverts are in `git log`.
 

@@ -32,7 +32,9 @@ class UnitActionMenu
     }
 
     /**
-     * Reinstate needs a stay that is still ahead. A checked-in unit past its departure can still be extended.
+     * The dates each Action accepts, so the menu never offers what it would refuse: check-in from the arrival date
+     * until the departure date, check-out from the departure date, late check-out on the departure date, reinstate
+     * while the stay is still ahead. A checked-in unit past its departure can still be extended.
      */
     private function isTimely(UnitAction $action, ReservationUnit $unit, ?string $businessDate): bool
     {
@@ -40,8 +42,14 @@ class UnitActionMenu
             return false;
         }
 
+        $arrival = $unit->arrival_date->toDateString();
+        $departure = $unit->departure_date->toDateString();
+
         return match ($action) {
-            UnitAction::Reinstate => $businessDate < $unit->departure_date->toDateString(),
+            UnitAction::CheckIn => $businessDate >= $arrival && $businessDate < $departure,
+            UnitAction::CheckOut => $businessDate >= $departure,
+            UnitAction::LateCheckOut => $businessDate === $departure,
+            UnitAction::Reinstate => $businessDate < $departure,
             default => true,
         };
     }
