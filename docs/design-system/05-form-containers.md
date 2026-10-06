@@ -77,11 +77,15 @@ It owns:
 - Focus on the first invalid field after a failed submit.
 - The mobile layout above.
 
+Tailwind has no 400 px or 480 px step, so the sizes use the spacing scale (`max-w-100` for Dialog `sm`, `max-w-120` for Sheet `md`, `max-w-160` for Sheet `lg`).
+
+`useFreshOnOpen(open)` (`components/pms/use-fresh-on-open.ts`) returns a key that changes each time the overlay opens. The page puts `useForm` in an inner component and gives it that key, so a reopened overlay has no old values or errors and the exit animation is not cut short.
+
 The optional-prop request stays in `useFormOptions`. The page calls it and passes `loading` down.
 
-`FormError`, `DiscardChangesDialog` and `useFormOptions` stay in `components/pms/reservations/`. About 17 folio and city-ledger files import them, so they do not move.
+`FormError`, `DiscardChangesDialog` and `useFormOptions` stay in `components/pms/reservations/` for now, and `FormOverlay` imports them from there. About 17 folio and city-ledger files import them too, so the move to `components/pms/` waits for the follow-up item in the [checklist](../checklist.md).
 
-Built for the five reservation overlays first (Add unit, Attach guest, Add add-on, Edit group, Change company). The folio and city-ledger overlays still wire their own shell until the follow-up item in the [checklist](../checklist.md).
+Built (see the [checklist](../checklist.md)) for the five reservation overlays first (Add unit, Attach guest, Add add-on, Edit group, Change company). The folio and city-ledger overlays still wire their own shell until the follow-up item in the [checklist](../checklist.md).
 
 ## Layout examples
 
