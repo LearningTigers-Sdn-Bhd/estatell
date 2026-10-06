@@ -1,7 +1,7 @@
 import { Link } from '@inertiajs/react';
 import { BookUser, IdCard, MoreHorizontal, UserPlus } from 'lucide-react';
 import { Fragment, useState } from 'react';
-import { AttachGuestSheet } from '@/components/pms/reservations/attach-guest-sheet';
+import { AttachGuestDialog } from '@/components/pms/reservations/attach-guest-dialog';
 import { StatusBadge } from '@/components/pms/status-badge';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -234,7 +234,7 @@ export function GuestsTab({
                     </TableBody>
                 </Table>
             </div>
-            <AttachGuestSheet
+            <AttachGuestDialog
                 open={attaching}
                 onOpenChange={setAttaching}
                 reservationId={reservationId}

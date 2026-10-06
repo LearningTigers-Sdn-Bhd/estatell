@@ -57,14 +57,12 @@ function AttachGuestForm({
 
     return (
         <FormOverlay
-            variant="sheet"
+            variant="dialog"
             open={open}
             onOpenChange={onOpenChange}
             title="Attach guest"
             description="Choose the unit and the guest who stays in it."
             errors={errors}
-            dirty={guest !== null}
-            discardTitle="Discard this guest?"
             onSubmit={submit}
             submitLabel="Attach guest"
             processing={form.processing}
@@ -115,6 +113,6 @@ function AttachGuestForm({
 /**
  * Attaches an existing guest to a unit. Only units that are still open are offered.
  */
-export function AttachGuestSheet(props: Props) {
+export function AttachGuestDialog(props: Props) {
     return <AttachGuestForm key={useFreshOnOpen(props.open)} {...props} />;
 }

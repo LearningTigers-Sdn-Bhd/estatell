@@ -244,7 +244,7 @@ A title row with the Attach guest button sits above a rounded, bordered table. R
 
 Attach guest opens a Dialog (2 fields, see [form containers](../design-system/05-form-containers.md)) with `GuestPicker` (existing guests only, through `guests.search`) and "Stays in". Creating a guest here is not supported; the booking form adds the autocomplete field that can.
 
-`AttachGuest(User $actor, ReservationUnit $unit, Guest $guest): AttachGuestResult` locks the unit, writes a `unit_guests` row (the unit's first guest becomes `is_primary`) and logs `reservation.guest_attached` with ids only. A blacklisted guest is allowed, with a warning in the Sheet.
+`AttachGuest(User $actor, ReservationUnit $unit, Guest $guest): AttachGuestResult` locks the unit, writes a `unit_guests` row (the unit's first guest becomes `is_primary`) and logs `reservation.guest_attached` with ids only. A blacklisted guest is allowed, with a warning in the Dialog.
 
 | Check, in order                                                   | Refusal            |
 | ----------------------------------------------------------------- | ------------------ |
@@ -255,7 +255,7 @@ Attach guest opens a Dialog (2 fields, see [form containers](../design-system/05
 
 Room units have no guest limit. Detaching a guest and changing the primary guest come later.
 
-Built: `AttachGuest`, `AttachGuestResult` and the form, a Sheet on `FormOverlay` today, and a later checklist item moves it to a Dialog. Its unit select lists only open units, and a blacklisted guest shows a warning. The header button and the **Attach guest** button on a unit without a guest both open it.
+Built: `AttachGuest`, `AttachGuestResult` and the form, a Dialog on `FormOverlay` (2 fields). Its unit select lists only open units, and a blacklisted guest shows a warning. The header button and the **Attach guest** button on a unit without a guest both open it.
 
 ### Add-ons tab
 
@@ -285,7 +285,7 @@ Built, view only: the four tab routes with `renderTab()`, the header with the Gr
 
 Built, folio tab: `reservations.folio` with the folio rail, and the summary card's Balance from the folios (see [Folio page](../13-folio/05-folio-page.md#build-status)).
 
-Built, actions: the five `reservations.manage` routes, each in its own small controller (`ReservationGroupController`, `ReservationUnitController`, `ReservationUnitAddOnController`) with a Form Request that checks the shape only. The Add unit Sheet, Edit group Dialog, Attach guest Sheet, Add add-on Dialog and the Remove add-on AlertDialog call the Actions. The room type and rate plan lists (`addUnitOptions`) and the charge items (`chargeItems`) are optional props that load when their overlay opens, and a submit leaves them out with `except` so a refusal keeps them. `ReservationRefusals` (`app/Services/Reservations/`) is the one map from refusal code to field and message; a refusal with no field uses the `form` key, shown as an alert at the top of the overlay. A `restricted` refusal goes to the restriction override reason field for staff with `rates.override-restrictions`, and to `form` for everyone else. `guests.search` is `GuestController::search`, backed by `GuestDirectory::lookup` (8 guests, 2 characters at least, no merged or anonymized guests). The five overlays (Add unit, Attach guest, Add add-on, Edit group, Change company) use `FormOverlay`. Each keeps its own `useForm` in a component keyed by `useFreshOnOpen`, so every opening starts with a clean form; `FormOverlay` owns the shell, the discard confirm and the mobile layout. A dirty Sheet (Add unit, Attach guest) asks before it closes. Child ages in the Add unit Sheet are one comma-separated field.
+Built, actions: the five `reservations.manage` routes, each in its own small controller (`ReservationGroupController`, `ReservationUnitController`, `ReservationUnitAddOnController`) with a Form Request that checks the shape only. The Add unit Sheet, Edit group Dialog, Attach guest Dialog, Add add-on Dialog and the Remove add-on AlertDialog call the Actions. The room type and rate plan lists (`addUnitOptions`) and the charge items (`chargeItems`) are optional props that load when their overlay opens, and a submit leaves them out with `except` so a refusal keeps them. `ReservationRefusals` (`app/Services/Reservations/`) is the one map from refusal code to field and message; a refusal with no field uses the `form` key, shown as an alert at the top of the overlay. A `restricted` refusal goes to the restriction override reason field for staff with `rates.override-restrictions`, and to `form` for everyone else. `guests.search` is `GuestController::search`, backed by `GuestDirectory::lookup` (8 guests, 2 characters at least, no merged or anonymized guests). The five overlays (Add unit, Attach guest, Add add-on, Edit group, Change company) use `FormOverlay`. Each keeps its own `useForm` in a component keyed by `useFreshOnOpen`, so every opening starts with a clean form; `FormOverlay` owns the shell, the discard confirm and the mobile layout. A dirty Sheet (Add unit) asks before it closes. Child ages in the Add unit Sheet are one comma-separated field.
 
 ## Refusals and messages
 
