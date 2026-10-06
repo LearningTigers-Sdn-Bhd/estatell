@@ -5,7 +5,7 @@ namespace App\Enums;
 use Illuminate\Support\Str;
 
 /**
- * The staff sidebar contexts. The active context comes from the current route name.
+ * The staff areas (sidebar contexts). The active context comes from the current route name.
  */
 enum NavigationContext: string
 {
@@ -34,19 +34,6 @@ enum NavigationContext: string
             self::Finance => 'wallet',
             self::Reports => 'chart-column',
             self::Settings => 'settings',
-        };
-    }
-
-    /**
-     * Second key of the `g` shortcut that opens this context.
-     */
-    public function shortcut(): string
-    {
-        return match ($this) {
-            self::FrontDesk => 'f',
-            self::Finance => 'n',
-            self::Reports => 'r',
-            self::Settings => 's',
         };
     }
 

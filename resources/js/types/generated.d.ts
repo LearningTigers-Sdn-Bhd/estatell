@@ -503,7 +503,6 @@ export type NavContextData = {
 key: App.Enums.NavigationContext,
 label: string,
 icon: string,
-shortcut: string,
 href: string,
 groups: App.Data.Navigation.NavGroupData[],
 };

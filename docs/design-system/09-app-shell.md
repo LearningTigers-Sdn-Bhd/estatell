@@ -2,62 +2,67 @@
 
 Part of the [design system](../design-system.md). Short contract: [DESIGN.md](../../DESIGN.md).
 
-## Sidebar layout
+## Shell layout
 
-Five rows, top to bottom:
+A full-width navbar on top, the sidebar below it on the left, the page to the right. The staff areas are links in the sidebar footer, not a menu.
 
 ```
-┌──────────────────────────────┐
-│ ▣  Pulau Inn · 10142         │  r1  icon + property name + property code
-├──────────────────────────────┤
-│ [ Front desk            ⌄ ]  │  r2  ContextSwitcher
-├──────────────────────────────┤
-│ OVERVIEW                     │  r3  menu groups + menu items
-│   Dashboard                  │      no collapsible menus
-│   Stay View                  │      fills the remaining height,
-│ RESERVATIONS                 │      scrolls on its own if needed
-│   Arrivals                   │
-│   In-house                   │
-│   Departures                 │
-│   All reservations           │
-│ GUESTS                       │
-│   Guests                     │
-│ OPERATIONS                   │
-│   Housekeeping               │
-│   Rate calendar              │
-│   Night audit                │
-│              ⋮               │
-├──────────────────────────────┤
-│ ⚠ Night audit pending      › │  r4  BusinessDateIndicator
-│ Business  Fri 12 Jun 2026    │
-│ System    Sat 13 Jun · 01:24 │
-├──────────────────────────────┤
-│ 👤 Aisha · Owner          ⌄  │  r5  user menu: Account, Log out
-└──────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────────┐
+│ ☰  ▣ Pulau Inn · ID 10142                                    👤  │  navbar
+├────────────────┬─────────────────────────────────────────────────────────┤
+│ OVERVIEW       │ Breadcrumbs                                             │
+│   Dashboard    │                                                         │
+│ RESERVATIONS   │                                                         │
+│   All reserv.  │  page                                                   │
+│ GUESTS         │                                                         │
+│   Guests       │                                                         │
+│ OPERATIONS     │                                                         │
+│   Rate calendar│                                                         │
+│       ⋮        │                                                         │
+├────────────────┤                                                         │
+│ ▸ Front desk   │  area links                                             │
+│   Finance      │                                                         │
+│   Reports      │                                                         │
+│   Settings     │                                                         │
+│ ⚠ Audit pending│  dates (last row)                                       │
+│ Business 12 Jun│                                                         │
+│ System 13 Jun  │                                                         │
+└────────────────┴─────────────────────────────────────────────────────────┘
 ```
 
-| Row | Content                                       | Behavior                                                                                                                                     |
-| --- | --------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| r1  | Property icon (logo, or initials), name, code | Fixed at top. Clicking opens the Front desk dashboard.                                                                                       |
-| r2  | `ContextSwitcher`                             | Fixed. Hidden when the user has only one context.                                                                                            |
-| r3  | Menu groups (labels) and items                | Takes all remaining height (`flex-1`) and scrolls inside a `ScrollArea`. Groups are plain labels, never collapsible; items are never nested. |
-| r4  | `BusinessDateIndicator`                       | Fixed in the footer, always visible.                                                                                                         |
-| r5  | User menu (name, role)                        | Fixed at the bottom. Opens Account and Log out.                                                                                              |
+### Navbar (`AppNavbar`)
+
+| Part  | Content                                                                                                                    |
+| ----- | -------------------------------------------------------------------------------------------------------------------------- |
+| Left  | Sidebar toggle, then the property icon (logo, or initials), name and "ID code". Clicking the identity opens the dashboard. |
+| Right | User menu (`NavUser`): the avatar only, no name. It opens the name, Account and Log out.                                   |
+
+Sticky at the top, 3.5 rem high. On mobile the same navbar shows; the sidebar is an off-canvas sheet. Pages without a property (admin, account for admins) show the logo instead of the identity.
+
+### Sidebar rows
+
+| Row | Content                        | Behavior                                                                                                                                     |
+| --- | ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| r1  | Menu groups (labels) and items | Takes all remaining height (`flex-1`) and scrolls inside a `ScrollArea`. Groups are plain labels, never collapsible; items are never nested. |
+| r2  | `AreaSwitcher`                 | Footer, above the dates. See below.                                                                                                          |
+| r3  | `BusinessDateIndicator`        | Footer, the last row, always visible.                                                                                                        |
 
 - The starter kit sidebar, restyled by the preset. The bold menu accent fills the active item with emerald.
-- r1 and r2 use `SidebarHeader`, r3 uses `SidebarContent` with `SidebarGroup` + `SidebarGroupLabel` + `SidebarMenu`, r4 and r5 use `SidebarFooter`.
-- The context switcher uses the shadcn sidebar "team switcher" pattern.
+- The sidebar sits below the navbar (`top-14`). r1 uses `SidebarContent` with `SidebarGroup` + `SidebarGroupLabel` + `SidebarMenu`; r2 and r3 use `SidebarFooter`.
+- The Dashboard sits in the Overview group. A group with an empty label would show no label.
 - Sub-views that would need nesting (for example Arrivals, In-house, Departures) are separate items under a group label, or tabs on the page. Never a collapsible submenu.
+
+### Area links (`AreaSwitcher`)
+
+Plain items, one per area (Front desk, Finance, Reports, Settings), each with its icon. The current area is highlighted and opens in the same tab. The other areas open in a **new browser tab** (`target="_blank"`), so the page in use is kept; they show an external-link icon on the right (hidden in icon mode). Each link opens the area's first page. The list is hidden when the user has only one area.
 
 ### Collapsed sidebar (icon mode)
 
 | Row | Shows                                                                           |
 | --- | ------------------------------------------------------------------------------- |
-| r1  | Property icon only                                                              |
-| r2  | Context icon button; opens the same switcher menu                               |
-| r3  | Item icons with tooltips; group labels become separators                        |
-| r4  | Date badge ("12 Jun") with a status dot; tooltip shows both dates and the state |
-| r5  | Avatar                                                                          |
+| r1  | Item icons with tooltips; group labels become separators                        |
+| r2  | Area icons with tooltips                                                        |
+| r3  | Date badge ("12 Jun") with a status dot; tooltip shows both dates and the state |
 
 ## Contexts
 
@@ -72,10 +77,9 @@ Rules:
 
 - **Account is not a context.** It lives in the user menu.
 - **The active context comes from the route name** (see [Routing](../routing.md#sidebar-contexts-decided)).
-- **Same tab.** Switching context opens its last visited page. The last page per context is stored in `localStorage` per user. ⌘-click or middle-click still opens a new tab.
-- **Permissions decide visibility.** An item shows only if the user has its permission. A context shows only if it has at least one visible item. With one context, the switcher is hidden (for example a housekeeping user).
-- **⌘K searches all contexts**, so users rarely need the switcher.
-- **Shortcuts:** `g f` Front desk, `g n` Finance, `g r` Reports, `g s` Settings.
+- **New tab.** An area link opens that area's first page in a new browser tab, except the current area. There is no last-page memory.
+- **Permissions decide visibility.** An item shows only if the user has its permission. A context shows only if it has at least one visible item. With one context, the area links are hidden (for example a housekeeping user).
+- **⌘K searches all contexts**, so users rarely need the area links.
 - Onboarding (wizard layout), admin and guest pages have their own layouts without contexts.
 
 ## Business date and system date
@@ -100,7 +104,7 @@ Front desk staff must always know which business date they are posting to. After
 
 ### Placement
 
-- Footer row r4, above the user menu, always visible in the expanded sidebar.
+- Footer row r3, the last row of the sidebar, always visible in the expanded sidebar.
 - Collapsed sidebar: see "Collapsed sidebar" above.
 - Mobile: the same footer rows at the bottom of the sidebar sheet.
 - The state is never shown by color alone. The text always says it.
@@ -108,22 +112,21 @@ Front desk staff must always know which business date they are posting to. After
 ## Navigation code
 
 - Navigation is defined once in PHP: `app/Navigation/`, one class per context (`FrontDeskNavigation`, `FinanceNavigation`, `ReportsNavigation`, `SettingsNavigation`) built from route names and `PermissionEnum`. Each class returns `NavGroupData` groups of `NavItemData` items.
-- `StaffNavigation` combines the classes, drops empty groups and contexts, and marks the active context. The `NavigationContext` enum holds each context's label, icon, shortcut key and route name patterns.
+- `StaffNavigation` combines the classes, drops empty groups and contexts, and marks the active context. The `NavigationContext` enum holds each context's label, icon and route name patterns.
 - The server sets `active` on each item with `routeIs`, so an item stays active on its sub-pages (for example Details on every settings tab).
 - `HandleInertiaRequests` shares `navigation` (`StaffNavigationData`: `active` and `contexts`, already filtered by permission and features) and `businessDate`. `navigation` is null for admins and for suspended properties. On account pages staff get their own property's navigation with `active` null, and the sidebar shows the first context. Those pages have no permission team yet, so `HandleInertiaRequests` sets it to the staff user's property before building the navigation.
-- The frontend only renders: `AppSidebar` + `ContextSwitcher` + `BusinessDateIndicator`. No navigation lists in React.
-- The last page per context is stored in `localStorage` under `estatell.last-page.{userId}.{context}`. It is used only when it starts with the same `/p/{code}/`.
+- The frontend only renders: `AppNavbar` + `AppSidebar` + `AreaSwitcher` + `BusinessDateIndicator`. No navigation lists in React.
 
 ### Build status
 
-| Part                       | Status                                                                                                                                              |
-| -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| r1, r2, r3, r5             | Built.                                                                                                                                              |
-| Front desk, Settings       | Built with the items that have routes (Dashboard; Details). Each module adds its items.                                                             |
-| Finance, Reports           | No navigation classes yet. They come with their modules and stay hidden until then.                                                                 |
-| Permission filtering       | Built. Each context class leaves out items the user lacks the permission for (Details needs `settings.manage`).                                     |
-| r4 `BusinessDateIndicator` | Built with [Business dates](../20-night-audit/01-business-dates.md). The pending, running and overdue texts become links with the night audit page. |
-| ⌘K palette                 | Not built.                                                                                                                                          |
+| Part                        | Status                                                                                                                                              |
+| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Navbar, sidebar, area links | Built.                                                                                                                                              |
+| Front desk, Settings        | Built with the items that have routes (Dashboard; Details). Each module adds its items.                                                             |
+| Finance, Reports            | No navigation classes yet. They come with their modules and stay hidden until then.                                                                 |
+| Permission filtering        | Built. Each context class leaves out items the user lacks the permission for (Details needs `settings.manage`).                                     |
+| r3 `BusinessDateIndicator`  | Built with [Business dates](../20-night-audit/01-business-dates.md). The pending, running and overdue texts become links with the night audit page. |
+| ⌘K palette                  | Not built.                                                                                                                                          |
 
 - Labels are plain words. Section names match the table above.
 - Admin pages use `layouts/admin-layout.tsx` with `AdminSidebar`. Its items come from `App\Navigation\AdminNavigation`, shared as `adminNavigation` with admins only (null for staff). Account pages use the admin layout when this prop is present, so admins keep their sidebar there. Items marked `external` (Horizon) open in a new tab. The admin two-factor banner lives in this layout.
@@ -137,4 +140,4 @@ Front desk staff must always know which business date they are posting to. After
 ## Lessons from wastays
 
 - Navigation lived in four helpers (711 lines): `navigation_helper`, `settings_navigation_helper`, `reports_navigation_helper`, `financials_navigation_helper`.
-- Financials and Reports opened in a new tab so the front desk page was not lost. estatell keeps the page by remembering the last page per context instead.
+- Financials and Reports opened in a new tab so the front desk page was not lost. estatell does the same: the other areas open in a new tab from links in the sidebar footer, and the sidebar shows only the active area.

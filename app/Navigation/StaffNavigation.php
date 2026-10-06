@@ -39,7 +39,6 @@ class StaffNavigation
                 key: $context,
                 label: $context->label(),
                 icon: $context->icon(),
-                shortcut: $context->shortcut(),
                 href: $groups[0]->items[0]->href,
                 groups: $groups,
             );

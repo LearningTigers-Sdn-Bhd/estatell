@@ -132,7 +132,7 @@ import { stayView } from '@/routes/front-desk';
 
 ## Sidebar contexts (decided)
 
-The staff sidebar has four contexts, chosen with a switcher at the top. Each context maps to route groups, so navigation follows the routes.
+The staff app has four contexts, chosen with links in the sidebar footer; the other areas open in a new tab. The sidebar lists the active context. Each context maps to route groups, so navigation follows the routes.
 
 | Context        | Route groups                                                                                            | Items                                                                                                       |
 | -------------- | ------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
