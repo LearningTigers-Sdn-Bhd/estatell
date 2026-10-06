@@ -11,8 +11,8 @@ Move a unit through its stay.
 - `ProcessEarlyDeparture`: applies the early departure [room revenue policy](../06-catalogues/06-room-revenue.md#policies) when a stay is shortened.
 - `ExtendStay`, `ChangeUnitDates`.
 - `ExtendDepartureTime`: late check-out on the departure date. Sets a later `departure_time` and posts the late check-out policy charge. Refused unless the unit is CheckedIn, on its departure date, and the new time is later and before midnight.
-- `MarkNoShow`, `CancelUnit`: post the no-show or cancellation policy charge, unless staff choose **Do not charge**.
-- `ReinstateUnit`: moves a Cancelled or NoShow unit back to Confirmed and re-prices it from `reservation_unit_children`.
+- `MarkNoShow`, `CancelUnit`: post the no-show or cancellation policy charge, unless staff choose **Do not charge**. Each can also delete the unit's unposted add-ons (`$removeAddOns`).
+- `ReinstateUnit`: moves a Cancelled or NoShow unit back to Confirmed, with a required reason. It re-prices the unit from `reservation_unit_children` and clears the room or bed of every night.
 - Each of these Actions calls `SyncReservationStatus` (module 12) after it changes a unit, so the reservation status follows its units. `ResolveMissedArrivals` in the night audit calls `MarkNoShow` for each unit its policy marks.
 
 ## Rules
@@ -23,7 +23,7 @@ Move a unit through its stay.
 
 ## Refusals
 
-Both Actions return a `UnitStayResult` and write nothing on a refusal. The unit row is locked first.
+Every Action here returns a `UnitStayResult` and writes nothing on a refusal. The unit row is locked first.
 
 | Action         | Check, in order                                                                          | Refusal                                    |
 | -------------- | ---------------------------------------------------------------------------------------- | ------------------------------------------ |
@@ -48,6 +48,32 @@ Both Actions return a `UnitStayResult` and write nothing on a refusal. The unit 
 - A Master folio balance never blocks a unit check-out. Only the unit's own folios count.
 - Logged on the reservation: `reservation.unit_checked_in` and `reservation.unit_checked_out`.
 
+### Cancel, no-show and reinstate
+
+| Action          | Check, in order                                                                  | Refusal                                           |
+| --------------- | -------------------------------------------------------------------------------- | ------------------------------------------------- |
+| `CancelUnit`    | `UnitStatus::canTransitionTo()` allows Cancelled                                 | `invalid_status`                                  |
+| `MarkNoShow`    | `UnitStatus::canTransitionTo()` allows NoShow                                    | `invalid_status`                                  |
+| both            | A business date exists                                                           | `no_business_date`                                |
+| `MarkNoShow`    | The business date is on or after the arrival date                                | `arrival_not_reached`                             |
+| both            | Do not charge comes with a reason                                                | `reason_required`                                 |
+|                 | The property has the cancellation or no-show policy row                          | `policy_not_found`                                |
+|                 | When a fee posts and `$expectedFee` is given, it equals the fee now              | `fee_changed`                                     |
+|                 | The policy's charge code is active, its folio is open and its tax calculates     | `charge_not_found`, `folio_not_open`, tax refusal |
+| `ReinstateUnit` | `UnitStatus::canTransitionTo()` allows Confirmed                                 | `invalid_status`                                  |
+|                 | The reason is not blank                                                          | `reason_required`                                 |
+|                 | A business date exists                                                           | `no_business_date`                                |
+|                 | The business date is before the departure date                                   | `stay_ended`                                      |
+|                 | The room type has a free unit on every night (the room type row is locked first) | `not_available`                                   |
+|                 | `RateQuoteService` can price the stay                                            | the quote refusal (for example `rate_missing`)    |
+
+- The fee comes from `PolicyChargeCalculator` on the business date. `PostUnitPolicyFee` posts it with `PostFolioCharge`, because `PostCharge` refuses a unit that is not CheckedIn or CheckedOut. The key is `cancel:{unit}:{n}` or `no_show:{unit}:{n}`, where n counts the unit's earlier fees of that kind, so a unit cancelled again after a reinstate is charged again. A fee of 0 posts nothing.
+- **Do not charge** is a route decision: the route passes `$doNotCharge` only to a user with `front-desk.waive-fees`. The Action needs the reason and logs it with the fee it did not post.
+- `$removeAddOns` runs `RemoveUnpostedAddOns` while the unit is still Confirmed. It calls `RemoveUnitAddOn` for each add-on with no folio line, so each removal is logged. A posted add-on stays. With the option off, add-ons stay on the unit and come back with it on reinstate. Removed add-ons do not come back.
+- Cancel and no-show leave the night rows and their rooms as they are. A Cancelled or NoShow unit does not hold inventory (`UnitStatus::holdsInventory()`). Reinstate clears `room_id` and `bed_id`, so staff pick again with `AssignRoom` or `AssignBed`. This follows wastays, where a reinstated booking picks from the rooms free now.
+- Reinstate keeps a stay override: a night with an `override_amount` keeps it as its amount. It never touches a posted fee.
+- Logged on the reservation: `reservation.unit_cancelled`, `reservation.unit_no_show` and `reservation.unit_reinstated`.
+
 ## Taxes and deposit
 
 - **Nationality** for a foreign-only tax is the unit's primary guest, or the booker when the unit has no primary guest. Check-in shows a Nationality field when it is missing and saves it to the guest profile.
@@ -57,7 +83,7 @@ Both Actions return a `UnitStayResult` and write nothing on a refusal. The unit 
 
 ## Permissions
 
-`front-desk.check-in`, `front-desk.check-out`, `front-desk.check-in-without-card`, `front-desk.waive-fees`.
+`front-desk.check-in`, `front-desk.check-out`, `front-desk.check-in-without-card`, `front-desk.waive-fees` (Owner and Manager). The cancel, no-show and reinstate Actions need `reservations.manage`, checked by the route.
 
 ## Build order
 
@@ -72,14 +98,14 @@ One checklist item per group, in this order. The Actions come first and the rese
 
 Each form uses `FormOverlay` and the container from [Form containers](../design-system/05-form-containers.md).
 
-| Action                                         | Container   | Fields and notes                                                                                                                      |
-| ---------------------------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| Check in                                       | Dialog      | Shows the room, the registration card status, a card override (permission), Nationality when missing, and [Collect now](#collect-now) |
-| Check out                                      | Dialog      | Shows the folio balance and the deposit credit. Settle, transfer or refund the balance                                                |
-| Cancel unit, Mark no-show                      | Dialog      | Shows the policy fee ("No charge" inside the free window), Do not charge, a reason                                                    |
-| Reinstate                                      | AlertDialog | Re-prices the unit. Shows the new total                                                                                               |
-| Change dates (also Extend and Early departure) | Dialog      | Dates and a live price difference. A shorter stay shows the early departure policy result                                             |
-| Late check-out                                 | Dialog      | New time, the policy fee, Do not charge, a reason                                                                                     |
+| Action                                         | Container | Fields and notes                                                                                                                      |
+| ---------------------------------------------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| Check in                                       | Dialog    | Shows the room, the registration card status, a card override (permission), Nationality when missing, and [Collect now](#collect-now) |
+| Check out                                      | Dialog    | Shows the folio balance and the deposit credit. Settle, transfer or refund the balance                                                |
+| Cancel unit, Mark no-show                      | Dialog    | Shows the policy fee ("No charge" inside the free window), Do not charge, a reason, Also remove add-ons                               |
+| Reinstate                                      | Dialog    | A required reason. Re-prices the unit and shows the new total. The rooms are cleared, so staff assign them again                      |
+| Change dates (also Extend and Early departure) | Dialog    | Dates and a live price difference. A shorter stay shows the early departure policy result                                             |
+| Late check-out                                 | Dialog    | New time, the policy fee, Do not charge, a reason                                                                                     |
 
 **Do not charge** means the fee is not posted to the folio. It shows only for staff with `front-desk.waive-fees` (the code keeps the word "waive"). The reason is required and the choice is logged with the user. The fee is read-only text from the server.
 
@@ -112,13 +138,13 @@ Each form uses `FormOverlay` and the container from [Form containers](../design-
 │ ☐ Do not charge                                 │  Only with front-desk.waive-fees
 │ Reason      [ Required with Do not charge ___ ] │
 │                                                 │
-│ The room is released. Scheduled nights and      │
-│ add-ons are removed.                            │
+│ ☐ Also remove add-ons                           │
+│ The room is released.                           │
 │                  [Keep unit] [Cancel unit]      │
 └─────────────────────────────────────────────────┘
 ```
 
-Mark no-show has the same layout, with the no-show policy and no free-until line.
+Mark no-show has the same layout, with the no-show policy and no free-until line. **Also remove add-ons** is unticked by default and removes only add-ons that are not posted to a folio yet.
 
 ### Change dates
 

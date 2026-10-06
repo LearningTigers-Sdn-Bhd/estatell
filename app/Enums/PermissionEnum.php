@@ -51,6 +51,7 @@ enum PermissionEnum: string
     case FrontDeskCheckIn = 'front-desk.check-in';
     case FrontDeskCheckOut = 'front-desk.check-out';
     case FrontDeskCheckInWithoutCard = 'front-desk.check-in-without-card';
+    case FrontDeskWaiveFees = 'front-desk.waive-fees';
 
     public function label(): string
     {
@@ -98,6 +99,7 @@ enum PermissionEnum: string
             self::FrontDeskCheckIn => __('Check in units'),
             self::FrontDeskCheckOut => __('Check out units'),
             self::FrontDeskCheckInWithoutCard => __('Check in without a registration card'),
+            self::FrontDeskWaiveFees => __('Do not charge cancellation and no-show fees'),
         };
     }
 
@@ -118,7 +120,7 @@ enum PermissionEnum: string
             self::PaymentRecord, self::PaymentRefund => __('Payments'),
             self::CompanyView, self::CompanyManage, self::CompanyCreditOverride, self::CityLedgerInvoice, self::CityLedgerCreditNote, self::CityLedgerPayment, self::CityLedgerAllocate => __('City ledger'),
             self::RegistrationCardManageTerms, self::RegistrationCardSign, self::RegistrationCardSendLink, self::RegistrationCardVoid => __('Registration card'),
-            self::FrontDeskCheckIn, self::FrontDeskCheckOut, self::FrontDeskCheckInWithoutCard => __('Front desk'),
+            self::FrontDeskCheckIn, self::FrontDeskCheckOut, self::FrontDeskCheckInWithoutCard, self::FrontDeskWaiveFees => __('Front desk'),
         };
     }
 

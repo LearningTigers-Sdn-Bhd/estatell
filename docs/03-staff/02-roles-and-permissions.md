@@ -53,6 +53,7 @@ roles    spatie columns + property_id (NOT NULL, FK) + default_role (nullable)
 | `front-desk.check-in`              | Check in a unit                                                       | ✓     | ✓       | Front desk                        |
 | `front-desk.check-out`             | Check out a unit                                                      | ✓     | ✓       | Front desk                        |
 | `front-desk.check-in-without-card` | Check in a unit that has no signed registration card                  | ✓     | ✓       | –                                 |
+| `front-desk.waive-fees`            | Choose Do not charge on a cancellation or no-show fee                 | ✓     | ✓       | –                                 |
 | `reservations.view`                | Reservations list and reservation page                                | ✓     | ✓       | Front desk, Finance               |
 | `reservations.manage`              | Create reservations, add units, attach guests, edit group and add-ons | ✓     | ✓       | Front desk                        |
 | `folio.post-charge`                | Post a manual charge to a unit's folio                                | ✓     | ✓       | Front desk, Finance               |
