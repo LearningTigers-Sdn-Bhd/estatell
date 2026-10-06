@@ -8,8 +8,9 @@ Move a unit through its stay.
 
 - `CheckInUnit`: requires an assigned room or bed for tonight, enforces the registration card scope, needs a known nationality when an enabled foreign-only tax exists (`nationality_required`), posts undated add-ons, sets `checked_in_at` and `UnitStatus::CheckedIn`.
 - `CheckOutUnit`: requires the unit folio balance to be 0 or transferred to the master folio (`balance_not_settled`). A held security deposit is a credit on the folio, so it must be refunded or used against charges first. It sets `checked_out_at`, `UnitStatus::CheckedOut` and marks the room Dirty.
-- `ProcessEarlyDeparture`: applies the early departure [room revenue policy](../06-catalogues/06-room-revenue.md#policies) when a stay is shortened.
-- `ExtendStay`, `ChangeUnitDates`.
+- `ChangeUnitDates`: changes the arrival and departure of a Confirmed unit, or the departure of a CheckedIn unit. Kept nights keep their prices, plan and rooms. Removed nights are deleted. Added nights are priced for the added stretch only and try to keep the neighbouring night's room or bed.
+- `ProcessEarlyDeparture`: called by `ChangeUnitDates` when the departure moves earlier. It applies the early departure [room revenue policy](../06-catalogues/06-room-revenue.md#policies) and removes the unused nights.
+- `ExtendStay`: a later departure with the arrival kept. A thin wrapper over `ChangeUnitDates` (`not_an_extension` for a date that is not later). The night audit's "Extend stay" fix calls it.
 - `ExtendDepartureTime`: late check-out on the departure date. Sets a later `departure_time` and posts the late check-out policy charge. Refused unless the unit is CheckedIn, on its departure date, and the new time is later and before midnight.
 - `MarkNoShow`, `CancelUnit`: post the no-show or cancellation policy charge, unless staff choose **Do not charge**. Each can also delete the unit's unposted add-ons (`$removeAddOns`).
 - `ReinstateUnit`: moves a Cancelled or NoShow unit back to Confirmed, with a required reason. It re-prices the unit from `reservation_unit_children` and clears the room or bed of every night.
@@ -73,6 +74,42 @@ Every Action here returns a `UnitStayResult` and writes nothing on a refusal. Th
 - Cancel and no-show keep the night rows and their prices as history and clear `room_id` and `bed_id` on every night (`ReleaseUnitRooms`), so the rooms can be sold again. The released room and bed ids are in the log. A Cancelled or NoShow unit does not hold inventory (`UnitStatus::holdsInventory()`). Reinstate has nothing to clear (it clears again as a safeguard), so staff pick a room with `AssignRoom` or `AssignBed`. This follows wastays, where a reinstated booking picks from the rooms free now.
 - Reinstate keeps a stay override: a night with an `override_amount` keeps it as its amount. It never touches a posted fee.
 - Logged on the reservation: `reservation.unit_cancelled`, `reservation.unit_no_show` and `reservation.unit_reinstated`.
+
+### Change dates, extend and late check-out
+
+| Action                  | Check, in order                                                                          | Refusal                                              |
+| ----------------------- | ---------------------------------------------------------------------------------------- | ---------------------------------------------------- |
+| `ChangeUnitDates`       | The unit is Confirmed or CheckedIn                                                       | `invalid_status`                                     |
+|                         | A business date exists                                                                   | `no_business_date`                                   |
+|                         | The departure is after the arrival                                                       | `invalid_stay`                                       |
+|                         | At least one date changes                                                                | `dates_unchanged`                                    |
+|                         | An in-house unit keeps its arrival and does not depart before the business date          | `arrival_locked`, `departure_in_past`                |
+|                         | A Confirmed unit's new arrival is not before the business date                           | `arrival_in_past`                                    |
+|                         | The plan is not a Package plan                                                           | `package_plan`                                       |
+|                         | New nights pass `RestrictionCheck` (an override reason lets them through)                | `restricted`                                         |
+|                         | Every new night has a free unit on the room type (the room type row is locked first)     | `not_available`                                      |
+|                         | `RateQuoteService` can price the new nights                                              | the quote refusal (for example `rate_missing`)       |
+|                         | A shorter departure: the checks of `ProcessEarlyDeparture` below                         | its refusals                                         |
+| `ProcessEarlyDeparture` | The new departure is earlier                                                             | `not_shorter`                                        |
+|                         | Do not charge comes with a reason                                                        | `reason_required`                                    |
+|                         | The property has the early departure policy row                                          | `policy_not_found`                                   |
+|                         | When a fee posts and `$expectedFee` is given, it equals the fee now                      | `fee_changed`                                        |
+|                         | The charge code is active, its folio is open and its tax calculates                      | `charge_not_found`, `folio_not_open`, tax refusal    |
+| `ExtendStay`            | The new departure is later than the current one, then the checks of `ChangeUnitDates`    | `not_an_extension`                                   |
+| `ExtendDepartureTime`   | The unit is CheckedIn                                                                    | `invalid_status`                                     |
+|                         | A business date exists and it is the departure date                                      | `no_business_date`, `not_departure_date`             |
+|                         | The new time (`H:i`) is later than the current `departure_time`                          | `time_not_later`                                     |
+|                         | Do not charge comes with a reason, the policy row exists, the fee matches, the fee posts | `reason_required`, `policy_not_found`, `fee_changed` |
+
+- `ChangeUnitDates` and `ProcessEarlyDeparture` return a `StayDatesResult` (the unit, the fee, whether it was charged, the unit total before and after, and `unassignedNights`). `ExtendDepartureTime` returns a `UnitStayResult`.
+- **Prices:** nights that stay never change: a rate change does not touch an existing booking. Added nights are quoted for the added stretch only, so a long-stay discount does not reach the old nights. A stay override keeps its share on the old nights.
+- **Rooms:** an added night takes the room or bed of the nearest kept night when it is free on those nights. If not, it stays unassigned and counts in `unassignedNights`. Staff assign with `AssignRoom` or `AssignBed`.
+- **Add-ons:** `AddNightlyAddOnRows` gives each nightly add-on (PerNight, PerGuestNight) rows for the new nights on or after the business date. A shorter stay deletes the unposted rows of the removed nights. Other add-ons and posted add-ons stay.
+- **Early departure fee:** `PolicyChargeCalculator` reads it with the new departure while the unit still holds its booked nights. It posts with `PostUnitPolicyFee` and the key `early_departure:{unit}:{n}`. Only a shorter departure with the arrival unchanged is an early departure. A change that also moves the arrival is a new booking of the unit and has no fee.
+- **Restrictions:** the route passes `$restrictionOverrideReason` only to a user with `rates.override-restrictions`. Without a reason, a restriction is refused.
+- **Late check-out:** the fee is the late check-out policy (`OneCharge`) with the key `late_checkout:{unit}:{n}`. A second extension on the same day posts the fee again, and staff can choose Do not charge.
+- Permissions: `ChangeUnitDates` and `ExtendStay` need `reservations.manage`. `ExtendDepartureTime` needs `front-desk.check-out`. Do not charge needs `front-desk.waive-fees`.
+- Logged on the reservation: `reservation.unit_dates_changed` (old and new dates, totals, fee, reasons) and `reservation.unit_departure_time_extended`.
 
 ## Taxes and deposit
 

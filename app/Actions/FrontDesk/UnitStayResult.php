@@ -42,6 +42,28 @@ class UnitStayResult
 
     public const REFUSAL_NOT_AVAILABLE = 'not_available';
 
+    public const REFUSAL_INVALID_STAY = 'invalid_stay';
+
+    public const REFUSAL_DATES_UNCHANGED = 'dates_unchanged';
+
+    public const REFUSAL_ARRIVAL_LOCKED = 'arrival_locked';
+
+    public const REFUSAL_ARRIVAL_IN_PAST = 'arrival_in_past';
+
+    public const REFUSAL_DEPARTURE_IN_PAST = 'departure_in_past';
+
+    public const REFUSAL_PACKAGE_PLAN = 'package_plan';
+
+    public const REFUSAL_RESTRICTED = 'restricted';
+
+    public const REFUSAL_NOT_AN_EXTENSION = 'not_an_extension';
+
+    public const REFUSAL_NOT_SHORTER = 'not_shorter';
+
+    public const REFUSAL_NOT_DEPARTURE_DATE = 'not_departure_date';
+
+    public const REFUSAL_TIME_NOT_LATER = 'time_not_later';
+
     private function __construct(
         public readonly ?ReservationUnit $unit,
         public readonly ?string $refusal,
