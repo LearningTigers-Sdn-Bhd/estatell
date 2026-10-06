@@ -27,7 +27,7 @@ test('the Sandbay seeder builds a live resort with rooms, plans, guests and rese
         ->toBe(['Room Only', 'Bed & Breakfast', 'Half Board', 'Dive Package'])
         ->and(Guest::query()->where('property_id', $property->id)->count())->toBe(25)
         ->and(User::query()->where('property_id', $property->id)->count())->toBe(4)
-        ->and(Reservation::query()->where('property_id', $property->id)->count())->toBe(20)
+        ->and(Reservation::query()->where('property_id', $property->id)->count())->toBe(21)
         ->and(Reservation::query()->where('status', ReservationStatus::Cancelled)->count())->toBe(1)
         ->and(Reservation::query()->whereNotNull('group_name')->count())->toBe(1);
 });
@@ -50,5 +50,5 @@ test('running the Sandbay seeder twice does not add a second property', function
     $this->seed(SandbaySeeder::class);
 
     expect(Property::query()->where('name', 'Sandbay Resort')->count())->toBe(1)
-        ->and(Reservation::query()->count())->toBe(20);
+        ->and(Reservation::query()->count())->toBe(21);
 });

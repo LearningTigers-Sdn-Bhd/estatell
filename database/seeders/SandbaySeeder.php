@@ -13,6 +13,10 @@ use App\Actions\Folio\CreateRoutingRule;
 use App\Actions\Folio\PostCharge;
 use App\Actions\Folio\ReverseLine;
 use App\Actions\Folio\TransferLines;
+use App\Actions\FrontDesk\CancelUnit;
+use App\Actions\FrontDesk\CheckInAllUnits;
+use App\Actions\FrontDesk\MarkNoShow;
+use App\Actions\FrontDesk\UnitStayResult;
 use App\Actions\Guests\BlacklistGuest;
 use App\Actions\Guests\CreateGuest;
 use App\Actions\Guests\SetVip;
@@ -90,10 +94,11 @@ use RuntimeException;
  * Seeds Sandbay Resort, a 30-room resort in Semporna, Sabah: a live property with an open business date, its
  * catalogues, rooms, rate plans, rates, staff, guests and about 20 reservations. Dates are relative to the
  * property's business date. It runs on demand (`php artisan db:seed --class=SandbaySeeder`), uses the production
- * Actions, and skips when a property named Sandbay Resort exists. Three in-house units have folios with manual
+ * Actions, and skips when a property named Sandbay Resort exists. Two in-house units have folios with manual
  * postings, a reversal, a transfer to a third-party folio, routing, payments, a refund and a closed folio. Room
- * charges are not seeded: the night audit does not post them yet, and no Action checks a unit in, so the seeder
- * writes that status itself, as it does for a no-show.
+ * charges are not seeded: the night audit does not post them yet. Check-in, no-show and cancellation go through
+ * the front desk Actions. Check-out writes the status itself, because `CheckOutUnit` refuses a stay before its
+ * departure date and the walk-in departs tomorrow.
  */
 class SandbaySeeder extends Seeder
 {
@@ -631,11 +636,13 @@ class SandbaySeeder extends Seeder
         $walkIn = $book('Garden Room', 'Room Only', 0, 1, 2, 24, ['source' => ReservationSource::WalkIn]);
         $villa = $book('Water Villa', 'Half Board', 0, 3, 2, 6);
 
+        $book('Garden Room', 'Bed & Breakfast', 0, 2, 2, 0, ['notes' => 'Arrives today. Left Confirmed to try check-in.']);
+
         $noShow = $book('Garden Room', 'Room Only', 0, 2, 2, 7);
-        $this->setUnitStatuses($noShow, UnitStatus::NoShow);
+        $this->forEachUnit($noShow, fn (ReservationUnit $unit): UnitStayResult => app(MarkNoShow::class)($owner, $unit), 'The no-show');
 
         $cancelled = $book('Sea View Room', 'Bed & Breakfast', 14, 3, 2, 8);
-        $this->setUnitStatuses($cancelled, UnitStatus::Cancelled);
+        $this->forEachUnit($cancelled, fn (ReservationUnit $unit): UnitStayResult => app(CancelUnit::class)($owner, $unit), 'The cancellation');
 
         $dive = $this->diveGroup($property, $owner, $roomTypes, $plans, $guests, $today, $nextRoom);
 
@@ -659,8 +666,8 @@ class SandbaySeeder extends Seeder
             $units[] = new NewUnitData(
                 roomTypeId: $roomType->id,
                 ratePlanId: $plans['Dive Package']->id,
-                arrivalDate: $today->addDays(14),
-                departureDate: $today->addDays(17),
+                arrivalDate: $today,
+                departureDate: $today->addDays(3),
                 adults: 2,
             );
             $picks[] = new UnitPickData(unitIndex: $index, roomId: $nextRoom($roomType));
@@ -704,7 +711,7 @@ class SandbaySeeder extends Seeder
         $this->advance($owner, $reservations['anniversary'], $reservations['anniversary']->units()->firstOrFail(), $card, '300.00');
 
         // Walk-in: a small bill, paid in full, checked out and closed with an invoice number.
-        $walkInUnit = $this->checkIn($reservations['walkIn'])->first();
+        $walkInUnit = $this->checkIn($owner, $reservations['walkIn'])->first();
         $this->charge($owner, $walkInUnit, $items['EXTRA_TOWEL'], 2);
         $this->charge($owner, $walkInUnit, $items['AIRPORT_TRANSFER']);
         $folio = $this->unitFolio($walkInUnit);
@@ -717,7 +724,7 @@ class SandbaySeeder extends Seeder
         }
 
         // Water villa: a mistaken charge reversed, a diving trip moved to a third-party folio, a part payment and a refund.
-        $villaUnit = $this->checkIn($reservations['villa'])->first();
+        $villaUnit = $this->checkIn($owner, $reservations['villa'])->first();
         $this->charge($owner, $villaUnit, $items['ISLAND_HOPPING'], 2);
         $mistake = $this->charge($owner, $villaUnit, $items['EXTRA_BED']);
         $reversed = app(ReverseLine::class)($owner, $mistake);
@@ -743,8 +750,7 @@ class SandbaySeeder extends Seeder
             throw new RuntimeException("The refund was refused: {$refund->refusal}.");
         }
 
-        // Dive group: all four units in-house. Diving trips follow a manual rule to the club's third-party folio.
-        $diveUnits = $this->checkIn($reservations['dive']);
+        // Dive group: arrives today and stays Confirmed, so check-in all can be tried. Diving trips follow a manual rule to the club's third-party folio.
         $clubFolio = app(CreateFolio::class)->thirdParty($reservations['dive'], $reservations['dive']->booker);
         $rule = app(CreateRoutingRule::class)->manual($owner, $reservations['dive'], $clubFolio, null, TransactionCategory::Other);
 
@@ -752,25 +758,40 @@ class SandbaySeeder extends Seeder
             throw new RuntimeException("The routing rule was refused: {$rule->refusal}.");
         }
 
-        foreach ($diveUnits as $unit) {
-            $this->charge($owner, $unit, $items['DIVING_TRIP'], 2);
-            $this->charge($owner, $unit, $items['EXTRA_TOWEL'], 2);
-        }
-
         $this->pay($owner, $reservations['dive'], $clubFolio, $methods[PaymentMethodType::BankTransfer->value], PaymentPurpose::Advance, '1000.00');
     }
 
     /**
-     * No Action checks a unit in yet, so write the status and sync the reservation, as `setUnitStatuses()` does.
+     * Check in every unit of a reservation through `CheckInAllUnits`. A refused unit stops the run.
      *
      * @return Collection<int, ReservationUnit>
      */
-    private function checkIn(Reservation $reservation): Collection
+    private function checkIn(User $owner, Reservation $reservation): Collection
     {
-        $reservation->units()->update(['status' => UnitStatus::CheckedIn->value, 'checked_in_at' => now()]);
-        app(SyncReservationStatus::class)($reservation);
+        $units = $reservation->units()->orderBy('id')->get();
+        $refusals = array_filter(app(CheckInAllUnits::class)($owner, $reservation, $units->modelKeys()));
+
+        if ($refusals !== []) {
+            throw new RuntimeException('Check-in was refused: '.implode(', ', $refusals).'.');
+        }
 
         return $reservation->units()->orderBy('id')->get();
+    }
+
+    /**
+     * Run a front desk Action on each unit of a reservation. A refusal stops the run.
+     *
+     * @param  callable(ReservationUnit): UnitStayResult  $action
+     */
+    private function forEachUnit(Reservation $reservation, callable $action, string $label): void
+    {
+        foreach ($reservation->units()->orderBy('id')->get() as $unit) {
+            $result = $action($unit);
+
+            if ($result->isRefused()) {
+                throw new RuntimeException("{$label} was refused: {$result->refusal}.");
+            }
+        }
     }
 
     private function unitFolio(ReservationUnit $unit): Folio
@@ -820,16 +841,5 @@ class SandbaySeeder extends Seeder
         }
 
         return $result->payment;
-    }
-
-    /**
-     * Cancel or no-show every unit. No Action does this yet, so the seeder writes the status and syncs the reservation.
-     */
-    private function setUnitStatuses(Reservation $reservation, UnitStatus $status): void
-    {
-        DB::transaction(function () use ($reservation, $status): void {
-            $reservation->units()->update(['status' => $status->value]);
-            app(SyncReservationStatus::class)($reservation);
-        });
     }
 }
