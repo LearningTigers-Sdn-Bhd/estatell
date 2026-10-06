@@ -42,11 +42,13 @@ type Props = Shape & {
     discardTitle?: string;
     onSubmit: () => void;
     /** A verb and an object, for example "Record payment". */
-    submitLabel: string;
+    submitLabel: ReactNode;
     processing: boolean;
     submitDisabled?: boolean;
     /** `destructive` for a form that undoes something, such as reversing an allocation. */
     submitVariant?: 'default' | 'destructive';
+    /** Replaces Cancel and the primary button, for a form with more than one step. */
+    footer?: ReactNode;
     /** Shows skeleton fields while an optional prop loads. */
     loading?: boolean;
     /** The fields only. */
@@ -97,6 +99,7 @@ export function FormOverlay(props: Props) {
         submitDisabled = false,
         submitVariant = 'default',
         loading = false,
+        footer,
         children,
     } = props;
     const formRef = useRef<HTMLFormElement>(null);
@@ -170,14 +173,18 @@ export function FormOverlay(props: Props) {
                                 {fields}
                             </div>
                             <SheetFooter className="flex-row justify-end border-t bg-muted/50">
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    onClick={() => requestClose(false)}
-                                >
-                                    Cancel
-                                </Button>
-                                {primary}
+                                {footer ?? (
+                                    <>
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            onClick={() => requestClose(false)}
+                                        >
+                                            Cancel
+                                        </Button>
+                                        {primary}
+                                    </>
+                                )}
                             </SheetFooter>
                         </form>
                     </SheetContent>
@@ -217,10 +224,16 @@ export function FormOverlay(props: Props) {
                 >
                     {fields}
                     <DialogFooter>
-                        <DialogClose render={<Button variant="outline" />}>
-                            Cancel
-                        </DialogClose>
-                        {primary}
+                        {footer ?? (
+                            <>
+                                <DialogClose
+                                    render={<Button variant="outline" />}
+                                >
+                                    Cancel
+                                </DialogClose>
+                                {primary}
+                            </>
+                        )}
                     </DialogFooter>
                 </form>
             </DialogContent>

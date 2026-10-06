@@ -1,6 +1,7 @@
 import { useForm, useHttp } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
 import { EnumSelect } from '@/components/pms/enum-select';
+import { FormOverlay } from '@/components/pms/form-overlay';
 import { MoneyInput } from '@/components/pms/money-input';
 import { MoneyText } from '@/components/pms/money-text';
 import { FormError } from '@/components/pms/form-error';
@@ -8,24 +9,9 @@ import {
     KEEP_OPTIONS,
     useFormOptions,
 } from '@/components/pms/use-form-options';
-import { Button } from '@/components/ui/button';
-import {
-    Dialog,
-    DialogClose,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from '@/components/ui/dialog';
-import {
-    Field,
-    FieldError,
-    FieldGroup,
-    FieldLabel,
-} from '@/components/ui/field';
+import { useFreshOnOpen } from '@/components/pms/use-fresh-on-open';
+import { Field, FieldError, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { Spinner } from '@/components/ui/spinner';
 import { store as storeOnFolio } from '@/routes/reservations/folios/payments';
 import { quote as quoteRoute } from '@/routes/reservations/payments';
 import { store as storeOnUnit } from '@/routes/reservations/units/payments';
@@ -57,19 +43,26 @@ function QuoteLine({
     );
 }
 
-function RecordPaymentForm({
-    reservationId,
-    folio,
-    options,
-    currency,
-    onDone,
-}: {
+type Props = {
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
     reservationId: number;
     folio: Folio;
-    options: Options;
+    options?: Options;
     currency: App.Enums.Currency | null;
-    onDone: () => void;
-}) {
+};
+
+function RecordPaymentForm({
+    open,
+    onOpenChange,
+    reservationId,
+    folio,
+    options = { methods: [], purposes: [] },
+    currency,
+    loading,
+}: Props & { loading: boolean }) {
+    useFormOptions(open, !loading, 'paymentOptions');
+
     const [key] = useState(() => crypto.randomUUID());
     const notStarted = folio.paymentUnitId !== null;
     const form = useForm({
@@ -118,8 +111,7 @@ function RecordPaymentForm({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [data.payment_method_id, data.amount]);
 
-    const submit = (event: React.FormEvent) => {
-        event.preventDefault();
+    const submit = () => {
         form.transform((values) => ({
             ...values,
             reference: method?.requiresReference ? values.reference : '',
@@ -138,7 +130,7 @@ function RecordPaymentForm({
             {
                 preserveScroll: true,
                 except: KEEP_OPTIONS,
-                onSuccess: onDone,
+                onSuccess: () => onOpenChange(false),
             },
         );
     };
@@ -146,102 +138,16 @@ function RecordPaymentForm({
     const ready = quote !== null && quote.error === null && quote.total;
 
     return (
-        <form onSubmit={submit} className="flex flex-col gap-4">
-            <FieldGroup>
-                <FormError errors={errors} />
-                <Field data-invalid={!!errors.payment_method_id}>
-                    <FieldLabel htmlFor="payment-method">Method</FieldLabel>
-                    <EnumSelect
-                        id="payment-method"
-                        options={options.methods.map((one) => ({
-                            value: String(one.id),
-                            label: one.name,
-                        }))}
-                        value={data.payment_method_id}
-                        onValueChange={(value) =>
-                            form.setData('payment_method_id', value)
-                        }
-                        aria-invalid={!!errors.payment_method_id}
-                    />
-                    <FieldError>{errors.payment_method_id}</FieldError>
-                </Field>
-                <Field data-invalid={!!errors.purpose}>
-                    <FieldLabel htmlFor="payment-purpose">Purpose</FieldLabel>
-                    <EnumSelect
-                        id="payment-purpose"
-                        options={options.purposes}
-                        value={data.purpose}
-                        onValueChange={(value) =>
-                            form.setData('purpose', value)
-                        }
-                        aria-invalid={!!errors.purpose}
-                    />
-                    <FieldError>{errors.purpose}</FieldError>
-                </Field>
-                <Field data-invalid={!!errors.amount}>
-                    <FieldLabel htmlFor="payment-amount">Amount</FieldLabel>
-                    <MoneyInput
-                        id="payment-amount"
-                        value={data.amount}
-                        onChange={(value) => form.setData('amount', value)}
-                        currency={currency}
-                        invalid={!!errors.amount}
-                    />
-                    <FieldError>{errors.amount}</FieldError>
-                </Field>
-                {method?.requiresReference && (
-                    <Field data-invalid={!!errors.reference}>
-                        <FieldLabel htmlFor="payment-reference">
-                            Reference
-                        </FieldLabel>
-                        <Input
-                            id="payment-reference"
-                            maxLength={100}
-                            value={data.reference}
-                            onChange={(event) =>
-                                form.setData('reference', event.target.value)
-                            }
-                            aria-invalid={!!errors.reference}
-                        />
-                        <FieldError>{errors.reference}</FieldError>
-                    </Field>
-                )}
-                {quote?.error && <FormError errors={{ form: quote.error }} />}
-                {ready && (
-                    <dl className="flex flex-col gap-1 rounded-lg bg-muted px-3 py-2 text-sm">
-                        {Number(quote.surcharge) > 0 && (
-                            <>
-                                <QuoteLine
-                                    label="Surcharge"
-                                    amount={quote.surcharge ?? '0.00'}
-                                    currency={currency}
-                                />
-                                <QuoteLine
-                                    label="Tax on surcharge"
-                                    amount={quote.surchargeTax ?? '0.00'}
-                                    currency={currency}
-                                />
-                            </>
-                        )}
-                        <QuoteLine
-                            label="Total to collect"
-                            amount={quote.total ?? '0.00'}
-                            currency={currency}
-                            strong
-                        />
-                    </dl>
-                )}
-            </FieldGroup>
-            <DialogFooter>
-                <DialogClose render={<Button variant="outline" />}>
-                    Cancel
-                </DialogClose>
-                <Button
-                    type="submit"
-                    disabled={form.processing || !ready}
-                    focusableWhenDisabled
-                >
-                    {form.processing && <Spinner data-icon="inline-start" />}
+        <FormOverlay
+            variant="dialog"
+            open={open}
+            onOpenChange={onOpenChange}
+            title="Record payment"
+            description={`Money received for ${folio.name}. A method surcharge is added to the total and posted as a charge.`}
+            errors={errors}
+            onSubmit={submit}
+            submitLabel={
+                <>
                     Record
                     {ready && (
                         <MoneyText
@@ -249,9 +155,93 @@ function RecordPaymentForm({
                             currency={currency}
                         />
                     )}
-                </Button>
-            </DialogFooter>
-        </form>
+                </>
+            }
+            processing={form.processing}
+            submitDisabled={!ready}
+            loading={loading}
+        >
+            <Field data-invalid={!!errors.payment_method_id}>
+                <FieldLabel htmlFor="payment-method">Method</FieldLabel>
+                <EnumSelect
+                    id="payment-method"
+                    options={options.methods.map((one) => ({
+                        value: String(one.id),
+                        label: one.name,
+                    }))}
+                    value={data.payment_method_id}
+                    onValueChange={(value) =>
+                        form.setData('payment_method_id', value)
+                    }
+                    aria-invalid={!!errors.payment_method_id}
+                />
+                <FieldError>{errors.payment_method_id}</FieldError>
+            </Field>
+            <Field data-invalid={!!errors.purpose}>
+                <FieldLabel htmlFor="payment-purpose">Purpose</FieldLabel>
+                <EnumSelect
+                    id="payment-purpose"
+                    options={options.purposes}
+                    value={data.purpose}
+                    onValueChange={(value) => form.setData('purpose', value)}
+                    aria-invalid={!!errors.purpose}
+                />
+                <FieldError>{errors.purpose}</FieldError>
+            </Field>
+            <Field data-invalid={!!errors.amount}>
+                <FieldLabel htmlFor="payment-amount">Amount</FieldLabel>
+                <MoneyInput
+                    id="payment-amount"
+                    value={data.amount}
+                    onChange={(value) => form.setData('amount', value)}
+                    currency={currency}
+                    invalid={!!errors.amount}
+                />
+                <FieldError>{errors.amount}</FieldError>
+            </Field>
+            {method?.requiresReference && (
+                <Field data-invalid={!!errors.reference}>
+                    <FieldLabel htmlFor="payment-reference">
+                        Reference
+                    </FieldLabel>
+                    <Input
+                        id="payment-reference"
+                        maxLength={100}
+                        value={data.reference}
+                        onChange={(event) =>
+                            form.setData('reference', event.target.value)
+                        }
+                        aria-invalid={!!errors.reference}
+                    />
+                    <FieldError>{errors.reference}</FieldError>
+                </Field>
+            )}
+            {quote?.error && <FormError errors={{ form: quote.error }} />}
+            {ready && (
+                <dl className="flex flex-col gap-1 rounded-lg bg-muted px-3 py-2 text-sm">
+                    {Number(quote.surcharge) > 0 && (
+                        <>
+                            <QuoteLine
+                                label="Surcharge"
+                                amount={quote.surcharge ?? '0.00'}
+                                currency={currency}
+                            />
+                            <QuoteLine
+                                label="Tax on surcharge"
+                                amount={quote.surchargeTax ?? '0.00'}
+                                currency={currency}
+                            />
+                        </>
+                    )}
+                    <QuoteLine
+                        label="Total to collect"
+                        amount={quote.total ?? '0.00'}
+                        currency={currency}
+                        strong
+                    />
+                </dl>
+            )}
+        </FormOverlay>
     );
 }
 
@@ -259,47 +249,12 @@ function RecordPaymentForm({
  * Records a payment on an Open folio, or on a "not started" entry, which creates the unit's folio. The quote shows
  * the method's surcharge, its tax and the total to collect before the user confirms. A refusal shows in the Dialog.
  */
-export function RecordPaymentDialog({
-    open,
-    onOpenChange,
-    reservationId,
-    folio,
-    options,
-    currency,
-}: {
-    open: boolean;
-    onOpenChange: (open: boolean) => void;
-    reservationId: number;
-    folio: Folio;
-    options?: Options;
-    currency: App.Enums.Currency | null;
-}) {
-    useFormOptions(open, options !== undefined, 'paymentOptions');
-
+export function RecordPaymentDialog(props: Props) {
     return (
-        <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent>
-                <DialogHeader>
-                    <DialogTitle>Record payment</DialogTitle>
-                    <DialogDescription>
-                        Money received for {folio.name}. A method surcharge is
-                        added to the total and posted as a charge.
-                    </DialogDescription>
-                </DialogHeader>
-                {options === undefined ? (
-                    <div className="flex justify-center py-6">
-                        <Spinner />
-                    </div>
-                ) : (
-                    <RecordPaymentForm
-                        reservationId={reservationId}
-                        folio={folio}
-                        options={options}
-                        currency={currency}
-                        onDone={() => onOpenChange(false)}
-                    />
-                )}
-            </DialogContent>
-        </Dialog>
+        <RecordPaymentForm
+            key={useFreshOnOpen(props.open)}
+            {...props}
+            loading={props.options === undefined}
+        />
     );
 }
