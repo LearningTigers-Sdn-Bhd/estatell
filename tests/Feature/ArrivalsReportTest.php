@@ -260,14 +260,23 @@ test('the Reports navigation groups the reports by category and needs reports.vi
             'label' => 'Reports',
             'icon' => 'chart-column',
             'href' => "/p/{$property->code}/reports/arrivals",
-            'groups' => [[
-                'label' => 'Front desk',
-                'items' => [
-                    ['title' => 'Arrivals', 'href' => "/p/{$property->code}/reports/arrivals", 'icon' => 'calendar-check', 'external' => false, 'active' => true, 'action' => null],
-                    ['title' => 'Departures', 'href' => "/p/{$property->code}/reports/departures", 'icon' => 'door-open', 'external' => false, 'active' => false, 'action' => null],
-                    ['title' => 'In-house', 'href' => "/p/{$property->code}/reports/in-house", 'icon' => 'users', 'external' => false, 'active' => false, 'action' => null],
+            'groups' => [
+                [
+                    'label' => 'Front desk',
+                    'items' => [
+                        ['title' => 'Arrivals', 'href' => "/p/{$property->code}/reports/arrivals", 'icon' => 'calendar-check', 'external' => false, 'active' => true, 'action' => null],
+                        ['title' => 'Departures', 'href' => "/p/{$property->code}/reports/departures", 'icon' => 'door-open', 'external' => false, 'active' => false, 'action' => null],
+                        ['title' => 'In-house', 'href' => "/p/{$property->code}/reports/in-house", 'icon' => 'users', 'external' => false, 'active' => false, 'action' => null],
+                    ],
                 ],
-            ]],
+                [
+                    'label' => 'Revenue',
+                    'items' => [
+                        ['title' => 'Occupancy', 'href' => "/p/{$property->code}/reports/occupancy", 'icon' => 'percent', 'external' => false, 'active' => false, 'action' => null],
+                        ['title' => 'Revenue', 'href' => "/p/{$property->code}/reports/revenue", 'icon' => 'chart-column', 'external' => false, 'active' => false, 'action' => null],
+                    ],
+                ],
+            ],
         ]));
 
     $this->actingAs($front)->get(route('dashboard', $frontProperty->code))->assertInertia(fn (Assert $page) => $page

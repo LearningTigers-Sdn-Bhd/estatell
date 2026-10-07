@@ -3,10 +3,15 @@
 namespace App\Enums;
 
 use App\Data\Reports\ReportColumn;
+use App\Data\Reports\ReportRow;
+use App\Data\Reports\ReportTotals;
 use App\Services\Reports\ArrivalsReport;
 use App\Services\Reports\DeparturesReport;
+use App\Services\Reports\HasTotals;
 use App\Services\Reports\InHouseReport;
+use App\Services\Reports\OccupancyReport;
 use App\Services\Reports\Report;
+use App\Services\Reports\RevenueReport;
 
 /**
  * The reports in the registry. The value is the URL slug (`/p/{code}/reports/arrivals`) and the route name suffix.
@@ -17,6 +22,8 @@ enum ReportKey: string
     case Arrivals = 'arrivals';
     case Departures = 'departures';
     case InHouse = 'in-house';
+    case Occupancy = 'occupancy';
+    case Revenue = 'revenue';
 
     public function label(): string
     {
@@ -24,6 +31,8 @@ enum ReportKey: string
             self::Arrivals => __('Arrivals'),
             self::Departures => __('Departures'),
             self::InHouse => __('In-house'),
+            self::Occupancy => __('Occupancy'),
+            self::Revenue => __('Revenue'),
         };
     }
 
@@ -31,13 +40,14 @@ enum ReportKey: string
     {
         return match ($this) {
             self::Arrivals, self::Departures, self::InHouse => ReportCategory::FrontDesk,
+            self::Occupancy, self::Revenue => ReportCategory::Revenue,
         };
     }
 
     public function defaultOrientation(): PageOrientation
     {
         return match ($this) {
-            self::Arrivals, self::Departures, self::InHouse => PageOrientation::Portrait,
+            self::Arrivals, self::Departures, self::InHouse, self::Occupancy, self::Revenue => PageOrientation::Portrait,
         };
     }
 
@@ -51,6 +61,8 @@ enum ReportKey: string
             self::Arrivals => 'arrival',
             self::Departures => 'departure',
             self::InHouse => 'room',
+            self::Occupancy => 'date',
+            self::Revenue => 'period',
         };
     }
 
@@ -62,6 +74,20 @@ enum ReportKey: string
         return match ($this) {
             self::Arrivals, self::Departures => 31,
             self::InHouse => null,
+            self::Occupancy, self::Revenue => 366,
+        };
+    }
+
+    /**
+     * The values of `?group` the report takes, the first one being the default. Empty for a report that does not group.
+     *
+     * @return list<ReportGroup>
+     */
+    public function groups(): array
+    {
+        return match ($this) {
+            self::Revenue => [ReportGroup::Day, ReportGroup::Month],
+            default => [],
         };
     }
 
@@ -107,6 +133,26 @@ enum ReportKey: string
                 new ReportColumn('company', __('Company'), ColumnAlign::Left, false),
                 new ReportColumn('balance', __('Balance'), ColumnAlign::Right, true),
             ],
+            self::Occupancy => [
+                new ReportColumn('date', __('Date'), ColumnAlign::Left, true),
+                new ReportColumn('available', __('Rooms available'), ColumnAlign::Right, true),
+                new ReportColumn('sold', __('Rooms sold'), ColumnAlign::Right, true),
+                new ReportColumn('occupancy', __('Occupancy %'), ColumnAlign::Right, true),
+                new ReportColumn('adr', __('ADR'), ColumnAlign::Right, true),
+                new ReportColumn('revpar', __('RevPAR'), ColumnAlign::Right, true),
+                new ReportColumn('revenue', __('Room revenue'), ColumnAlign::Right, true),
+                new ReportColumn('arrivals', __('Arrivals'), ColumnAlign::Right, true),
+                new ReportColumn('departures', __('Departures'), ColumnAlign::Right, true),
+                new ReportColumn('noshows', __('No-shows'), ColumnAlign::Right, true),
+                new ReportColumn('guests', __('In-house guests'), ColumnAlign::Right, true),
+            ],
+            self::Revenue => [
+                new ReportColumn('period', __('Date / month'), ColumnAlign::Left, true),
+                new ReportColumn('code', __('Code'), ColumnAlign::Left, true),
+                new ReportColumn('description', __('Description'), ColumnAlign::Left, true),
+                new ReportColumn('lines', __('Lines'), ColumnAlign::Right, true),
+                new ReportColumn('amount', __('Amount'), ColumnAlign::Right, true),
+            ],
         };
     }
 
@@ -119,6 +165,8 @@ enum ReportKey: string
             self::Arrivals => 'calendar-check',
             self::Departures => 'door-open',
             self::InHouse => 'users',
+            self::Occupancy => 'percent',
+            self::Revenue => 'chart-column',
         };
     }
 
@@ -128,6 +176,20 @@ enum ReportKey: string
             self::Arrivals => app(ArrivalsReport::class),
             self::Departures => app(DeparturesReport::class),
             self::InHouse => app(InHouseReport::class),
+            self::Occupancy => app(OccupancyReport::class),
+            self::Revenue => app(RevenueReport::class),
         };
+    }
+
+    /**
+     * The total row of the rows given, or null when the report has none.
+     *
+     * @param  list<ReportRow>  $rows
+     */
+    public function totals(array $rows): ?ReportTotals
+    {
+        $report = $this->report();
+
+        return $report instanceof HasTotals ? $report->totals($rows) : null;
     }
 }

@@ -63,6 +63,17 @@ class DailyRevenueQuery
      */
     public function roomRevenue(Property $property, CarbonInterface $date): Money
     {
+        return $this->roomRevenueBetween($property, $date, $date)[$date->toDateString()] ?? Money::zero($this->currency($property));
+    }
+
+    /**
+     * The room revenue of each date in the range that has any, keyed by `Y-m-d`. A date with no room lines is not in the
+     * list. Same rule as `roomRevenue()`, read with one query.
+     *
+     * @return array<string, Money>
+     */
+    public function roomRevenueBetween(Property $property, CarbonInterface $from, CarbonInterface $to): array
+    {
         $currency = $this->currency($property);
         $roomCodeId = TransactionCode::query()
             ->where('property_id', $property->id)
@@ -70,10 +81,10 @@ class DailyRevenueQuery
             ->value('id');
 
         if ($roomCodeId === null) {
-            return Money::zero($currency);
+            return [];
         }
 
-        $amount = $this->lines($property, $date, $date)
+        $amounts = $this->lines($property, $from, $to)
             ->where('folio_lines.kind', '!=', TransactionKind::Payment->value)
             ->leftJoin('folio_lines as parent_lines', 'parent_lines.id', '=', 'folio_lines.parent_line_id')
             ->where(fn (Builder $lines) => $lines
@@ -81,9 +92,17 @@ class DailyRevenueQuery
                 ->orWhere(fn (Builder $discounts) => $discounts
                     ->where('folio_lines.kind', TransactionKind::Adjustment->value)
                     ->where('parent_lines.transaction_code_id', $roomCodeId)))
-            ->sum('folio_lines.amount');
+            ->groupBy('folio_lines.posting_date')
+            ->selectRaw('folio_lines.posting_date as date, SUM(folio_lines.amount) as amount')
+            ->get();
 
-        return Money::of((string) $amount, $currency);
+        $byDate = [];
+
+        foreach ($amounts as $row) {
+            $byDate[CarbonImmutable::parse((string) $row->getAttribute('date'))->toDateString()] = Money::of((string) $row->getAttribute('amount'), $currency);
+        }
+
+        return $byDate;
     }
 
     /**

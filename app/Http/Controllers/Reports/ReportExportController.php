@@ -44,7 +44,7 @@ class ReportExportController extends Controller
         [$rows] = $reportPage->sort($report->report()->rows($property, $filters, $request->rowKeys()), $request->sortKey(), $report->defaultSort(), $layout->visibleKeys());
 
         return response()
-            ->download($reportSpreadsheet->write($layout, $rows, $format), $reportSpreadsheet->filename($report, $filters, $format))
+            ->download($reportSpreadsheet->write($layout, $rows, $format, $report->totals($rows)), $reportSpreadsheet->filename($report, $filters, $format))
             ->deleteFileAfterSend();
     }
 }

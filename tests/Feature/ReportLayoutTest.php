@@ -293,9 +293,11 @@ test('the report view prints only the visible columns in layout order', function
         'print' => app(PrintProfile::class)->for($property),
         'title' => 'Arrivals',
         'dates' => '10 Oct 2026',
+        'group' => null,
         'currency' => 'MYR',
         'columns' => $layout->visibleColumns(),
         'rows' => $rows,
+        'totals' => null,
         'selectedOnly' => false,
     ])->render();
 

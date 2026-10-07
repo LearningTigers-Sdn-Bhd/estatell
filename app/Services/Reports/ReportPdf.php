@@ -13,7 +13,7 @@ use Carbon\CarbonImmutable;
 
 /**
  * Renders a report as a PDF on the shared print layout (`pdf/report.blade.php`): the letterhead, the title, the dates
- * and a table of the visible columns in layout order. The rows come from `rows()` on the server, like the screen.
+ * and a table of the visible columns in layout order, with the total row last when the report has one. The rows come from `rows()` on the server, like the screen.
  */
 class ReportPdf
 {
@@ -25,12 +25,16 @@ class ReportPdf
      */
     public function make(Property $property, ReportKey $report, ReportFilters $filters, ReportLayoutData $layout, ?array $rowKeys = null, ?array $rows = null): DomPdf
     {
+        $rows ??= $report->report()->rows($property, $filters, $rowKeys);
+
         return $this->printedPdf->make($property, 'pdf.report', [
             'title' => $report->label(),
             'dates' => $this->dates($filters),
+            'group' => $filters->group?->label(),
             'currency' => $property->loadMissing('settings')->settings?->currency->value ?? '',
             'columns' => $layout->visibleColumns(),
-            'rows' => $rows ?? $report->report()->rows($property, $filters, $rowKeys),
+            'rows' => $rows,
+            'totals' => $report->totals($rows),
             'selectedOnly' => $rowKeys !== null,
         ], $layout->orientation->value);
     }

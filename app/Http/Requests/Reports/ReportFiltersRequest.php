@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Reports;
 
 use App\Data\Reports\ReportFilters;
+use App\Enums\ReportGroup;
 use App\Enums\ReportKey;
 use App\Models\Property;
 use App\Services\NightAudit\CurrentBusinessDate;
@@ -11,11 +12,14 @@ use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Date;
+use Illuminate\Validation\Rule;
 
 /**
  * The dates of a report page: `from` and `to` in the URL, both included. A missing date falls back to the other
  * date, and with none the report opens on the open business date. The range may not be longer than the report allows.
  * A report of one date (`maxRangeDays()` is null) takes a single `date` instead and uses it as both ends.
+ * A report that groups its rows (`ReportKey::groups()`) also takes `group`, which must be one of its groups and falls
+ * back to the first. Other reports ignore `group`.
  * The report is the `{report}` route parameter, or the slug after `reports.` in the route name.
  */
 class ReportFiltersRequest extends FormRequest
@@ -33,13 +37,13 @@ class ReportFiltersRequest extends FormRequest
      */
     public function rules(): array
     {
-        if ($this->reportKey()->maxRangeDays() === null) {
-            return ['date' => ['nullable', 'date_format:Y-m-d']];
-        }
+        $groups = $this->reportKey()->groups();
 
         return [
-            'from' => ['nullable', 'date_format:Y-m-d'],
-            'to' => ['nullable', 'date_format:Y-m-d'],
+            ...($this->reportKey()->maxRangeDays() === null
+                ? ['date' => ['nullable', 'date_format:Y-m-d']]
+                : ['from' => ['nullable', 'date_format:Y-m-d'], 'to' => ['nullable', 'date_format:Y-m-d']]),
+            ...($groups === [] ? [] : ['group' => ['nullable', Rule::in(array_map(fn (ReportGroup $group): string => $group->value, $groups))]]),
         ];
     }
 
@@ -97,7 +101,7 @@ class ReportFiltersRequest extends FormRequest
             $date = $this->input('date');
             $date = is_string($date) && $date !== '' ? $date : $this->businessDate();
 
-            return new ReportFilters(from: $date, to: $date);
+            return new ReportFilters(from: $date, to: $date, group: $this->group());
         }
 
         $from = $this->input('from');
@@ -106,6 +110,16 @@ class ReportFiltersRequest extends FormRequest
         $to = is_string($to) && $to !== '' ? $to : null;
         $default = $this->businessDate();
 
-        return new ReportFilters(from: $from ?? $to ?? $default, to: $to ?? $from ?? $default);
+        return new ReportFilters(from: $from ?? $to ?? $default, to: $to ?? $from ?? $default, group: $this->group());
+    }
+
+    /**
+     * The grouping of a report that takes one: the `group` in the URL, or the first group of the report.
+     */
+    private function group(): ?ReportGroup
+    {
+        $groups = $this->reportKey()->groups();
+
+        return $groups === [] ? null : (ReportGroup::tryFrom($this->string('group')->toString()) ?? $groups[0]);
     }
 }

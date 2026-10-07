@@ -13,6 +13,7 @@ import { PageHeader } from '@/components/pms/page-header';
 import { ReportExportMenu } from '@/components/pms/reports/report-export-menu';
 import { ReportLayoutSheet } from '@/components/pms/reports/report-layout-sheet';
 import { Button } from '@/components/ui/button';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { toast } from '@/components/ui/toast';
 import {
     reportDatePresets,
@@ -28,7 +29,13 @@ export type ReportCells<TRow> = Record<
     (row: TRow, currency: Currency) => ReactNode
 >;
 
-type Props<TRow extends { key: number }> = {
+/** A footer cell renderer by column key. It gets the figure of the total row (a count, or a decimal string). */
+export type ReportTotalCells = Record<
+    string,
+    (figure: number | string, currency: Currency) => ReactNode
+>;
+
+type Props<TRow extends { key: number | string }> = {
     report: App.Enums.ReportKey;
     title: string;
     description: string;
@@ -46,6 +53,12 @@ type Props<TRow extends { key: number }> = {
     maxRangeDays: number | null;
     currency: Currency;
     cells?: ReportCells<TRow>;
+    /** The total row of the report, when it has one. It shows under the table in the visible columns. */
+    totals?: App.Data.Reports.ReportTotals | null;
+    totalCells?: ReportTotalCells;
+    /** The grouping of a report that takes one, with its options for the Day / Month toggle. */
+    group?: App.Enums.ReportGroup | null;
+    groupOptions?: EnumOption[];
 };
 
 const MAX_SELECTED = 500;
@@ -55,7 +68,7 @@ const MAX_SELECTED = 500;
  * with the floating bar, and the Layout Sheet. A report page passes its text and the cell renderers of the columns
  * that need more than text.
  */
-export function ReportScreen<TRow extends { key: number }>({
+export function ReportScreen<TRow extends { key: number | string }>({
     report,
     title,
     description,
@@ -72,6 +85,10 @@ export function ReportScreen<TRow extends { key: number }>({
     maxRangeDays,
     currency,
     cells = {},
+    totals = null,
+    totalCells = {},
+    group = null,
+    groupOptions = [],
 }: Props<TRow>) {
     const column = useMemo(() => dataTableColumns<TRow>(), []);
     const [draft, setDraft] = useState<Layout | null>(null);
@@ -81,9 +98,11 @@ export function ReportScreen<TRow extends { key: number }>({
     const active = draft ?? layout;
     const isOneDate = maxRangeDays === null;
     const dates = useMemo(
-        (): Record<string, string> =>
-            isOneDate ? { date: from } : { from, to },
-        [isOneDate, from, to],
+        (): Record<string, string> => ({
+            ...(isOneDate ? { date: from } : { from, to }),
+            ...(group ? { group } : {}),
+        }),
+        [isOneDate, from, to, group],
     );
 
     const visible = useMemo(
@@ -157,11 +176,40 @@ export function ReportScreen<TRow extends { key: number }>({
         [businessDay],
     );
 
-    const visit = useCallback(
-        (changes: { from?: string; to?: string; sort?: string }) => {
-            const next = { from, to, sort, ...changes };
+    const footer = useMemo((): Record<string, ReactNode> | undefined => {
+        if (!totals) {
+            return undefined;
+        }
 
-            if (next.from !== from || next.to !== to) {
+        const labelKey = visible.find(
+            (item) => (totals.figures[item.key] ?? null) === null,
+        )?.key;
+
+        return Object.fromEntries(
+            visible.map((item) => {
+                const figure = totals.figures[item.key];
+
+                if (figure === null || figure === undefined) {
+                    return [item.key, item.key === labelKey ? 'Total' : null];
+                }
+
+                const render = totalCells[item.key];
+
+                return [item.key, render ? render(figure, currency) : figure];
+            }),
+        );
+    }, [totals, visible, totalCells, currency]);
+
+    const visit = useCallback(
+        (changes: {
+            from?: string;
+            to?: string;
+            sort?: string;
+            group?: App.Enums.ReportGroup;
+        }) => {
+            const next = { from, to, sort, group, ...changes };
+
+            if (next.from !== from || next.to !== to || next.group !== group) {
                 setSelected(new Set());
             }
 
@@ -171,12 +219,13 @@ export function ReportScreen<TRow extends { key: number }>({
                     ...(isOneDate
                         ? { date: next.from }
                         : { from: next.from, to: next.to }),
+                    ...(next.group ? { group: next.group } : {}),
                     ...(next.sort ? { sort: next.sort } : {}),
                 },
                 { preserveState: true, preserveScroll: true, replace: true },
             );
         },
-        [url, isOneDate, from, to, sort],
+        [url, isOneDate, from, to, sort, group],
     );
 
     const changeSelection = (next: Set<string>) => {
@@ -222,6 +271,34 @@ export function ReportScreen<TRow extends { key: number }>({
                             className="w-auto"
                         />
                     )}
+                    {group && groupOptions.length > 0 && (
+                        <ToggleGroup
+                            variant="outline"
+                            spacing={0}
+                            aria-label="Group by"
+                            value={[group]}
+                            onValueChange={(values) => {
+                                const next = groupOptions.find(
+                                    (option) => option.value === values[0],
+                                );
+
+                                if (next) {
+                                    visit({
+                                        group: next.value as App.Enums.ReportGroup,
+                                    });
+                                }
+                            }}
+                        >
+                            {groupOptions.map((option) => (
+                                <ToggleGroupItem
+                                    key={option.value}
+                                    value={option.value}
+                                >
+                                    {option.label}
+                                </ToggleGroupItem>
+                            ))}
+                        </ToggleGroup>
+                    )}
                     <div className="ml-auto flex items-center gap-2">
                         {canEditLayout && (
                             <Button
@@ -250,6 +327,7 @@ export function ReportScreen<TRow extends { key: number }>({
                     onSortChange={(next) => visit({ sort: next })}
                     rightAlign={rightAlign}
                     selection={{ selected, onChange: changeSelection }}
+                    footer={footer}
                     pagination={{
                         currentPage: rows.meta.current_page,
                         lastPage: rows.meta.last_page,

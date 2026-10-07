@@ -15,6 +15,7 @@ import {
     Table,
     TableBody,
     TableCell,
+    TableFooter,
     TableHead,
     TableHeader,
     TableRow,
@@ -60,6 +61,8 @@ type Props<TData extends RowData> = {
     rightAlign?: string[];
     /** Adds a leading checkbox column. The header checkbox selects or clears the rows on this page. */
     selection?: DataTableSelection;
+    /** A total row under the rows: the content of each cell by column id. A column with no entry stays empty. */
+    footer?: Record<string, ReactNode>;
     empty: ReactNode;
 };
 
@@ -90,6 +93,7 @@ export function DataTable<TData extends RowData>({
     onRowClick,
     rightAlign = [],
     selection,
+    footer,
     empty,
 }: Props<TData>) {
     const sorting = toSortingState(sort);
@@ -283,6 +287,25 @@ export function DataTable<TData extends RowData>({
                             ))
                         )}
                     </TableBody>
+                    {footer && rows.length > 0 && (
+                        <TableFooter>
+                            <TableRow>
+                                {selection && <TableCell className="w-8" />}
+                                {table.getAllColumns().map((column) => (
+                                    <TableCell
+                                        key={column.id}
+                                        className={cn(
+                                            'font-medium',
+                                            rightAlign.includes(column.id) &&
+                                                'text-right',
+                                        )}
+                                    >
+                                        {footer[column.id]}
+                                    </TableCell>
+                                ))}
+                            </TableRow>
+                        </TableFooter>
+                    )}
                 </Table>
             </div>
 

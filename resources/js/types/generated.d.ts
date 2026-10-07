@@ -1138,6 +1138,21 @@ guests: string,
 company: string | null,
 balance: string,
 };
+export type OccupancyRow = {
+key: string,
+date: string,
+live: boolean,
+available: number,
+sold: number,
+occupancy: string,
+adr: string,
+revpar: string,
+revenue: string,
+arrivals: number,
+departures: number,
+noshows: number,
+guests: number,
+};
 export type ReportColumn = {
 key: string,
 label: string,
@@ -1147,6 +1162,7 @@ defaultVisible: boolean,
 export type ReportFilters = {
 from: string,
 to: string,
+group: App.Enums.ReportGroup | null,
 };
 export type ReportLayoutColumnData = {
 key: string,
@@ -1157,6 +1173,18 @@ visible: boolean,
 export type ReportLayoutData = {
 orientation: App.Enums.PageOrientation,
 columns: App.Data.Reports.ReportLayoutColumnData[],
+};
+export type ReportTotals = {
+figures: Record<string, number | string | null>,
+};
+export type RevenueRow = {
+key: string,
+group: App.Enums.ReportGroup,
+period: string,
+code: string,
+description: string,
+lines: number,
+amount: string,
 };
 }
 namespace Reservations {
@@ -1738,7 +1766,8 @@ export type RegistrationCardFieldGroup = 'guest' | 'stay' | 'prices';
 export type RegistrationCardScope = 'primary_only' | 'every_adult';
 export type RegistrationCardStatus = 'draft' | 'signed' | 'void';
 export type ReportCategory = 'front-desk' | 'revenue' | 'finance' | 'kitchen';
-export type ReportKey = 'arrivals' | 'departures' | 'in-house';
+export type ReportGroup = 'day' | 'month';
+export type ReportKey = 'arrivals' | 'departures' | 'in-house' | 'occupancy' | 'revenue';
 export type ReservationRoomBoxState = 'assigned' | 'unassigned' | 'auto_assign' | 'cancelled' | 'no_show';
 export type ReservationSource = 'direct' | 'walk_in' | 'phone' | 'channel' | 'portal';
 export type ReservationStatus = 'confirmed' | 'in_house' | 'completed' | 'cancelled';

@@ -4,9 +4,11 @@
     /**
      * @var string $title
      * @var string $dates
+     * @var string|null $group
      * @var string $currency
      * @var list<\App\Data\Reports\ReportLayoutColumnData> $columns
      * @var list<\App\Data\Reports\ReportRow> $rows
+     * @var \App\Data\Reports\ReportTotals|null $totals
      * @var bool $selectedOnly
      */
 @endphp
@@ -24,6 +26,9 @@
     @component('pdf.partials.letterhead', ['print' => $print])
         <div class="title">{{ $title }}</div>
         <div class="small muted">{{ $dates }}</div>
+        @if ($group !== null)
+            <div class="small muted">{{ __('By :group', ['group' => mb_strtolower($group)]) }}</div>
+        @endif
         @if ($currency !== '')
             <div class="small muted">{{ $currency }}</div>
         @endif
@@ -54,5 +59,15 @@
                 </tr>
             @endforelse
         </tbody>
+        @if ($totals !== null && count($rows) > 0)
+            @php $totalCells = $totals->cellsFor($columns); @endphp
+            <tfoot>
+                <tr class="rule">
+                    @foreach ($columns as $column)
+                        <td @class(['num' => $column->align === \App\Enums\ColumnAlign::Right])><strong>{{ $totalCells[$column->key] }}</strong></td>
+                    @endforeach
+                </tr>
+            </tfoot>
+        @endif
     </table>
 @endsection
