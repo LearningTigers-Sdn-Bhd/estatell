@@ -53,6 +53,8 @@ function MoveRoomForm({ open, onOpenChange, reservationId, unit }: Props) {
     );
     const sellsBeds = preview?.sellsBeds ?? false;
     const noun = sellsBeds ? 'Bed' : 'Room';
+    // A night with no room yet is a first assignment, not a move.
+    const verb = preview?.reasonRequired === false ? 'Assign' : 'Move';
     const field = sellsBeds ? 'bed_id' : 'room_id';
     const targetError = (errors as Record<string, string | undefined>)[field];
     const roomTypeId = data.room_type_id || String(preview?.roomTypeId ?? '');
@@ -75,7 +77,7 @@ function MoveRoomForm({ open, onOpenChange, reservationId, unit }: Props) {
             variant="dialog"
             open={open}
             onOpenChange={onOpenChange}
-            title={`Move ${noun.toLowerCase()} · ${unit.roomType}`}
+            title={`${verb} ${noun.toLowerCase()} · ${unit.roomType}`}
             description={
                 <>
                     {unit.primaryGuest ?? 'No primary guest'} ·{' '}
@@ -85,7 +87,7 @@ function MoveRoomForm({ open, onOpenChange, reservationId, unit }: Props) {
             }
             errors={errors}
             onSubmit={submit}
-            submitLabel={`Move ${noun.toLowerCase()}`}
+            submitLabel={`${verb} ${noun.toLowerCase()}`}
             processing={form.processing}
             submitDisabled={
                 preview === null ||
