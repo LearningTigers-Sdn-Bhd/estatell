@@ -112,7 +112,10 @@ Both tabs use the three-column grid of the registration card Layout tab: the for
 │ └─────────────────┘ └──────────────────┘  │                        │
 │ ┌ Fancy ───────( )┐ ┌ Handwritten ──( )┐  │                        │
 │ └─────────────────┘ └──────────────────┘  │                        │
-│ Font size   ( ) Small (•) Medium ( ) Large│ ────────────────────── │
+│ Font size                                 │                        │
+│ ┌▼A Small ( )┐┌T Medium (•)┐┌▲A Large ( )┐│                        │
+│ │8 pt body   ││9 pt body   ││10.5 pt body││                        │
+│ └────────────┘└────────────┘└────────────┘│                        │
 │ Footer text [ Thank you for staying…    ] │ Thank you for staying… │
 │                                           │ [Open sample PDF ↗]    │
 └───────────────────────────────────────────┴────────────────────────┘

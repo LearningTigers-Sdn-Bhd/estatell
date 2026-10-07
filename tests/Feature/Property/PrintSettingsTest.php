@@ -265,7 +265,7 @@ test('the printing tabs send the settings, the profile and the taxes in the Taxe
             ->where('taxes.1.id', $off->id)
             ->has('fonts', 4)
             ->where('fonts.2', ['value' => 'fancy', 'label' => 'Fancy', 'headingFamily' => 'Playfair Display', 'bodyFamily' => 'Lora'])
-            ->has('fontSizes', 3)
+            ->where('fontSizes.2', ['value' => 'large', 'label' => 'Large', 'description' => '10.5 pt body text'])
             ->where('navigation.contexts.2.groups.0.items.2.title', 'Printing')
             ->where('navigation.contexts.2.groups.0.items.2.active', true));
 

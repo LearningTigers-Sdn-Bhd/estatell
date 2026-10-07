@@ -29,9 +29,15 @@ enum PdfFontSize: string
         };
     }
 
-    /** @return list<array{value: string, label: string}> */
+    /**
+     * @return list<array{value: string, label: string, description: string}>
+     */
     public static function options(): array
     {
-        return array_map(fn (self $case): array => ['value' => $case->value, 'label' => $case->label()], self::cases());
+        return array_map(fn (self $case): array => [
+            'value' => $case->value,
+            'label' => $case->label(),
+            'description' => __(':points pt body text', ['points' => $case->points()]),
+        ], self::cases());
     }
 }

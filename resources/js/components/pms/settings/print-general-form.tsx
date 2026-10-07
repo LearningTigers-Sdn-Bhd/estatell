@@ -1,3 +1,5 @@
+import type { LucideIcon } from 'lucide-react';
+import { AArrowDown, AArrowUp, Type } from 'lucide-react';
 import type { EnumOption } from '@/components/pms/enum-select';
 import {
     Field,
@@ -12,6 +14,15 @@ import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
 type Settings = App.Data.Property.PrintSettingsData;
+
+/** A font size from `PdfFontSize::options()`. */
+export type FontSizeOption = EnumOption & { description: string };
+
+const fontSizeIcons: Record<string, LucideIcon> = {
+    small: AArrowDown,
+    medium: Type,
+    large: AArrowUp,
+};
 
 /** A font style from `PdfFont::options()`, with the CSS families its sample uses. */
 export type FontStyleOption = EnumOption & {
@@ -33,7 +44,7 @@ export function PrintGeneralForm({
     value: Settings;
     propertyName: string;
     fonts: FontStyleOption[];
-    fontSizes: EnumOption[];
+    fontSizes: FontSizeOption[];
     onChange: (next: Settings, options?: { delay?: number }) => void;
     onDraft: (next: Settings) => void;
 }) {
@@ -93,27 +104,32 @@ export function PrintGeneralForm({
                             fontSize: fontSize as Settings['fontSize'],
                         })
                     }
-                    className="flex flex-wrap gap-6"
+                    className="grid gap-3 sm:grid-cols-3"
                 >
-                    {fontSizes.map((option) => (
-                        <Field
-                            key={option.value}
-                            orientation="horizontal"
-                            className="w-auto"
-                        >
-                            <RadioGroupItem
-                                id={`font-size-${option.value}`}
-                                value={option.value}
-                            />
-                            <FieldContent>
-                                <FieldLabel
-                                    htmlFor={`font-size-${option.value}`}
-                                >
-                                    {option.label}
-                                </FieldLabel>
-                            </FieldContent>
-                        </Field>
-                    ))}
+                    {fontSizes.map((option) => {
+                        const Icon = fontSizeIcons[option.value];
+
+                        return (
+                            <FieldLabel
+                                key={option.value}
+                                htmlFor={`font-size-${option.value}`}
+                            >
+                                <Field orientation="horizontal">
+                                    <Icon className="mt-0.5 size-4 text-muted-foreground" />
+                                    <FieldContent>
+                                        <FieldTitle>{option.label}</FieldTitle>
+                                        <FieldDescription>
+                                            {option.description}
+                                        </FieldDescription>
+                                    </FieldContent>
+                                    <RadioGroupItem
+                                        id={`font-size-${option.value}`}
+                                        value={option.value}
+                                    />
+                                </Field>
+                            </FieldLabel>
+                        );
+                    })}
                 </RadioGroup>
             </FieldSet>
             <Field>

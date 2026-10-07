@@ -1,9 +1,11 @@
 import { Head } from '@inertiajs/react';
 import { PanelTop, Type } from 'lucide-react';
 import Heading from '@/components/heading';
-import type { EnumOption } from '@/components/pms/enum-select';
 import { AutoSaveStatus } from '@/components/pms/settings/auto-save-status';
-import type { FontStyleOption } from '@/components/pms/settings/print-general-form';
+import type {
+    FontSizeOption,
+    FontStyleOption,
+} from '@/components/pms/settings/print-general-form';
 import { PrintGeneralForm } from '@/components/pms/settings/print-general-form';
 import { PrintHeaderForm } from '@/components/pms/settings/print-header-form';
 import { PrintPreview } from '@/components/pms/settings/print-preview';
@@ -50,7 +52,7 @@ export default function PrintingSettings({
     profile: App.Data.Property.PropertyProfileData;
     taxes: App.Data.Property.PrintTaxData[];
     fonts?: FontStyleOption[];
-    fontSizes?: EnumOption[];
+    fontSizes?: FontSizeOption[];
 }) {
     const form = useAutoSave(settings, request(tab));
 
