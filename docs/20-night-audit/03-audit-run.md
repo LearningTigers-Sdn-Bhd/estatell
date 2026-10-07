@@ -80,16 +80,16 @@ Requires `night-audit.force` and a reason. Sets `forced = true`. Open exceptions
 
 ## Job
 
-`RunNightAuditJob` (`app/Jobs/`) runs `RunNightAudit` on the queue. It is `ShouldBeUnique` by property and uses `WithoutOverlapping`, and it does not retry: a failed audit is resumed by the next run. The sheet queues it for a manual run, and the [schedule](04-scheduling.md) will queue it with the Scheduled trigger. `PostRoomChargesJob` lives in `app/Jobs/` too.
+`RunNightAuditJob` (`app/Jobs/`) runs `RunNightAudit` on the queue. It is `ShouldBeUnique` by property and uses `WithoutOverlapping`, and it does not retry: a failed audit is resumed by the next run. The sheet queues it for a manual run, and the [schedule](04-scheduling.md) queues it with the Scheduled trigger. `PostRoomChargesJob` lives in `app/Jobs/` too.
 
 ## Build status
 
 | Part                                                                                         | Status                                                             |
 | -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
 | Tables, enums, models, `RunNightAudit`, `ClaimBusinessDate`, steps 2 to 6 and 8, permissions | Built.                                                             |
-| `SnapshotStatistics`, reports and notifications                                              | [Statistics](05-statistics.md).                                    |
+| `SnapshotStatistics` and notifications                                                       | [Statistics](05-statistics.md). The packet PDF comes with reports. |
 | Routes, the page and the one-click fixes                                                     | [Readiness panel](02-readiness-panel.md).                          |
-| `RunNightAuditJob` and the schedule                                                          | [Scheduling](04-scheduling.md). Needs a home for jobs (see below). |
+| `RunNightAuditJob` and the schedule                                                          | Built. See [Scheduling](04-scheduling.md).                         |
 
 ## Lessons from wastays
 

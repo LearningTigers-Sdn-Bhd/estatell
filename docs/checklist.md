@@ -44,7 +44,9 @@ The critical path: the front desk actions on the reservation, then the night aud
     - [x] `feat(night-audit): add the audit readiness service` — `AuditReadiness` and `AuditCheck` (no room tonight is the one blocker; not checked in, not checked out, folio open after check-out and carried exceptions are warnings), the `blocked_by_readiness` gate in `RunNightAudit`, `RunNightAuditJob` in the new `app/Jobs` folder (with `PostRoomChargesJob` moved there), and the sheet data and routes (`night-audit.show`, `run`, `units.assign`). Backend only.
     - [x] `feat(night-audit): add the Run Night Audit sheet` — the sidebar button (a nav item with an `action`) and the Sheet on `FormOverlay`: ready, blocked, running, failed and completed states, **Assign**, **Force close** with a reason. UI only. Needs: the audit readiness service.
 18. [x] `feat(night-audit): schedule the night audit per property` — Docs: [Scheduling](20-night-audit/04-scheduling.md).
-19. [ ] `feat(night-audit): snapshot statistics and notify results` — Docs: [Statistics](20-night-audit/05-statistics.md).
+19. [ ] **Snapshot statistics and notify the audit result**, in two commits, in this order. Docs: [Statistics](20-night-audit/05-statistics.md). Needs: schedule the night audit. The report packet PDF waits for the core reports item.
+    - [ ] `feat(night-audit): snapshot daily statistics` — `daily_statistics` and `daily_revenue`, models, `StatisticsCalculator`, `SnapshotStatistics` as step 7 (`AuditStep::SnapshotStatistics`, idempotent upsert). Pest tests, including a run-twice test.
+    - [ ] `feat(night-audit): notify the audit result` — `NotifyNightAuditResult` queued from `CloseAndOpenNext` and from a failed run, with `NightAuditCompleted`, `NightAuditExceptions` and `NightAuditFailed` content (occupancy, ADR, RevPAR, revenue by code, payments by method, meal counts, exceptions). Needs: the snapshot.
 
 ## Next
 
@@ -58,7 +60,7 @@ Needed for go-live, but nothing in Now waits for them.
 - [ ] `feat(onboarding): add reminders and the admin onboarding board` — Docs: [Engagement and admin board](17-onboarding/04-engagement-and-admin-board.md).
 - [x] `feat(catalogues): give a room revenue policy its own taxes` — `room_revenue_policies.own_taxes` (default false); `UpdateRoomRevenueTaxes` skips a policy code that has its own taxes; a Taxes section (third column of row 1) with a **Follow the Taxes tab** switch and a multiselect on each policy tab; the Taxes tab also becomes a multiselect with the rule as each option's description; the preview takes the unsaved choice; a test that a Taxes tab save keeps an override. Needs: room revenue policy tabs. Docs: [Room revenue](06-catalogues/06-room-revenue.md#own-taxes).
 - [ ] `feat(rates): override the early departure policy per rate plan` — `rate_plans.early_departure_policy` becomes an optional override that follows the property by default. Needs: room revenue policies. Docs: [Rate plans](08-rates/01-rate-plans.md), [Room revenue](06-catalogues/06-room-revenue.md#policies).
-- [ ] `feat(reports): add core reports` — Docs: [Core reports](22-reports/01-core-reports.md).
+- [ ] `feat(reports): add core reports` — including the night audit packet PDF from the snapshot tables. Docs: [Core reports](22-reports/01-core-reports.md), [Statistics](20-night-audit/05-statistics.md).
 - [ ] `feat(ui): add the command palette` — ⌘K search across contexts; admin search by code, name, city. Docs: [Search patterns](design-system/07-search-patterns.md).
 
 ## Later
