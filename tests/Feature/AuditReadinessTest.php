@@ -17,13 +17,14 @@ use App\Models\Reservation;
 use App\Models\ReservationUnit;
 use App\Models\Room;
 use App\Services\NightAudit\AuditReadiness;
+use Carbon\CarbonImmutable;
 
 /**
  * A live property trading on 2026-10-12.
  */
 function readinessProperty(): Property
 {
-    test()->travelTo(now()->setDate(2026, 10, 12)->setTime(12, 0));
+    test()->travelTo(now()->setDate(2026, 10, 13)->setTime(2, 0));
     $property = Property::factory()->live()->create();
     PropertySetting::factory()->for($property)->create();
     BusinessDate::factory()->create(['property_id' => $property->id, 'date' => '2026-10-12']);
@@ -136,4 +137,31 @@ test('a failed audit resumes even while a blocker is open', function () {
 
     expect($result->isRefused())->toBeFalse()
         ->and($result->audit->status)->toBe(AuditStatus::Completed);
+});
+
+test('a date that has not ended is refused unless the run is forced, and a date that ended is not', function () {
+    $property = readinessProperty();
+    $property->settings->update(['time_zone' => 'UTC']);
+    $this->travelTo(now()->setDate(2026, 10, 12)->setTime(23, 30));
+
+    expect(app(AuditReadiness::class)->businessDateEnded($property))->toBeFalse()
+        ->and(app(RunNightAudit::class)($property)->refusal)->toBe(NightAuditResult::REFUSAL_BUSINESS_DATE_NOT_ENDED)
+        ->and(NightAudit::query()->count())->toBe(0)
+        ->and($property->businessDates()->sole()->status)->toBe(BusinessDateStatus::Open);
+
+    $forced = app(RunNightAudit::class)($property, force: true, forceReason: 'Closing early for the night');
+
+    expect($forced->isCompleted())->toBeTrue()
+        ->and($forced->audit->forced)->toBeTrue();
+});
+
+test('the date ends at midnight in the property time zone', function () {
+    $property = readinessProperty();
+    $property->settings->update(['time_zone' => 'Asia/Kuala_Lumpur']);
+    $this->travelTo(CarbonImmutable::parse('2026-10-12 15:59:00', 'UTC'));
+    $notEnded = app(AuditReadiness::class)->businessDateEnded($property);
+    $this->travelTo(CarbonImmutable::parse('2026-10-12 16:00:00', 'UTC'));
+
+    expect($notEnded)->toBeFalse()
+        ->and(app(AuditReadiness::class)->businessDateEnded($property))->toBeTrue();
 });

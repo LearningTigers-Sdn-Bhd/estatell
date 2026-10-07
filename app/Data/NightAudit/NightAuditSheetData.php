@@ -17,6 +17,7 @@ class NightAuditSheetData extends Data
 {
     /**
      * @param  string|null  $date  `Y-m-d`, the current business date. Null while the property has no business date.
+     * @param  bool  $dateEnded  False while the system date has not passed the business date, so a normal run is refused.
      * @param  list<ReadinessItemData>  $blockers
      * @param  list<ReadinessItemData>  $warnings
      */
@@ -27,6 +28,7 @@ class NightAuditSheetData extends Data
         public array $blockers,
         public array $warnings,
         public ?NightAuditProgressData $audit,
+        public bool $dateEnded,
         public bool $canForce,
     ) {}
 
@@ -43,6 +45,7 @@ class NightAuditSheetData extends Data
             blockers: array_values(array_filter($items, fn (ReadinessItemData $item): bool => $item->blocker)),
             warnings: array_values(array_filter($items, fn (ReadinessItemData $item): bool => ! $item->blocker)),
             audit: $audit === null ? null : NightAuditProgressData::fromAudit($audit->loadMissing('businessDate')),
+            dateEnded: $readiness->businessDateEnded($property),
             canForce: $canForce,
         );
     }

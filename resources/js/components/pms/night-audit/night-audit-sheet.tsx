@@ -239,7 +239,8 @@ export function NightAuditSheet({
             .finally(() => setAssigning(null));
     };
 
-    const blocked = (sheet?.blockers.length ?? 0) > 0;
+    const notEnded = sheet !== null && !sheet.dateEnded;
+    const blocked = (sheet?.blockers.length ?? 0) > 0 || notEnded;
     const description =
         sheet?.date && sheet.nextDate
             ? `Closes ${formatBusinessDay(sheet.date, 'short')} and opens ${formatBusinessDay(sheet.nextDate, 'short')}`
@@ -316,6 +317,19 @@ export function NightAuditSheet({
 
             {view === 'ready' && sheet && (
                 <div className="flex flex-col gap-5">
+                    {notEnded && sheet.date && (
+                        <section className="flex flex-col gap-1">
+                            <h3 className="flex items-center gap-2 text-sm font-medium text-destructive">
+                                <CircleAlert className="size-4" />
+                                Not over yet
+                            </h3>
+                            <p className="text-sm text-muted-foreground">
+                                {formatBusinessDay(sheet.date, 'short')} has not
+                                ended. The audit runs by itself after midnight.
+                            </p>
+                        </section>
+                    )}
+
                     {sheet.blockers.length > 0 && (
                         <section className="flex flex-col gap-1">
                             <h3 className="flex items-center gap-2 text-sm font-medium text-destructive">
@@ -385,7 +399,7 @@ export function NightAuditSheet({
                             </FieldLabel>
                             <Textarea
                                 id="night-audit-reason"
-                                placeholder="Why the audit runs with a blocker open"
+                                placeholder="Why the audit runs before it is ready"
                                 value={runner.data.reason}
                                 onChange={(event) =>
                                     runner.setData('reason', event.target.value)

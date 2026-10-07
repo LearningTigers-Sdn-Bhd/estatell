@@ -40,7 +40,7 @@ use Illuminate\Support\Collection;
 use Spatie\Activitylog\Models\Activity;
 
 /**
- * A live property trading on 2026-10-12 (the clock is noon that day) with the room revenue and no-show codes, a fixed
+ * A live property trading on 2026-10-12 (the clock is 02:00 the next day) with the room revenue and no-show codes, a fixed
  * 60.00 no-show fee, one room type with two rooms and a plan with a 120.00 rate on every night from that date.
  *
  * @param  array<string, mixed>  $settings
@@ -48,7 +48,7 @@ use Spatie\Activitylog\Models\Activity;
  */
 function auditSetup(array $settings = []): array
 {
-    test()->travelTo(now()->setDate(2026, 10, 12)->setTime(12, 0));
+    test()->travelTo(now()->setDate(2026, 10, 13)->setTime(2, 0));
     $property = Property::factory()->live()->create();
     PropertySetting::factory()->for($property)->create([
         'missed_arrival_policy' => MissedArrivalPolicy::KeepAsLateArrival,
@@ -66,7 +66,7 @@ function auditSetup(array $settings = []): array
     $plan->roomTypes()->attach($roomType);
 
     for ($day = 0; $day < 10; $day++) {
-        Rate::factory()->create(['rate_plan_id' => $plan->id, 'room_type_id' => $roomType->id, 'date' => today()->addDays($day)->toDateString(), 'amount' => '120.00']);
+        Rate::factory()->create(['rate_plan_id' => $plan->id, 'room_type_id' => $roomType->id, 'date' => today()->subDay()->addDays($day)->toDateString(), 'amount' => '120.00']);
     }
 
     return ['property' => $property, 'roomType' => $roomType, 'plan' => $plan, 'rooms' => $rooms];
@@ -136,9 +136,12 @@ test('the next run audits the next date and leaves the closed one alone', functi
 
     $first = runAudit($setup['property']);
     $closedLines = nightLineCount();
+    $early = runAudit($setup['property']);
+    $this->travel(1)->day();
     $second = runAudit($setup['property']);
 
-    expect($second->isCompleted())->toBeTrue()
+    expect($early->refusal)->toBe(NightAuditResult::REFUSAL_BUSINESS_DATE_NOT_ENDED)
+        ->and($second->isCompleted())->toBeTrue()
         ->and($second->audit->id)->not->toBe($first->audit->id)
         ->and($second->audit->businessDate->date->toDateString())->toBe('2026-10-13')
         ->and($closedLines)->toBe(1)

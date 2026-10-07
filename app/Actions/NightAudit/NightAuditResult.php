@@ -19,6 +19,8 @@ class NightAuditResult
 
     public const REFUSAL_BLOCKED_BY_READINESS = 'blocked_by_readiness';
 
+    public const REFUSAL_BUSINESS_DATE_NOT_ENDED = 'business_date_not_ended';
+
     private const CLAIMED = 'claimed';
 
     private const COMPLETED = 'completed';

@@ -553,6 +553,7 @@ status: App.Enums.BusinessDateStatus | null,
 blockers: App.Data.NightAudit.ReadinessItemData[],
 warnings: App.Data.NightAudit.ReadinessItemData[],
 audit: App.Data.NightAudit.NightAuditProgressData | null,
+dateEnded: boolean,
 canForce: boolean,
 };
 export type ReadinessItemData = {

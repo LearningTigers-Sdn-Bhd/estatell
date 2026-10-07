@@ -3,10 +3,10 @@
 namespace App\Http\Controllers\NightAudit;
 
 use App\Actions\FrontDesk\AutoAssignRooms;
+use App\Actions\NightAudit\NightAuditResult;
 use App\Actions\Reservations\AssignmentResult;
 use App\Data\NightAudit\NightAuditSheetData;
 use App\Enums\AuditTrigger;
-use App\Enums\BusinessDateStatus;
 use App\Enums\PermissionEnum;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\NightAudit\RunNightAuditRequest;
@@ -42,8 +42,12 @@ class NightAuditController extends Controller
             return $this->refused(__('This property has no business date yet.'));
         }
 
-        if (! $request->boolean('force') && $businessDate->status === BusinessDateStatus::Open && $readiness->blockers($property) !== []) {
-            return $this->refused(__('Fix the items under "Fix before running" first.'));
+        $gate = $request->boolean('force') ? null : $readiness->gate($property);
+
+        if ($gate !== null) {
+            return $this->refused($gate === NightAuditResult::REFUSAL_BUSINESS_DATE_NOT_ENDED
+                ? __('The business date has not ended yet. Force close if you are sure.')
+                : __('Fix the items under "Fix before running" first.'));
         }
 
         RunNightAuditJob::dispatch($property, AuditTrigger::Manual, $request->user(), $request->boolean('force'), $request->input('reason'));

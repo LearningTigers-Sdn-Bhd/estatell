@@ -24,7 +24,7 @@ use Inertia\Testing\AssertableInertia as Assert;
  */
 function sheetSetup(array $permissions = [PermissionEnum::NightAuditRun, PermissionEnum::ReservationsManage]): array
 {
-    test()->travelTo(now()->setDate(2026, 10, 12)->setTime(12, 0));
+    test()->travelTo(now()->setDate(2026, 10, 13)->setTime(2, 0));
     $property = Property::factory()->live()->create();
     PropertySetting::factory()->for($property)->create();
     BusinessDate::factory()->create(['property_id' => $property->id, 'date' => '2026-10-12']);
@@ -185,4 +185,22 @@ test('the sidebar shows Run Night Audit as a sheet action to users with night-au
     });
     $this->actingAs($without['user'])->get(route('dashboard', $without['property']->code))
         ->assertInertia(fn (Assert $page) => $page->where('navigation.contexts.0.groups.1.label', 'Reservations'));
+});
+
+test('the sheet says the date has not ended, and a run is refused until it has or is forced', function () {
+    Queue::fake();
+    $setup = sheetSetup([PermissionEnum::NightAuditRun, PermissionEnum::NightAuditForce]);
+    $setup['property']->settings->update(['time_zone' => 'UTC']);
+    $this->travelTo(now()->setDate(2026, 10, 12)->setTime(23, 0));
+
+    $this->actingAs($setup['user'])->getJson(route('night-audit.show', $setup['property']->code))
+        ->assertJsonPath('dateEnded', false)
+        ->assertJsonPath('canForce', true);
+    $this->postJson(route('night-audit.run', $setup['property']->code))
+        ->assertUnprocessable()
+        ->assertJsonPath('errors.form.0', 'The business date has not ended yet. Force close if you are sure.');
+    Queue::assertNothingPushed();
+
+    $this->postJson(route('night-audit.run', $setup['property']->code), ['force' => true, 'reason' => 'Closing early'])->assertAccepted();
+    Queue::assertPushed(RunNightAuditJob::class);
 });

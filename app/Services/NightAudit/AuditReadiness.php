@@ -2,7 +2,9 @@
 
 namespace App\Services\NightAudit;
 
+use App\Actions\NightAudit\NightAuditResult;
 use App\Enums\AuditCheck;
+use App\Enums\BusinessDateStatus;
 use App\Enums\FolioStatus;
 use App\Enums\FolioType;
 use App\Enums\UnitStatus;
@@ -10,6 +12,7 @@ use App\Models\Folio;
 use App\Models\NightAuditException;
 use App\Models\Property;
 use App\Models\ReservationUnit;
+use App\Services\Property\PropertyToday;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -20,7 +23,38 @@ use Illuminate\Database\Eloquent\Builder;
  */
 class AuditReadiness
 {
-    public function __construct(private CurrentBusinessDate $currentBusinessDate) {}
+    public function __construct(
+        private CurrentBusinessDate $currentBusinessDate,
+        private PropertyToday $propertyToday,
+    ) {}
+
+    /**
+     * Whether the current business date is over: the system date in the property's time zone is after it. A
+     * property with no business date has nothing to wait for.
+     */
+    public function businessDateEnded(Property $property): bool
+    {
+        $date = $this->currentBusinessDate->date($property);
+
+        return $date === null || $this->propertyToday->date($property)->toDateString() > $date->toDateString();
+    }
+
+    /**
+     * Why a run that would start the audit must be forced, or null when it may go ahead: the business date has not
+     * ended, or a blocker is open. A date that is already Auditing is under way, so nothing gates it.
+     */
+    public function gate(Property $property): ?string
+    {
+        if ($this->currentBusinessDate->get($property)?->status !== BusinessDateStatus::Open) {
+            return null;
+        }
+
+        if (! $this->businessDateEnded($property)) {
+            return NightAuditResult::REFUSAL_BUSINESS_DATE_NOT_ENDED;
+        }
+
+        return $this->blockers($property) === [] ? null : NightAuditResult::REFUSAL_BLOCKED_BY_READINESS;
+    }
 
     /**
      * Every item, blockers first. Empty while the property has no business date.
