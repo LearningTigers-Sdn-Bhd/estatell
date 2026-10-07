@@ -4,6 +4,7 @@ namespace App\Services\Reports;
 
 use App\Data\Reports\ReportFilters;
 use App\Data\Reports\ReportLayoutData;
+use App\Data\Reports\ReportRow;
 use App\Enums\ReportKey;
 use App\Models\Property;
 use App\Services\Property\PrintedPdf;
@@ -20,15 +21,16 @@ class ReportPdf
 
     /**
      * @param  list<int|string>|null  $rowKeys  Only these rows, when given.
+     * @param  list<ReportRow>|null  $rows  The rows already read and sorted by the caller, for these keys. Read here when null.
      */
-    public function make(Property $property, ReportKey $report, ReportFilters $filters, ReportLayoutData $layout, ?array $rowKeys = null): DomPdf
+    public function make(Property $property, ReportKey $report, ReportFilters $filters, ReportLayoutData $layout, ?array $rowKeys = null, ?array $rows = null): DomPdf
     {
         return $this->printedPdf->make($property, 'pdf.report', [
             'title' => $report->label(),
             'dates' => $this->dates($filters),
             'currency' => $property->loadMissing('settings')->settings?->currency->value ?? '',
             'columns' => $layout->visibleColumns(),
-            'rows' => $report->report()->rows($property, $filters, $rowKeys),
+            'rows' => $rows ?? $report->report()->rows($property, $filters, $rowKeys),
             'selectedOnly' => $rowKeys !== null,
         ], $layout->orientation->value);
     }

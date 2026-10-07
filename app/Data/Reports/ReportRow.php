@@ -3,7 +3,8 @@
 namespace App\Data\Reports;
 
 /**
- * A row of a report that can print as text. The PDF and the spreadsheet read the cells by column key.
+ * A row of a report that can print as text or go into a spreadsheet. The PDF reads `cells()` and the spreadsheet reads
+ * `values()`, both by column key.
  */
 interface ReportRow
 {
@@ -13,4 +14,12 @@ interface ReportRow
      * @return array<string, string>
      */
     public function cells(): array;
+
+    /**
+     * The typed value of each column for spreadsheets, keyed by column key: money and counts as numbers, dates as
+     * `Y-m-d`, enums as their label and nulls as an empty string.
+     *
+     * @return array<string, int|float|string>
+     */
+    public function values(): array;
 }

@@ -47,6 +47,25 @@ class ArrivalRow extends Data implements ReportRow
     }
 
     /**
+     * @return array<string, int|float|string>
+     */
+    public function values(): array
+    {
+        return [
+            'reservation' => $this->reservation,
+            'guest' => $this->guest,
+            'phone' => $this->phone ?? '',
+            'arrival' => $this->arrival,
+            'nights' => $this->nights,
+            'unit' => $this->unit,
+            'guests' => $this->guests,
+            'company' => $this->company ?? '',
+            'status' => $this->status->label,
+            'balance' => round((float) $this->balance, 2),
+        ];
+    }
+
+    /**
      * @param  string|null  $room  The room number or bed label of the first night, when one is assigned.
      */
     public static function fromModel(ReservationUnit $unit, ?string $room, string $balance): self

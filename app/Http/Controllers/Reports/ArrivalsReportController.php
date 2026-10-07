@@ -29,7 +29,7 @@ class ArrivalsReportController extends Controller
         [$rows, $sort] = $reportPage->paginate(
             rows: $key->report()->rows($property, $filters),
             sort: $request->string('sort')->toString(),
-            defaultSort: 'arrival',
+            defaultSort: $key->defaultSort(),
             columnKeys: $layout->visibleKeys(),
             page: max(1, $request->integer('page', 1)),
             path: $request->url(),

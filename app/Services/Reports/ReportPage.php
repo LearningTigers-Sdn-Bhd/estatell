@@ -25,6 +25,31 @@ class ReportPage
      */
     public function paginate(array $rows, string $sort, string $defaultSort, array $columnKeys, int $page, string $path): array
     {
+        [$sorted, $sort] = $this->sort($rows, $sort, $defaultSort, $columnKeys);
+
+        $paginator = new LengthAwarePaginator(
+            Collection::make($sorted)->forPage($page, self::PER_PAGE)->values(),
+            count($sorted),
+            self::PER_PAGE,
+            $page,
+            ['path' => $path],
+        );
+
+        return [$paginator, $sort];
+    }
+
+    /**
+     * Sorts the full row list. A sort that is not a visible column falls back to the default. The exports call this
+     * too, so they sort exactly like the table.
+     *
+     * @template TRow of Data&ReportRow
+     *
+     * @param  list<TRow>  $rows
+     * @param  list<string>  $columnKeys  The sort names that are allowed: the visible columns.
+     * @return array{0: list<TRow>, 1: string} The sorted rows and the sort that was used
+     */
+    public function sort(array $rows, string $sort, string $defaultSort, array $columnKeys): array
+    {
         $descending = str_starts_with($sort, '-');
         $key = ltrim($sort, '-');
 
@@ -38,17 +63,9 @@ class ReportPage
             fn (Data $row): float|int|string => $this->sortValue($row, $key),
             SORT_REGULAR,
             $descending,
-        )->values();
+        )->values()->all();
 
-        $paginator = new LengthAwarePaginator(
-            $sorted->forPage($page, self::PER_PAGE)->values(),
-            $sorted->count(),
-            self::PER_PAGE,
-            $page,
-            ['path' => $path],
-        );
-
-        return [$paginator, $sort];
+        return [$sorted, $sort];
     }
 
     private function sortValue(Data $row, string $key): float|int|string

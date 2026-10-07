@@ -36,6 +36,17 @@ enum ReportKey: string
     }
 
     /**
+     * The sort the page and the exports use when none is given or the sort column is hidden: a column key, with a
+     * leading `-` for descending.
+     */
+    public function defaultSort(): string
+    {
+        return match ($this) {
+            self::Arrivals => 'arrival',
+        };
+    }
+
+    /**
      * The longest date range, counting both ends. Null for a report of one date.
      */
     public function maxRangeDays(): ?int

@@ -8,9 +8,11 @@ import type { EnumOption } from '@/components/pms/enum-select';
 import { EmptyState } from '@/components/pms/empty-state';
 import { MoneyText } from '@/components/pms/money-text';
 import { PageHeader } from '@/components/pms/page-header';
+import { ReportExportMenu } from '@/components/pms/reports/report-export-menu';
 import { ReportLayoutSheet } from '@/components/pms/reports/report-layout-sheet';
 import { StatusBadge } from '@/components/pms/status-badge';
 import { Button } from '@/components/ui/button';
+import { toast } from '@/components/ui/toast';
 import { reportDatePresets } from '@/lib/date-presets';
 import { arrivals } from '@/routes/reports';
 
@@ -31,6 +33,8 @@ type Props = {
 
 const column = dataTableColumns<Row>();
 
+const MAX_SELECTED = 500;
+
 export default function ArrivalsReport({
     rows,
     sort,
@@ -44,6 +48,7 @@ export default function ArrivalsReport({
 }: Props) {
     const [draft, setDraft] = useState<Layout | null>(null);
     const [layoutOpen, setLayoutOpen] = useState(false);
+    const [selected, setSelected] = useState<Set<string>>(new Set());
     const active = draft ?? layout;
 
     const visible = useMemo(
@@ -131,6 +136,10 @@ export default function ArrivalsReport({
         (changes: { from?: string; to?: string; sort?: string }) => {
             const next = { from, to, sort, ...changes };
 
+            if (next.from !== from || next.to !== to) {
+                setSelected(new Set());
+            }
+
             router.get(
                 arrivals.url(undefined, {
                     query: {
@@ -145,6 +154,19 @@ export default function ArrivalsReport({
         },
         [from, to, sort],
     );
+
+    const changeSelection = (next: Set<string>) => {
+        if (next.size > MAX_SELECTED) {
+            toast.add({
+                title: `You can select up to ${MAX_SELECTED} rows`,
+                type: 'error',
+            });
+
+            return;
+        }
+
+        setSelected(next);
+    };
 
     return (
         <>
@@ -168,17 +190,25 @@ export default function ArrivalsReport({
                         weekStartsOn={1}
                         className="w-auto"
                     />
-                    {canEditLayout && (
-                        <Button
-                            type="button"
-                            variant="outline"
-                            className="ml-auto"
-                            onClick={openLayout}
-                        >
-                            <Settings2 data-icon="inline-start" />
-                            Layout
-                        </Button>
-                    )}
+                    <div className="ml-auto flex items-center gap-2">
+                        {canEditLayout && (
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={openLayout}
+                            >
+                                <Settings2 data-icon="inline-start" />
+                                Layout
+                            </Button>
+                        )}
+                        <ReportExportMenu
+                            report="arrivals"
+                            from={from}
+                            to={to}
+                            sort={sort}
+                            rowKeys={[...selected]}
+                        />
+                    </div>
                 </div>
 
                 <DataTable
@@ -188,6 +218,7 @@ export default function ArrivalsReport({
                     sort={sort}
                     onSortChange={(next) => visit({ sort: next })}
                     rightAlign={rightAlign}
+                    selection={{ selected, onChange: changeSelection }}
                     pagination={{
                         currentPage: rows.meta.current_page,
                         lastPage: rows.meta.last_page,
@@ -205,6 +236,22 @@ export default function ArrivalsReport({
                         />
                     }
                 />
+
+                {selected.size > 0 && (
+                    <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                        <span>
+                            {selected.size} selected · Export uses the selection
+                        </span>
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setSelected(new Set())}
+                        >
+                            Clear
+                        </Button>
+                    </div>
+                )}
             </div>
 
             {canEditLayout && draft && (

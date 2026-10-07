@@ -10,6 +10,7 @@ import { ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { PaginationFooter } from '@/components/pms/pagination-footer';
 import type { PaginationData } from '@/components/pms/pagination-footer';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
     Table,
     TableBody,
@@ -40,6 +41,12 @@ export function dataTableColumns<TData extends RowData>() {
 
 export type DataTablePagination = PaginationData;
 
+export type DataTableSelection = {
+    /** Ids (from `getRowId`) of the selected rows, on every page. */
+    selected: Set<string>;
+    onChange: (next: Set<string>) => void;
+};
+
 type Props<TData extends RowData> = {
     columns: DataTableColumn<TData>[];
     data: TData[];
@@ -51,6 +58,8 @@ type Props<TData extends RowData> = {
     onRowClick?: (row: TData) => void;
     /** Ids of the columns whose header and cells align right, for numbers and money. */
     rightAlign?: string[];
+    /** Adds a leading checkbox column. The header checkbox selects or clears the rows on this page. */
+    selection?: DataTableSelection;
     empty: ReactNode;
 };
 
@@ -80,6 +89,7 @@ export function DataTable<TData extends RowData>({
     pagination,
     onRowClick,
     rightAlign = [],
+    selection,
     empty,
 }: Props<TData>) {
     const sorting = toSortingState(sort);
@@ -98,6 +108,44 @@ export function DataTable<TData extends RowData>({
     });
 
     const rows = table.getRowModel().rows;
+    const pageIds = rows.map((row) => row.id);
+    const selectedOnPage = selection
+        ? pageIds.filter((id) => selection.selected.has(id)).length
+        : 0;
+
+    const togglePage = (checked: boolean) => {
+        if (!selection) {
+            return;
+        }
+
+        const next = new Set(selection.selected);
+
+        for (const id of pageIds) {
+            if (checked) {
+                next.add(id);
+            } else {
+                next.delete(id);
+            }
+        }
+
+        selection.onChange(next);
+    };
+
+    const toggleRow = (id: string, checked: boolean) => {
+        if (!selection) {
+            return;
+        }
+
+        const next = new Set(selection.selected);
+
+        if (checked) {
+            next.add(id);
+        } else {
+            next.delete(id);
+        }
+
+        selection.onChange(next);
+    };
 
     return (
         <div className="flex flex-col gap-3">
@@ -106,6 +154,24 @@ export function DataTable<TData extends RowData>({
                     <TableHeader>
                         {table.getHeaderGroups().map((group) => (
                             <TableRow key={group.id}>
+                                {selection && (
+                                    <TableHead className="w-8">
+                                        <Checkbox
+                                            aria-label="Select all rows on this page"
+                                            checked={
+                                                pageIds.length > 0 &&
+                                                selectedOnPage ===
+                                                    pageIds.length
+                                            }
+                                            indeterminate={
+                                                selectedOnPage > 0 &&
+                                                selectedOnPage < pageIds.length
+                                            }
+                                            disabled={pageIds.length === 0}
+                                            onCheckedChange={togglePage}
+                                        />
+                                    </TableHead>
+                                )}
                                 {group.headers.map((header) => {
                                     const sorted = header.column.getIsSorted();
                                     const SortIcon =
@@ -161,7 +227,11 @@ export function DataTable<TData extends RowData>({
                     <TableBody>
                         {rows.length === 0 ? (
                             <TableRow>
-                                <TableCell colSpan={columns.length}>
+                                <TableCell
+                                    colSpan={
+                                        columns.length + (selection ? 1 : 0)
+                                    }
+                                >
                                     {empty}
                                 </TableCell>
                             </TableRow>
@@ -179,6 +249,24 @@ export function DataTable<TData extends RowData>({
                                             'group/row cursor-pointer',
                                     )}
                                 >
+                                    {selection && (
+                                        <TableCell
+                                            className="w-8"
+                                            onClick={(event) =>
+                                                event.stopPropagation()
+                                            }
+                                        >
+                                            <Checkbox
+                                                aria-label="Select row"
+                                                checked={selection.selected.has(
+                                                    row.id,
+                                                )}
+                                                onCheckedChange={(checked) =>
+                                                    toggleRow(row.id, checked)
+                                                }
+                                            />
+                                        </TableCell>
+                                    )}
                                     {row.getAllCells().map((cell) => (
                                         <TableCell
                                             key={cell.id}
