@@ -10,6 +10,7 @@ Move a unit through its stay.
 - `CheckOutUnit`: requires the unit folio balance to be 0 or transferred to the master folio (`balance_not_settled`). A held security deposit is a credit on the folio, so it must be refunded or used against charges first. It sets `checked_out_at`, `UnitStatus::CheckedOut` and marks the room Dirty.
 - `ChangeUnitDates`: changes the arrival and departure of a Confirmed unit, or the departure of a CheckedIn unit. Kept nights keep their prices, plan and rooms. Removed nights are deleted. Added nights are priced for the added stretch only and try to keep the neighbouring night's room or bed.
 - `ProcessEarlyDeparture`: called by `ChangeUnitDates` when the departure moves earlier. It applies the early departure [room revenue policy](../06-catalogues/06-room-revenue.md#policies) and removes the unused nights.
+- `EarlyCheckOut`: check a CheckedIn unit out before its departure date, in one step. It runs `ProcessEarlyDeparture` with the business date as the new departure, then `CheckOutAndRefund`, in one transaction. A refusal of either rolls both back. See [Early check-out](#early-check-out).
 - `ExtendStay`: a later departure with the arrival kept. A thin wrapper over `ChangeUnitDates` (`not_an_extension` for a date that is not later). The night audit's "Extend stay" fix calls it.
 - `ExtendDepartureTime`: late check-out on the departure date. Sets a later `departure_time` and posts the late check-out policy charge. Refused unless the unit is CheckedIn, on its departure date, and the new time is later and before midnight.
 - `MarkNoShow`, `CancelUnit`: post the no-show or cancellation policy charge, unless staff choose **Do not charge**. Each can also delete the unit's unposted add-ons (`$removeAddOns`).
@@ -44,10 +45,31 @@ Every Action here returns a `UnitStayResult` and writes nothing on a refusal. Th
 
 - The route passes `$withoutCard` only to a user with `front-desk.check-in-without-card`, and `$creditOverrideReason` only to a user with `company.credit-override`. A credit override logs `credit.overridden` on the company with the action `check_in`.
 - An add-on refusal rolls the whole check-in back, so the unit stays Confirmed.
-- A check-out before the departure date is refused. Staff shorten the stay first with `ChangeUnitDates`, which applies the early departure policy ([module 18 build order](#build-order), step 3).
+- `CheckOutUnit` alone refuses a check-out before the departure date. An early check-out goes through `EarlyCheckOut`, which shortens the stay first. See [Early check-out](#early-check-out).
 - Check-out marks the room Dirty: the room of the unit's last night up to the business date, or the room of its bed.
 - A Master folio balance never blocks a unit check-out. Only the unit's own folios count.
 - Logged on the reservation: `reservation.unit_checked_in` and `reservation.unit_checked_out`.
+
+### Early check-out
+
+`EarlyCheckOut` is a wrapper over `ProcessEarlyDeparture` and `CheckOutAndRefund`. It has no rules of its own beyond the first two checks.
+
+| Check, in order                                                                   | Refusal                                         |
+| --------------------------------------------------------------------------------- | ----------------------------------------------- |
+| The unit is CheckedIn (the unit row is locked first)                              | `invalid_status`                                |
+| A business date exists and it is before the departure date                        | `no_business_date`, `not_early`                 |
+| The business date is after the arrival date                                       | `invalid_stay`                                  |
+| The checks of `ProcessEarlyDeparture` (reason, policy row, `fee_changed`, charge) | its refusals                                    |
+| The refund and the checks of `CheckOutUnit`                                       | `refund_exceeds_payment`, `balance_not_settled` |
+
+- **One transaction.** The fee, the deleted nights, the refund and the check-out commit together. A refusal at any step writes nothing. This differs from `CheckOutAndRefund` alone, where a refund stays when the check-out is refused afterwards.
+- **New departure** is the business date. The form never sends it.
+- **Same-day stay.** A unit that arrived on the business date has no night to keep, so `departure_date > arrival_date` cannot hold. It is refused with `invalid_stay`, and staff use Cancel instead.
+- **Departure today or later.** `not_early` is refused. Normal check-out runs through `CheckOutAndRefund`.
+- **Fee:** read by `PolicyChargeCalculator` with the business date as the new departure, and posted with the key `early_departure:{unit}:{n}`. **Do not charge** needs a reason and `front-desk.waive-fees`. `$expectedFee` from the form guards against a policy change (`fee_changed`).
+- **Balance:** the fee joins the unit folio, so the balance to settle includes it. Posted add-ons on removed nights stay and can leave a balance. The form shows the balance before submit. It takes no payment for the fee in this version: staff record the payment first with `RecordPayment`.
+- **Permissions:** `front-desk.check-out` and `reservations.manage`, both checked by the route. The refund needs `payment.refund`, as in the check-out Dialog.
+- Logged on the reservation: `reservation.unit_dates_changed` and `reservation.unit_checked_out`, each as today.
 
 ### Cancel, no-show and reinstate
 
@@ -130,19 +152,21 @@ One checklist item per group, in this order. The Actions come first and the rese
 2. The room revenue policies, then `CancelUnit`, `MarkNoShow` and `ReinstateUnit`.
 3. `ExtendStay`, `ChangeUnitDates`, `ProcessEarlyDeparture` and `ExtendDepartureTime`.
 4. The unit **⋯** menu on the [reservation page](../12-reservations/06-reservation-page.md#units-tab), with the forms below.
+5. `EarlyCheckOut` and the early mode of the check-out Dialog.
 
 ## Forms on the reservation page
 
 Each form uses `FormOverlay` and the container from [Form containers](../design-system/05-form-containers.md).
 
-| Action                                         | Container | Fields and notes                                                                                                                      |
-| ---------------------------------------------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| Check in                                       | Dialog    | Shows the room, the registration card status, a card override (permission), Nationality when missing, and [Collect now](#collect-now) |
-| Check out                                      | Dialog    | Shows the folio balance and the deposit credit. Settle, transfer or refund the balance                                                |
-| Cancel unit, Mark no-show                      | Dialog    | Shows the policy fee ("No charge" inside the free window), Do not charge, a reason, Also remove add-ons                               |
-| Reinstate                                      | Dialog    | A required reason. Re-prices the unit and shows the new total. The rooms are cleared, so staff assign them again                      |
-| Change dates (also Extend and Early departure) | Dialog    | Dates and a live price difference. A shorter stay shows the early departure policy result                                             |
-| Late check-out                                 | Dialog    | New time, the policy fee, Do not charge, a reason                                                                                     |
+| Action                                         | Container | Fields and notes                                                                                                                                                        |
+| ---------------------------------------------- | --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Check in                                       | Dialog    | Shows the room, the registration card status, a card override (permission), Nationality when missing, and [Collect now](#collect-now)                                   |
+| Check out                                      | Dialog    | Shows the folio balance and the deposit credit. Settle, transfer or refund the balance                                                                                  |
+| Cancel unit, Mark no-show                      | Dialog    | Shows the policy fee ("No charge" inside the free window), Do not charge, a reason, Also remove add-ons                                                                 |
+| Reinstate                                      | Dialog    | A required reason. Re-prices the unit and shows the new total. The rooms are cleared, so staff assign them again                                                        |
+| Check out, early mode                          | Dialog    | The check-out Dialog plus an **Early departure** block: the old departure, the nights removed, the policy fee, Do not charge and a reason, and the balance with the fee |
+| Change dates (also Extend and Early departure) | Dialog    | Dates and a live price difference. A shorter stay shows the early departure policy result                                                                               |
+| Late check-out                                 | Dialog    | New time, the policy fee, Do not charge, a reason                                                                                                                       |
 
 **Do not charge** means the fee is not posted to the folio. It shows only for staff with `front-desk.waive-fees` (the code keeps the word "waive"). The reason is required and the choice is logged with the user. The fee is read-only text from the server.
 
@@ -172,7 +196,7 @@ Each form uses `FormOverlay` and the container from [Form containers](../design-
 
 ### Built: check in, check out and late check-out
 
-- **Menu.** The menu lists Check in from the arrival date until the departure date, Check out from the departure date, and Late check-out on the departure date, the days each Action accepts. A shorter stay is changed first with Change dates.
+- **Menu.** The menu lists Check in from the arrival date until the departure date, Check out from the departure date, and Late check-out on the departure date, the days each Action accepts. A shorter stay is changed first with Change dates. Early check-out (planned, see [Early check-out](#early-check-out)) lists Check out on the days between the day after arrival and the day before departure.
 - **Previews.** `UnitActionPreview` gains `checkIn()`, `checkOut()` and `lateCheckOut()`. `CheckInCollection` and `CheckOutSettlement` (`app/Services/FrontDesk/`) work out Collect now and the deposit.
 - **Check in.** `CheckInAndCollect` saves a missing nationality (to the primary guest, or the booker, through `UpdateGuest`) and runs `CheckInUnit` in one transaction, so a refused check-in saves nothing. Then Collect now takes the taxes as an Advance payment and the deposit as a SecurityDeposit payment, with the keys `{uuid}:taxes` and `{uuid}:deposit`. The Collect now amounts come from `CheckInCollection` and the form sends no amount. The tax rows are the Scheduled tax rows of the unit's nights, so the guest pays what the night audit will post. A deposit already held on the unit folio is not asked again. Collect now shows only with `payment.record`.
 - **More fields.** The Dialog adds a **Check in without a card** box (with `front-desk.check-in-without-card`, shown when a card is missing) and a **Credit limit override reason** (with `company.credit-override`, shown when the company is over its limit). They appear only when needed, so the usual form still has the five fields above.
