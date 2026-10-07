@@ -37,6 +37,7 @@ Roles are the exception during self sign-up: `SeedDefaultRoles` runs when the pr
 | Rate plan             | "Basic Rate", an ordinary plan with no prices yet. PerRoom, linked to room-sold room types.                                            | `SeedRatePlans`                                        |
 | Age groups            | Infant 0–3, Child 4–11 (adults from 12)                                                                                                | [Age groups](04-age-groups.md)                         |
 | Registration card     | 18 field rows, Full name locked, prices hidden                                                                                         | `SeedRegistrationCardFields`                           |
+| Print settings        | One `print_settings` row: Standard font, Medium size, logo, address, contact and registration number on, TIN off, no tax numbers       | [Printing settings](05-printing-settings.md)           |
 | Terms                 | Default terms document, version 1, English and Bahasa Malaysia                                                                         | `SeedRegistrationTerms` and `TermsPreset` for the type |
 
 ## Rules

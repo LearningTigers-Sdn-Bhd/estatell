@@ -72,6 +72,7 @@ roles    spatie columns + property_id (NOT NULL, FK) + default_role (nullable)
 | `city-ledger.credit-note`          | Issue and void AR credit notes                                        | ✓     | ✓       | Finance                           |
 | `city-ledger.payment`              | Record and void AR payments                                           | ✓     | ✓       | Finance                           |
 | `city-ledger.allocate`             | Allocate AR payments, reverse allocations                             | ✓     | ✓       | Finance                           |
+| `reports.view`                     | Report pages, report exports, the night audit packet                  | ✓     | ✓       | Finance                           |
 
 Later modules add rows here. Their module docs list their permissions.
 

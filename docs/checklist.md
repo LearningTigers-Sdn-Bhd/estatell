@@ -16,7 +16,7 @@ Legend: **Needs** lists items that must be done first.
 
 ## Now
 
-The critical path: the front desk actions on the reservation, then the night audit. Build in this order. Item 6 is a refactor that no later item waits for, so it can slip if the critical path is urgent.
+The critical path: the front desk actions on the reservation, then the night audit, then the core reports. Build in this order. Item 6 is a refactor that no later item waits for, so it can slip if the critical path is urgent.
 
 1. [x] `feat(catalogues): add room revenue policies` — `room_revenue_policies`, `PolicyChargeMode`, `PolicyRateBasis`, `PolicyScope`, `SaveRoomRevenuePolicy`, `SeedRoomRevenuePolicies` (four Free rows with a default English and Malay text) called by `SeedPropertyDefaults` and a back-fill for existing properties that copies `no_show_charge` into the no-show row, then removes the `no_show_charge` field from the Operations tab and drops the column and `NoShowCharge`. Backend and the settings form only. Needs: room revenue taxes. Docs: [Room revenue](06-catalogues/06-room-revenue.md#policies).
 2. [x] `feat(catalogues): add the policy charge calculator` — `PolicyChargeCalculator` (`app/Services/`): booked or current rate with a fall back to the booked rate, first night, whole stay, unused nights and one charge, the cancellation free window on the business date. Reads only, does not post. Pest tests for each mode. Backend only. Needs: room revenue policies. Docs: [Room revenue](06-catalogues/06-room-revenue.md#policies).
@@ -48,6 +48,14 @@ The critical path: the front desk actions on the reservation, then the night aud
     - [x] `feat(night-audit): snapshot daily statistics` — `daily_statistics` and `daily_revenue`, models, `DailyRevenueQuery` (`app/Services/Reports/`, the one live revenue query that the snapshot and the core reports share), `StatisticsCalculator`, `SnapshotStatistics` and `SnapshotStatisticsStep` as step 7 (`AuditStep::SnapshotStatistics`, idempotent upsert). Pest tests, including a run-twice test and a test that the stored rows equal the live query.
     - [x] `feat(night-audit): notify the audit result` — `NotifyNightAuditResult`, run by `NotifyNightAuditResultJob` that `RunNightAudit` queues when an audit completes or fails (not from `CloseAndOpenNext`, so a message error never changes a closed date), `MealCounts` and `AuditResultSummary`, with `NightAuditCompleted`, `NightAuditExceptions` and `NightAuditFailed` content (occupancy, ADR, RevPAR, revenue by code, payments by method, meal counts, exceptions). Needs: the snapshot.
 
+20. [ ] **Add the core reports**, in six commits, in this order. Docs: [Core reports](22-reports/01-core-reports.md), [Printing settings](02-property/05-printing-settings.md), [Statistics](20-night-audit/05-statistics.md). Needs: snapshot statistics.
+    - [ ] `feat(property): add printing settings and the logo` — `print_settings` (seeded by `SeedPropertyDefaults`, back-filled for existing properties) and `print_setting_taxes`, `PdfFont`, `PdfFontSize`, the `logo` media collection, `PrintProfile`, the letterhead partial and the footer in `pdf/layout.blade.php` (every existing PDF except the registration card gets them), the Printing settings item with the General and Header tabs, the browser preview and the sample PDF.
+    - [ ] `feat(reports): add the report registry and the arrivals report` — `ReportKey`, `ReportColumn`, the `Report` interface, `ReportFilters`, the `presets` prop on `DateRangePicker` (counted from the business date), `reports.view` with a syncing migration, and the Arrivals page as the first report. Needs: printing settings.
+    - [ ] `feat(reports): add report layouts` — `report_layouts`, `report_layout_columns`, `PageOrientation`, `ReportLayoutResolver`, `UpdateReportLayout`, `ResetReportLayout`, the Layout Sheet (`settings.manage`) with Preview PDF. Needs: the report registry.
+    - [ ] `feat(reports): export selected rows as PDF, CSV or Excel` — the checkbox column, `reports.pdf` and `reports.spreadsheet` (POST row keys, the server re-runs the query), layout order, visibility and orientation in every format. Needs: report layouts.
+    - [ ] `feat(reports): add the remaining core reports` — Departures, In-house, Occupancy, Revenue (live `DailyRevenueQuery`, day or month grouping, drill-down, open date included), Payments, Folio ledger, Tax and Meal counts. Needs: export selected rows.
+    - [ ] `feat(reports): add the night audit packet PDF` — one PDF per closed date from the snapshot tables, opened from Night audit history. Needs: the remaining core reports.
+
 ## Next
 
 Needed for go-live, but nothing in Now waits for them.
@@ -60,7 +68,6 @@ Needed for go-live, but nothing in Now waits for them.
 - [ ] `feat(onboarding): add reminders and the admin onboarding board` — Docs: [Engagement and admin board](17-onboarding/04-engagement-and-admin-board.md).
 - [x] `feat(catalogues): give a room revenue policy its own taxes` — `room_revenue_policies.own_taxes` (default false); `UpdateRoomRevenueTaxes` skips a policy code that has its own taxes; a Taxes section (third column of row 1) with a **Follow the Taxes tab** switch and a multiselect on each policy tab; the Taxes tab also becomes a multiselect with the rule as each option's description; the preview takes the unsaved choice; a test that a Taxes tab save keeps an override. Needs: room revenue policy tabs. Docs: [Room revenue](06-catalogues/06-room-revenue.md#own-taxes).
 - [ ] `feat(rates): override the early departure policy per rate plan` — `rate_plans.early_departure_policy` becomes an optional override that follows the property by default. Needs: room revenue policies. Docs: [Rate plans](08-rates/01-rate-plans.md), [Room revenue](06-catalogues/06-room-revenue.md#policies).
-- [ ] `feat(reports): add core reports` — including the live daily revenue report on `DailyRevenueQuery` (any date range, day or month grouping, drill-down, open date included) and the night audit packet PDF from the snapshot tables. Docs: [Core reports](22-reports/01-core-reports.md), [Statistics](20-night-audit/05-statistics.md).
 - [ ] `feat(ui): add the command palette` — ⌘K search across contexts; admin search by code, name, city. Docs: [Search patterns](design-system/07-search-patterns.md).
 
 ## Later

@@ -221,7 +221,7 @@ The build plan, as one commit per item, is in [checklist.md](checklist.md).
 | #   | Module                               | Summary                                                                          |
 | --- | ------------------------------------ | -------------------------------------------------------------------------------- |
 | 01  | [Platform](01-platform/)             | Platform admins, platform settings, feature flags                                |
-| 02  | [Property](02-property/)             | Properties, settings, defaults seeding, age groups                               |
+| 02  | [Property](02-property/)             | Properties, settings, defaults seeding, age groups, printing settings            |
 | 03  | [Staff](03-staff/)                   | Staff invitations, roles and permissions                                         |
 | 04  | [Notifications](04-notifications/)   | Notification types and opt-out                                                   |
 | 05  | [Rooms](05-rooms/)                   | Room types, rooms, beds, groups, blocks                                          |
@@ -241,5 +241,5 @@ The build plan, as one commit per item, is in [checklist.md](checklist.md).
 | 19  | [Housekeeping](19-housekeeping/)     | Room status board                                                                |
 | 20  | [Night audit](20-night-audit/)       | Business dates, readiness, audit run                                             |
 | 21  | [Channels](21-channels/)             | Channex connection, mapping, sync                                                |
-| 22  | [Reports](22-reports/)               | Core reports                                                                     |
+| 22  | [Reports](22-reports/)               | Core reports, column layouts, row export (PDF, CSV, Excel)                       |
 | 23  | [Company portal](23-company-portal/) | Company users book and view their own stays across linked properties             |
