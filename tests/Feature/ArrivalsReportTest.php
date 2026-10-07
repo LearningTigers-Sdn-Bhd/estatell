@@ -86,7 +86,9 @@ test('the page opens on the business date and lists the units that arrive', func
         ->has('businessDate.timeZone')
         ->where('maxRangeDays', 31)
         ->where('sort', 'arrival')
-        ->has('columns', 10)
+        ->has('layout.columns', 10)
+        ->where('layout.orientation', 'portrait')
+        ->where('canEditLayout', true)
         ->has('rows.data', 1)
         ->where('rows.meta.total', 1));
 });

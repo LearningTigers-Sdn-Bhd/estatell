@@ -1,23 +1,28 @@
 import { Head, router, usePage } from '@inertiajs/react';
-import { CalendarCheck } from 'lucide-react';
-import { useCallback, useMemo } from 'react';
+import { CalendarCheck, Settings2 } from 'lucide-react';
+import { useCallback, useMemo, useState } from 'react';
 import { DataTable, dataTableColumns } from '@/components/pms/data-table';
 import { DateRangePicker } from '@/components/pms/date-range-picker';
 import { DateText } from '@/components/pms/date-text';
+import type { EnumOption } from '@/components/pms/enum-select';
 import { EmptyState } from '@/components/pms/empty-state';
 import { MoneyText } from '@/components/pms/money-text';
 import { PageHeader } from '@/components/pms/page-header';
+import { ReportLayoutSheet } from '@/components/pms/reports/report-layout-sheet';
 import { StatusBadge } from '@/components/pms/status-badge';
+import { Button } from '@/components/ui/button';
 import { reportDatePresets } from '@/lib/date-presets';
 import { arrivals } from '@/routes/reports';
 
 type Row = App.Data.Reports.ArrivalRow;
-type Column = App.Data.Reports.ReportColumn;
+type Layout = App.Data.Reports.ReportLayoutData;
 
 type Props = {
     rows: Illuminate.LengthAwarePaginator<number, Row>;
     sort: string;
-    columns: Column[];
+    layout: Layout;
+    canEditLayout: boolean;
+    orientationOptions: EnumOption[];
     from: string;
     to: string;
     maxRangeDays: number | null;
@@ -29,16 +34,32 @@ const column = dataTableColumns<Row>();
 export default function ArrivalsReport({
     rows,
     sort,
-    columns,
+    layout,
+    canEditLayout,
+    orientationOptions,
     from,
     to,
     maxRangeDays,
     currency,
 }: Props) {
+    const [draft, setDraft] = useState<Layout | null>(null);
+    const [layoutOpen, setLayoutOpen] = useState(false);
+    const active = draft ?? layout;
+
     const visible = useMemo(
-        () => columns.filter((item) => item.defaultVisible),
-        [columns],
+        () => active.columns.filter((item) => item.visible),
+        [active],
     );
+
+    const openLayout = () => {
+        setDraft(layout);
+        setLayoutOpen(true);
+    };
+
+    const closeLayout = () => {
+        setLayoutOpen(false);
+        setDraft(null);
+    };
 
     const tableColumns = useMemo(
         () =>
@@ -147,6 +168,17 @@ export default function ArrivalsReport({
                         weekStartsOn={1}
                         className="w-auto"
                     />
+                    {canEditLayout && (
+                        <Button
+                            type="button"
+                            variant="outline"
+                            className="ml-auto"
+                            onClick={openLayout}
+                        >
+                            <Settings2 data-icon="inline-start" />
+                            Layout
+                        </Button>
+                    )}
                 </div>
 
                 <DataTable
@@ -174,6 +206,28 @@ export default function ArrivalsReport({
                     }
                 />
             </div>
+
+            {canEditLayout && draft && (
+                <ReportLayoutSheet
+                    open={layoutOpen}
+                    onOpenChange={(next) => {
+                        if (next) {
+                            setLayoutOpen(true);
+                        } else {
+                            closeLayout();
+                        }
+                    }}
+                    report="arrivals"
+                    reportLabel="Arrivals"
+                    saved={layout}
+                    draft={draft}
+                    onDraftChange={setDraft}
+                    orientations={orientationOptions}
+                    from={from}
+                    to={to}
+                    onDone={closeLayout}
+                />
+            )}
         </>
     );
 }

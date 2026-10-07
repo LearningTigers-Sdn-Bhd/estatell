@@ -1124,6 +1124,16 @@ export type ReportFilters = {
 from: string,
 to: string,
 };
+export type ReportLayoutColumnData = {
+key: string,
+label: string,
+align: App.Enums.ColumnAlign,
+visible: boolean,
+};
+export type ReportLayoutData = {
+orientation: App.Enums.PageOrientation,
+columns: App.Data.Reports.ReportLayoutColumnData[],
+};
 }
 namespace Reservations {
 export type AddUnitOptionsData = {

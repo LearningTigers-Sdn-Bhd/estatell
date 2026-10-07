@@ -108,6 +108,7 @@ Arrivals     [ This week ▾ ]   [⚙ Layout]   [ Export ▾ ]
 - **Reset to default** asks first, then calls `ResetReportLayout`, which deletes the layout.
 - Both log `report_layout.updated`.
 - Every report PDF uses one generic view, `pdf/report.blade.php`: the letterhead, the title, the dates and the table. Preview PDF and the exports share it.
+- `ReportPdf` (`app/Services/Reports/`) renders that view. Every row class implements `ReportRow`: `cells()` returns the display text by column key, so the view prints any report without knowing its columns. The preview route reads `from`, `to`, the orientation and the column list from the POST, checks the list with `ReportLayoutResolver::fromDraft()` (the same check as Save) and runs `rows()` on the server. The page gets the CSRF token for the native form from the shared `csrfToken` prop.
 
 ## Row selection and export
 

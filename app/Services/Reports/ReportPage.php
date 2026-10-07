@@ -2,6 +2,7 @@
 
 namespace App\Services\Reports;
 
+use App\Data\Reports\ReportRow;
 use App\Data\Shared\BadgeData;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
@@ -16,10 +17,10 @@ class ReportPage
     public const int PER_PAGE = 25;
 
     /**
-     * @template TRow of Data
+     * @template TRow of Data&ReportRow
      *
      * @param  list<TRow>  $rows
-     * @param  list<string>  $columnKeys  The sort names that are allowed.
+     * @param  list<string>  $columnKeys  The sort names that are allowed: the visible columns.
      * @return array{0: LengthAwarePaginator<int, TRow>, 1: string} The page and the sort that was used
      */
     public function paginate(array $rows, string $sort, string $defaultSort, array $columnKeys, int $page, string $path): array

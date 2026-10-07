@@ -4,13 +4,14 @@ namespace App\Data\Reports;
 
 use App\Data\Shared\BadgeData;
 use App\Models\ReservationUnit;
+use Carbon\CarbonImmutable;
 use Spatie\LaravelData\Data;
 
 /**
  * One row of the Arrivals report. The property names are the column keys of `ReportKey::Arrivals`.
  * `key` is the reservation unit id.
  */
-class ArrivalRow extends Data
+class ArrivalRow extends Data implements ReportRow
 {
     public function __construct(
         public int $key,
@@ -25,6 +26,25 @@ class ArrivalRow extends Data
         public BadgeData $status,
         public string $balance,
     ) {}
+
+    /**
+     * @return array<string, string>
+     */
+    public function cells(): array
+    {
+        return [
+            'reservation' => $this->reservation,
+            'guest' => $this->guest,
+            'phone' => $this->phone ?? '',
+            'arrival' => CarbonImmutable::parse($this->arrival)->format('j M Y'),
+            'nights' => (string) $this->nights,
+            'unit' => $this->unit,
+            'guests' => $this->guests,
+            'company' => $this->company ?? '',
+            'status' => $this->status->label,
+            'balance' => number_format((float) $this->balance, 2),
+        ];
+    }
 
     /**
      * @param  string|null  $room  The room number or bed label of the first night, when one is assigned.
