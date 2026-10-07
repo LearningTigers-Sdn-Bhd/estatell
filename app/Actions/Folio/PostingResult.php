@@ -5,7 +5,7 @@ namespace App\Actions\Folio;
 use App\Models\FolioLine;
 
 /**
- * What `PostCharge`, `ReverseLine`, `TransferLines`, `ApplyDiscount` and `RemoveDiscount` return: the lines that were written, or a refusal code.
+ * What `PostCharge`, `ReverseLine`, `TransferLines`, `ApplyDiscount`, `RemoveDiscount` and `PostRoomCharges` return: the lines that were written, or a refusal code.
  * `lines` starts with the main line (the charge, the reversal of the given line, or the first copy on the target),
  * followed by its children. A repeated idempotency key returns the existing lines with `replayed` set and writes nothing.
  */
@@ -48,6 +48,8 @@ class PostingResult
     public const REFUSAL_NOT_A_DISCOUNT = 'not_a_discount';
 
     public const REFUSAL_PAYMENT_LINE = 'payment_line';
+
+    public const REFUSAL_NIGHT_NOT_FOUND = 'night_not_found';
 
     /**
      * @param  list<FolioLine>  $lines

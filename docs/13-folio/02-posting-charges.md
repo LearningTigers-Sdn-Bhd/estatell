@@ -149,7 +149,9 @@ The room line has `source_type` and `source_id` set to the unit night. Discount 
 
 - A night whose `night:{id}` line exists returns that line and writes nothing. It is not a refusal, so a rerun is quiet.
 - A refusal writes nothing. The audit turns it into an exception row for the unit.
-- It is one transaction, with the unit row locked.
+- It is one transaction, with the unit row locked. It logs no activity: the lines are the record, and the audit run keeps its own step rows.
+- The nationality for foreign-only taxes is `UnitNationality`, like `PostCharge`.
+- The refusal codes of the quote pass through: `discount_exceeds_room`, `guests_required`, `exceeds_night_amount`, and the `TaxCalculator` refusals.
 
 ### `PostScheduledAddOns`
 
