@@ -8,10 +8,17 @@ type Settings = App.Data.Property.PrintSettingsData;
 type Profile = App.Data.Property.PropertyProfileData;
 type Tax = App.Data.Property.PrintTaxData;
 
-const textSize: Record<App.Enums.PdfFontSize, string> = {
-    small: 'text-xs',
-    medium: 'text-sm',
-    large: 'text-base',
+/**
+ * Tailwind sizes for each PDF size, one step apart like the PDF: header lines and the footer are 1 pt below the body,
+ * the property name 2 pt above it.
+ */
+const textSizes: Record<
+    App.Enums.PdfFontSize,
+    { body: string; small: string; heading: string }
+> = {
+    small: { body: 'text-sm', small: 'text-xs', heading: 'text-base' },
+    medium: { body: 'text-base', small: 'text-sm', heading: 'text-lg' },
+    large: { body: 'text-lg', small: 'text-base', heading: 'text-xl' },
 };
 
 /** The address lines as the PDF prints them: line 1, line 2, postcode and city, country. */
@@ -50,6 +57,7 @@ export function PrintPreview({
 }) {
     const contact = contactLine(profile);
     const font = fonts.find((option) => option.value === settings.font);
+    const size = textSizes[settings.fontSize];
     const registration = [
         settings.showRegistrationNumber && profile.registrationNumber
             ? `Registration no. ${profile.registrationNumber}`
@@ -68,7 +76,7 @@ export function PrintPreview({
             <div
                 className={cn(
                     'flex flex-col gap-4 rounded-lg border bg-card p-4 text-card-foreground',
-                    textSize[settings.fontSize],
+                    size.body,
                 )}
                 style={{ fontFamily: font?.bodyFamily }}
             >
@@ -82,24 +90,27 @@ export function PrintPreview({
                     )}
                     <div className="flex min-w-0 flex-col gap-0.5">
                         <p
-                            className="font-bold"
+                            className={cn('font-bold', size.heading)}
                             style={{ fontFamily: font?.headingFamily }}
                         >
                             {profile.name}
                         </p>
                         {settings.showAddress &&
                             addressLines(profile).map((line) => (
-                                <p key={line} className="text-xs">
+                                <p key={line} className={size.small}>
                                     {line}
                                 </p>
                             ))}
                         {settings.showContact && contact && (
-                            <p className="text-xs">{contact}</p>
+                            <p className={size.small}>{contact}</p>
                         )}
                         {registration.map((line) => (
                             <p
                                 key={line}
-                                className="text-xs text-muted-foreground"
+                                className={cn(
+                                    size.small,
+                                    'text-muted-foreground',
+                                )}
                             >
                                 {line}
                             </p>
@@ -108,7 +119,7 @@ export function PrintPreview({
                 </div>
                 <div className="flex flex-col gap-1 border-t pt-3">
                     <p
-                        className="font-bold"
+                        className={cn('font-bold', size.heading)}
                         style={{ fontFamily: font?.headingFamily }}
                     >
                         Sample report
@@ -123,7 +134,12 @@ export function PrintPreview({
                     </div>
                 </div>
                 {settings.footerText && (
-                    <p className="border-t pt-3 text-center text-xs text-muted-foreground">
+                    <p
+                        className={cn(
+                            'border-t pt-3 text-center text-muted-foreground',
+                            size.small,
+                        )}
+                    >
                         {settings.footerText}
                     </p>
                 )}
