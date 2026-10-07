@@ -1,4 +1,6 @@
 import { Link } from '@inertiajs/react';
+import { useState } from 'react';
+import { NightAuditSheet } from '@/components/pms/night-audit/night-audit-sheet';
 import {
     SidebarGroup,
     SidebarGroupLabel,
@@ -17,23 +19,42 @@ export function NavMain({
     label?: string;
 }) {
     const { isCurrentUrl } = useCurrentUrl();
+    const [auditOpen, setAuditOpen] = useState(false);
 
     return (
         <SidebarGroup className="px-2 py-0">
             {label && <SidebarGroupLabel>{label}</SidebarGroupLabel>}
             <SidebarMenu>
-                {items.map((item) => (
-                    <SidebarMenuItem key={item.title}>
-                        <SidebarMenuButton
-                            render={<Link href={item.href} prefetch />}
-                            isActive={item.isActive || isCurrentUrl(item.href)}
-                            tooltip={{ children: item.title }}
-                        >
-                            {item.icon && <item.icon />}
-                            <span>{item.title}</span>
-                        </SidebarMenuButton>
-                    </SidebarMenuItem>
-                ))}
+                {items.map((item) =>
+                    item.action === 'night-audit' ? (
+                        <SidebarMenuItem key={item.title}>
+                            <SidebarMenuButton
+                                onClick={() => setAuditOpen(true)}
+                                tooltip={{ children: item.title }}
+                            >
+                                {item.icon && <item.icon />}
+                                <span>{item.title}</span>
+                            </SidebarMenuButton>
+                            <NightAuditSheet
+                                open={auditOpen}
+                                onOpenChange={setAuditOpen}
+                            />
+                        </SidebarMenuItem>
+                    ) : (
+                        <SidebarMenuItem key={item.title}>
+                            <SidebarMenuButton
+                                render={<Link href={item.href} prefetch />}
+                                isActive={
+                                    item.isActive || isCurrentUrl(item.href)
+                                }
+                                tooltip={{ children: item.title }}
+                            >
+                                {item.icon && <item.icon />}
+                                <span>{item.title}</span>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                    ),
+                )}
             </SidebarMenu>
         </SidebarGroup>
     );

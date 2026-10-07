@@ -14,6 +14,7 @@ import {
     IdCard,
     Landmark,
     LayoutGrid,
+    Moon,
     Percent,
     Receipt,
     Settings,
@@ -49,6 +50,7 @@ const icons: Record<string, LucideIcon> = {
     'calendar-range': CalendarRange,
     'chart-column': ChartColumn,
     users: Users,
+    moon: Moon,
     shield: Shield,
     tag: Tag,
 };
@@ -63,5 +65,6 @@ export function toNavItem(item: App.Data.Navigation.NavItemData): NavItem {
         href: item.href,
         icon: icons[item.icon],
         isActive: item.active,
+        action: item.action,
     };
 }
