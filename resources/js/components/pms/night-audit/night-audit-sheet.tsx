@@ -1,5 +1,6 @@
-import { useHttp } from '@inertiajs/react';
+import { Link, useHttp } from '@inertiajs/react';
 import {
+    ChevronRight,
     Circle,
     CircleAlert,
     CircleCheck,
@@ -8,7 +9,7 @@ import {
 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { FormOverlay } from '@/components/pms/form-overlay';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Field, FieldError, FieldLabel } from '@/components/ui/field';
 import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
@@ -16,7 +17,8 @@ import { formatBusinessDay } from '@/lib/business-date';
 import { run, show } from '@/routes/night-audit';
 
 type Sheet = App.Data.NightAudit.NightAuditSheetData;
-type Item = App.Data.NightAudit.ReadinessItemData;
+type Group = App.Data.NightAudit.ReadinessGroupData;
+type Action = App.Data.NightAudit.ReadinessActionData;
 
 type View = 'loading' | 'ready' | 'running' | 'completed' | 'failed' | 'none';
 
@@ -60,45 +62,185 @@ function viewOf(
     return 'ready';
 }
 
-function ItemRow({
-    item,
-    assigning,
-    onAssign,
+type FixHandlers = {
+    /** The key of the action that is asking to be confirmed or is running. */
+    confirming: string | null;
+    busy: string | null;
+    onRun: (action: Action) => void;
+    onConfirm: (key: string | null) => void;
+    onNavigate: () => void;
+};
+
+const actionKey = (action: Action) => `${action.url}:${action.unitId ?? 'all'}`;
+
+function ActionButton({
+    action,
+    handlers,
 }: {
-    item: Item;
-    assigning: boolean;
-    onAssign: (url: string) => void;
+    action: Action;
+    handlers: FixHandlers;
 }) {
+    const key = actionKey(action);
+
+    if (action.kind === 'link') {
+        return (
+            <Link
+                href={action.url}
+                className={buttonVariants({ size: 'sm', variant: 'outline' })}
+                onClick={handlers.onNavigate}
+            >
+                {action.label}
+            </Link>
+        );
+    }
+
     return (
-        <li className="flex items-center justify-between gap-3 py-2">
-            <div className="flex min-w-0 flex-col">
-                <span className="truncate text-sm font-medium">
-                    {item.guest ?? item.reference}
-                </span>
-                <span className="truncate text-xs text-muted-foreground">
-                    {item.checkLabel} · {item.reference} · {item.detail}
-                </span>
+        <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            disabled={handlers.busy !== null}
+            focusableWhenDisabled
+            onClick={() =>
+                action.confirm
+                    ? handlers.onConfirm(key)
+                    : handlers.onRun(action)
+            }
+        >
+            {handlers.busy === key && <Spinner data-icon="inline-start" />}
+            {action.label}
+        </Button>
+    );
+}
+
+/** The buttons of a row. A fix that needs a yes shows its question in place of the buttons. */
+function Actions({
+    actions,
+    handlers,
+}: {
+    actions: Action[];
+    handlers: FixHandlers;
+}) {
+    const asking = actions.find(
+        (action) => actionKey(action) === handlers.confirming,
+    );
+
+    if (asking) {
+        return (
+            <div className="flex flex-col gap-2 rounded-md bg-muted p-3">
+                <p className="text-sm">{asking.confirm}</p>
+                <div className="flex gap-2">
+                    <Button
+                        type="button"
+                        size="sm"
+                        onClick={() => {
+                            handlers.onConfirm(null);
+                            handlers.onRun(asking);
+                        }}
+                    >
+                        Yes, {asking.label.toLowerCase()}
+                    </Button>
+                    <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handlers.onConfirm(null)}
+                    >
+                        Back
+                    </Button>
+                </div>
             </div>
-            {item.assignUrl ? (
-                <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    disabled={assigning}
-                    focusableWhenDisabled
-                    onClick={() => onAssign(item.assignUrl as string)}
-                >
-                    {assigning && <Spinner data-icon="inline-start" />}
-                    Assign
-                </Button>
-            ) : (
-                <Button
-                    size="sm"
-                    variant="outline"
-                    render={<a href={item.url} />}
-                >
-                    Open
-                </Button>
+        );
+    }
+
+    return (
+        <div className="flex flex-wrap gap-2">
+            {actions.map((action) => (
+                <ActionButton
+                    key={actionKey(action)}
+                    action={action}
+                    handlers={handlers}
+                />
+            ))}
+        </div>
+    );
+}
+
+/**
+ * One reservation with one problem. A group booking is one row, and it opens to show its units. The line "If you
+ * leave it" says what the audit does by itself, from the property's own policies.
+ */
+function GroupRow({
+    group,
+    handlers,
+}: {
+    group: Group;
+    handlers: FixHandlers;
+}) {
+    const [open, setOpen] = useState(false);
+
+    return (
+        <li className="flex flex-col gap-2 py-3">
+            <div className="flex flex-col">
+                <span className="text-sm font-medium">{group.guest}</span>
+                <span className="text-xs text-muted-foreground">
+                    {group.reference}
+                    {group.dates && ` · ${group.dates}`}
+                </span>
+                <span className="text-sm">{group.headline}</span>
+            </div>
+            {group.reasons.map((reason) => (
+                <p key={reason} className="text-sm text-muted-foreground">
+                    {reason}
+                </p>
+            ))}
+            {group.consequence && (
+                <p className="text-sm text-muted-foreground">
+                    {group.consequence}
+                </p>
+            )}
+            <Actions actions={group.actions} handlers={handlers} />
+            {group.units.length > 0 && (
+                <div className="flex flex-col gap-1">
+                    <button
+                        type="button"
+                        className="flex items-center gap-1 self-start text-xs text-muted-foreground hover:text-foreground"
+                        aria-expanded={open}
+                        onClick={() => setOpen(!open)}
+                    >
+                        <ChevronRight
+                            className={`size-3 transition-transform ${open ? 'rotate-90' : ''}`}
+                        />
+                        {open ? 'Hide units' : 'Treat one unit by itself'}
+                    </button>
+                    {open && (
+                        <ul className="flex flex-col gap-2 border-l pl-3">
+                            {group.units.map((unit) => (
+                                <li
+                                    key={unit.unitId}
+                                    className="flex flex-col gap-1"
+                                >
+                                    <span className="text-sm">
+                                        {unit.guest}
+                                        <span className="text-xs text-muted-foreground">
+                                            {' '}
+                                            · {unit.detail}
+                                        </span>
+                                    </span>
+                                    {unit.reason && (
+                                        <span className="text-xs text-muted-foreground">
+                                            {unit.reason}
+                                        </span>
+                                    )}
+                                    <Actions
+                                        actions={unit.actions}
+                                        handlers={handlers}
+                                    />
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                </div>
             )}
         </li>
     );
@@ -155,13 +297,16 @@ export function NightAuditSheet({
         force: false,
         reason: '',
     });
-    const assigner = useHttp<Record<string, never>, unknown>({});
+    const fixer = useHttp<{ unit_id: number | null }, unknown>({
+        unit_id: null,
+    });
     const [sheet, setSheet] = useState<Sheet | null>(null);
     const [ranDate, setRanDate] = useState<string | null>(null);
     const [resumeFrom, setResumeFrom] = useState<string | null>(null);
     const [forcing, setForcing] = useState(false);
-    const [assigning, setAssigning] = useState<string | null>(null);
-    const [assignError, setAssignError] = useState<string | null>(null);
+    const [confirming, setConfirming] = useState<string | null>(null);
+    const [busy, setBusy] = useState<string | null>(null);
+    const [fixError, setFixError] = useState<string | null>(null);
 
     const view = viewOf(sheet, ranDate, resumeFrom);
 
@@ -197,7 +342,8 @@ export function NightAuditSheet({
             setRanDate(null);
             setResumeFrom(null);
             setForcing(false);
-            setAssignError(null);
+            setFixError(null);
+            setConfirming(null);
             runner.resetAndClearErrors();
         }
     };
@@ -224,19 +370,28 @@ export function NightAuditSheet({
             .catch(() => undefined);
     };
 
-    const assign = (url: string) => {
-        setAssigning(url);
-        setAssignError(null);
-        assigner
-            .post(url, {
-                onSuccess: refresh,
+    const runFix = (action: Action) => {
+        setBusy(actionKey(action));
+        setFixError(null);
+        fixer.transform(() => ({ unit_id: action.unitId }));
+        fixer
+            .post(action.url, {
                 onError: (errors) =>
-                    setAssignError(
-                        errors.form ?? 'The room could not be assigned.',
-                    ),
+                    setFixError(errors.form ?? 'This could not be fixed.'),
             })
             .catch(() => undefined)
-            .finally(() => setAssigning(null));
+            .finally(() => {
+                setBusy(null);
+                refresh();
+            });
+    };
+
+    const handlers: FixHandlers = {
+        confirming,
+        busy,
+        onRun: runFix,
+        onConfirm: setConfirming,
+        onNavigate: () => close(false),
     };
 
     const notEnded = sheet !== null && !sheet.dateEnded;
@@ -247,7 +402,7 @@ export function NightAuditSheet({
             : undefined;
     const errors = {
         ...runner.errors,
-        ...(assignError ? { form: assignError } : {}),
+        ...(fixError ? { form: fixError } : {}),
     };
 
     let footer: React.ReactNode;
@@ -330,19 +485,20 @@ export function NightAuditSheet({
                         </section>
                     )}
 
+                    {!notEnded && <p className="text-sm">{sheet.summary}</p>}
+
                     {sheet.blockers.length > 0 && (
-                        <section className="flex flex-col gap-1">
+                        <section className="flex flex-col">
                             <h3 className="flex items-center gap-2 text-sm font-medium text-destructive">
                                 <CircleAlert className="size-4" />
                                 Fix before running
                             </h3>
                             <ul className="divide-y">
-                                {sheet.blockers.map((item) => (
-                                    <ItemRow
-                                        key={`${item.reference}-${item.check}-${item.detail}`}
-                                        item={item}
-                                        assigning={assigning === item.assignUrl}
-                                        onAssign={assign}
+                                {sheet.blockers.map((group) => (
+                                    <GroupRow
+                                        key={`${group.check}-${group.reservationId}`}
+                                        group={group}
+                                        handlers={handlers}
                                     />
                                 ))}
                             </ul>
@@ -350,32 +506,21 @@ export function NightAuditSheet({
                     )}
 
                     {sheet.warnings.length > 0 && (
-                        <section className="flex flex-col gap-1">
+                        <section className="flex flex-col">
                             <h3 className="flex items-center gap-2 text-sm font-medium text-warning">
                                 <TriangleAlert className="size-4" />
                                 Needs a look
                             </h3>
-                            <p className="text-xs text-muted-foreground">
-                                These will not stop the audit.
-                            </p>
                             <ul className="divide-y">
-                                {sheet.warnings.map((item) => (
-                                    <ItemRow
-                                        key={`${item.reference}-${item.check}-${item.detail}-${item.message}`}
-                                        item={item}
-                                        assigning={false}
-                                        onAssign={assign}
+                                {sheet.warnings.map((group) => (
+                                    <GroupRow
+                                        key={`${group.check}-${group.reservationId}`}
+                                        group={group}
+                                        handlers={handlers}
                                     />
                                 ))}
                             </ul>
                         </section>
-                    )}
-
-                    {!blocked && sheet.warnings.length === 0 && (
-                        <p className="flex items-center gap-2 text-sm">
-                            <CircleCheck className="size-4 text-success" />
-                            Everything is ready.
-                        </p>
                     )}
 
                     {blocked && sheet.canForce && !forcing && (

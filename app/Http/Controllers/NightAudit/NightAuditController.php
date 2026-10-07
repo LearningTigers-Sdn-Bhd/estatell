@@ -2,20 +2,22 @@
 
 namespace App\Http\Controllers\NightAudit;
 
-use App\Actions\FrontDesk\AutoAssignRooms;
 use App\Actions\NightAudit\NightAuditResult;
-use App\Actions\Reservations\AssignmentResult;
+use App\Actions\NightAudit\RunAuditFix;
+use App\Actions\NightAudit\Steps\ResolveOverdueDepartures;
 use App\Data\NightAudit\NightAuditSheetData;
+use App\Enums\AuditFix;
 use App\Enums\AuditTrigger;
 use App\Enums\PermissionEnum;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\NightAudit\RunAuditFixRequest;
 use App\Http\Requests\NightAudit\RunNightAuditRequest;
 use App\Jobs\RunNightAuditJob;
 use App\Models\Property;
 use App\Models\Reservation;
-use App\Models\ReservationUnit;
 use App\Services\NightAudit\AuditReadiness;
 use App\Services\NightAudit\CurrentBusinessDate;
+use App\Services\NightAudit\ReadinessAdvice;
 use App\Services\Reservations\ReservationRefusals;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -25,9 +27,9 @@ class NightAuditController extends Controller
     /**
      * The Run Night Audit sheet as JSON: the date, the blockers and warnings, and the audit progress.
      */
-    public function show(Request $request, Property $property, AuditReadiness $readiness, CurrentBusinessDate $currentBusinessDate): JsonResponse
+    public function show(Request $request, Property $property, AuditReadiness $readiness, CurrentBusinessDate $currentBusinessDate, ReadinessAdvice $advice): JsonResponse
     {
-        return response()->json(NightAuditSheetData::forProperty($property, $readiness, $currentBusinessDate, $request->user()->can(PermissionEnum::NightAuditForce->value)));
+        return response()->json(NightAuditSheetData::forProperty($property, $readiness, $currentBusinessDate, $advice, $request->user()->can(PermissionEnum::NightAuditForce->value)));
     }
 
     /**
@@ -56,19 +58,29 @@ class NightAuditController extends Controller
     }
 
     /**
-     * Give an in-house unit without a room or bed a free one for the whole stay.
+     * Run one fix of the sheet on the units of a reservation, or on the one unit in `unit_id`. A unit the Action
+     * refuses does not stop the others: the answer says how many were done and why the rest were not.
      */
-    public function assign(Request $request, Property $property, Reservation $reservation, ReservationUnit $unit, AutoAssignRooms $autoAssignRooms, ReservationRefusals $refusals): JsonResponse
+    public function fix(RunAuditFixRequest $request, Property $property, Reservation $reservation, AuditFix $fix, RunAuditFix $runAuditFix, ReservationRefusals $refusals): JsonResponse
     {
-        $result = $autoAssignRooms($request->user(), $unit);
+        $result = $runAuditFix($request->user(), $property, $reservation, $fix, $request->integer('unit_id') ?: null);
 
-        if ($result->isRefused()) {
-            return $this->refused($result->refusal === AssignmentResult::REFUSAL_NO_FREE_UNIT
-                ? __('No room or bed is free for the whole stay. Move the unit from its reservation.')
-                : array_values($refusals->unitErrors((string) $result->refusal, $result->date))[0]);
+        if ($result->isNothingToDo()) {
+            return $this->refused(__('There is nothing left to fix here. The list has been refreshed.'));
         }
 
-        return response()->json(['assigned' => true]);
+        if ($result->refusals !== []) {
+            $code = array_values($result->refusals)[0];
+            $why = $code === ResolveOverdueDepartures::MESSAGE_PAST_DEPARTURE
+                ? __('The unit is past its departure date. Check it out instead.')
+                : ($code === 'no_free_unit'
+                    ? __('No room or bed is free for the whole stay. Move the unit from its reservation.')
+                    : array_values($refusals->unitErrors($code))[0]);
+
+            return $this->refused($result->done > 0 ? __(':done fixed. The rest could not be: :why', ['done' => $result->done, 'why' => $why]) : $why);
+        }
+
+        return response()->json(['done' => $result->done]);
     }
 
     private function refused(string $message): JsonResponse

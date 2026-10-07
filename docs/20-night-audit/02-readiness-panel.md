@@ -18,7 +18,29 @@ Fix problems during the day so the audit has nothing to do at night. The panel i
 | `FolioOpenAfterCheckOut` Folio still open     | An open Unit folio on a CheckedOut unit                        | No      | **Open** the reservation       |
 | `CarriedException` Left from an earlier audit | An open `night_audit_exceptions` row with a unit               | No      | **Open** the reservation       |
 
-An item with no policy to settle it is a warning: the audit runs and the policy decides (see [Audit run](03-audit-run.md#steps)). Fixes with a form (check in, check out, extend, settle) stay on the reservation page, so the sheet links there instead of repeating the Dialogs. **Assign** is the only fix in place, because it needs no input.
+A row is one reservation with one problem, so a group booking is one row, not one for each unit. A reservation with several units can be opened to treat one unit by itself. An item with a policy is a warning: the audit runs and the policy decides (see [Audit run](03-audit-run.md#steps)).
+
+## What a row says
+
+Each row gives, in plain words: who and which reservation, what is wrong ("3 units — not checked in"), what the audit does if nobody touches it (**If you leave it**), and the buttons. `ReadinessAdvice` writes the words from the property's own policies, so they are what the audit will really do.
+
+| Check                      | If you leave it                                                                                                                           | Buttons                                  |
+| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------- |
+| No room or bed tonight     | The audit cannot run until the unit has a room.                                                                                           | **Assign a room**                        |
+| Not checked in             | Keep as late arrival: kept, nothing charged. Mark no-show: marked no-show and the fee is charged.                                         | **Check in** (link), **Mark no-show**    |
+| Not checked out            | Extend one night: one more night is charged. Block departure: no new night, you finish it later.                                          | **Check out** (link), **Extend 1 night** |
+| Folio still open           | The audit does not touch it.                                                                                                              | **Open folio** (link)                    |
+| Left from an earlier audit | The reason, in words, from the stored refusal code (`folio_not_open` becomes "The folio was closed, so the night could not be charged."). | **Open** (link)                          |
+
+Three buttons run a fix in place. A **link** goes to the reservation page and closes the sheet, because check-in, check-out and the folio have forms (payment, refund, balance) that stay on that page.
+
+| Fix (`AuditFix`) | Action it calls   | Notes                                                                                                               |
+| ---------------- | ----------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `assign`         | `AutoAssignRooms` | A free room or bed for the whole stay.                                                                              |
+| `no-show`        | `MarkNoShow`      | The fee of the no-show policy. The button asks first and names the total fee (`MYR 180.00`).                        |
+| `extend`         | `ExtendStay`      | One night, only for a unit that departs on the business date. A unit that is further past is refused: check it out. |
+
+`RunAuditFix` runs a fix on the units the sheet lists for that reservation, or on one unit. It touches no unit that is not listed, so a unit that changed since the sheet loaded is skipped. The user is the actor, so the activity log names them. A unit an Action refuses does not stop the others: the answer says how many were done and why the rest were not. Fixes need `reservations.manage` as well as `night-audit.run`.
 
 An exception stops being listed when someone resolves it. Marking an exception resolved comes with the exceptions item, so a carried row stays until then.
 

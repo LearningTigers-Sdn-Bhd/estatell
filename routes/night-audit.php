@@ -10,5 +10,5 @@ Route::get('business-date', [BusinessDateController::class, 'show'])->name('busi
 Route::prefix('night-audit')->name('night-audit.')->scopeBindings()->middleware(['live', 'can:'.PermissionEnum::NightAuditRun->value])->group(function () {
     Route::get('/', [NightAuditController::class, 'show'])->name('show');
     Route::post('run', [NightAuditController::class, 'run'])->name('run');
-    Route::post('reservations/{reservation}/units/{unit}/assign', [NightAuditController::class, 'assign'])->middleware('can:'.PermissionEnum::ReservationsManage->value)->name('units.assign');
+    Route::post('reservations/{reservation}/fix/{fix}', [NightAuditController::class, 'fix'])->middleware('can:'.PermissionEnum::ReservationsManage->value)->name('fix');
 });

@@ -1,0 +1,108 @@
+<?php
+
+namespace App\Data\NightAudit;
+
+use App\Enums\AuditCheck;
+use App\Enums\AuditFix;
+use App\Models\Property;
+use App\Services\NightAudit\ReadinessAdvice;
+use App\Services\NightAudit\ReadinessItem;
+use Spatie\LaravelData\Data;
+
+/**
+ * One row of the night audit sheet: every unit of one reservation that has the same problem, so a group booking is one
+ * row, not one for each unit. A reservation with several units can be opened to see them one by one.
+ */
+class ReadinessGroupData extends Data
+{
+    /**
+     * @param  string  $headline  What is wrong, for example "4 units not checked in".
+     * @param  string|null  $consequence  What the audit does with the row if nobody touches it.
+     * @param  list<string>  $reasons  Why an earlier audit left the units, one for each different reason.
+     * @param  list<ReadinessActionData>  $actions
+     * @param  list<ReadinessUnitData>  $units  Empty for a reservation with one unit.
+     */
+    public function __construct(
+        public AuditCheck $check,
+        public bool $blocker,
+        public int $reservationId,
+        public string $reference,
+        public string $guest,
+        public string $headline,
+        public string $dates,
+        public ?string $consequence,
+        public array $reasons,
+        public array $actions,
+        public array $units,
+    ) {}
+
+    /**
+     * @param  non-empty-list<ReadinessItem>  $items  Items of one check and one reservation.
+     */
+    public static function fromItems(array $items, Property $property, ReadinessAdvice $advice): self
+    {
+        $first = $items[0];
+        $check = $first->check;
+        $count = count($items);
+        $unitIds = array_map(fn (ReadinessItem $item): int => (int) $item->reservationUnitId, $items);
+        $dates = array_values(array_unique(array_map(fn (ReadinessItem $item): string => $item->detail, $items)));
+
+        return new self(
+            check: $check,
+            blocker: $check->isBlocker(),
+            reservationId: $first->reservationId,
+            reference: $first->reference,
+            guest: $first->guest ?? $first->reference,
+            headline: $count === 1 ? $check->label() : __(':count units — :check', ['count' => $count, 'check' => mb_strtolower($check->label())]),
+            dates: count($dates) === 1 ? $dates[0] : '',
+            consequence: $advice->consequence($check, $property),
+            reasons: $check === AuditCheck::CarriedException
+                ? array_values(array_unique(array_map(fn (ReadinessItem $item): string => $advice->reason((string) $item->message), $items)))
+                : [],
+            actions: self::actions($check, $property, $first->reservationId, $count, $unitIds, $advice),
+            units: $count === 1 ? [] : array_map(fn (ReadinessItem $item): ReadinessUnitData => new ReadinessUnitData(
+                unitId: (int) $item->reservationUnitId,
+                guest: $item->guest ?? $item->reference,
+                detail: $item->detail,
+                reason: $item->message === null ? null : $advice->reason($item->message),
+                actions: self::actions($check, $property, $item->reservationId, 1, [(int) $item->reservationUnitId], $advice, (int) $item->reservationUnitId, false),
+            ), $items),
+        );
+    }
+
+    /**
+     * @param  list<int>  $unitIds
+     * @return list<ReadinessActionData>
+     */
+    private static function actions(AuditCheck $check, Property $property, int $reservationId, int $count, array $unitIds, ReadinessAdvice $advice, ?int $unitId = null, bool $withLinks = true): array
+    {
+        $parameters = ['property' => $property->code, 'reservation' => $reservationId];
+        $reservationUrl = route('reservations.show', $parameters, absolute: false);
+        $many = $count > 1;
+
+        return match ($check) {
+            AuditCheck::InHouseWithoutRoom => [
+                ReadinessActionData::fix(AuditFix::Assign, $many ? __('Assign rooms') : __('Assign a room'), $property, $reservationId, $unitId),
+            ],
+            AuditCheck::ArrivalNotCheckedIn => [
+                ...($withLinks ? [ReadinessActionData::link(__('Check in'), $reservationUrl)] : []),
+                ReadinessActionData::fix(AuditFix::NoShow, $many ? __('Mark all no-show') : __('Mark no-show'), $property, $reservationId, $unitId, self::noShowConfirm($advice->noShowFee($property, $unitIds), $count)),
+            ],
+            AuditCheck::DepartureNotCheckedOut => [
+                ...($withLinks ? [ReadinessActionData::link(__('Check out'), $reservationUrl)] : []),
+                ReadinessActionData::fix(AuditFix::ExtendOneNight, __('Extend 1 night'), $property, $reservationId, $unitId, __('Move the departure one day later? One more night is charged.')),
+            ],
+            AuditCheck::FolioOpenAfterCheckOut => $withLinks ? [ReadinessActionData::link(__('Open folio'), route('reservations.folio', $parameters, absolute: false))] : [],
+            AuditCheck::CarriedException => $withLinks ? [ReadinessActionData::link(__('Open'), $reservationUrl)] : [],
+        };
+    }
+
+    private static function noShowConfirm(?string $fee, int $count): string
+    {
+        $what = $count > 1 ? __('Mark :count units as no-show?', ['count' => $count]) : __('Mark this unit as no-show?');
+
+        return $fee === null
+            ? $what.' '.__('No fee is charged.')
+            : $what.' '.__('The no-show fee of :fee is charged.', ['fee' => $fee]);
+    }
+}
