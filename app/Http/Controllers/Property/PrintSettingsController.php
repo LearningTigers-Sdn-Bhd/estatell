@@ -37,7 +37,6 @@ class PrintSettingsController extends Controller
         }
 
         return $this->renderTab($property, 'general', [
-            'fonts' => PdfFont::options(),
             'fontSizes' => PdfFontSize::options(),
         ]);
     }
@@ -87,7 +86,8 @@ class PrintSettingsController extends Controller
     }
 
     /**
-     * Each tab has its own URL. Both tabs draw the same preview, so both get the settings, the profile and the taxes.
+     * Each tab has its own URL. Both tabs draw the same preview, so both get the settings, the profile, the taxes and
+     * the font styles.
      *
      * @param  'general'|'header'  $tab
      * @param  array<string, mixed>  $tabProps
@@ -104,6 +104,7 @@ class PrintSettingsController extends Controller
                 ->orderByDesc('enabled')->orderBy('name')->orderBy('id')
                 ->get()
                 ->map(fn (Tax $tax): PrintTaxData => PrintTaxData::fromModel($tax)),
+            'fonts' => PdfFont::options(),
             ...$tabProps,
         ]);
     }

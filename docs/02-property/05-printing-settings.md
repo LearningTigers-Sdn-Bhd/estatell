@@ -2,14 +2,14 @@
 
 ## Purpose
 
-How every PDF of a property looks: the letterhead, the font, the font size and the footer. Reports, receipts, AR invoices, AR statements and the aging report all use it.
+How every PDF of a property looks: the letterhead, the font style, the font size and the footer. Reports, receipts, AR invoices, AR statements and the aging report all use it.
 
 ## Data model
 
 ```
 print_settings              one row per property
   id, property_id (unique FK)
-  font                      PdfFont, default standard
+  font                      PdfFont, default office
   font_size                 PdfFontSize, default medium
   show_logo                 bool, default true
   show_address              bool, default true
@@ -41,15 +41,27 @@ print_setting_taxes         the tax numbers the header shows
 
 ## Enums
 
-- `PdfFont`: Standard ("Standard (Latin, Malay)", DejaVu Sans), Chinese ("Chinese", Noto Sans SC, which also covers Latin). `fontFamily()` returns the CSS family.
+- `PdfFont`: Office, Modern, Fancy, Handwritten. `headingFamily()` and `bodyFamily()` return the Latin fonts, `stack()` adds the fallbacks, `fontFaces()` lists the files, and `options()` sends both families for the style cards. The first font setting (Standard, Chinese) became Office.
 - `PdfFontSize`: Small (8 pt), Medium (9 pt), Large (10.5 pt). `points()` returns the body size. Small text is 1 pt less, headings 2 pt more and the title 7 pt more.
 
 ## Fonts
 
-- dompdf needs a TrueType file for each font. DejaVu Sans is built in, and Noto Sans SC is already in `resources/fonts/` for the registration card. No new font file is added.
-- **Chinese text always prints.** When any text in a document needs Noto Sans SC (Han, Hiragana, Katakana or Hangul, the same check as `RegistrationCardDocument::needsCjk()`), the whole document uses it, whatever the setting. A guest name in Chinese never prints as empty boxes.
-- `PrintedPdf` (`app/Services/Property/`) renders every PDF that uses the shared layout: it renders the view to HTML, switches the font to Noto Sans SC when the HTML needs it, and sets the paper, the orientation and font subsetting. Controllers call it instead of repeating `Pdf::loadView()->setPaper()->setOption()`. Whether dompdf can fall back to a second font for single characters is not verified, so the check covers the whole document.
-- Thai, Tamil and Jawi are not offered. dompdf has no complex-script shaping, so they print wrongly. Add them only after a test PDF proves otherwise.
+The font style sets a heading font (the property name, the document title and section headings) and a body font (text and tables) for Latin text. English and Chinese are covered:
+
+| Style           | Headings              | Body   |
+| --------------- | --------------------- | ------ |
+| Office, default | Arimo Bold            | Arimo  |
+| Modern          | Inter Bold            | Inter  |
+| Fancy           | Playfair Display Bold | Lora   |
+| Handwritten     | Caveat Bold           | Nunito |
+
+- **Chinese prints in every style.** Each font-family list ends with Noto Sans SC, Noto Sans TC and DejaVu Sans. dompdf draws a character the style's fonts lack with the next font in the list, one character at a time (tested: a Latin and Chinese line embeds both fonts). A Latin-only document does not embed the Chinese fonts.
+- Chinese has no bold file. Bold Chinese text prints with the regular file.
+- Fancy and Handwritten change only the headings' look; amounts stay in the body font.
+- The TTF files are in `resources/fonts/` (Google Fonts, OFL licence, about 21 MB with the full Noto Sans SC and TC). `PdfFont::fontFaces()` lists the files the layout declares for a style.
+- The browser preview loads the same Latin files through the Vite fonts plugin (`local()`, not preloaded), so it downloads them only on the Printing page. It uses the system Chinese font.
+- `PrintedPdf` (`app/Services/Property/`) renders every PDF that uses the shared layout and sets the paper, the orientation and font subsetting. Controllers call it instead of repeating `Pdf::loadView()->setPaper()->setOption()`.
+- Thai, Tamil, Jawi and other scripts that need shaping are not covered. dompdf has no complex-script shaping. Covering them needs a Chromium-based PDF engine (for example a Gotenberg container), a decision for later.
 
 ## Logo
 
@@ -82,10 +94,10 @@ The switches control only the letterhead. A document that must show a number pri
 
 **Printing** is its own Settings sidebar item (`settings.manage`, icon `printer`), below Registration card. It has two tabs with their own URLs:
 
-| Tab     | URL                                  | Content                           |
-| ------- | ------------------------------------ | --------------------------------- |
-| General | `/p/{code}/settings/printing`        | Font, font size, footer text      |
-| Header  | `/p/{code}/settings/printing/header` | Header line switches, tax numbers |
+| Tab     | URL                                  | Content                            |
+| ------- | ------------------------------------ | ---------------------------------- |
+| General | `/p/{code}/settings/printing`        | Font style, font size, footer text |
+| Header  | `/p/{code}/settings/printing/header` | Header line switches, tax numbers  |
 
 Report column layouts are not here. They are a Sheet on each report page. See [Core reports](../22-reports/01-core-reports.md#layout-sheet).
 
@@ -93,9 +105,13 @@ Both tabs use the three-column grid of the registration card Layout tab: the for
 
 ```
 ┌ General ──────────────────────────────────┬ Preview (sticky) ──────┐
-│ Font        [ Standard (Latin, Malay) ▾ ] │ Sandbay Resort         │
-│             Chinese text always prints    │ Tan Wei Ming · 陈美玲   │
-│             in Noto Sans SC.              │ RM 1,250.00            │
+│ Font style                                │ Sandbay Resort         │
+│ ┌ Office ──────(•)┐ ┌ Modern ───────( )┐  │ Tan Wei Ming · 陈美玲   │
+│ │ Sandbay Resort  │ │ Sandbay Resort   │  │ RM 1,250.00            │
+│ │ 陈美玲 RM 1,250  │ │ 陈美玲 RM 1,250   │  │                        │
+│ └─────────────────┘ └──────────────────┘  │                        │
+│ ┌ Fancy ───────( )┐ ┌ Handwritten ──( )┐  │                        │
+│ └─────────────────┘ └──────────────────┘  │                        │
 │ Font size   ( ) Small (•) Medium ( ) Large│ ────────────────────── │
 │ Footer text [ Thank you for staying…    ] │ Thank you for staying… │
 │                                           │ [Open sample PDF ↗]    │
@@ -121,7 +137,7 @@ Both tabs use the three-column grid of the registration card Layout tab: the for
 
 ## Actions
 
-- `UpdatePrintSettings`: font, font size and footer text.
+- `UpdatePrintSettings`: font style, font size and footer text.
 - `UpdatePrintHeader`: the five switches and the tax list, synced in one transaction. Refuses a tax of another property.
 
 Each logs `print_settings.updated` when something changed, with the changed fields.

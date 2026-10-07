@@ -1,4 +1,5 @@
 import { ExternalLink } from 'lucide-react';
+import type { FontStyleOption } from '@/components/pms/settings/print-general-form';
 import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { sample } from '@/routes/settings/printing';
@@ -40,12 +41,15 @@ export function PrintPreview({
     settings,
     profile,
     taxes,
+    fonts,
 }: {
     settings: Settings;
+    fonts: FontStyleOption[];
     profile: Profile;
     taxes: Tax[];
 }) {
     const contact = contactLine(profile);
+    const font = fonts.find((option) => option.value === settings.font);
     const registration = [
         settings.showRegistrationNumber && profile.registrationNumber
             ? `Registration no. ${profile.registrationNumber}`
@@ -66,6 +70,7 @@ export function PrintPreview({
                     'flex flex-col gap-4 rounded-lg border bg-card p-4 text-card-foreground',
                     textSize[settings.fontSize],
                 )}
+                style={{ fontFamily: font?.bodyFamily }}
             >
                 <div className="flex items-start gap-3">
                     {settings.showLogo && profile.logoUrl && (
@@ -76,7 +81,12 @@ export function PrintPreview({
                         />
                     )}
                     <div className="flex min-w-0 flex-col gap-0.5">
-                        <p className="font-semibold">{profile.name}</p>
+                        <p
+                            className="font-bold"
+                            style={{ fontFamily: font?.headingFamily }}
+                        >
+                            {profile.name}
+                        </p>
                         {settings.showAddress &&
                             addressLines(profile).map((line) => (
                                 <p key={line} className="text-xs">
@@ -97,7 +107,12 @@ export function PrintPreview({
                     </div>
                 </div>
                 <div className="flex flex-col gap-1 border-t pt-3">
-                    <p className="font-semibold">Sample report</p>
+                    <p
+                        className="font-bold"
+                        style={{ fontFamily: font?.headingFamily }}
+                    >
+                        Sample report
+                    </p>
                     <div className="flex justify-between gap-2 tabular-nums">
                         <span className="truncate">Aisyah binti Rahman</span>
                         <span>480.00</span>

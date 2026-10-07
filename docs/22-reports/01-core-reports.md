@@ -127,12 +127,13 @@ Arrivals     [ This week ▾ ]   [⚙ Layout]   [ Export ▾ ]  PDF · CSV · Ex
 
 ## Build order
 
-Item 20 of the [checklist](../checklist.md), in seven commits, in this order:
+Item 20 of the [checklist](../checklist.md), in eight commits, in this order:
 
 | Step | Commit                                                           | Content                                                                                                                          |
 | ---- | ---------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
 | 1a   | `feat(property): add printing settings and the logo`             | Backend and PDFs. See [Printing settings](../02-property/05-printing-settings.md)                                                |
 | 1b   | `feat(property): add the profile tab and printing pages`         | UI. See [Properties](../02-property/01-properties.md#profile) and [Printing settings](../02-property/05-printing-settings.md#ui) |
+| 1c   | `feat(property): add PDF font styles`                            | Office, Modern, Fancy, Handwritten. See [Printing settings](../02-property/05-printing-settings.md#fonts)                        |
 | 2    | `feat(reports): add the report registry and the arrivals report` | `ReportKey`, `ReportColumn`, `Report`, `ReportFilters`, date presets, `reports.view`, the Arrivals page                          |
 | 3    | `feat(reports): add report layouts`                              | Layout tables, `PageOrientation`, `ReportLayoutResolver`, the Layout Sheet, Preview PDF                                          |
 | 4    | `feat(reports): export selected rows as PDF, CSV or Excel`       | Row selection, the PDF and spreadsheet routes                                                                                    |

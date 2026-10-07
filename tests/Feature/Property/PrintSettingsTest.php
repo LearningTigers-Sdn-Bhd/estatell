@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Services\Property\PrintedPdf;
 use App\Services\Property\PrintProfile;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia as Assert;
 use Spatie\Activitylog\Models\Activity;
@@ -51,7 +52,7 @@ test('the back-fill gives existing properties their print settings', function ()
 
     $settings = $property->printSetting()->sole();
 
-    expect($settings->font)->toBe(PdfFont::Standard)
+    expect($settings->font)->toBe(PdfFont::Office)
         ->and($settings->font_size)->toBe(PdfFontSize::Medium)
         ->and($settings->show_logo)->toBeTrue()
         ->and($settings->show_tin)->toBeFalse()
@@ -62,14 +63,14 @@ test('staff save the font, the size and the footer and the change is logged', fu
     [$owner, $property] = printingProperty();
 
     $this->actingAs($owner)
-        ->put(printSettingsUrl($property, 'printing'), ['font' => 'chinese', 'font_size' => 'large', 'footer_text' => '  Thank you for staying with us.  '])
+        ->put(printSettingsUrl($property, 'printing'), ['font' => 'fancy', 'font_size' => 'large', 'footer_text' => '  Thank you for staying with us.  '])
         ->assertRedirect()
         ->assertSessionHasNoErrors();
 
     $settings = $property->printSetting->refresh();
     $activity = Activity::query()->where('event', 'print_settings.updated')->sole();
 
-    expect($settings->font)->toBe(PdfFont::Chinese)
+    expect($settings->font)->toBe(PdfFont::Fancy)
         ->and($settings->font_size)->toBe(PdfFontSize::Large)
         ->and($settings->footer_text)->toBe('Thank you for staying with us.')
         ->and($activity->properties['changed'])->toBe(['font', 'font_size', 'footer_text']);
@@ -79,7 +80,7 @@ test('an empty footer is stored as null and an unchanged save is not logged', fu
     [$owner, $property] = printingProperty();
 
     $this->actingAs($owner)
-        ->put(printSettingsUrl($property, 'printing'), ['font' => 'standard', 'font_size' => 'medium', 'footer_text' => '   '])
+        ->put(printSettingsUrl($property, 'printing'), ['font' => 'office', 'font_size' => 'medium', 'footer_text' => '   '])
         ->assertSessionHasNoErrors();
 
     expect($property->printSetting->refresh()->footer_text)->toBeNull()
@@ -208,16 +209,42 @@ test('the sample PDF prints the saved settings with the footer', function () {
         ->assertHeader('content-type', 'application/pdf');
 });
 
-test('Chinese text prints in Noto Sans SC whatever the font setting', function () {
+test('each font style embeds its own fonts', function (PdfFont $font, array $fontNames) {
     [, $property] = printingProperty();
+    $property->printSetting->update(['font' => $font]);
 
-    $latin = app(PrintedPdf::class)->make($property, 'pdf.print-sample', ['currency' => 'MYR'])->output();
+    $pdf = app(PrintedPdf::class)->make($property->refresh(), 'pdf.print-sample', ['currency' => 'MYR'])->output();
 
-    $property->printSetting->update(['footer_text' => '谢谢光临']);
-    $chinese = app(PrintedPdf::class)->make($property->refresh(), 'pdf.print-sample', ['currency' => 'MYR'])->output();
+    foreach ($fontNames as $fontName) {
+        expect($pdf)->toContain($fontName);
+    }
 
-    expect($latin)->not->toContain('NotoSansSC')
-        ->and($chinese)->toContain('NotoSansSC');
+    expect($pdf)->not->toContain('NotoSansSC');
+})->with([
+    'office' => [PdfFont::Office, ['Arimo']],
+    'modern' => [PdfFont::Modern, ['Inter']],
+    'fancy' => [PdfFont::Fancy, ['PlayfairDisplay', 'Lora']],
+    'handwritten' => [PdfFont::Handwritten, ['Caveat', 'Nunito']],
+]);
+
+test('Chinese text prints in Noto Sans SC in every font style', function (PdfFont $font) {
+    [, $property] = printingProperty();
+    $property->printSetting->update(['font' => $font, 'footer_text' => '谢谢光临']);
+
+    $pdf = app(PrintedPdf::class)->make($property->refresh(), 'pdf.print-sample', ['currency' => 'MYR'])->output();
+
+    expect($pdf)->toContain('NotoSansSC');
+})->with(PdfFont::cases());
+
+test('the old fonts become the Office style', function () {
+    [, $property] = printingProperty();
+    $migration = require database_path('migrations/2026_10_07_161645_replace_print_settings_font_with_styles.php');
+
+    $migration->down();
+    DB::table('print_settings')->where('property_id', $property->id)->update(['font' => 'chinese']);
+    $migration->up();
+
+    expect($property->printSetting->refresh()->font)->toBe(PdfFont::Office);
 });
 
 test('the printing tabs send the settings, the profile and the taxes in the Taxes tab order', function () {
@@ -230,20 +257,21 @@ test('the printing tabs send the settings, the profile and the taxes in the Taxe
         ->assertInertia(fn (Assert $page) => $page
             ->component('settings/printing/edit')
             ->where('tab', 'general')
-            ->where('settings.font', 'standard')
+            ->where('settings.font', 'office')
             ->where('settings.showTin', false)
             ->where('profile.registrationNumber', '202301012345')
             ->where('profile.countryName', 'Malaysia')
             ->where('taxes.0.id', $on->id)
             ->where('taxes.1.id', $off->id)
-            ->has('fonts', 2)
+            ->has('fonts', 4)
+            ->where('fonts.2', ['value' => 'fancy', 'label' => 'Fancy', 'headingFamily' => 'Playfair Display', 'bodyFamily' => 'Lora'])
             ->has('fontSizes', 3)
             ->where('navigation.contexts.2.groups.0.items.2.title', 'Printing')
             ->where('navigation.contexts.2.groups.0.items.2.active', true));
 
     $this->actingAs($owner)
         ->get(printSettingsUrl($property, 'printing/header'))
-        ->assertInertia(fn (Assert $page) => $page->where('tab', 'header')->missing('fonts'));
+        ->assertInertia(fn (Assert $page) => $page->where('tab', 'header')->has('fonts', 4)->missing('fontSizes'));
 });
 
 test('the printing pages send a property without settings to the Details page', function () {

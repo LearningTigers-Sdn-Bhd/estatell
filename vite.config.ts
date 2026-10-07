@@ -4,7 +4,7 @@ import babel from '@rolldown/plugin-babel';
 import tailwindcss from '@tailwindcss/vite';
 import react, { reactCompilerPreset } from '@vitejs/plugin-react';
 import laravel from 'laravel-vite-plugin';
-import { bunny } from 'laravel-vite-plugin/fonts';
+import { bunny, local } from 'laravel-vite-plugin/fonts';
 import { defineConfig, lazyPlugins } from 'vite-plus';
 
 export default defineConfig({
@@ -19,6 +19,27 @@ export default defineConfig({
                 bunny('Geist', {
                     weights: [400, 500, 600],
                 }),
+                // The PDF font styles, from the same files dompdf uses, for the printing preview. Not preloaded:
+                // a browser downloads them only on a page that uses them.
+                ...(
+                    [
+                        ['Arimo', ['Arimo-Regular', 'Arimo-Bold']],
+                        ['Inter', ['Inter-Regular', 'Inter-Bold']],
+                        ['Lora', ['Lora-Regular', 'Lora-Bold']],
+                        ['Nunito', ['Nunito-Regular', 'Nunito-Bold']],
+                        ['Playfair Display', ['PlayfairDisplay-Bold']],
+                        ['Caveat', ['Caveat-Bold']],
+                    ] as const
+                ).map(([family, files]) =>
+                    local(family, {
+                        variants: files.map((file) => ({
+                            src: `resources/fonts/${file}.ttf`,
+                            weight: file.endsWith('Bold') ? 700 : 400,
+                        })),
+                        preload: false,
+                        optimizedFallbacks: false,
+                    }),
+                ),
             ],
         }),
         inertia(),

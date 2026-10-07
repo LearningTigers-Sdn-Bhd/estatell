@@ -2,7 +2,6 @@
 
 namespace App\Services\Property;
 
-use App\Enums\PdfFont;
 use App\Models\Property;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Barryvdh\DomPDF\PDF as DomPdf;
@@ -10,8 +9,8 @@ use Illuminate\Support\Facades\File;
 
 /**
  * Renders a view on the shared PDF layout with the property's print settings. The view gets the layout as `$print`.
- * When any text needs Noto Sans SC the whole document uses it, whatever the setting, so Chinese text never prints as
- * empty boxes. It writes nothing but dompdf's font cache in `storage/fonts`.
+ * Chinese text prints in every font style: dompdf draws a character the style's fonts lack with the next font in the
+ * font-family list (Noto Sans SC, then Noto Sans TC). It writes nothing but dompdf's font cache in `storage/fonts`.
  */
 class PrintedPdf
 {
@@ -26,23 +25,8 @@ class PrintedPdf
     {
         File::ensureDirectoryExists(storage_path('fonts'));
 
-        $print = $this->printProfile->for($property);
-        $html = view($view, [...$data, 'print' => $print])->render();
-
-        if ($print->font !== PdfFont::Chinese && self::needsCjk($html)) {
-            $html = view($view, [...$data, 'print' => $print->withFont(PdfFont::Chinese)])->render();
-        }
-
-        return Pdf::loadHTML($html)
+        return Pdf::loadView($view, [...$data, 'print' => $this->printProfile->for($property)])
             ->setPaper('a4', $orientation)
             ->setOption('isFontSubsettingEnabled', true);
-    }
-
-    /**
-     * True when the text has Han, Hiragana, Katakana or Hangul characters, which DejaVu Sans does not cover.
-     */
-    public static function needsCjk(string $text): bool
-    {
-        return preg_match('/[\p{Han}\p{Hiragana}\p{Katakana}\p{Hangul}]/u', $text) === 1;
     }
 }

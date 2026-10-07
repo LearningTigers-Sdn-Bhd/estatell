@@ -3,6 +3,7 @@ import { PanelTop, Type } from 'lucide-react';
 import Heading from '@/components/heading';
 import type { EnumOption } from '@/components/pms/enum-select';
 import { AutoSaveStatus } from '@/components/pms/settings/auto-save-status';
+import type { FontStyleOption } from '@/components/pms/settings/print-general-form';
 import { PrintGeneralForm } from '@/components/pms/settings/print-general-form';
 import { PrintHeaderForm } from '@/components/pms/settings/print-header-form';
 import { PrintPreview } from '@/components/pms/settings/print-preview';
@@ -48,7 +49,7 @@ export default function PrintingSettings({
     settings: Settings;
     profile: App.Data.Property.PropertyProfileData;
     taxes: App.Data.Property.PrintTaxData[];
-    fonts?: EnumOption[];
+    fonts?: FontStyleOption[];
     fontSizes?: EnumOption[];
 }) {
     const form = useAutoSave(settings, request(tab));
@@ -89,6 +90,7 @@ export default function PrintingSettings({
                             {tab === 'general' ? (
                                 <PrintGeneralForm
                                     value={form.value}
+                                    propertyName={profile.name}
                                     fonts={fonts}
                                     fontSizes={fontSizes}
                                     onChange={form.change}
@@ -107,6 +109,7 @@ export default function PrintingSettings({
                             settings={form.value}
                             profile={profile}
                             taxes={taxes}
+                            fonts={fonts}
                         />
                     </div>
                 </TabLinks>

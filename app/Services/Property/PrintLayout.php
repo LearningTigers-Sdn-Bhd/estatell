@@ -26,11 +26,4 @@ final readonly class PrintLayout
         public ?string $footerText,
     ) {}
 
-    /**
-     * The same layout with another font, used when the text needs Noto Sans SC.
-     */
-    public function withFont(PdfFont $font): self
-    {
-        return new self($font, $this->fontSize, $this->propertyName, $this->logoDataUri, $this->addressLines, $this->contactLines, $this->registrationLines, $this->footerText);
-    }
 }

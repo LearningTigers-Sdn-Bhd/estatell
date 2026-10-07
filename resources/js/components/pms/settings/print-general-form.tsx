@@ -1,5 +1,4 @@
 import type { EnumOption } from '@/components/pms/enum-select';
-import { EnumSelect } from '@/components/pms/enum-select';
 import {
     Field,
     FieldContent,
@@ -7,46 +6,83 @@ import {
     FieldLabel,
     FieldLegend,
     FieldSet,
+    FieldTitle,
 } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
 type Settings = App.Data.Property.PrintSettingsData;
 
+/** A font style from `PdfFont::options()`, with the CSS families its sample uses. */
+export type FontStyleOption = EnumOption & {
+    headingFamily: string;
+    bodyFamily: string;
+};
+
 /**
- * Font, font size and footer text. Each change saves by itself; the footer saves on blur.
+ * Font style, font size and footer text. Each change saves by itself; the footer saves on blur.
  */
 export function PrintGeneralForm({
     value,
+    propertyName,
     fonts,
     fontSizes,
     onChange,
     onDraft,
 }: {
     value: Settings;
-    fonts: EnumOption[];
+    propertyName: string;
+    fonts: FontStyleOption[];
     fontSizes: EnumOption[];
     onChange: (next: Settings, options?: { delay?: number }) => void;
     onDraft: (next: Settings) => void;
 }) {
     return (
         <div className="flex flex-col gap-6">
-            <Field>
-                <FieldLabel htmlFor="font">Font</FieldLabel>
-                <EnumSelect
-                    id="font"
-                    options={fonts}
+            <FieldSet>
+                <FieldLegend variant="label">Font style</FieldLegend>
+                <FieldDescription>
+                    Chinese text prints in Noto Sans in every style.
+                </FieldDescription>
+                <RadioGroup
                     value={value.font}
                     onValueChange={(font) =>
                         onChange({ ...value, font: font as Settings['font'] })
                     }
-                    className="md:w-72"
-                />
-                <FieldDescription>
-                    Chinese text always prints in Noto Sans SC, whatever this
-                    setting.
-                </FieldDescription>
-            </Field>
+                    className="grid gap-3 sm:grid-cols-2"
+                >
+                    {fonts.map((font) => (
+                        <FieldLabel
+                            key={font.value}
+                            htmlFor={`font-${font.value}`}
+                        >
+                            <Field orientation="horizontal">
+                                <FieldContent className="min-w-0">
+                                    <FieldTitle>{font.label}</FieldTitle>
+                                    <p
+                                        className="truncate text-lg font-bold"
+                                        style={{
+                                            fontFamily: font.headingFamily,
+                                        }}
+                                    >
+                                        {propertyName}
+                                    </p>
+                                    <p
+                                        className="truncate text-sm text-muted-foreground"
+                                        style={{ fontFamily: font.bodyFamily }}
+                                    >
+                                        Tan Wei Ming · 陈美玲 · RM 1,250.00
+                                    </p>
+                                </FieldContent>
+                                <RadioGroupItem
+                                    id={`font-${font.value}`}
+                                    value={font.value}
+                                />
+                            </Field>
+                        </FieldLabel>
+                    ))}
+                </RadioGroup>
+            </FieldSet>
             <FieldSet>
                 <FieldLegend variant="label">Font size</FieldLegend>
                 <RadioGroup
