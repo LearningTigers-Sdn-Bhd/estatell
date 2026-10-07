@@ -4,6 +4,7 @@ use App\Actions\Folio\CreateFolio;
 use App\Actions\Folio\PostCharge;
 use App\Actions\Folio\ReverseLine;
 use App\Data\Folio\NewChargeData;
+use App\Enums\ChargingUnit;
 use App\Enums\DefaultRoleEnum;
 use App\Enums\DiscountScope;
 use App\Enums\DiscountType;
@@ -16,6 +17,7 @@ use App\Models\FolioLine;
 use App\Models\FolioRoutingRule;
 use App\Models\Property;
 use App\Models\PropertySetting;
+use App\Models\RatePlanInclusion;
 use App\Models\Reservation;
 use App\Models\ReservationUnit;
 use App\Models\Tax;
@@ -129,6 +131,22 @@ test('a scheduled night shows its stay discount, booking discount and tax in ord
             ['Service Tax 8.00%', 1, '18.14'],
         ])
         ->where('folio.projectedTotal', '244.94'));
+});
+
+test('a scheduled night splits its inclusions off the room, each with its own tax', function () {
+    $setup = ftSetup();
+    ftTax($setup['property'], $setup['room'], '8.00');
+    $unit = ftUnit($setup['reservation'], 1, '300.00');
+    $unit->forceFill(['adults' => 2])->save();
+    $inclusion = RatePlanInclusion::factory()->create(['rate_plan_id' => $unit->rate_plan_id, 'charging_unit' => ChargingUnit::PerGuestNight, 'allocated_amount' => '25.00']);
+    UnitNight::query()->where('reservation_unit_id', $unit->id)->update(['base_amount' => '300.00', 'amount' => '300.00']);
+
+    ftGet($setup)->assertInertia(fn (Assert $page) => $page
+        ->where('folio.rows', fn ($rows) => collect($rows)->map(fn ($row) => [$row['description'], $row['level'], $row['amount']])->all() === [
+            ['Room · '.$unit->ratePlan->name, 0, '250.00'],
+            ['Service Tax 8.00%', 1, '20.00'],
+            [$inclusion->chargeItem->name, 0, '50.00'],
+        ]));
 });
 
 test('an overridden night is one row without a discount child', function () {

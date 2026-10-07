@@ -119,22 +119,21 @@ Built with the night audit item.
 1. The gross is `base + extra + supplement`, or `override_amount` when set.
 2. `InclusionAllocator` splits the gross: the room remainder plus one line per inclusion of the night's rate plan. The guest count is the unit's guests. A night with no inclusions keeps the whole gross as the room.
 3. The discounts belong to the room only, never to an inclusion line. The stay discount (`discount_amount`) comes first, then the booking-time discount (`reservation_units.discount_id`) on what is left. An overridden night has no discount lines, because the override replaces the whole sum. Discounts that add up to more than the room remainder refuse the night (`discount_exceeds_room`).
-4. `TaxCalculator` runs on the room after its discounts, and on each inclusion line, by the transaction code of each line.
+4. `TaxCalculator` runs on the room after its discounts, and on each inclusion line, by the transaction code of each line. The room line holds the gross without the inclusive tax of the discounted amount, so the folio total is the discounted amount plus any exclusive tax. The tax lines are children of their charge. A discount line has no tax line of its own.
 5. `FolioRouter` chooses the target folio for each charge code. `CreateFolio` runs when the unit has no folio yet.
 6. `PostFolioCharge` writes each charge with its tax children.
 
-| Line              | Key                              | Parent       |
-| ----------------- | -------------------------------- | ------------ |
-| Room              | `night:{unit_night_id}`          |              |
-| Stay discount     | `night:{id}:stay-discount`       | Room         |
-| Booking discount  | `night:{id}:discount`            | Room         |
-| Tax on a charge   | `{charge key}:tax:{tax_id}`      | Its charge   |
-| Tax on a discount | `{discount key}:tax:{tax_id}`    | Its discount |
-| Inclusion         | `night:{id}:incl:{inclusion_id}` |              |
+| Line             | Key                              | Parent     |
+| ---------------- | -------------------------------- | ---------- |
+| Room             | `night:{unit_night_id}`          |            |
+| Stay discount    | `night:{id}:stay-discount`       | Room       |
+| Booking discount | `night:{id}:discount`            | Room       |
+| Tax on a charge  | `{charge key}:tax:{tax_id}`      | Its charge |
+| Inclusion        | `night:{id}:incl:{inclusion_id}` |            |
 
 Example, RM300 with Breakfast RM50 for 2 guests and a 10% booking discount: Room 250.00, Booking discount -25.00, Breakfast 50.00, each with its tax lines.
 
-The room line has `source_type` and `source_id` set to the unit night. Discount lines are Adjustment lines with the discount's code and a negative amount. A discount reduces only the percent taxes of its room, like [folio discounts](04-folio-discounts.md#tax-on-a-discount).
+The room line has `source_type` and `source_id` set to the unit night. Discount lines are Adjustment lines with a negative amount. The stay discount uses the property's system discount code, and the booking discount uses its own code. Each charge is routed on its own code, so an inclusion can land on another folio than the room.
 
 ### `PostRoomCharges`
 

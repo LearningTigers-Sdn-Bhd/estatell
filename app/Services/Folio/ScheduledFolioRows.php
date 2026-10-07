@@ -4,12 +4,10 @@ namespace App\Services\Folio;
 
 use App\Data\Folio\FolioRowData;
 use App\Data\Shared\BadgeData;
-use App\Enums\DiscountType;
 use App\Enums\FolioRowTag;
 use App\Enums\SystemTransactionCode;
 use App\Enums\TransactionKind;
 use App\Enums\UnitStatus;
-use App\Models\Discount;
 use App\Models\FolioLine;
 use App\Models\Property;
 use App\Models\Reservation;
@@ -20,8 +18,6 @@ use App\Models\UnitAddOn;
 use App\Models\UnitNight;
 use App\Services\Catalogues\TaxCalculationResult;
 use App\Services\Catalogues\TaxCalculator;
-use Brick\Math\BigDecimal;
-use Brick\Math\RoundingMode;
 use Brick\Money\Money;
 use Illuminate\Support\Collection;
 
@@ -41,6 +37,7 @@ class ScheduledFolioRows
     public function __construct(
         private FolioRouter $folioRouter,
         private TaxCalculator $taxCalculator,
+        private NightChargeQuote $nightChargeQuote,
     ) {}
 
     /**
@@ -62,7 +59,7 @@ class ScheduledFolioRows
         $this->propertyTaxes = null;
         $units = $reservation->units()
             ->whereIn('status', array_map(fn (UnitStatus $status): string => $status->value, UnitStatus::holdingInventory()))
-            ->with(['discount', 'nights' => fn ($nights) => $nights->orderBy('date'), 'nights.ratePlan', 'addOns' => fn ($addOns) => $addOns->whereNull('folio_line_id'), 'addOns.chargeItem.transactionCode'])
+            ->with(['discount', 'nights' => fn ($nights) => $nights->orderBy('date'), 'nights.ratePlan.inclusions.chargeItem.transactionCode', 'addOns' => fn ($addOns) => $addOns->whereNull('folio_line_id'), 'addOns.chargeItem.transactionCode'])
             ->orderBy('id')
             ->get();
         $posted = FolioLine::query()
@@ -85,12 +82,20 @@ class ScheduledFolioRows
                     continue;
                 }
 
-                $blocks[] = [
-                    'target' => $resolve($unit, $roomCode),
-                    'unit' => $unit->id,
-                    'date' => $night->date->toDateString(),
-                    'rows' => $this->nightRows($property, $unit, $night, $roomCode, $currency, $nationality, $label, $isFirst),
-                ];
+                $quote = $this->nightChargeQuote->quote($property, $this->propertyTaxes ??= $this->nightChargeQuote->propertyTaxes($property), $unit, $night, $isFirst, $roomCode, $nationality);
+
+                if ($quote->isRefused()) {
+                    continue;
+                }
+
+                foreach ($quote->charges as $charge) {
+                    $blocks[] = [
+                        'target' => $resolve($unit, $charge->code),
+                        'unit' => $unit->id,
+                        'date' => $night->date->toDateString(),
+                        'rows' => $this->chargeRows($charge, $night, $label),
+                    ];
+                }
             }
 
             foreach ($unit->addOns as $addOn) {
@@ -112,35 +117,21 @@ class ScheduledFolioRows
     }
 
     /**
-     * Room, then the stay discount and the booking-time discount, then tax on what is left. A night with a price
-     * override is one row with no discount children, because the override replaces the whole sum.
+     * The charge, its discounts, then its tax. Each charge is its own block, because routing is by transaction code.
      *
      * @return list<FolioRowData>
      */
-    private function nightRows(Property $property, ReservationUnit $unit, UnitNight $night, TransactionCode $code, string $currency, ?string $nationality, ?string $label, bool $firstNight): array
+    private function chargeRows(QuotedCharge $charge, UnitNight $night, ?string $label): array
     {
-        $key = 'night:'.$night->id;
         $date = $night->date->toDateString();
-        $overridden = $night->override_amount !== null;
-        $net = Money::of($night->amount, $currency);
-        $gross = $overridden ? $net : Money::of($night->base_amount, $currency)->plus($night->extra_amount)->plus($night->supplement_amount);
-        $stayDiscount = $overridden ? Money::zero($currency) : Money::of($night->discount_amount, $currency);
-        $bookingDiscount = ($overridden || $unit->discount === null) ? Money::zero($currency) : $this->bookingDiscount($unit->discount, $net, $firstNight, $currency);
-        $entered = $net->minus($bookingDiscount);
-        $tax = $this->tax($property, $code, $entered, '1', $nationality);
-        $shift = $tax->isCalculated() ? $entered->minus($tax->netAmount) : Money::zero($currency);
+        $overridden = $charge->key === 'night:'.$night->id && $night->override_amount !== null;
+        $rows = [$this->row($charge->key, $date, $charge->description, 0, $label, $charge->lineAmount, $overridden ? [FolioRowTag::Scheduled, FolioRowTag::Overridden] : [FolioRowTag::Scheduled])];
 
-        $rows = [$this->row($key, $date, 'Room · '.$night->ratePlan->name, 0, $label, $gross->minus($shift), $overridden ? [FolioRowTag::Scheduled, FolioRowTag::Overridden] : [FolioRowTag::Scheduled])];
-
-        if ($stayDiscount->isPositive()) {
-            $rows[] = $this->row($key.':stay-discount', $date, 'Stay discount', 1, $label, $stayDiscount->negated(), [FolioRowTag::Scheduled]);
+        foreach ($charge->discounts as $discount) {
+            $rows[] = $this->row($discount->key, $date, $discount->description, 1, $label, $discount->amount->negated(), [FolioRowTag::Scheduled]);
         }
 
-        if ($bookingDiscount->isPositive()) {
-            $rows[] = $this->row($key.':discount', $date, $unit->discount->name, 1, $label, $bookingDiscount->negated(), [FolioRowTag::Scheduled]);
-        }
-
-        return [...$rows, ...$this->taxRows($key, $date, $label, $tax)];
+        return [...$rows, ...$this->taxRows($charge->key, $date, $label, $charge->tax)];
     }
 
     /**
@@ -159,24 +150,9 @@ class ScheduledFolioRows
         ];
     }
 
-    /**
-     * A Percent discount takes its share of every night. A Fixed discount is taken once per stay, from the first
-     * night, and never more than that night. An Open discount has no amount at booking time.
-     */
-    private function bookingDiscount(Discount $discount, Money $net, bool $firstNight, string $currency): Money
-    {
-        $zero = Money::zero($currency);
-
-        return match ($discount->type) {
-            DiscountType::Percent => $net->multipliedBy(BigDecimal::of((string) $discount->value)->dividedBy(100, 8), RoundingMode::HalfUp),
-            DiscountType::Fixed => $firstNight ? Money::min(Money::of((string) $discount->value, $currency), $net) : $zero,
-            DiscountType::Open => $zero,
-        };
-    }
-
     private function tax(Property $property, TransactionCode $code, Money $entered, string $quantity, ?string $nationality): TaxCalculationResult
     {
-        $this->propertyTaxes ??= $property->taxes()->with('applicableTransactionCodes:id')->get();
+        $this->propertyTaxes ??= $this->nightChargeQuote->propertyTaxes($property);
         $taxes = $this->propertyTaxes->filter(fn (Tax $tax): bool => $tax->applicableTransactionCodes->contains('id', $code->id));
 
         return $this->taxCalculator->calculateWithTaxes($property, $taxes, $entered, $quantity, $nationality);
