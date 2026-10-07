@@ -62,7 +62,7 @@ The property's identity, edited on the Details page, **Profile** tab (`/p/{code}
 └──────────────────────────────────────────────────────┘
 ```
 
-- Fields: name, address, contact phone and email, registration number and TIN. The address fields reuse the Basics form and its rules.
+- Fields: name, address, contact phone and email, registration number and TIN. The name and address use the Basics rules (`SavePropertyBasicsRequest::identityRules()`).
 - Type and country are shown and locked. They seeded the currency, taxes and presets. Before Basics is complete, the tab links to Basics like the other tabs.
 - `UpdatePropertyProfile` (`app/Actions/Property/`) saves the fields and logs `property.updated` with the changed fields. A save that changes nothing is not logged. It does not change `document_prefix`.
 - Printed documents read these values through [Printing settings](05-printing-settings.md). Empty values show "Not set" there with a link back to this tab.

@@ -1,4 +1,5 @@
 import {
+    Printer,
     Activity,
     Baby,
     Ban,
@@ -34,6 +35,7 @@ const icons: Record<string, LucideIcon> = {
     bed: Bed,
     'door-open': DoorOpen,
     'id-card': IdCard,
+    printer: Printer,
     settings: Settings,
     activity: Activity,
     bell: Bell,

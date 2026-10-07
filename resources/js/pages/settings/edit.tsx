@@ -1,6 +1,7 @@
 import { Head, Link } from '@inertiajs/react';
 import {
     Baby,
+    Building2,
     LifeBuoy,
     MoonStar,
     SlidersHorizontal,
@@ -11,6 +12,7 @@ import Heading from '@/components/heading';
 import type { EnumOption } from '@/components/pms/enum-select';
 import { AgeGroupsForm } from '@/components/pms/settings/age-groups-form';
 import { MealPeriodsForm } from '@/components/pms/settings/meal-periods-form';
+import { PropertyLogoField } from '@/components/pms/settings/property-logo-field';
 import { SettingsSection } from '@/components/pms/settings-section';
 import { TabLinks } from '@/components/pms/tab-links';
 import {
@@ -32,22 +34,25 @@ import {
     edit as general,
     mealPeriods as mealPeriodsTab,
     operations,
+    profile as profileTab,
     support,
 } from '@/routes/settings';
 
 type Section =
+    | 'profile'
     | 'general'
     | 'operations'
     | 'support'
     | 'age-groups'
     | 'meal-periods';
 
-const form = (section: Section) =>
+const form = (section: Exclude<Section, 'profile'>) =>
     PropertySettingsController.update.form({ section });
 
 export default function PropertySettings({
     settings,
     tab,
+    profile,
     currencies = [],
     locales = [],
     missedArrivalPolicies = [],
@@ -60,6 +65,7 @@ export default function PropertySettings({
 }: {
     settings: App.Data.Property.PropertySettingsData | null;
     tab: Section;
+    profile?: App.Data.Property.PropertyProfileData;
     currencies?: EnumOption[];
     locales?: EnumOption[];
     missedArrivalPolicies?: EnumOption[];
@@ -119,6 +125,12 @@ export default function PropertySettings({
                     className="flex flex-col gap-4"
                     tabs={[
                         {
+                            value: 'profile',
+                            label: 'Profile',
+                            icon: Building2,
+                            href: profileTab(),
+                        },
+                        {
                             value: 'general',
                             label: 'General',
                             icon: SlidersHorizontal,
@@ -150,6 +162,90 @@ export default function PropertySettings({
                         },
                     ]}
                 >
+                    {tab === 'profile' && profile && (
+                        <div className="flex flex-col gap-6">
+                            <PropertyLogoField logoUrl={profile.logoUrl} />
+                            <SettingsSection
+                                form={PropertySettingsController.updateProfile.form()}
+                                title="Profile"
+                                description={`The name, address and numbers printed on receipts, invoices and reports. ${[profile.typeLabel, profile.countryName].filter(Boolean).join(' · ')}`}
+                                submitLabel="Save profile"
+                            >
+                                {(errors) => (
+                                    <>
+                                        <div className="md:col-span-2">
+                                            <SettingsInput
+                                                name="name"
+                                                label="Property name"
+                                                value={profile.name}
+                                                error={errors.name}
+                                            />
+                                        </div>
+                                        <div className="md:col-span-2">
+                                            <SettingsInput
+                                                name="address_line1"
+                                                label="Address line 1"
+                                                value={profile.addressLine1}
+                                                error={errors.address_line1}
+                                            />
+                                        </div>
+                                        <div className="md:col-span-2">
+                                            <SettingsInput
+                                                name="address_line2"
+                                                label="Address line 2 (optional)"
+                                                value={profile.addressLine2}
+                                                error={errors.address_line2}
+                                            />
+                                        </div>
+                                        <SettingsInput
+                                            name="postal_code"
+                                            label="Postcode (optional)"
+                                            value={profile.postalCode}
+                                            error={errors.postal_code}
+                                        />
+                                        <SettingsInput
+                                            name="city"
+                                            label="City"
+                                            value={profile.city}
+                                            error={errors.city}
+                                        />
+                                        <SettingsInput
+                                            name="state_code"
+                                            label="State (optional)"
+                                            value={profile.stateCode}
+                                            error={errors.state_code}
+                                        />
+                                        <SettingsInput
+                                            name="contact_phone"
+                                            label="Phone (optional)"
+                                            type="tel"
+                                            value={profile.contactPhone}
+                                            error={errors.contact_phone}
+                                        />
+                                        <SettingsInput
+                                            name="contact_email"
+                                            label="Email (optional)"
+                                            type="email"
+                                            value={profile.contactEmail}
+                                            error={errors.contact_email}
+                                        />
+                                        <SettingsInput
+                                            name="registration_number"
+                                            label="Business registration no. (optional)"
+                                            value={profile.registrationNumber}
+                                            error={errors.registration_number}
+                                        />
+                                        <SettingsInput
+                                            name="tin"
+                                            label="TIN (optional)"
+                                            value={profile.tin}
+                                            error={errors.tin}
+                                        />
+                                    </>
+                                )}
+                            </SettingsSection>
+                        </div>
+                    )}
                     {tab === 'general' && (
                         <SettingsSection
                             form={form('general')}
@@ -305,5 +401,5 @@ export default function PropertySettings({
 }
 
 PropertySettings.layout = {
-    breadcrumbs: [{ title: 'Settings', href: general() }],
+    breadcrumbs: [{ title: 'Settings', href: profileTab() }],
 };

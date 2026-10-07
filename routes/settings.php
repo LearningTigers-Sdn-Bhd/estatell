@@ -36,6 +36,8 @@ Route::prefix('settings')->name('settings.')->group(function () {
     });
 
     Route::middleware('can:'.PermissionEnum::SettingsManage->value)->group(function () {
+        Route::get('profile', [PropertySettingsController::class, 'profile'])->name('profile');
+        Route::put('profile', [PropertySettingsController::class, 'updateProfile'])->name('profile.update');
         Route::get('/', [PropertySettingsController::class, 'edit'])->name('edit');
         Route::get('operations', [PropertySettingsController::class, 'operations'])->name('operations');
         Route::get('support', [PropertySettingsController::class, 'support'])->name('support');
@@ -48,7 +50,9 @@ Route::prefix('settings')->name('settings.')->group(function () {
             Route::put('layout', [RegistrationCardController::class, 'updateFields'])->name('fields.update');
         });
         Route::prefix('printing')->name('printing.')->controller(PrintSettingsController::class)->group(function () {
+            Route::get('/', 'general')->name('general');
             Route::put('/', 'update')->name('update');
+            Route::get('header', 'header')->name('header');
             Route::put('header', 'updateHeader')->name('header.update');
             Route::get('sample', 'sample')->name('sample');
         });

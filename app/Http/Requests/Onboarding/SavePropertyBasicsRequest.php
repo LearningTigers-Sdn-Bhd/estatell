@@ -25,8 +25,20 @@ class SavePropertyBasicsRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['required', 'string', 'max:255'],
             'type' => ['required', Rule::enum(PropertyType::class)],
+            ...self::identityRules(),
+        ];
+    }
+
+    /**
+     * The name and address rules, shared with the Profile tab of the Details page.
+     *
+     * @return array<string, array<int, string>>
+     */
+    public static function identityRules(): array
+    {
+        return [
+            'name' => ['required', 'string', 'max:255'],
             'address_line1' => ['required', 'string', 'max:255'],
             'address_line2' => ['nullable', 'string', 'max:255'],
             'city' => ['required', 'string', 'max:255'],

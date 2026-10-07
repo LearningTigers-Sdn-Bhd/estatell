@@ -11,6 +11,7 @@ use App\Services\Property\PrintedPdf;
 use App\Services\Property\PrintProfile;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Inertia\Testing\AssertableInertia as Assert;
 use Spatie\Activitylog\Models\Activity;
 
 beforeEach(function () {
@@ -217,4 +218,95 @@ test('Chinese text prints in Noto Sans SC whatever the font setting', function (
 
     expect($latin)->not->toContain('NotoSansSC')
         ->and($chinese)->toContain('NotoSansSC');
+});
+
+test('the printing tabs send the settings, the profile and the taxes in the Taxes tab order', function () {
+    [$owner, $property] = printingProperty();
+    $off = Tax::factory()->for($property)->disabled()->create(['name' => 'Alpha levy']);
+    $on = Tax::factory()->for($property)->create(['name' => 'Service tax']);
+
+    $this->actingAs($owner)
+        ->get(printSettingsUrl($property, 'printing'))
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('settings/printing/edit')
+            ->where('tab', 'general')
+            ->where('settings.font', 'standard')
+            ->where('settings.showTin', false)
+            ->where('profile.registrationNumber', '202301012345')
+            ->where('profile.countryName', 'Malaysia')
+            ->where('taxes.0.id', $on->id)
+            ->where('taxes.1.id', $off->id)
+            ->has('fonts', 2)
+            ->has('fontSizes', 3)
+            ->where('navigation.contexts.2.groups.0.items.2.title', 'Printing')
+            ->where('navigation.contexts.2.groups.0.items.2.active', true));
+
+    $this->actingAs($owner)
+        ->get(printSettingsUrl($property, 'printing/header'))
+        ->assertInertia(fn (Assert $page) => $page->where('tab', 'header')->missing('fonts'));
+});
+
+test('the printing pages send a property without settings to the Details page', function () {
+    [$owner, $property] = printingProperty();
+    $property->printSetting()->delete();
+
+    $this->actingAs($owner)
+        ->get(printSettingsUrl($property, 'printing'))
+        ->assertRedirect(route('settings.edit', $property->code));
+});
+
+test('the profile tab shows the identity and the logo link', function () {
+    [$owner, $property] = printingProperty();
+    $logo = $property->addMedia(UploadedFile::fake()->image('logo.png'))->toMediaCollection(Property::LOGO);
+
+    $this->actingAs($owner)
+        ->get(printSettingsUrl($property, 'profile'))
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('settings/edit')
+            ->where('tab', 'profile')
+            ->where('profile.name', $property->name)
+            ->where('profile.tin', 'C1234567890')
+            ->where('profile.logoUrl', '/p/'.$property->code.'/settings/logo?v='.$logo->id));
+});
+
+test('staff save the profile and the change is logged', function () {
+    [$owner, $property] = printingProperty();
+    $prefix = $property->document_prefix;
+
+    $this->actingAs($owner)
+        ->put(printSettingsUrl($property, 'profile'), [
+            'name' => 'Sandbay Beach Resort',
+            'address_line1' => 'Lot 12, Jalan Pantai',
+            'address_line2' => null,
+            'postal_code' => '88000',
+            'city' => 'Kota Kinabalu',
+            'state_code' => null,
+            'contact_phone' => '+60 88 123 456',
+            'contact_email' => 'hello@example.com',
+            'registration_number' => '202301012345',
+            'tin' => null,
+        ])
+        ->assertRedirect(route('settings.profile', $property->code))
+        ->assertSessionHasNoErrors();
+
+    $property->refresh();
+    $activity = Activity::query()->where('event', 'property.updated')->sole();
+
+    expect($property->name)->toBe('Sandbay Beach Resort')
+        ->and($property->contact_email)->toBe('hello@example.com')
+        ->and($property->tin)->toBeNull()
+        ->and($property->document_prefix)->toBe($prefix)
+        ->and($activity->properties['changed'])->toBe(['name', 'contact_email', 'tin']);
+});
+
+test('the profile needs a name, an address line, a city and a valid email', function () {
+    [$owner, $property] = printingProperty();
+
+    $this->actingAs($owner)
+        ->put(printSettingsUrl($property, 'profile'), ['name' => '', 'address_line1' => '', 'city' => '', 'contact_email' => 'not-an-email'])
+        ->assertSessionHasErrors(['name', 'address_line1', 'city', 'contact_email']);
+
+    $this->actingAs(User::factory()->withRole(DefaultRoleEnum::FrontDesk)->create(['property_id' => $property->id]))
+        ->get(printSettingsUrl($property, 'profile'))
+        ->assertForbidden();
 });

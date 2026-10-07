@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers\Property;
 
+use App\Actions\Property\UpdatePropertyProfile;
 use App\Actions\Property\UpdatePropertySettings;
 use App\Data\Meals\MealPeriodData;
 use App\Data\Property\PropertyAgeGroupData;
+use App\Data\Property\PropertyProfileData;
 use App\Data\Property\PropertySettingsData;
 use App\Enums\Currency;
 use App\Enums\Locale;
@@ -14,6 +16,7 @@ use App\Enums\WeekendNights;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Meals\SaveMealPeriodsRequest;
 use App\Http\Requests\Property\SaveAgeGroupsRequest;
+use App\Http\Requests\Property\UpdatePropertyProfileRequest;
 use App\Http\Requests\Property\UpdatePropertySettingsRequest;
 use App\Models\MealPeriod;
 use App\Models\Property;
@@ -25,6 +28,27 @@ use Inertia\Response;
 
 class PropertySettingsController extends Controller
 {
+    /**
+     * Settings page, Profile tab: the property identity and logo. The sidebar opens this tab.
+     */
+    public function profile(Property $property, SettingsLock $settingsLock): Response
+    {
+        return $this->renderTab($property, $settingsLock, 'profile', [
+            'profile' => PropertyProfileData::fromModel($property),
+        ]);
+    }
+
+    public function updateProfile(UpdatePropertyProfileRequest $request, Property $property, UpdatePropertyProfile $updatePropertyProfile): RedirectResponse
+    {
+        abort_if($property->settings === null, 404);
+
+        $updatePropertyProfile($request->user(), $property, $request->validated());
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Property profile saved.')]);
+
+        return to_route('settings.profile', ['property' => $property->code]);
+    }
+
     /**
      * Settings page, General tab.
      */
@@ -98,7 +122,7 @@ class PropertySettingsController extends Controller
     /**
      * Each tab has its own URL, so the open tab survives a refresh. Only the open tab's options are sent.
      *
-     * @param  'general'|'operations'|'support'|'age-groups'|'meal-periods'  $tab
+     * @param  'profile'|'general'|'operations'|'support'|'age-groups'|'meal-periods'  $tab
      * @param  array<string, mixed>  $tabProps
      */
     private function renderTab(Property $property, SettingsLock $settingsLock, string $tab, array $tabProps = []): Response

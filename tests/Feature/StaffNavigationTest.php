@@ -33,14 +33,14 @@ test('the details item stays active on every settings tab', function (string $ro
             ->where('navigation.contexts.0.groups.0.items.0.active', false)
             ->where('navigation.contexts.2.groups.0.items.0', [
                 'title' => 'Details',
-                'href' => '/p/'.$staff->property->code.'/settings',
+                'href' => '/p/'.$staff->property->code.'/settings/profile',
                 'icon' => 'building',
                 'external' => false,
                 'active' => true,
                 'action' => null,
             ])
         );
-})->with(['settings.edit', 'settings.operations', 'settings.support']);
+})->with(['settings.profile', 'settings.edit', 'settings.operations', 'settings.support']);
 
 test('staff keep their property navigation on account pages with no active context', function () {
     $staff = User::factory()->create();

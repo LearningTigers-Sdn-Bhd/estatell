@@ -707,6 +707,24 @@ active: boolean,
 };
 }
 namespace Property {
+export type PrintSettingsData = {
+font: App.Enums.PdfFont,
+fontSize: App.Enums.PdfFontSize,
+footerText: string | null,
+showLogo: boolean,
+showAddress: boolean,
+showContact: boolean,
+showRegistrationNumber: boolean,
+showTin: boolean,
+taxIds: number[],
+};
+export type PrintTaxData = {
+id: number,
+name: string,
+code: string,
+registrationNumber: string | null,
+enabled: boolean,
+};
 export type PropertyAgeGroupData = {
 id: number,
 label: string,
@@ -721,6 +739,21 @@ addressLine2: string | null,
 city: string | null,
 stateCode: string | null,
 postalCode: string | null,
+};
+export type PropertyProfileData = {
+name: string,
+typeLabel: string | null,
+countryName: string | null,
+addressLine1: string | null,
+addressLine2: string | null,
+city: string | null,
+stateCode: string | null,
+postalCode: string | null,
+contactPhone: string | null,
+contactEmail: string | null,
+registrationNumber: string | null,
+tin: string | null,
+logoUrl: string | null,
 };
 export type PropertySettingsData = {
 currency: App.Enums.Currency,
