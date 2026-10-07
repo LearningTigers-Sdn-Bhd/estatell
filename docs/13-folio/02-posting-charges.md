@@ -159,6 +159,22 @@ The room line has `source_type` and `source_id` set to the unit night. Discount 
 
 `(?User $actor, Property $property, CarbonImmutable $date): array<int, PostingResult>`, keyed by add-on id. It posts each add-on with `service_date` equal to `$date` and no `folio_line_id`, on a CheckedIn unit of the property. `$date` must be the current business date, otherwise it returns an empty list. The row supplies the item, quantity and amount, and the caller is never trusted. The key is `addon:{id}`, the add-on is the line's `source`, and `folio_line_id` is set to the charge line. The code must be a charge code. The item does not need to be active, because the price was copied at booking. Each add-on is its own transaction with its unit locked, so a refusal (a missing nationality, a closed folio) stops only that add-on. A refused add-on stays unposted and shows in the result for the audit. It logs no activity.
 
+## Line sources
+
+`source_type` and `source_id` name the unit of a line, so the folio page can show it. They are set together.
+
+| Line                                     | Source                                                                   |
+| ---------------------------------------- | ------------------------------------------------------------------------ |
+| Night room line, and its inclusion lines | The unit night                                                           |
+| Add-on line                              | The add-on                                                               |
+| Manual charge, policy fee                | The reservation unit (an add-on posted by `PostCharge` names the add-on) |
+| Reversal line                            | The source of the line it reverses                                       |
+| Transfer copy                            | The source of the line it copies                                         |
+| Tax and discount children                | None. They take the unit of their parent                                 |
+| Payment line                             | None                                                                     |
+
+`PostFolioCharge` takes the source as it does today. `ReverseLine` and `TransferLines` copy it. The unit shown for a posted row is read in `FolioStatement` (see [Folio page](05-folio-page.md)).
+
 ## Rules
 
 - `ReverseLine::post()` and `TransferLines` must handle every level of children (a discount line has its own tax lines) and skip a child that already has a reversal. A second reversal would break the unique key `reverse:{line_id}`. The [folio discounts](04-folio-discounts.md) item built the recursion and the skip, with tests.

@@ -43,6 +43,7 @@ erDiagram
 - Tax and discount lines are children of the charge (`parent_line_id`).
 - Transfers are a reversal on the source plus a new line on the target, linked by `transfer_group_id`.
 - `description` and `kind` are copied at posting time.
+- **Source names the unit.** Every charge line sets `source_type` and `source_id` so the folio page can show its unit, also on a Master or Third party folio. A night and its inclusions name the unit night, an add-on names the add-on, and a manual charge or a policy fee names the reservation unit. A reversal and a transfer copy keep the source of their original line. A child line (tax, discount) has no source and takes its parent's. A payment has none. See [Posting charges](02-posting-charges.md#line-sources).
 - Postings use the current business date, never the calendar date. Closed dates reject postings.
 - A unit can check out only when its folio balance is 0 or transferred to the master folio.
 - A reservation closes only when all its folios are closed.

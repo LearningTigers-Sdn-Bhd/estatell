@@ -322,9 +322,5 @@ Decisions made at build time:
 - A Scheduled night shows the room at `base + extra + supplement`, then the stay discount (`discount_amount`), then the booking-time discount, then tax on what is left. A Percent booking-time discount takes its share of the night's net amount (after the stay discount). A Fixed one is taken once, from the first night of the unit, and never more than that night. An Open one shows nothing. The night audit must post the same amounts.
 - A night with an `override_amount` is one row with the Overridden marker, with no discount rows and the tax on the override.
 - An add-on with no `service_date` shows on the unit's arrival date.
-- Posted rows follow the ledger: each charge or payment, then its children. A line with a reversal gets the Reversed marker, and a reversal line gets the Reversal marker. Posted lines carry no unit, so the Unit column shows only for Scheduled rows.
+- Posted rows follow the ledger: each charge or payment, then its children. A line with a reversal gets the Reversed marker, and a reversal line gets the Reversal marker. A posted row names its unit through the source of its line, or of its parent line for a tax or discount child (see [Posting charges](02-posting-charges.md#line-sources)). `FolioStatement` reads the units of all lines in one lookup for each source type (unit night, add-on, reservation unit), so the query count does not grow with the units. The Unit column shows on every folio type, for posted and Scheduled rows. A payment row has no unit.
 - The Master is named "Master" and a third-party folio "Third party". A guest payer shows under the name. A company payer shows no name until [Companies](../15-city-ledger/01-companies.md) exists.
-
-## Open
-
-- Posted rows cannot name their unit. Add a source to night and add-on lines (or the night audit's `source_type`) before the master folio needs a Unit column for posted rows.
