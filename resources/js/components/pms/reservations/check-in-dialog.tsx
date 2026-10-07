@@ -99,16 +99,20 @@ function CheckInForm({
             ? Number(collection.deposit)
             : 0;
     const collectTotal = taxesTotal + depositAmount;
+    // Rows can exist with nothing due (an exempt tax), so Collect now has nothing to take.
+    const nothingToCollect =
+        collection !== null && taxesTotal === 0 && collection.deposit === null;
+    const collecting = collection !== null && !nothingToCollect;
     const needsOverride =
         preview !== null && preview.cardsMissing > 0 && !data.without_card;
 
     const submit = () => {
         form.transform((values) => ({
             ...values,
-            payment_method_id: collection !== null ? methodId : '',
+            payment_method_id: collecting ? methodId : '',
             reference: method?.requiresReference ? values.reference : '',
-            collect_now: collection !== null && values.collect_now,
-            collect_taxes: collection !== null && values.collect_now,
+            collect_now: collecting && values.collect_now,
+            collect_taxes: collecting && values.collect_now,
             collect_deposit:
                 collection?.deposit != null &&
                 values.collect_now &&
@@ -146,9 +150,7 @@ function CheckInForm({
             submitDisabled={
                 preview === null ||
                 preview.error !== null ||
-                (data.collect_now &&
-                    collection !== null &&
-                    paymentOptions === undefined)
+                (data.collect_now && collecting && paymentOptions === undefined)
             }
             loading={preview === null}
         >
@@ -326,106 +328,133 @@ function CheckInForm({
                                     </Field>
                                 </FieldLabel>
                             )}
-                            <FieldLabel htmlFor="check-in-collect_now">
-                                <Field orientation="horizontal">
-                                    <Checkbox
-                                        id="check-in-collect_now"
-                                        checked={data.collect_now}
-                                        onCheckedChange={(checked) =>
-                                            form.setData('collect_now', checked)
-                                        }
-                                    />
-                                    <FieldContent>
-                                        <span className="flex justify-between gap-4 text-sm font-medium">
-                                            Collect now
-                                            <span>
-                                                Total{' '}
-                                                <MoneyText
-                                                    amount={String(
-                                                        data.collect_now
-                                                            ? collectTotal
-                                                            : 0,
-                                                    )}
-                                                    currency={currency}
-                                                />
-                                            </span>
-                                        </span>
-                                        <FieldDescription>
-                                            Untick it to take a part payment
-                                            with Record payment on the folio.
-                                        </FieldDescription>
-                                    </FieldContent>
-                                </Field>
-                            </FieldLabel>
-                            {data.collect_now && (
-                                <div
-                                    className={cn(
-                                        'grid gap-4',
-                                        method?.requiresReference &&
-                                            'sm:grid-cols-2',
-                                    )}
+                            {nothingToCollect && (
+                                <p
+                                    className="text-sm text-muted-foreground"
+                                    data-slot="no-collection"
                                 >
-                                    <Field
-                                        data-invalid={
-                                            !!errors.payment_method_id
-                                        }
-                                    >
-                                        <FieldLabel htmlFor="check-in-payment_method_id">
-                                            Method
-                                        </FieldLabel>
-                                        {paymentOptions === undefined ? (
-                                            <Skeleton className="h-9 w-full" />
-                                        ) : (
-                                            <EnumSelect
-                                                id="check-in-payment_method_id"
-                                                options={methods.map((one) => ({
-                                                    value: String(one.id),
-                                                    label: one.name,
-                                                }))}
-                                                value={methodId}
-                                                onValueChange={(value) =>
+                                    No collection is made. Nothing is due at
+                                    check-in.
+                                </p>
+                            )}
+                            {collecting && (
+                                <>
+                                    <FieldLabel htmlFor="check-in-collect_now">
+                                        <Field orientation="horizontal">
+                                            <Checkbox
+                                                id="check-in-collect_now"
+                                                checked={data.collect_now}
+                                                onCheckedChange={(checked) =>
                                                     form.setData(
-                                                        'payment_method_id',
-                                                        value,
+                                                        'collect_now',
+                                                        checked,
                                                     )
                                                 }
-                                                aria-invalid={
+                                            />
+                                            <FieldContent>
+                                                <span className="flex justify-between gap-4 text-sm font-medium">
+                                                    Collect now
+                                                    <span>
+                                                        Total{' '}
+                                                        <MoneyText
+                                                            amount={String(
+                                                                data.collect_now
+                                                                    ? collectTotal
+                                                                    : 0,
+                                                            )}
+                                                            currency={currency}
+                                                        />
+                                                    </span>
+                                                </span>
+                                                <FieldDescription>
+                                                    Untick it to take a part
+                                                    payment with Record payment
+                                                    on the folio.
+                                                </FieldDescription>
+                                            </FieldContent>
+                                        </Field>
+                                    </FieldLabel>
+                                    {data.collect_now && (
+                                        <div
+                                            className={cn(
+                                                'grid gap-4',
+                                                method?.requiresReference &&
+                                                    'sm:grid-cols-2',
+                                            )}
+                                        >
+                                            <Field
+                                                data-invalid={
                                                     !!errors.payment_method_id
                                                 }
-                                            />
-                                        )}
-                                        <FieldError>
-                                            {errors.payment_method_id}
-                                        </FieldError>
-                                    </Field>
-                                    {method?.requiresReference && (
-                                        <Field
-                                            data-invalid={!!errors.reference}
-                                        >
-                                            <FieldLabel htmlFor="check-in-reference">
-                                                Reference
-                                            </FieldLabel>
-                                            <Input
-                                                id="check-in-reference"
-                                                value={data.reference}
-                                                onChange={(event) =>
-                                                    form.setData(
-                                                        'reference',
-                                                        event.target.value,
-                                                    )
-                                                }
-                                                maxLength={100}
-                                                autoComplete="off"
-                                                aria-invalid={
-                                                    !!errors.reference
-                                                }
-                                            />
-                                            <FieldError>
-                                                {errors.reference}
-                                            </FieldError>
-                                        </Field>
+                                            >
+                                                <FieldLabel htmlFor="check-in-payment_method_id">
+                                                    Method
+                                                </FieldLabel>
+                                                {paymentOptions ===
+                                                undefined ? (
+                                                    <Skeleton className="h-9 w-full" />
+                                                ) : (
+                                                    <EnumSelect
+                                                        id="check-in-payment_method_id"
+                                                        options={methods.map(
+                                                            (one) => ({
+                                                                value: String(
+                                                                    one.id,
+                                                                ),
+                                                                label: one.name,
+                                                            }),
+                                                        )}
+                                                        value={methodId}
+                                                        onValueChange={(
+                                                            value,
+                                                        ) =>
+                                                            form.setData(
+                                                                'payment_method_id',
+                                                                value,
+                                                            )
+                                                        }
+                                                        aria-invalid={
+                                                            !!errors.payment_method_id
+                                                        }
+                                                    />
+                                                )}
+                                                <FieldError>
+                                                    {errors.payment_method_id}
+                                                </FieldError>
+                                            </Field>
+                                            {method?.requiresReference && (
+                                                <Field
+                                                    data-invalid={
+                                                        !!errors.reference
+                                                    }
+                                                >
+                                                    <FieldLabel htmlFor="check-in-reference">
+                                                        Reference
+                                                    </FieldLabel>
+                                                    <Input
+                                                        id="check-in-reference"
+                                                        value={data.reference}
+                                                        onChange={(event) =>
+                                                            form.setData(
+                                                                'reference',
+                                                                event.target
+                                                                    .value,
+                                                            )
+                                                        }
+                                                        maxLength={100}
+                                                        autoComplete="off"
+                                                        aria-invalid={
+                                                            !!errors.reference
+                                                        }
+                                                    />
+                                                    <FieldError>
+                                                        {errors.reference}
+                                                    </FieldError>
+                                                </Field>
+                                            )}
+                                        </div>
                                     )}
-                                </div>
+                                </>
                             )}
                         </>
                     )}

@@ -857,3 +857,22 @@ test('early check-out needs both front-desk.check-out and reservations.manage', 
     'check-out only' => [['reservations.view', 'front-desk.check-out']],
     'manage only' => [['reservations.view', 'reservations.manage']],
 ]);
+
+test('check-in with only an exempt tax and no deposit takes no payment', function () {
+    $setup = uaSetup();
+    $cash = uaCheckInSetup($setup, ['security_deposit_amount' => '0.00']);
+    Tax::query()->where('property_id', $setup['property']->id)->update(['foreign_guests_only' => true]);
+    UnitGuest::factory()->create(['reservation_unit_id' => $setup['unit']->id, 'is_primary' => true])->guest->update(['nationality_code' => 'MY']);
+
+    $this->actingAs($setup['user'])->postJson(uaUrl($setup, 'check-in-preview'))
+        ->assertJsonPath('collection.taxesTotal', '0.00')
+        ->assertJsonPath('collection.deposit', null)
+        ->assertJsonPath('collection.taxes.0.exempt', true);
+
+    $this->actingAs($setup['user'])
+        ->post(uaUrl($setup, 'check-in'), ['collect_now' => true, 'collect_taxes' => true, 'payment_method_id' => $cash->id, 'idempotency_key' => fake()->uuid()])
+        ->assertSessionHasNoErrors();
+
+    expect($setup['unit']->fresh()->status)->toBe(UnitStatus::CheckedIn)
+        ->and(Payment::query()->count())->toBe(0);
+});
