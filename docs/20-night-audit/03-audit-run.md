@@ -66,7 +66,7 @@ Each step is an `AuditStepRunner` class in `app/Actions/NightAudit/Steps/` that 
 5. `PostScheduledAddOnsStep`: calls `PostScheduledAddOns` for the business date. Each refused add-on becomes an `AddOn` exception on its unit.
 6. `UpdateRoomStatuses`: the room of every CheckedIn unit that sleeps on the night of the business date becomes Dirty (a bed gives its room). A room that departed is already Dirty from check-out, so the step does not touch it. A room that is already Dirty is left alone.
 7. `SnapshotStatisticsStep`: calls `SnapshotStatistics`, which writes `daily_statistics` and `daily_revenue` for the business date (see [Statistics](05-statistics.md)). A throw fails the audit, and the next run resumes here.
-8. `CloseAndOpenNext`: in one transaction, the date becomes Closed (with `closed_by` set to `run_by`), the next calendar day opens as the new Open date, and the audit becomes Completed. It throws if the date is not Auditing. Reports and notifications are dispatched here when the statistics item lands. `RunNightAudit` then logs `night-audit.completed`.
+8. `CloseAndOpenNext`: in one transaction, the date becomes Closed (with `closed_by` set to `run_by`), the next calendar day opens as the new Open date, and the audit becomes Completed. It throws if the date is not Auditing. `RunNightAudit` then logs `night-audit.completed` and queues `NotifyNightAuditResultJob` (see [Statistics](05-statistics.md#morning-handoff)). It does the same after it logs `night-audit.failed`. The report packet PDF comes with reports.
 
 A failed run logs `night-audit.failed` with the step and the error.
 
@@ -84,13 +84,13 @@ Requires `night-audit.force` and a reason. Sets `forced = true`. Open exceptions
 
 ## Build status
 
-| Part                                                                                         | Status                                                             |
-| -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
-| Tables, enums, models, `RunNightAudit`, `ClaimBusinessDate`, steps 2 to 6 and 8, permissions | Built.                                                             |
-| `SnapshotStatistics`                                                                         | Built. See [Statistics](05-statistics.md).                         |
-| Notifications                                                                                | [Statistics](05-statistics.md). The packet PDF comes with reports. |
-| Routes, the page and the one-click fixes                                                     | [Readiness panel](02-readiness-panel.md).                          |
-| `RunNightAuditJob` and the schedule                                                          | Built. See [Scheduling](04-scheduling.md).                         |
+| Part                                                                                         | Status                                                                                        |
+| -------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| Tables, enums, models, `RunNightAudit`, `ClaimBusinessDate`, steps 2 to 6 and 8, permissions | Built.                                                                                        |
+| `SnapshotStatistics`                                                                         | Built. See [Statistics](05-statistics.md).                                                    |
+| Notifications                                                                                | Built. See [Statistics](05-statistics.md#morning-handoff). The packet PDF comes with reports. |
+| Routes, the page and the one-click fixes                                                     | [Readiness panel](02-readiness-panel.md).                                                     |
+| `RunNightAuditJob` and the schedule                                                          | Built. See [Scheduling](04-scheduling.md).                                                    |
 
 ## Lessons from wastays
 

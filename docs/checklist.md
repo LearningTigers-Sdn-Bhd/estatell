@@ -44,9 +44,9 @@ The critical path: the front desk actions on the reservation, then the night aud
     - [x] `feat(night-audit): add the audit readiness service` — `AuditReadiness` and `AuditCheck` (no room tonight is the one blocker; not checked in, not checked out, folio open after check-out and carried exceptions are warnings), the `blocked_by_readiness` gate in `RunNightAudit`, `RunNightAuditJob` in the new `app/Jobs` folder (with `PostRoomChargesJob` moved there), and the sheet data and routes (`night-audit.show`, `run`, `units.assign`). Backend only.
     - [x] `feat(night-audit): add the Run Night Audit sheet` — the sidebar button (a nav item with an `action`) and the Sheet on `FormOverlay`: ready, blocked, running, failed and completed states, **Assign**, **Force close** with a reason. UI only. Needs: the audit readiness service.
 18. [x] `feat(night-audit): schedule the night audit per property` — Docs: [Scheduling](20-night-audit/04-scheduling.md).
-19. [ ] **Snapshot statistics and notify the audit result**, in two commits, in this order. Docs: [Statistics](20-night-audit/05-statistics.md). Needs: schedule the night audit. The report packet PDF waits for the core reports item.
+19. [x] **Snapshot statistics and notify the audit result**, in two commits, in this order. Docs: [Statistics](20-night-audit/05-statistics.md). Needs: schedule the night audit. The report packet PDF waits for the core reports item.
     - [x] `feat(night-audit): snapshot daily statistics` — `daily_statistics` and `daily_revenue`, models, `DailyRevenueQuery` (`app/Services/Reports/`, the one live revenue query that the snapshot and the core reports share), `StatisticsCalculator`, `SnapshotStatistics` and `SnapshotStatisticsStep` as step 7 (`AuditStep::SnapshotStatistics`, idempotent upsert). Pest tests, including a run-twice test and a test that the stored rows equal the live query.
-    - [ ] `feat(night-audit): notify the audit result` — `NotifyNightAuditResult` queued from `CloseAndOpenNext` and from a failed run, with `NightAuditCompleted`, `NightAuditExceptions` and `NightAuditFailed` content (occupancy, ADR, RevPAR, revenue by code, payments by method, meal counts, exceptions). Needs: the snapshot.
+    - [x] `feat(night-audit): notify the audit result` — `NotifyNightAuditResult`, run by `NotifyNightAuditResultJob` that `RunNightAudit` queues when an audit completes or fails (not from `CloseAndOpenNext`, so a message error never changes a closed date), `MealCounts` and `AuditResultSummary`, with `NightAuditCompleted`, `NightAuditExceptions` and `NightAuditFailed` content (occupancy, ADR, RevPAR, revenue by code, payments by method, meal counts, exceptions). Needs: the snapshot.
 
 ## Next
 
@@ -208,6 +208,7 @@ Needs the Channex staging checks in [Staging verification](21-channels/06-stagin
 | `065e49f` | feat(front-desk): add unit actions to the reservation page               |
 | `753e731` | feat(front-desk): check in and check out from the reservation page       |
 | `fc33bf4` | feat(night-audit): run the night audit                                   |
+| `03ff0e7` | feat(night-audit): snapshot daily statistics                             |
 
 Smaller fixes and reverts are in `git log`.
 

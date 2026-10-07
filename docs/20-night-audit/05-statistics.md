@@ -39,7 +39,7 @@ Both tables are unique on `(property_id, business_date)` (and the code for `dail
 
 ## Morning handoff
 
-`NotifyNightAuditResult` (`app/Actions/NightAudit/`) is queued after commit when the audit ends. It sends one of:
+`NotifyNightAuditResult` (`app/Actions/NightAudit/`) runs in `NotifyNightAuditResultJob` (`app/Jobs/`), which `RunNightAudit` queues when the audit ends, after it is Completed or Failed. The close is already committed by then, and a message that cannot be sent never changes the audit. A resumed audit sends one message for each end: a Failed message when it fails and a Completed or Exceptions message when it completes. The Action sends one of:
 
 | Notification           | When                                              | Recipients                   |
 | ---------------------- | ------------------------------------------------- | ---------------------------- |
@@ -47,13 +47,21 @@ Both tables are unique on `(property_id, business_date)` (and the code for `dail
 | `NightAuditExceptions` | Completed with at least one open exception.       | `night-audit.receive-report` |
 | `NightAuditFailed`     | Failed. `RunNightAudit` queues it on the failure. | `night-audit.run`            |
 
-Each respects the [notification preferences](../04-notifications/02-notification-preferences.md) and is scoped to the property. The content is the occupancy, ADR and RevPAR, revenue by code, payments by method (from `payments`), today's meal counts (live from `MealEntitlementResolver`, not stored in the snapshot), and the exceptions to review with a link to the sheet. A Failed message names the step and the error.
+The recipients are the active staff of the property (not admins, not deactivated users) who hold the permission. Each message respects the [notification preferences](../04-notifications/02-notification-preferences.md) and is scoped to the property. `AuditResultSummary` (`app/Services/NightAudit/`) reads the content:
+
+- The occupancy, ADR and RevPAR and the front desk counts, from `daily_statistics`.
+- Revenue by code, from `daily_revenue`.
+- Payments by method: the completed payments whose folio line was posted on the business date, plus one total for refunds.
+- The meals to prepare, live from `MealCounts` (`app/Services/Meals/`, through `MealEntitlementResolver`), not stored in the snapshot. "Today" is the date that opens after the audit: the units that are CheckedIn or Confirmed and have that date inside their stay, with their adults and children. The section is left out when no plan has a meal inclusion.
+- The open exceptions of the audit with the reason in plain words, and a link to the night audit sheet.
+
+A Failed message names the step and the error and says that the next run resumes at that step. In-app messages carry the title, the business date, the number of open exceptions and the link.
 
 The report packet PDF is not part of this item. It is rendered from the snapshot tables with the [core reports](../22-reports/01-core-reports.md).
 
 ## Build order
 
-Item 19 of the [checklist](../checklist.md) is two commits: the snapshot with `DailyRevenueQuery`, then the notifications. The packet PDF and the live daily revenue report come with the core reports.
+Item 19 of the [checklist](../checklist.md) is two commits, both built: the snapshot with `DailyRevenueQuery`, then the notifications. The packet PDF and the live daily revenue report come with the core reports.
 
 ## Lessons from wastays
 

@@ -6,6 +6,7 @@ use App\Enums\AuditStatus;
 use App\Enums\AuditStep;
 use App\Enums\AuditStepStatus;
 use App\Enums\AuditTrigger;
+use App\Jobs\NotifyNightAuditResultJob;
 use App\Models\NightAudit;
 use App\Models\NightAuditStep;
 use App\Models\Property;
@@ -31,6 +32,8 @@ class RunNightAudit
      * blocker is open), unless it is forced. A run that resumes a Failed audit is never blocked, because
      * its steps are already under way. A forced run needs a reason. The route checks `night-audit.run` and
      * `night-audit.force`, and the readiness panel's blockers come with that panel. A null actor is the scheduler.
+     * When the audit ends, completed or failed, `NotifyNightAuditResultJob` is queued, so a message that cannot be
+     * sent never changes the audit.
      * See docs/20-night-audit/03-audit-run.md.
      */
     public function __invoke(Property $property, AuditTrigger $trigger = AuditTrigger::Manual, ?User $actor = null, bool $force = false, ?string $forceReason = null): NightAuditResult
@@ -97,6 +100,8 @@ class RunNightAudit
             ])
             ->log('Night audit completed');
 
+        NotifyNightAuditResultJob::dispatch($audit);
+
         return NightAuditResult::completed($audit);
     }
 
@@ -142,6 +147,8 @@ class RunNightAudit
                 'error' => $row->error_message,
             ])
             ->log('Night audit failed');
+
+        NotifyNightAuditResultJob::dispatch($audit);
 
         return NightAuditResult::failed($audit);
     }

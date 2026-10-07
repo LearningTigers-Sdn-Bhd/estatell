@@ -22,6 +22,7 @@ use App\Enums\OverdueDeparturePolicy;
 use App\Enums\PolicyScope;
 use App\Enums\SystemTransactionCode;
 use App\Enums\UnitStatus;
+use App\Jobs\NotifyNightAuditResultJob;
 use App\Models\BusinessDate;
 use App\Models\DailyRevenue;
 use App\Models\DailyStatistic;
@@ -41,6 +42,7 @@ use App\Models\UnitAddOn;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Bus;
 use Spatie\Activitylog\Models\Activity;
 
 /**
@@ -223,6 +225,41 @@ test('a snapshot that throws fails the audit and the next run resumes at that st
         ->and(DailyStatistic::query()->count())->toBe(1)
         ->and(nightLineCount())->toBe(1)
         ->and($audit->businessDate->fresh()->status)->toBe(BusinessDateStatus::Closed);
+});
+
+test('a failed run and the run that resumes it each queue the result message for the audit', function () {
+    Bus::fake([NotifyNightAuditResultJob::class]);
+    $setup = auditSetup();
+    auditUnit($setup, 'checkedIn', '2026-10-12', '2026-10-14');
+    app()->bind(SnapshotStatisticsStep::class, fn () => new class implements AuditStepRunner
+    {
+        public function run(NightAudit $audit, CarbonImmutable $date): StepOutcome
+        {
+            throw new RuntimeException('snapshot boom');
+        }
+    });
+
+    $failed = runAudit($setup['property']);
+
+    Bus::assertDispatchedTimes(NotifyNightAuditResultJob::class, 1);
+    Bus::assertDispatched(NotifyNightAuditResultJob::class, fn (NotifyNightAuditResultJob $job): bool => $job->audit->is($failed->audit) && $job->audit->fresh()->status === AuditStatus::Failed);
+
+    app()->bind(SnapshotStatisticsStep::class, fn () => new SnapshotStatisticsStep(app(SnapshotStatistics::class)));
+    $this->travel(5)->minutes();
+    $resumed = runAudit($setup['property']);
+
+    Bus::assertDispatchedTimes(NotifyNightAuditResultJob::class, 2);
+    expect($resumed->audit->is($failed->audit))->toBeTrue()
+        ->and($resumed->audit->fresh()->status)->toBe(AuditStatus::Completed);
+});
+
+test('a refused run queues no result message', function () {
+    Bus::fake([NotifyNightAuditResultJob::class]);
+    $setup = auditSetup();
+
+    runAudit($setup['property'], [AuditTrigger::Manual, null, true, null]);
+
+    Bus::assertNotDispatched(NotifyNightAuditResultJob::class);
 });
 
 test('a unit that cannot post becomes an exception and the other units still post', function () {
