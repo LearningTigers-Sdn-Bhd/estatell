@@ -7,6 +7,14 @@ import {
     PopoverContent,
     PopoverTrigger,
 } from '@/components/ui/popover';
+import {
+    Select,
+    SelectContent,
+    SelectGroup,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { presetDays } from '@/lib/date-presets';
 import type { DateRangePreset } from '@/lib/date-presets';
@@ -60,8 +68,10 @@ type Props = {
     clearLabel?: string;
     /** Longest range, counting both ends. */
     maxDays?: number;
+    /** First day of the calendar week: 0 is Sunday (the default), 1 is Monday. */
+    weekStartsOn?: 0 | 1;
     /**
-     * Quick dates shown above the calendar, for example from `reportDatePresets()`. A preset longer than `maxDays`
+     * Quick dates shown in a Select before the trigger, for example from `reportDatePresets()`. A preset longer than `maxDays`
      * is left out.
      */
     presets?: DateRangePreset[];
@@ -77,6 +87,9 @@ type Props = {
 /**
  * Pick a first and last date (both included) from one calendar popover.
  */
+/** The Select value when the dates match no preset. */
+const CUSTOM = 'custom';
+
 export function DateRangePicker({
     from,
     to,
@@ -87,6 +100,7 @@ export function DateRangePicker({
     onClear,
     clearLabel = 'Clear dates',
     maxDays,
+    weekStartsOn,
     presets,
     months = 1,
     unit = 'day',
@@ -180,7 +194,18 @@ export function DateRangePicker({
             ? { from: previewFrom, to: hovered }
             : { from: fromDate, to: toDateValue };
 
-    return (
+    const presetItems = [
+        ...shownPresets.map((preset) => ({
+            value: preset.label,
+            label: preset.label,
+        })),
+        { value: CUSTOM, label: 'Custom dates' },
+    ];
+    const activePreset =
+        shownPresets.find((preset) => preset.from === from && preset.to === to)
+            ?.label ?? CUSTOM;
+
+    const picker = (
         <Popover open={open} onOpenChange={changeOpen}>
             <PopoverTrigger
                 render={
@@ -212,26 +237,9 @@ export function DateRangePicker({
                 )}
             </PopoverTrigger>
             <PopoverContent className="w-auto" align="start">
-                {shownPresets.length > 0 && (
-                    <div className="flex max-w-xs flex-wrap gap-1.5">
-                        {shownPresets.map((preset) => (
-                            <Button
-                                key={preset.label}
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={() => {
-                                    onChange(preset.from, preset.to);
-                                    changeOpen(false);
-                                }}
-                            >
-                                {preset.label}
-                            </Button>
-                        ))}
-                    </div>
-                )}
                 <Calendar
                     mode="range"
+                    weekStartsOn={weekStartsOn}
                     selected={preview}
                     onSelect={(_, day) => select(day)}
                     onDayMouseEnter={(day, modifiers) =>
@@ -258,5 +266,43 @@ export function DateRangePicker({
                 )}
             </PopoverContent>
         </Popover>
+    );
+
+    if (shownPresets.length === 0) {
+        return picker;
+    }
+
+    return (
+        <div className="flex flex-wrap items-center gap-2">
+            <Select
+                items={presetItems}
+                value={activePreset}
+                onValueChange={(value) => {
+                    const preset = shownPresets.find(
+                        (item) => item.label === value,
+                    );
+
+                    if (preset) {
+                        onChange(preset.from, preset.to);
+                    } else {
+                        changeOpen(true);
+                    }
+                }}
+            >
+                <SelectTrigger className="w-40" aria-label="Quick dates">
+                    <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectGroup>
+                        {presetItems.map((item) => (
+                            <SelectItem key={item.value} value={item.value}>
+                                {item.label}
+                            </SelectItem>
+                        ))}
+                    </SelectGroup>
+                </SelectContent>
+            </Select>
+            {picker}
+        </div>
     );
 }

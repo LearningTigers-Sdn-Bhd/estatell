@@ -133,19 +133,21 @@ export default function ArrivalsReport({
                 <PageHeader
                     title="Arrivals"
                     description="The units that arrive in the dates you pick. Cancelled and no-show units are left out."
-                    actions={
-                        <DateRangePicker
-                            from={from}
-                            to={to}
-                            onChange={(nextFrom, nextTo) =>
-                                visit({ from: nextFrom, to: nextTo })
-                            }
-                            presets={presets}
-                            maxDays={maxRangeDays ?? undefined}
-                            className="w-auto"
-                        />
-                    }
                 />
+
+                <div className="flex flex-wrap items-center gap-2">
+                    <DateRangePicker
+                        from={from}
+                        to={to}
+                        onChange={(nextFrom, nextTo) =>
+                            visit({ from: nextFrom, to: nextTo })
+                        }
+                        presets={presets}
+                        maxDays={maxRangeDays ?? undefined}
+                        weekStartsOn={1}
+                        className="w-auto"
+                    />
+                </div>
 
                 <DataTable
                     columns={tableColumns}

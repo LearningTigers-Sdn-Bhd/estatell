@@ -52,8 +52,8 @@ Arrivals lists the reservation units that arrive in the range. The row `key` is 
 
 ## Date range and quick dates
 
-- `DateRangePicker` gets a `presets` prop. Reports pass: Today, Yesterday, This week, Last week, This month, Last month, This year, Last 30 days.
-- **Presets count from the business date, not the clock.** At 01:00 before the audit, Today is still the open business date. The page gets `businessDate` from the server, and the browser works out the presets from it. Weeks start on Monday. A preset longer than `maxDays` (This year on Arrivals) is left out of the list.
+- `DateRangePicker` gets a `presets` prop. The presets show in a **Quick dates** Select before the date trigger, with **Custom dates** when the range matches no preset (choosing it opens the calendar). The Select and the trigger sit in a toolbar row under the page header, not in the header. Reports pass: Today, Yesterday, This week, Last week, This month, Last month, This year, Last 30 days.
+- **Presets count from the business date, not the clock.** At 01:00 before the audit, Today is still the open business date. The page gets `businessDate` from the server, and the browser works out the presets from it. Weeks start on Monday, in the presets and in the calendar. A preset longer than `maxDays` (This year on Arrivals) is left out of the list.
 - A one-date report (In-house) uses `DatePicker` with Today and Yesterday.
 - `from` and `to` are in the URL query (`?from=2026-10-01&to=2026-10-07`), so a report can be bookmarked and shared. With no dates, the report opens on Today.
 - `ReportFilters` (a Form Request plus a data object) checks that `from` is not after `to` and that the range is not longer than `maxRangeDays()`.

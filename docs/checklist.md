@@ -223,6 +223,9 @@ Needs the Channex staging checks in [Staging verification](21-channels/06-stagin
 | `0e6cbc2` | docs(property): plan the profile tab and printing pages                  |
 | `4d68144` | feat(property): add printing settings and the logo                       |
 | `fb54dd7` | feat(property): add the profile tab and printing pages                   |
+| `0e870da` | feat(property): add PDF font styles                                      |
+| `9e308f0` | docs(reports): settle arrivals columns and report paging                 |
+| `90ad388` | feat(reports): add the report registry and the arrivals report           |
 
 Smaller fixes and reverts are in `git log`.
 
