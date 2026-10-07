@@ -333,8 +333,8 @@ function CheckInForm({
                                     className="text-sm text-muted-foreground"
                                     data-slot="no-collection"
                                 >
-                                    No collection is made. Nothing is due at
-                                    check-in.
+                                    No collection is needed. You can check in
+                                    the guest.
                                 </p>
                             )}
                             {collecting && (
