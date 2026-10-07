@@ -3,6 +3,7 @@
 use App\Actions\Folio\CreateFolio;
 use App\Actions\Folio\PostCharge;
 use App\Actions\Folio\ReverseLine;
+use App\Actions\NightAudit\PostRoomCharges;
 use App\Data\Folio\NewChargeData;
 use App\Enums\ChargingUnit;
 use App\Enums\DefaultRoleEnum;
@@ -10,6 +11,7 @@ use App\Enums\DiscountScope;
 use App\Enums\DiscountType;
 use App\Enums\SystemTransactionCode;
 use App\Enums\TaxRateType;
+use App\Enums\TransactionKind;
 use App\Models\BusinessDate;
 use App\Models\Discount;
 use App\Models\Folio;
@@ -252,6 +254,40 @@ test('the folio tab is limited to reservations.view and the property', function 
         ->assertNotFound();
 });
 
+test('posted rows on the master folio name their unit, and a child takes its parent unit', function () {
+    $setup = ftSetup();
+    ftTax($setup['property'], $setup['room']);
+    $one = ftUnit($setup['reservation'], 1, '100.00', true);
+    $two = ftUnit($setup['reservation'], 1, '100.00', true);
+    $master = Folio::factory()->master()->create(['property_id' => $setup['property']->id, 'reservation_id' => $setup['reservation']->id]);
+    FolioRoutingRule::factory()->toFolio($master)->create(['reservation_id' => $setup['reservation']->id]);
+    UnitNight::query()->whereIn('reservation_unit_id', [$one->id, $two->id])->update(['date' => '2026-10-10']);
+    app(PostRoomCharges::class)(null, $one, CarbonImmutable::parse('2026-10-10'));
+    $manual = ftCharge($setup, $two, '20.00');
+    $reversed = app(ReverseLine::class)($setup['user'], $manual)->line();
+
+    ftGet($setup)->assertInertia(fn (Assert $page) => $page
+        ->where('folio.rows', function ($rows) use ($manual, $reversed) {
+            $posted = collect($rows)->where('state', 'posted')->values();
+            $byLine = $posted->keyBy('key');
+            $roomUnit = $posted[0]['unit'];
+            $manualUnit = $byLine['line:'.$manual->id]['unit'];
+
+            return $roomUnit !== null && $manualUnit !== null && $roomUnit !== $manualUnit
+                && $posted[1]['kind'] === 'tax' && $posted[1]['unit'] === $roomUnit
+                && $byLine['line:'.$reversed->id]['unit'] === $manualUnit;
+        }));
+});
+
+test('a payment row has no unit', function () {
+    $setup = ftSetup();
+    $unit = ftUnit($setup['reservation'], 1, '100.00', true);
+    $folio = app(CreateFolio::class)($setup['reservation'], $unit);
+    FolioLine::factory()->create(['folio_id' => $folio->id, 'kind' => TransactionKind::Payment, 'amount' => '-10.00', 'unit_amount' => '-10.00']);
+
+    ftGet($setup)->assertInertia(fn (Assert $page) => $page->where('folio.rows.0.unit', null));
+});
+
 test('the folio tab runs the same queries for few and many units', function () {
     $setup = ftSetup();
     ftTax($setup['property'], $setup['room']);
@@ -259,10 +295,13 @@ test('the folio tab runs the same queries for few and many units', function () {
     $queries = function (int $units) use ($setup): int {
         $reservation = Reservation::factory()->create(['property_id' => $setup['property']->id]);
         $charge = TransactionCode::factory()->create(['property_id' => $setup['property']->id]);
+        $master = Folio::factory()->master()->create(['property_id' => $setup['property']->id, 'reservation_id' => $reservation->id]);
+        FolioRoutingRule::factory()->toFolio($master)->create(['reservation_id' => $reservation->id]);
 
         foreach (range(1, $units) as $ignored) {
-            $unit = ftUnit($reservation, 3);
+            $unit = ftUnit($reservation, 3, '100.00', true);
             UnitAddOn::factory()->create(['reservation_unit_id' => $unit->id, 'service_date' => '2026-10-12']);
+            app(PostCharge::class)($setup['user'], $unit, NewChargeData::from(['chargeItemId' => null, 'transactionCodeId' => $setup['room']->id, 'description' => null, 'quantity' => 1, 'unitAmount' => '12.00', 'idempotencyKey' => 'manual:'.fake()->uuid()]));
         }
 
         Model::preventLazyLoading();

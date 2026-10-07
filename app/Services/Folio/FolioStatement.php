@@ -18,6 +18,9 @@ use App\Models\Folio;
 use App\Models\FolioLine;
 use App\Models\Property;
 use App\Models\Reservation;
+use App\Models\ReservationUnit;
+use App\Models\UnitAddOn;
+use App\Models\UnitNight;
 use Brick\Math\BigDecimal;
 use Illuminate\Support\Collection;
 
@@ -80,7 +83,7 @@ class FolioStatement
 
         return [
             'folios' => $entries->map(fn (array $entry): FolioRailItemData => $entry['item'])->all(),
-            'folio' => $open === null ? null : $this->data($open, $entries, $units, $blocks, $balances, $can),
+            'folio' => $open === null ? null : $this->data($open, $entries, $units, $blocks, $balances, $can, $labels),
         ];
     }
 
@@ -155,8 +158,9 @@ class FolioStatement
      * @param  list<array{target: int|null, unit: int, date: string, rows: list<FolioRowData>}>  $blocks
      * @param  array<int, string>  $balances
      * @param  array{postCharge?: bool, reverse?: bool, transfer?: bool, discount?: bool, close?: bool, reopen?: bool, recordPayment?: bool, refund?: bool}  $can
+     * @param  array<int, string>  $labels  Unit label by unit id
      */
-    private function data(array $entry, Collection $entries, array $units, array $blocks, array $balances, array $can): FolioData
+    private function data(array $entry, Collection $entries, array $units, array $blocks, array $balances, array $can, array $labels): FolioData
     {
         $folio = $entry['folio'];
         $isOpen = $folio?->status === FolioStatus::Open;
@@ -183,7 +187,7 @@ class FolioStatement
             $scheduled->each(fn (FolioRowData $row) => $row->printable = true);
         }
 
-        [$posted, $discountable] = $folio === null ? [collect(), false] : $this->postedRows($folio, $allowed, $isOpen && ($can['discount'] ?? false), $isOpen && ($can['refund'] ?? false), $can['recordPayment'] ?? false, $can['printVoucher'] ?? false);
+        [$posted, $discountable] = $folio === null ? [collect(), false] : $this->postedRows($folio, $allowed, $isOpen && ($can['discount'] ?? false), $isOpen && ($can['refund'] ?? false), $can['recordPayment'] ?? false, $can['printVoucher'] ?? false, $labels);
         $balance = $folio === null ? null : ($balances[$folio->id] ?? '0.00');
         $projected = $scheduled->reduce(fn (BigDecimal $sum, FolioRowData $row): BigDecimal => $sum->plus($row->amount), BigDecimal::of($balance ?? '0'));
 
@@ -221,18 +225,21 @@ class FolioStatement
      * can still take a discount (a live charge with no live discount line).
      *
      * @param  list<string>  $allowed
+     * @param  array<int, string>  $labels  Unit label by unit id
      * @return array{0: Collection<int, FolioRowData>, 1: bool}
      */
-    private function postedRows(Folio $folio, array $allowed, bool $canRemoveDiscount, bool $canRefund, bool $canDownloadReceipt, bool $canPrintVoucher): array
+    private function postedRows(Folio $folio, array $allowed, bool $canRemoveDiscount, bool $canRefund, bool $canDownloadReceipt, bool $canPrintVoucher, array $labels): array
     {
         $lines = $folio->lines()->orderBy('posting_date')->orderBy('id')->get();
         $payments = $folio->payments()->withSum('refunds', 'amount')->get()->keyBy('folio_line_id');
         $reversed = $lines->pluck('reversal_of_id')->filter()->flip();
         $children = $lines->whereNotNull('parent_line_id')->groupBy('parent_line_id');
         $rows = collect();
+        $sourceUnits = $this->sourceUnits($lines);
 
-        $walk = function (FolioLine $line, int $level) use (&$walk, $children, $reversed, $rows, $allowed, $canRemoveDiscount, $payments, $canRefund, $canDownloadReceipt, $canPrintVoucher): void {
+        $walk = function (FolioLine $line, int $level, ?int $parentUnitId) use (&$walk, $sourceUnits, $labels, $children, $reversed, $rows, $allowed, $canRemoveDiscount, $payments, $canRefund, $canDownloadReceipt, $canPrintVoucher): void {
             $tags = [];
+            $unitId = $line->source_id === null ? $parentUnitId : ($sourceUnits[$line->source_type.':'.$line->source_id] ?? $parentUnitId);
 
             if ($line->reversal_of_id !== null) {
                 $tags[] = FolioRowTag::Reversal;
@@ -258,10 +265,10 @@ class FolioStatement
                 $actions = $canRefund && $payment->status === PaymentStatus::Completed && BigDecimal::of($refundable)->isPositive() ? ['refund'] : [];
             }
 
-            $rows->push(new FolioRowData('line:'.$line->id, 'posted', $line->posting_date->toDateString(), $line->description, min($level, 2), null, (string) $line->amount, array_map(BadgeData::fromFolioRowTag(...), $tags), $line->id, $actions, $payment?->reference, $payment?->id, $refundable, $canDownloadReceipt && $payment !== null && $payment->refund_of_id === null, $line->kind, $canPrintVoucher && FolioVoucher::isPrintable($line, $reversed->has($line->id))));
+            $rows->push(new FolioRowData('line:'.$line->id, 'posted', $line->posting_date->toDateString(), $line->description, min($level, 2), $unitId === null ? null : ($labels[$unitId] ?? null), (string) $line->amount, array_map(BadgeData::fromFolioRowTag(...), $tags), $line->id, $actions, $payment?->reference, $payment?->id, $refundable, $canDownloadReceipt && $payment !== null && $payment->refund_of_id === null, $line->kind, $canPrintVoucher && FolioVoucher::isPrintable($line, $reversed->has($line->id))));
 
             foreach ($children->get($line->id, []) as $child) {
-                $walk($child, $level + 1);
+                $walk($child, $level + 1, $unitId);
             }
         };
 
@@ -269,7 +276,7 @@ class FolioStatement
 
         foreach ($lines as $line) {
             if ($line->parent_line_id === null || ! $ids->has($line->parent_line_id)) {
-                $walk($line, 0);
+                $walk($line, 0, null);
             }
         }
 
@@ -284,5 +291,38 @@ class FolioStatement
             && ! $discounted->has($line->id));
 
         return [$rows, $discountable];
+    }
+
+    /**
+     * The unit of each source the lines name, as `{source_type}:{source_id}` to unit id: three lookups at most, whatever
+     * the number of lines. A unit night and an add-on point to their unit, and a reservation unit is its own.
+     *
+     * @param  Collection<int, FolioLine>  $lines
+     * @return array<string, int>
+     */
+    private function sourceUnits(Collection $lines): array
+    {
+        $result = [];
+        $bySource = $lines->whereNotNull('source_id')->groupBy('source_type');
+        $unit = (new ReservationUnit)->getMorphClass();
+
+        foreach ($bySource->get($unit, []) as $line) {
+            $result[$unit.':'.$line->source_id] = $line->source_id;
+        }
+
+        foreach ([UnitNight::class, UnitAddOn::class] as $model) {
+            $morph = (new $model)->getMorphClass();
+            $ids = $bySource->get($morph, collect())->pluck('source_id')->unique()->all();
+
+            if ($ids === []) {
+                continue;
+            }
+
+            foreach ($model::query()->whereIn('id', $ids)->pluck('reservation_unit_id', 'id') as $id => $unitId) {
+                $result[$morph.':'.$id] = $unitId;
+            }
+        }
+
+        return $result;
     }
 }
