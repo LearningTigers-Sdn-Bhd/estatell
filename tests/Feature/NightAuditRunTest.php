@@ -3,8 +3,10 @@
 use App\Actions\Folio\CreateFolio;
 use App\Actions\NightAudit\NightAuditResult;
 use App\Actions\NightAudit\RunNightAudit;
+use App\Actions\NightAudit\SnapshotStatistics;
 use App\Actions\NightAudit\Steps\AuditStepRunner;
 use App\Actions\NightAudit\Steps\ResolveOverdueDepartures;
+use App\Actions\NightAudit\Steps\SnapshotStatisticsStep;
 use App\Actions\NightAudit\Steps\StepOutcome;
 use App\Actions\NightAudit\Steps\UpdateRoomStatuses;
 use App\Enums\AuditExceptionType;
@@ -21,6 +23,8 @@ use App\Enums\PolicyScope;
 use App\Enums\SystemTransactionCode;
 use App\Enums\UnitStatus;
 use App\Models\BusinessDate;
+use App\Models\DailyRevenue;
+use App\Models\DailyStatistic;
 use App\Models\FolioLine;
 use App\Models\NightAudit;
 use App\Models\Property;
@@ -118,8 +122,8 @@ test('a run posts the night, marks the room dirty, closes the date and opens the
     expect($result->isCompleted())->toBeTrue()
         ->and($audit->status)->toBe(AuditStatus::Completed)
         ->and($audit->completed_at)->not->toBeNull()
-        ->and($audit->steps()->count())->toBe(7)
-        ->and($audit->steps()->where('status', AuditStepStatus::Completed->value)->count())->toBe(7)
+        ->and($audit->steps()->count())->toBe(8)
+        ->and($audit->steps()->where('status', AuditStepStatus::Completed->value)->count())->toBe(8)
         ->and($audit->steps()->where('step', AuditStep::PostRoomCharges->value)->sole()->processed_count)->toBe(1)
         ->and($dates->pluck('status')->all())->toBe([BusinessDateStatus::Closed, BusinessDateStatus::Open])
         ->and($dates->last()->date->toDateString())->toBe('2026-10-13')
@@ -127,7 +131,9 @@ test('a run posts the night, marks the room dirty, closes the date and opens the
         ->and(nightLineCount())->toBe(1)
         ->and(FolioLine::query()->where('idempotency_key', 'night:'.$unit->nights()->orderBy('date')->first()->id)->sole()->posting_date->toDateString())->toBe('2026-10-12')
         ->and($setup['rooms'][0]->status()->first()->status)->toBe(HousekeepingStatus::Dirty)
-        ->and(Activity::query()->where('event', 'night-audit.completed')->count())->toBe(1);
+        ->and(Activity::query()->where('event', 'night-audit.completed')->count())->toBe(1)
+        ->and(DailyStatistic::query()->sole()->only(['rooms_sold', 'rooms_available', 'adr']))->toBe(['rooms_sold' => 1, 'rooms_available' => 2, 'adr' => '100.00'])
+        ->and(DailyRevenue::query()->where('transaction_code_id', TransactionCode::query()->where('system_key', SystemTransactionCode::RoomRevenue->value)->value('id'))->sole()->amount)->toBe('100.00');
 });
 
 test('the next run audits the next date and leaves the closed one alone', function () {
@@ -184,7 +190,38 @@ test('a failed step stops the run and the next run resumes it without posting tw
         ->and(NightAudit::query()->count())->toBe(1)
         ->and(nightLineCount())->toBe(1)
         ->and($charges->fresh()->finished_at->equalTo($chargesFinishedAt))->toBeTrue()
-        ->and($audit->steps()->where('status', AuditStepStatus::Completed->value)->count())->toBe(7)
+        ->and($audit->steps()->where('status', AuditStepStatus::Completed->value)->count())->toBe(8)
+        ->and($audit->businessDate->fresh()->status)->toBe(BusinessDateStatus::Closed);
+});
+
+test('a snapshot that throws fails the audit and the next run resumes at that step', function () {
+    $setup = auditSetup();
+    auditUnit($setup, 'checkedIn', '2026-10-12', '2026-10-14');
+    app()->bind(SnapshotStatisticsStep::class, fn () => new class implements AuditStepRunner
+    {
+        public function run(NightAudit $audit, CarbonImmutable $date): StepOutcome
+        {
+            throw new RuntimeException('snapshot boom');
+        }
+    });
+
+    $failed = runAudit($setup['property']);
+    $audit = $failed->audit;
+
+    expect($failed->isFailed())->toBeTrue()
+        ->and($audit->steps()->where('step', AuditStep::SnapshotStatistics->value)->sole()->status)->toBe(AuditStepStatus::Failed)
+        ->and($audit->steps()->where('step', AuditStep::CloseAndOpenNext->value)->exists())->toBeFalse()
+        ->and($audit->businessDate->fresh()->status)->toBe(BusinessDateStatus::Auditing)
+        ->and(DailyStatistic::query()->count())->toBe(0);
+
+    app()->bind(SnapshotStatisticsStep::class, fn () => new SnapshotStatisticsStep(app(SnapshotStatistics::class)));
+    $this->travel(5)->minutes();
+    $resumed = runAudit($setup['property']);
+
+    expect($resumed->isCompleted())->toBeTrue()
+        ->and($resumed->audit->id)->toBe($audit->id)
+        ->and(DailyStatistic::query()->count())->toBe(1)
+        ->and(nightLineCount())->toBe(1)
         ->and($audit->businessDate->fresh()->status)->toBe(BusinessDateStatus::Closed);
 });
 

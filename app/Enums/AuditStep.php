@@ -8,6 +8,7 @@ use App\Actions\NightAudit\Steps\PostRoomChargesStep;
 use App\Actions\NightAudit\Steps\PostScheduledAddOnsStep;
 use App\Actions\NightAudit\Steps\ResolveMissedArrivals;
 use App\Actions\NightAudit\Steps\ResolveOverdueDepartures;
+use App\Actions\NightAudit\Steps\SnapshotStatisticsStep;
 use App\Actions\NightAudit\Steps\UpdateRoomStatuses;
 
 /**
@@ -22,6 +23,7 @@ enum AuditStep: string
     case PostRoomCharges = 'post_room_charges';
     case PostScheduledAddOns = 'post_scheduled_add_ons';
     case UpdateRoomStatuses = 'update_room_statuses';
+    case SnapshotStatistics = 'snapshot_statistics';
     case CloseAndOpenNext = 'close_and_open_next';
 
     public function label(): string
@@ -33,6 +35,7 @@ enum AuditStep: string
             self::PostRoomCharges => __('Post room charges'),
             self::PostScheduledAddOns => __('Post scheduled add-ons'),
             self::UpdateRoomStatuses => __('Update room statuses'),
+            self::SnapshotStatistics => __('Snapshot statistics'),
             self::CloseAndOpenNext => __('Close the date and open the next'),
         };
     }
@@ -51,6 +54,7 @@ enum AuditStep: string
             self::PostRoomCharges => PostRoomChargesStep::class,
             self::PostScheduledAddOns => PostScheduledAddOnsStep::class,
             self::UpdateRoomStatuses => UpdateRoomStatuses::class,
+            self::SnapshotStatistics => SnapshotStatisticsStep::class,
             self::CloseAndOpenNext => CloseAndOpenNext::class,
         };
     }
