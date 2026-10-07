@@ -127,16 +127,17 @@ Arrivals     [ This week ▾ ]   [⚙ Layout]   [ Export ▾ ]  PDF · CSV · Ex
 
 ## Build order
 
-Item 20 of the [checklist](../checklist.md), in this order:
+Item 20 of the [checklist](../checklist.md), in seven commits, in this order:
 
-| Step | Commit                                                           | Content                                                                                                 |
-| ---- | ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| 1    | `feat(property): add printing settings and the logo`             | See [Printing settings](../02-property/05-printing-settings.md)                                         |
-| 2    | `feat(reports): add the report registry and the arrivals report` | `ReportKey`, `ReportColumn`, `Report`, `ReportFilters`, date presets, `reports.view`, the Arrivals page |
-| 3    | `feat(reports): add report layouts`                              | Layout tables, `PageOrientation`, `ReportLayoutResolver`, the Layout Sheet, Preview PDF                 |
-| 4    | `feat(reports): export selected rows as PDF, CSV or Excel`       | Row selection, the PDF and spreadsheet routes                                                           |
-| 5    | `feat(reports): add the remaining core reports`                  | Every other report in the table above, including live revenue with drill-down                           |
-| 6    | `feat(reports): add the night audit packet PDF`                  | The packet from the snapshot tables                                                                     |
+| Step | Commit                                                           | Content                                                                                                                          |
+| ---- | ---------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| 1a   | `feat(property): add printing settings and the logo`             | Backend and PDFs. See [Printing settings](../02-property/05-printing-settings.md)                                                |
+| 1b   | `feat(property): add the profile tab and printing pages`         | UI. See [Properties](../02-property/01-properties.md#profile) and [Printing settings](../02-property/05-printing-settings.md#ui) |
+| 2    | `feat(reports): add the report registry and the arrivals report` | `ReportKey`, `ReportColumn`, `Report`, `ReportFilters`, date presets, `reports.view`, the Arrivals page                          |
+| 3    | `feat(reports): add report layouts`                              | Layout tables, `PageOrientation`, `ReportLayoutResolver`, the Layout Sheet, Preview PDF                                          |
+| 4    | `feat(reports): export selected rows as PDF, CSV or Excel`       | Row selection, the PDF and spreadsheet routes                                                                                    |
+| 5    | `feat(reports): add the remaining core reports`                  | Every other report in the table above, including live revenue with drill-down                                                    |
+| 6    | `feat(reports): add the night audit packet PDF`                  | The packet from the snapshot tables                                                                                              |
 
 ## Lessons from wastays
 

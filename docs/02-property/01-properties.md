@@ -45,6 +45,42 @@ properties    id, code (bigint, unique), document_prefix (unique, nullable), nam
 
 The admin suspension action stores the current status in `suspended_from_status` and sets `suspended_at`. Reactivation restores that status and clears both fields. Existing suspended records are backfilled to Live when `went_live_at` exists, or Onboarding otherwise.
 
+## Profile
+
+The property's identity, edited on the Details page, **Profile** tab (`/p/{code}/settings/profile`, `settings.manage`). It is the first tab, and the Details sidebar item opens it.
+
+```
+┌ Profile ─────────────────────────────────────────────┐
+│ Logo        [img] [Replace] [Remove]   PNG/JPEG ≤1 MB│
+│ Name        [ Sandbay Resort                      ]  │
+│ Address     [ Lot 12, Jalan Pantai… ] [ line 2 ]     │
+│             [ Postcode ] [ City ] [ State ▾ ]        │
+│ Phone       [ +60 88 123 456 ]  Email [ stay@… ]     │
+│ Business registration no. [ 202301012345 ]           │
+│ TIN         [ C1234567890 ]                          │
+│                                          [ Save ]    │
+└──────────────────────────────────────────────────────┘
+```
+
+- Fields: name, address, contact phone and email, registration number and TIN. The address fields reuse the Basics form and its rules.
+- Type and country are shown and locked. They seeded the currency, taxes and presets. Before Basics is complete, the tab links to Basics like the other tabs.
+- `UpdatePropertyProfile` (`app/Actions/Property/`) saves the fields and logs `property.updated` with the changed fields. A save that changes nothing is not logged. It does not change `document_prefix`.
+- Printed documents read these values through [Printing settings](05-printing-settings.md). Empty values show "Not set" there with a link back to this tab.
+
+### Logo
+
+- A single-file `logo` media collection on Property, on the platform media disk (private). PNG or JPEG, up to 1 MB. SVG is refused because dompdf draws it poorly.
+- The logo uploads as soon as a file is picked. It is not part of Save.
+- `UploadPropertyLogo` replaces the file. `RemovePropertyLogo` deletes it. Each logs `property.updated` with `logo`.
+- `settings.logo` streams the file to staff with `settings.manage`, for the browser previews. PDFs read the file from disk.
+- The app shell and the guest registration screen can show it later. See [App shell](../design-system/09-app-shell.md).
+
+| Route                                   | Name                                           |
+| --------------------------------------- | ---------------------------------------------- |
+| `GET`, `PUT /p/{code}/settings/profile` | `settings.profile`, `settings.profile.update`  |
+| `POST`, `DELETE …/settings/logo`        | `settings.logo.store`, `settings.logo.destroy` |
+| `GET …/settings/logo`                   | `settings.logo`                                |
+
 ## Rules
 
 - Every domain table has `property_id`, and every query is scoped by it.

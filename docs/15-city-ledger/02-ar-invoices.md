@@ -95,7 +95,7 @@ Finance › City ledger › Invoices
 
 ## PDF
 
-Rendered on demand with dompdf, not stored, with the shared `Letterhead`. It shows the invoice or credit note number, dates, the company's name, tax numbers and billing address, the folio lines (an invoice) or the reason and the invoice it corrects (a credit note), and the total. A Void document is stamped VOID.
+Rendered on demand with dompdf, not stored, with the shared letterhead from [Printing settings](../02-property/05-printing-settings.md). It shows the invoice or credit note number, dates, the company's name, tax numbers and billing address, the folio lines (an invoice) or the reason and the invoice it corrects (a credit note), and the total. A Void document is stamped VOID.
 
 ## Build order
 

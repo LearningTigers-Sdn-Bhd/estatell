@@ -27,14 +27,14 @@ print_setting_taxes         the tax numbers the header shows
 - A 1:1 table with typed columns, like `property_settings`. New print options are new columns.
 - **The table stores switches, never values.** The header reads the values where they live:
 
-| Header line           | Read from                                                           |
-| --------------------- | ------------------------------------------------------------------- |
-| Logo                  | The `logo` media collection on Property                             |
-| Address               | `properties.address_line1`, `address_line2`, `postal_code`, `city`  |
-| Phone and email       | `properties.contact_phone`, `contact_email`, on one line with a `·` |
-| Business registration | `properties.registration_number`                                    |
-| TIN                   | `properties.tin`                                                    |
-| Tax numbers           | `taxes.registration_number` of each tax in `print_setting_taxes`    |
+| Header line           | Read from                                                                            |
+| --------------------- | ------------------------------------------------------------------------------------ |
+| Logo                  | The `logo` media collection on Property                                              |
+| Address               | `properties.address_line1`, `address_line2`, `postal_code`, `city`, the country name |
+| Phone and email       | `properties.contact_phone`, `contact_email`, on one line with a `·`                  |
+| Business registration | `properties.registration_number`                                                     |
+| TIN                   | `properties.tin`                                                                     |
+| Tax numbers           | `taxes.registration_number` of each tax in `print_setting_taxes`                     |
 
 - `SeedPropertyDefaults` creates the row with the defaults above and no tax rows. A back-fill migration creates it for existing properties. Code never checks for a missing row.
 - `footer_text` is trimmed. An empty text is stored as null (CHECK, like `taxes.registration_number`).
@@ -47,15 +47,15 @@ print_setting_taxes         the tax numbers the header shows
 ## Fonts
 
 - dompdf needs a TrueType file for each font. DejaVu Sans is built in, and Noto Sans SC is already in `resources/fonts/` for the registration card. No new font file is added.
-- **Chinese text always prints.** When any text in a document needs Noto Sans SC (the same check as `RegistrationCardDocument::needsCjk()`), the whole document uses it, whatever the setting. A guest name in Chinese never prints as empty boxes.
+- **Chinese text always prints.** When any text in a document needs Noto Sans SC (Han, Hiragana, Katakana or Hangul, the same check as `RegistrationCardDocument::needsCjk()`), the whole document uses it, whatever the setting. A guest name in Chinese never prints as empty boxes.
+- `PrintedPdf` (`app/Services/Property/`) renders every PDF that uses the shared layout: it renders the view to HTML, switches the font to Noto Sans SC when the HTML needs it, and sets the paper, the orientation and font subsetting. Controllers call it instead of repeating `Pdf::loadView()->setPaper()->setOption()`. Whether dompdf can fall back to a second font for single characters is not verified, so the check covers the whole document.
 - Thai, Tamil and Jawi are not offered. dompdf has no complex-script shaping, so they print wrongly. Add them only after a test PDF proves otherwise.
 
 ## Logo
 
-- A single-file `logo` media collection on Property, on the private media disk. PNG or JPEG, up to 1 MB. SVG is refused because dompdf draws it poorly.
-- `UploadPropertyLogo` replaces the file. `RemovePropertyLogo` deletes it.
-- PDFs read the file from disk. The browser preview reads it from `settings.printing.logo`, which streams it to staff with `settings.manage`.
-- With no logo, the Show logo switch is disabled and the header starts with the property name.
+- The logo is part of the property profile, not a print setting. It is uploaded on the Details page, Profile tab. See [Properties](01-properties.md#profile).
+- PDFs read the file from disk. The browser preview reads it from `settings.logo`.
+- With no logo, the Show logo switch is disabled with a "No logo" link to the Profile tab, and the header starts with the property name.
 
 ## Tax numbers
 
@@ -72,16 +72,19 @@ The switches control only the letterhead. A document that must show a number pri
 - `resources/views/pdf/partials/letterhead.blade.php` draws the header on the first page: the logo on the left, then the property name and the lines that are switched on.
 - The shared `pdf/layout.blade.php` reads the font, the font size and the orientation, and draws `footer_text` at the foot of every page.
 - `PrintProfile` (`app/Services/Property/`) builds what the layout needs from one query: the settings, the header lines and the logo path. Documents pass it to the view.
-- The registration card keeps its own layout and font choice. It does not use the letterhead.
+- `PrintProfile` replaces `App\Services\Folio\Letterhead`. The receipt, voucher, AR invoice, AR receipt, AR statement and aging views drop their own property block and use the partial, so the header follows the switches. TIN is off by default, so it leaves these documents until it is switched on.
+- The layout draws the letterhead and the footer only when the view gets a `PrintProfile`. Two documents get none and keep their own look:
+    - The registration card keeps its own font choice. It does not use the letterhead.
+    - The temporary password slips are cut out and handed to staff, so a letterhead and a footer do not fit.
 
 ## UI
 
 **Printing** is its own Settings sidebar item (`settings.manage`, icon `printer`), below Registration card. It has two tabs with their own URLs:
 
-| Tab     | URL                                  | Content                                 |
-| ------- | ------------------------------------ | --------------------------------------- |
-| General | `/p/{code}/settings/printing`        | Font, font size, footer text            |
-| Header  | `/p/{code}/settings/printing/header` | Logo, header line switches, tax numbers |
+| Tab     | URL                                  | Content                           |
+| ------- | ------------------------------------ | --------------------------------- |
+| General | `/p/{code}/settings/printing`        | Font, font size, footer text      |
+| Header  | `/p/{code}/settings/printing/header` | Header line switches, tax numbers |
 
 Report column layouts are not here. They are a Sheet on each report page. See [Core reports](../22-reports/01-core-reports.md#layout-sheet).
 
@@ -98,21 +101,20 @@ Both tabs use the three-column grid of the registration card Layout tab: the for
 └───────────────────────────────────────────┴────────────────────────┘
 
 ┌ Header ───────────────────────────────────┬ Preview (sticky) ──────┐
-│ Logo        [img] [Replace] [Remove]      │ [LOGO] Sandbay Resort  │
-│ ● Show logo                               │ Lot 12, Jalan Pantai…  │
-│ ● Address                                 │ +60 88 123 456 · stay@ │
-│ ● Phone and email                         │ Reg. 202301012345      │
-│ ● Business registration no.               │ SST W10-1808-32000123  │
-│ ○ TIN                         Not set ↗   │ TTX 12-3456789         │
-│ Tax numbers                               │                        │
-│   ● Service Tax (SST)  W10-1808-32000123  │ [Open sample PDF ↗]    │
-│   ● Tourism tax (TTX)  12-3456789         │                        │
+│ ● Show logo                               │ [LOGO] Sandbay Resort  │
+│ ● Address                                 │ Lot 12, Jalan Pantai…  │
+│ ● Phone and email                         │ +60 88 123 456 · stay@ │
+│ ● Business registration no.               │ Reg. 202301012345      │
+│ ○ TIN                         Not set ↗   │ SST W10-1808-32000123  │
+│ Tax numbers                               │ TTX 12-3456789         │
+│   ● Service Tax (SST)  W10-1808-32000123  │                        │
+│   ● Tourism tax (TTX)  12-3456789         │ [Open sample PDF ↗]    │
 │   ○ Service charge     No number ↗        │                        │
 └───────────────────────────────────────────┴────────────────────────┘
 ```
 
-- An empty property value shows "Not set" with a link to the Details page, and its switch is disabled.
-- There is no Save button. A switch, select or radio saves by itself 300 ms after the last change. The footer text saves on blur. The header shows "Saving…" and then "Changes save automatically." A refused save shows an error toast and the form snaps back to the server copy.
+- An empty property value or a missing logo shows "Not set" (or "No logo") with a link to the Details page, Profile tab, and its switch is disabled.
+- There is no Save button. A switch, select or radio saves by itself 300 ms after the last change. The footer text saves on blur. The header shows "Saving…" and then "Changes save automatically." A refused save shows an error toast and the form snaps back to the server copy. The `use-auto-save` hook (`resources/js/hooks/`) does this, and later auto-saving forms reuse it.
 - The preview is drawn in the browser from the form state. The server sends the property values, the tax numbers and the logo URL. Browser fonts differ from dompdf fonts, so the preview is close but not exact.
 - **Open sample PDF** opens `settings.printing.sample` in a new tab: the real dompdf output of the saved settings, with a sample report table.
 
@@ -120,7 +122,6 @@ Both tabs use the three-column grid of the registration card Layout tab: the for
 
 - `UpdatePrintSettings`: font, font size and footer text.
 - `UpdatePrintHeader`: the five switches and the tax list, synced in one transaction. Refuses a tax of another property.
-- `UploadPropertyLogo`, `RemovePropertyLogo`.
 
 Each logs `print_settings.updated` when something changed, with the changed fields.
 
@@ -128,10 +129,8 @@ Each logs `print_settings.updated` when something changed, with the changed fiel
 
 All need `settings.manage`. See [Routing](../routing.md).
 
-| Route                                    | Name                                            |
-| ---------------------------------------- | ----------------------------------------------- |
-| `GET`, `PUT /p/{code}/settings/printing` | `settings.printing.general`, `.update`          |
-| `GET`, `PUT …/printing/header`           | `settings.printing.header`, `.header.update`    |
-| `POST`, `DELETE …/printing/logo`         | `settings.printing.logo.store`, `.logo.destroy` |
-| `GET …/printing/logo`                    | `settings.printing.logo`                        |
-| `GET …/printing/sample`                  | `settings.printing.sample`                      |
+| Route                                    | Name                                         |
+| ---------------------------------------- | -------------------------------------------- |
+| `GET`, `PUT /p/{code}/settings/printing` | `settings.printing.general`, `.update`       |
+| `GET`, `PUT …/printing/header`           | `settings.printing.header`, `.header.update` |
+| `GET …/printing/sample`                  | `settings.printing.sample`                   |
