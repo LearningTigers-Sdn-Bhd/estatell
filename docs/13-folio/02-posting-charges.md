@@ -101,6 +101,8 @@ A service that returns the target folio for a charge: `targetFor(ReservationUnit
 
 Built (manual postings item): `CreateFolio`, `PostCharge`, `ReverseLine`, `TransferLines`, `PostingResult`, `NewChargeData`, a minimal `FolioRouter`, `unit_add_ons.folio_line_id`, the three permissions, and the `add_on_posted` refusal in `RemoveUnitAddOn`. Not built at that step: routing rules, `InclusionAllocator`, `PostRoomCharges` and `PostScheduledAddOns`. The folio page, payments, `CloseFolio` and `ReopenFolio` came later (see [Folio page](05-folio-page.md#build-status)).
 
+Built (night audit postings item): `NightChargeQuote` with `NightQuote`, `QuotedCharge` and `QuotedDiscount`, `PostRoomCharges` and `PostScheduledAddOns` in `app/Actions/NightAudit/`, and a nullable actor, a `$lineAmount` and a `$discounts` list on `PostFolioCharge`. `ScheduledFolioRows` reads `NightChargeQuote`. The night audit run item calls the two Actions.
+
 Decisions made at build time:
 
 - `FolioRouter::targetFor(ReservationUnit, TransactionCode)` returns null until the unit has a folio. `PostCharge` creates it only after every check passed, so a refusal writes nothing.
@@ -112,7 +114,7 @@ Decisions made at build time:
 
 ## Room charge pipeline (per unit night)
 
-Built with the night audit item.
+Built with the night audit postings item.
 
 `NightChargeQuote` (`app/Services/Folio/`) works out the lines of one unit night. It reads and writes nothing. `PostRoomCharges` posts what it returns, and `ScheduledFolioRows` shows the same lines as Scheduled rows, so the preview and the posting never differ.
 
@@ -155,7 +157,7 @@ The room line has `source_type` and `source_id` set to the unit night. Discount 
 
 ### `PostScheduledAddOns`
 
-`(?User $actor, Property $property, CarbonImmutable $date): list<PostingResult>`. It posts each add-on with `service_date` equal to `$date` and no `folio_line_id`, on a Confirmed or CheckedIn unit, through the same posting core as `PostCharge` with the key `addon:{id}`. The row supplies the item, quantity and amount. It sets `folio_line_id`. One add-on that cannot post does not stop the others, and each is its own transaction.
+`(?User $actor, Property $property, CarbonImmutable $date): array<int, PostingResult>`, keyed by add-on id. It posts each add-on with `service_date` equal to `$date` and no `folio_line_id`, on a CheckedIn unit of the property. `$date` must be the current business date, otherwise it returns an empty list. The row supplies the item, quantity and amount, and the caller is never trusted. The key is `addon:{id}`, the add-on is the line's `source`, and `folio_line_id` is set to the charge line. The code must be a charge code. The item does not need to be active, because the price was copied at booking. Each add-on is its own transaction with its unit locked, so a refusal (a missing nationality, a closed folio) stops only that add-on. A refused add-on stays unposted and shows in the result for the audit. It logs no activity.
 
 ## Rules
 
