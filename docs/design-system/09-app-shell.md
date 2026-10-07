@@ -37,7 +37,7 @@ A full-width navbar on top, the sidebar below it on the left, the page to the ri
 | Left  | Sidebar toggle, then the property icon (logo, or initials), name and "ID code". Clicking the identity opens the dashboard. |
 | Right | User menu (`NavUser`): the avatar only, no name. It opens the name, Account and Log out.                                   |
 
-Sticky at the top, 3.5 rem high. On mobile the same navbar shows; the sidebar is an off-canvas sheet. Pages without a property (admin, account for admins) show the logo instead of the identity.
+Fixed at the top of the shell (it never scrolls), 3.5 rem high. Only the content area scrolls; the shell is `h-svh` and `SidebarInset` has `overflow-y-auto`. The breadcrumb bar is 2.5 rem high and scrolls with the page. On mobile the same navbar shows; the sidebar is an off-canvas sheet. Pages without a property (admin, account for admins) show the logo instead of the identity.
 
 ### Sidebar rows
 

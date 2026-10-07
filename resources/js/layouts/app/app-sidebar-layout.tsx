@@ -13,16 +13,17 @@ export default function AppSidebarLayout({
 }: AppLayoutProps) {
     return (
         <AppShell variant="sidebar">
-            <div className="flex min-h-svh w-full flex-col">
+            <div className="flex h-svh w-full flex-col overflow-hidden">
                 <AppNavbar />
                 <div className="flex min-h-0 flex-1">
                     <AppSidebar />
                     <AppContent
                         variant="sidebar"
                         className={cn(
-                            'min-w-0 overflow-x-clip',
-                            variant === 'fixed' &&
-                                'h-[calc(100svh-3.5rem)] min-h-120 overflow-hidden',
+                            'min-h-0 min-w-0',
+                            variant === 'fixed'
+                                ? 'overflow-hidden'
+                                : 'overflow-x-clip overflow-y-auto',
                         )}
                     >
                         <AppSidebarHeader
