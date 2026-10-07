@@ -17,6 +17,8 @@ class NightAuditResult
 
     public const REFUSAL_REASON_REQUIRED = 'reason_required';
 
+    public const REFUSAL_BLOCKED_BY_READINESS = 'blocked_by_readiness';
+
     private const CLAIMED = 'claimed';
 
     private const COMPLETED = 'completed';

@@ -14,6 +14,7 @@ test('admin pages share the admin navigation', function () {
                 'icon' => 'building',
                 'external' => false,
                 'active' => false,
+                'action' => null,
             ])
         );
 });

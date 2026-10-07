@@ -5,6 +5,7 @@ namespace App\Navigation;
 use App\Data\Navigation\NavGroupData;
 use App\Data\Navigation\NavItemData;
 use App\Enums\PermissionEnum;
+use App\Enums\PropertyStatus;
 use App\Models\Property;
 use App\Models\User;
 
@@ -58,6 +59,12 @@ class FrontDeskNavigation
                     href: route('rates.calendar', ['property' => $property->code], absolute: false),
                     icon: 'calendar-range',
                     active: request()->routeIs('rates.*'),
+                ) : null,
+                $property->status === PropertyStatus::Live && $user->can(PermissionEnum::NightAuditRun->value) ? new NavItemData(
+                    title: __('Run Night Audit'),
+                    href: route('night-audit.show', ['property' => $property->code], absolute: false),
+                    icon: 'moon',
+                    action: 'night-audit',
                 ) : null,
             ]))),
         ];

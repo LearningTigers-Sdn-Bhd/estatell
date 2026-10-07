@@ -238,6 +238,7 @@ test('the registration card item is active on both tabs', function (string $rout
                 'icon' => 'id-card',
                 'external' => false,
                 'active' => true,
+                'action' => null,
             ])
         );
 })->with(['settings.registration-card.general', 'settings.registration-card.layout']);

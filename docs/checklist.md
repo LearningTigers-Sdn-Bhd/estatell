@@ -40,7 +40,9 @@ The critical path: the front desk actions on the reservation, then the night aud
 14. [x] `feat(night-audit): post room charges and scheduled add-ons` — `NightChargeQuote` (`app/Services/Folio/`: the room, inclusion, discount and tax lines of one night; `ScheduledFolioRows` uses it too), `PostRoomCharges` (one unit, one business date), `PostScheduledAddOns`. `PostFolioCharge` takes a nullable actor so an unattended audit can post. `InclusionAllocator` and the undated add-ons at check-in are already built. Needs: go live, post charges, folio routing. Docs: [Posting charges](13-folio/02-posting-charges.md#room-charge-pipeline-per-unit-night).
 15. [x] `feat(folio): show the unit on posted folio rows` — every charge line sets a source that names its unit: night, inclusion and add-on lines as today (the inclusion source was missing), manual charges and policy fees name the reservation unit, and `ReverseLine` and `TransferLines` copy the source. `FolioStatement` reads the unit through the source, a child takes its parent's, and the Unit column shows for posted rows on every folio type. Needs: post room charges and scheduled add-ons. Docs: [Folio page](13-folio/05-folio-page.md), [Posting charges](13-folio/02-posting-charges.md#line-sources).
 16. [x] `feat(night-audit): run the night audit` — `RunNightAudit`, `ClaimBusinessDate`, the step runners for missed arrivals, overdue departures, room charges (a `Bus::batch` on the sync connection), scheduled add-ons, room statuses and `CloseAndOpenNext`, `night_audits`, `night_audit_steps` and `night_audit_exceptions`, the `night-audit.*` permissions with a syncing migration, and a nullable actor on the front desk Actions the audit calls. Backend only. `SnapshotStatistics` joins with item 19. Needs: no-show and check-out Actions, room assignment, post room charges. Docs: [Audit run](20-night-audit/03-audit-run.md).
-17. [ ] `feat(night-audit): add the readiness panel` — the one-click fixes call the front desk Actions. Needs: run the night audit. Docs: [Readiness panel](20-night-audit/02-readiness-panel.md).
+17. [ ] **Add the Run Night Audit sheet**, in two commits, in this order. Docs: [Readiness panel](20-night-audit/02-readiness-panel.md). Needs: run the night audit.
+    - [x] `feat(night-audit): add the audit readiness service` — `AuditReadiness` and `AuditCheck` (no room tonight is the one blocker; not checked in, not checked out, folio open after check-out and carried exceptions are warnings), the `blocked_by_readiness` gate in `RunNightAudit`, `RunNightAuditJob` in the new `app/Jobs` folder (with `PostRoomChargesJob` moved there), and the sheet data and routes (`night-audit.show`, `run`, `units.assign`). Backend only.
+    - [ ] `feat(night-audit): add the Run Night Audit sheet` — the sidebar button (a nav item with an `action`) and the Sheet on `FormOverlay`: ready, blocked, running, failed and completed states, **Assign**, **Force close** with a reason. UI only. Needs: the audit readiness service.
 18. [ ] `feat(night-audit): schedule the night audit per property` — Docs: [Scheduling](20-night-audit/04-scheduling.md).
 19. [ ] `feat(night-audit): snapshot statistics and notify results` — Docs: [Statistics](20-night-audit/05-statistics.md).
 
@@ -203,6 +205,7 @@ Needs the Channex staging checks in [Staging verification](21-channels/06-stagin
 | `e82a392` | fix(front-desk): release rooms on cancel and no-show                     |
 | `065e49f` | feat(front-desk): add unit actions to the reservation page               |
 | `753e731` | feat(front-desk): check in and check out from the reservation page       |
+| `fc33bf4` | feat(night-audit): run the night audit                                   |
 
 Smaller fixes and reverts are in `git log`.
 

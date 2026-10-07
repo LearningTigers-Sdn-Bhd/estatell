@@ -76,13 +76,13 @@ Route: `GET /p/{code}/business-date` (`business-date.show`, JSON) returns the sa
 
 ## Build status
 
-| Part                                                             | Status                                                                          |
-| ---------------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| Tables, enums, models, services, `OpenBusinessDate`, prefix      | Built.                                                                          |
-| Route, shared prop, `BusinessDateIndicator`                      | Built. The "Night audit pending" text becomes a link with the night audit page. |
-| `GoLive` calling `OpenBusinessDate`                              | Built. See [Go live](../17-onboarding/03-go-live.md).                           |
-| `CloseAndOpenNext` (Open > Auditing > Closed, the next date)     | Built with the [audit run](03-audit-run.md).                                    |
-| Room blocks moving from `PropertyToday` to `CurrentBusinessDate` | Waits for the first folio posting.                                              |
+| Part                                                             | Status                                                                                                                      |
+| ---------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| Tables, enums, models, services, `OpenBusinessDate`, prefix      | Built.                                                                                                                      |
+| Route, shared prop, `BusinessDateIndicator`                      | Built. The pending and running texts will open the [Run Night Audit sheet](02-readiness-panel.md#the-sheet): not wired yet. |
+| `GoLive` calling `OpenBusinessDate`                              | Built. See [Go live](../17-onboarding/03-go-live.md).                                                                       |
+| `CloseAndOpenNext` (Open > Auditing > Closed, the next date)     | Built with the [audit run](03-audit-run.md).                                                                                |
+| Room blocks moving from `PropertyToday` to `CurrentBusinessDate` | Waits for the first folio posting.                                                                                          |
 
 ## Lessons from wastays
 

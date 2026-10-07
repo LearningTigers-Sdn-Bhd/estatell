@@ -516,6 +516,7 @@ href: string,
 icon: string,
 external: boolean,
 active: boolean,
+action: string | null,
 };
 export type StaffNavigationData = {
 active: App.Enums.NavigationContext | null,
@@ -523,12 +524,47 @@ contexts: App.Data.Navigation.NavContextData[],
 };
 }
 namespace NightAudit {
+export type AuditStepData = {
+step: App.Enums.AuditStep,
+label: string,
+status: App.Enums.AuditStepStatus | null,
+processed: number,
+failed: number,
+error: string | null,
+};
 export type BusinessDateData = {
 date: string,
 status: App.Enums.BusinessDateStatus,
 timeZone: string,
 auditTime: string,
 serverNow: string,
+};
+export type NightAuditProgressData = {
+date: string,
+status: App.Enums.AuditStatus,
+updatedAt: string,
+steps: App.Data.NightAudit.AuditStepData[],
+openExceptions: number,
+};
+export type NightAuditSheetData = {
+date: string | null,
+nextDate: string | null,
+status: App.Enums.BusinessDateStatus | null,
+blockers: App.Data.NightAudit.ReadinessItemData[],
+warnings: App.Data.NightAudit.ReadinessItemData[],
+audit: App.Data.NightAudit.NightAuditProgressData | null,
+canForce: boolean,
+};
+export type ReadinessItemData = {
+check: App.Enums.AuditCheck,
+checkLabel: string,
+blocker: boolean,
+reference: string,
+guest: string | null,
+detail: string,
+message: string | null,
+url: string,
+assignUrl: string | null,
 };
 }
 namespace Notifications {
@@ -1517,6 +1553,7 @@ namespace Enums {
 export type AgeBandPricing = 'free' | 'percent' | 'fixed';
 export type ArInvoiceStatus = 'open' | 'settled' | 'void';
 export type ArInvoiceType = 'invoice' | 'credit_note';
+export type AuditCheck = 'in_house_without_room' | 'arrival_not_checked_in' | 'departure_not_checked_out' | 'folio_open_after_check_out' | 'carried_exception';
 export type AuditExceptionType = 'missed_arrival' | 'overdue_departure' | 'room_charge' | 'add_on' | 'unexpected_error';
 export type AuditStatus = 'running' | 'completed' | 'failed';
 export type AuditStep = 'claim_business_date' | 'resolve_missed_arrivals' | 'resolve_overdue_departures' | 'post_room_charges' | 'post_scheduled_add_ons' | 'update_room_statuses' | 'close_and_open_next';

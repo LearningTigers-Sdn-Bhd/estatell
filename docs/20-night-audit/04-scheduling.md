@@ -8,7 +8,7 @@ Run the audit automatically at each property's local audit time.
 
 - A scheduler entry runs `->everyFiveMinutes()`.
 - It finds properties where `auto_audit_enabled` is on, local time (property `time_zone`) is past `audit_time`, and the business date is still Open.
-- It dispatches `RunNightAuditJob` per property.
+- It dispatches `RunNightAuditJob` per property with the Scheduled trigger. The job is built (see [Audit run](03-audit-run.md#job)). A scheduled run never forces, so a blocker in the [readiness panel](02-readiness-panel.md#the-gate) stops it.
 - The job implements `ShouldBeUnique` (unique by property) and uses `WithoutOverlapping`.
 
 ## Why not per-property timezone schedules

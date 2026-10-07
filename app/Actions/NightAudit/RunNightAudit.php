@@ -6,23 +6,32 @@ use App\Enums\AuditStatus;
 use App\Enums\AuditStep;
 use App\Enums\AuditStepStatus;
 use App\Enums\AuditTrigger;
+use App\Enums\BusinessDateStatus;
 use App\Models\NightAudit;
 use App\Models\NightAuditStep;
 use App\Models\Property;
 use App\Models\User;
+use App\Services\NightAudit\AuditReadiness;
+use App\Services\NightAudit\CurrentBusinessDate;
 use Carbon\CarbonImmutable;
 use Throwable;
 
 class RunNightAudit
 {
-    public function __construct(private ClaimBusinessDate $claimBusinessDate) {}
+    public function __construct(
+        private ClaimBusinessDate $claimBusinessDate,
+        private AuditReadiness $auditReadiness,
+        private CurrentBusinessDate $currentBusinessDate,
+    ) {}
 
     /**
      * Close the current business date of a property: claim it, run the steps in order and open the next date.
      * A step that is already Completed is skipped, so running the audit again after a failure resumes it and posts
      * nothing twice. A step that throws is recorded as Failed with its error and stops the run, the date stays
      * Auditing and the audit is Failed until the next run. A unit that one step cannot resolve becomes an exception
-     * row and does not stop the run. A forced run needs a reason. The route checks `night-audit.run` and
+     * row and does not stop the run. A run that would start the audit is refused as `blocked_by_readiness` while
+     * `AuditReadiness` lists a blocker, unless it is forced. A run that resumes a Failed audit is never blocked, because
+     * its steps are already under way. A forced run needs a reason. The route checks `night-audit.run` and
      * `night-audit.force`, and the readiness panel's blockers come with that panel. A null actor is the scheduler.
      * See docs/20-night-audit/03-audit-run.md.
      */
@@ -32,6 +41,10 @@ class RunNightAudit
 
         if ($force && $forceReason === null) {
             return NightAuditResult::refused(NightAuditResult::REFUSAL_REASON_REQUIRED);
+        }
+
+        if (! $force && $this->isBlocked($property)) {
+            return NightAuditResult::refused(NightAuditResult::REFUSAL_BLOCKED_BY_READINESS);
         }
 
         $claim = ($this->claimBusinessDate)($property, $trigger, $actor, $force, $forceReason);
@@ -85,6 +98,12 @@ class RunNightAudit
             ->log('Night audit completed');
 
         return NightAuditResult::completed($audit);
+    }
+
+    private function isBlocked(Property $property): bool
+    {
+        return $this->currentBusinessDate->get($property)?->status === BusinessDateStatus::Open
+            && $this->auditReadiness->blockers($property) !== [];
     }
 
     /**

@@ -37,6 +37,7 @@ test('the details item stays active on every settings tab', function (string $ro
                 'icon' => 'building',
                 'external' => false,
                 'active' => true,
+                'action' => null,
             ])
         );
 })->with(['settings.edit', 'settings.operations', 'settings.support']);

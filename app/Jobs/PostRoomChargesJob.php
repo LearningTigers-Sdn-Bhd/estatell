@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Actions\NightAudit\Steps;
+namespace App\Jobs;
 
 use App\Actions\NightAudit\PostRoomCharges;
 use App\Actions\NightAudit\RecordAuditException;

@@ -72,11 +72,15 @@ A failed run logs `night-audit.failed` with the step and the error.
 
 ## Force close
 
-Requires `night-audit.force` and a reason. Sets `forced = true`. Open exceptions carry to the next day's readiness panel. `RunNightAudit` stores the flag and the reason and refuses a forced run without one. The route checks the permission. What a force overrides, the hard blockers of the [readiness panel](02-readiness-panel.md), comes with that panel: until then nothing blocks a run, so a forced run differs from a normal run only in what it records.
+Requires `night-audit.force` and a reason. Sets `forced = true`. Open exceptions carry to the next day's readiness panel. `RunNightAudit` stores the flag and the reason and refuses a forced run without one. The route checks the permission. A force overrides the blockers of the [readiness panel](02-readiness-panel.md).
 
 ## Permissions
 
-`night-audit.run`, `night-audit.force`, `night-audit.receive-report`. All three go to Owner and Manager, with a syncing migration. The routes that check them come with the readiness panel.
+`night-audit.run`, `night-audit.force`, `night-audit.receive-report`. All three go to Owner and Manager, with a syncing migration. `night-audit.run` opens the sheet and runs the audit, and `night-audit.force` allows a forced run.
+
+## Job
+
+`RunNightAuditJob` (`app/Jobs/`) runs `RunNightAudit` on the queue. It is `ShouldBeUnique` by property and uses `WithoutOverlapping`, and it does not retry: a failed audit is resumed by the next run. The sheet queues it for a manual run, and the [schedule](04-scheduling.md) will queue it with the Scheduled trigger. `PostRoomChargesJob` lives in `app/Jobs/` too.
 
 ## Build status
 
@@ -86,8 +90,6 @@ Requires `night-audit.force` and a reason. Sets `forced = true`. Open exceptions
 | `SnapshotStatistics`, reports and notifications                                              | [Statistics](05-statistics.md).                                    |
 | Routes, the page and the one-click fixes                                                     | [Readiness panel](02-readiness-panel.md).                          |
 | `RunNightAuditJob` and the schedule                                                          | [Scheduling](04-scheduling.md). Needs a home for jobs (see below). |
-
-`app/Jobs` does not exist yet. `PostRoomChargesJob` lives beside its step until the scheduling item creates that folder, which needs approval, and then moves there with `RunNightAuditJob`.
 
 ## Lessons from wastays
 
