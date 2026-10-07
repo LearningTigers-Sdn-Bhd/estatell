@@ -547,6 +547,11 @@ channels: App.Data.Notifications.NotificationChannelPreferenceData[],
 };
 }
 namespace Onboarding {
+export type GoLiveCheckData = {
+key: string,
+label: string,
+done: boolean,
+};
 export type OwnerSetupData = {
 name: string,
 email: string,

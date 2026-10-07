@@ -23,10 +23,11 @@ class PropertyFactory extends Factory
         return [
             'name' => fake()->company().' Inn',
             'type' => PropertyType::Hotel,
-            'status' => PropertyStatus::Onboarding,
+            'status' => PropertyStatus::Live,
             'city' => fake()->city(),
             'country_code' => 'MY',
             'onboarding_started_at' => now(),
+            'went_live_at' => now(),
         ];
     }
 
@@ -46,6 +47,14 @@ class PropertyFactory extends Factory
         return $this->state(fn (array $attributes) => [
             'status' => PropertyStatus::Live,
             'went_live_at' => now(),
+        ]);
+    }
+
+    public function onboarding(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'status' => PropertyStatus::Onboarding,
+            'went_live_at' => null,
         ]);
     }
 

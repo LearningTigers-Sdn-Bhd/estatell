@@ -15,7 +15,7 @@ test('staff open their own property dashboard with the property prop', function 
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('dashboard')
-            ->where('property', ['code' => $property->code, 'name' => $property->name, 'status' => 'onboarding'])
+            ->where('property', ['code' => $property->code, 'name' => $property->name, 'status' => 'live'])
         );
 
     expect(app(PermissionRegistrar::class)->getPermissionsTeamId())->toBe($property->id);
@@ -71,7 +71,7 @@ test('the home redirect sends staff to their property and admins to admin', func
 });
 
 test('the home redirect sends onboarding owners to Basics while other staff and live owners keep the dashboard', function () {
-    $owner = User::factory()->owner()->create();
+    $owner = User::factory()->owner()->for(Property::factory()->onboarding())->create();
     $staff = User::factory()->for($owner->property)->create();
     $liveOwner = User::factory()->owner()->create();
     $liveOwner->property->update(['status' => PropertyStatus::Live, 'went_live_at' => now()]);

@@ -80,7 +80,7 @@ test('repeated and invalid transitions flash an error without another activity',
 });
 
 test('staff cannot use admin status actions', function () {
-    $staff = User::factory()->create();
+    $staff = User::factory()->for(Property::factory()->onboarding())->create();
 
     $this->actingAs($staff)->post(statusRoute($staff->property, 'suspend'))->assertNotFound();
     $this->post(statusRoute($staff->property, 'reactivate'))->assertNotFound();
@@ -98,7 +98,7 @@ test('guests must sign in for admin status actions', function () {
 
 test('two-factor is required for both admin status actions', function (string $action) {
     config(['estatell.admin_require_two_factor' => true]);
-    $property = Property::factory()->create();
+    $property = Property::factory()->onboarding()->create();
 
     $this->actingAs(User::factory()->admin()->create())
         ->post(statusRoute($property, $action))

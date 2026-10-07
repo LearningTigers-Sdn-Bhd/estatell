@@ -28,7 +28,7 @@ test('guests are sent to login from the admin property list', function () {
 });
 
 test('admins see properties newest code first with their owner', function () {
-    $older = Property::factory()->create();
+    $older = Property::factory()->onboarding()->create();
     $newer = Property::factory()->live()->create(['type' => PropertyType::Homestay]);
     User::factory()->for($newer)->owner()->deactivated()->create(['name' => 'Former owner']);
     User::factory()->for($newer)->withRole(DefaultRoleEnum::Owner)->create(['name' => 'Aina', 'email' => 'aina@example.com']);
@@ -139,7 +139,7 @@ test('the list runs a fixed number of queries', function () {
 });
 
 test('the overview tab sends the property without tab data', function () {
-    $property = Property::factory()->create(['city' => 'Sandakan', 'contact_email' => 'hello@example.com']);
+    $property = Property::factory()->onboarding()->create(['city' => 'Sandakan', 'contact_email' => 'hello@example.com']);
     User::factory()->for($property)->owner()->create(['name' => 'Aina']);
     User::factory()->for($property)->create();
 

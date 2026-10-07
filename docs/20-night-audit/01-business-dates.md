@@ -80,7 +80,7 @@ Route: `GET /p/{code}/business-date` (`business-date.show`, JSON) returns the sa
 | ---------------------------------------------------------------- | ------------------------------------------------------------------------------- |
 | Tables, enums, models, services, `OpenBusinessDate`, prefix      | Built.                                                                          |
 | Route, shared prop, `BusinessDateIndicator`                      | Built. The "Night audit pending" text becomes a link with the night audit page. |
-| `GoLive` calling `OpenBusinessDate`                              | Waits for [Go live](../17-onboarding/03-go-live.md).                            |
+| `GoLive` calling `OpenBusinessDate`                              | Built. See [Go live](../17-onboarding/03-go-live.md).                           |
 | Room blocks moving from `PropertyToday` to `CurrentBusinessDate` | Waits for the first folio posting.                                              |
 
 ## Lessons from wastays

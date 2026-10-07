@@ -19,6 +19,19 @@ Switch a property from setup to operation in one clear moment.
 
 `GoLive` is built before the wizard, because the night audit needs an open business date. The first version creates the business date through `OpenBusinessDate`, starts document numbering and sets `Live`. The readiness check reads the wizard steps, so it starts empty and fills as each step lands in [Wizard steps](02-wizard-steps.md).
 
+## Build status
+
+| Part                                                                                                            | Status                                                                                  |
+| --------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| `GoLive`, `GoLiveReadiness` (empty list), `EnsurePropertyIsLive`, the Go live page and a link on Basics         | Built.                                                                                  |
+| Opening date: today or earlier in the property time zone, so a stay month can be back-filled                    | Built.                                                                                  |
+| `PendingApproval` when `require_go_live_approval` is on. The business date opens and `went_live_at` stays empty | Built. The admin step that approves it and sets `Live` and `went_live_at` is not built. |
+| Clear practice data, notifications and night audit switch-on, confetti, Recommended checklist                   | Not built. They come with the wizard steps and the later night audit items.             |
+
+Document numbering needs no start step. `NextDocumentNumber` creates a sequence row on first use.
+
+`PropertyFactory` makes a Live property by default, because operational routes need `Live`. Use `->onboarding()` for a property that is still in setup.
+
 ## After go-live
 
 - A short celebration (`canvas-confetti`).

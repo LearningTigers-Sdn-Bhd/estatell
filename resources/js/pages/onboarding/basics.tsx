@@ -1,7 +1,7 @@
-import { Form, Head } from '@inertiajs/react';
+import { Form, Head, Link } from '@inertiajs/react';
 import PropertyBasicsController from '@/actions/App/Http/Controllers/Onboarding/PropertyBasicsController';
 import Heading from '@/components/heading';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import {
     Card,
     CardContent,
@@ -22,6 +22,7 @@ import {
 } from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
 import { edit as basicsEdit } from '@/routes/onboarding/basics';
+import { show as goLiveShow } from '@/routes/onboarding/go-live';
 
 type Option = { value: string; label: string };
 
@@ -175,6 +176,15 @@ export default function Basics({
                         </Card>
                     )}
                 </Form>
+                <Link
+                    href={goLiveShow()}
+                    className={buttonVariants({
+                        variant: 'secondary',
+                        className: 'self-start',
+                    })}
+                >
+                    Go live
+                </Link>
             </div>
         </>
     );

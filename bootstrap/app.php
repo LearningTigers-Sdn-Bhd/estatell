@@ -2,6 +2,7 @@
 
 use App\Http\Middleware\EnsurePasswordChanged;
 use App\Http\Middleware\EnsurePropertyAccess;
+use App\Http\Middleware\EnsurePropertyIsLive;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\LogoutDeactivatedUsers;
@@ -27,10 +28,12 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->alias([
             'admin.2fa' => RequireAdminTwoFactor::class,
+            'live' => EnsurePropertyIsLive::class,
             'property.access' => EnsurePropertyAccess::class,
         ]);
 
         $middleware->appendToPriorityList(SubstituteBindings::class, EnsurePropertyAccess::class);
+        $middleware->appendToPriorityList(EnsurePropertyAccess::class, EnsurePropertyIsLive::class);
 
         $middleware->web(append: [
             AuthenticateSession::class,

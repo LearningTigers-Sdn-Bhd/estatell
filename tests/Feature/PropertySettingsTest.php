@@ -135,7 +135,7 @@ test('each settings tab has its own url and sends only its options', function ()
 });
 
 test('invalid values and missing setup cannot update settings', function () {
-    $staff = User::factory()->owner()->create();
+    $staff = User::factory()->owner()->for(Property::factory()->onboarding())->create();
     $property = $staff->property;
 
     $this->actingAs($staff)->put(route('settings.update', [$property->code, 'support']), [])->assertNotFound();
