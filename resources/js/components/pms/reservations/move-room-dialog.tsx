@@ -91,7 +91,7 @@ function MoveRoomForm({ open, onOpenChange, reservationId, unit }: Props) {
                 preview === null ||
                 preview.error !== null ||
                 data.target_id === '' ||
-                data.reason.trim() === ''
+                (preview.reasonRequired && data.reason.trim() === '')
             }
         >
             <Field data-invalid={!!errors.from_night}>
@@ -185,6 +185,11 @@ function MoveRoomForm({ open, onOpenChange, reservationId, unit }: Props) {
                     }
                     maxLength={500}
                     rows={2}
+                    placeholder={
+                        preview?.reasonRequired === false
+                            ? 'Optional for a first assignment'
+                            : undefined
+                    }
                     aria-invalid={!!errors.reason}
                 />
                 <FieldError>{errors.reason}</FieldError>

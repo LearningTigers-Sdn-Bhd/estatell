@@ -182,6 +182,7 @@ class UnitActionPreview
             roomTypes: $types->map(fn (RoomType $type): array => ['id' => $type->id, 'name' => $type->name])->all(),
             roomTypeId: $chosen?->id,
             sellsBeds: $own->sell_unit === SellUnit::Bed,
+            reasonRequired: $night === null || $night->room_id !== null || $night->bed_id !== null,
             units: $chosen === null ? [] : $this->freeUnits->forStay(RoomType::query()->findOrFail($chosen->id), $from, $unit->departure_date, $unit->id),
             error: null,
         );

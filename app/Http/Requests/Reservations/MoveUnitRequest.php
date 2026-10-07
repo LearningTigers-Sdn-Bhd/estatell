@@ -8,7 +8,8 @@ use App\Models\Room;
 use Illuminate\Contracts\Validation\ValidationRule;
 
 /**
- * The Move room form: the first night, the room or bed to move to and a reason.
+ * The Move room form: the first night, the room or bed to move to and a reason. `MoveUnit` needs the reason unless the
+ * first night has no room or bed yet.
  */
 class MoveUnitRequest extends MoveUnitPreviewRequest
 {
@@ -21,7 +22,7 @@ class MoveUnitRequest extends MoveUnitPreviewRequest
             'from_night' => ['required', 'date_format:Y-m-d'],
             'room_id' => ['nullable', 'integer', 'required_without:bed_id'],
             'bed_id' => ['nullable', 'integer', 'required_without:room_id'],
-            'reason' => ['required', 'string', 'max:500'],
+            'reason' => ['nullable', 'string', 'max:500'],
         ];
     }
 

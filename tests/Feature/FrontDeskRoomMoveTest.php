@@ -316,3 +316,39 @@ test('the move preview lists the free rooms of the chosen room type from the nig
 
     expect(array_column($deluxe['units'], 'label'))->toBe(['201']);
 });
+
+test('a first assignment needs no reason but a real move still does', function () {
+    $setup = moveSetup();
+    $setup['unit']->nights()->update(['room_id' => null]);
+
+    $result = moveUnit($setup, $setup['rooms']['102'], '+0 days', '');
+
+    expect($result->isRefused())->toBeFalse()
+        ->and(moveRooms($setup['unit']))->toBe(['102', '102', '102'])
+        ->and(Activity::query()->where('event', 'reservation.unit_moved')->sole()->properties['reason'])->toBeNull();
+
+    expect(moveUnit($setup, $setup['rooms']['103'], '+0 days', '')->refusal)->toBe(AssignmentResult::REFUSAL_REASON_REQUIRED);
+});
+
+test('the move preview says whether a reason is needed', function () {
+    $setup = moveSetup();
+    $url = route('reservations.units.move-preview', ['property' => $setup['property']->code, 'reservation' => $setup['reservation']->id, 'unit' => $setup['unit']->id]);
+    $query = ['from_night' => today()->toDateString()];
+
+    $this->actingAs($setup['user'])->postJson($url, $query)->assertJsonPath('reasonRequired', true);
+
+    $setup['unit']->nights()->update(['room_id' => null]);
+
+    $this->actingAs($setup['user'])->postJson($url, $query)->assertJsonPath('reasonRequired', false);
+});
+
+test('the move route takes a first assignment without a reason', function () {
+    $setup = moveSetup();
+    $setup['unit']->nights()->update(['room_id' => null]);
+    $url = route('reservations.units.move', ['property' => $setup['property']->code, 'reservation' => $setup['reservation']->id, 'unit' => $setup['unit']->id]);
+
+    $this->actingAs($setup['user'])->post($url, ['from_night' => today()->toDateString(), 'room_id' => $setup['rooms']['102']->id])
+        ->assertSessionHasNoErrors();
+
+    expect(moveRooms($setup['unit']))->toBe(['102', '102', '102']);
+});

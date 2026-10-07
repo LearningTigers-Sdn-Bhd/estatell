@@ -1367,6 +1367,7 @@ name: string,
 }[],
 roomTypeId: number | null,
 sellsBeds: boolean,
+reasonRequired: boolean,
 units: App.Data.Reservations.FreeUnitData[],
 error: string | null,
 };

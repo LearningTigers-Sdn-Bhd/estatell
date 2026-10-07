@@ -25,7 +25,8 @@ class MoveUnit
     ) {}
 
     /**
-     * Put a unit in another room or on another bed from a given night onward, with a reason. Earlier nights keep
+     * Put a unit in another room or on another bed from a given night onward, with a reason. A night with no room or
+     * bed yet is a first assignment, not a move, so its reason is optional. Earlier nights keep
      * their room. The unit and the room types are locked first (in id order), so two staff cannot give the same room
      * to two units. Every check runs before the write, so a refusal writes and logs nothing.
      *
@@ -48,11 +49,13 @@ class MoveUnit
                 return AssignmentResult::refused(AssignmentResult::REFUSAL_UNIT_NOT_OPEN);
             }
 
-            if (trim($reason) === '') {
+            $from = CarbonImmutable::instance($fromNight)->startOfDay();
+            $atFrom = $locked->nights()->whereDate('date', $from->toDateString())->first();
+            $isFirstAssignment = $atFrom !== null && $atFrom->room_id === null && $atFrom->bed_id === null;
+
+            if (! $isFirstAssignment && trim($reason) === '') {
                 return AssignmentResult::refused(AssignmentResult::REFUSAL_REASON_REQUIRED);
             }
-
-            $from = CarbonImmutable::instance($fromNight)->startOfDay();
 
             if ($from->lt($locked->arrival_date->startOfDay()) || $from->gte($locked->departure_date->startOfDay())) {
                 return AssignmentResult::refused(AssignmentResult::REFUSAL_NIGHT_INVALID);
@@ -122,7 +125,7 @@ class MoveUnit
                     'bed_id' => $isBed ? $target->id : null,
                     'room_type_id' => $targetTypeId,
                     'previous' => $previous,
-                    'reason' => trim($reason),
+                    'reason' => trim($reason) === '' ? null : trim($reason),
                 ])
                 ->log('Unit moved');
 
