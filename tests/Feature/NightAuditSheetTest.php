@@ -108,6 +108,7 @@ test('a group booking is one row that opens to its units, and the policy decides
         ->and($group['actions'][1]['label'])->toBe('Mark all no-show')
         ->and($group['actions'][1]['confirm'])->toBe('Mark 3 units as no-show? The no-show fee of MYR 180.00 is charged.')
         ->and($group['units'][0]['actions'])->toHaveCount(1)
+        ->and($group['units'][0]['actions'][0]['label'])->toBe('Mark no-show')
         ->and($group['units'][0]['actions'][0]['unitId'])->toBe($group['units'][0]['unitId'])
         ->and($departure['units'])->toBe([])
         ->and($departure['consequence'])->toBe('If you leave it: one more night is charged and the departure moves a day.');
@@ -333,4 +334,56 @@ test('the sheet says the date has not ended, and a run is refused until it has o
 
     $this->postJson(route('night-audit.run', $setup['property']->code), ['force' => true, 'reason' => 'Closing early'])->assertAccepted();
     Queue::assertPushed(RunNightAuditJob::class);
+});
+
+test('check-in and check-out open Dialogs over the sheet for staff who may use them, and link otherwise', function () {
+    $setup = sheetSetup([PermissionEnum::NightAuditRun, PermissionEnum::ReservationsManage, PermissionEnum::FrontDeskCheckIn, PermissionEnum::FrontDeskCheckOut]);
+    $property = $setup['property'];
+    $reservation = Reservation::factory()->create(['property_id' => $property->id]);
+    ReservationUnit::factory()->count(2)->for($reservation)->withNights()->create(['arrival_date' => '2026-10-12', 'departure_date' => '2026-10-14']);
+    $single = ReservationUnit::factory()->for(Reservation::factory()->create(['property_id' => $property->id]))->withNights()->create(['arrival_date' => '2026-10-12', 'departure_date' => '2026-10-14']);
+    $out = ReservationUnit::factory()->count(2)->for(Reservation::factory()->create(['property_id' => $property->id]))->withNights()->checkedIn()->create(['arrival_date' => '2026-10-10', 'departure_date' => '2026-10-12']);
+    $out->each(fn ($unit) => $unit->nights()->update(['room_id' => Room::factory()->for($property)->create()->id]));
+
+    $warnings = collect($this->actingAs($setup['user'])->getJson(route('night-audit.show', $property->code))->json('warnings'));
+    $group = $warnings->firstWhere('reservationId', $reservation->id);
+    $one = $warnings->firstWhere('reservationId', $single->reservation_id);
+    $departures = $warnings->firstWhere('reservationId', $out[0]->reservation_id);
+
+    expect($group['actions'][0])->toMatchArray(['kind' => 'dialog', 'dialog' => 'check-in-all', 'label' => 'Check in all', 'unitId' => null])
+        ->and($group['units'][0]['actions'][0])->toMatchArray(['kind' => 'dialog', 'dialog' => 'check-in'])
+        ->and($one['actions'][0])->toMatchArray(['kind' => 'dialog', 'dialog' => 'check-in', 'unitId' => $single->id])
+        ->and($departures['openUnits'])->toBeTrue()
+        ->and(collect($departures['actions'])->pluck('label')->all())->toBe(['Extend 1 night'])
+        ->and($departures['units'][0]['actions'][0])->toMatchArray(['kind' => 'dialog', 'dialog' => 'check-out'])
+        ->and($group['actions'][0]['url'])->toBe(route('night-audit.reservation', [$property->code, $reservation->id], absolute: false));
+
+    $plain = sheetSetup();
+    ReservationUnit::factory()->count(2)->for(Reservation::factory()->create(['property_id' => $plain['property']->id]))->withNights()->create(['arrival_date' => '2026-10-12', 'departure_date' => '2026-10-14']);
+    $row = $this->actingAs($plain['user'])->getJson(route('night-audit.show', $plain['property']->code))->json('warnings.0');
+
+    expect($row['actions'][0]['kind'])->toBe('link')
+        ->and($row['units'][0]['actions'])->toHaveCount(1);
+});
+
+test('the dialog data is the reservation, its units with their actions, and the payment options', function () {
+    $setup = sheetSetup([PermissionEnum::NightAuditRun, PermissionEnum::ReservationsView, PermissionEnum::ReservationsManage, PermissionEnum::FrontDeskCheckIn, PermissionEnum::PaymentRecord]);
+    $property = $setup['property'];
+    $unit = ReservationUnit::factory()->for(Reservation::factory()->create(['property_id' => $property->id]))->withNights()->create(['arrival_date' => '2026-10-12', 'departure_date' => '2026-10-14']);
+    $foreign = ReservationUnit::factory()->for(Reservation::factory()->create(['property_id' => Property::factory()->live()->create()->id]))->create();
+
+    $this->actingAs($setup['user'])->getJson(route('night-audit.reservation', [$property->code, $unit->reservation_id]))
+        ->assertOk()
+        ->assertJsonPath('reservation.id', $unit->reservation_id)
+        ->assertJsonPath('units.0.id', $unit->id)
+        ->assertJsonPath('units.0.actions.0.key', 'check-in')
+        ->assertJsonPath('canAssignRoom', true)
+        ->assertJsonPath('canWaiveFees', false)
+        ->assertJsonStructure(['paymentOptions' => ['methods', 'purposes'], 'currency']);
+    $this->getJson(route('night-audit.reservation', [$property->code, $foreign->reservation_id]))->assertNotFound();
+
+    $blind = sheetSetup([PermissionEnum::NightAuditRun]);
+    $other = sheetUnit($blind['property']);
+
+    $this->actingAs($blind['user'])->getJson(route('night-audit.reservation', [$blind['property']->code, $other->reservation_id]))->assertForbidden();
 });

@@ -13,7 +13,7 @@ use Spatie\LaravelData\Data;
 class ReadinessActionData extends Data
 {
     /**
-     * @param  string  $kind  `post` or `link`.
+     * @param  string  $kind  `post`, `link` or `dialog`. A `dialog` action opens a Dialog of the reservation page over the sheet, and `url` is where the Dialog loads its data.
      * @param  int|null  $unitId  The one unit a post action is limited to. Null means every unit of the row.
      * @param  string|null  $confirm  What to ask before a post action runs.
      */
@@ -23,6 +23,7 @@ class ReadinessActionData extends Data
         public string $url,
         public ?int $unitId = null,
         public ?string $confirm = null,
+        public ?string $dialog = null,
     ) {}
 
     public static function fix(AuditFix $fix, string $label, Property $property, int $reservationId, ?int $unitId = null, ?string $confirm = null): self
@@ -33,6 +34,20 @@ class ReadinessActionData extends Data
             url: route('night-audit.fix', ['property' => $property->code, 'reservation' => $reservationId, 'fix' => $fix->value], absolute: false),
             unitId: $unitId,
             confirm: $confirm,
+        );
+    }
+
+    /**
+     * @param  string  $dialog  `check-in`, `check-in-all` or `check-out`.
+     */
+    public static function dialog(string $dialog, string $label, Property $property, int $reservationId, ?int $unitId = null): self
+    {
+        return new self(
+            kind: 'dialog',
+            label: $label,
+            url: route('night-audit.reservation', ['property' => $property->code, 'reservation' => $reservationId], absolute: false),
+            unitId: $unitId,
+            dialog: $dialog,
         );
     }
 

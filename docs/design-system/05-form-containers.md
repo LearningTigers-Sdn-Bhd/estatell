@@ -27,7 +27,7 @@ For 4–5 fields: use a Dialog when opened from a detail page, and a Sheet when 
 
 ## Hard rules
 
-- **One overlay level.** A Combobox or DatePicker popover inside a Dialog is fine. A Dialog opening another Dialog is not; use a full page.
+- **One overlay level.** A Combobox or DatePicker popover inside a Dialog is fine. A Dialog opening another Dialog is not; use a full page. **One exception:** the Night Audit sheet may open the check-in, check-in-all and check-out Dialogs of the reservation page over itself (`AuditDialogHost`), because the sheet is a worklist and the hotelier would otherwise leave it for each fix. No other overlay does this.
 - Overlays have **no URL**. If it must be linkable, it is a full page.
 - Sheets and full pages with **unsaved changes** ask for confirmation before closing or leaving.
 

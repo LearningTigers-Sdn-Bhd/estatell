@@ -21,6 +21,7 @@ class ReadinessGroupData extends Data
      * @param  list<string>  $reasons  Why an earlier audit left the units, one for each different reason.
      * @param  list<ReadinessActionData>  $actions
      * @param  list<ReadinessUnitData>  $units  Empty for a reservation with one unit.
+     * @param  bool  $openUnits  The units are the way to fix the row, so the sheet shows them open.
      */
     public function __construct(
         public AuditCheck $check,
@@ -34,12 +35,13 @@ class ReadinessGroupData extends Data
         public array $reasons,
         public array $actions,
         public array $units,
+        public bool $openUnits = false,
     ) {}
 
     /**
      * @param  non-empty-list<ReadinessItem>  $items  Items of one check and one reservation.
      */
-    public static function fromItems(array $items, Property $property, ReadinessAdvice $advice): self
+    public static function fromItems(array $items, Property $property, ReadinessAdvice $advice, bool $canCheckIn, bool $canCheckOut): self
     {
         $first = $items[0];
         $check = $first->check;
@@ -59,14 +61,15 @@ class ReadinessGroupData extends Data
             reasons: $check === AuditCheck::CarriedException
                 ? array_values(array_unique(array_map(fn (ReadinessItem $item): string => $advice->reason((string) $item->message), $items)))
                 : [],
-            actions: self::actions($check, $property, $first->reservationId, $count, $unitIds, $advice),
+            actions: self::actions($check, $property, $first->reservationId, $count, $unitIds, $advice, null, true, $canCheckIn, $canCheckOut),
             units: $count === 1 ? [] : array_map(fn (ReadinessItem $item): ReadinessUnitData => new ReadinessUnitData(
                 unitId: (int) $item->reservationUnitId,
                 guest: $item->guest ?? $item->reference,
                 detail: $item->detail,
                 reason: $item->message === null ? null : $advice->reason($item->message),
-                actions: self::actions($check, $property, $item->reservationId, 1, [(int) $item->reservationUnitId], $advice, (int) $item->reservationUnitId, false),
+                actions: self::actions($check, $property, $item->reservationId, 1, [(int) $item->reservationUnitId], $advice, (int) $item->reservationUnitId, false, $canCheckIn, $canCheckOut),
             ), $items),
+            openUnits: $check === AuditCheck::DepartureNotCheckedOut && $count > 1,
         );
     }
 
@@ -74,26 +77,35 @@ class ReadinessGroupData extends Data
      * @param  list<int>  $unitIds
      * @return list<ReadinessActionData>
      */
-    private static function actions(AuditCheck $check, Property $property, int $reservationId, int $count, array $unitIds, ReadinessAdvice $advice, ?int $unitId = null, bool $withLinks = true): array
+    private static function actions(AuditCheck $check, Property $property, int $reservationId, int $count, array $unitIds, ReadinessAdvice $advice, ?int $unitId, bool $isGroup, bool $canCheckIn, bool $canCheckOut): array
     {
         $parameters = ['property' => $property->code, 'reservation' => $reservationId];
         $reservationUrl = route('reservations.show', $parameters, absolute: false);
         $many = $count > 1;
+        $checkIn = match (true) {
+            ! $canCheckIn => $isGroup ? ReadinessActionData::link(__('Check in'), $reservationUrl) : null,
+            $isGroup && $many => ReadinessActionData::dialog('check-in-all', __('Check in all'), $property, $reservationId),
+            default => ReadinessActionData::dialog('check-in', __('Check in'), $property, $reservationId, $unitId ?? $unitIds[0]),
+        };
+        $checkOut = match (true) {
+            ! $canCheckOut => $isGroup ? ReadinessActionData::link(__('Check out'), $reservationUrl) : null,
+            default => ReadinessActionData::dialog('check-out', __('Check out'), $property, $reservationId, $unitId ?? $unitIds[0]),
+        };
 
         return match ($check) {
             AuditCheck::InHouseWithoutRoom => [
                 ReadinessActionData::fix(AuditFix::Assign, $many ? __('Assign rooms') : __('Assign a room'), $property, $reservationId, $unitId),
             ],
             AuditCheck::ArrivalNotCheckedIn => [
-                ...($withLinks ? [ReadinessActionData::link(__('Check in'), $reservationUrl)] : []),
+                ...($checkIn === null ? [] : [$checkIn]),
                 ReadinessActionData::fix(AuditFix::NoShow, $many ? __('Mark all no-show') : __('Mark no-show'), $property, $reservationId, $unitId, self::noShowConfirm($advice->noShowFee($property, $unitIds), $count)),
             ],
             AuditCheck::DepartureNotCheckedOut => [
-                ...($withLinks ? [ReadinessActionData::link(__('Check out'), $reservationUrl)] : []),
+                ...($checkOut === null || ($isGroup && $many) ? [] : [$checkOut]),
                 ReadinessActionData::fix(AuditFix::ExtendOneNight, __('Extend 1 night'), $property, $reservationId, $unitId, __('Move the departure one day later? One more night is charged.')),
             ],
-            AuditCheck::FolioOpenAfterCheckOut => $withLinks ? [ReadinessActionData::link(__('Open folio'), route('reservations.folio', $parameters, absolute: false))] : [],
-            AuditCheck::CarriedException => $withLinks ? [ReadinessActionData::link(__('Open'), $reservationUrl)] : [],
+            AuditCheck::FolioOpenAfterCheckOut => $isGroup ? [ReadinessActionData::link(__('Open folio'), route('reservations.folio', $parameters, absolute: false))] : [],
+            AuditCheck::CarriedException => $isGroup ? [ReadinessActionData::link(__('Open'), $reservationUrl)] : [],
         };
     }
 

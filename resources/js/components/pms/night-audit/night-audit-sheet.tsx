@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { FormOverlay } from '@/components/pms/form-overlay';
+import { AuditDialogHost } from '@/components/pms/night-audit/audit-dialog-host';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Field, FieldError, FieldLabel } from '@/components/ui/field';
 import { Spinner } from '@/components/ui/spinner';
@@ -68,6 +69,7 @@ type FixHandlers = {
     busy: string | null;
     onRun: (action: Action) => void;
     onConfirm: (key: string | null) => void;
+    onDialog: (action: Action) => void;
     onNavigate: () => void;
 };
 
@@ -101,11 +103,15 @@ function ActionButton({
             variant="outline"
             disabled={handlers.busy !== null}
             focusableWhenDisabled
-            onClick={() =>
-                action.confirm
-                    ? handlers.onConfirm(key)
-                    : handlers.onRun(action)
-            }
+            onClick={() => {
+                if (action.kind === 'dialog') {
+                    handlers.onDialog(action);
+                } else if (action.confirm) {
+                    handlers.onConfirm(key);
+                } else {
+                    handlers.onRun(action);
+                }
+            }}
         >
             {handlers.busy === key && <Spinner data-icon="inline-start" />}
             {action.label}
@@ -177,7 +183,7 @@ function GroupRow({
     group: Group;
     handlers: FixHandlers;
 }) {
-    const [open, setOpen] = useState(false);
+    const [open, setOpen] = useState(group.openUnits);
 
     return (
         <li className="flex flex-col gap-2 py-3">
@@ -306,6 +312,7 @@ export function NightAuditSheet({
     const [forcing, setForcing] = useState(false);
     const [confirming, setConfirming] = useState<string | null>(null);
     const [busy, setBusy] = useState<string | null>(null);
+    const [dialog, setDialog] = useState<Action | null>(null);
     const [fixError, setFixError] = useState<string | null>(null);
 
     const view = viewOf(sheet, ranDate, resumeFrom);
@@ -344,6 +351,7 @@ export function NightAuditSheet({
             setForcing(false);
             setFixError(null);
             setConfirming(null);
+            setDialog(null);
             runner.resetAndClearErrors();
         }
     };
@@ -391,6 +399,10 @@ export function NightAuditSheet({
         busy,
         onRun: runFix,
         onConfirm: setConfirming,
+        onDialog: (action) => {
+            setBusy(actionKey(action));
+            setDialog(action);
+        },
         onNavigate: () => close(false),
     };
 
@@ -464,6 +476,16 @@ export function NightAuditSheet({
             loading={view === 'loading'}
             footer={footer}
         >
+            <AuditDialogHost
+                action={dialog}
+                onLoaded={() => setBusy(null)}
+                onClose={() => {
+                    setDialog(null);
+                    refresh();
+                }}
+                onNavigate={() => close(false)}
+            />
+
             {view === 'none' && (
                 <p className="text-sm text-muted-foreground">
                     This property has no business date yet. Go live first.

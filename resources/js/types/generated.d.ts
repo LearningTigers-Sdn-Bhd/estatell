@@ -546,6 +546,14 @@ updatedAt: string,
 steps: App.Data.NightAudit.AuditStepData[],
 openExceptions: number,
 };
+export type NightAuditReservationData = {
+reservation: App.Data.Reservations.ReservationData,
+units: App.Data.Reservations.ReservationUnitData[],
+paymentOptions: App.Data.Payments.PaymentFormOptionsData | null,
+canWaiveFees: boolean,
+canAssignRoom: boolean,
+currency: App.Enums.Currency | null,
+};
 export type NightAuditSheetData = {
 date: string | null,
 nextDate: string | null,
@@ -563,6 +571,7 @@ label: string,
 url: string,
 unitId: number | null,
 confirm: string | null,
+dialog: string | null,
 };
 export type ReadinessGroupData = {
 check: App.Enums.AuditCheck,
@@ -576,6 +585,7 @@ consequence: string | null,
 reasons: string[],
 actions: App.Data.NightAudit.ReadinessActionData[],
 units: App.Data.NightAudit.ReadinessUnitData[],
+openUnits: boolean,
 };
 export type ReadinessUnitData = {
 unitId: number,

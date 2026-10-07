@@ -5,10 +5,10 @@ namespace App\Http\Controllers\NightAudit;
 use App\Actions\NightAudit\NightAuditResult;
 use App\Actions\NightAudit\RunAuditFix;
 use App\Actions\NightAudit\Steps\ResolveOverdueDepartures;
+use App\Data\NightAudit\NightAuditReservationData;
 use App\Data\NightAudit\NightAuditSheetData;
 use App\Enums\AuditFix;
 use App\Enums\AuditTrigger;
-use App\Enums\PermissionEnum;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\NightAudit\RunAuditFixRequest;
 use App\Http\Requests\NightAudit\RunNightAuditRequest;
@@ -18,7 +18,10 @@ use App\Models\Reservation;
 use App\Services\NightAudit\AuditReadiness;
 use App\Services\NightAudit\CurrentBusinessDate;
 use App\Services\NightAudit\ReadinessAdvice;
+use App\Services\Reservations\ReservationFormOptions;
+use App\Services\Reservations\ReservationOverview;
 use App\Services\Reservations\ReservationRefusals;
+use App\Services\Reservations\UnitActionMenu;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -29,7 +32,7 @@ class NightAuditController extends Controller
      */
     public function show(Request $request, Property $property, AuditReadiness $readiness, CurrentBusinessDate $currentBusinessDate, ReadinessAdvice $advice): JsonResponse
     {
-        return response()->json(NightAuditSheetData::forProperty($property, $readiness, $currentBusinessDate, $advice, $request->user()->can(PermissionEnum::NightAuditForce->value)));
+        return response()->json(NightAuditSheetData::forProperty($property, $readiness, $currentBusinessDate, $advice, $request->user()));
     }
 
     /**
@@ -55,6 +58,14 @@ class NightAuditController extends Controller
         RunNightAuditJob::dispatch($property, AuditTrigger::Manual, $request->user(), $request->boolean('force'), $request->input('reason'));
 
         return response()->json(['queued' => true], 202);
+    }
+
+    /**
+     * The data the check-in, check-in-all and check-out Dialogs need when the sheet opens one over itself.
+     */
+    public function reservation(Request $request, Property $property, Reservation $reservation, ReservationOverview $overview, UnitActionMenu $actionMenu, ReservationFormOptions $options): JsonResponse
+    {
+        return response()->json(NightAuditReservationData::forReservation($reservation, $property, $request->user(), $overview, $actionMenu, $options));
     }
 
     /**

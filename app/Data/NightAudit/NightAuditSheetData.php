@@ -3,8 +3,10 @@
 namespace App\Data\NightAudit;
 
 use App\Enums\BusinessDateStatus;
+use App\Enums\PermissionEnum;
 use App\Models\NightAudit;
 use App\Models\Property;
+use App\Models\User;
 use App\Services\NightAudit\AuditReadiness;
 use App\Services\NightAudit\CurrentBusinessDate;
 use App\Services\NightAudit\ReadinessAdvice;
@@ -36,10 +38,10 @@ class NightAuditSheetData extends Data
         public bool $canForce,
     ) {}
 
-    public static function forProperty(Property $property, AuditReadiness $readiness, CurrentBusinessDate $currentBusinessDate, ReadinessAdvice $advice, bool $canForce): self
+    public static function forProperty(Property $property, AuditReadiness $readiness, CurrentBusinessDate $currentBusinessDate, ReadinessAdvice $advice, User $user): self
     {
         $businessDate = $currentBusinessDate->get($property);
-        $groups = self::groups($readiness->items($property), $property, $advice);
+        $groups = self::groups($readiness->items($property), $property, $advice, $user->can(PermissionEnum::FrontDeskCheckIn->value), $user->can(PermissionEnum::FrontDeskCheckOut->value));
         $blockers = array_values(array_filter($groups, fn (ReadinessGroupData $group): bool => $group->blocker));
         $warnings = array_values(array_filter($groups, fn (ReadinessGroupData $group): bool => ! $group->blocker));
         $audit = $businessDate?->nightAudit ?? NightAudit::query()->where('property_id', $property->id)->latest('id')->first();
@@ -53,7 +55,7 @@ class NightAuditSheetData extends Data
             audit: $audit === null ? null : NightAuditProgressData::fromAudit($audit->loadMissing('businessDate')),
             dateEnded: $readiness->businessDateEnded($property),
             summary: self::summary(count($blockers), count($warnings)),
-            canForce: $canForce,
+            canForce: $user->can(PermissionEnum::NightAuditForce->value),
         );
     }
 
@@ -63,7 +65,7 @@ class NightAuditSheetData extends Data
      * @param  list<ReadinessItem>  $items
      * @return list<ReadinessGroupData>
      */
-    private static function groups(array $items, Property $property, ReadinessAdvice $advice): array
+    private static function groups(array $items, Property $property, ReadinessAdvice $advice, bool $canCheckIn, bool $canCheckOut): array
     {
         $byKey = [];
 
@@ -71,7 +73,7 @@ class NightAuditSheetData extends Data
             $byKey[$item->check->value.':'.$item->reservationId][] = $item;
         }
 
-        return array_values(array_map(fn (array $group): ReadinessGroupData => ReadinessGroupData::fromItems($group, $property, $advice), $byKey));
+        return array_values(array_map(fn (array $group): ReadinessGroupData => ReadinessGroupData::fromItems($group, $property, $advice, $canCheckIn, $canCheckOut), $byKey));
     }
 
     private static function summary(int $blockers, int $warnings): string
