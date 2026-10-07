@@ -108,6 +108,10 @@ export function UnitActionsMenu({
                 {...common}
                 open={action === 'check-in'}
                 paymentOptions={paymentOptions}
+                canAssignRoom={unit.actions.some(
+                    (item) => item.key === 'move-room',
+                )}
+                onAssignRoom={() => choose('move-room')}
             />
             <CheckOutDialog
                 {...common}

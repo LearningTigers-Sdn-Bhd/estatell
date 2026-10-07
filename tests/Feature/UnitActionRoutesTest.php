@@ -876,3 +876,22 @@ test('check-in with only an exempt tax and no deposit takes no payment', functio
     expect($setup['unit']->fresh()->status)->toBe(UnitStatus::CheckedIn)
         ->and(Payment::query()->count())->toBe(0);
 });
+
+test('the check-in preview tells whether tonight has a room, will get one or needs one', function (bool $assigned, bool $autoAssign, string $state) {
+    $setup = uaSetup();
+    uaCheckInSetup($setup, ['auto_assign_rooms' => $autoAssign]);
+
+    if (! $assigned) {
+        $setup['unit']->nights()->update(['room_id' => null]);
+    }
+
+    $this->actingAs($setup['user'])->postJson(uaUrl($setup, 'check-in-preview'))
+        ->assertOk()
+        ->assertJsonPath('roomState', $state)
+        ->assertJsonPath('room', $assigned ? Room::query()->firstOrFail()->number : null);
+})->with([
+    'assigned' => [true, false, 'assigned'],
+    'assigned with auto assign on' => [true, true, 'assigned'],
+    'no room, auto assign on' => [false, true, 'auto'],
+    'no room, auto assign off' => [false, false, 'none'],
+]);

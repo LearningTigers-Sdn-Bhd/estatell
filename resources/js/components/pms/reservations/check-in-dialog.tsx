@@ -11,6 +11,7 @@ import {
     useFormOptions,
 } from '@/components/pms/use-form-options';
 import { useFreshOnOpen } from '@/components/pms/use-fresh-on-open';
+import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
     Field,
@@ -35,6 +36,8 @@ type Props = {
     reservationId: number;
     unit: Unit;
     paymentOptions?: Options;
+    canAssignRoom: boolean;
+    onAssignRoom: () => void;
     currency: App.Enums.Currency | null;
 };
 
@@ -69,6 +72,8 @@ function CheckInForm({
     reservationId,
     unit,
     paymentOptions,
+    canAssignRoom,
+    onAssignRoom,
     currency,
 }: Props) {
     useFormOptions(open, paymentOptions !== undefined, 'paymentOptions');
@@ -150,6 +155,7 @@ function CheckInForm({
             submitDisabled={
                 preview === null ||
                 preview.error !== null ||
+                preview.roomState === 'none' ||
                 (data.collect_now && collecting && paymentOptions === undefined)
             }
             loading={preview === null}
@@ -165,13 +171,36 @@ function CheckInForm({
                         <div className="flex justify-between gap-4">
                             <span className="text-muted-foreground">Room</span>
                             <span>
-                                {preview.room ?? (
+                                {preview.roomState === 'assigned' ? (
+                                    preview.room
+                                ) : preview.roomState === 'auto' ? (
+                                    <span className="text-muted-foreground">
+                                        Assigned when you check in
+                                    </span>
+                                ) : (
                                     <span className="text-destructive">
                                         Not assigned for tonight
                                     </span>
                                 )}
                             </span>
                         </div>
+                        {preview.roomState === 'none' && (
+                            <div className="flex items-center justify-between gap-4 text-sm text-muted-foreground">
+                                {canAssignRoom
+                                    ? 'Assign a room before you check in.'
+                                    : 'Ask someone who can assign rooms.'}
+                                {canAssignRoom && (
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={onAssignRoom}
+                                    >
+                                        Assign a room
+                                    </Button>
+                                )}
+                            </div>
+                        )}
                         {preview.cardRequired && (
                             <div className="flex justify-between gap-4">
                                 <span className="text-muted-foreground">

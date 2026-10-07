@@ -2,10 +2,11 @@
 
 namespace App\Data\Reservations;
 
+use App\Enums\CheckInRoomState;
 use Spatie\LaravelData\Data;
 
 /**
- * What the Check in form shows when it opens: tonight's room, the registration card status, the checks the user may
+ * What the Check in form shows when it opens: tonight's room and whether check-in can assign one, the registration card status, the checks the user may
  * override, the Nationality field when it is missing and Collect now (only for a user with `payment.record`).
  */
 class UnitCheckInPreviewData extends Data
@@ -15,6 +16,7 @@ class UnitCheckInPreviewData extends Data
      */
     public function __construct(
         public ?string $room,
+        public CheckInRoomState $roomState,
         public int $cardsMissing,
         public bool $cardRequired,
         public bool $canCheckInWithoutCard,
@@ -28,6 +30,6 @@ class UnitCheckInPreviewData extends Data
 
     public static function refused(string $error): self
     {
-        return new self(null, 0, false, false, false, [], false, false, null, $error);
+        return new self(null, CheckInRoomState::None, 0, false, false, false, [], false, false, null, $error);
     }
 }

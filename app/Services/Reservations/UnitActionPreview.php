@@ -13,6 +13,7 @@ use App\Data\Reservations\UnitFeePreviewData;
 use App\Data\Reservations\UnitLateCheckOutPreviewData;
 use App\Data\Reservations\UnitMovePreviewData;
 use App\Data\Reservations\UnitReinstatePreviewData;
+use App\Enums\CheckInRoomState;
 use App\Enums\PermissionEnum;
 use App\Enums\SellUnit;
 use App\Enums\SystemTransactionCode;
@@ -77,6 +78,7 @@ class UnitActionPreview
         }
 
         $tonight = $unit->nights()->with(['room', 'bed'])->whereDate('date', $businessDate->toDateString())->first();
+        $room = $tonight?->room?->number ?? $tonight?->bed?->label;
         $cardRequired = (bool) $property->settings?->card_required_for_check_in;
         $needsNationality = $this->unitNationality->for($unit) === null
             && Tax::query()->where('property_id', $unit->property_id)->where('enabled', true)->where('foreign_guests_only', true)->exists();
@@ -85,7 +87,12 @@ class UnitActionPreview
         $collection = $user->can(PermissionEnum::PaymentRecord->value) ? $this->checkInCollection->for($unit) : null;
 
         return new UnitCheckInPreviewData(
-            room: $tonight?->room?->number ?? $tonight?->bed?->label,
+            room: $room,
+            roomState: match (true) {
+                $room !== null => CheckInRoomState::Assigned,
+                (bool) $property->settings?->auto_assign_rooms => CheckInRoomState::Auto,
+                default => CheckInRoomState::None,
+            },
             cardsMissing: $cardRequired ? $this->registrationCardRequirement->missingFor($unit, $property)->count() : 0,
             cardRequired: $cardRequired,
             canCheckInWithoutCard: $user->can(PermissionEnum::FrontDeskCheckInWithoutCard->value),
