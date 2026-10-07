@@ -10,19 +10,12 @@ namespace App\Services\CityLedger;
 class ArInvoiceDocument
 {
     /**
-     * @param  list<string>  $addressLines
-     * @param  list<string>  $contactLines
-     * @param  list<string>  $registrationLines
      * @param  list<string>  $billToLines
      * @param  list<array{0: string, 1: string, 2: string}>  $lines
      */
     public function __construct(
         public readonly string $title,
         public readonly string $number,
-        public readonly string $propertyName,
-        public readonly array $addressLines,
-        public readonly array $contactLines,
-        public readonly array $registrationLines,
         public readonly string $companyName,
         public readonly array $billToLines,
         public readonly string $issuedOn,

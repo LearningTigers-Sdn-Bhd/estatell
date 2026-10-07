@@ -10,6 +10,8 @@ use App\Http\Controllers\Catalogues\TaxController;
 use App\Http\Controllers\Meals\MealPeriodController;
 use App\Http\Controllers\Property\AgeGroupController;
 use App\Http\Controllers\Property\NotificationSettingController;
+use App\Http\Controllers\Property\PrintSettingsController;
+use App\Http\Controllers\Property\PropertyLogoController;
 use App\Http\Controllers\Property\PropertySettingsController;
 use App\Http\Controllers\Rates\RatePlanController;
 use App\Http\Controllers\Registration\RegistrationCardController;
@@ -44,6 +46,16 @@ Route::prefix('settings')->name('settings.')->group(function () {
             Route::put('/', [RegistrationCardController::class, 'update'])->name('update');
             Route::get('layout', [RegistrationCardController::class, 'layout'])->name('layout');
             Route::put('layout', [RegistrationCardController::class, 'updateFields'])->name('fields.update');
+        });
+        Route::prefix('printing')->name('printing.')->controller(PrintSettingsController::class)->group(function () {
+            Route::put('/', 'update')->name('update');
+            Route::put('header', 'updateHeader')->name('header.update');
+            Route::get('sample', 'sample')->name('sample');
+        });
+        Route::controller(PropertyLogoController::class)->group(function () {
+            Route::get('logo', 'show')->name('logo');
+            Route::post('logo', 'store')->name('logo.store');
+            Route::delete('logo', 'destroy')->name('logo.destroy');
         });
         Route::put('{section}', [PropertySettingsController::class, 'update'])
             ->whereIn('section', ['general', 'operations', 'support'])

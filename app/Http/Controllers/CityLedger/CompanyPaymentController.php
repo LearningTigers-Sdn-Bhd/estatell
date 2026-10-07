@@ -16,7 +16,7 @@ use App\Models\Company;
 use App\Models\Property;
 use App\Services\CityLedger\ArPaymentReceipt;
 use App\Services\CityLedger\ArPaymentRefusals;
-use Barryvdh\DomPDF\Facade\Pdf;
+use App\Services\Property\PrintedPdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -87,13 +87,11 @@ class CompanyPaymentController extends Controller
     /**
      * The receipt as an A4 PDF, shown inline. It is rendered on demand and not stored.
      */
-    public function receipt(Property $property, Company $company, ArPayment $payment, ArPaymentReceipt $arPaymentReceipt): Response
+    public function receipt(Property $property, Company $company, ArPayment $payment, ArPaymentReceipt $arPaymentReceipt, PrintedPdf $printedPdf): Response
     {
         $receipt = $arPaymentReceipt->forPayment($payment);
 
-        return Pdf::loadView('pdf.ar-receipt', ['receipt' => $receipt])
-            ->setPaper('a4', 'portrait')
-            ->setOption('isFontSubsettingEnabled', true)
+        return $printedPdf->make($property, 'pdf.ar-receipt', ['receipt' => $receipt])
             ->stream('receipt-'.$receipt->receiptNumber.'.pdf');
     }
 

@@ -26,9 +26,8 @@ use App\Models\ReservationUnit;
 use App\Services\Folio\DiscountQuote;
 use App\Services\Folio\FolioRefusals;
 use App\Services\Folio\FolioVoucher;
-use App\Services\Folio\FolioVoucherDocument;
 use App\Services\NightAudit\CurrentBusinessDate;
-use Barryvdh\DomPDF\Facade\Pdf;
+use App\Services\Property\PrintedPdf;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -181,7 +180,7 @@ class ReservationFolioController extends Controller
      * is not on this folio is a 404. A line that cannot be printed (a payment, a reversal or a reversed line) is a 422,
      * because the dialog never offers one.
      */
-    public function voucher(FolioVoucherRequest $request, Property $property, Reservation $reservation, Folio $folio, FolioVoucher $voucher): Response
+    public function voucher(FolioVoucherRequest $request, Property $property, Reservation $reservation, Folio $folio, FolioVoucher $voucher, PrintedPdf $printedPdf): Response
     {
         $ids = $request->lineIds();
         $keys = $request->scheduledKeys();
@@ -193,14 +192,15 @@ class ReservationFolioController extends Controller
 
         abort_unless($scheduled->count() === count($keys), 404);
 
-        return $this->pdf($voucher->forLines($folio, $ids, $scheduled), $folio->number);
+        return $printedPdf->make($property, 'pdf.voucher', ['voucher' => $voucher->forLines($folio, $ids, $scheduled)])
+            ->stream('voucher-'.$folio->number.'.pdf');
     }
 
     /**
      * A voucher of Scheduled rows for a unit that has no folio yet (nothing has posted for it). Only `?scheduled[]=`
      * applies. A row that does not belong to this unit's "not started" entry is a 404.
      */
-    public function unitVoucher(FolioVoucherRequest $request, Property $property, Reservation $reservation, ReservationUnit $unit, FolioVoucher $voucher): Response
+    public function unitVoucher(FolioVoucherRequest $request, Property $property, Reservation $reservation, ReservationUnit $unit, FolioVoucher $voucher, PrintedPdf $printedPdf): Response
     {
         $keys = $request->scheduledKeys();
 
@@ -210,15 +210,8 @@ class ReservationFolioController extends Controller
 
         abort_unless($scheduled->count() === count($keys), 404);
 
-        return $this->pdf($voucher->forUnit($property, $unit, $scheduled), $reservation->reference);
-    }
-
-    private function pdf(FolioVoucherDocument $document, string $name): Response
-    {
-        return Pdf::loadView('pdf.voucher', ['voucher' => $document])
-            ->setPaper('a4', 'portrait')
-            ->setOption('isFontSubsettingEnabled', true)
-            ->stream('voucher-'.$name.'.pdf');
+        return $printedPdf->make($property, 'pdf.voucher', ['voucher' => $voucher->forUnit($property, $unit, $scheduled)])
+            ->stream('voucher-'.$reservation->reference.'.pdf');
     }
 
     private function page(Property $property, Reservation $reservation, Folio $folio): string

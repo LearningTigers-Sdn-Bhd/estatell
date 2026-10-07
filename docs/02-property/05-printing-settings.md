@@ -36,7 +36,7 @@ print_setting_taxes         the tax numbers the header shows
 | TIN                   | `properties.tin`                                                                     |
 | Tax numbers           | `taxes.registration_number` of each tax in `print_setting_taxes`                     |
 
-- `SeedPropertyDefaults` creates the row with the defaults above and no tax rows. A back-fill migration creates it for existing properties. Code never checks for a missing row.
+- `SeedPropertyDefaults` creates the row with the defaults above and no tax rows. A back-fill migration creates it for existing properties, and `PropertyFactory` creates it in tests. Code that prints never checks for a missing row. The printing routes are a 404 before Basics, when the row does not exist yet.
 - `footer_text` is trimmed. An empty text is stored as null (CHECK, like `taxes.registration_number`).
 
 ## Enums
@@ -54,7 +54,7 @@ print_setting_taxes         the tax numbers the header shows
 ## Logo
 
 - The logo is part of the property profile, not a print setting. It is uploaded on the Details page, Profile tab. See [Properties](01-properties.md#profile).
-- PDFs read the file from disk. The browser preview reads it from `settings.logo`.
+- PDFs embed the file as a data URI, read from its disk. The browser preview reads it from `settings.logo`.
 - With no logo, the Show logo switch is disabled with a "No logo" link to the Profile tab, and the header starts with the property name.
 
 ## Tax numbers
@@ -71,7 +71,8 @@ The switches control only the letterhead. A document that must show a number pri
 
 - `resources/views/pdf/partials/letterhead.blade.php` draws the header on the first page: the logo on the left, then the property name and the lines that are switched on.
 - The shared `pdf/layout.blade.php` reads the font, the font size and the orientation, and draws `footer_text` at the foot of every page.
-- `PrintProfile` (`app/Services/Property/`) builds what the layout needs from one query: the settings, the header lines and the logo path. Documents pass it to the view.
+- `PrintProfile` (`app/Services/Property/`) builds a `PrintLayout` from the settings, the property, its taxes and its logo: the font, the size, the header lines, the footer and the logo as a data URI (so a logo on R2 prints like a local one). `PrintedPdf` passes it to the view as `$print`.
+- A view draws the letterhead with `@component('pdf.partials.letterhead', ['print' => $print])`. The component's slot is the document heading on the right (for example "Receipt" and its number). The voucher draws it on each copy.
 - `PrintProfile` replaces `App\Services\Folio\Letterhead`. The receipt, voucher, AR invoice, AR receipt, AR statement and aging views drop their own property block and use the partial, so the header follows the switches. TIN is off by default, so it leaves these documents until it is switched on.
 - The layout draws the letterhead and the footer only when the view gets a `PrintProfile`. Two documents get none and keep their own look:
     - The registration card keeps its own font choice. It does not use the letterhead.

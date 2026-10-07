@@ -8,16 +8,7 @@ namespace App\Services\CityLedger;
  */
 class ArReceiptDocument
 {
-    /**
-     * @param  list<string>  $addressLines
-     * @param  list<string>  $contactLines
-     * @param  list<string>  $registrationLines
-     */
     public function __construct(
-        public readonly string $propertyName,
-        public readonly array $addressLines,
-        public readonly array $contactLines,
-        public readonly array $registrationLines,
         public readonly string $receiptNumber,
         public readonly string $receivedOn,
         public readonly string $companyName,

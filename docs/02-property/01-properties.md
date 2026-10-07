@@ -72,7 +72,7 @@ The property's identity, edited on the Details page, **Profile** tab (`/p/{code}
 - A single-file `logo` media collection on Property, on the platform media disk (private). PNG or JPEG, up to 1 MB. SVG is refused because dompdf draws it poorly.
 - The logo uploads as soon as a file is picked. It is not part of Save.
 - `UploadPropertyLogo` replaces the file. `RemovePropertyLogo` deletes it. Each logs `property.updated` with `logo`.
-- `settings.logo` streams the file to staff with `settings.manage`, for the browser previews. PDFs read the file from disk.
+- `settings.logo` streams the file to staff with `settings.manage`, for the browser previews. PDFs embed the file as a data URI, read from its disk.
 - The app shell and the guest registration screen can show it later. See [App shell](../design-system/09-app-shell.md).
 
 | Route                                   | Name                                           |

@@ -8,8 +8,7 @@ use App\Models\Property;
 use App\Services\CityLedger\ArInvoiceDirectory;
 use App\Services\CityLedger\CompanyBillTo;
 use App\Services\CityLedger\StatementBuilder;
-use App\Services\Folio\Letterhead;
-use Barryvdh\DomPDF\Facade\Pdf;
+use App\Services\Property\PrintedPdf;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -20,20 +19,17 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class CompanyStatementController extends Controller
 {
-    public function pdf(Request $request, Property $property, Company $company, StatementBuilder $builder, ArInvoiceDirectory $directory, Letterhead $letterhead, CompanyBillTo $billTo): Response
+    public function pdf(Request $request, Property $property, Company $company, StatementBuilder $builder, ArInvoiceDirectory $directory, CompanyBillTo $billTo, PrintedPdf $printedPdf): Response
     {
         [$from, $to] = self::range($request, $directory->today($property));
         $statement = $builder->build($company, $from, $to);
 
-        return Pdf::loadView('pdf.ar-statement', [
+        return $printedPdf->make($property, 'pdf.ar-statement', [
             'statement' => $statement,
             'company' => $company,
             'billToLines' => $billTo->lines($company),
-            'letterhead' => $letterhead->for($property),
             'currency' => $property->settings?->currency->value ?? '',
         ])
-            ->setPaper('a4', 'portrait')
-            ->setOption('isFontSubsettingEnabled', true)
             ->stream('statement-'.str($company->name)->slug().'-'.$statement->to.'.pdf');
     }
 

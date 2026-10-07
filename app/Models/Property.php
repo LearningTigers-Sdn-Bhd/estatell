@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\PropertyStatus;
 use App\Enums\PropertyType;
+use App\Services\Platform\PlatformSettings;
 use Database\Factories\PropertyFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -14,6 +15,8 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Carbon;
 use Laravel\Pennant\Concerns\HasFeatures;
 use Laravel\Pennant\Contracts\FeatureScopeSerializeable;
+use Spatie\MediaLibrary\HasMedia;
+use Spatie\MediaLibrary\InteractsWithMedia;
 
 /**
  * The tenant. `code` comes from the property_code_seq sequence and never changes.
@@ -47,10 +50,26 @@ use Laravel\Pennant\Contracts\FeatureScopeSerializeable;
     'contact_email', 'contact_phone', 'registration_number', 'tin',
     'onboarding_started_at', 'went_live_at', 'suspended_at', 'suspended_from_status',
 ])]
-class Property extends Model implements FeatureScopeSerializeable
+class Property extends Model implements FeatureScopeSerializeable, HasMedia
 {
     /** @use HasFactory<PropertyFactory> */
-    use HasFactory, HasFeatures;
+    use HasFactory, HasFeatures, InteractsWithMedia;
+
+    public const string LOGO = 'logo';
+
+    /**
+     * The logo prints on PDFs. PNG or JPEG only: dompdf draws SVG poorly. New files go to the disk chosen in platform
+     * settings; older files stay on their own disk.
+     */
+    public const array LOGO_MIME_TYPES = ['image/png', 'image/jpeg'];
+
+    public function registerMediaCollections(): void
+    {
+        $this->addMediaCollection(self::LOGO)
+            ->singleFile()
+            ->acceptsMimeTypes(self::LOGO_MIME_TYPES)
+            ->useDisk(app(PlatformSettings::class)->current()->media_disk->diskName());
+    }
 
     /**
      * Get the attributes that should be cast.
@@ -284,6 +303,12 @@ class Property extends Model implements FeatureScopeSerializeable
     public function settings(): HasOne
     {
         return $this->hasOne(PropertySetting::class);
+    }
+
+    /** @return HasOne<PrintSetting, $this> */
+    public function printSetting(): HasOne
+    {
+        return $this->hasOne(PrintSetting::class);
     }
 
     /**

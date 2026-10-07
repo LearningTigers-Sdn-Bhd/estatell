@@ -11,16 +11,9 @@ namespace App\Services\Folio;
 class FolioVoucherDocument
 {
     /**
-     * @param  list<string>  $addressLines
-     * @param  list<string>  $contactLines
-     * @param  list<string>  $registrationLines
      * @param  list<array{date: string, description: string, level: int, amount: string}>  $rows
      */
     public function __construct(
-        public readonly string $propertyName,
-        public readonly array $addressLines,
-        public readonly array $contactLines,
-        public readonly array $registrationLines,
         public readonly string $issuedOn,
         public readonly string $reservationReference,
         public readonly ?string $folioNumber,

@@ -23,6 +23,7 @@ use App\Models\Tax;
 use App\Models\TransactionCode;
 use App\Models\User;
 use App\Services\Payments\PaymentReceipt;
+use App\Services\Property\PrintProfile;
 use Inertia\Testing\AssertableInertia as Assert;
 
 beforeEach(function () {
@@ -288,6 +289,7 @@ test('the receipt opens inline as an A4 PDF named after the receipt number', fun
 test('the receipt shows the payer, the amounts from the ledger and the property', function () {
     $setup = fpSetup();
     $setup['property']->forceFill(['name' => 'Grand River Homestay', 'tin' => 'C1234567890'])->save();
+    $setup['property']->printSetting->update(['show_tin' => true]);
     $item = ChargeItem::factory()->create(['property_id' => $setup['property']->id, 'name' => 'Card fee']);
     Tax::factory()->for($setup['property'])->create(['rate' => '8.00', 'is_inclusive' => false])->applicableTransactionCodes()->attach($item->transaction_code_id);
     $card = PaymentMethod::factory()->create(['property_id' => $setup['property']->id, 'name' => 'Visa', 'surcharge_type' => SurchargeType::Fixed, 'surcharge_value' => '5.00', 'surcharge_charge_item_id' => $item->id]);
@@ -296,7 +298,7 @@ test('the receipt shows the payer, the amounts from the ledger and the property'
     ]))->payment;
 
     $receipt = app(PaymentReceipt::class)->forPayment($payment);
-    $html = view('pdf.receipt', ['receipt' => $receipt])->render();
+    $html = view('pdf.receipt', ['receipt' => $receipt, 'print' => app(PrintProfile::class)->for($setup['property']->refresh())])->render();
 
     expect($receipt->payerName)->toBe($setup['reservation']->booker->full_name)
         ->and($receipt->amountPaid)->toBe('100.00')
@@ -304,8 +306,8 @@ test('the receipt shows the payer, the amounts from the ledger and the property'
         ->and($receipt->surchargeTax)->toBe('0.40')
         ->and($receipt->total)->toBe('105.40')
         ->and($receipt->reference)->toBe('AUTH-9')
-        ->and($receipt->registrationLines)->toBe(['TIN C1234567890'])
         ->and($html)->toContain('Grand River Homestay')
+        ->toContain('TIN C1234567890')
         ->toContain($payment->receipt_number)
         ->toContain('MYR 105.40')
         ->toContain('Tax on surcharge')
@@ -320,7 +322,7 @@ test('a receipt without a surcharge leaves the surcharge lines out', function ()
 
     expect($receipt->surcharge)->toBeNull()
         ->and($receipt->amountPaid)->toBe('80.00')
-        ->and(view('pdf.receipt', ['receipt' => $receipt])->render())->not->toContain('Surcharge');
+        ->and(view('pdf.receipt', ['receipt' => $receipt, 'print' => app(PrintProfile::class)->for($setup['property'])])->render())->not->toContain('Surcharge');
 });
 
 test('a refund has no receipt, and the receipt needs payment.record inside the reservation', function () {

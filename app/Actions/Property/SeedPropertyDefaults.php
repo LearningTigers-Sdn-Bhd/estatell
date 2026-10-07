@@ -51,6 +51,7 @@ class SeedPropertyDefaults
         DB::transaction(function () use ($property, $settings, $countryCode, $type): void {
             ($this->seedDefaultRoles)($property);
             $property->settings()->firstOrCreate([], $settings);
+            $property->printSetting()->firstOrCreate();
             ($this->seedTransactionCodes)($property, $countryCode);
             ($this->seedChargeItems)($property, $countryCode);
             ($this->seedPaymentMethods)($property, $countryCode);

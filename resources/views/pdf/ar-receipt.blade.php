@@ -8,30 +8,14 @@
 @section('title', __('Receipt :number', ['number' => $receipt->receiptNumber]))
 
 @section('content')
-    <table>
-        <tr>
-            <td>
-                <div class="heading">{{ $receipt->propertyName }}</div>
-                @foreach ($receipt->addressLines as $line)
-                    <div class="small">{{ $line }}</div>
-                @endforeach
-                @foreach ($receipt->contactLines as $line)
-                    <div class="small">{{ $line }}</div>
-                @endforeach
-                @foreach ($receipt->registrationLines as $line)
-                    <div class="small muted">{{ $line }}</div>
-                @endforeach
-            </td>
-            <td class="num">
-                <div class="title">{{ __('Receipt') }}</div>
-                <div>{{ $receipt->receiptNumber }}</div>
-                <div class="small muted">{{ $receipt->receivedOn }}</div>
-                @if ($receipt->isVoid)
-                    <div class="heading">{{ __('VOID') }}</div>
-                @endif
-            </td>
-        </tr>
-    </table>
+    @component('pdf.partials.letterhead', ['print' => $print])
+        <div class="title">{{ __('Receipt') }}</div>
+        <div>{{ $receipt->receiptNumber }}</div>
+        <div class="small muted">{{ $receipt->receivedOn }}</div>
+        @if ($receipt->isVoid)
+            <div class="heading">{{ __('VOID') }}</div>
+        @endif
+    @endcomponent
 
     <table class="gap-24">
         <tr class="rule"><td class="label">{{ __('Received from') }}</td><td>{{ $receipt->companyName }}</td></tr>

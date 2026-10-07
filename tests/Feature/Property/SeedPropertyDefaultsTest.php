@@ -24,6 +24,7 @@ test('each property type receives the Malaysia defaults', function (PropertyType
 
     expect($property->roles()->count())->toBe(5)
         ->and($property->settings()->count())->toBe(1)
+        ->and($property->printSetting()->count())->toBe(1)
         ->and($property->transactionCodes()->count())->toBe(count(SystemTransactionCode::cases()))
         ->and($property->paymentMethods()->count())->toBe(6)
         ->and($property->paymentMethods()->where('active', true)->count())->toBe(4)

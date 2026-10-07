@@ -5,32 +5,26 @@ namespace App\Services\CityLedger;
 use App\Enums\ArInvoiceStatus;
 use App\Enums\ArInvoiceType;
 use App\Models\ArInvoice;
-use App\Services\Folio\Letterhead;
 use Carbon\CarbonImmutable;
 
 /**
- * Reads an AR invoice or credit note and gathers what its PDF shows: the property letterhead, the company's name,
+ * Reads an AR invoice or credit note and gathers what its PDF shows: the company's name,
  * tax numbers and billing address, the folio lines (an invoice) or the reason and the invoice it corrects (a credit
  * note) and the total. It writes nothing. See docs/15-city-ledger/02-ar-invoices.md#pdf.
  */
 class ArInvoicePrinter
 {
-    public function __construct(private Letterhead $letterhead, private ArInvoiceDetail $detail, private CompanyBillTo $billTo) {}
+    public function __construct(private ArInvoiceDetail $detail, private CompanyBillTo $billTo) {}
 
     public function forInvoice(ArInvoice $invoice): ArInvoiceDocument
     {
         $invoice->loadMissing(['property.settings', 'company', 'folio', 'creditFor:id,number']);
         $company = $invoice->company;
-        $letterhead = $this->letterhead->for($invoice->property);
         $isInvoice = $invoice->type === ArInvoiceType::Invoice;
 
         return new ArInvoiceDocument(
             title: $invoice->type->label(),
             number: $invoice->number,
-            propertyName: $letterhead['name'],
-            addressLines: $letterhead['addressLines'],
-            contactLines: $letterhead['contactLines'],
-            registrationLines: $letterhead['registrationLines'],
             companyName: $company->name,
             billToLines: $this->billTo->lines($company),
             issuedOn: $invoice->issued_on->format('j M Y'),

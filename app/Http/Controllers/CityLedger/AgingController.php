@@ -6,8 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Property;
 use App\Services\CityLedger\AgingReport;
 use App\Services\CityLedger\ArInvoiceDirectory;
-use App\Services\Folio\Letterhead;
-use Barryvdh\DomPDF\Facade\Pdf;
+use App\Services\Property\PrintedPdf;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -51,17 +50,14 @@ class AgingController extends Controller
         }, 'city-ledger-aging-'.$report->asAt.'.csv', ['Content-Type' => 'text/csv']);
     }
 
-    public function pdf(Request $request, Property $property, AgingReport $agingReport, ArInvoiceDirectory $directory, Letterhead $letterhead): HttpResponse
+    public function pdf(Request $request, Property $property, AgingReport $agingReport, ArInvoiceDirectory $directory, PrintedPdf $printedPdf): HttpResponse
     {
         $report = $agingReport->build($property, $this->asAt($request, $property, $directory));
 
-        return Pdf::loadView('pdf.ar-aging', [
+        return $printedPdf->make($property, 'pdf.ar-aging', [
             'report' => $report,
-            'letterhead' => $letterhead->for($property),
             'currency' => $property->settings?->currency->value ?? '',
-        ])
-            ->setPaper('a4', 'landscape')
-            ->setOption('isFontSubsettingEnabled', true)
+        ], 'landscape')
             ->stream('city-ledger-aging-'.$report->asAt.'.pdf');
     }
 

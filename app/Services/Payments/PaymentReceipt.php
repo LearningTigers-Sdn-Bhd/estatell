@@ -4,7 +4,6 @@ namespace App\Services\Payments;
 
 use App\Models\FolioLine;
 use App\Models\Payment;
-use App\Services\Folio\Letterhead;
 use Brick\Math\BigDecimal;
 use InvalidArgumentException;
 
@@ -15,8 +14,6 @@ use InvalidArgumentException;
  */
 class PaymentReceipt
 {
-    public function __construct(private Letterhead $letterhead) {}
-
     /**
      * @throws InvalidArgumentException for a refund, which has no receipt
      */
@@ -29,16 +26,11 @@ class PaymentReceipt
         $payment->loadMissing(['folio.property.settings', 'folio.reservation.booker', 'folio.payerGuest', 'paymentMethod', 'receiver', 'folioLine', 'surchargeLine.children']);
         $folio = $payment->folio;
         $property = $folio->property;
-        $letterhead = $this->letterhead->for($property);
         $timeZone = $property->settings->time_zone ?? config('app.timezone');
         [$surcharge, $surchargeTax] = $this->surcharge($payment->surchargeLine);
         $paid = BigDecimal::of($payment->amount)->minus($surcharge ?? '0')->minus($surchargeTax ?? '0');
 
         return new ReceiptDocument(
-            propertyName: $letterhead['name'],
-            addressLines: $letterhead['addressLines'],
-            contactLines: $letterhead['contactLines'],
-            registrationLines: $letterhead['registrationLines'],
             receiptNumber: $payment->receipt_number,
             postingDate: $payment->folioLine->posting_date->format('j M Y'),
             receivedAt: $payment->received_at->setTimezone($timeZone)->format('j M Y, H:i'),

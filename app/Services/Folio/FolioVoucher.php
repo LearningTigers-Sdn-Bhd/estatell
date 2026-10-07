@@ -25,7 +25,6 @@ class FolioVoucher
     public const MAX_LINES = 100;
 
     public function __construct(
-        private Letterhead $letterhead,
         private CountryOptions $countryOptions,
         private ScheduledFolioRows $scheduledRows,
     ) {}
@@ -107,7 +106,6 @@ class FolioVoucher
     private function document(Property $property, Reservation $reservation, ?Folio $folio, mixed $guest, ?int $unitId, Collection $posted, Collection $scheduled): FolioVoucherDocument
     {
         $timeZone = $property->settings->time_zone ?? config('app.timezone');
-        $letterhead = $this->letterhead->for($property);
         $later = $scheduled->map(fn (FolioRowData $row): array => [
             'date' => date('j M Y', strtotime($row->date)),
             'description' => $row->description,
@@ -117,10 +115,6 @@ class FolioVoucher
         $sum = fn (Collection $rows): BigDecimal => $rows->reduce(fn (BigDecimal $total, array $row): BigDecimal => $total->plus($row['amount']), BigDecimal::zero());
 
         return new FolioVoucherDocument(
-            propertyName: $letterhead['name'],
-            addressLines: $letterhead['addressLines'],
-            contactLines: $letterhead['contactLines'],
-            registrationLines: $letterhead['registrationLines'],
             issuedOn: now()->setTimezone($timeZone)->format('j M Y'),
             reservationReference: $reservation->reference,
             folioNumber: $folio?->number,

@@ -9,29 +9,13 @@
 @section('title', __('Statement of account'))
 
 @section('content')
-    <table>
-        <tr>
-            <td>
-                <div class="heading">{{ $letterhead['name'] }}</div>
-                @foreach ($letterhead['addressLines'] as $line)
-                    <div class="small">{{ $line }}</div>
-                @endforeach
-                @foreach ($letterhead['contactLines'] as $line)
-                    <div class="small">{{ $line }}</div>
-                @endforeach
-                @foreach ($letterhead['registrationLines'] as $line)
-                    <div class="small muted">{{ $line }}</div>
-                @endforeach
-            </td>
-            <td class="num">
-                <div class="title">{{ __('Statement of account') }}</div>
-                <div class="small muted">{{ $date($statement->from) }} – {{ $date($statement->to) }}</div>
-                @if ($currency !== '')
-                    <div class="small muted">{{ $currency }}</div>
-                @endif
-            </td>
-        </tr>
-    </table>
+    @component('pdf.partials.letterhead', ['print' => $print])
+        <div class="title">{{ __('Statement of account') }}</div>
+        <div class="small muted">{{ $date($statement->from) }} – {{ $date($statement->to) }}</div>
+        @if ($currency !== '')
+            <div class="small muted">{{ $currency }}</div>
+        @endif
+    @endcomponent
 
     <table class="gap-24">
         <tr>

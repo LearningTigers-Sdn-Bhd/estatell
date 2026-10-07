@@ -11,28 +11,12 @@
 @section('content')
     @foreach ($copies as $copy)
         <div @if (! $loop->first) style="page-break-before: always;" @endif>
-            <table>
-                <tr>
-                    <td>
-                        <div class="heading">{{ $voucher->propertyName }}</div>
-                        @foreach ($voucher->addressLines as $line)
-                            <div class="small">{{ $line }}</div>
-                        @endforeach
-                        @foreach ($voucher->contactLines as $line)
-                            <div class="small">{{ $line }}</div>
-                        @endforeach
-                        @foreach ($voucher->registrationLines as $line)
-                            <div class="small muted">{{ $line }}</div>
-                        @endforeach
-                    </td>
-                    <td class="num">
-                        <div class="small muted">{{ $copy }}</div>
-                        <div class="title">{{ __('Voucher') }}</div>
-                        <div>{{ $voucher->folioNumber ?? $voucher->reservationReference }}</div>
-                        <div class="small muted">{{ $voucher->issuedOn }}</div>
-                    </td>
-                </tr>
-            </table>
+            @component('pdf.partials.letterhead', ['print' => $print])
+                <div class="small muted">{{ $copy }}</div>
+                <div class="title">{{ __('Voucher') }}</div>
+                <div>{{ $voucher->folioNumber ?? $voucher->reservationReference }}</div>
+                <div class="small muted">{{ $voucher->issuedOn }}</div>
+            @endcomponent
 
             <table class="gap-24">
                 <tr class="rule"><td class="label">{{ __('Guest') }}</td><td>{{ $voucher->guestName }}</td></tr>

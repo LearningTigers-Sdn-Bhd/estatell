@@ -8,29 +8,13 @@
 @section('title', $document->title.' '.$document->number)
 
 @section('content')
-    <table>
-        <tr>
-            <td>
-                <div class="heading">{{ $document->propertyName }}</div>
-                @foreach ($document->addressLines as $line)
-                    <div class="small">{{ $line }}</div>
-                @endforeach
-                @foreach ($document->contactLines as $line)
-                    <div class="small">{{ $line }}</div>
-                @endforeach
-                @foreach ($document->registrationLines as $line)
-                    <div class="small muted">{{ $line }}</div>
-                @endforeach
-            </td>
-            <td class="num">
-                <div class="title">{{ $document->title }}</div>
-                <div>{{ $document->number }}</div>
-                @if ($document->isVoid)
-                    <div class="heading">{{ __('VOID') }}</div>
-                @endif
-            </td>
-        </tr>
-    </table>
+    @component('pdf.partials.letterhead', ['print' => $print])
+        <div class="title">{{ $document->title }}</div>
+        <div>{{ $document->number }}</div>
+        @if ($document->isVoid)
+            <div class="heading">{{ __('VOID') }}</div>
+        @endif
+    @endcomponent
 
     <table class="gap-24">
         <tr>

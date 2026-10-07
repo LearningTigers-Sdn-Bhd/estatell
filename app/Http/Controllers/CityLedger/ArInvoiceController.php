@@ -16,7 +16,7 @@ use App\Services\CityLedger\ArInvoiceDetail;
 use App\Services\CityLedger\ArInvoiceDirectory;
 use App\Services\CityLedger\ArInvoicePrinter;
 use App\Services\CityLedger\ArInvoiceRefusals;
-use Barryvdh\DomPDF\Facade\Pdf;
+use App\Services\Property\PrintedPdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -56,13 +56,11 @@ class ArInvoiceController extends Controller
     /**
      * The invoice or credit note as an A4 PDF, shown inline. It is rendered on demand and not stored.
      */
-    public function pdf(Property $property, ArInvoice $invoice, ArInvoicePrinter $printer): HttpResponse
+    public function pdf(Property $property, ArInvoice $invoice, ArInvoicePrinter $printer, PrintedPdf $printedPdf): HttpResponse
     {
         $document = $printer->forInvoice($invoice);
 
-        return Pdf::loadView('pdf.ar-invoice', ['document' => $document])
-            ->setPaper('a4', 'portrait')
-            ->setOption('isFontSubsettingEnabled', true)
+        return $printedPdf->make($property, 'pdf.ar-invoice', ['document' => $document])
             ->stream('ar-'.$document->number.'.pdf');
     }
 

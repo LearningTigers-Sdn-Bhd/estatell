@@ -8,16 +8,7 @@ namespace App\Services\Payments;
  */
 class ReceiptDocument
 {
-    /**
-     * @param  list<string>  $addressLines
-     * @param  list<string>  $contactLines
-     * @param  list<string>  $registrationLines
-     */
     public function __construct(
-        public readonly string $propertyName,
-        public readonly array $addressLines,
-        public readonly array $contactLines,
-        public readonly array $registrationLines,
         public readonly string $receiptNumber,
         public readonly string $postingDate,
         public readonly string $receivedAt,

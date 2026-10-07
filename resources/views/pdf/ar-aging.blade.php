@@ -8,23 +8,13 @@
 @section('title', __('City ledger aging'))
 
 @section('content')
-    <table>
-        <tr>
-            <td>
-                <div class="heading">{{ $letterhead['name'] }}</div>
-                @foreach ($letterhead['addressLines'] as $line)
-                    <div class="small">{{ $line }}</div>
-                @endforeach
-            </td>
-            <td class="num">
-                <div class="title">{{ __('City ledger aging') }}</div>
-                <div class="small muted">{{ __('As at :date', ['date' => \Carbon\CarbonImmutable::parse($report->asAt)->format('j M Y')]) }}</div>
-                @if ($currency !== '')
-                    <div class="small muted">{{ $currency }}</div>
-                @endif
-            </td>
-        </tr>
-    </table>
+    @component('pdf.partials.letterhead', ['print' => $print])
+        <div class="title">{{ __('City ledger aging') }}</div>
+        <div class="small muted">{{ __('As at :date', ['date' => \Carbon\CarbonImmutable::parse($report->asAt)->format('j M Y')]) }}</div>
+        @if ($currency !== '')
+            <div class="small muted">{{ $currency }}</div>
+        @endif
+    @endcomponent
 
     <table class="gap-24">
         <tr class="rule">

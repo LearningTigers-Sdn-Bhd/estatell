@@ -32,12 +32,14 @@ class PropertyFactory extends Factory
     }
 
     /**
-     * Issue the document prefix and load the sequence-issued code after the row is inserted.
+     * Issue the document prefix and load the sequence-issued code after the row is inserted. Every property has its
+     * print settings row, as the back-fill and SeedPropertyDefaults give it.
      */
     public function configure(): static
     {
         return $this->afterCreating(function (Property $property): void {
             app(GenerateDocumentPrefix::class)($property);
+            $property->printSetting()->firstOrCreate();
             $property->refresh();
         });
     }
