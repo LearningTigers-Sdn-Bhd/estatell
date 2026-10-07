@@ -28,7 +28,25 @@ The reports a small property needs daily and monthly, with a shared frame: a dat
 - `ReportKey` (backed enum, the value is the URL slug, for example `folio-ledger`): `label()`, `category()`, `defaultOrientation()`, `maxRangeDays()` (null for a one-date report), `columns()` and `report()`.
 - `columns()` returns `ReportColumn` data objects in their default order: `key`, `label`, `align` (left or right) and `defaultVisible`. Column keys are stable. Renaming a key is a migration of stored layouts.
 - `report()` returns the report class. Each report is one class in `app/Services/Reports/` that implements `Report`: `rows(Property, ReportFilters, ?array $rowKeys)` returns its row data objects, each with a stable `key` (the reservation unit id, the payment id, the date, the transaction code).
+- `rows()` returns the full list for the dates and filters. `maxRangeDays()` keeps it small. The page controller sorts and pages that list on the server with the `?sort` and `?page` keys of `DataTable`. Exports call the same `rows()`, so the screen, the PDF and the spreadsheet always match.
 - One controller per report page, as before. The layout and export routes are shared and thin: they take `{report}` as a `ReportKey` and call `report()`. There is no reports controller with logic in it.
+
+## Arrivals columns
+
+Arrivals lists the reservation units that arrive in the range. The row `key` is the reservation unit id.
+
+| Key           | Label             | Align | Default visible |
+| ------------- | ----------------- | ----- | --------------- |
+| `reservation` | Reservation no.   | left  | ✓               |
+| `guest`       | Guest             | left  | ✓               |
+| `phone`       | Phone             | left  |                 |
+| `arrival`     | Arrival           | left  | ✓               |
+| `nights`      | Nights            | right | ✓               |
+| `unit`        | Room type / room  | left  | ✓               |
+| `guests`      | Adults / children | right |                 |
+| `company`     | Company           | left  |                 |
+| `status`      | Status            | left  | ✓               |
+| `balance`     | Balance           | right | ✓               |
 
 ## Date range and quick dates
 
@@ -53,7 +71,7 @@ report_layout_columns     id, report_layout_id (FK, cascade), column_key, positi
 - `ReportLayoutResolver` (`app/Services/Reports/`) merges the stored rows with `columns()`. A column added later in code goes at the end with its default visibility. A stored key that is no longer in `columns()` is ignored.
 - At least one column stays visible.
 - The screen table, the PDF, the CSV and the Excel file all use the resolved order and visibility. The PDF also uses the orientation.
-- `PageOrientation`: Portrait, Landscape.
+- `PageOrientation`: Portrait, Landscape. It is added with the registry (step 2), because `defaultOrientation()` returns it.
 
 ### Layout Sheet
 
@@ -123,7 +141,7 @@ Arrivals     [ This week ▾ ]   [⚙ Layout]   [ Export ▾ ]  PDF · CSV · Ex
 - One class per report (query and data objects). The page controllers stay thin.
 - Every report query is scoped by `property_id`.
 - Exports: PDF with dompdf, CSV and Excel streamed.
-- Report pages use `spatie/laravel-query-builder` for filters and sorting and `@tanstack/react-table` on the frontend.
+- Report pages sort and page the `rows()` list on the server (not `spatie/laravel-query-builder`) and use `@tanstack/react-table` (`DataTable`) on the frontend.
 
 ## Build order
 
@@ -134,8 +152,8 @@ Item 20 of the [checklist](../checklist.md), in eight commits, in this order:
 | 1a   | `feat(property): add printing settings and the logo`             | Backend and PDFs. See [Printing settings](../02-property/05-printing-settings.md)                                                |
 | 1b   | `feat(property): add the profile tab and printing pages`         | UI. See [Properties](../02-property/01-properties.md#profile) and [Printing settings](../02-property/05-printing-settings.md#ui) |
 | 1c   | `feat(property): add PDF font styles`                            | Office, Modern, Fancy, Handwritten. See [Printing settings](../02-property/05-printing-settings.md#fonts)                        |
-| 2    | `feat(reports): add the report registry and the arrivals report` | `ReportKey`, `ReportColumn`, `Report`, `ReportFilters`, date presets, `reports.view`, the Arrivals page                          |
-| 3    | `feat(reports): add report layouts`                              | Layout tables, `PageOrientation`, `ReportLayoutResolver`, the Layout Sheet, Preview PDF                                          |
+| 2    | `feat(reports): add the report registry and the arrivals report` | `ReportKey`, `ReportColumn`, `PageOrientation`, `Report`, `ReportFilters`, date presets, `reports.view`, the Arrivals page       |
+| 3    | `feat(reports): add report layouts`                              | Layout tables, `ReportLayoutResolver`, the Layout Sheet, Preview PDF                                                             |
 | 4    | `feat(reports): export selected rows as PDF, CSV or Excel`       | Row selection, the PDF and spreadsheet routes                                                                                    |
 | 5    | `feat(reports): add the remaining core reports`                  | Every other report in the table above, including live revenue with drill-down                                                    |
 | 6    | `feat(reports): add the night audit packet PDF`                  | The packet from the snapshot tables                                                                                              |
