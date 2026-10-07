@@ -24,12 +24,15 @@ export function ReportExportMenu({
     to,
     sort,
     rowKeys,
+    side = 'bottom',
 }: {
     report: App.Enums.ReportKey;
     from: string;
     to: string;
     sort: string;
     rowKeys: string[];
+    /** Where the menu opens. The floating bulk action bar opens it upwards. */
+    side?: 'top' | 'bottom';
 }) {
     const { csrfToken } = usePage().props;
     const formRef = useRef<HTMLFormElement>(null);
@@ -71,7 +74,7 @@ export function ReportExportMenu({
                     Export
                     <ChevronDown data-icon="inline-end" />
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
+                <DropdownMenuContent align="end" side={side}>
                     <DropdownMenuItem onClick={() => formRef.current?.submit()}>
                         PDF
                     </DropdownMenuItem>

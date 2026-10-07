@@ -117,11 +117,12 @@ Arrivals     [ This week ▾ ]   [⚙ Layout]   [ Export ▾ ]  PDF · CSV · Ex
 ☑ RES-1042  Tan Wei Ming   204   350.00
 ☐ RES-1043  Aisyah Rahman  105     0.00
 ☑ RES-1045  陈美玲          301   120.00
-2 selected · Export uses the selection          [Clear]
+        ╭ 2 selected   [ Export ▾ ]   [✕] ╮   ← BulkActionBar
 ```
 
 - The report `DataTable` gets a checkbox column. The header checkbox selects the rows on the current page.
 - **With rows selected**, the export contains only those rows. **With none selected**, it contains every row that matches the dates and filters, on all pages.
+- While rows are selected, the floating `BulkActionBar` shows the count, the same Export menu and a clear button. The header checkbox shows a dash when only some rows on the page are selected.
 - The selection is kept while paging and is cleared when the dates or filters change. Up to 500 rows can be selected.
 - The browser POSTs the row keys, the dates, the filters and the sort, never row data. The server runs `rows()` again, scoped to the property and the filters, keeps only those keys and sorts them like the page. A key outside the filters is ignored. Exports use the saved layout.
 - The PDF opens in a new tab through a native form POST (`target="_blank"`). The spreadsheet downloads through `postDownload` (`resources/js/lib/post-download.ts`), so a validation error shows as a toast. Neither is an Inertia visit.

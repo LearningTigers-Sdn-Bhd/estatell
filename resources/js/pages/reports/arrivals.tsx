@@ -8,6 +8,7 @@ import type { EnumOption } from '@/components/pms/enum-select';
 import { EmptyState } from '@/components/pms/empty-state';
 import { MoneyText } from '@/components/pms/money-text';
 import { PageHeader } from '@/components/pms/page-header';
+import { BulkActionBar } from '@/components/pms/bulk-action-bar';
 import { ReportExportMenu } from '@/components/pms/reports/report-export-menu';
 import { ReportLayoutSheet } from '@/components/pms/reports/report-layout-sheet';
 import { StatusBadge } from '@/components/pms/status-badge';
@@ -49,6 +50,7 @@ export default function ArrivalsReport({
     const [draft, setDraft] = useState<Layout | null>(null);
     const [layoutOpen, setLayoutOpen] = useState(false);
     const [selected, setSelected] = useState<Set<string>>(new Set());
+    const clearSelection = useCallback(() => setSelected(new Set()), []);
     const active = draft ?? layout;
 
     const visible = useMemo(
@@ -237,21 +239,16 @@ export default function ArrivalsReport({
                     }
                 />
 
-                {selected.size > 0 && (
-                    <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                        <span>
-                            {selected.size} selected · Export uses the selection
-                        </span>
-                        <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setSelected(new Set())}
-                        >
-                            Clear
-                        </Button>
-                    </div>
-                )}
+                <BulkActionBar count={selected.size} onClear={clearSelection}>
+                    <ReportExportMenu
+                        report="arrivals"
+                        from={from}
+                        to={to}
+                        sort={sort}
+                        rowKeys={[...selected]}
+                        side="top"
+                    />
+                </BulkActionBar>
             </div>
 
             {canEditLayout && draft && (

@@ -228,6 +228,8 @@ Needs the Channex staging checks in [Staging verification](21-channels/06-stagin
 | `90ad388` | feat(reports): add the report registry and the arrivals report           |
 | `c913465` | docs(reports): settle the layout prop, sort fallback and report PDF      |
 | `86a0a72` | feat(reports): add report layouts                                        |
+| `1057a47` | docs(reports): settle export sort, typed values and downloads            |
+| `a99280e` | feat(reports): export selected rows as PDF, CSV or Excel                 |
 
 Smaller fixes and reverts are in `git log`.
 

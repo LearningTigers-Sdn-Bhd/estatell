@@ -15,6 +15,8 @@ About 50 components, each built when the first page needs it. Before the reserva
 | Feature folders | See [Where components live](03-component-folders.md)                                                                                                                                                                                                                                      |
 | Guest-facing    | `GuestLayout`, `RemoteCardForm`                                                                                                                                                                                                                                                           |
 
+`BulkActionBar` (`components/pms/bulk-action-bar.tsx`) floats at the bottom of an Index page while rows are selected: the count, the bulk actions passed as children, and a clear button. It is `sticky` inside the page content, so it stays clear of the sidebar, and full width on a phone. Esc clears the selection unless a dialog or menu is open. A menu inside it opens upwards. First used by the [core reports](../22-reports/01-core-reports.md#row-selection-and-export).
+
 `FormActions` is built with the [booking form](../12-reservations/05-booking-form.md#implementation), the first full-page form.
 
 Rules:
