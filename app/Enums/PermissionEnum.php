@@ -55,6 +55,7 @@ enum PermissionEnum: string
     case NightAuditRun = 'night-audit.run';
     case NightAuditForce = 'night-audit.force';
     case NightAuditReceiveReport = 'night-audit.receive-report';
+    case ReportsView = 'reports.view';
 
     public function label(): string
     {
@@ -106,6 +107,7 @@ enum PermissionEnum: string
             self::NightAuditRun => __('Run the night audit'),
             self::NightAuditForce => __('Force close the night audit'),
             self::NightAuditReceiveReport => __('Receive the night audit report'),
+            self::ReportsView => __('View and export reports'),
         };
     }
 
@@ -128,6 +130,7 @@ enum PermissionEnum: string
             self::RegistrationCardManageTerms, self::RegistrationCardSign, self::RegistrationCardSendLink, self::RegistrationCardVoid => __('Registration card'),
             self::FrontDeskCheckIn, self::FrontDeskCheckOut, self::FrontDeskCheckInWithoutCard, self::FrontDeskWaiveFees => __('Front desk'),
             self::NightAuditRun, self::NightAuditForce, self::NightAuditReceiveReport => __('Night audit'),
+            self::ReportsView => __('Reports'),
         };
     }
 

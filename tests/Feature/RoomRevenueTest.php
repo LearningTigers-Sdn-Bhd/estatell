@@ -46,8 +46,8 @@ test('the page shows the room revenue taxes and a preview for local and foreign 
             ->where('preview.localTotal', '108.00')
             ->where('preview.foreignTotal', '118.00')
             ->where('currency', Currency::Myr->value)
-            ->where('navigation.contexts.2.groups.3.items.3.title', 'Room revenue')
-            ->where('navigation.contexts.2.groups.3.items.3.active', true));
+            ->where('navigation.contexts.3.groups.3.items.3.title', 'Room revenue')
+            ->where('navigation.contexts.3.groups.3.items.3.active', true));
 
     expect($unlinked->applicableTransactionCodes()->count())->toBe(0);
 });

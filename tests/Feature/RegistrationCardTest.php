@@ -231,8 +231,8 @@ test('the registration card item is active on both tabs', function (string $rout
     $this->actingAs($owner)
         ->get(route($routeName, $property->code))
         ->assertInertia(fn (Assert $page) => $page
-            ->where('navigation.contexts.2.groups.0.items.0.active', false)
-            ->where('navigation.contexts.2.groups.0.items.1', [
+            ->where('navigation.contexts.3.groups.0.items.0.active', false)
+            ->where('navigation.contexts.3.groups.0.items.1', [
                 'title' => 'Registration card',
                 'href' => '/p/'.$property->code.'/settings/registration-card',
                 'icon' => 'id-card',

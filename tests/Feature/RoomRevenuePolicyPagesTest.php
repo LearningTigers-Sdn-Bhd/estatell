@@ -55,7 +55,7 @@ test('each policy tab renders its form, options and a free preview', function (s
             ->where('locales.0.value', 'en')
             ->where('preview.sampleNight', '100.00')
             ->where('preview.lines.0.free', true)
-            ->where('navigation.contexts.2.groups.3.items.3.active', true));
+            ->where('navigation.contexts.3.groups.3.items.3.active', true));
 })->with([
     'no-show' => ['no-show', ['first_night', 'whole_stay']],
     'cancellation' => ['cancellation', ['first_night', 'whole_stay']],

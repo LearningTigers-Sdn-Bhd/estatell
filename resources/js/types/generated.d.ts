@@ -1100,6 +1100,31 @@ publishedBy: string | null,
 isTemplate: boolean,
 };
 }
+namespace Reports {
+export type ArrivalRow = {
+key: number,
+reservation: string,
+guest: string,
+phone: string | null,
+arrival: string,
+nights: number,
+unit: string,
+guests: string,
+company: string | null,
+status: App.Data.Shared.BadgeData,
+balance: string,
+};
+export type ReportColumn = {
+key: string,
+label: string,
+align: App.Enums.ColumnAlign,
+defaultVisible: boolean,
+};
+export type ReportFilters = {
+from: string,
+to: string,
+};
+}
 namespace Reservations {
 export type AddUnitOptionsData = {
 roomTypes: App.Data.Reservations.RoomTypeOptionData[],
@@ -1626,6 +1651,7 @@ export type BillingMode = 'master_pays' | 'master_pays_all' | 'each_pays';
 export type BusinessDateStatus = 'open' | 'auditing' | 'closed';
 export type ChargingUnit = 'per_item' | 'per_night' | 'per_stay' | 'per_guest_night' | 'per_guest';
 export type CheckInRoomState = 'assigned' | 'auto' | 'none';
+export type ColumnAlign = 'left' | 'right';
 export type CompanyImportMode = 'simple' | 'detailed';
 export type CompanyStatus = 'active' | 'suspended';
 export type CompanyType = 'corporate' | 'travel_agent' | 'government';
@@ -1656,12 +1682,13 @@ export type NotificationType = 'night_audit_completed' | 'night_audit_exceptions
 export type OverdueDeparturePolicy = 'extend_one_night' | 'block';
 export type OwnerSetupMethod = 'email_link' | 'initial_password';
 export type PackageUnit = 'per_guest' | 'per_room';
+export type PageOrientation = 'portrait' | 'landscape';
 export type PaymentMethodType = 'cash' | 'card' | 'bank_transfer' | 'e_wallet' | 'ota_collected' | 'direct_bill';
 export type PaymentPurpose = 'advance' | 'settlement' | 'security_deposit';
 export type PaymentStatus = 'pending' | 'completed' | 'failed';
 export type PdfFont = 'office' | 'modern' | 'fancy' | 'handwritten';
 export type PdfFontSize = 'small' | 'medium' | 'large';
-export type PermissionEnum = 'settings.manage' | 'staff.view' | 'staff.manage' | 'roles.manage' | 'rooms.view' | 'rooms.manage' | 'rooms.block' | 'notification.manage' | 'rates.view' | 'rates.manage' | 'rates.override-restrictions' | 'guests.view' | 'guests.manage' | 'guests.blacklist' | 'guests.view-documents' | 'guests.merge' | 'guests.anonymize' | 'reservations.view' | 'reservations.manage' | 'folio.post-charge' | 'folio.reverse' | 'folio.transfer' | 'folio.discount' | 'folio.discount-open' | 'folio.close' | 'folio.reopen' | 'folio.print-voucher' | 'payment.record' | 'payment.refund' | 'company.view' | 'company.manage' | 'company.credit-override' | 'city-ledger.invoice' | 'city-ledger.credit-note' | 'city-ledger.payment' | 'city-ledger.allocate' | 'registration-card.manage-terms' | 'registration-card.sign' | 'registration-card.send-link' | 'registration-card.void' | 'front-desk.check-in' | 'front-desk.check-out' | 'front-desk.check-in-without-card' | 'front-desk.waive-fees' | 'night-audit.run' | 'night-audit.force' | 'night-audit.receive-report';
+export type PermissionEnum = 'settings.manage' | 'staff.view' | 'staff.manage' | 'roles.manage' | 'rooms.view' | 'rooms.manage' | 'rooms.block' | 'notification.manage' | 'rates.view' | 'rates.manage' | 'rates.override-restrictions' | 'guests.view' | 'guests.manage' | 'guests.blacklist' | 'guests.view-documents' | 'guests.merge' | 'guests.anonymize' | 'reservations.view' | 'reservations.manage' | 'folio.post-charge' | 'folio.reverse' | 'folio.transfer' | 'folio.discount' | 'folio.discount-open' | 'folio.close' | 'folio.reopen' | 'folio.print-voucher' | 'payment.record' | 'payment.refund' | 'company.view' | 'company.manage' | 'company.credit-override' | 'city-ledger.invoice' | 'city-ledger.credit-note' | 'city-ledger.payment' | 'city-ledger.allocate' | 'registration-card.manage-terms' | 'registration-card.sign' | 'registration-card.send-link' | 'registration-card.void' | 'front-desk.check-in' | 'front-desk.check-out' | 'front-desk.check-in-without-card' | 'front-desk.waive-fees' | 'night-audit.run' | 'night-audit.force' | 'night-audit.receive-report' | 'reports.view';
 export type PlatformFeature = 'channel-manager';
 export type PolicyChargeMode = 'free' | 'fixed_amount' | 'percentage';
 export type PolicyRateBasis = 'booked_rate' | 'current_rate';
@@ -1676,6 +1703,8 @@ export type RegistrationCardField = 'full_name' | 'nationality' | 'identity_docu
 export type RegistrationCardFieldGroup = 'guest' | 'stay' | 'prices';
 export type RegistrationCardScope = 'primary_only' | 'every_adult';
 export type RegistrationCardStatus = 'draft' | 'signed' | 'void';
+export type ReportCategory = 'front-desk';
+export type ReportKey = 'arrivals';
 export type ReservationRoomBoxState = 'assigned' | 'unassigned' | 'auto_assign' | 'cancelled' | 'no_show';
 export type ReservationSource = 'direct' | 'walk_in' | 'phone' | 'channel' | 'portal';
 export type ReservationStatus = 'confirmed' | 'in_house' | 'completed' | 'cancelled';

@@ -4,7 +4,7 @@ use App\Models\Property;
 use App\Models\User;
 use Inertia\Testing\AssertableInertia as Assert;
 
-test('owners get front desk, finance and settings contexts with the active context from the route', function () {
+test('owners get front desk, finance, reports and settings contexts with the active context from the route', function () {
     $staff = User::factory()->owner()->create();
     $code = $staff->property->code;
 
@@ -12,14 +12,16 @@ test('owners get front desk, finance and settings contexts with the active conte
         ->get(route('dashboard', $code))
         ->assertInertia(fn (Assert $page) => $page
             ->where('navigation.active', 'front-desk')
-            ->has('navigation.contexts', 3)
+            ->has('navigation.contexts', 4)
             ->where('navigation.contexts.0.key', 'front-desk')
             ->where('navigation.contexts.0.href', "/p/{$code}/dashboard")
             ->where('navigation.contexts.0.groups.0.items.0.active', true)
             ->where('navigation.contexts.1.key', 'finance')
             ->where('navigation.contexts.1.href', "/p/{$code}/finance/city-ledger/companies")
-            ->where('navigation.contexts.2.key', 'settings')
-            ->where('navigation.contexts.2.groups.0.items.0.active', false)
+            ->where('navigation.contexts.2.key', 'reports')
+            ->where('navigation.contexts.2.href', "/p/{$code}/reports/arrivals")
+            ->where('navigation.contexts.3.key', 'settings')
+            ->where('navigation.contexts.3.groups.0.items.0.active', false)
         );
 });
 
@@ -31,7 +33,7 @@ test('the details item stays active on every settings tab', function (string $ro
         ->assertInertia(fn (Assert $page) => $page
             ->where('navigation.active', 'settings')
             ->where('navigation.contexts.0.groups.0.items.0.active', false)
-            ->where('navigation.contexts.2.groups.0.items.0', [
+            ->where('navigation.contexts.3.groups.0.items.0', [
                 'title' => 'Details',
                 'href' => '/p/'.$staff->property->code.'/settings/profile',
                 'icon' => 'building',

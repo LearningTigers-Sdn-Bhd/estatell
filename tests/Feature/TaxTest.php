@@ -100,8 +100,8 @@ test('the page loads the bounded catalogue with what each tax applies to', funct
             ->missing('transactionCodes')
             ->where('rateTypes', TaxRateType::options())
             ->where('currency', Currency::Myr->value)
-            ->where('navigation.contexts.2.groups.3.items.0.title', 'Taxes')
-            ->where('navigation.contexts.2.groups.3.items.0.active', true));
+            ->where('navigation.contexts.3.groups.3.items.0.title', 'Taxes')
+            ->where('navigation.contexts.3.groups.3.items.0.active', true));
 });
 
 test('owners create a tax with its posting code and normalized values', function () {

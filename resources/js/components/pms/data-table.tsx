@@ -49,6 +49,8 @@ type Props<TData extends RowData> = {
     onSortChange: (sort: string) => void;
     pagination: DataTablePagination;
     onRowClick?: (row: TData) => void;
+    /** Ids of the columns whose header and cells align right, for numbers and money. */
+    rightAlign?: string[];
     empty: ReactNode;
 };
 
@@ -77,6 +79,7 @@ export function DataTable<TData extends RowData>({
     onSortChange,
     pagination,
     onRowClick,
+    rightAlign = [],
     empty,
 }: Props<TData>) {
     const sorting = toSortingState(sort);
@@ -115,6 +118,11 @@ export function DataTable<TData extends RowData>({
                                     return (
                                         <TableHead
                                             key={header.id}
+                                            className={cn(
+                                                rightAlign.includes(
+                                                    header.column.id,
+                                                ) && 'text-right',
+                                            )}
                                             aria-sort={
                                                 sorted === 'asc'
                                                     ? 'ascending'
@@ -127,7 +135,12 @@ export function DataTable<TData extends RowData>({
                                                 <button
                                                     type="button"
                                                     onClick={header.column.getToggleSortingHandler()}
-                                                    className="-ml-1 flex items-center gap-1 rounded px-1 hover:text-foreground"
+                                                    className={cn(
+                                                        '-ml-1 flex items-center gap-1 rounded px-1 hover:text-foreground',
+                                                        rightAlign.includes(
+                                                            header.column.id,
+                                                        ) && '-mr-1 ml-auto',
+                                                    )}
                                                 >
                                                     <table.FlexRender
                                                         header={header}
@@ -167,7 +180,14 @@ export function DataTable<TData extends RowData>({
                                     )}
                                 >
                                     {row.getAllCells().map((cell) => (
-                                        <TableCell key={cell.id}>
+                                        <TableCell
+                                            key={cell.id}
+                                            className={cn(
+                                                rightAlign.includes(
+                                                    cell.column.id,
+                                                ) && 'text-right',
+                                            )}
+                                        >
                                             <table.FlexRender cell={cell} />
                                         </TableCell>
                                     ))}

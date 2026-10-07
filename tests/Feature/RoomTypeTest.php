@@ -226,9 +226,9 @@ test('the settings sidebar lists room types only with rooms.view', function () {
     $this->actingAs($owner)
         ->get(route('settings.room-types.index', $owner->property->code))
         ->assertInertia(fn (Assert $page) => $page
-            ->where('navigation.contexts.2.groups.1.label', 'Rooms')
-            ->where('navigation.contexts.2.groups.1.items.0.title', 'Room types')
-            ->where('navigation.contexts.2.groups.1.items.0.active', true));
+            ->where('navigation.contexts.3.groups.1.label', 'Rooms')
+            ->where('navigation.contexts.3.groups.1.items.0.title', 'Room types')
+            ->where('navigation.contexts.3.groups.1.items.0.active', true));
 
     $this->actingAs($frontDesk)
         ->get(route('dashboard', $frontDesk->property->code))

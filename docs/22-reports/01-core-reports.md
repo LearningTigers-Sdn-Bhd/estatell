@@ -48,10 +48,12 @@ Arrivals lists the reservation units that arrive in the range. The row `key` is 
 | `status`      | Status            | left  | ✓               |
 | `balance`     | Balance           | right | ✓               |
 
+- Units that hold inventory count (Confirmed, Checked in, Checked out). Cancelled and no-show units are left out, because nobody arrives. **Guest** and **Phone** are the primary guest of the unit, or the booker when the unit has none. **Room type / room** shows the room or bed of the first night when one is assigned. **Balance** is the balance of the reservation (its folios that are not Voided), from `FolioBalance::forReservations()`.
+
 ## Date range and quick dates
 
 - `DateRangePicker` gets a `presets` prop. Reports pass: Today, Yesterday, This week, Last week, This month, Last month, This year, Last 30 days.
-- **Presets count from the business date, not the clock.** At 01:00 before the audit, Today is still the open business date. The page gets `businessDate` from the server, and the browser works out the presets from it. Weeks start on Monday.
+- **Presets count from the business date, not the clock.** At 01:00 before the audit, Today is still the open business date. The page gets `businessDate` from the server, and the browser works out the presets from it. Weeks start on Monday. A preset longer than `maxDays` (This year on Arrivals) is left out of the list.
 - A one-date report (In-house) uses `DatePicker` with Today and Yesterday.
 - `from` and `to` are in the URL query (`?from=2026-10-01&to=2026-10-07`), so a report can be bookmarked and shared. With no dates, the report opens on Today.
 - `ReportFilters` (a Form Request plus a data object) checks that `from` is not after `to` and that the range is not longer than `maxRangeDays()`.
@@ -72,6 +74,7 @@ report_layout_columns     id, report_layout_id (FK, cascade), column_key, positi
 - At least one column stays visible.
 - The screen table, the PDF, the CSV and the Excel file all use the resolved order and visibility. The PDF also uses the orientation.
 - `PageOrientation`: Portrait, Landscape. It is added with the registry (step 2), because `defaultOrientation()` returns it.
+- `category()` returns a `ReportCategory` (the sidebar group, for example Front desk) and `ReportColumn::align` is a `ColumnAlign` enum.
 
 ### Layout Sheet
 

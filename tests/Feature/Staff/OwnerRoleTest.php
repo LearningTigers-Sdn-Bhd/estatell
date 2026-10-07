@@ -59,7 +59,7 @@ test('owners keep the settings context on account pages', function () {
 
     $this->actingAs($owner)
         ->get(route('account.profile.edit'))
-        ->assertInertia(fn (Assert $page) => $page->where('navigation.contexts.2.key', 'settings'));
+        ->assertInertia(fn (Assert $page) => $page->where('navigation.contexts.3.key', 'settings'));
 });
 
 test('the backfill migration makes the first user of each property without roles the Owner', function () {

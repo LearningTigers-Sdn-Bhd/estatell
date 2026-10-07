@@ -8,6 +8,8 @@ import {
     PopoverTrigger,
 } from '@/components/ui/popover';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { presetDays } from '@/lib/date-presets';
+import type { DateRangePreset } from '@/lib/date-presets';
 import { cn } from '@/lib/utils';
 
 /** Parse `2026-09-12` as a local date so it never shifts a day. */
@@ -58,6 +60,11 @@ type Props = {
     clearLabel?: string;
     /** Longest range, counting both ends. */
     maxDays?: number;
+    /**
+     * Quick dates shown above the calendar, for example from `reportDatePresets()`. A preset longer than `maxDays`
+     * is left out.
+     */
+    presets?: DateRangePreset[];
     /** Unit shown after the count, for example "night". */
     unit?: string;
     placeholder?: string;
@@ -80,6 +87,7 @@ export function DateRangePicker({
     onClear,
     clearLabel = 'Clear dates',
     maxDays,
+    presets,
     months = 1,
     unit = 'day',
     placeholder = 'Pick dates',
@@ -149,6 +157,10 @@ export function DateRangePicker({
         setPicking(true);
     };
 
+    const shownPresets = (presets ?? []).filter(
+        (preset) => !maxDays || presetDays(preset) <= maxDays,
+    );
+
     const lastAllowed =
         maxDays && fromDate && (picking || fromLocked)
             ? new Date(
@@ -200,6 +212,24 @@ export function DateRangePicker({
                 )}
             </PopoverTrigger>
             <PopoverContent className="w-auto" align="start">
+                {shownPresets.length > 0 && (
+                    <div className="flex max-w-xs flex-wrap gap-1.5">
+                        {shownPresets.map((preset) => (
+                            <Button
+                                key={preset.label}
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                    onChange(preset.from, preset.to);
+                                    changeOpen(false);
+                                }}
+                            >
+                                {preset.label}
+                            </Button>
+                        ))}
+                    </div>
+                )}
                 <Calendar
                     mode="range"
                     selected={preview}
