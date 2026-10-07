@@ -212,8 +212,8 @@ function GroupRow({
     const [open, setOpen] = useState(group.openUnits);
 
     return (
-        <li className="flex flex-col gap-2 rounded-lg border p-3">
-            <div className="flex flex-col">
+        <li className="flex flex-col gap-3 rounded-lg border p-4">
+            <div className="flex flex-col gap-1">
                 <span className="text-sm font-medium">{group.guest}</span>
                 <span className="text-xs text-muted-foreground">
                     {group.reference}
@@ -509,7 +509,7 @@ export function NightAuditSheet({
             )}
 
             {view === 'ready' && sheet && (
-                <div className="flex flex-col gap-5">
+                <div className="flex flex-col gap-6">
                     {notEnded && sheet.date && (
                         <Alert variant="destructive">
                             <CircleAlert />
@@ -524,7 +524,7 @@ export function NightAuditSheet({
                     {!notEnded && <p className="text-sm">{sheet.summary}</p>}
 
                     {sheet.blockers.length > 0 && (
-                        <section className="flex flex-col">
+                        <section className="flex flex-col gap-3">
                             <h3 className="flex items-center gap-2 text-sm font-medium text-destructive">
                                 <CircleAlert className="size-4" />
                                 Fix before running
@@ -542,7 +542,7 @@ export function NightAuditSheet({
                     )}
 
                     {sheet.warnings.length > 0 && (
-                        <section className="flex flex-col">
+                        <section className="flex flex-col gap-3">
                             <h3 className="flex items-center gap-2 text-sm font-medium text-warning">
                                 <TriangleAlert className="size-4" />
                                 Needs a look
