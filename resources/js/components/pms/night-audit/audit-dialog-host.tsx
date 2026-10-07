@@ -73,7 +73,8 @@ export function AuditDialogHost({
 
     return (
         // A submit inside a Dialog bubbles through React to the sheet's own form, so it stops here.
-        <div onSubmit={(event) => event.stopPropagation()}>
+        // `contents` keeps the wrapper out of the sheet's layout, so opening a Dialog never moves the rows.
+        <div className="contents" onSubmit={(event) => event.stopPropagation()}>
             {action.dialog === 'check-in-all' && (
                 <CheckInAllDialog
                     open={open}

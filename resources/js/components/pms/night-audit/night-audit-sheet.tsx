@@ -476,16 +476,6 @@ export function NightAuditSheet({
             loading={view === 'loading'}
             footer={footer}
         >
-            <AuditDialogHost
-                action={dialog}
-                onLoaded={() => setBusy(null)}
-                onClose={() => {
-                    setDialog(null);
-                    refresh();
-                }}
-                onNavigate={() => close(false)}
-            />
-
             {view === 'none' && (
                 <p className="text-sm text-muted-foreground">
                     This property has no business date yet. Go live first.
@@ -640,6 +630,15 @@ export function NightAuditSheet({
                     <Steps audit={sheet.audit} />
                 </div>
             )}
+            <AuditDialogHost
+                action={dialog}
+                onLoaded={() => setBusy(null)}
+                onClose={() => {
+                    setDialog(null);
+                    refresh();
+                }}
+                onNavigate={() => close(false)}
+            />
         </FormOverlay>
     );
 }
