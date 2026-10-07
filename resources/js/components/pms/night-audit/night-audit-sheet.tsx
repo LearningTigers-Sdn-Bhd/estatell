@@ -1,12 +1,20 @@
 import { Link, useHttp } from '@inertiajs/react';
 import {
+    ArrowUpRight,
+    CalendarPlus,
     ChevronRight,
     Circle,
     CircleAlert,
     CircleCheck,
     CircleX,
+    DoorOpen,
+    LogIn,
+    LogOut,
+    Receipt,
     TriangleAlert,
+    UserX,
 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { FormOverlay } from '@/components/pms/form-overlay';
 import { AuditDialogHost } from '@/components/pms/night-audit/audit-dialog-host';
@@ -73,6 +81,17 @@ type FixHandlers = {
     onNavigate: () => void;
 };
 
+/** Icon names sent by `App\Data\NightAudit\ReadinessActionData`. */
+const icons: Record<string, LucideIcon> = {
+    'door-open': DoorOpen,
+    'user-x': UserX,
+    'calendar-plus': CalendarPlus,
+    'log-in': LogIn,
+    'log-out': LogOut,
+    receipt: Receipt,
+    'arrow-up-right': ArrowUpRight,
+};
+
 const actionKey = (action: Action) => `${action.url}:${action.unitId ?? 'all'}`;
 
 function ActionButton({
@@ -83,6 +102,7 @@ function ActionButton({
     handlers: FixHandlers;
 }) {
     const key = actionKey(action);
+    const Icon = icons[action.icon] ?? ArrowUpRight;
 
     if (action.kind === 'link') {
         return (
@@ -91,6 +111,7 @@ function ActionButton({
                 className={buttonVariants({ size: 'sm', variant: 'outline' })}
                 onClick={handlers.onNavigate}
             >
+                <Icon data-icon="inline-start" />
                 {action.label}
             </Link>
         );
@@ -113,7 +134,11 @@ function ActionButton({
                 }
             }}
         >
-            {handlers.busy === key && <Spinner data-icon="inline-start" />}
+            {handlers.busy === key ? (
+                <Spinner data-icon="inline-start" />
+            ) : (
+                <Icon data-icon="inline-start" />
+            )}
             {action.label}
         </Button>
     );

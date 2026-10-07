@@ -16,6 +16,7 @@ class ReadinessActionData extends Data
      * @param  string  $kind  `post`, `link` or `dialog`. A `dialog` action opens a Dialog of the reservation page over the sheet, and `url` is where the Dialog loads its data.
      * @param  int|null  $unitId  The one unit a post action is limited to. Null means every unit of the row.
      * @param  string|null  $confirm  What to ask before a post action runs.
+     * @param  string  $icon  Lucide icon name, mapped to a component in the sheet.
      */
     public function __construct(
         public string $kind,
@@ -24,6 +25,7 @@ class ReadinessActionData extends Data
         public ?int $unitId = null,
         public ?string $confirm = null,
         public ?string $dialog = null,
+        public string $icon = 'arrow-up-right',
     ) {}
 
     public static function fix(AuditFix $fix, string $label, Property $property, int $reservationId, ?int $unitId = null, ?string $confirm = null): self
@@ -34,6 +36,11 @@ class ReadinessActionData extends Data
             url: route('night-audit.fix', ['property' => $property->code, 'reservation' => $reservationId, 'fix' => $fix->value], absolute: false),
             unitId: $unitId,
             confirm: $confirm,
+            icon: match ($fix) {
+                AuditFix::Assign => 'door-open',
+                AuditFix::NoShow => 'user-x',
+                AuditFix::ExtendOneNight => 'calendar-plus',
+            },
         );
     }
 
@@ -48,11 +55,12 @@ class ReadinessActionData extends Data
             url: route('night-audit.reservation', ['property' => $property->code, 'reservation' => $reservationId], absolute: false),
             unitId: $unitId,
             dialog: $dialog,
+            icon: $dialog === 'check-out' ? 'log-out' : 'log-in',
         );
     }
 
-    public static function link(string $label, string $url): self
+    public static function link(string $label, string $url, string $icon = 'arrow-up-right'): self
     {
-        return new self(kind: 'link', label: $label, url: $url);
+        return new self(kind: 'link', label: $label, url: $url, icon: $icon);
     }
 }

@@ -83,12 +83,12 @@ class ReadinessGroupData extends Data
         $reservationUrl = route('reservations.show', $parameters, absolute: false);
         $many = $count > 1;
         $checkIn = match (true) {
-            ! $canCheckIn => $isGroup ? ReadinessActionData::link(__('Check in'), $reservationUrl) : null,
+            ! $canCheckIn => $isGroup ? ReadinessActionData::link(__('Check in'), $reservationUrl, 'log-in') : null,
             $isGroup && $many => ReadinessActionData::dialog('check-in-all', __('Check in all'), $property, $reservationId),
             default => ReadinessActionData::dialog('check-in', __('Check in'), $property, $reservationId, $unitId ?? $unitIds[0]),
         };
         $checkOut = match (true) {
-            ! $canCheckOut => $isGroup ? ReadinessActionData::link(__('Check out'), $reservationUrl) : null,
+            ! $canCheckOut => $isGroup ? ReadinessActionData::link(__('Check out'), $reservationUrl, 'log-out') : null,
             default => ReadinessActionData::dialog('check-out', __('Check out'), $property, $reservationId, $unitId ?? $unitIds[0]),
         };
 
@@ -104,7 +104,7 @@ class ReadinessGroupData extends Data
                 ...($checkOut === null || ($isGroup && $many) ? [] : [$checkOut]),
                 ReadinessActionData::fix(AuditFix::ExtendOneNight, __('Extend 1 night'), $property, $reservationId, $unitId, __('Move the departure one day later? One more night is charged.')),
             ],
-            AuditCheck::FolioOpenAfterCheckOut => $isGroup ? [ReadinessActionData::link(__('Open folio'), route('reservations.folio', $parameters, absolute: false))] : [],
+            AuditCheck::FolioOpenAfterCheckOut => $isGroup ? [ReadinessActionData::link(__('Open folio'), route('reservations.folio', $parameters, absolute: false), 'receipt')] : [],
             AuditCheck::CarriedException => $isGroup ? [ReadinessActionData::link(__('Open'), $reservationUrl)] : [],
         };
     }

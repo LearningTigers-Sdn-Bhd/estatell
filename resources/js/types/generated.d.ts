@@ -572,6 +572,7 @@ url: string,
 unitId: number | null,
 confirm: string | null,
 dialog: string | null,
+icon: string,
 };
 export type ReadinessGroupData = {
 check: App.Enums.AuditCheck,
