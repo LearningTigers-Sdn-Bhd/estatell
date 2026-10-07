@@ -43,7 +43,7 @@ The critical path: the front desk actions on the reservation, then the night aud
 17. [x] **Add the Run Night Audit sheet**, in two commits, in this order. Docs: [Readiness panel](20-night-audit/02-readiness-panel.md). Needs: run the night audit.
     - [x] `feat(night-audit): add the audit readiness service` — `AuditReadiness` and `AuditCheck` (no room tonight is the one blocker; not checked in, not checked out, folio open after check-out and carried exceptions are warnings), the `blocked_by_readiness` gate in `RunNightAudit`, `RunNightAuditJob` in the new `app/Jobs` folder (with `PostRoomChargesJob` moved there), and the sheet data and routes (`night-audit.show`, `run`, `units.assign`). Backend only.
     - [x] `feat(night-audit): add the Run Night Audit sheet` — the sidebar button (a nav item with an `action`) and the Sheet on `FormOverlay`: ready, blocked, running, failed and completed states, **Assign**, **Force close** with a reason. UI only. Needs: the audit readiness service.
-18. [ ] `feat(night-audit): schedule the night audit per property` — Docs: [Scheduling](20-night-audit/04-scheduling.md).
+18. [x] `feat(night-audit): schedule the night audit per property` — Docs: [Scheduling](20-night-audit/04-scheduling.md).
 19. [ ] `feat(night-audit): snapshot statistics and notify results` — Docs: [Statistics](20-night-audit/05-statistics.md).
 
 ## Next

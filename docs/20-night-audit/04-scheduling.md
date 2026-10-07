@@ -6,9 +6,10 @@ Run the audit automatically at each property's local audit time.
 
 ## Design
 
-- A scheduler entry runs `->everyFiveMinutes()`.
-- It finds properties where `auto_audit_enabled` is on, local time (property `time_zone`) is past `audit_time`, and the business date is still Open.
-- It dispatches `RunNightAuditJob` per property with the Scheduled trigger. The job is built (see [Audit run](03-audit-run.md#job)). A scheduled run never forces, so a blocker in the [readiness panel](02-readiness-panel.md#the-gate) stops it.
+- `routes/console.php` runs `night-audit:dispatch-scheduled` (`DispatchScheduledAudits`) every five minutes, with `withoutOverlapping()` and `onOneServer()`.
+- `DueAudits` (`app/Services/NightAudit/`) finds Live properties where `auto_audit_enabled` is on, the business date is Open, and local time (property `time_zone`) is at or past `audit_time` **on the day after that date**. So an audit time of 23:00 still runs on the next day.
+- The command dispatches `RunNightAuditJob` per property with the Scheduled trigger, no actor and no force. The job is built (see [Audit run](03-audit-run.md#job)). A blocker in the [readiness panel](02-readiness-panel.md#the-gate) stops the run. A refused run writes nothing, so the next five-minute run tries again until staff fix the blocker.
+- A Failed audit leaves the date Auditing, so the schedule does not pick it up. Staff resume it from the sheet.
 - The job implements `ShouldBeUnique` (unique by property) and uses `WithoutOverlapping`.
 
 ## Why not per-property timezone schedules
