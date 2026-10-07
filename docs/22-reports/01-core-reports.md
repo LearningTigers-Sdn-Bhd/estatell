@@ -70,6 +70,13 @@ Each report has a stable column list like Arrivals. Proposed in the overview and
 | Tax          | a date and a tax              | Date, Tax, Lines, Tax amount. A Base column is added only if tax lines store their base (to verify in step 5c).                                                                            |
 | Meal counts  | a date and a meal period      | Date, Meal, Adults, Children, Total                                                                                                                                                        |
 
+### Built: Departures and In-house
+
+- **Departures** has the Arrivals columns with `departure` in place of `arrival`, the same status rule, and a default sort of `departure`. **Room type / room** shows the room or bed of the last night.
+- **In-house** (`room` is the default sort) lists the units that hold inventory with arrival on or before the date and departure after it, so the arrival day counts and the departure day does not. Dates alone are enough: an early check-out moves the departure date and removes the unused nights, so a unit that left early is in-house on the dates it stayed. `unit_nights` is read only for **Room**, the room or bed of that date. Defaults visible: all columns except Company.
+- **One-date URL.** A report with `maxRangeDays()` of null takes `?date=Y-m-d` (default: the business date) in the page URL, the exports and the layout preview. `ReportFilters` keeps `from` = `to` = that date, and the page props still send `from` and `to`. `from` and `to` are ignored for these reports.
+- Arrivals, Departures and In-house share `UnitReportRows` (the guest, company and balance lookups).
+
 ### Categories
 
 `ReportCategory` groups the Reports sidebar: **Front desk** (Arrivals, Departures, In-house, Police report), **Revenue** (Occupancy, Revenue, Tax, Non-national guests), **Finance** (Payments, Folio ledger, Outstanding balance, Deposit liability) and **Kitchen** (Meal counts).

@@ -8,11 +8,17 @@ namespace App\Enums;
 enum ReportCategory: string
 {
     case FrontDesk = 'front-desk';
+    case Revenue = 'revenue';
+    case Finance = 'finance';
+    case Kitchen = 'kitchen';
 
     public function label(): string
     {
         return match ($this) {
             self::FrontDesk => __('Front desk'),
+            self::Revenue => __('Revenue'),
+            self::Finance => __('Finance'),
+            self::Kitchen => __('Kitchen'),
         };
     }
 }

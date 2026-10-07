@@ -249,7 +249,7 @@ test('the default roles that get reports.view', function () {
         ->and(DefaultRoleEnum::Housekeeping->permissions())->not->toContain(PermissionEnum::ReportsView);
 });
 
-test('the Reports navigation shows Arrivals only with reports.view', function () {
+test('the Reports navigation groups the reports by category and needs reports.view', function () {
     [$manager, $property] = arrivalsSetup();
     [$front, $frontProperty] = arrivalsSetup(DefaultRoleEnum::FrontDesk);
 
@@ -262,14 +262,11 @@ test('the Reports navigation shows Arrivals only with reports.view', function ()
             'href' => "/p/{$property->code}/reports/arrivals",
             'groups' => [[
                 'label' => 'Front desk',
-                'items' => [[
-                    'title' => 'Arrivals',
-                    'href' => "/p/{$property->code}/reports/arrivals",
-                    'icon' => 'calendar-check',
-                    'external' => false,
-                    'active' => true,
-                    'action' => null,
-                ]],
+                'items' => [
+                    ['title' => 'Arrivals', 'href' => "/p/{$property->code}/reports/arrivals", 'icon' => 'calendar-check', 'external' => false, 'active' => true, 'action' => null],
+                    ['title' => 'Departures', 'href' => "/p/{$property->code}/reports/departures", 'icon' => 'door-open', 'external' => false, 'active' => false, 'action' => null],
+                    ['title' => 'In-house', 'href' => "/p/{$property->code}/reports/in-house", 'icon' => 'users', 'external' => false, 'active' => false, 'action' => null],
+                ],
             ]],
         ]));
 

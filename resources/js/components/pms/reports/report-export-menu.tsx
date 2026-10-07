@@ -20,15 +20,14 @@ import { pdf, spreadsheet } from '@/routes/reports';
  */
 export function ReportExportMenu({
     report,
-    from,
-    to,
+    dates,
     sort,
     rowKeys,
     side = 'bottom',
 }: {
     report: App.Enums.ReportKey;
-    from: string;
-    to: string;
+    /** The date fields of the report page: `from` and `to`, or `date` for a report of one date. */
+    dates: Record<string, string>;
     sort: string;
     rowKeys: string[];
     /** Where the menu opens. The floating bulk action bar opens it upwards. */
@@ -42,8 +41,7 @@ export function ReportExportMenu({
         setBusy(true);
         postDownload(spreadsheet.url({ report }), {
             format,
-            from,
-            to,
+            ...dates,
             sort,
             ...(rowKeys.length > 0 ? { rowKeys } : {}),
         })
@@ -95,8 +93,9 @@ export function ReportExportMenu({
                 hidden
             >
                 <input type="hidden" name="_token" value={csrfToken} />
-                <input type="hidden" name="from" value={from} />
-                <input type="hidden" name="to" value={to} />
+                {Object.entries(dates).map(([name, value]) => (
+                    <input key={name} type="hidden" name={name} value={value} />
+                ))}
                 <input type="hidden" name="sort" value={sort} />
                 {rowKeys.map((key) => (
                     <input

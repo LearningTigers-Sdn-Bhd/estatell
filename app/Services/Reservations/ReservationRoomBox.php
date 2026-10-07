@@ -10,6 +10,7 @@ use App\Enums\SellUnit;
 use App\Enums\UnitStatus;
 use App\Models\Reservation;
 use App\Models\ReservationUnit;
+use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -129,15 +130,52 @@ class ReservationRoomBox
      */
     public function assignmentsForUnits(array $unitIds): array
     {
+        return $this->assignments($unitIds, fn (Builder $query) => $query
+            ->whereRaw('unit_nights.date = (select min(first_night.date) from unit_nights as first_night where first_night.reservation_unit_id = unit_nights.reservation_unit_id)'));
+    }
+
+    /**
+     * The room number or bed label of the last night of every unit that has one, with one query.
+     *
+     * @param  list<int>  $unitIds
+     * @return array<int, string> By unit id
+     */
+    public function lastNightAssignmentsForUnits(array $unitIds): array
+    {
+        return $this->assignments($unitIds, fn (Builder $query) => $query
+            ->whereRaw('unit_nights.date = (select max(last_night.date) from unit_nights as last_night where last_night.reservation_unit_id = unit_nights.reservation_unit_id)'));
+    }
+
+    /**
+     * The room number or bed label of the night of one date for every unit that has one, with one query.
+     *
+     * @param  list<int>  $unitIds
+     * @param  string  $date  `Y-m-d`
+     * @return array<int, string> By unit id
+     */
+    public function assignmentsForUnitsOn(array $unitIds, string $date): array
+    {
+        return $this->assignments($unitIds, fn (Builder $query) => $query->where('unit_nights.date', $date));
+    }
+
+    /**
+     * @param  list<int>  $unitIds
+     * @param  callable(Builder): mixed  $night  Narrows the query to one night per unit.
+     * @return array<int, string> By unit id
+     */
+    private function assignments(array $unitIds, callable $night): array
+    {
         if ($unitIds === []) {
             return [];
         }
 
-        return DB::table('unit_nights')
+        $query = DB::table('unit_nights')
             ->leftJoin('rooms', 'rooms.id', '=', 'unit_nights.room_id')
             ->leftJoin('beds', 'beds.id', '=', 'unit_nights.bed_id')
-            ->whereIn('unit_nights.reservation_unit_id', $unitIds)
-            ->whereRaw('unit_nights.date = (select min(first_night.date) from unit_nights as first_night where first_night.reservation_unit_id = unit_nights.reservation_unit_id)')
+            ->whereIn('unit_nights.reservation_unit_id', $unitIds);
+        $night($query);
+
+        return $query
             ->select('unit_nights.reservation_unit_id', DB::raw('coalesce(rooms.number, beds.label) as assigned'))
             ->get()
             ->filter(fn (object $row): bool => $row->assigned !== null)

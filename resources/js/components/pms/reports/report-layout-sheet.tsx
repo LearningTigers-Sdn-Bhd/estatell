@@ -41,8 +41,8 @@ type Props = {
     draft: Layout;
     onDraftChange: (draft: Layout) => void;
     orientations: EnumOption[];
-    from: string;
-    to: string;
+    /** The date fields of the report page: `from` and `to`, or `date` for a report of one date. */
+    dates: Record<string, string>;
     /** Called after Save or Reset worked, to close the sheet without the discard question. */
     onDone: () => void;
 };
@@ -74,8 +74,7 @@ export function ReportLayoutSheet({
     draft,
     onDraftChange,
     orientations,
-    from,
-    to,
+    dates,
     onDone,
 }: Props) {
     const { csrfToken } = usePage().props;
@@ -295,8 +294,9 @@ export function ReportLayoutSheet({
                 hidden
             >
                 <input type="hidden" name="_token" value={csrfToken} />
-                <input type="hidden" name="from" value={from} />
-                <input type="hidden" name="to" value={to} />
+                {Object.entries(dates).map(([name, value]) => (
+                    <input key={name} type="hidden" name={name} value={value} />
+                ))}
                 <input
                     type="hidden"
                     name="orientation"

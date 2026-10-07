@@ -25,14 +25,14 @@ class ReportsNavigation
             return [];
         }
 
-        return array_map(
+        $groups = array_map(
             fn (ReportCategory $category): NavGroupData => new NavGroupData(
                 label: $category->label(),
                 items: array_values(array_map(
                     fn (ReportKey $key): NavItemData => new NavItemData(
                         title: $key->label(),
                         href: route('reports.'.$key->value, ['property' => $property->code], absolute: false),
-                        icon: 'calendar-check',
+                        icon: $key->icon(),
                         active: request()->routeIs('reports.'.$key->value),
                     ),
                     array_filter(ReportKey::cases(), fn (ReportKey $key): bool => $key->category() === $category),
@@ -40,5 +40,7 @@ class ReportsNavigation
             ),
             ReportCategory::cases(),
         );
+
+        return array_values(array_filter($groups, fn (NavGroupData $group): bool => $group->items !== []));
     }
 }

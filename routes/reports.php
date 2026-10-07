@@ -2,12 +2,16 @@
 
 use App\Enums\PermissionEnum;
 use App\Http\Controllers\Reports\ArrivalsReportController;
+use App\Http\Controllers\Reports\DeparturesReportController;
+use App\Http\Controllers\Reports\InHouseReportController;
 use App\Http\Controllers\Reports\ReportExportController;
 use App\Http\Controllers\Reports\ReportLayoutController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('reports')->name('reports.')->middleware('can:'.PermissionEnum::ReportsView->value)->group(function () {
     Route::get('arrivals', ArrivalsReportController::class)->name('arrivals');
+    Route::get('departures', DeparturesReportController::class)->name('departures');
+    Route::get('in-house', InHouseReportController::class)->name('in-house');
 
     Route::post('{report}/pdf', [ReportExportController::class, 'pdf'])->name('pdf');
     Route::post('{report}/spreadsheet', [ReportExportController::class, 'spreadsheet'])->name('spreadsheet');

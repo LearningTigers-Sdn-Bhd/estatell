@@ -17,6 +17,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import type { DatePreset } from '@/lib/date-presets';
 import { cn } from '@/lib/utils';
 
 /** Parse `1990-01-01` as a local date so it never shifts a day. */
@@ -105,12 +106,20 @@ type Props = {
     max?: string;
     /** Month the calendar opens on when no date is picked, `Y-m-d`. Opens on `max` when left out, which suits a date of birth. */
     openOn?: string;
+    /**
+     * Quick dates shown in a Select before the trigger, for example from `reportDatePresetsForOneDate()`. The Select
+     * shows Custom date when the date matches no preset (choosing it opens the calendar).
+     */
+    presets?: DatePreset[];
     placeholder?: string;
     id?: string;
     /** Width of the trigger. Full width when left out. */
     className?: string;
     'aria-invalid'?: boolean;
 };
+
+/** The Select value when the date matches no preset. */
+const CUSTOM = 'custom';
 
 /**
  * Pick one date from a calendar popover.
@@ -122,6 +131,7 @@ export function DatePicker({
     min,
     max,
     openOn,
+    presets,
     placeholder = 'Pick a date',
     id,
     className,
@@ -133,7 +143,7 @@ export function DatePicker({
     const maxDate = toDate(max ?? '');
     const dropdown = variant === 'dropdown';
 
-    return (
+    const picker = (
         <Popover open={open} onOpenChange={setOpen}>
             <PopoverTrigger
                 render={
@@ -186,5 +196,51 @@ export function DatePicker({
                 />
             </PopoverContent>
         </Popover>
+    );
+
+    if (!presets || presets.length === 0) {
+        return picker;
+    }
+
+    const presetItems = [
+        ...presets.map((preset) => ({
+            value: preset.label,
+            label: preset.label,
+        })),
+        { value: CUSTOM, label: 'Custom date' },
+    ];
+    const activePreset =
+        presets.find((preset) => preset.date === value)?.label ?? CUSTOM;
+
+    return (
+        <div className="flex flex-wrap items-center gap-2">
+            <Select
+                items={presetItems}
+                value={activePreset}
+                onValueChange={(next) => {
+                    const preset = presets.find((item) => item.label === next);
+
+                    if (preset) {
+                        onChange(preset.date);
+                    } else {
+                        setOpen(true);
+                    }
+                }}
+            >
+                <SelectTrigger className="w-40" aria-label="Quick dates">
+                    <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectGroup>
+                        {presetItems.map((item) => (
+                            <SelectItem key={item.value} value={item.value}>
+                                {item.label}
+                            </SelectItem>
+                        ))}
+                    </SelectGroup>
+                </SelectContent>
+            </Select>
+            {picker}
+        </div>
     );
 }

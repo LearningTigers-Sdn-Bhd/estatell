@@ -6,6 +6,12 @@ export type DateRangePreset = {
     to: string;
 };
 
+export type DatePreset = {
+    label: string;
+    /** The date, `Y-m-d`. */
+    date: string;
+};
+
 const DAY_MS = 86_400_000;
 
 function parse(day: string): Date {
@@ -75,6 +81,20 @@ export function reportDatePresets(businessDate: string): DateRangePreset[] {
             from: format(addDays(today, -29)),
             to: format(today),
         },
+    ];
+}
+
+/**
+ * The quick dates of a report of one date, counted from the business date and not from the clock.
+ */
+export function reportDatePresetsForOneDate(
+    businessDate: string,
+): DatePreset[] {
+    const today = parse(businessDate);
+
+    return [
+        { label: 'Today', date: format(today) },
+        { label: 'Yesterday', date: format(addDays(today, -1)) },
     ];
 }
 

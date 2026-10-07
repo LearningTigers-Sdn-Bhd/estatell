@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Date;
 /**
  * The dates of a report page: `from` and `to` in the URL, both included. A missing date falls back to the other
  * date, and with none the report opens on the open business date. The range may not be longer than the report allows.
+ * A report of one date (`maxRangeDays()` is null) takes a single `date` instead and uses it as both ends.
  * The report is the `{report}` route parameter, or the slug after `reports.` in the route name.
  */
 class ReportFiltersRequest extends FormRequest
@@ -32,6 +33,10 @@ class ReportFiltersRequest extends FormRequest
      */
     public function rules(): array
     {
+        if ($this->reportKey()->maxRangeDays() === null) {
+            return ['date' => ['nullable', 'date_format:Y-m-d']];
+        }
+
         return [
             'from' => ['nullable', 'date_format:Y-m-d'],
             'to' => ['nullable', 'date_format:Y-m-d'],
@@ -88,6 +93,13 @@ class ReportFiltersRequest extends FormRequest
 
     public function filters(): ReportFilters
     {
+        if ($this->reportKey()->maxRangeDays() === null) {
+            $date = $this->input('date');
+            $date = is_string($date) && $date !== '' ? $date : $this->businessDate();
+
+            return new ReportFilters(from: $date, to: $date);
+        }
+
         $from = $this->input('from');
         $to = $this->input('to');
         $from = is_string($from) && $from !== '' ? $from : null;

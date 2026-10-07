@@ -1114,6 +1114,30 @@ company: string | null,
 status: App.Data.Shared.BadgeData,
 balance: string,
 };
+export type DepartureRow = {
+key: number,
+reservation: string,
+guest: string,
+phone: string | null,
+departure: string,
+nights: number,
+unit: string,
+guests: string,
+company: string | null,
+status: App.Data.Shared.BadgeData,
+balance: string,
+};
+export type InHouseRow = {
+key: number,
+reservation: string,
+guest: string,
+room: string | null,
+arrival: string,
+departure: string,
+guests: string,
+company: string | null,
+balance: string,
+};
 export type ReportColumn = {
 key: string,
 label: string,
@@ -1713,8 +1737,8 @@ export type RegistrationCardField = 'full_name' | 'nationality' | 'identity_docu
 export type RegistrationCardFieldGroup = 'guest' | 'stay' | 'prices';
 export type RegistrationCardScope = 'primary_only' | 'every_adult';
 export type RegistrationCardStatus = 'draft' | 'signed' | 'void';
-export type ReportCategory = 'front-desk';
-export type ReportKey = 'arrivals';
+export type ReportCategory = 'front-desk' | 'revenue' | 'finance' | 'kitchen';
+export type ReportKey = 'arrivals' | 'departures' | 'in-house';
 export type ReservationRoomBoxState = 'assigned' | 'unassigned' | 'auto_assign' | 'cancelled' | 'no_show';
 export type ReservationSource = 'direct' | 'walk_in' | 'phone' | 'channel' | 'portal';
 export type ReservationStatus = 'confirmed' | 'in_house' | 'completed' | 'cancelled';

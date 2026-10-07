@@ -7,7 +7,6 @@ use App\Data\Reports\ReportFilters;
 use App\Enums\UnitStatus;
 use App\Models\Property;
 use App\Models\ReservationUnit;
-use App\Services\Folio\FolioBalance;
 use App\Services\Reservations\ReservationRoomBox;
 
 /**
@@ -17,7 +16,7 @@ use App\Services\Reservations\ReservationRoomBox;
 class ArrivalsReport implements Report
 {
     public function __construct(
-        private FolioBalance $folioBalance,
+        private UnitReportRows $unitRows,
         private ReservationRoomBox $roomBox,
     ) {}
 
@@ -27,21 +26,16 @@ class ArrivalsReport implements Report
      */
     public function rows(Property $property, ReportFilters $filters, ?array $rowKeys = null): array
     {
-        $units = ReservationUnit::query()
-            ->where('property_id', $property->id)
-            ->whereBetween('arrival_date', [$filters->from, $filters->to])
-            ->whereIn('status', UnitStatus::holdingInventory())
-            ->when($rowKeys !== null, fn ($query) => $query->whereIn('id', $rowKeys))
-            ->with(['reservation.booker', 'reservation.company', 'roomType', 'guests.guest'])
-            ->orderBy('arrival_date')
-            ->orderBy('id')
-            ->get();
-
-        $rooms = $this->roomBox->assignmentsForUnits($units->pluck('id')->all());
-        $balances = $this->folioBalance->forReservations($units->pluck('reservation_id')->unique()->values()->all());
-
-        return $units
-            ->map(fn (ReservationUnit $unit): ArrivalRow => ArrivalRow::fromModel($unit, $rooms[$unit->id] ?? null, $balances[$unit->reservation_id]))
-            ->all();
+        return $this->unitRows->rows(
+            ReservationUnit::query()
+                ->where('property_id', $property->id)
+                ->whereBetween('arrival_date', [$filters->from, $filters->to])
+                ->whereIn('status', UnitStatus::holdingInventory())
+                ->orderBy('arrival_date')
+                ->orderBy('id'),
+            $rowKeys,
+            fn (array $unitIds): array => $this->roomBox->assignmentsForUnits($unitIds),
+            fn (ReservationUnit $unit, ?string $room, string $balance): ArrivalRow => ArrivalRow::fromModel($unit, $room, $balance),
+        );
     }
 }
