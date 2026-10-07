@@ -212,7 +212,7 @@ function GroupRow({
     const [open, setOpen] = useState(group.openUnits);
 
     return (
-        <li className="flex flex-col gap-2 py-3">
+        <li className="flex flex-col gap-2 rounded-lg border p-3">
             <div className="flex flex-col">
                 <span className="text-sm font-medium">{group.guest}</span>
                 <span className="text-xs text-muted-foreground">
@@ -529,7 +529,7 @@ export function NightAuditSheet({
                                 <CircleAlert className="size-4" />
                                 Fix before running
                             </h3>
-                            <ul className="divide-y">
+                            <ul className="flex flex-col gap-3">
                                 {sheet.blockers.map((group) => (
                                     <GroupRow
                                         key={`${group.check}-${group.reservationId}`}
@@ -547,7 +547,7 @@ export function NightAuditSheet({
                                 <TriangleAlert className="size-4" />
                                 Needs a look
                             </h3>
-                            <ul className="divide-y">
+                            <ul className="flex flex-col gap-3">
                                 {sheet.warnings.map((group) => (
                                     <GroupRow
                                         key={`${group.check}-${group.reservationId}`}
