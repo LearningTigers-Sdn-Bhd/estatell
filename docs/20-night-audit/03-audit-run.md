@@ -30,8 +30,8 @@ night_audit_exceptions   id, night_audit_id, step, reservation_unit_id (nullable
 1. `ClaimBusinessDate`: atomic Open > Auditing. Exits if not claimed.
 2. `ResolveMissedArrivals`: applies `missed_arrival_policy` (skips `late_arrival_expected`).
 3. `ResolveOverdueDepartures`: applies `overdue_departure_policy`.
-4. `PostRoomCharges`: per unit night, as a `Bus::batch` of per-unit jobs (see [Posting charges](../13-folio/02-posting-charges.md)).
-5. `PostScheduledAddOns`: add-ons with this `service_date`.
+4. `PostRoomCharges`: per unit night, as a `Bus::batch` of per-unit jobs (see [Posting charges](../13-folio/02-posting-charges.md#room-charge-pipeline-per-unit-night)). The Action posts one unit with a null actor. This step turns a refusal into an exception row.
+5. `PostScheduledAddOns`: add-ons with this `service_date`. The Action is built, the step calls it.
 6. `UpdateRoomStatuses`: occupied and departed rooms become Dirty.
 7. `SnapshotStatistics`: see [Statistics](05-statistics.md).
 8. `CloseAndOpenNext`: Closed, next date Open, dispatch reports and notifications.

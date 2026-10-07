@@ -8,11 +8,11 @@ Post room charges, extras and taxes correctly and exactly once.
 
 The posting work is built in three items. This file is the spec for all three.
 
-| Item                    | Built here                                                                                        | Checklist item                                               |
-| ----------------------- | ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
-| Manual postings (first) | `CreateFolio`, `PostCharge`, `ReverseLine`, `TransferLines`, a minimal `FolioRouter`, permissions | `feat(folio): post charges, reverse and transfer lines`      |
-| Routing                 | The full `FolioRouter` with `folio_routing_rules` (see [Routing](03-routing.md))                  | `feat(folio): add folio routing`                             |
-| Night audit postings    | `InclusionAllocator`, `PostRoomCharges`, `PostScheduledAddOns`, undated add-ons at check-in       | `feat(night-audit): post room charges and scheduled add-ons` |
+| Item                    | Built here                                                                                                                    | Checklist item                                               |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| Manual postings (first) | `CreateFolio`, `PostCharge`, `ReverseLine`, `TransferLines`, a minimal `FolioRouter`, permissions                             | `feat(folio): post charges, reverse and transfer lines`      |
+| Routing                 | The full `FolioRouter` with `folio_routing_rules` (see [Routing](03-routing.md))                                              | `feat(folio): add folio routing`                             |
+| Night audit postings    | `NightChargeQuote`, `PostRoomCharges`, `PostScheduledAddOns` (`InclusionAllocator` and undated add-ons at check-in are built) | `feat(night-audit): post room charges and scheduled add-ons` |
 
 ## Actions
 
@@ -20,7 +20,8 @@ The posting work is built in three items. This file is the spec for all three.
 - `PostCharge`: manual charge from a charge item. Staff may replace the line description.
 - `ReverseLine`: posts a reversal line, including reversals of child lines.
 - `TransferLines`: moves lines between folios of the same reservation.
-- `PostRoomCharges`: run by the night audit for each in-house unit night (night audit item).
+- `PostRoomCharges`: posts one unit's night for the business date. The night audit runs it for each in-house unit.
+- `PostScheduledAddOns`: posts the add-ons whose `service_date` is the business date.
 
 ## Manual postings
 
@@ -113,16 +114,52 @@ Decisions made at build time:
 
 Built with the night audit item.
 
-1. `InclusionAllocator` splits the night: ROOM RM250 + Breakfast RM50.
-2. The room line posts at the full price. If `discount_amount` is set, a discount child line posts too.
-3. `TaxCalculator` adds tax child lines.
-4. `FolioRouter` chooses the target folio.
-5. The idempotency key `night:{unit_night_id}` prevents double posting.
+`NightChargeQuote` (`app/Services/Folio/`) works out the lines of one unit night. It reads and writes nothing. `PostRoomCharges` posts what it returns, and `ScheduledFolioRows` shows the same lines as Scheduled rows, so the preview and the posting never differ.
+
+1. The gross is `base + extra + supplement`, or `override_amount` when set.
+2. `InclusionAllocator` splits the gross: the room remainder plus one line per inclusion of the night's rate plan. The guest count is the unit's guests. A night with no inclusions keeps the whole gross as the room.
+3. The discounts belong to the room only, never to an inclusion line. The stay discount (`discount_amount`) comes first, then the booking-time discount (`reservation_units.discount_id`) on what is left. An overridden night has no discount lines, because the override replaces the whole sum. Discounts that add up to more than the room remainder refuse the night (`discount_exceeds_room`).
+4. `TaxCalculator` runs on the room after its discounts, and on each inclusion line, by the transaction code of each line.
+5. `FolioRouter` chooses the target folio for each charge code. `CreateFolio` runs when the unit has no folio yet.
+6. `PostFolioCharge` writes each charge with its tax children.
+
+| Line              | Key                              | Parent       |
+| ----------------- | -------------------------------- | ------------ |
+| Room              | `night:{unit_night_id}`          |              |
+| Stay discount     | `night:{id}:stay-discount`       | Room         |
+| Booking discount  | `night:{id}:discount`            | Room         |
+| Tax on a charge   | `{charge key}:tax:{tax_id}`      | Its charge   |
+| Tax on a discount | `{discount key}:tax:{tax_id}`    | Its discount |
+| Inclusion         | `night:{id}:incl:{inclusion_id}` |              |
+
+Example, RM300 with Breakfast RM50 for 2 guests and a 10% booking discount: Room 250.00, Booking discount -25.00, Breakfast 50.00, each with its tax lines.
+
+The room line has `source_type` and `source_id` set to the unit night. Discount lines are Adjustment lines with the discount's code and a negative amount. A discount reduces only the percent taxes of its room, like [folio discounts](04-folio-discounts.md#tax-on-a-discount).
+
+### `PostRoomCharges`
+
+`(?User $actor, ReservationUnit $unit, CarbonImmutable $date): PostingResult`. A null actor is the night audit. `PostFolioCharge` takes a nullable actor for the same reason (`folio_lines.user_id` is nullable).
+
+| Check, in order                                      | Refusal             |
+| ---------------------------------------------------- | ------------------- |
+| `$date` is the current business date of the property | `no_business_date`  |
+| The unit is CheckedIn                                | `unit_not_postable` |
+| The unit has a night on `$date`                      | `night_not_found`   |
+| The quote is calculated (tax, inclusions, discounts) | the quote's refusal |
+| The target folio is Open                             | `folio_not_open`    |
+
+- A night whose `night:{id}` line exists returns that line and writes nothing. It is not a refusal, so a rerun is quiet.
+- A refusal writes nothing. The audit turns it into an exception row for the unit.
+- It is one transaction, with the unit row locked.
+
+### `PostScheduledAddOns`
+
+`(?User $actor, Property $property, CarbonImmutable $date): list<PostingResult>`. It posts each add-on with `service_date` equal to `$date` and no `folio_line_id`, on a Confirmed or CheckedIn unit, through the same posting core as `PostCharge` with the key `addon:{id}`. The row supplies the item, quantity and amount. It sets `folio_line_id`. One add-on that cannot post does not stop the others, and each is its own transaction.
 
 ## Rules
 
 - `ReverseLine::post()` and `TransferLines` must handle every level of children (a discount line has its own tax lines) and skip a child that already has a reversal. A second reversal would break the unique key `reverse:{line_id}`. The [folio discounts](04-folio-discounts.md) item built the recursion and the skip, with tests.
-- A posting with `unit_add_on_id` takes the item, quantity and amount from the add-on row. The night audit item builds the data from the row and does not trust the caller.
+- A posting with `unit_add_on_id` takes the item, quantity and amount from the add-on row. `PostScheduledAddOns` builds the data from the row and does not trust the caller.
 
 - No forecast table. `unit_nights` already is the forecast, and so are the nightly `unit_add_ons` rows. The folio page reads them (see [Folio page](05-folio-page.md)).
 - Surcharges from payment methods post as charge lines on the folio that receives the payment, through `PostFolioCharge` (see [Payments and refunds](../14-payments/01-payments-and-refunds.md)).
@@ -134,7 +171,7 @@ Built with the night audit item.
 
 ## Open
 
-- Room blocks move from `PropertyToday` to `CurrentBusinessDate` "with the first folio posting" (see [Business dates](../20-night-audit/01-business-dates.md)). Decide at build time whether that switch belongs to this item or to the night audit postings.
+- Room blocks move from `PropertyToday` to `CurrentBusinessDate` "with the first folio posting" (see [Business dates](../20-night-audit/01-business-dates.md)). Decided: it belongs to the audit run item, not to these postings.
 
 ## Lessons from wastays
 

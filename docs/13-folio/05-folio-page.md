@@ -62,6 +62,7 @@ A Scheduled night shows its discount as a child row, in the same order as a post
 | Night total          | 272.16 |
 
 - Tax is on the discounted amount.
+- `ScheduledFolioRows` reads each night from `NightChargeQuote`, the same service `PostRoomCharges` posts from (see [Posting charges](02-posting-charges.md#room-charge-pipeline-per-unit-night)).
 - A Scheduled night can carry the rate plan stay discount (`unit_nights.discount_amount`) and the booking-time discount (`reservation_units.discount_id`).
 - A folio discount (`ApplyDiscount`) never targets a Scheduled night. Eligible lines are posted lines only. A Scheduled row has no discount action.
 
