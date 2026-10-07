@@ -49,6 +49,8 @@ function stayingUnit(Property $property, string $arrival, string $departure, arr
     return ReservationUnit::factory()->for($booking)->create([
         'arrival_date' => $arrival,
         'departure_date' => $departure,
+        'status' => UnitStatus::CheckedIn,
+        'checked_in_at' => now(),
         ...$attributes,
     ]);
 }
@@ -104,8 +106,9 @@ test('the arrival day counts and the departure day does not', function () {
         ->where('rows.data', fn ($rows) => collect($rows)->pluck('key')->sort()->values()->all() === [$arriving->id, $staying->id]));
 });
 
-test('only units that hold inventory stay, and an early check-out leaves the later dates', function () {
+test('only checked-in and checked-out units stay, and an early check-out leaves the later dates', function () {
     [$user, $property] = inHouseSetup();
+    stayingUnit($property, '2026-10-09', '2026-10-12', ['status' => UnitStatus::Confirmed, 'checked_in_at' => null]);
     stayingUnit($property, '2026-10-09', '2026-10-12', ['status' => UnitStatus::Cancelled]);
     stayingUnit($property, '2026-10-09', '2026-10-12', ['status' => UnitStatus::NoShow]);
     stayingUnit($property, '2026-10-09', '2026-10-12', ['status' => UnitStatus::CheckedIn, 'checked_in_at' => now()]);
