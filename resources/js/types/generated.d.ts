@@ -1325,6 +1325,7 @@ depositMethod: string | null,
 canRefund: boolean,
 folioKey: string | null,
 error: string | null,
+early: App.Data.Reservations.UnitEarlyDepartureData | null,
 };
 export type UnitDatesPreviewData = {
 previousTotal: string | null,
@@ -1335,6 +1336,13 @@ isEarlyDeparture: boolean,
 fee: string | null,
 restricted: boolean,
 error: string | null,
+};
+export type UnitEarlyDepartureData = {
+departure: string,
+nightsRemoved: number,
+fee: string,
+feeTotal: string,
+withinFreeWindow: boolean,
 };
 export type UnitFeePreviewData = {
 fee: string | null,

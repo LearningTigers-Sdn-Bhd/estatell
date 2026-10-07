@@ -60,6 +60,8 @@ class UnitStayResult
 
     public const REFUSAL_NOT_SHORTER = 'not_shorter';
 
+    public const REFUSAL_NOT_EARLY = 'not_early';
+
     public const REFUSAL_NOT_DEPARTURE_DATE = 'not_departure_date';
 
     public const REFUSAL_TIME_NOT_LATER = 'time_not_later';

@@ -8,6 +8,7 @@ use App\Data\Reservations\CheckInAllPreviewData;
 use App\Data\Reservations\UnitCheckInPreviewData;
 use App\Data\Reservations\UnitCheckOutPreviewData;
 use App\Data\Reservations\UnitDatesPreviewData;
+use App\Data\Reservations\UnitEarlyDepartureData;
 use App\Data\Reservations\UnitFeePreviewData;
 use App\Data\Reservations\UnitLateCheckOutPreviewData;
 use App\Data\Reservations\UnitMovePreviewData;
@@ -25,6 +26,7 @@ use App\Models\UnitNight;
 use App\Models\User;
 use App\Services\Availability\FreeUnits;
 use App\Services\Catalogues\PolicyChargeCalculator;
+use App\Services\Catalogues\TaxCalculator;
 use App\Services\CityLedger\CreditCheck;
 use App\Services\FrontDesk\CheckInCollection;
 use App\Services\FrontDesk\CheckOutSettlement;
@@ -59,6 +61,7 @@ class UnitActionPreview
         private CheckOutSettlement $checkOutSettlement,
         private CountryOptions $countryOptions,
         private FreeUnits $freeUnits,
+        private TaxCalculator $taxCalculator,
     ) {}
 
     /**
@@ -182,7 +185,45 @@ class UnitActionPreview
      */
     public function checkOut(ReservationUnit $unit, User $user): UnitCheckOutPreviewData
     {
-        return $this->checkOutSettlement->for($unit, $user->can(PermissionEnum::PaymentRefund->value));
+        $preview = $this->checkOutSettlement->for($unit, $user->can(PermissionEnum::PaymentRefund->value));
+        $businessDate = $this->currentBusinessDate->date($unit->property()->firstOrFail());
+
+        if ($unit->status !== UnitStatus::CheckedIn || $businessDate === null || $businessDate->toDateString() >= $unit->departure_date->toDateString()) {
+            return $preview;
+        }
+
+        return $this->earlyCheckOut($unit, $businessDate->toImmutable(), $preview);
+    }
+
+    /**
+     * The early departure fee `EarlyCheckOut` will post, with its tax, and the nights it removes.
+     */
+    private function earlyCheckOut(ReservationUnit $unit, CarbonImmutable $businessDate, UnitCheckOutPreviewData $preview): UnitCheckOutPreviewData
+    {
+        $property = $unit->property()->firstOrFail();
+        $policy = $this->policy($unit, SystemTransactionCode::EarlyDepartureRevenue);
+        $code = $property->transactionCodes()->where('system_key', SystemTransactionCode::EarlyDepartureRevenue->value)->where('active', true)->first();
+
+        if ($policy === null || $code === null) {
+            return UnitCheckOutPreviewData::refused($this->refusals->message(UnitStayResult::REFUSAL_POLICY_NOT_FOUND));
+        }
+
+        $charge = $this->policyChargeCalculator->calculate($policy, $unit, $businessDate);
+        $tax = $this->taxCalculator->calculate($property, $code, $charge->amount, '1', $this->unitNationality->for($unit));
+
+        if (! $tax->isCalculated()) {
+            return UnitCheckOutPreviewData::refused($this->refusals->message((string) $tax->refusalReason));
+        }
+
+        $preview->early = new UnitEarlyDepartureData(
+            departure: $unit->departure_date->toDateString(),
+            nightsRemoved: $unit->nights()->whereDate('date', '>=', $businessDate->toDateString())->count(),
+            fee: (string) $charge->amount->getAmount(),
+            feeTotal: (string) $tax->grossAmount->getAmount(),
+            withinFreeWindow: $charge->withinFreeWindow,
+        );
+
+        return $preview;
     }
 
     /**

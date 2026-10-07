@@ -7,7 +7,8 @@ use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
- * The Check out form. A deposit refund from a user without `payment.refund` is dropped.
+ * The Check out form, and the early check-out form, which adds the fee choices. A deposit refund from a user without
+ * `payment.refund` is dropped, and so is Do not charge from a user without `front-desk.waive-fees`.
  */
 class CheckOutUnitRequest extends FormRequest
 {
@@ -28,6 +29,9 @@ class CheckOutUnitRequest extends FormRequest
             'refund_amount' => ['nullable', 'regex:/^\d+(\.\d{1,2})?$/'],
             'reference' => ['nullable', 'string', 'max:100'],
             'idempotency_key' => ['nullable', 'required_with:refund_amount', 'uuid'],
+            'do_not_charge' => ['boolean'],
+            'reason' => ['nullable', 'string', 'max:500'],
+            'expected_fee' => ['nullable', 'regex:/^\d+(\.\d{1,2})?$/'],
         ];
     }
 
@@ -41,5 +45,20 @@ class CheckOutUnitRequest extends FormRequest
     public function reference(): ?string
     {
         return filled($this->input('reference')) ? $this->string('reference')->toString() : null;
+    }
+
+    public function doNotCharge(): bool
+    {
+        return $this->boolean('do_not_charge') && $this->user()->can(PermissionEnum::FrontDeskWaiveFees->value);
+    }
+
+    public function reason(): ?string
+    {
+        return filled($this->input('reason')) ? $this->string('reason')->toString() : null;
+    }
+
+    public function expectedFee(): ?string
+    {
+        return filled($this->input('expected_fee')) ? $this->string('expected_fee')->toString() : null;
     }
 }

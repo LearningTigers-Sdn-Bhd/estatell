@@ -109,7 +109,11 @@ export function UnitActionsMenu({
                 open={action === 'check-in'}
                 paymentOptions={paymentOptions}
             />
-            <CheckOutDialog {...common} open={action === 'check-out'} />
+            <CheckOutDialog
+                {...common}
+                open={action === 'check-out'}
+                canWaiveFees={canWaiveFees}
+            />
             <LateCheckOutDialog
                 {...common}
                 open={action === 'late-check-out'}

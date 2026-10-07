@@ -196,13 +196,20 @@ Each form uses `FormOverlay` and the container from [Form containers](../design-
 
 ### Built: check in, check out and late check-out
 
-- **Menu.** The menu lists Check in from the arrival date until the departure date, Check out from the departure date, and Late check-out on the departure date, the days each Action accepts. A shorter stay is changed first with Change dates. Early check-out (planned, see [Early check-out](#early-check-out)) lists Check out on the days between the day after arrival and the day before departure.
+- **Menu.** The menu lists Check in from the arrival date until the departure date, Check out from the departure date, and Late check-out on the departure date, the days each Action accepts. A shorter stay is changed first with Change dates. Early check-out (see [Early check-out](#early-check-out)) also lists Check out for a CheckedIn unit between the day after arrival and the day before departure, to a user with `reservations.manage`.
 - **Previews.** `UnitActionPreview` gains `checkIn()`, `checkOut()` and `lateCheckOut()`. `CheckInCollection` and `CheckOutSettlement` (`app/Services/FrontDesk/`) work out Collect now and the deposit.
 - **Check in.** `CheckInAndCollect` saves a missing nationality (to the primary guest, or the booker, through `UpdateGuest`) and runs `CheckInUnit` in one transaction, so a refused check-in saves nothing. Then Collect now takes the taxes as an Advance payment and the deposit as a SecurityDeposit payment, with the keys `{uuid}:taxes` and `{uuid}:deposit`. The Collect now amounts come from `CheckInCollection` and the form sends no amount. The tax rows are the Scheduled tax rows of the unit's nights, so the guest pays what the night audit will post. A deposit already held on the unit folio is not asked again. Collect now shows only with `payment.record`.
 - **More fields.** The Dialog adds a **Check in without a card** box (with `front-desk.check-in-without-card`, shown when a card is missing) and a **Credit limit override reason** (with `company.credit-override`, shown when the company is over its limit). They appear only when needed, so the usual form still has the five fields above.
 - **Check out.** `CheckOutAndRefund` refunds the deposit (oldest deposit payment first, each through `RefundPayment`) and then runs `CheckOutUnit`. It refuses a refund above what is held before it writes. The Dialog needs `payment.refund` for the refund and opens check-out when the folio will be 0. **Keep for damages** links to the folio tab.
 - **Late check-out.** `reservations.units.late-check-out` calls `ExtendDepartureTime` with the same Do not charge and reason fields as the other fee forms.
 - **Routes.** `reservations.units.check-in`, `.check-out` and `.late-check-out` with their `-preview` routes. Check in uses `front-desk.check-in`. Check out and late check-out use `front-desk.check-out`.
+
+### Built: early check-out
+
+- **Action.** `EarlyCheckOut` locks the unit, then calls `ChangeUnitDates` (arrival kept, departure the business date) and `CheckOutAndRefund`. It opens its own transaction and rolls back when either step returns a refusal, because those Actions return refusals and do not throw. A refusal code passes through unchanged. `not_early` is new.
+- **Preview.** The `check-out-preview` route adds an `early` block (`UnitEarlyDepartureData`: booked departure, nights removed, the fee before tax and the fee with tax) when the unit is CheckedIn and its departure is after the business date. The fee with tax comes from `TaxCalculator`. A property with no early departure policy row gets the `policy_not_found` error in the preview.
+- **Dialog.** The check-out Dialog switches to early mode when the preview has an `early` block: the fee block, Do not charge (with `front-desk.waive-fees`) and Reason. The balance and the default refund include the fee, as display math only. It posts to `reservations.units.early-check-out`, which has the extra `front-desk.check-out` middleware inside the `reservations.manage` group.
+- **Menu.** `UnitActionMenu::isEarlyCheckOut()` lists Check out before the departure date for a CheckedIn unit that arrived before the business date, to a user with `reservations.manage`.
 
 ### Built: check in all
 

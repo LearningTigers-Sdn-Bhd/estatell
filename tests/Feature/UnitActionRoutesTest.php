@@ -703,3 +703,157 @@ test('the page tells the browser whether the user may check in', function () {
     $this->actingAs($setup['user'])->get($url)->assertInertia(fn (Assert $page) => $page->where('canCheckIn', true));
     $this->actingAs($reader)->get($url)->assertInertia(fn (Assert $page) => $page->where('canCheckIn', false));
 });
+
+/**
+ * A checked-in unit that arrived yesterday and departs in two days, with a 100.00 security deposit held on its folio.
+ * The early departure policy is 40.00 on the unused nights, so leaving today costs 40.00.
+ *
+ * @return array{user: User, property: Property, reservation: Reservation, unit: ReservationUnit}
+ */
+function uaEarlySetup(DefaultRoleEnum $role = DefaultRoleEnum::Owner, bool $withDeposit = true): array
+{
+    $setup = uaSetup($role, ['status' => UnitStatus::CheckedIn, 'checked_in_at' => now()->subDay(), 'arrival_date' => today()->subDay()->toDateString(), 'departure_date' => today()->addDays(2)->toDateString()]);
+    $cash = uaCheckInSetup($setup);
+
+    if ($withDeposit) {
+        app(RecordPayment::class)($setup['user'], $setup['reservation'], null, $setup['unit'], new NewPaymentData($cash->id, PaymentPurpose::SecurityDeposit, '100.00', null, fake()->uuid()));
+    }
+
+    return $setup;
+}
+
+function uaEarlyFeeLines(ReservationUnit $unit): int
+{
+    return FolioLine::query()->where('idempotency_key', 'like', 'early_departure:'.$unit->id.':%')->count();
+}
+
+test('the check-out preview of an early departure shows the fee and the nights it removes', function () {
+    $setup = uaEarlySetup();
+
+    $this->actingAs($setup['user'])->postJson(uaUrl($setup, 'check-out-preview'))
+        ->assertOk()
+        ->assertJson(['balance' => '-100.00', 'early' => ['departure' => today()->addDays(2)->toDateString(), 'nightsRemoved' => 2, 'fee' => '40.00', 'feeTotal' => '40.00', 'withinFreeWindow' => false]]);
+});
+
+test('a unit leaving on its departure date has no early block', function () {
+    $setup = uaDepartingSetup();
+
+    $this->actingAs($setup['user'])->postJson(uaUrl($setup, 'check-out-preview'))
+        ->assertJsonPath('early', null);
+});
+
+test('early check-out shortens the stay, posts the fee, refunds the deposit and checks the unit out', function () {
+    $setup = uaEarlySetup();
+
+    $this->actingAs($setup['user'])
+        ->post(uaUrl($setup, 'early-check-out'), ['refund_amount' => '60.00', 'expected_fee' => '40.00', 'idempotency_key' => fake()->uuid()])
+        ->assertRedirect()
+        ->assertSessionHasNoErrors();
+
+    $unit = $setup['unit']->fresh();
+
+    expect($unit->status)->toBe(UnitStatus::CheckedOut)
+        ->and($unit->departure_date->toDateString())->toBe(today()->toDateString())
+        ->and($unit->nights()->count())->toBe(1)
+        ->and(uaEarlyFeeLines($unit))->toBe(1)
+        ->and(Payment::query()->whereNotNull('refund_of_id')->sole()->amount)->toBe('60.00')
+        ->and(Activity::query()->where('event', 'reservation.unit_dates_changed')->count())->toBe(1)
+        ->and(Activity::query()->where('event', 'reservation.unit_checked_out')->count())->toBe(1);
+});
+
+test('a refused check-out also undoes the fee and the shorter stay', function () {
+    $setup = uaEarlySetup(withDeposit: false);
+
+    $this->actingAs($setup['user'])
+        ->post(uaUrl($setup, 'early-check-out'), [])
+        ->assertSessionHasErrors('form');
+
+    $unit = $setup['unit']->fresh();
+
+    expect($unit->status)->toBe(UnitStatus::CheckedIn)
+        ->and($unit->departure_date->toDateString())->toBe(today()->addDays(2)->toDateString())
+        ->and($unit->nights()->count())->toBe(3)
+        ->and(uaEarlyFeeLines($unit))->toBe(0)
+        ->and(Activity::query()->where('event', 'reservation.unit_dates_changed')->count())->toBe(0);
+});
+
+test('a refund above what is held leaves the stay as it was', function () {
+    $setup = uaEarlySetup();
+
+    $this->actingAs($setup['user'])
+        ->post(uaUrl($setup, 'early-check-out'), ['refund_amount' => '150.00', 'idempotency_key' => fake()->uuid()])
+        ->assertSessionHasErrors('refund_amount');
+
+    expect($setup['unit']->fresh()->departure_date->toDateString())->toBe(today()->addDays(2)->toDateString())
+        ->and(uaEarlyFeeLines($setup['unit']))->toBe(0);
+});
+
+test('early check-out with Do not charge posts no fee and needs a reason', function () {
+    $setup = uaEarlySetup();
+
+    $this->actingAs($setup['user'])
+        ->post(uaUrl($setup, 'early-check-out'), ['do_not_charge' => true, 'refund_amount' => '100.00', 'idempotency_key' => fake()->uuid()])
+        ->assertSessionHasErrors('reason');
+
+    $this->actingAs($setup['user'])
+        ->post(uaUrl($setup, 'early-check-out'), ['do_not_charge' => true, 'reason' => 'Family emergency', 'refund_amount' => '100.00', 'idempotency_key' => fake()->uuid()])
+        ->assertSessionHasNoErrors();
+
+    expect($setup['unit']->fresh()->status)->toBe(UnitStatus::CheckedOut)
+        ->and(uaEarlyFeeLines($setup['unit']))->toBe(0);
+});
+
+test('a fee that changed since the form opened is refused and writes nothing', function () {
+    $setup = uaEarlySetup();
+    RoomRevenuePolicy::query()->where('code', SystemTransactionCode::EarlyDepartureRevenue)->update(['amount' => '55.00']);
+
+    $this->actingAs($setup['user'])
+        ->post(uaUrl($setup, 'early-check-out'), ['expected_fee' => '40.00', 'refund_amount' => '60.00', 'idempotency_key' => fake()->uuid()])
+        ->assertSessionHasErrors('expected_fee');
+
+    expect($setup['unit']->fresh()->status)->toBe(UnitStatus::CheckedIn);
+});
+
+test('a unit that arrived today cannot check out early', function () {
+    $setup = uaSetup(unit: ['status' => UnitStatus::CheckedIn, 'checked_in_at' => now(), 'arrival_date' => today()->toDateString(), 'departure_date' => today()->addDays(2)->toDateString()]);
+
+    $this->actingAs($setup['user'])
+        ->post(uaUrl($setup, 'early-check-out'), [])
+        ->assertSessionHasErrors('departure_date');
+
+    expect($setup['unit']->fresh()->status)->toBe(UnitStatus::CheckedIn);
+});
+
+test('a unit on its departure date is sent to the normal check-out', function () {
+    $setup = uaDepartingSetup(withDeposit: false);
+
+    $this->actingAs($setup['user'])
+        ->post(uaUrl($setup, 'early-check-out'), [])
+        ->assertSessionHasErrors('form');
+
+    expect($setup['unit']->fresh()->status)->toBe(UnitStatus::CheckedIn);
+});
+
+test('the menu offers check-out before the departure date only to staff who can change dates', function () {
+    $setup = uaEarlySetup();
+    $showUrl = route('reservations.show', ['property' => $setup['property']->code, 'reservation' => $setup['reservation']->id]);
+
+    $this->actingAs($setup['user'])->get($showUrl)
+        ->assertInertia(fn (Assert $page) => $page->where('unit.actions', fn ($actions) => collect($actions)->pluck('key')->all() === ['check-out', 'change-dates', 'move-room']));
+
+    $checkOutOnly = uaStaffWith($setup['property'], ['reservations.view', 'front-desk.check-out']);
+
+    $this->actingAs($checkOutOnly)->get($showUrl)
+        ->assertInertia(fn (Assert $page) => $page->where('unit.actions', []));
+});
+
+test('early check-out needs both front-desk.check-out and reservations.manage', function (array $permissions) {
+    $setup = uaEarlySetup();
+
+    $this->actingAs(uaStaffWith($setup['property'], $permissions))->post(uaUrl($setup, 'early-check-out'), [])->assertForbidden();
+
+    expect($setup['unit']->fresh()->status)->toBe(UnitStatus::CheckedIn);
+})->with([
+    'check-out only' => [['reservations.view', 'front-desk.check-out']],
+    'manage only' => [['reservations.view', 'reservations.manage']],
+]);

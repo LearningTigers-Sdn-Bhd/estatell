@@ -7,6 +7,7 @@ use App\Actions\FrontDesk\ChangeUnitDates;
 use App\Actions\FrontDesk\CheckInAllUnits;
 use App\Actions\FrontDesk\CheckInAndCollect;
 use App\Actions\FrontDesk\CheckOutAndRefund;
+use App\Actions\FrontDesk\EarlyCheckOut;
 use App\Actions\FrontDesk\ExtendDepartureTime;
 use App\Actions\FrontDesk\MarkNoShow;
 use App\Actions\FrontDesk\MoveUnit;
@@ -147,6 +148,17 @@ class ReservationUnitStayController extends Controller
         $result = $checkOutAndRefund($request->user(), $unit, $request->refundAmount(), $request->reference(), $request->string('idempotency_key')->toString());
 
         return $this->respond($property, $reservation, $result->refusal, $refusals, __('Unit checked out.'));
+    }
+
+    /**
+     * Check one unit out before its departure date: the early departure fee, the deposit refund and the check-out in
+     * one step. A refusal at any step writes nothing.
+     */
+    public function earlyCheckOut(CheckOutUnitRequest $request, Property $property, Reservation $reservation, ReservationUnit $unit, EarlyCheckOut $earlyCheckOut, ReservationRefusals $refusals): RedirectResponse
+    {
+        $result = $earlyCheckOut($request->user(), $unit, $request->doNotCharge(), $request->reason(), $request->expectedFee(), $request->refundAmount(), $request->reference(), $request->string('idempotency_key')->toString());
+
+        return $this->respond($property, $reservation, $result->refusal, $refusals, __('Unit checked out early.'));
     }
 
     /**

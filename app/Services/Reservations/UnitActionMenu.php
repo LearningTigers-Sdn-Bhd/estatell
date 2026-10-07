@@ -3,7 +3,9 @@
 namespace App\Services\Reservations;
 
 use App\Data\Reservations\UnitActionData;
+use App\Enums\PermissionEnum;
 use App\Enums\UnitAction;
+use App\Enums\UnitStatus;
 use App\Models\ReservationUnit;
 use App\Models\User;
 use App\Services\NightAudit\CurrentBusinessDate;
@@ -25,7 +27,7 @@ class UnitActionMenu
         return collect(UnitAction::cases())
             ->filter(fn (UnitAction $action): bool => $action->isOpenFor($unit->status)
                 && $user->can($action->permission()->value)
-                && $this->isTimely($action, $unit, $businessDate?->toDateString()))
+                && $this->isTimely($action, $unit, $businessDate?->toDateString(), $user))
             ->map(fn (UnitAction $action): UnitActionData => UnitActionData::fromAction($action))
             ->values()
             ->all();
@@ -33,10 +35,10 @@ class UnitActionMenu
 
     /**
      * The dates each Action accepts, so the menu never offers what it would refuse: check-in from the arrival date
-     * until the departure date, check-out from the departure date, late check-out on the departure date, reinstate
+     * until the departure date, check-out from the departure date (or before it, see `isEarlyCheckOut()`), late check-out on the departure date, reinstate
      * and move room while the stay is still ahead. A checked-in unit past its departure can still be extended.
      */
-    private function isTimely(UnitAction $action, ReservationUnit $unit, ?string $businessDate): bool
+    private function isTimely(UnitAction $action, ReservationUnit $unit, ?string $businessDate, User $user): bool
     {
         if ($businessDate === null) {
             return false;
@@ -47,10 +49,21 @@ class UnitActionMenu
 
         return match ($action) {
             UnitAction::CheckIn => $businessDate >= $arrival && $businessDate < $departure,
-            UnitAction::CheckOut => $businessDate >= $departure,
+            UnitAction::CheckOut => $businessDate >= $departure || $this->isEarlyCheckOut($unit, $businessDate, $user),
             UnitAction::LateCheckOut => $businessDate === $departure,
             UnitAction::Reinstate, UnitAction::MoveRoom => $businessDate < $departure,
             default => true,
         };
+    }
+
+    /**
+     * An early check-out needs a CheckedIn unit that arrived before the business date (a same-day arrival has no
+     * night to keep) and the right to change the dates.
+     */
+    private function isEarlyCheckOut(ReservationUnit $unit, string $businessDate, User $user): bool
+    {
+        return $unit->status === UnitStatus::CheckedIn
+            && $businessDate > $unit->arrival_date->toDateString()
+            && $user->can(PermissionEnum::ReservationsManage->value);
     }
 }

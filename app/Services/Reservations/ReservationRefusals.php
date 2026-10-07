@@ -70,6 +70,7 @@ class ReservationRefusals
             UnitStayResult::REFUSAL_CREDIT_LIMIT_EXCEEDED => ['credit_override_reason', __('This company is over its credit limit.')],
             UnitStayResult::REFUSAL_BEFORE_DEPARTURE_DATE => [self::FORM, __('The guest cannot check out before the departure date. Change the dates first.')],
             UnitStayResult::REFUSAL_BALANCE_NOT_SETTLED => [self::FORM, __('The unit folio is not settled. Collect the balance or refund the deposit first.')],
+            UnitStayResult::REFUSAL_NOT_EARLY => [self::FORM, __('The departure date is today or past, so check out the normal way.')],
             UnitStayResult::REFUSAL_NOT_DEPARTURE_DATE => [self::FORM, __('A late check-out is only for the departure date.')],
             UnitStayResult::REFUSAL_TIME_NOT_LATER => ['new_time', __('Choose a time later than the current departure time.')],
             'refund_exceeds_payment' => ['refund_amount', __('The refund is more than the deposit held.')],
