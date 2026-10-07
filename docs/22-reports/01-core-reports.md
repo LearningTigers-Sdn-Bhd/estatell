@@ -72,6 +72,8 @@ report_layout_columns     id, report_layout_id (FK, cascade), column_key, positi
 - No row means the code defaults: `defaultOrientation()` and `columns()`.
 - `ReportLayoutResolver` (`app/Services/Reports/`) merges the stored rows with `columns()`. A column added later in code goes at the end with its default visibility. A stored key that is no longer in `columns()` is ignored.
 - At least one column stays visible.
+- The report page gets the resolved layout as one `ReportLayoutData` prop (the orientation and the columns in order, each with `visible`), plus `canEditLayout`.
+- When the sorted column is hidden, the server falls back to the report's default sort.
 - The screen table, the PDF, the CSV and the Excel file all use the resolved order and visibility. The PDF also uses the orientation.
 - `PageOrientation`: Portrait, Landscape. It is added with the registry (step 2), because `defaultOrientation()` returns it.
 - `category()` returns a `ReportCategory` (the sidebar group, for example Front desk) and `ReportColumn::align` is a `ColumnAlign` enum.
@@ -99,12 +101,13 @@ Arrivals     [ This week ▾ ]   [⚙ Layout]   [ Export ▾ ]
 ```
 
 - **The table behind the Sheet is the preview.** Hiding or moving a column changes it at once.
-- **Preview PDF** opens the real PDF of the current dates with the unsaved layout, in a new tab. This shows the orientation, which the screen cannot.
+- **Preview PDF** (a native form POST with `target="_blank"`) opens the real PDF of the current dates with the unsaved layout, in a new tab. This shows the orientation, which the screen cannot.
 - Order uses up and down arrows. There is no drag-and-drop package.
 - **Save** calls `UpdateReportLayout`: orientation and the full column list in order, in one transaction. It refuses a list whose keys do not match `columns()`.
 - **Cancel**, or closing the Sheet, puts the table back. A dirty Sheet asks before it closes.
 - **Reset to default** asks first, then calls `ResetReportLayout`, which deletes the layout.
 - Both log `report_layout.updated`.
+- Every report PDF uses one generic view, `pdf/report.blade.php`: the letterhead, the title, the dates and the table. Preview PDF and the exports share it.
 
 ## Row selection and export
 
