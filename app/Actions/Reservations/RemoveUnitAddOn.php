@@ -16,7 +16,7 @@ class RemoveUnitAddOn
      * it has a `folio_line_id`) is refused too: the correction is `ReverseLine`.
      * See docs/12-reservations/04-add-ons.md.
      */
-    public function __invoke(User $actor, UnitAddOn $addOn): bool
+    public function __invoke(?User $actor, UnitAddOn $addOn): bool
     {
         return DB::transaction(function () use ($actor, $addOn): bool {
             $unit = ReservationUnit::query()->lockForUpdate()->find($addOn->reservation_unit_id);

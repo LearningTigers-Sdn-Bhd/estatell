@@ -38,7 +38,7 @@ class ProcessEarlyDeparture
      * it (other items, whose date may be the departure date). A posted add-on stays.
      * See docs/18-front-desk/01-check-in-and-check-out.md.
      */
-    public function __invoke(User $actor, ReservationUnit $unit, CarbonInterface $newDeparture, bool $doNotCharge = false, ?string $reason = null, ?string $expectedFee = null, bool $applyPolicy = true, ?CarbonInterface $newArrival = null): StayDatesResult
+    public function __invoke(?User $actor, ReservationUnit $unit, CarbonInterface $newDeparture, bool $doNotCharge = false, ?string $reason = null, ?string $expectedFee = null, bool $applyPolicy = true, ?CarbonInterface $newArrival = null): StayDatesResult
     {
         return DB::transaction(function () use ($actor, $unit, $newDeparture, $doNotCharge, $reason, $expectedFee, $applyPolicy, $newArrival): StayDatesResult {
             $businessDate = $this->currentBusinessDate->date($unit->property);

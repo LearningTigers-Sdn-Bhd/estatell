@@ -52,6 +52,9 @@ enum PermissionEnum: string
     case FrontDeskCheckOut = 'front-desk.check-out';
     case FrontDeskCheckInWithoutCard = 'front-desk.check-in-without-card';
     case FrontDeskWaiveFees = 'front-desk.waive-fees';
+    case NightAuditRun = 'night-audit.run';
+    case NightAuditForce = 'night-audit.force';
+    case NightAuditReceiveReport = 'night-audit.receive-report';
 
     public function label(): string
     {
@@ -100,6 +103,9 @@ enum PermissionEnum: string
             self::FrontDeskCheckOut => __('Check out units'),
             self::FrontDeskCheckInWithoutCard => __('Check in without a registration card'),
             self::FrontDeskWaiveFees => __('Do not charge cancellation and no-show fees'),
+            self::NightAuditRun => __('Run the night audit'),
+            self::NightAuditForce => __('Force close the night audit'),
+            self::NightAuditReceiveReport => __('Receive the night audit report'),
         };
     }
 
@@ -121,6 +127,7 @@ enum PermissionEnum: string
             self::CompanyView, self::CompanyManage, self::CompanyCreditOverride, self::CityLedgerInvoice, self::CityLedgerCreditNote, self::CityLedgerPayment, self::CityLedgerAllocate => __('City ledger'),
             self::RegistrationCardManageTerms, self::RegistrationCardSign, self::RegistrationCardSendLink, self::RegistrationCardVoid => __('Registration card'),
             self::FrontDeskCheckIn, self::FrontDeskCheckOut, self::FrontDeskCheckInWithoutCard, self::FrontDeskWaiveFees => __('Front desk'),
+            self::NightAuditRun, self::NightAuditForce, self::NightAuditReceiveReport => __('Night audit'),
         };
     }
 

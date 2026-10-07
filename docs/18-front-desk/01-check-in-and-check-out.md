@@ -15,6 +15,7 @@ Move a unit through its stay.
 - `ExtendDepartureTime`: late check-out on the departure date. Sets a later `departure_time` and posts the late check-out policy charge. Refused unless the unit is CheckedIn, on its departure date, and the new time is later and before midnight.
 - `MarkNoShow`, `CancelUnit`: post the no-show or cancellation policy charge, unless staff choose **Do not charge**. Each can also delete the unit's unposted add-ons (`$removeAddOns`).
 - `ReinstateUnit`: moves a Cancelled or NoShow unit back to Confirmed, with a required reason. It re-prices the unit from `reservation_unit_children` and clears the room or bed of every night.
+- `ChangeUnitDates`, `ExtendStay`, `ProcessEarlyDeparture`, `MarkNoShow`, `PostUnitPolicyFee`, `RemoveUnpostedAddOns` and `RemoveUnitAddOn` take a nullable actor. A null actor is the night audit: the posted lines carry no user and the activity log has no causer.
 - Each of these Actions calls `SyncReservationStatus` (module 12) after it changes a unit, so the reservation status follows its units. `ResolveMissedArrivals` in the night audit calls `MarkNoShow` for each unit its policy marks.
 
 ## Rules

@@ -28,7 +28,7 @@ property_document_prefix_histories
 - `CurrentBusinessDate`: the Open date, or the Auditing date while the audit runs. Null until go live. Every posting uses it.
 - `NextDocumentNumber`: locks the sequence row, increments and returns an `IssuedDocumentNumber` (number, year, reference). It takes an optional `floor`, the highest number already stored, so a stale counter never issues a duplicate. It works inside the caller's transaction, so a document that rolls back gives its number back.
 - `DocumentReference`: formats a reference.
-- `OpenBusinessDate`: opens the first date of a property. It refuses (returns null) when the property already has any business date. `GoLive` calls it. Later dates are opened by `CloseAndOpenNext`.
+- `OpenBusinessDate`: opens the first date of a property. It refuses (returns null) when the property already has any business date. `GoLive` calls it. Later dates are opened by `CloseAndOpenNext`, the last step of the [audit run](03-audit-run.md).
 - `GenerateDocumentPrefix`: gives a property its prefix. Run when a property is created.
 
 ## Document references
@@ -81,6 +81,7 @@ Route: `GET /p/{code}/business-date` (`business-date.show`, JSON) returns the sa
 | Tables, enums, models, services, `OpenBusinessDate`, prefix      | Built.                                                                          |
 | Route, shared prop, `BusinessDateIndicator`                      | Built. The "Night audit pending" text becomes a link with the night audit page. |
 | `GoLive` calling `OpenBusinessDate`                              | Built. See [Go live](../17-onboarding/03-go-live.md).                           |
+| `CloseAndOpenNext` (Open > Auditing > Closed, the next date)     | Built with the [audit run](03-audit-run.md).                                    |
 | Room blocks moving from `PropertyToday` to `CurrentBusinessDate` | Waits for the first folio posting.                                              |
 
 ## Lessons from wastays

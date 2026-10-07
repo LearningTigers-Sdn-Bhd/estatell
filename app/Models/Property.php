@@ -262,6 +262,12 @@ class Property extends Model implements FeatureScopeSerializeable
         return $this->hasMany(BusinessDate::class);
     }
 
+    /** @return HasMany<NightAudit, $this> */
+    public function nightAudits(): HasMany
+    {
+        return $this->hasMany(NightAudit::class);
+    }
+
     /** @return HasMany<DocumentSequence, $this> */
     public function documentSequences(): HasMany
     {

@@ -54,7 +54,7 @@ class ChangeUnitDates
      * (`package_plan`). Permissions are checked by the route. See docs/18-front-desk/01-check-in-and-check-out.md.
      */
     public function __invoke(
-        User $actor,
+        ?User $actor,
         ReservationUnit $unit,
         CarbonInterface $arrival,
         CarbonInterface $departure,

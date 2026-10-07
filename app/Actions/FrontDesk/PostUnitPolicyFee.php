@@ -35,7 +35,7 @@ class PostUnitPolicyFee
      * already has, so a unit cancelled again after a reinstate is charged again. A zero fee posts nothing.
      * See docs/18-front-desk/01-check-in-and-check-out.md and docs/13-folio/02-posting-charges.md.
      */
-    public function __invoke(User $actor, ReservationUnit $unit, RoomRevenuePolicy $policy, Money $fee, string $description, string $keyPrefix, string $postingDate): PostingResult
+    public function __invoke(?User $actor, ReservationUnit $unit, RoomRevenuePolicy $policy, Money $fee, string $description, string $keyPrefix, string $postingDate): PostingResult
     {
         $property = $unit->property;
         $code = $property->transactionCodes()->where('system_key', $policy->code->value)->where('active', true)->first();

@@ -17,7 +17,7 @@ class RemoveUnpostedAddOns
      *
      * @return list<int> the ids of the removed add-ons
      */
-    public function __invoke(User $actor, ReservationUnit $unit): array
+    public function __invoke(?User $actor, ReservationUnit $unit): array
     {
         $removed = [];
 

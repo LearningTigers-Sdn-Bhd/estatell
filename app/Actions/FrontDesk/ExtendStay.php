@@ -16,7 +16,7 @@ class ExtendStay
      * "Extend stay" calls this. The arguments after the date are those of `ChangeUnitDates`, and an extension never
      * has a fee. Permissions are checked by the route. See docs/18-front-desk/01-check-in-and-check-out.md.
      */
-    public function __invoke(User $actor, ReservationUnit $unit, CarbonInterface $newDeparture, ?string $restrictionOverrideReason = null): StayDatesResult
+    public function __invoke(?User $actor, ReservationUnit $unit, CarbonInterface $newDeparture, ?string $restrictionOverrideReason = null): StayDatesResult
     {
         if ($newDeparture->startOfDay()->lte($unit->departure_date->startOfDay())) {
             return StayDatesResult::refused(UnitStayResult::REFUSAL_NOT_AN_EXTENSION);
