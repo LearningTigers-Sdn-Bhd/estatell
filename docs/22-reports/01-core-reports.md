@@ -123,9 +123,9 @@ Arrivals     [ This week ▾ ]   [⚙ Layout]   [ Export ▾ ]  PDF · CSV · Ex
 - The report `DataTable` gets a checkbox column. The header checkbox selects the rows on the current page.
 - **With rows selected**, the export contains only those rows. **With none selected**, it contains every row that matches the dates and filters, on all pages.
 - The selection is kept while paging and is cleared when the dates or filters change. Up to 500 rows can be selected.
-- The browser POSTs the row keys, the dates and the filters, never row data. The server runs `rows()` again, scoped to the property and the filters, and keeps only those keys. A key outside the filters is ignored.
-- The PDF opens in a new tab and the spreadsheet downloads. Both are native form POSTs (`target="_blank"` for the PDF), not Inertia visits.
-- CSV and Excel use `SpreadsheetFormat` and `spatie/simple-excel`, which is already installed. Money columns are numbers, not formatted text.
+- The browser POSTs the row keys, the dates, the filters and the sort, never row data. The server runs `rows()` again, scoped to the property and the filters, keeps only those keys and sorts them like the page. A key outside the filters is ignored. Exports use the saved layout.
+- The PDF opens in a new tab through a native form POST (`target="_blank"`). The spreadsheet downloads through `postDownload` (`resources/js/lib/post-download.ts`), so a validation error shows as a toast. Neither is an Inertia visit.
+- CSV and Excel use `SpreadsheetFormat` and `spatie/simple-excel`, which is already installed. Money columns are numbers, not formatted text. Each row has `cells()` (display text, for the screen and the PDF) and `values()` (typed values for spreadsheets: numbers for money and counts, `Y-m-d` for dates).
 - The PDF uses the [printing settings](../02-property/05-printing-settings.md) letterhead, font and size, then the report title, the dates and "Selected rows only" when there is a selection. The table header repeats on every page.
 
 ## Permissions

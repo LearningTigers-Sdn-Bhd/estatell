@@ -226,6 +226,8 @@ Needs the Channex staging checks in [Staging verification](21-channels/06-stagin
 | `0e870da` | feat(property): add PDF font styles                                      |
 | `9e308f0` | docs(reports): settle arrivals columns and report paging                 |
 | `90ad388` | feat(reports): add the report registry and the arrivals report           |
+| `c913465` | docs(reports): settle the layout prop, sort fallback and report PDF      |
+| `86a0a72` | feat(reports): add report layouts                                        |
 
 Smaller fixes and reverts are in `git log`.
 
