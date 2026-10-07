@@ -19,7 +19,7 @@ class ReverseLine
      * descendant that already has a reversal is skipped (the key `reverse:{line_id}` is unique). The folio row is locked first, so two
      * reversals of one line never race. Every check runs before the first write, so a refusal writes and logs nothing.
      * A line that a payment or refund owns is refused: a refund corrects a payment.
-     * A reversed add-on keeps its `folio_line_id`. See docs/13-folio/02-posting-charges.md.
+     * A reversed add-on keeps its `folio_line_id`, and a reversal keeps the source of its line. See docs/13-folio/02-posting-charges.md.
      */
     public function __invoke(User $actor, FolioLine $line): PostingResult
     {
@@ -117,6 +117,8 @@ class ReverseLine
             'quantity' => $line->quantity,
             'unit_amount' => bcmul($line->unit_amount, '-1', 2),
             'amount' => bcmul($line->amount, '-1', 2),
+            'source_type' => $line->source_type,
+            'source_id' => $line->source_id,
         ]);
         $reversal->folio_id = $line->folio_id;
         $reversal->posting_date = $postingDate;

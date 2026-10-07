@@ -406,3 +406,23 @@ test('posted lines stay immutable in the database', function () {
         ->and(fn () => DB::transaction(fn () => DB::table('folio_lines')->where('id', $charge->id)->delete()))
         ->toThrow(QueryException::class, 'immutable ledger');
 });
+
+test('a manual charge names its unit as the source, and a reversal and a transfer copy keep it', function () {
+    $setup = postingSetup();
+    $charge = postTaxedCharge($setup);
+    $target = Folio::factory()->create(['property_id' => $setup['property']->id, 'reservation_id' => $charge->folio->reservation_id]);
+
+    expect($charge->source_type)->toBe($setup['unit']->getMorphClass())->and($charge->source_id)->toBe($setup['unit']->id);
+
+    $copy = app(TransferLines::class)($setup['actor'], [$charge], $target)->line();
+    $reversal = FolioLine::query()->where('reversal_of_id', $charge->id)->sole();
+
+    expect($copy->source_type)->toBe($charge->source_type)->and($copy->source_id)->toBe($charge->source_id)
+        ->and($reversal->source_type)->toBe($charge->source_type)->and($reversal->source_id)->toBe($charge->source_id);
+
+    $second = postTaxedCharge($setup);
+    $reversed = app(ReverseLine::class)($setup['actor'], $second)->line();
+
+    expect($reversed->source_id)->toBe($setup['unit']->id)
+        ->and(FolioLine::query()->where('parent_line_id', $second->id)->doesntExist())->toBeFalse();
+});

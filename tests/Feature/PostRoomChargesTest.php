@@ -111,7 +111,8 @@ test('inclusions split off the room and post as their own charges', function () 
         ['night:'.$night->id.':tax:'.Tax::query()->value('id'), '20.00'],
         ['night:'.$night->id.':incl:'.$inclusion->id, '50.00'],
     ]);
-    expect($result->lines[2]->transaction_code_id)->toBe($inclusion->chargeItem->transaction_code_id);
+    expect($result->lines[2]->transaction_code_id)->toBe($inclusion->chargeItem->transaction_code_id)
+        ->and($result->lines[2]->source_id)->toBe($night->id)->and($result->lines[2]->source_type)->toBe($night->getMorphClass());
 });
 
 test('a per stay inclusion posts on the first night only', function () {

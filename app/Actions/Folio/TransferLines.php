@@ -126,6 +126,8 @@ class TransferLines
             'quantity' => $line->quantity,
             'unit_amount' => $line->unit_amount,
             'amount' => $line->amount,
+            'source_type' => $line->source_type,
+            'source_id' => $line->source_id,
         ]);
         $copy->folio_id = $target->id;
         $copy->posting_date = $postingDate;

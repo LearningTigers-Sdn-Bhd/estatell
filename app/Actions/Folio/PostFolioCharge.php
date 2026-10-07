@@ -19,7 +19,7 @@ class PostFolioCharge
      * Write one charge line on a given folio, then its discount lines and one Tax child line for each tax component,
      * with no checks. The caller checks everything first, calculates the tax with `TaxCalculator` (a refusal must stop
      * before any write) and runs this inside its transaction. The charge line holds the net amount, so the folio total
-     * is the gross amount. A caller that discounts the charge gives `$lineAmount` (the charge line amount, which the
+     * is the gross amount. The `$source` names the unit of the line (see docs/13-folio/02-posting-charges.md#line-sources). A caller that discounts the charge gives `$lineAmount` (the charge line amount, which the
      * tax result cannot know) and its `$discounts`, which post as negative Adjustment children. Tax keys are
      * `{key}:tax:{tax_id}`. A null actor is the system, as in the night audit. `PostCharge`, `PostRoomCharges` and
      * `RecordPayment` (the payment surcharge) call it. See docs/13-folio/02-posting-charges.md.

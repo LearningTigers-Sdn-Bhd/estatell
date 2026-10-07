@@ -123,7 +123,7 @@ class PostRoomCharges
                     $charge->tax,
                     $charge->key,
                     $businessDate->toDateString(),
-                    $charge->key === 'night:'.$night->id ? $night : null,
+                    $night,
                     $charge->lineAmount,
                     $discounts,
                 );

@@ -108,6 +108,7 @@ test('cancel posts the policy fee on a new unit folio, cancels the unit and logs
         ->and($line->idempotency_key)->toBe('cancel:'.$setup['unit']->id.':1')
         ->and($line->posting_date->toDateString())->toBe(today()->toDateString())
         ->and($line->folio->reservation_unit_id)->toBe($setup['unit']->id)
+        ->and($line->source_type)->toBe($setup['unit']->getMorphClass())->and($line->source_id)->toBe($setup['unit']->id)
         ->and($log->causer_id)->toBe($setup['actor']->id)
         ->and($log->subject_id)->toBe($setup['reservation']->id)
         ->and($log->properties['fee'])->toBe('75.00')

@@ -126,7 +126,7 @@ class PostCharge
                 $tax,
                 $key,
                 $businessDate->toDateString(),
-                $addOn,
+                $addOn ?? $locked,
             );
             $charge = $lines[0];
 

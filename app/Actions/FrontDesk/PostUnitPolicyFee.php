@@ -59,6 +59,6 @@ class PostUnitPolicyFee
         $folio ??= ($this->createFolio)($unit->reservation, $unit);
         $key = $keyPrefix.':'.$unit->id.':'.(FolioLine::query()->where('idempotency_key', 'like', $keyPrefix.':'.$unit->id.':%')->whereNull('parent_line_id')->count() + 1);
 
-        return PostingResult::posted(($this->postFolioCharge)($actor, $folio, $code, $description, 1, $fee, $tax, $key, $postingDate));
+        return PostingResult::posted(($this->postFolioCharge)($actor, $folio, $code, $description, 1, $fee, $tax, $key, $postingDate, $unit));
     }
 }
