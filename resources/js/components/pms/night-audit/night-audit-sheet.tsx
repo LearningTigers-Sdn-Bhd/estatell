@@ -18,6 +18,7 @@ import type { LucideIcon } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { FormOverlay } from '@/components/pms/form-overlay';
 import { AuditDialogHost } from '@/components/pms/night-audit/audit-dialog-host';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Field, FieldError, FieldLabel } from '@/components/ui/field';
 import { Spinner } from '@/components/ui/spinner';
@@ -510,16 +511,14 @@ export function NightAuditSheet({
             {view === 'ready' && sheet && (
                 <div className="flex flex-col gap-5">
                     {notEnded && sheet.date && (
-                        <section className="flex flex-col gap-1">
-                            <h3 className="flex items-center gap-2 text-sm font-medium text-destructive">
-                                <CircleAlert className="size-4" />
-                                Not over yet
-                            </h3>
-                            <p className="text-sm text-muted-foreground">
+                        <Alert variant="destructive">
+                            <CircleAlert />
+                            <AlertTitle>Not over yet</AlertTitle>
+                            <AlertDescription>
                                 {formatBusinessDay(sheet.date, 'short')} has not
                                 ended. The audit runs by itself after midnight.
-                            </p>
-                        </section>
+                            </AlertDescription>
+                        </Alert>
                     )}
 
                     {!notEnded && <p className="text-sm">{sheet.summary}</p>}
