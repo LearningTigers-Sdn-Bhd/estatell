@@ -39,7 +39,6 @@ class ArrivalsReportController extends Controller
             'columns' => $columns,
             'from' => $filters->from,
             'to' => $filters->to,
-            'businessDate' => $request->businessDate(),
             'maxRangeDays' => $key->maxRangeDays(),
             'currency' => $property->settings?->currency,
         ]);

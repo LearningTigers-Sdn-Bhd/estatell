@@ -1,4 +1,4 @@
-import { Head, router } from '@inertiajs/react';
+import { Head, router, usePage } from '@inertiajs/react';
 import { CalendarCheck } from 'lucide-react';
 import { useCallback, useMemo } from 'react';
 import { DataTable, dataTableColumns } from '@/components/pms/data-table';
@@ -20,7 +20,6 @@ type Props = {
     columns: Column[];
     from: string;
     to: string;
-    businessDate: string;
     maxRangeDays: number | null;
     currency: App.Enums.Currency | null;
 };
@@ -33,7 +32,6 @@ export default function ArrivalsReport({
     columns,
     from,
     to,
-    businessDate,
     maxRangeDays,
     currency,
 }: Props) {
@@ -101,9 +99,11 @@ export default function ArrivalsReport({
         [visible],
     );
 
+    const { businessDate } = usePage().props;
+    const businessDay = businessDate?.date;
     const presets = useMemo(
-        () => reportDatePresets(businessDate),
-        [businessDate],
+        () => (businessDay ? reportDatePresets(businessDay) : []),
+        [businessDay],
     );
 
     const visit = useCallback(
