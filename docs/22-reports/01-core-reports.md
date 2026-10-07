@@ -6,19 +6,24 @@ The reports a small property needs daily and monthly, with a shared frame: a dat
 
 ## Reports
 
-| Report                        | `ReportKey`   | Source                             | Dates    | Default orientation | Longest range |
-| ----------------------------- | ------------- | ---------------------------------- | -------- | ------------------- | ------------- |
-| Arrivals                      | `Arrivals`    | `reservation_units`                | Range    | Portrait            | 31 days       |
-| Departures                    | `Departures`  | `reservation_units`                | Range    | Portrait            | 31 days       |
-| In-house                      | `InHouse`     | `reservation_units`, `unit_nights` | One date | Portrait            | –             |
-| Occupancy, ADR, RevPAR        | `Occupancy`   | `daily_statistics`                 | Range    | Portrait            | 366 days      |
-| Revenue by transaction code   | `Revenue`     | `DailyRevenueQuery` (live)         | Range    | Portrait            | 366 days      |
-| Payments by method            | `Payments`    | `payments`                         | Range    | Portrait            | 366 days      |
-| Folio ledger                  | `FolioLedger` | `folio_lines`                      | Range    | Landscape           | 31 days       |
-| Tax report (SST, tourism tax) | `Tax`         | `folio_lines` of kind Tax          | Range    | Landscape           | 366 days      |
-| Kitchen meal counts           | `MealCounts`  | `MealEntitlementResolver`          | Range    | Portrait            | 31 days       |
+| Report                        | `ReportKey`          | Source                                        | Dates    | Default orientation | Longest range |
+| ----------------------------- | -------------------- | --------------------------------------------- | -------- | ------------------- | ------------- |
+| Arrivals                      | `Arrivals`           | `reservation_units`                           | Range    | Portrait            | 31 days       |
+| Departures                    | `Departures`         | `reservation_units`                           | Range    | Portrait            | 31 days       |
+| In-house                      | `InHouse`            | `reservation_units`, `unit_nights`            | One date | Portrait            | –             |
+| Occupancy, ADR, RevPAR        | `Occupancy`          | `daily_statistics`                            | Range    | Portrait            | 366 days      |
+| Revenue by transaction code   | `Revenue`            | `DailyRevenueQuery` (live)                    | Range    | Portrait            | 366 days      |
+| Payments by method            | `Payments`           | `payments`                                    | Range    | Portrait            | 366 days      |
+| Folio ledger                  | `FolioLedger`        | `folio_lines`                                 | Range    | Landscape           | 31 days       |
+| Tax report (SST, tourism tax) | `Tax`                | `folio_lines` of kind Tax                     | Range    | Landscape           | 366 days      |
+| Kitchen meal counts           | `MealCounts`         | `MealEntitlementResolver`                     | Range    | Portrait            | 31 days       |
+| Outstanding balance           | `OutstandingBalance` | folio balances (`FolioBalance`)               | One date | Portrait            | –             |
+| Deposit liability             | `DepositLiability`   | payments on stays not yet arrived             | One date | Portrait            | –             |
+| Non-national guests           | `NonNationalGuests`  | in-house foreign guests and their tourism tax | Range    | Landscape           | 31 days       |
+| Police report                 | `PoliceReport`       | foreign guests who arrived                    | Range    | Landscape           | 31 days       |
 
 - Revenue by transaction code is live for every date, open or closed, from `DailyRevenueQuery` (`app/Services/Reports/`), with grouping by day or month and drill-down to the lines. The night audit copies one closed date of the same query into `daily_revenue`.
+- The last four reports come from wastays (step 7 of the build order). Payments also gets a **Received by** grouping with a cash-up total per staff member, and a **Refunds only** filter, in place of the wastays cashier activity and refund reports. Extra charges are covered by Revenue by transaction code.
 - Occupancy, ADR and RevPAR read the `daily_statistics` snapshot for closed dates and `StatisticsCalculator` for the open date.
 - City ledger aging and statements are already built on the Finance side (`AgingReport`, `StatementBuilder`). They stay there and are not in the registry. Their PDFs get the letterhead from [Printing settings](../02-property/05-printing-settings.md).
 - The **night audit packet** is one fixed PDF per closed date, built from the snapshot tables. It is not in the registry and has no layout or row selection. It uses the printing settings, in Portrait. It opens from the Night audit history report.
@@ -50,11 +55,42 @@ Arrivals lists the reservation units that arrive in the range. The row `key` is 
 
 - Units that hold inventory count (Confirmed, Checked in, Checked out). Cancelled and no-show units are left out, because nobody arrives. **Guest** and **Phone** are the primary guest of the unit, or the booker when the unit has none. **Room type / room** shows the room or bed of the first night when one is assigned. **Balance** is the balance of the reservation (its folios that are not Voided), from `FolioBalance::forReservations()`.
 
+## Other report columns
+
+Each report has a stable column list like Arrivals. Proposed in the overview and settled in each build step:
+
+| Report       | Row is                        | Columns                                                                                                                                                                                    |
+| ------------ | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Departures   | a unit departing in the range | as Arrivals, with Departure in place of Arrival                                                                                                                                            |
+| In-house     | a unit staying on the date    | Reservation, Guest, Room, Arrival, Departure, Guests, Company, Balance                                                                                                                     |
+| Occupancy    | a date                        | Date, Rooms available, Rooms sold, Occupancy %, ADR, RevPAR, Room revenue, Arrivals, Departures, No-shows, In-house guests. The open date is marked **Live**; dates after it are left out. |
+| Revenue      | a date (or month) and a code  | Date, Code, Description, Lines, Amount                                                                                                                                                     |
+| Payments     | a payment                     | Date, Receipt no., Reservation or company, Method, Status, Staff, Amount                                                                                                                   |
+| Folio ledger | a folio line                  | Posting date, Folio, Reservation, Guest, Code, Description, Kind, Staff, Amount                                                                                                            |
+| Tax          | a date and a tax              | Date, Tax, Lines, Tax amount. A Base column is added only if tax lines store their base (to verify in step 5c).                                                                            |
+| Meal counts  | a date and a meal period      | Date, Meal, Adults, Children, Total                                                                                                                                                        |
+
+### Categories
+
+`ReportCategory` groups the Reports sidebar: **Front desk** (Arrivals, Departures, In-house, Police report), **Revenue** (Occupancy, Revenue, Tax, Non-national guests), **Finance** (Payments, Folio ledger, Outstanding balance, Deposit liability) and **Kitchen** (Meal counts).
+
+### Totals
+
+A report may implement an optional `totals()` that returns one row of sums for its money and count columns. The table shows it in the footer, and the PDF and the spreadsheet add it as the last row. Payments also shows a total per method under the table.
+
+### Report filters
+
+Some reports take one extra filter in the URL, validated by `ReportFilters` for that report only and kept in exports:
+
+- Revenue: `group` (`day` or `month`), a toggle in the toolbar.
+- Folio ledger: `code` (a transaction code). **Revenue drill-down**: clicking a Revenue row opens the Folio ledger for that date (or month) and code.
+- Payments: `group=staff` (Received by) and `refunds=1` (step 7).
+
 ## Date range and quick dates
 
 - `DateRangePicker` gets a `presets` prop. The presets show in a **Quick dates** Select before the date trigger, with **Custom dates** when the range matches no preset (choosing it opens the calendar). The Select and the trigger sit in a toolbar row under the page header, not in the header. Reports pass: Today, Yesterday, This week, Last week, This month, Last month, This year, Last 30 days.
 - **Presets count from the business date, not the clock.** At 01:00 before the audit, Today is still the open business date. The page gets `businessDate` from the server, and the browser works out the presets from it. Weeks start on Monday, in the presets and in the calendar. A preset longer than `maxDays` (This year on Arrivals) is left out of the list.
-- A one-date report (In-house) uses `DatePicker` with Today and Yesterday.
+- A one-date report (In-house, Outstanding balance, Deposit liability) uses `DatePicker` with a `presets` prop: Today and Yesterday.
 - `from` and `to` are in the URL query (`?from=2026-10-01&to=2026-10-07`), so a report can be bookmarked and shared. With no dates, the report opens on Today.
 - `ReportFilters` (a Form Request plus a data object) checks that `from` is not after `to` and that the range is not longer than `maxRangeDays()`.
 
@@ -153,7 +189,7 @@ Arrivals     [ This week ▾ ]   [⚙ Layout]   [ Export ▾ ]  PDF · CSV · Ex
 
 ## Build order
 
-Item 20 of the [checklist](../checklist.md), in eight commits, in this order:
+Item 20 of the [checklist](../checklist.md), in this order:
 
 | Step | Commit                                                           | Content                                                                                                                          |
 | ---- | ---------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
@@ -163,8 +199,14 @@ Item 20 of the [checklist](../checklist.md), in eight commits, in this order:
 | 2    | `feat(reports): add the report registry and the arrivals report` | `ReportKey`, `ReportColumn`, `PageOrientation`, `Report`, `ReportFilters`, date presets, `reports.view`, the Arrivals page       |
 | 3    | `feat(reports): add report layouts`                              | Layout tables, `ReportLayoutResolver`, the Layout Sheet, Preview PDF                                                             |
 | 4    | `feat(reports): export selected rows as PDF, CSV or Excel`       | Row selection, the PDF and spreadsheet routes                                                                                    |
-| 5    | `feat(reports): add the remaining core reports`                  | Every other report in the table above, including live revenue with drill-down                                                    |
+| 5a   | `feat(reports): add departures and in-house`                     | Departures, In-house, `ReportCategory` groups in the sidebar, `DatePicker` presets, a shared `ReportScreen` page component       |
+| 5b   | `feat(reports): add occupancy and revenue`                       | Occupancy, Revenue with the day or month toggle, `totals()`                                                                      |
+| 5c   | `feat(reports): add payments, folio ledger and tax`              | Payments, Folio ledger with the `code` filter and the Revenue drill-down, Tax                                                    |
+| 5d   | `feat(reports): add kitchen meal counts`                         | Meal counts                                                                                                                      |
 | 6    | `feat(reports): add the night audit packet PDF`                  | The packet from the snapshot tables                                                                                              |
+| 7a   | `feat(reports): add cashier activity and refunds`                | Received by grouping, cash-up total and the refunds filter on Payments                                                           |
+| 7b   | `feat(reports): add outstanding balance and deposit liability`   | Two one-date reports                                                                                                             |
+| 7c   | `feat(reports): add non-national guests and the police report`   | Two reports from guest nationality and the tourism tax lines                                                                     |
 
 ## Lessons from wastays
 

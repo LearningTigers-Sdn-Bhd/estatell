@@ -141,7 +141,7 @@ The staff app has four contexts, chosen with links in the sidebar footer; the ot
 | -------------- | ------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
 | **Front desk** | `dashboard`, `front-desk.*`, `reservations.*`, `guests.*`, `housekeeping.*`, `rates.*`, `night-audit.*` | Dashboard, Stay View, Reservations, Guests, Housekeeping, Rate calendar, Night audit                        |
 | **Finance**    | `finance.*`                                                                                             | Folios, Payments, City ledger (Companies, Invoices, Payments received, Statements, Aging)                   |
-| **Reports**    | `reports.*`                                                                                             | Daily summary, Revenue, Payments by method, Tax, Kitchen meals, Night audit history, Activity log           |
+| **Reports**    | `reports.*`                                                                                             | Front desk, Revenue, Finance and Kitchen reports (see Core reports), Night audit history, Activity log      |
 | **Settings**   | `settings.*`, `channels.*`                                                                              | Property, Rooms, Rates, Billing setup, Guests, Team, Notifications, Channels (feature flag), Support access |
 
 - The active context is derived from the current route name.
