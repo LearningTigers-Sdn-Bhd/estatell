@@ -31,11 +31,12 @@ class ReportPdf
             'title' => $report->label(),
             'dates' => $this->dates($filters),
             'group' => $filters->group?->label(),
+            'groupCaption' => $filters->group?->caption(),
             'currency' => $property->loadMissing('settings')->settings?->currency->value ?? '',
             'columns' => $layout->visibleColumns(),
             'rows' => $rows,
             'totals' => $report->totals($rows),
-            'breakdown' => $report->breakdown($rows),
+            'breakdown' => $report->breakdown($rows, $filters),
             'selectedOnly' => $rowKeys !== null,
         ], $layout->orientation->value);
     }

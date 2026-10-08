@@ -14,6 +14,8 @@ import { PageHeader } from '@/components/pms/page-header';
 import { ReportExportMenu } from '@/components/pms/reports/report-export-menu';
 import { ReportLayoutSheet } from '@/components/pms/reports/report-layout-sheet';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 import {
     Table,
     TableBody,
@@ -72,6 +74,10 @@ type Props<TRow extends { key: number | string }> = {
     /** The transaction code of a report that filters by one (`''` or null for every code), with its options. */
     code?: string | null;
     codeOptions?: EnumOption[];
+    /** The staff filter of Payments (the user id as text, `''` or null for all staff), with its options, and Refunds only. */
+    staff?: string | null;
+    staffOptions?: EnumOption[];
+    refundsOnly?: boolean;
     /** A small summary table under the main table (Payments: the total for each method). */
     breakdown?: App.Data.Reports.ReportBreakdown | null;
     /** The quick dates of a range report, from `ReportKey::datePresets()`. Without it the standard list shows. */
@@ -108,6 +114,9 @@ export function ReportScreen<TRow extends { key: number | string }>({
     groupOptions = [],
     code = null,
     codeOptions = [],
+    staff = null,
+    staffOptions = [],
+    refundsOnly,
     breakdown = null,
     presets,
 }: Props<TRow>) {
@@ -123,8 +132,10 @@ export function ReportScreen<TRow extends { key: number | string }>({
             ...(isOneDate ? { date: from } : { from, to }),
             ...(group ? { group } : {}),
             ...(code ? { code } : {}),
+            ...(staff ? { staff } : {}),
+            ...(refundsOnly ? { refunds: '1' } : {}),
         }),
-        [isOneDate, from, to, group, code],
+        [isOneDate, from, to, group, code, staff, refundsOnly],
     );
 
     const visible = useMemo(
@@ -229,6 +240,8 @@ export function ReportScreen<TRow extends { key: number | string }>({
             sort?: string;
             group?: App.Enums.ReportGroup;
             code?: string;
+            staff?: string;
+            refundsOnly?: boolean;
         }) => {
             const next = {
                 from,
@@ -236,6 +249,8 @@ export function ReportScreen<TRow extends { key: number | string }>({
                 sort,
                 group,
                 code: code ?? '',
+                staff: staff ?? '',
+                refundsOnly: refundsOnly ?? false,
                 ...changes,
             };
 
@@ -243,7 +258,9 @@ export function ReportScreen<TRow extends { key: number | string }>({
                 next.from !== from ||
                 next.to !== to ||
                 next.group !== group ||
-                next.code !== (code ?? '')
+                next.code !== (code ?? '') ||
+                next.staff !== (staff ?? '') ||
+                next.refundsOnly !== (refundsOnly ?? false)
             ) {
                 setSelected(new Set());
             }
@@ -256,12 +273,14 @@ export function ReportScreen<TRow extends { key: number | string }>({
                         : { from: next.from, to: next.to }),
                     ...(next.group ? { group: next.group } : {}),
                     ...(next.code ? { code: next.code } : {}),
+                    ...(next.staff ? { staff: next.staff } : {}),
+                    ...(next.refundsOnly ? { refunds: '1' } : {}),
                     ...(next.sort ? { sort: next.sort } : {}),
                 },
                 { preserveState: true, preserveScroll: true, replace: true },
             );
         },
-        [url, isOneDate, from, to, sort, group, code],
+        [url, isOneDate, from, to, sort, group, code, staff, refundsOnly],
     );
 
     const changeSelection = (next: Set<string>) => {
@@ -345,6 +364,27 @@ export function ReportScreen<TRow extends { key: number | string }>({
                             className="w-auto"
                         />
                     )}
+                    {(staffOptions.length > 0 || staff) && (
+                        <EnumSelect
+                            options={staffOptions}
+                            allLabel="All staff"
+                            value={staff ?? ''}
+                            onValueChange={(next) => visit({ staff: next })}
+                            aria-label="Staff"
+                            className="w-auto"
+                        />
+                    )}
+                    {refundsOnly !== undefined ? (
+                        <Label className="flex items-center gap-2 text-sm font-normal">
+                            <Checkbox
+                                checked={refundsOnly}
+                                onCheckedChange={(checked) =>
+                                    visit({ refundsOnly: checked })
+                                }
+                            />
+                            Refunds only
+                        </Label>
+                    ) : null}
                     <div className="ml-auto flex items-center gap-2">
                         {canEditLayout && (
                             <Button
@@ -397,7 +437,7 @@ export function ReportScreen<TRow extends { key: number | string }>({
                         <h2 className="text-sm font-medium">
                             {breakdown.title}
                         </h2>
-                        <div className="max-w-md overflow-hidden rounded-lg border">
+                        <div className="max-w-2xl overflow-hidden rounded-lg border">
                             <Table>
                                 <TableHeader>
                                     <TableRow>
@@ -418,8 +458,17 @@ export function ReportScreen<TRow extends { key: number | string }>({
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {breakdown.rows.map((line) => (
-                                        <TableRow key={line[0]}>
+                                    {breakdown.rows.map((line, lineIndex) => (
+                                        <TableRow
+                                            key={lineIndex}
+                                            className={
+                                                breakdown.subtotalRows.includes(
+                                                    lineIndex,
+                                                )
+                                                    ? 'bg-muted/50 font-medium'
+                                                    : undefined
+                                            }
+                                        >
                                             {line.map((cell, index) => (
                                                 <TableCell
                                                     key={index}

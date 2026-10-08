@@ -5,6 +5,7 @@
      * @var string $title
      * @var string $dates
      * @var string|null $group
+     * @var string|null $groupCaption
      * @var string $currency
      * @var list<\App\Data\Reports\ReportLayoutColumnData> $columns
      * @var list<\App\Data\Reports\ReportRow> $rows
@@ -27,8 +28,8 @@
     @component('pdf.partials.letterhead', ['print' => $print])
         <div class="title">{{ $title }}</div>
         <div class="small muted">{{ $dates }}</div>
-        @if ($group !== null)
-            <div class="small muted">{{ __('By :group', ['group' => mb_strtolower($group)]) }}</div>
+        @if ($groupCaption !== null)
+            <div class="small muted">{{ $groupCaption }}</div>
         @endif
         @if ($currency !== '')
             <div class="small muted">{{ $currency }}</div>
@@ -83,10 +84,13 @@
                 </tr>
             </thead>
             <tbody>
-                @foreach ($breakdown->rows as $line)
+                @foreach ($breakdown->rows as $lineIndex => $line)
+                    @php $isSubtotal = in_array($lineIndex, $breakdown->subtotalRows, true); @endphp
                     <tr class="rule">
                         @foreach ($line as $index => $cell)
-                            <td @class(['num' => $index > 0])>{{ $cell }}</td>
+                            <td @class(['num' => $index > 0, 'muted' => $isSubtotal])>
+                                @if ($isSubtotal)<strong>{{ $cell }}</strong>@else{{ $cell }}@endif
+                            </td>
                         @endforeach
                     </tr>
                 @endforeach

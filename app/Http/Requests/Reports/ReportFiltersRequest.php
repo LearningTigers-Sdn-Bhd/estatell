@@ -22,6 +22,8 @@ use Illuminate\Validation\Rule;
  * back to the first. Other reports ignore `group`.
  * A report that filters by transaction code (`ReportKey::hasCodeFilter()`) also takes `code`, which must be a code of
  * the property. Other reports ignore `code`.
+ * A report with payment filters (`ReportKey::hasPaymentFilters()`) also takes `staff`, which must be a user of the
+ * property, and `refunds` (1 for refunds only). Other reports ignore them.
  * The report is the `{report}` route parameter, or the slug after `reports.` in the route name.
  */
 class ReportFiltersRequest extends FormRequest
@@ -46,6 +48,10 @@ class ReportFiltersRequest extends FormRequest
                 ? ['date' => ['nullable', 'date_format:Y-m-d']]
                 : ['from' => ['nullable', 'date_format:Y-m-d'], 'to' => ['nullable', 'date_format:Y-m-d']]),
             ...($this->reportKey()->hasCodeFilter() ? ['code' => ['nullable', 'string', Rule::exists('transaction_codes', 'code')->where('property_id', $this->property()->id)]] : []),
+            ...($this->reportKey()->hasPaymentFilters() ? [
+                'staff' => ['nullable', 'integer', Rule::exists('users', 'id')->where('property_id', $this->property()->id)],
+                'refunds' => ['nullable', 'boolean'],
+            ] : []),
             ...($groups === [] ? [] : ['group' => ['nullable', Rule::in(array_map(fn (ReportGroup $group): string => $group->value, $groups))]]),
         ];
     }
@@ -104,7 +110,7 @@ class ReportFiltersRequest extends FormRequest
             $date = $this->input('date');
             $date = is_string($date) && $date !== '' ? $date : $this->businessDate();
 
-            return new ReportFilters(from: $date, to: $date, group: $this->group(), code: $this->code());
+            return new ReportFilters(from: $date, to: $date, group: $this->group(), code: $this->code(), staff: $this->staff(), refundsOnly: $this->refundsOnly());
         }
 
         $from = $this->input('from');
@@ -114,7 +120,7 @@ class ReportFiltersRequest extends FormRequest
         $default = $this->businessDate();
         $defaultFrom = Date::parse($default)->subDays($this->reportKey()->defaultDays() - 1)->toDateString();
 
-        return new ReportFilters(from: $from ?? $to ?? $defaultFrom, to: $to ?? $from ?? $default, group: $this->group(), code: $this->code());
+        return new ReportFilters(from: $from ?? $to ?? $defaultFrom, to: $to ?? $from ?? $default, group: $this->group(), code: $this->code(), staff: $this->staff(), refundsOnly: $this->refundsOnly());
     }
 
     /**
@@ -125,6 +131,19 @@ class ReportFiltersRequest extends FormRequest
         $code = $this->string('code')->toString();
 
         return $this->reportKey()->hasCodeFilter() && $code !== '' ? $code : null;
+    }
+
+    /**
+     * The user id of the staff filter of Payments: the `staff` in the URL, or null for all staff.
+     */
+    private function staff(): ?int
+    {
+        return $this->reportKey()->hasPaymentFilters() && $this->filled('staff') ? $this->integer('staff') : null;
+    }
+
+    private function refundsOnly(): bool
+    {
+        return $this->reportKey()->hasPaymentFilters() && $this->boolean('refunds');
     }
 
     /**

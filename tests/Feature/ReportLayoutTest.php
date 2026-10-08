@@ -294,6 +294,7 @@ test('the report view prints only the visible columns in layout order', function
         'title' => 'Arrivals',
         'dates' => '10 Oct 2026',
         'group' => null,
+        'groupCaption' => null,
         'currency' => 'MYR',
         'columns' => $layout->visibleColumns(),
         'rows' => $rows,

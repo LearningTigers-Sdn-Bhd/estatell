@@ -1199,12 +1199,15 @@ status: App.Data.Shared.BadgeData,
 staff: string,
 amount: string,
 reference: string | null,
+refund_of: string | null,
+staff_id: number,
 };
 export type ReportBreakdown = {
 title: string,
 headings: string[],
 rows: string[][],
 total: string[],
+subtotalRows: number[],
 };
 export type ReportColumn = {
 key: string,
@@ -1217,6 +1220,8 @@ from: string,
 to: string,
 group: App.Enums.ReportGroup | null,
 code: string | null,
+staff: number | null,
+refundsOnly: boolean,
 };
 export type ReportLayoutColumnData = {
 key: string,
@@ -1833,7 +1838,7 @@ export type RegistrationCardScope = 'primary_only' | 'every_adult';
 export type RegistrationCardStatus = 'draft' | 'signed' | 'void';
 export type ReportCategory = 'front-desk' | 'revenue' | 'finance' | 'kitchen' | 'audit';
 export type ReportDatePreset = 'today' | 'yesterday' | 'tomorrow' | 'next-7-days' | 'this-week' | 'last-week' | 'next-week' | 'this-month' | 'last-month' | 'this-year' | 'last-30-days';
-export type ReportGroup = 'day' | 'month';
+export type ReportGroup = 'day' | 'month' | 'method' | 'staff';
 export type ReportKey = 'arrivals' | 'departures' | 'in-house' | 'occupancy' | 'revenue' | 'payments' | 'folio-ledger' | 'tax' | 'meal-counts' | 'night-audit-history';
 export type ReservationRoomBoxState = 'assigned' | 'unassigned' | 'auto_assign' | 'cancelled' | 'no_show';
 export type ReservationSource = 'direct' | 'walk_in' | 'phone' | 'channel' | 'portal';

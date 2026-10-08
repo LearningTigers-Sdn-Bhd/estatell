@@ -24,6 +24,11 @@ type Props = {
     from: string;
     to: string;
     maxRangeDays: number | null;
+    group: App.Enums.ReportGroup;
+    groupOptions: EnumOption[];
+    staff: string;
+    staffOptions: EnumOption[];
+    refundsOnly: boolean;
     currency: App.Enums.Currency | null;
 };
 
@@ -48,7 +53,7 @@ export default function PaymentsReport(props: Props) {
             {...props}
             report="payments"
             title="Payments"
-            description="Payments and refunds by business date, with city ledger payments. Only completed payments count in the totals; refunds are negative."
+            description="Payments and refunds by business date, with city ledger payments. Only completed payments count in the totals; refunds are negative. Group by method or by staff for a cash-up."
             emptyIcon={CreditCard}
             emptyTitle="No payments in these dates"
             emptyDescription="Pick another range to see payments."

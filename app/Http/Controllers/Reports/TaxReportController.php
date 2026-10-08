@@ -48,7 +48,7 @@ class TaxReportController extends Controller
             'to' => $filters->to,
             'maxRangeDays' => $key->maxRangeDays(),
             'group' => $filters->group,
-            'groupOptions' => ReportGroup::options(),
+            'groupOptions' => ReportGroup::options($key->groups()),
             'currency' => $property->settings?->currency,
         ]);
     }

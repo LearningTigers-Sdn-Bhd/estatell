@@ -4,6 +4,7 @@ namespace App\Enums;
 
 use App\Data\Reports\ReportBreakdown;
 use App\Data\Reports\ReportColumn;
+use App\Data\Reports\ReportFilters;
 use App\Data\Reports\ReportRow;
 use App\Data\Reports\ReportTotals;
 use App\Services\Reports\ArrivalsReport;
@@ -76,15 +77,16 @@ enum ReportKey: string
      * The sort the page and the exports use when none is given or the sort column is hidden: a column key, with a
      * leading `-` for descending.
      */
-    public function defaultSort(): string
+    public function defaultSort(?ReportGroup $group = null): string
     {
         return match ($this) {
+            self::Payments => $group === ReportGroup::Staff ? 'staff' : 'date',
             self::Arrivals => 'arrival',
             self::Departures => 'departure',
             self::InHouse => 'room',
             self::Occupancy => 'date',
             self::Revenue, self::Tax => 'period',
-            self::Payments, self::FolioLedger, self::MealCounts => 'date',
+            self::FolioLedger, self::MealCounts => 'date',
             self::NightAuditHistory => '-date',
         };
     }
@@ -110,6 +112,7 @@ enum ReportKey: string
     {
         return match ($this) {
             self::Revenue, self::Tax => [ReportGroup::Day, ReportGroup::Month],
+            self::Payments => [ReportGroup::Method, ReportGroup::Staff],
             default => [],
         };
     }
@@ -147,6 +150,14 @@ enum ReportKey: string
     public function hasCodeFilter(): bool
     {
         return $this === self::FolioLedger;
+    }
+
+    /**
+     * Whether the report takes `?staff` (a user of the property) and `?refunds` (refunds only). Other reports ignore them.
+     */
+    public function hasPaymentFilters(): bool
+    {
+        return $this === self::Payments;
     }
 
     /**
@@ -220,6 +231,7 @@ enum ReportKey: string
                 new ReportColumn('staff', __('Staff'), ColumnAlign::Left, true),
                 new ReportColumn('amount', __('Amount'), ColumnAlign::Right, true),
                 new ReportColumn('reference', __('Reference'), ColumnAlign::Left, false),
+                new ReportColumn('refund_of', __('Original receipt'), ColumnAlign::Left, false),
             ],
             self::FolioLedger => [
                 new ReportColumn('date', __('Posting date'), ColumnAlign::Left, true),
@@ -314,10 +326,10 @@ enum ReportKey: string
      *
      * @param  list<ReportRow>  $rows
      */
-    public function breakdown(array $rows): ?ReportBreakdown
+    public function breakdown(array $rows, ReportFilters $filters): ?ReportBreakdown
     {
         $report = $this->report();
 
-        return $report instanceof HasBreakdown ? $report->breakdown($rows) : null;
+        return $report instanceof HasBreakdown ? $report->breakdown($rows, $filters) : null;
     }
 }

@@ -13,7 +13,8 @@ use Spatie\LaravelData\Data;
 /**
  * One row of the Payments report: a folio payment or refund, or a city ledger payment. The property names are the
  * column keys of `ReportKey::Payments`. `key` is `p:{id}` for a folio payment and `ar:{id}` for a city ledger payment.
- * `date` is the business date. A refund has a negative `amount`.
+ * `date` is the business date. A refund has a negative `amount` and `refund_of` is the receipt number of the payment it
+ * gives back. `staff_id` is the user who received it, for the totals of each staff member; it is not a column.
  */
 class PaymentRow extends Data implements ReportRow
 {
@@ -27,6 +28,8 @@ class PaymentRow extends Data implements ReportRow
         public string $staff,
         public string $amount,
         public ?string $reference,
+        public ?string $refund_of = null,
+        public int $staff_id = 0,
     ) {}
 
     /**
@@ -51,6 +54,7 @@ class PaymentRow extends Data implements ReportRow
             'staff' => $this->staff,
             'amount' => number_format((float) $this->amount, 2),
             'reference' => $this->reference ?? '',
+            'refund_of' => $this->refund_of ?? '',
         ];
     }
 
@@ -68,6 +72,7 @@ class PaymentRow extends Data implements ReportRow
             'staff' => $this->staff,
             'amount' => round((float) $this->amount, 2),
             'reference' => $this->reference ?? '',
+            'refund_of' => $this->refund_of ?? '',
         ];
     }
 
@@ -86,6 +91,8 @@ class PaymentRow extends Data implements ReportRow
             staff: $payment->receiver->name,
             amount: $payment->refund_of_id === null ? $payment->amount : (string) BigDecimal::of($payment->amount)->negated(),
             reference: $payment->reference,
+            refund_of: $payment->refundOf?->receipt_number,
+            staff_id: $payment->received_by,
         );
     }
 
@@ -101,6 +108,7 @@ class PaymentRow extends Data implements ReportRow
             staff: $payment->receiver->name,
             amount: $payment->amount,
             reference: $payment->reference,
+            staff_id: $payment->received_by,
         );
     }
 }
