@@ -15,10 +15,10 @@ use Illuminate\Support\Collection;
 class AuditSummary
 {
     /**
-     * @param  list<array{code: string, name: string, amount: Money}>  $revenue  Revenue by transaction code
-     * @param  list<array{name: string, amount: Money}>  $payments  Payments received, by method
+     * @param  list<array{code: string, name: string, amount: Money, lines: int}>  $revenue  Revenue by transaction code
+     * @param  list<array{name: string, count: int, amount: Money}>  $payments  Payments received, by method: folio payments and city ledger payments
      * @param  Collection<int, MealCount>  $meals  Meals to prepare on `$mealDate`
-     * @param  Collection<int, NightAuditException>  $exceptions  The exceptions of the audit that are still open
+     * @param  Collection<int, NightAuditException>  $exceptions  The exceptions of the audit: only the open ones for the message, all of them for the packet
      */
     public function __construct(
         public readonly CarbonImmutable $businessDate,

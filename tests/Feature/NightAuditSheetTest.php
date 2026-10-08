@@ -58,6 +58,14 @@ function sheetUnit(Property $property, array $attributes = []): ReservationUnit
     ]);
 }
 
+test('the sheet tells whether the user can open the packet', function () {
+    $setup = sheetSetup([PermissionEnum::NightAuditRun, PermissionEnum::ReportsView]);
+
+    $this->actingAs($setup['user'])->getJson(route('night-audit.show', $setup['property']->code))
+        ->assertOk()
+        ->assertJsonPath('canViewPacket', true);
+});
+
 test('the sheet lists the date, the blockers and the warnings as JSON', function () {
     $setup = sheetSetup();
     $property = $setup['property'];
@@ -71,6 +79,7 @@ test('the sheet lists the date, the blockers and the warnings as JSON', function
         ->assertJsonPath('status', 'open')
         ->assertJsonPath('dateEnded', true)
         ->assertJsonPath('canForce', false)
+        ->assertJsonPath('canViewPacket', false)
         ->assertJsonPath('summary', 'Fix 1 thing before you run the audit.')
         ->assertJsonCount(1, 'blockers')
         ->assertJsonPath('blockers.0.check', 'in_house_without_room')

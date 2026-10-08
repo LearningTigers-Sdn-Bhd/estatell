@@ -3,6 +3,7 @@
 namespace App\Services\NightAudit;
 
 use App\Enums\PaymentStatus;
+use App\Models\ArPayment;
 use App\Models\DailyRevenue;
 use App\Models\DailyStatistic;
 use App\Models\NightAudit;
@@ -13,15 +14,20 @@ use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 
 /**
- * Gathers the content of the night audit result messages from the snapshot tables, the payments of the date, the meals
- * of the date that opens and the open exceptions. It reads only and writes nothing.
+ * Gathers the content of the night audit result messages and of the night audit packet PDF from the snapshot tables, the
+ * payments of the date (folio payments and city ledger payments), the meals of the date that opens and the exceptions.
+ * It reads only and writes nothing.
  * See docs/20-night-audit/05-statistics.md.
  */
 class AuditResultSummary
 {
     public function __construct(private MealCounts $mealCounts) {}
 
-    public function forAudit(NightAudit $audit): AuditSummary
+    /**
+     * @param  bool  $allExceptions  True for the packet: every exception of the audit, open and resolved. The message
+     *                               keeps the default and lists only the open ones.
+     */
+    public function forAudit(NightAudit $audit, bool $allExceptions = false): AuditSummary
     {
         $audit->loadMissing('property.settings', 'businessDate');
         $property = $audit->property;
@@ -38,6 +44,7 @@ class AuditResultSummary
                 'code' => $row->transactionCode->code,
                 'name' => $row->transactionCode->name,
                 'amount' => Money::of($row->amount, $currency),
+                'lines' => $row->line_count,
             ])
             ->values()
             ->all();
@@ -45,8 +52,14 @@ class AuditResultSummary
         $ofDate = $this->paymentsOfDate($audit, $date);
         $payments = $ofDate
             ->whereNull('refund_of_id')
-            ->groupBy(fn (Payment $payment): string => $payment->paymentMethod->name)
-            ->map(fn ($group, string $name): array => ['name' => $name, 'amount' => Money::of((string) $group->sum('amount'), $currency)])
+            ->map(fn (Payment $payment): array => ['name' => $payment->paymentMethod->name, 'amount' => (string) $payment->amount])
+            ->concat($this->arPaymentsOfDate($audit, $date)->map(fn (ArPayment $payment): array => ['name' => $payment->paymentMethod->name, 'amount' => (string) $payment->amount]))
+            ->groupBy('name')
+            ->map(fn (Collection $group, string $name): array => [
+                'name' => $name,
+                'count' => $group->count(),
+                'amount' => $group->reduce(fn (Money $sum, array $payment): Money => $sum->plus($payment['amount']), Money::zero($currency)),
+            ])
             ->sortKeys()
             ->values()
             ->all();
@@ -63,7 +76,7 @@ class AuditResultSummary
             $payments,
             $refunds,
             $this->mealCounts->forDate($property, $mealDate),
-            $audit->exceptions()->open()->with('reservationUnit.reservation')->orderBy('id')->get(),
+            $audit->exceptions()->when(! $allExceptions, fn ($exceptions) => $exceptions->open())->with('reservationUnit.reservation')->orderBy('id')->get(),
         );
     }
 
@@ -79,6 +92,21 @@ class AuditResultSummary
             ->where('payments.property_id', $audit->property_id)
             ->where('payments.status', PaymentStatus::Completed->value)
             ->whereHas('folioLine', fn ($lines) => $lines->whereDate('posting_date', $date->toDateString()))
+            ->get();
+    }
+
+    /**
+     * The city ledger payments received on the business date that are not voided, the same rule as the Payments report.
+     *
+     * @return Collection<int, ArPayment>
+     */
+    private function arPaymentsOfDate(NightAudit $audit, CarbonImmutable $date): Collection
+    {
+        return ArPayment::query()
+            ->with('paymentMethod')
+            ->where('property_id', $audit->property_id)
+            ->whereDate('received_on', $date->toDateString())
+            ->whereNull('voided_at')
             ->get();
     }
 }

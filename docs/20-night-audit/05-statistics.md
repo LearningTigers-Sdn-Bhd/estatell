@@ -51,17 +51,17 @@ The recipients are the active staff of the property (not admins, not deactivated
 
 - The occupancy, ADR and RevPAR and the front desk counts, from `daily_statistics`.
 - Revenue by code, from `daily_revenue`.
-- Payments by method: the completed payments whose folio line was posted on the business date, plus one total for refunds.
+- Payments by method: the completed folio payments whose folio line was posted on the business date, and the city ledger payments (`ar_payments`) received on the business date that are not voided (the rule of the Payments report), added together by method name, plus one total for refunds. Each method also has a count, which the packet prints.
 - The meals to prepare, live from `MealCounts` (`app/Services/Meals/`, through `MealEntitlementResolver`), not stored in the snapshot. "Today" is the date that opens after the audit: the units that are Confirmed, CheckedIn or CheckedOut and have that date inside their stay (an early check-out has already moved the departure date), with their adults and children. The section is left out when no plan has a meal inclusion.
-- The open exceptions of the audit with the reason in plain words, and a link to the night audit sheet.
+- The open exceptions of the audit with the reason in plain words, and a link to the night audit sheet. `forAudit($audit, allExceptions: true)` returns every exception, open and resolved, for the packet. The message never uses it.
 
 A Failed message names the step and the error and says that the next run resumes at that step. In-app messages carry the title, the business date, the number of open exceptions and the link.
 
-The report packet PDF is not part of this item. It is rendered from the snapshot tables with the [core reports](../22-reports/01-core-reports.md).
+The night audit packet PDF is built with the core reports. It reads `AuditResultSummary` for a Completed audit of a Closed date and opens from the Night audit history report and from the Run Night Audit sheet. See [Core reports](../22-reports/01-core-reports.md#built-night-audit-history-and-packet).
 
 ## Build order
 
-Item 19 of the [checklist](../checklist.md) is two commits, both built: the snapshot with `DailyRevenueQuery`, then the notifications. The packet PDF and the live daily revenue report come with the core reports.
+Item 19 of the [checklist](../checklist.md) is two commits, both built: the snapshot with `DailyRevenueQuery`, then the notifications. The packet PDF and the live daily revenue report came with the core reports (both built).
 
 ## Lessons from wastays
 

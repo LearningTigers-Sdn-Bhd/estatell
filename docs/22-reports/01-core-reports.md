@@ -17,6 +17,7 @@ The reports a small property needs daily and monthly, with a shared frame: a dat
 | Folio ledger                  | `FolioLedger`        | `folio_lines`                                       | Range    | Landscape           | 31 days       |
 | Tax report (SST, tourism tax) | `Tax`                | `folio_lines` of kind Tax                           | Range    | Landscape           | 366 days      |
 | Kitchen meal counts           | `MealCounts`         | `MealCounts::between()` (`MealEntitlementResolver`) | Range    | Portrait            | 31 days       |
+| Night audit history           | `NightAuditHistory`  | `night_audits`, `daily_statistics`                  | Range    | Landscape           | 366 days      |
 | Outstanding balance           | `OutstandingBalance` | folio balances (`FolioBalance`)                     | One date | Portrait            | –             |
 | Deposit liability             | `DepositLiability`   | payments on stays not yet arrived                   | One date | Portrait            | –             |
 | Non-national guests           | `NonNationalGuests`  | in-house foreign guests and their tourism tax       | Range    | Landscape           | 31 days       |
@@ -26,7 +27,7 @@ The reports a small property needs daily and monthly, with a shared frame: a dat
 - The last four reports come from wastays (step 7 of the build order). Payments also gets a **Received by** grouping with a cash-up total per staff member, and a **Refunds only** filter, in place of the wastays cashier activity and refund reports. Extra charges are covered by Revenue by transaction code.
 - Occupancy, ADR and RevPAR read the `daily_statistics` snapshot for closed dates and `StatisticsCalculator` for the open date.
 - City ledger aging and statements are already built on the Finance side (`AgingReport`, `StatementBuilder`). They stay there and are not in the registry. Their PDFs get the letterhead from [Printing settings](../02-property/05-printing-settings.md).
-- The **night audit packet** is one fixed PDF per closed date, built from the snapshot tables. It is not in the registry and has no layout or row selection. It uses the printing settings, in Portrait. It opens from the Night audit history report.
+- The **night audit packet** is one fixed PDF per closed date, built from the snapshot tables. It is not in the registry and has no layout or row selection. It uses the printing settings, in Portrait. It opens from the Night audit history report and from the Run Night Audit sheet. See [Built: Night audit history and packet](#built-night-audit-history-and-packet).
 
 ## Registry
 
@@ -106,9 +107,21 @@ Each report has a stable column list like Arrivals. Proposed in the overview and
 - **Quick dates.** Today, Tomorrow, Next 7 days, This week and Next week (see below).
 - Children stay one count: there is no infant or age-group split.
 
+### Built: Night audit history and packet
+
+- **Night audit history** (`-date` is the default sort, newest first; 366 days; Landscape; category Audit; icon `moon`). Columns: `date`, `status` (a badge), `trigger` (Scheduled or Run by staff), `run_by`, `started`, `completed` (in the property time zone), `forced`, `exceptions` ("open / total"), `occupancy` (%), `revenue` (room revenue) and `packet`, all visible by default. One row for each night audit with a business date in the range; the row key is the business date (`2026-10-08`). It has no total row.
+- **Figures.** `occupancy` reads the `daily_statistics` snapshot and is empty when the audit has none. `revenue` is the room revenue of `DailyRevenueQuery::roomRevenueBetween()`, like the Occupancy report, and shows only for a Completed audit: the date of a Running or Failed audit is not closed yet.
+- **Forced.** The screen shows "Yes" with the force reason as a tooltip. The PDF and the spreadsheets print "Yes: {reason}". An audit that was not forced is empty.
+- **Packet column.** A Completed audit shows an "Open packet" link (a new tab) on the screen. There is no screen-only column mechanism, so the exports keep the column and leave it empty.
+- **Default range.** `ReportKey::defaultDays()` is the number of days a report opens on when the URL has no dates, counted back from the business date and including it. It is 1 (Today) for every report and 30 for Night audit history. `ReportFiltersRequest` uses it, so the page props send the dates and the quick dates list and `ReportScreen` need no special case. The standard quick dates include **Last 30 days**, so the picker shows the default.
+- **Packet** (`GET /p/{code}/reports/night-audit-history/{date}/packet`, `reports.night-audit-packet`, `reports.view`). `NightAuditPacketController` is thin; `NightAuditPacket` (`app/Services/Reports/`) finds the audit and renders `pdf/night-audit-packet.blade.php` through `PrintedPdf` (letterhead and footer, Portrait, inline). It is a 404 unless the property has a Completed audit for that `Y-m-d` date and the business date is Closed (a bad date, another property's date, a Failed audit and the open date are all 404). The content comes from `AuditResultSummary::forAudit($audit, allExceptions: true)`.
+- **Sections.** (1) The header: "Night audit — {date}", closed by, trigger, completed time and "Forced: {reason}" when forced. (2) Statistics: rooms and beds available and sold, occupancy, ADR, RevPAR, room revenue, arrivals, departures, no-shows and in-house guests. (3) Revenue by code (code, description, lines, amount, total). (4) Payments by method (method, count, amount), then refunds, then a total. City ledger payments are in the methods. (5) "Meals for {next date} (as at printing)": adults, children and total from the live `MealCounts`, so a later reprint can differ; there is no snapshot table. The section is left out when no plan has a meal inclusion. (6) Every exception of the audit, open and resolved, with type, reservation, message and status. (7) The audit steps with status, processed and failed counts.
+- **Morning message.** City ledger payments are now part of the payments by method of the morning message too, and the message still lists only open exceptions.
+- **Run Night Audit sheet.** The Completed state has an "Open packet" link to the packet (a new tab). The sheet data has `canViewPacket` (`reports.view`), because the sheet needs only `night-audit.run`. The emails do not link to the packet.
+
 ### Categories
 
-`ReportCategory` groups the Reports sidebar: **Front desk** (Arrivals, Departures, In-house, Police report), **Revenue** (Occupancy, Revenue, Tax, Non-national guests), **Finance** (Payments, Folio ledger, Outstanding balance, Deposit liability) and **Kitchen** (Meal counts).
+`ReportCategory` groups the Reports sidebar: **Front desk** (Arrivals, Departures, In-house, Police report), **Revenue** (Occupancy, Revenue, Tax, Non-national guests), **Finance** (Payments, Folio ledger, Outstanding balance, Deposit liability) and **Kitchen** (Meal counts) and **Audit** (Night audit history; the Activity log joins it in a later item). Audit is the last group in the sidebar.
 
 ### Totals
 
@@ -127,8 +140,9 @@ Some reports take one extra filter in the URL, validated by `ReportFilters` for 
 - `DateRangePicker` gets a `presets` prop. The presets show in a **Quick dates** Select before the date trigger, with **Custom dates** when the range matches no preset (choosing it opens the calendar). The Select and the trigger sit in a toolbar row under the page header, not in the header. Reports pass: Today, Yesterday, This week, Last week, This month, Last month, This year, Last 30 days.
 - **Presets count from the business date, not the clock.** At 01:00 before the audit, Today is still the open business date. The page gets `businessDate` from the server, and the browser works out the presets from it. Weeks start on Monday, in the presets and in the calendar. A preset longer than `maxDays` (This year on Arrivals) is left out of the list.
 - **Quick dates for each report.** `ReportKey::datePresets()` returns a list of `ReportDatePreset` values, or null for the standard list above. The page controller sends it as the `presets` prop, `ReportScreen` passes it to `reportDatePresets(businessDate, presets)` (`resources/js/lib/date-presets.ts`), and a report that sends none keeps the standard list. Meal counts sends Today, Tomorrow, Next 7 days, This week and Next week, all counted from the business date. The longer-than-`maxDays` rule applies to every list.
+- **Default range.** A report opens on Today unless `ReportKey::defaultDays()` says otherwise (Night audit history opens on the last 30 days). See [Built: Night audit history and packet](#built-night-audit-history-and-packet).
 - A one-date report (In-house, Outstanding balance, Deposit liability) uses `DatePicker` with a `presets` prop: Today and Yesterday.
-- `from` and `to` are in the URL query (`?from=2026-10-01&to=2026-10-07`), so a report can be bookmarked and shared. With no dates, the report opens on Today.
+- `from` and `to` are in the URL query (`?from=2026-10-01&to=2026-10-07`), so a report can be bookmarked and shared. With no dates, the report opens on Today, or on its default range.
 - `ReportFilters` (a Form Request plus a data object) checks that `from` is not after `to` and that the range is not longer than `maxRangeDays()`.
 
 ## Column layouts (per property)
@@ -208,14 +222,15 @@ Arrivals     [ This week ▾ ]   [⚙ Layout]   [ Export ▾ ]  PDF · CSV · Ex
 
 ## Routes
 
-| Route                                            | Name                              | Permission                        |
-| ------------------------------------------------ | --------------------------------- | --------------------------------- |
-| `GET /p/{code}/reports/{slug}`                   | `reports.{slug}` (one per report) | `reports.view`                    |
-| `PUT /p/{code}/reports/{report}/layout`          | `reports.layout.update`           | `reports.view`, `settings.manage` |
-| `DELETE /p/{code}/reports/{report}/layout`       | `reports.layout.destroy`          | `reports.view`, `settings.manage` |
-| `POST /p/{code}/reports/{report}/layout/preview` | `reports.layout.preview`          | `reports.view`, `settings.manage` |
-| `POST /p/{code}/reports/{report}/pdf`            | `reports.pdf`                     | `reports.view`                    |
-| `POST /p/{code}/reports/{report}/spreadsheet`    | `reports.spreadsheet`             | `reports.view`                    |
+| Route                                                     | Name                              | Permission                        |
+| --------------------------------------------------------- | --------------------------------- | --------------------------------- |
+| `GET /p/{code}/reports/{slug}`                            | `reports.{slug}` (one per report) | `reports.view`                    |
+| `PUT /p/{code}/reports/{report}/layout`                   | `reports.layout.update`           | `reports.view`, `settings.manage` |
+| `DELETE /p/{code}/reports/{report}/layout`                | `reports.layout.destroy`          | `reports.view`, `settings.manage` |
+| `POST /p/{code}/reports/{report}/layout/preview`          | `reports.layout.preview`          | `reports.view`, `settings.manage` |
+| `POST /p/{code}/reports/{report}/pdf`                     | `reports.pdf`                     | `reports.view`                    |
+| `POST /p/{code}/reports/{report}/spreadsheet`             | `reports.spreadsheet`             | `reports.view`                    |
+| `GET /p/{code}/reports/night-audit-history/{date}/packet` | `reports.night-audit-packet`      | `reports.view`                    |
 
 ## Rules
 

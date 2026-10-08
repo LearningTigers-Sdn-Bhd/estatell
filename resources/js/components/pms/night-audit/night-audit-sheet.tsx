@@ -8,6 +8,7 @@ import {
     CircleCheck,
     CircleX,
     DoorOpen,
+    FileText,
     LogIn,
     LogOut,
     Receipt,
@@ -24,6 +25,7 @@ import { Field, FieldError, FieldLabel } from '@/components/ui/field';
 import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
 import { formatBusinessDay } from '@/lib/business-date';
+import { nightAuditPacket } from '@/routes/reports';
 import { run, show } from '@/routes/night-audit';
 
 type Sheet = App.Data.NightAudit.NightAuditSheetData;
@@ -628,6 +630,23 @@ export function NightAuditSheet({
                             Now trading on{' '}
                             {formatBusinessDay(sheet.date, 'short')}.
                         </p>
+                    )}
+                    {sheet.canViewPacket && sheet.audit && (
+                        <a
+                            href={nightAuditPacket.url({
+                                date: sheet.audit.date,
+                            })}
+                            target="_blank"
+                            rel="noreferrer"
+                            className={buttonVariants({
+                                size: 'sm',
+                                variant: 'outline',
+                                className: 'self-start',
+                            })}
+                        >
+                            <FileText data-icon="inline-start" />
+                            Open packet
+                        </a>
                     )}
                     {sheet.audit && sheet.audit.openExceptions > 0 && (
                         <p className="text-sm text-warning">

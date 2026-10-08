@@ -13,6 +13,7 @@ use App\Services\Reports\HasBreakdown;
 use App\Services\Reports\HasTotals;
 use App\Services\Reports\InHouseReport;
 use App\Services\Reports\MealCountsReport;
+use App\Services\Reports\NightAuditHistoryReport;
 use App\Services\Reports\OccupancyReport;
 use App\Services\Reports\PaymentsReport;
 use App\Services\Reports\Report;
@@ -34,6 +35,7 @@ enum ReportKey: string
     case FolioLedger = 'folio-ledger';
     case Tax = 'tax';
     case MealCounts = 'meal-counts';
+    case NightAuditHistory = 'night-audit-history';
 
     public function label(): string
     {
@@ -47,6 +49,7 @@ enum ReportKey: string
             self::FolioLedger => __('Folio ledger'),
             self::Tax => __('Tax'),
             self::MealCounts => __('Meal counts'),
+            self::NightAuditHistory => __('Night audit history'),
         };
     }
 
@@ -57,6 +60,7 @@ enum ReportKey: string
             self::Occupancy, self::Revenue, self::Tax => ReportCategory::Revenue,
             self::Payments, self::FolioLedger => ReportCategory::Finance,
             self::MealCounts => ReportCategory::Kitchen,
+            self::NightAuditHistory => ReportCategory::Audit,
         };
     }
 
@@ -64,7 +68,7 @@ enum ReportKey: string
     {
         return match ($this) {
             self::Arrivals, self::Departures, self::InHouse, self::Occupancy, self::Revenue, self::Payments, self::MealCounts => PageOrientation::Portrait,
-            self::FolioLedger, self::Tax => PageOrientation::Landscape,
+            self::FolioLedger, self::Tax, self::NightAuditHistory => PageOrientation::Landscape,
         };
     }
 
@@ -81,6 +85,7 @@ enum ReportKey: string
             self::Occupancy => 'date',
             self::Revenue, self::Tax => 'period',
             self::Payments, self::FolioLedger, self::MealCounts => 'date',
+            self::NightAuditHistory => '-date',
         };
     }
 
@@ -92,7 +97,7 @@ enum ReportKey: string
         return match ($this) {
             self::Arrivals, self::Departures, self::FolioLedger, self::MealCounts => 31,
             self::InHouse => null,
-            self::Occupancy, self::Revenue, self::Payments, self::Tax => 366,
+            self::Occupancy, self::Revenue, self::Payments, self::Tax, self::NightAuditHistory => 366,
         };
     }
 
@@ -121,6 +126,18 @@ enum ReportKey: string
         return match ($this) {
             self::MealCounts => [ReportDatePreset::Today, ReportDatePreset::Tomorrow, ReportDatePreset::Next7Days, ReportDatePreset::ThisWeek, ReportDatePreset::NextWeek],
             default => null,
+        };
+    }
+
+    /**
+     * The number of days a range report opens on when the URL has no dates, counted back from the business date and
+     * including it. 1 is Today. The page sends the resulting `from` and `to`, so the quick dates list needs no change.
+     */
+    public function defaultDays(): int
+    {
+        return match ($this) {
+            self::NightAuditHistory => 30,
+            default => 1,
         };
     }
 
@@ -229,6 +246,19 @@ enum ReportKey: string
                 new ReportColumn('children', __('Children'), ColumnAlign::Right, true),
                 new ReportColumn('total', __('Total'), ColumnAlign::Right, true),
             ],
+            self::NightAuditHistory => [
+                new ReportColumn('date', __('Date'), ColumnAlign::Left, true),
+                new ReportColumn('status', __('Status'), ColumnAlign::Left, true),
+                new ReportColumn('trigger', __('Trigger'), ColumnAlign::Left, true),
+                new ReportColumn('run_by', __('Run by'), ColumnAlign::Left, true),
+                new ReportColumn('started', __('Started'), ColumnAlign::Left, true),
+                new ReportColumn('completed', __('Completed'), ColumnAlign::Left, true),
+                new ReportColumn('forced', __('Forced'), ColumnAlign::Left, true),
+                new ReportColumn('exceptions', __('Exceptions (open / total)'), ColumnAlign::Right, true),
+                new ReportColumn('occupancy', __('Occupancy %'), ColumnAlign::Right, true),
+                new ReportColumn('revenue', __('Room revenue'), ColumnAlign::Right, true),
+                new ReportColumn('packet', __('Packet'), ColumnAlign::Left, true),
+            ],
         };
     }
 
@@ -247,6 +277,7 @@ enum ReportKey: string
             self::FolioLedger => 'receipt',
             self::Tax => 'landmark',
             self::MealCounts => 'utensils',
+            self::NightAuditHistory => 'moon',
         };
     }
 
@@ -262,6 +293,7 @@ enum ReportKey: string
             self::FolioLedger => app(FolioLedgerReport::class),
             self::Tax => app(TaxReport::class),
             self::MealCounts => app(MealCountsReport::class),
+            self::NightAuditHistory => app(NightAuditHistoryReport::class),
         };
     }
 

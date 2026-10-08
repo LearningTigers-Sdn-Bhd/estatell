@@ -21,6 +21,7 @@ class NightAuditSheetData extends Data
 {
     /**
      * @param  string|null  $date  `Y-m-d`, the current business date. Null while the property has no business date.
+     * @param  bool  $canViewPacket  Whether the user holds `reports.view`, which opens the packet PDF of a Completed audit.
      * @param  bool  $dateEnded  False while the system date has not passed the business date, so a normal run is refused.
      * @param  string  $summary  One plain sentence on whether the audit can run and what it will do by itself.
      * @param  list<ReadinessGroupData>  $blockers
@@ -36,6 +37,7 @@ class NightAuditSheetData extends Data
         public bool $dateEnded,
         public string $summary,
         public bool $canForce,
+        public bool $canViewPacket,
     ) {}
 
     public static function forProperty(Property $property, AuditReadiness $readiness, CurrentBusinessDate $currentBusinessDate, ReadinessAdvice $advice, User $user): self
@@ -56,6 +58,7 @@ class NightAuditSheetData extends Data
             dateEnded: $readiness->businessDateEnded($property),
             summary: self::summary(count($blockers), count($warnings)),
             canForce: $user->can(PermissionEnum::NightAuditForce->value),
+            canViewPacket: $user->can(PermissionEnum::ReportsView->value),
         );
     }
 

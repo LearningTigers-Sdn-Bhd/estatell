@@ -6,6 +6,8 @@ use App\Http\Controllers\Reports\DeparturesReportController;
 use App\Http\Controllers\Reports\FolioLedgerReportController;
 use App\Http\Controllers\Reports\InHouseReportController;
 use App\Http\Controllers\Reports\MealCountsReportController;
+use App\Http\Controllers\Reports\NightAuditHistoryReportController;
+use App\Http\Controllers\Reports\NightAuditPacketController;
 use App\Http\Controllers\Reports\OccupancyReportController;
 use App\Http\Controllers\Reports\PaymentsReportController;
 use App\Http\Controllers\Reports\ReportExportController;
@@ -24,6 +26,8 @@ Route::prefix('reports')->name('reports.')->middleware('can:'.PermissionEnum::Re
     Route::get('folio-ledger', FolioLedgerReportController::class)->name('folio-ledger');
     Route::get('tax', TaxReportController::class)->name('tax');
     Route::get('meal-counts', MealCountsReportController::class)->name('meal-counts');
+    Route::get('night-audit-history', NightAuditHistoryReportController::class)->name('night-audit-history');
+    Route::get('night-audit-history/{date}/packet', NightAuditPacketController::class)->name('night-audit-packet');
 
     Route::post('{report}/pdf', [ReportExportController::class, 'pdf'])->name('pdf');
     Route::post('{report}/spreadsheet', [ReportExportController::class, 'spreadsheet'])->name('spreadsheet');

@@ -11,6 +11,7 @@ use App\Enums\NotificationChannel;
 use App\Enums\NotificationType;
 use App\Enums\PermissionEnum;
 use App\Enums\SystemTransactionCode;
+use App\Models\ArPayment;
 use App\Models\BusinessDate;
 use App\Models\DailyRevenue;
 use App\Models\DailyStatistic;
@@ -35,6 +36,7 @@ use App\Models\User;
 use App\Notifications\NightAuditCompleted;
 use App\Notifications\NightAuditExceptions;
 use App\Notifications\NightAuditFailed;
+use App\Services\NightAudit\AuditResultSummary;
 use Illuminate\Support\Facades\Notification;
 
 /**
@@ -161,6 +163,9 @@ test('the message carries the figures, revenue, payments, meals and exceptions o
     $paid($cash, '50.00', '2026-10-12');
     $paid($card, '300.00', '2026-10-12');
     $paid($card, '999.00', '2026-10-11');
+    ArPayment::factory()->create(['property_id' => $property->id, 'payment_method_id' => $cash->id, 'amount' => '100.00', 'received_on' => '2026-10-12']);
+    ArPayment::factory()->voided()->create(['property_id' => $property->id, 'payment_method_id' => $cash->id, 'amount' => '77.00', 'received_on' => '2026-10-12']);
+    ArPayment::factory()->create(['property_id' => $property->id, 'payment_method_id' => $cash->id, 'amount' => '66.00', 'received_on' => '2026-10-11']);
     $paid($cash, '20.00', '2026-10-12', $first->id);
 
     $breakfast = MealPeriod::factory()->create(['property_id' => $property->id, 'name' => 'Breakfast', 'starts_at' => '07:00']);
@@ -186,13 +191,35 @@ test('the message carries the figures, revenue, payments, meals and exceptions o
         ->toContain('3 arrivals', '1 no-shows', '9 guests in house')
         ->toContain('Room revenue: MYR 900.00', 'Laundry: MYR 35.50')
         ->not->toContain('777.00')
-        ->toContain('Cash: MYR 250.00', 'Card: MYR 300.00', 'Refunds: MYR 20.00')
-        ->not->toContain('999.00')
+        ->toContain('Cash: MYR 350.00', 'Card: MYR 300.00', 'Refunds: MYR 20.00')
+        ->not->toContain('999.00', '77.00', '66.00')
         ->toContain('Meals to prepare on Oct 13, 2026', 'Breakfast: 6', 'Dinner: 4')
         ->toContain($exception->reservationUnit->reservation->reference, 'folio was closed')
         ->toContain(route('night-audit.show', $property->code))
         ->and(strpos($mail, 'Breakfast'))->toBeLessThan(strpos($mail, 'Dinner'))
         ->and($array)->toMatchArray(['type' => 'night_audit_exceptions', 'business_date' => '2026-10-12', 'open_exceptions' => 1]);
+});
+
+test('a city ledger payment shows in the payments by method, merged with the folio payments of the same method', function () {
+    ['property' => $property, 'audit' => $audit, 'owner' => $owner] = notifySetup();
+    $bank = PaymentMethod::factory()->create(['property_id' => $property->id, 'name' => 'Bank transfer']);
+    ArPayment::factory()->create(['property_id' => $property->id, 'payment_method_id' => $bank->id, 'amount' => '500.00', 'received_on' => '2026-10-12']);
+
+    $mail = (new NightAuditCompleted($audit))->toMail($owner)->render()->toHtml();
+    $summary = app(AuditResultSummary::class)->forAudit($audit);
+
+    expect($mail)->toContain('Payments by method', 'Bank transfer: MYR 500.00')
+        ->and($summary->payments)->toHaveCount(1)
+        ->and($summary->payments[0]['count'])->toBe(1);
+});
+
+test('the packet option lists resolved exceptions and the message keeps only the open ones', function () {
+    ['audit' => $audit] = notifySetup();
+    NightAuditException::factory()->resolved()->create(['night_audit_id' => $audit->id]);
+    NightAuditException::factory()->create(['night_audit_id' => $audit->id]);
+
+    expect(app(AuditResultSummary::class)->forAudit($audit)->exceptions)->toHaveCount(1)
+        ->and(app(AuditResultSummary::class)->forAudit($audit, allExceptions: true)->exceptions)->toHaveCount(2);
 });
 
 test('a failed message names the step and the error', function () {

@@ -11,6 +11,7 @@ enum ReportCategory: string
     case Revenue = 'revenue';
     case Finance = 'finance';
     case Kitchen = 'kitchen';
+    case Audit = 'audit';
 
     public function label(): string
     {
@@ -19,6 +20,7 @@ enum ReportCategory: string
             self::Revenue => __('Revenue'),
             self::Finance => __('Finance'),
             self::Kitchen => __('Kitchen'),
+            self::Audit => __('Audit'),
         };
     }
 }

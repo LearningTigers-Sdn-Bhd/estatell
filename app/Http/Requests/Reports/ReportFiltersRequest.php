@@ -16,7 +16,7 @@ use Illuminate\Validation\Rule;
 
 /**
  * The dates of a report page: `from` and `to` in the URL, both included. A missing date falls back to the other
- * date, and with none the report opens on the open business date. The range may not be longer than the report allows.
+ * date, and with none the report opens on the open business date, or on the days up to it that `ReportKey::defaultDays()` gives. The range may not be longer than the report allows.
  * A report of one date (`maxRangeDays()` is null) takes a single `date` instead and uses it as both ends.
  * A report that groups its rows (`ReportKey::groups()`) also takes `group`, which must be one of its groups and falls
  * back to the first. Other reports ignore `group`.
@@ -112,8 +112,9 @@ class ReportFiltersRequest extends FormRequest
         $from = is_string($from) && $from !== '' ? $from : null;
         $to = is_string($to) && $to !== '' ? $to : null;
         $default = $this->businessDate();
+        $defaultFrom = Date::parse($default)->subDays($this->reportKey()->defaultDays() - 1)->toDateString();
 
-        return new ReportFilters(from: $from ?? $to ?? $default, to: $to ?? $from ?? $default, group: $this->group(), code: $this->code());
+        return new ReportFilters(from: $from ?? $to ?? $defaultFrom, to: $to ?? $from ?? $default, group: $this->group(), code: $this->code());
     }
 
     /**

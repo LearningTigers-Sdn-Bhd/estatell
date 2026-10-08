@@ -290,6 +290,12 @@ test('the Reports navigation groups the reports by category and needs reports.vi
                         ['title' => 'Meal counts', 'href' => "/p/{$property->code}/reports/meal-counts", 'icon' => 'utensils', 'external' => false, 'active' => false, 'action' => null],
                     ],
                 ],
+                [
+                    'label' => 'Audit',
+                    'items' => [
+                        ['title' => 'Night audit history', 'href' => "/p/{$property->code}/reports/night-audit-history", 'icon' => 'moon', 'external' => false, 'active' => false, 'action' => null],
+                    ],
+                ],
             ],
         ]));
 

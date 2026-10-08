@@ -84,13 +84,13 @@ Requires `night-audit.force` and a reason. Sets `forced = true`. Open exceptions
 
 ## Build status
 
-| Part                                                                                         | Status                                                                                        |
-| -------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| Tables, enums, models, `RunNightAudit`, `ClaimBusinessDate`, steps 2 to 6 and 8, permissions | Built.                                                                                        |
-| `SnapshotStatistics`                                                                         | Built. See [Statistics](05-statistics.md).                                                    |
-| Notifications                                                                                | Built. See [Statistics](05-statistics.md#morning-handoff). The packet PDF comes with reports. |
-| Routes, the page and the one-click fixes                                                     | [Readiness panel](02-readiness-panel.md).                                                     |
-| `RunNightAuditJob` and the schedule                                                          | Built. See [Scheduling](04-scheduling.md).                                                    |
+| Part                                                                                         | Status                                                                                                                                                                         |
+| -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Tables, enums, models, `RunNightAudit`, `ClaimBusinessDate`, steps 2 to 6 and 8, permissions | Built.                                                                                                                                                                         |
+| `SnapshotStatistics`                                                                         | Built. See [Statistics](05-statistics.md).                                                                                                                                     |
+| Notifications                                                                                | Built. See [Statistics](05-statistics.md#morning-handoff). The packet PDF is built: see [Core reports](../22-reports/01-core-reports.md#built-night-audit-history-and-packet). |
+| Routes, the page and the one-click fixes                                                     | [Readiness panel](02-readiness-panel.md).                                                                                                                                      |
+| `RunNightAuditJob` and the schedule                                                          | Built. See [Scheduling](04-scheduling.md).                                                                                                                                     |
 
 ## Lessons from wastays
 
