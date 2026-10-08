@@ -1,6 +1,5 @@
 import { Form } from '@inertiajs/react';
-import { useState } from 'react';
-import { CreditOverrideField } from '@/components/pms/city-ledger/credit-override-field';
+import { AlertCircleIcon } from 'lucide-react';
 import { MoneyText } from '@/components/pms/money-text';
 import { KEEP_OPTIONS } from '@/components/pms/use-form-options';
 import {
@@ -12,13 +11,14 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import { cityLedger } from '@/routes/reservations/folios';
 
 /**
  * Moves the whole balance of a folio to the city ledger after a confirmation. The folio closes and an AR invoice is
- * issued to the company that pays it. A refusal is an error toast.
+ * issued to the company that pays it. A company over its credit limit gets a warning, and the invoice is still issued.
  */
 export function SettleCityLedgerDialog({
     open,
@@ -26,17 +26,13 @@ export function SettleCityLedgerDialog({
     reservationId,
     folio,
     currency,
-    canOverrideCredit,
 }: {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     reservationId: number;
     folio: App.Data.Folio.FolioData;
     currency: App.Enums.Currency | null;
-    canOverrideCredit: boolean;
 }) {
-    const [reason, setReason] = useState('');
-
     return (
         <AlertDialog open={open} onOpenChange={onOpenChange}>
             <AlertDialogContent>
@@ -62,15 +58,16 @@ export function SettleCityLedgerDialog({
                     options={{ preserveScroll: true, except: KEEP_OPTIONS }}
                     onSuccess={() => onOpenChange(false)}
                 >
-                    {({ processing, errors }) => (
+                    {({ processing }) => (
                         <>
-                            <CreditOverrideField
-                                id="settle-credit-reason"
-                                error={errors.credit_override_reason}
-                                canOverride={canOverrideCredit}
-                                value={reason}
-                                onChange={setReason}
-                            />
+                            {folio.settleCreditWarning && (
+                                <Alert>
+                                    <AlertCircleIcon />
+                                    <AlertDescription>
+                                        {folio.settleCreditWarning}
+                                    </AlertDescription>
+                                </Alert>
+                            )}
                             <AlertDialogFooter>
                                 <AlertDialogCancel>Cancel</AlertDialogCancel>
                                 <Button

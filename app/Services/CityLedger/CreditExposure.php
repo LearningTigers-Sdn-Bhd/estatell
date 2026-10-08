@@ -4,7 +4,6 @@ namespace App\Services\CityLedger;
 
 use App\Enums\ArInvoiceStatus;
 use App\Enums\FolioStatus;
-use App\Enums\ReservationStatus;
 use App\Models\ArInvoice;
 use App\Models\ArPayment;
 use App\Models\Company;
@@ -13,8 +12,9 @@ use Illuminate\Support\Facades\DB;
 
 /**
  * What a company owes or may owe: its open AR (invoices and credit notes that are not Void, minus the payments it
- * made that are not voided, never below 0) plus the balances of its Open folios on reservations that are not
- * Cancelled or Completed. A folio balance below 0 counts as 0. Amounts are decimal strings with two places. The
+ * made that are not voided, never below 0) plus the balances of its Open folios (Master or ThirdParty, by
+ * `payer_company_id`) whatever the reservation status, so a departed folio nobody has settled yet still counts. A
+ * folio balance below 0 counts as 0. The `inHouse` key keeps its historical name: it is the open folio balance. Amounts are decimal strings with two places. The
  * limit is `companies.credit_limit`: empty means no limit. It writes nothing, and `forCompanies` reads any number of
  * companies in three queries. See docs/15-city-ledger/04-credit-control-and-reports.md#credit-exposure.
  */
@@ -101,7 +101,8 @@ class CreditExposure
     }
 
     /**
-     * The balances above 0 of the companies' Open folios on live reservations.
+     * The balances above 0 of the companies' Open folios, whatever the status of their reservation. The key `inHouse`
+     * is a historical name for this open folio balance. A settled folio is Closed, so it moves to open AR and never counts twice.
      *
      * @param  list<int>  $companyIds
      * @return array<int, string>
@@ -110,11 +111,9 @@ class CreditExposure
     {
         $folios = DB::table('folio_lines')
             ->join('folios', 'folios.id', '=', 'folio_lines.folio_id')
-            ->join('reservations', 'reservations.id', '=', 'folios.reservation_id')
             ->where('folios.property_id', $propertyId)
             ->whereIn('folios.payer_company_id', $companyIds)
             ->where('folios.status', FolioStatus::Open->value)
-            ->whereNotIn('reservations.status', [ReservationStatus::Cancelled->value, ReservationStatus::Completed->value])
             ->groupBy('folio_lines.folio_id', 'folios.payer_company_id')
             ->selectRaw('folios.payer_company_id AS company_id, SUM(folio_lines.amount)::numeric(14, 2) AS balance')
             ->get();

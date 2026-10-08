@@ -45,7 +45,6 @@ class ArInvoiceRefusals
             ArInvoiceResult::REFUSAL_DIRECT_BILL_NOT_ALLOWED => [self::FORM, __('This company is suspended or cannot be direct billed.')],
             ArInvoiceResult::REFUSAL_NOTHING_TO_SETTLE => [self::FORM, __('There is no balance to move to the city ledger.')],
             ArInvoiceResult::REFUSAL_NO_BUSINESS_DATE => [self::FORM, __('The property has no open business date.')],
-            ArInvoiceResult::REFUSAL_CREDIT_LIMIT_EXCEEDED => ['credit_override_reason', __('This company is over its credit limit.')],
             ArInvoiceResult::REFUSAL_NOT_AN_OPEN_INVOICE => [self::FORM, __('Only an invoice that is not void can take a credit note.')],
             ArInvoiceResult::REFUSAL_AMOUNT_INVALID => ['amount', __('Enter an amount greater than 0, such as 120.00.')],
             ArInvoiceResult::REFUSAL_REASON_REQUIRED => ['reason', __('Enter a reason for the credit note.')],

@@ -143,6 +143,41 @@ test('the settle route shows the in-house refusal as an error toast', function (
     expect(ArInvoice::query()->count())->toBe(0);
 });
 
+test('settling a company over its limit is not refused, issues the invoice and logs no credit override', function () {
+    $setup = cityLedgerSetup();
+    $setup['company']->update(['credit_limit' => '10.00']);
+    ArInvoice::factory()->create(['property_id' => $setup['property']->id, 'company_id' => $setup['company']->id, 'amount' => '600.00']);
+
+    $result = settle($setup);
+
+    expect($result->isRefused())->toBeFalse()
+        ->and($result->invoice->amount)->toBe('100.00')
+        ->and($setup['folio']->fresh()->status)->toBe(FolioStatus::Closed)
+        ->and(Activity::query()->where('event', 'credit.overridden')->count())->toBe(0);
+});
+
+test('the folio tab carries the over-limit warning for Settle, and none under the limit or for a user without city-ledger.invoice', function () {
+    $setup = cityLedgerSetup();
+    $setup['company']->update(['name' => 'Acme Sdn Bhd', 'credit_limit' => '500.00']);
+    ArInvoice::factory()->create(['property_id' => $setup['property']->id, 'company_id' => $setup['company']->id, 'amount' => '500.00']);
+    $currency = PropertySetting::query()->where('property_id', $setup['property']->id)->sole()->currency->value;
+    $owner = User::factory()->withRole(DefaultRoleEnum::Owner)->create(['property_id' => $setup['property']->id]);
+    $frontDesk = User::factory()->withRole(DefaultRoleEnum::FrontDesk)->create(['property_id' => $setup['property']->id]);
+    $url = route('reservations.folio', ['property' => $setup['property']->code, 'reservation' => $setup['folio']->reservation_id, 'folio' => $setup['folio']->id]);
+
+    $this->actingAs($owner)->get($url)->assertInertia(fn ($page) => $page
+        ->where('folio.canSettleToCityLedger', true)
+        ->where('folio.settleCreditWarning', 'Acme Sdn Bhd is over its credit limit by '.$currency.' 100.00. The invoice is still issued.'));
+
+    $this->actingAs($frontDesk)->get($url)->assertInertia(fn ($page) => $page
+        ->where('folio.canSettleToCityLedger', false)
+        ->where('folio.settleCreditWarning', null));
+
+    $setup['company']->update(['credit_limit' => '5000.00']);
+
+    $this->actingAs($owner)->get($url)->assertInertia(fn ($page) => $page->where('folio.settleCreditWarning', null));
+});
+
 test('settling twice makes one invoice', function () {
     $setup = cityLedgerSetup();
 

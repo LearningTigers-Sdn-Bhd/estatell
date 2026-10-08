@@ -3,6 +3,8 @@
 use App\Actions\Reservations\BookingResult;
 use App\Actions\Reservations\ReservationResult;
 use App\Enums\DefaultRoleEnum;
+use App\Enums\FolioStatus;
+use App\Enums\ReservationStatus;
 use App\Enums\SystemTransactionCode;
 use App\Models\ArInvoice;
 use App\Models\ArPayment;
@@ -203,7 +205,7 @@ test('the companies list runs the same queries however many companies there are'
     expect(count(DB::getQueryLog()))->toBe($few);
 });
 
-test('an over-limit settle comes back as a field error and the page says who may override', function (DefaultRoleEnum $role, bool $canOverride) {
+test('an over-limit settle goes through, and the page still says who may override a booking or a company change', function (DefaultRoleEnum $role, bool $canOverride) {
     $setup = reportPagesSetup($role);
     TransactionCode::factory()->system(SystemTransactionCode::DirectBillPayment)->create(['property_id' => $setup['property']->id]);
     $company = Company::factory()->for($setup['property'])->create(['credit_limit' => '10.00']);
@@ -213,13 +215,28 @@ test('an over-limit settle comes back as a field error and the page says who may
     $url = route('reservations.folios.city-ledger', ['property' => $setup['property']->code, 'reservation' => $folio->reservation_id, 'folio' => $folio->id]);
     $this->actingAs($setup['user']);
 
-    $this->post($url)->assertSessionHasErrors('credit_override_reason');
+    $this->post($url)->assertSessionHasNoErrors();
+
+    expect($folio->fresh()->status)->toBe(FolioStatus::Closed);
+
     $this->get(route('reservations.show', ['property' => $setup['property']->code, 'reservation' => $folio->reservation_id]))
         ->assertInertia(fn (Assert $page) => $page->where('canOverrideCredit', $canOverride));
 })->with([
     'owner' => [DefaultRoleEnum::Owner, true],
     'finance' => [DefaultRoleEnum::Finance, false],
 ]);
+
+test('the company credit tab counts the open folio of a completed reservation', function () {
+    $setup = reportPagesSetup();
+    $company = Company::factory()->for($setup['property'])->create(['credit_limit' => '1000.00']);
+    $folio = Folio::factory()->master()->create(['property_id' => $setup['property']->id, 'payer_company_id' => $company->id]);
+    $folio->reservation->forceFill(['status' => ReservationStatus::Completed])->save();
+    FolioLine::factory()->create(['folio_id' => $folio->id, 'amount' => '250.00', 'unit_amount' => '250.00', 'posting_date' => today()->toDateString()]);
+
+    $this->actingAs($setup['user'])->get(reportUrl($setup, "companies/{$company->id}/credit"))->assertInertia(fn (Assert $page) => $page
+        ->where('company.credit.inHouse', '250.00')
+        ->where('company.credit.exposure', '250.00'));
+});
 
 test('changing the company over the limit comes back as a credit field error', function () {
     $setup = reportPagesSetup(DefaultRoleEnum::Owner);

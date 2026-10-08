@@ -1,12 +1,11 @@
 <?php
 
-use App\Actions\CityLedger\ArInvoiceResult;
 use App\Actions\CityLedger\SettleToCityLedger;
 use App\Actions\Reservations\ReservationResult;
 use App\Actions\Reservations\UpdateReservationCompany;
-use App\Enums\ArInvoiceStatus;
 use App\Enums\DefaultRoleEnum;
 use App\Enums\FolioStatus;
+use App\Enums\FolioType;
 use App\Enums\PermissionEnum;
 use App\Enums\ReservationStatus;
 use App\Enums\SystemTransactionCode;
@@ -88,16 +87,34 @@ test('allocations do not change open AR', function () {
     expect(app(CreditExposure::class)->openAr([$setup['company']->id])[$setup['company']->id])->toBe('250.00');
 });
 
-test('in-house balance counts the open folios of live reservations and ignores credit', function () {
+test('open folio balance counts every Open company folio whatever the reservation status, and ignores credit, closed and voided folios', function () {
     $setup = creditSetup();
     creditFolio($setup, '300.00');
     creditFolio($setup, '-50.00');
     creditFolio($setup, '900.00', ['status' => FolioStatus::Closed]);
+    creditFolio($setup, '900.00', ['status' => FolioStatus::Voided]);
     creditFolio($setup, '900.00', [], ['status' => ReservationStatus::Cancelled]);
     creditFolio($setup, '900.00', [], ['status' => ReservationStatus::Completed]);
+    creditFolio($setup, '100.00', ['type' => FolioType::ThirdParty]);
     Folio::factory()->master()->create(['property_id' => $setup['property']->id]);
+    creditFolio(['property' => $setup['property'], 'company' => Company::factory()->for($setup['property'])->create()], '777.00');
 
-    expect(app(CreditExposure::class)->inHouse([$setup['company']->id], $setup['property']->id)[$setup['company']->id])->toBe('300.00');
+    expect(app(CreditExposure::class)->inHouse([$setup['company']->id], $setup['property']->id)[$setup['company']->id])->toBe('2200.00');
+});
+
+test('a departed master left unbilled counts in the exposure, and settling it moves it into AR without changing the exposure', function () {
+    $setup = creditSetup('1000.00');
+    ArInvoice::factory()->create(['property_id' => $setup['property']->id, 'company_id' => $setup['company']->id, 'amount' => '800.00']);
+    $folio = creditFolio($setup, '200.00', [], ['status' => ReservationStatus::Completed]);
+    $exposure = app(CreditExposure::class);
+
+    $before = $exposure->forCompany($setup['company']);
+    $result = app(SettleToCityLedger::class)($setup['actor'], $folio);
+    $after = $exposure->forCompany($setup['company']->fresh());
+
+    expect($result->isRefused())->toBeFalse()
+        ->and($before)->toMatchArray(['openAr' => '800.00', 'inHouse' => '200.00', 'exposure' => '1000.00'])
+        ->and($after)->toMatchArray(['openAr' => '1000.00', 'inHouse' => '0.00', 'exposure' => '1000.00']);
 });
 
 test('exposure adds both and the headroom follows the limit', function () {
@@ -136,45 +153,6 @@ test('a company with no limit always passes', function () {
     ArInvoice::factory()->create(['property_id' => $setup['property']->id, 'company_id' => $setup['company']->id, 'amount' => '999999.00']);
 
     expect(app(CreditCheck::class)->check($setup['company'], '5000.00')->allowed)->toBeTrue();
-});
-
-test('settling is refused for a company already over its limit unless a reason is given', function () {
-    $setup = creditSetup('500.00');
-    ArInvoice::factory()->create(['property_id' => $setup['property']->id, 'company_id' => $setup['company']->id, 'amount' => '600.00']);
-    $folio = creditFolio($setup, '100.00');
-
-    $refused = app(SettleToCityLedger::class)($setup['actor'], $folio);
-
-    expect($refused->refusal)->toBe(ArInvoiceResult::REFUSAL_CREDIT_LIMIT_EXCEEDED)
-        ->and($folio->fresh()->status)->toBe(FolioStatus::Open)
-        ->and(Activity::query()->where('event', 'credit.overridden')->count())->toBe(0);
-
-    app(SettleToCityLedger::class)($setup['actor'], $folio, '   ');
-
-    expect($folio->fresh()->status)->toBe(FolioStatus::Open);
-
-    $done = app(SettleToCityLedger::class)($setup['actor'], $folio, 'Approved by the owner');
-
-    $activity = Activity::query()->where('event', 'credit.overridden')->sole();
-
-    expect($done->isRefused())->toBeFalse()
-        ->and($folio->fresh()->status)->toBe(FolioStatus::Closed)
-        ->and($activity->subject_id)->toBe($setup['company']->id)
-        ->and($activity->properties['reason'])->toBe('Approved by the owner')
-        ->and($activity->properties['action'])->toBe('settle_to_city_ledger')
-        ->and($activity->properties['exposure'])->toBe('700.00')
-        ->and($activity->properties['over_by'])->toBe('200.00');
-});
-
-test('settling a folio that is under the limit needs no override, and an unused reason logs nothing', function () {
-    $setup = creditSetup('500.00');
-    $folio = creditFolio($setup, '400.00');
-
-    $result = app(SettleToCityLedger::class)($setup['actor'], $folio, 'Not needed');
-
-    expect($result->isRefused())->toBeFalse()
-        ->and(Activity::query()->where('event', 'credit.overridden')->count())->toBe(0)
-        ->and($result->invoice->status)->toBe(ArInvoiceStatus::Open);
 });
 
 test('the stay total sums the live units only', function () {
@@ -222,26 +200,6 @@ test('company.credit-override goes to Owner and Manager only', function (Default
     [DefaultRoleEnum::Finance, false],
     [DefaultRoleEnum::FrontDesk, false],
     [DefaultRoleEnum::Housekeeping, false],
-]);
-
-test('the settle route passes the override reason only for users who may override', function (DefaultRoleEnum $role, bool $settled) {
-    $user = User::factory()->withRole($role)->create();
-    $property = $user->property;
-    $property->forceFill(['status' => 'live'])->save();
-    PropertySetting::factory()->for($property)->create();
-    BusinessDate::factory()->create(['property_id' => $property->id]);
-    TransactionCode::factory()->system(SystemTransactionCode::DirectBillPayment)->create(['property_id' => $property->id]);
-    $company = Company::factory()->for($property)->create(['credit_limit' => '10.00']);
-    ArInvoice::factory()->create(['property_id' => $property->id, 'company_id' => $company->id, 'amount' => '600.00']);
-    $folio = creditFolio(['property' => $property, 'company' => $company], '100.00');
-    $url = route('reservations.folios.city-ledger', ['property' => $property->code, 'reservation' => $folio->reservation_id, 'folio' => $folio->id]);
-
-    $this->actingAs($user)->post($url, ['credit_override_reason' => 'Approved'])->assertRedirect();
-
-    expect($folio->fresh()->status)->toBe($settled ? FolioStatus::Closed : FolioStatus::Open);
-})->with([
-    'owner' => [DefaultRoleEnum::Owner, true],
-    'finance' => [DefaultRoleEnum::Finance, false],
 ]);
 
 test('exposure for several companies runs in three queries and matches each company alone', function () {

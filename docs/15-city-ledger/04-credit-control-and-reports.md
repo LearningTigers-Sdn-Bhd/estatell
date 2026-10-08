@@ -34,6 +34,12 @@
 - The Change company Dialog and the booking form show the refusal. A user with the override permission sees the warning and a required reason field, then can continue.
 - There is no payment hold. A company over its limit shows a warning badge on the companies list and the company page (**Over limit**, danger tone), and nothing else changes.
 
+Decisions made at build time (checklist item 21, credit exposure):
+
+- The Settle warning is a plain (default) `Alert` with an alert icon in the confirmation, because the design system has no warning tone for `Alert`.
+- `FolioStatement` loads the company and runs `CreditCheck` only for the selected folio, and only when that folio offers Settle, so the folio tab query count does not grow with units.
+- `ArInvoiceResult::REFUSAL_CREDIT_LIMIT_EXCEEDED` is gone: only Settle used it. The booking, company change and check-in refusals keep their own constants.
+
 ## Aging report
 
 The Aging report and the Statement are AR only: a folio that has not been settled yet is not in them. It is in the exposure above, in the [Outstanding balance](../22-reports/01-core-reports.md) report, and in the night audit's **Master folio not billed** warning.

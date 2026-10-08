@@ -255,6 +255,17 @@ test('a company over its credit limit is refused unless the user gives a reason,
         ->and($override->properties['action'])->toBe('check_in');
 });
 
+test('an unbilled master of a departed reservation counts against the company at check-in', function () {
+    $setup = stayDeskSetup();
+    $company = Company::factory()->for($setup['property'])->create(['credit_limit' => '100.00']);
+    $setup['reservation']->update(['company_id' => $company->id]);
+    $departed = Reservation::factory()->create(['property_id' => $setup['property']->id, 'status' => ReservationStatus::Completed, 'company_id' => $company->id]);
+    $master = Folio::factory()->master()->create(['property_id' => $setup['property']->id, 'reservation_id' => $departed->id, 'payer_company_id' => $company->id]);
+    FolioLine::factory()->create(['folio_id' => $master->id, 'amount' => '150.00', 'unit_amount' => '150.00', 'posting_date' => today()->toDateString()]);
+
+    expect(stayDeskCheckIn($setup)->refusal)->toBe(UnitStayResult::REFUSAL_CREDIT_LIMIT_EXCEEDED);
+});
+
 test('a company under its limit checks in without an override', function () {
     $setup = stayDeskSetup();
     $company = Company::factory()->for($setup['property'])->create(['credit_limit' => '1000.00']);

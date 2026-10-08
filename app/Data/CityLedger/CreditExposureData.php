@@ -5,7 +5,7 @@ namespace App\Data\CityLedger;
 use Spatie\LaravelData\Data;
 
 /**
- * A company's credit figures for its page: open AR, in-house balance, exposure, the limit and the headroom (both null
+ * A company's credit figures for its page: open AR, the open folio balance (the historical key `inHouse`), exposure, the limit and the headroom (both null
  * with no limit), and whether the exposure is above the limit.
  */
 class CreditExposureData extends Data

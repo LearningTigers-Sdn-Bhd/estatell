@@ -580,7 +580,7 @@ export default function CompanyShow({
                                 amount={company.credit.openAr}
                             />
                             <CreditFigure
-                                label="In-house folios"
+                                label="Open folios"
                                 currency={currency}
                                 amount={company.credit.inHouse}
                             />

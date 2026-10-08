@@ -15,6 +15,7 @@ use App\Enums\PaymentPurpose;
 use App\Enums\PaymentStatus;
 use App\Enums\TransactionKind;
 use App\Enums\UnitStatus;
+use App\Models\Company;
 use App\Models\Folio;
 use App\Models\FolioLine;
 use App\Models\Property;
@@ -23,6 +24,7 @@ use App\Models\ReservationUnit;
 use App\Models\UnitAddOn;
 use App\Models\UnitNight;
 use App\Models\User;
+use App\Services\CityLedger\CreditCheck;
 use App\Services\Payments\PaymentPurposeChoices;
 use Brick\Math\BigDecimal;
 use Illuminate\Support\Collection;
@@ -39,6 +41,7 @@ class FolioStatement
         private ScheduledFolioRows $scheduledRows,
         private PaymentPurposeChoices $paymentPurposeChoices,
         private FolioReopenRule $folioReopenRule,
+        private CreditCheck $creditCheck,
     ) {}
 
     /**
@@ -199,6 +202,7 @@ class FolioStatement
         $purposes = ($can['recordPayment'] ?? false) && ($folio === null || $isOpen)
             ? $this->paymentPurposeChoices->for($reservation, $folio, $entry['unit'])
             : [];
+        $canSettle = ($can['settleCityLedger'] ?? false) && $isOpen && $folio?->payer_company_id !== null && $balance !== null && bccomp($balance, '0', 2) > 0;
         $projected = $scheduled->reduce(fn (BigDecimal $sum, FolioRowData $row): BigDecimal => $sum->plus($row->amount), BigDecimal::of($balance ?? '0'));
 
         return new FolioData(
@@ -221,12 +225,39 @@ class FolioStatement
             canRecordPayment: $purposes !== [],
             canPrintVoucher: $posted->contains(fn (FolioRowData $row): bool => $row->printable) || $scheduled->contains(fn (FolioRowData $row): bool => $row->printable),
             paymentUnitId: $folio === null ? $entry['unit'] : null,
-            canSettleToCityLedger: ($can['settleCityLedger'] ?? false) && $isOpen && $folio?->payer_company_id !== null && $balance !== null && bccomp($balance, '0', 2) > 0,
+            canSettleToCityLedger: $canSettle,
             payerCompanyName: $folio?->payerCompany?->name,
             paymentPurposes: array_map(fn (PaymentPurpose $purpose): array => ['value' => $purpose->value, 'label' => $purpose->label()], $purposes),
             defaultPaymentPurpose: ($purposes[0] ?? null)?->value,
+            settleCreditWarning: $canSettle ? $this->settleCreditWarning($folio) : null,
             closedNotice: $folio !== null && $user !== null ? $this->folioReopenRule->notice($user, $folio) : null,
         );
+    }
+
+    /**
+     * The warning of the Settle confirmation: the company is over its credit limit. Settle is never refused by the
+     * limit (it moves an open folio balance into open AR), so this only warns. Null under the limit.
+     */
+    private function settleCreditWarning(Folio $folio): ?string
+    {
+        $company = Company::query()->where('property_id', $folio->property_id)->find($folio->payer_company_id);
+
+        if ($company === null) {
+            return null;
+        }
+
+        $check = $this->creditCheck->check($company);
+
+        if ($check->allowed) {
+            return null;
+        }
+
+        $currency = $folio->loadMissing('property.settings')->property->settings?->currency->value;
+
+        return __(':company is over its credit limit by :amount. The invoice is still issued.', [
+            'company' => $company->name,
+            'amount' => trim($currency.' '.number_format((float) $check->overBy, 2)),
+        ]);
     }
 
     /**

@@ -12,7 +12,6 @@ use App\Models\Folio;
 use App\Models\FolioLine;
 use App\Models\TransactionCode;
 use App\Models\User;
-use App\Services\CityLedger\CreditCheck;
 use App\Services\Folio\FolioBalance;
 use App\Services\Folio\InHouseUnits;
 use App\Services\NightAudit\CurrentBusinessDate;
@@ -26,8 +25,6 @@ class SettleToCityLedger
         private FolioBalance $folioBalance,
         private CloseFolio $closeFolio,
         private CreateArInvoiceFromFolio $createArInvoiceFromFolio,
-        private CreditCheck $creditCheck,
-        private RecordCreditOverride $recordCreditOverride,
         private InHouseUnits $inHouseUnits,
     ) {}
 
@@ -36,12 +33,13 @@ class SettleToCityLedger
      * date (key `city-ledger:{folio_id}`), close the folio, and make the AR invoice, in one transaction. The folio
      * row is locked first and every check runs before the first write, so a refusal writes and logs nothing. A Master folio
      * is refused while a unit is CheckedIn (`units_in_house`), so no line is posted and then rolled back. It does
-     * not use `RecordPayment`: there is no `payments` row and no receipt. A company over its credit limit is refused unless
-     * `$overrideReason` is given, which the route passes only to users with `company.credit-override`. Permissions are checked by the route. See docs/15-city-ledger/02-ar-invoices.md.
+     * not use `RecordPayment`: there is no `payments` row and no receipt. It is never refused by the credit limit: settling
+     * adds no debt, it moves an open folio balance into open AR, so the exposure is the same before and after. The folio
+     * tab warns instead (`FolioData.settleCreditWarning`). Permissions are checked by the route. See docs/15-city-ledger/02-ar-invoices.md.
      */
-    public function __invoke(User $actor, Folio $folio, ?string $overrideReason = null): ArInvoiceResult
+    public function __invoke(User $actor, Folio $folio): ArInvoiceResult
     {
-        return DB::transaction(function () use ($actor, $folio, $overrideReason): ArInvoiceResult {
+        return DB::transaction(function () use ($actor, $folio): ArInvoiceResult {
             $locked = Folio::query()->lockForUpdate()->findOrFail($folio->id);
 
             if ($locked->status !== FolioStatus::Open) {
@@ -64,12 +62,6 @@ class SettleToCityLedger
 
             if ($company->status !== CompanyStatus::Active || ! $company->direct_bill_enabled) {
                 return ArInvoiceResult::refused(ArInvoiceResult::REFUSAL_DIRECT_BILL_NOT_ALLOWED);
-            }
-
-            $check = $this->creditCheck->check($company);
-
-            if (! $check->allowed && trim((string) $overrideReason) === '') {
-                return ArInvoiceResult::refused(ArInvoiceResult::REFUSAL_CREDIT_LIMIT_EXCEEDED);
             }
 
             $businessDate = $this->currentBusinessDate->date($locked->property);
@@ -107,10 +99,6 @@ class SettleToCityLedger
 
             if ($closed->isRefused()) {
                 throw new RuntimeException('A folio with a zero balance must close: '.$closed->refusal);
-            }
-
-            if (! $check->allowed) {
-                ($this->recordCreditOverride)($actor, $company, $check, (string) $overrideReason, 'settle_to_city_ledger');
             }
 
             $invoice = ($this->createArInvoiceFromFolio)($actor, $closed->folio, $balance, $businessDate);

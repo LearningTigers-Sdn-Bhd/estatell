@@ -239,7 +239,6 @@ export default function ReservationShow({
                                 canViewCompany={canViewCompany}
                                 companies={companies}
                                 canManageRouting={canManageRouting}
-                                canOverrideCredit={canOverrideCredit}
                                 routingRules={routingRules}
                                 voucher={voucher}
                                 summaryHidden={summaryHidden}
