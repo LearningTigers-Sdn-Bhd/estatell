@@ -23,7 +23,7 @@ Interface `StayPricing`: `priceStay()` returns one amount breakdown per night (b
 
 - **Input:** rate plan, room type, arrival, departure (check-out), `adults`, `childAges` (list) and `beds` (default 1, used by PerBed).
 - **Output:** `RateQuote` with one `NightPrice` per night (`base`, `extra`, `supplement`, `discountAmount`), a `total` and a `discountAmount`. `StayDiscount` sets the discount from the plan's [long-stay discounts](01-rate-plans.md#long-stay-discounts). A strategy's `discountUnits()` says how many units an Amount is taken off: guests, beds or rooms.
-- **Refused, not guessed:** the quote returns a `refusal` reason (and the date, where one applies) for these cases: no nights, no adults, no beds, an archived plan, a room type the plan does not sell, a night with no price, an age group with no child price (PerGuest, and a package charged per guest), a package stay that is not `fixed_nights` long (`stay_length_mismatch`), a package with no price for the arrival date (`package_price_missing`), and a package whose stay price is less than its inclusions (`package_below_inclusions`).
+- **Refused, not guessed:** the quote returns a `refusal` reason (and the date, where one applies) for these cases: no nights, no adults, no beds, an archived plan, a room type the plan does not sell, a night with no price, an age group with no child price (PerGuest, and a package charged per guest), a package stay that is not `fixed_nights` long (`stay_length_mismatch`), a package with no price for the arrival date (`package_price_missing`), a package whose stay price is less than its inclusions (`package_below_inclusions`), and a nightly night whose price is less than the inclusions it posts (`rate_below_inclusions`, with the date).
 - **Restrictions are not checked here.** `RestrictionCheck` does that.
 - **Guests:** each child age maps to the property's age group. An age past the last group counts as an adult, for every basis.
 - **PerRoom:** a price for the adult count in `rate_occupancy_prices` wins. Otherwise the room price plus `extra_adult_amount` for each adult above the room type's `base_occupancy`. Children never count toward `base_occupancy`. Each child pays `extra_child_amount` flat, with or without an occupancy price.
@@ -42,7 +42,7 @@ Interface `StayPricing`: `priceStay()` returns one amount breakdown per night (b
 
 1. The strategy prices each night.
 2. A derived plan adjusts each night.
-3. The strategy's `fitInclusions()` gets the nights and the sold plan's inclusions. Nightly strategies return the nights as they are. `PackagePricing` splits the stay again (below).
+3. The strategy's `fitInclusions()` gets the nights and the sold plan's inclusions. Nightly strategies keep the nights as they are and refuse a night that cannot hold its inclusions. `PackagePricing` splits the stay again (below).
 4. `StayDiscount` finds the longest [long-stay discount](01-rate-plans.md#long-stay-discounts) the stay qualifies for and takes it off each night from `from_night`. The quote returns the amount as `discount_amount`. The booking stores it on `unit_nights.discount_amount`.
 5. The nights are summed.
 
@@ -59,7 +59,9 @@ It runs after the derived percent, with the inclusions of the plan being sold, s
 
 Example, Dive Package, 2 adults, RM880 per adult, 3 nights: meals RM100 per guest a night, diving RM180 × 2 per guest once. Inclusions: RM920 on night 1, RM200 on nights 2 and 3. Room part RM440 = 146.67 + 146.67 + 146.66. Nights: RM1,066.67 + RM346.67 + RM346.66 = RM1,760. The even split (586.67 a night) could not post night 1.
 
-Only packages are re-split. A nightly plan prices each date on its own, so a large one-off inclusion on a nightly plan can still be refused at posting. That is future work.
+Only packages are re-split. A nightly plan keeps the price set for each date, so `NightlyPricing::fitInclusions()` only checks: each night, before the long-stay discount, must be at least the inclusions it posts (`InclusionAllocator::total()`). Otherwise the quote is refused as `rate_below_inclusions` with that night's date, so staff see it at booking, not at the night audit.
+
+Example: RM200 a night with a RM300 transfer (PerStay) is refused on the arrival date. RM200 a night with breakfast RM25 × 2 guests is fine.
 
 ## Child prices
 
