@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { Link } from '@inertiajs/react';
 import { Baby, Ellipsis, User } from 'lucide-react';
 import { DateText } from '@/components/pms/date-text';
@@ -160,7 +161,23 @@ export function ReservationCard({ reservation }: { reservation: Item }) {
                 </dl>
                 <dl className="mt-auto grid grid-cols-3 divide-x rounded-lg bg-muted py-2 text-sm">
                     <MoneyCell label="Total" amount={reservation.total} />
-                    <MoneyCell label="Paid" amount={reservation.paid} />
+                    <MoneyCell
+                        label="Paid"
+                        amount={reservation.paid}
+                        note={
+                            Number(reservation.billedToCompany) > 0 ? (
+                                <>
+                                    +{' '}
+                                    <MoneyText
+                                        amount={reservation.billedToCompany}
+                                        currency={null}
+                                        plain
+                                    />{' '}
+                                    billed to company
+                                </>
+                            ) : undefined
+                        }
+                    />
                     <MoneyCell
                         label="Balance"
                         amount={reservation.balance}
@@ -180,10 +197,12 @@ function MoneyCell({
     label,
     amount,
     owing = false,
+    note,
 }: {
     label: string;
     amount: string;
     owing?: boolean;
+    note?: ReactNode;
 }) {
     return (
         <div className="flex min-w-0 flex-col gap-0.5 px-3">
@@ -196,6 +215,7 @@ function MoneyCell({
             >
                 <MoneyText amount={amount} currency={null} plain />
             </dd>
+            {note && <dd className="text-xs text-muted-foreground">{note}</dd>}
         </div>
     );
 }

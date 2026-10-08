@@ -3,6 +3,7 @@
 use App\Enums\DefaultRoleEnum;
 use App\Enums\ReservationSource;
 use App\Enums\ReservationStatus;
+use App\Enums\SystemTransactionCode;
 use App\Enums\TransactionKind;
 use App\Models\Bed;
 use App\Models\BusinessDate;
@@ -15,6 +16,7 @@ use App\Models\Reservation;
 use App\Models\ReservationUnit;
 use App\Models\Room;
 use App\Models\RoomType;
+use App\Models\TransactionCode;
 use App\Models\UnitGuest;
 use App\Models\UnitNight;
 use App\Models\User;
@@ -349,6 +351,30 @@ test('paid and balance add up the folios that are not Voided, and are 0.00 witho
 
         expect($rows->pluck('paid')->all())->toBe(['150.00', '300.00', '0.00', '0.00'])
             ->and($rows->pluck('balance')->all())->toBe(['186.00', '-300.00', '0.00', '0.00']);
+    });
+});
+
+test('a folio settled to the city ledger shows as billed to the company, not as paid, and a reversal nets it out', function () {
+    [$user, $property] = listOwner();
+    $directBill = TransactionCode::factory()->system(SystemTransactionCode::DirectBillPayment)->create(['property_id' => $property->id]);
+    $settled = listReservation($property, ['created_at' => '2026-09-01 10:00:00']);
+    $folio = Folio::factory()->master()->closed()->create(['property_id' => $property->id, 'reservation_id' => $settled->id]);
+    FolioLine::factory()->for($folio)->create(['unit_amount' => '1700.00', 'amount' => '1700.00']);
+    FolioLine::factory()->for($folio)->payment('300.00')->create();
+    FolioLine::factory()->for($folio)->payment('1400.00')->create(['transaction_code_id' => $directBill->id]);
+
+    $reversed = listReservation($property, ['created_at' => '2026-09-02 10:00:00']);
+    $other = Folio::factory()->master()->create(['property_id' => $property->id, 'reservation_id' => $reversed->id]);
+    FolioLine::factory()->for($other)->create(['unit_amount' => '500.00', 'amount' => '500.00']);
+    FolioLine::factory()->for($other)->payment('500.00')->create(['transaction_code_id' => $directBill->id]);
+    FolioLine::factory()->for($other)->create(['kind' => TransactionKind::Payment, 'transaction_code_id' => $directBill->id, 'unit_amount' => '500.00', 'amount' => '500.00', 'reversal_of_id' => FolioLine::query()->where('folio_id', $other->id)->where('amount', '-500.00')->value('id')]);
+
+    $this->actingAs($user)->get(listUrl($property, ['sort' => 'booked']))->assertInertia(function (Assert $page): void {
+        $rows = collect($page->toArray()['props']['reservations']['data']);
+
+        expect($rows->pluck('paid')->all())->toBe(['300.00', '0.00'])
+            ->and($rows->pluck('billedToCompany')->all())->toBe(['1400.00', '0.00'])
+            ->and($rows->pluck('balance')->all())->toBe(['0.00', '500.00']);
     });
 });
 

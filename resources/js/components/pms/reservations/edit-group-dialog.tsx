@@ -2,6 +2,7 @@ import { useForm } from '@inertiajs/react';
 import { EnumSelect } from '@/components/pms/enum-select';
 import type { EnumOption } from '@/components/pms/enum-select';
 import { FormOverlay } from '@/components/pms/form-overlay';
+import { eachPaysHint } from '@/components/pms/reservations/each-pays-hint';
 import { KEEP_OPTIONS } from '@/components/pms/use-form-options';
 import { useFreshOnOpen } from '@/components/pms/use-fresh-on-open';
 import {
@@ -87,6 +88,17 @@ function EditGroupForm({
                         }
                         aria-invalid={!!errors.billing_mode}
                     />
+                    {eachPaysHint(
+                        reservation.companyName,
+                        data.billing_mode,
+                    ) && (
+                        <FieldDescription>
+                            {eachPaysHint(
+                                reservation.companyName,
+                                data.billing_mode,
+                            )}
+                        </FieldDescription>
+                    )}
                     <FieldError>{errors.billing_mode}</FieldError>
                 </Field>
             )}

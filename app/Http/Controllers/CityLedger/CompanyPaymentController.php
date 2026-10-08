@@ -6,8 +6,10 @@ use App\Actions\CityLedger\AllocateArPayment;
 use App\Actions\CityLedger\RecordArPayment;
 use App\Actions\CityLedger\ReverseAllocation;
 use App\Actions\CityLedger\VoidArPayment;
+use App\Data\CityLedger\ArPaymentReferenceCheckData;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\CityLedger\AllocateArPaymentRequest;
+use App\Http\Requests\CityLedger\CheckArPaymentReferenceRequest;
 use App\Http\Requests\CityLedger\RecordArPaymentRequest;
 use App\Http\Requests\CityLedger\ReverseAllocationRequest;
 use App\Models\ArAllocation;
@@ -16,7 +18,9 @@ use App\Models\Company;
 use App\Models\Property;
 use App\Services\CityLedger\ArPaymentReceipt;
 use App\Services\CityLedger\ArPaymentRefusals;
+use App\Services\CityLedger\FolioPaymentReferences;
 use App\Services\Property\PrintedPdf;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -45,6 +49,15 @@ class CompanyPaymentController extends Controller
             : __('Payment recorded. Receipt :receipt.', ['receipt' => $result->payment?->receipt_number])]);
 
         return back(fallback: $this->page($property, $company));
+    }
+
+    /**
+     * The warning for a reference that was already recorded on a folio payment or another AR payment of the company.
+     * It writes nothing and never blocks the payment. POST, so a bank reference never goes in a URL.
+     */
+    public function checkReference(CheckArPaymentReferenceRequest $request, Property $property, Company $company, FolioPaymentReferences $references): JsonResponse
+    {
+        return response()->json(new ArPaymentReferenceCheckData($references->warningFor($company, $request->input('reference'))));
     }
 
     public function allocate(AllocateArPaymentRequest $request, Property $property, Company $company, ArPayment $payment, AllocateArPayment $allocateArPayment, ArPaymentRefusals $refusals): RedirectResponse

@@ -36,6 +36,7 @@ Route::prefix('finance')->name('finance.')->group(function () {
 
             Route::prefix('payments')->name('payments.')->group(function () {
                 Route::post('/', [CompanyPaymentController::class, 'store'])->middleware('can:'.PermissionEnum::CityLedgerPayment->value)->name('store');
+                Route::post('reference-check', [CompanyPaymentController::class, 'checkReference'])->middleware('can:'.PermissionEnum::CityLedgerPayment->value)->name('reference-check');
                 Route::post('{payment}/void', [CompanyPaymentController::class, 'void'])->middleware('can:'.PermissionEnum::CityLedgerPayment->value)->name('void');
                 Route::post('{payment}/allocations', [CompanyPaymentController::class, 'allocate'])->middleware('can:'.PermissionEnum::CityLedgerAllocate->value)->name('allocations.store');
                 Route::post('{payment}/allocations/{allocation}/reverse', [CompanyPaymentController::class, 'reverse'])->middleware('can:'.PermissionEnum::CityLedgerAllocate->value)->name('allocations.reverse');

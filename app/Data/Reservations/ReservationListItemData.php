@@ -14,8 +14,8 @@ use Spatie\LaravelData\Data;
 /**
  * One card or row of the reservations list. Expects the list query of `ReservationDirectory`: the `booker` and
  * `units.roomType` relations and the aggregate columns (`first_arrival`, `last_departure`, `live_units`, `all_units`,
- * `adults`, `children`, `stay_total`, `paid`, `balance`). Dates, counts and the total come from units that hold
- * inventory. `paid` and `balance` come from the folios that are not Voided, and are 0.00 while the reservation has none.
+ * `adults`, `children`, `stay_total`, `paid`, `billed`, `balance`). Dates, counts and the total come from units that hold
+ * inventory. `paid` (real payments), `billedToCompany` (the DIRECT_BILL line of a folio settled to the city ledger) and `balance` come from the folios that are not Voided, and are 0.00 while the reservation has none.
  */
 class ReservationListItemData extends Data
 {
@@ -48,6 +48,7 @@ class ReservationListItemData extends Data
         public string $bookedOn,
         public string $total,
         public string $paid,
+        public string $billedToCompany,
         public string $balance,
         public ReservationRoomBoxData $roomBox,
     ) {}
@@ -93,6 +94,7 @@ class ReservationListItemData extends Data
             bookedOn: $reservation->created_at->toDateString(),
             total: BigDecimal::of((string) $reservation->getAttribute('stay_total'))->toScale(2)->__toString(),
             paid: (string) $reservation->getAttribute('paid'),
+            billedToCompany: (string) $reservation->getAttribute('billed'),
             balance: (string) $reservation->getAttribute('balance'),
             roomBox: $roomBox,
         );

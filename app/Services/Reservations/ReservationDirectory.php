@@ -5,6 +5,7 @@ namespace App\Services\Reservations;
 use App\Enums\FolioStatus;
 use App\Enums\ReservationSource;
 use App\Enums\ReservationStatus;
+use App\Enums\SystemTransactionCode;
 use App\Enums\TransactionKind;
 use App\Enums\UnitStatus;
 use App\Models\Guest;
@@ -29,7 +30,7 @@ use Spatie\QueryBuilder\QueryBuilder;
  * The reservation list of one property: search, filters, sorts, pagination and status counts from the URL.
  *
  * Each row carries the dates, unit counts, occupancy and total of the units that hold inventory (dates fall back to
- * all units when none does), and the paid amount and balance of the folios that are not Voided, from three grouped
+ * all units when none does), and the paid amount (real payments, not the DIRECT_BILL line), the amount billed to the company and the balance of the folios that are not Voided, from three grouped
  * sub-queries joined once. See docs/12-reservations/06-reservation-page.md.
  */
 class ReservationDirectory
@@ -105,6 +106,7 @@ class ReservationDirectory
             'stay.children',
             DB::raw('coalesce(totals.total, 0) as stay_total'),
             DB::raw('coalesce(ledger.paid, 0)::numeric(14, 2) as paid'),
+            DB::raw('coalesce(ledger.billed, 0)::numeric(14, 2) as billed'),
             DB::raw('coalesce(ledger.balance, 0)::numeric(14, 2) as balance'),
         ]);
         $this->applyStay($base, $this->stay($property, $request));
@@ -206,12 +208,17 @@ class ReservationDirectory
 
         $ledger = DB::table('folios')
             ->leftJoin('folio_lines', 'folio_lines.folio_id', '=', 'folios.id')
+            ->leftJoin('transaction_codes', 'transaction_codes.id', '=', 'folio_lines.transaction_code_id')
             ->where('folios.property_id', $property->id)
             ->where('folios.status', '!=', FolioStatus::Voided->value)
             ->groupBy('folios.reservation_id')
             ->selectRaw('folios.reservation_id,
-                (-coalesce(sum(folio_lines.amount) filter (where folio_lines.kind = ?), 0))::numeric(14, 2) as paid,
-                coalesce(sum(folio_lines.amount), 0)::numeric(14, 2) as balance', [TransactionKind::Payment->value]);
+                (-coalesce(sum(folio_lines.amount) filter (where folio_lines.kind = ? and transaction_codes.system_key is distinct from ?), 0))::numeric(14, 2) as paid,
+                (-coalesce(sum(folio_lines.amount) filter (where folio_lines.kind = ? and transaction_codes.system_key = ?), 0))::numeric(14, 2) as billed,
+                coalesce(sum(folio_lines.amount), 0)::numeric(14, 2) as balance', [
+                TransactionKind::Payment->value, SystemTransactionCode::DirectBillPayment->value,
+                TransactionKind::Payment->value, SystemTransactionCode::DirectBillPayment->value,
+            ]);
 
         return Reservation::query()
             ->where('reservations.property_id', $property->id)

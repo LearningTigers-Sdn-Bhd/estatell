@@ -1,10 +1,12 @@
-import { useForm } from '@inertiajs/react';
-import { useState } from 'react';
+import { useForm, useHttp } from '@inertiajs/react';
+import { AlertCircleIcon } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { DatePicker } from '@/components/pms/date-picker';
 import { EnumSelect } from '@/components/pms/enum-select';
 import { FormOverlay } from '@/components/pms/form-overlay';
 import { MoneyInput } from '@/components/pms/money-input';
 import { useFreshOnOpen } from '@/components/pms/use-fresh-on-open';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
     Field,
@@ -15,7 +17,10 @@ import {
 } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { store } from '@/routes/finance/city-ledger/companies/payments';
+import {
+    referenceCheck,
+    store,
+} from '@/routes/finance/city-ledger/companies/payments';
 
 type Method = App.Data.CityLedger.ArPaymentMethodOptionData;
 
@@ -47,6 +52,36 @@ function RecordForm({
     const method = methods.find(
         (one) => String(one.id) === data.payment_method_id,
     );
+
+    const http = useHttp<
+        { reference: string },
+        App.Data.CityLedger.ArPaymentReferenceCheckData
+    >('post', referenceCheck.url({ company: companyId }), { reference: '' });
+    const [warning, setWarning] = useState<string | null>(null);
+    const askReference = method?.requiresReference ? data.reference : '';
+
+    useEffect(() => {
+        if (askReference.trim() === '') {
+            setWarning(null);
+
+            return;
+        }
+
+        let current = true;
+        const timer = window.setTimeout(() => {
+            http.transform(() => ({ reference: askReference }));
+            http.submit()
+                .then((answer) => current && setWarning(answer.warning))
+                .catch(() => current && setWarning(null));
+        }, 300);
+
+        return () => {
+            current = false;
+            window.clearTimeout(timer);
+        };
+        // The check depends only on the reference.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [askReference]);
 
     const submit = () => {
         form.transform((values) => ({
@@ -126,6 +161,12 @@ function RecordForm({
                         autoComplete="off"
                         aria-invalid={!!errors.reference}
                     />
+                    {warning && (
+                        <Alert>
+                            <AlertCircleIcon />
+                            <AlertDescription>{warning}</AlertDescription>
+                        </Alert>
+                    )}
                     <FieldError>{errors.reference}</FieldError>
                 </Field>
             )}
@@ -167,7 +208,9 @@ function RecordForm({
 }
 
 /**
- * Records money a company paid against its city ledger. A repeated submit returns the same payment.
+ * Records money a company paid against its city ledger. A repeated submit returns the same payment. Under the
+ * reference, a warning shows when the same reference was already recorded on a folio payment or another AR payment of
+ * the company; it never blocks the payment.
  */
 export function RecordArPaymentDialog(props: Props) {
     return <RecordForm key={useFreshOnOpen(props.open)} {...props} />;

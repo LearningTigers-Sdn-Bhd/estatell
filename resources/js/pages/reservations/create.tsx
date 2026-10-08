@@ -1018,6 +1018,13 @@ export default function ReservationCreate({
                                 currency={currency}
                                 billingModes={billingModes}
                                 billingMode={data.billing_mode}
+                                companyName={
+                                    companies.find(
+                                        (company) =>
+                                            String(company.id) ===
+                                            data.company_id,
+                                    )?.name ?? null
+                                }
                                 onBillingModeChange={(value) =>
                                     form.setData('billing_mode', value)
                                 }

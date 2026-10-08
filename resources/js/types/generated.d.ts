@@ -183,6 +183,9 @@ id: number,
 name: string,
 requiresReference: boolean,
 };
+export type ArPaymentReferenceCheckData = {
+warning: string | null,
+};
 export type ArPaymentRowData = {
 id: number,
 receiptNumber: string,
@@ -1583,6 +1586,7 @@ roomTypes: string[],
 bookedOn: string,
 total: string,
 paid: string,
+billedToCompany: string,
 balance: string,
 roomBox: App.Data.Reservations.ReservationRoomBoxData,
 };

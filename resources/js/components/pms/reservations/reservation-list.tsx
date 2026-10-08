@@ -127,7 +127,22 @@ export function ReservationList({
                 header: 'Paid',
                 enableSorting: false,
                 cell: (info) => (
-                    <MoneyText amount={info.getValue()} currency={currency} />
+                    <span className="flex flex-col">
+                        <MoneyText
+                            amount={info.getValue()}
+                            currency={currency}
+                        />
+                        {Number(info.row.original.billedToCompany) > 0 && (
+                            <span className="text-xs text-muted-foreground">
+                                +{' '}
+                                <MoneyText
+                                    amount={info.row.original.billedToCompany}
+                                    currency={currency}
+                                />{' '}
+                                billed to company
+                            </span>
+                        )}
+                    </span>
                 ),
             }),
             column.accessor('balance', {

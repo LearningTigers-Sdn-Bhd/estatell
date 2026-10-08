@@ -2,6 +2,7 @@ import { useForm } from '@inertiajs/react';
 import { CreditOverrideField } from '@/components/pms/city-ledger/credit-override-field';
 import { CompanySelect } from '@/components/pms/company-select';
 import { FormOverlay } from '@/components/pms/form-overlay';
+import { eachPaysHint } from '@/components/pms/reservations/each-pays-hint';
 import {
     KEEP_OPTIONS,
     useFormOptions,
@@ -72,8 +73,14 @@ function ChangeCompanyForm({
                     invalid={!!errors.company_id}
                 />
                 <FieldDescription>
-                    Leave empty for no company. The company is billed through
-                    the master folio.
+                    Leave empty for no company.{' '}
+                    {eachPaysHint(
+                        companies?.find(
+                            (company) => String(company.id) === data.company_id,
+                        )?.name,
+                        reservation.billingMode,
+                        'change',
+                    ) ?? 'The company is billed through the master folio.'}
                 </FieldDescription>
                 <FieldError>{errors.company_id}</FieldError>
             </Field>

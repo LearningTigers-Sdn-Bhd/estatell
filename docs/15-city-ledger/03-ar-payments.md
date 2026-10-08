@@ -52,6 +52,13 @@ Payments and allocations are never edited. Only the void and reversal columns ar
 
 A refusal returns a result, writes nothing and logs nothing. Each success logs on the company: `ar_payment.recorded`, `ar_payment.allocated`, `ar_allocation.reversed`, `ar_payment.voided`.
 
+Decisions made at build time (checklist item 21, reference warning):
+
+- `FolioPaymentReferences` keeps its name although it also reads the company's AR payments.
+- With more than one match the warning names the oldest and reads "…on 07 Oct, and 2 more. Check it is not the same money before you record it."
+- The check runs only while the Reference field is shown (a method that requires a reference) and the reference is not blank. A failed request just shows no warning.
+- The warning uses the default `Alert` with an alert icon, because the design system has no warning tone.
+
 ## Permissions
 
 | Permission             | Allows                                    | Default roles           |

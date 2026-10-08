@@ -2,6 +2,7 @@ import { EnumSelect } from '@/components/pms/enum-select';
 import type { EnumOption } from '@/components/pms/enum-select';
 import { MoneyText } from '@/components/pms/money-text';
 import { sumMoney } from '@/components/pms/reservations/booking-lines';
+import { eachPaysHint } from '@/components/pms/reservations/each-pays-hint';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 
@@ -34,6 +35,7 @@ export function BookingSummaryRail({
     billingModes,
     billingMode,
     onBillingModeChange,
+    companyName,
     guests,
     unitsWithoutGuest,
     discountCount,
@@ -44,6 +46,7 @@ export function BookingSummaryRail({
     billingModes: EnumOption[];
     billingMode: string;
     onBillingModeChange: (value: string) => void;
+    companyName?: string | null;
     guests: { name: string; unit: string | null }[];
     unitsWithoutGuest: number;
     /** How many lines have a catalogue discount picked. */
@@ -100,6 +103,11 @@ export function BookingSummaryRail({
                                 value={billingMode}
                                 onValueChange={onBillingModeChange}
                             />
+                            {eachPaysHint(companyName, billingMode) && (
+                                <p className="text-sm text-muted-foreground">
+                                    {eachPaysHint(companyName, billingMode)}
+                                </p>
+                            )}
                         </div>
                     </>
                 )}
