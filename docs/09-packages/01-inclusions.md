@@ -46,6 +46,8 @@ Both enums already exist (added with meal entitlements). Each has `label()`, `op
 | PerItem       | 1      | First night only |
 | PerGuest      | Guests | First night only |
 
+`total(Currency $currency, $inclusions, int $guests, bool $firstNight)` returns the sum of the lines of one night, with the same rules. `PackagePricing` uses it to [split a package stay](../08-rates/03-pricing-strategies.md#package-nights-and-inclusions) so each night covers its inclusions.
+
 The inclusion dates do not filter nights. They set the meals a unit is owed, through `MealInclusionData::fromInclusion()`.
 
 ## Examples
@@ -60,5 +62,5 @@ The inclusion dates do not filter nights. They set the meals a unit is owed, thr
 
 ## Rules
 
-- PerStay, PerItem and PerGuest inclusions post once, on the first night.
+- PerStay, PerItem and PerGuest inclusions post once, on the first night. A package puts more of its price on the first night to cover them.
 - Inclusions with a meal period feed [Meal entitlements](../07-meals/02-meal-entitlements.md).

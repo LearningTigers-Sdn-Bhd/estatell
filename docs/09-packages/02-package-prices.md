@@ -39,14 +39,15 @@ Package prices depend on the arrival date. A Friday arrival should cost one pric
 - The booking form locks departure = arrival + `fixed_nights`.
 - `rate_plan_arrival_weekdays` limits arrival days. No rows means any day. Saving all seven weekdays stores none. At least one weekday must be ticked.
 - Stop-sell and closed-to-arrival still come from `rates`.
-- `PackagePricing` splits the total across nights (see [Pricing strategies](../08-rates/03-pricing-strategies.md)). A Fixed child price is an amount for the stay.
+- `PackagePricing` splits the total across nights so each night covers its inclusions (see [Package nights and inclusions](../08-rates/03-pricing-strategies.md#package-nights-and-inclusions)). A Fixed child price is an amount for the stay.
+- A stay price below its inclusions is refused at quote: "The package price is less than its inclusions."
 
 ## Built first slice
 
 Staff with `settings.manage` use the Pricing tab of a package plan (`settings.rate-plans.pricing.edit`, `settings.rate-plans.pricing.package.update`). `SavePackagePricing` in `app/Actions/Rates/` replaces the prices and the weekdays in one transaction. Price rows with an `id` are updated, new rows are added and rows left out are removed.
 
 - **Refused:** an archived plan, a plan that is not a package, a price `id` from another plan, a room type the plan does not sell, and overlapping periods. A save that changes nothing is not logged.
-- **Quotes:** `PackagePricing` prices the stay, see [Pricing strategies](../08-rates/03-pricing-strategies.md). The quote is refused when the nights are not `fixed_nights` or no period holds the arrival date.
+- **Quotes:** `PackagePricing` prices the stay, see [Pricing strategies](../08-rates/03-pricing-strategies.md). The quote is refused when the nights are not `fixed_nights`, no period holds the arrival date, or the stay price is less than the inclusions.
 - **Arrival weekdays:** `RestrictionCheck` reports an arrival on a day that is not allowed. The quote does not check it.
 - **Not built yet:** the booking form lock.
 - **Not built yet:** the `early_departure_policy` field. It arrives with reservations.
@@ -63,11 +64,12 @@ A package can follow another package of the same charged unit and the same night
 | Guest extends by one night | The extra night uses another rate plan on its `unit_nights.rate_plan_id`                     |
 | Guest leaves early         | The [early departure policy](../06-catalogues/06-room-revenue.md#policies) of the property   |
 | Package price edited       | Existing bookings keep their stored nightly amounts                                          |
+| Inclusions edited          | Existing bookings keep their stored nightly amounts. A new quote fits the new inclusions     |
 | `fixed_nights` edited      | Existing bookings keep their stored nights. Refused while an active package follows the plan |
 
 ## Example
 
-Island Escape 3D2N, arrival 1-30 Jun: RM600 per adult. 2 adults + 1 child aged 8 (50%) = RM1,500, stored as RM750 + RM750.
+Island Escape 3D2N, arrival 1-30 Jun: RM600 per adult. 2 adults + 1 child aged 8 (50%) = RM1,500, stored as RM750 + RM750 when the plan has no inclusions.
 
 ## UI
 
