@@ -28,6 +28,7 @@ use App\Services\Registration\RegistrationCardRequirement;
 use App\Services\Registration\RegistrationCardStay;
 use App\Services\Registration\TermsRenderer;
 use Illuminate\Database\UniqueConstraintViolationException;
+use Illuminate\Support\Facades\DB;
 use Inertia\Testing\AssertableInertia as Assert;
 use Spatie\Activitylog\Models\Activity;
 
@@ -223,10 +224,11 @@ test('a signature that is not a PNG is refused', function () {
 
 test('a language with no published terms is refused', function () {
     $setup = cardSetup();
+    $payload = cardPayload($setup, ['locale' => 'ms']);
     $setup['property']->termsDocuments()->sole()->versions()->forLocale(Locale::Malay)->delete();
 
     $this->actingAs($setup['owner'])
-        ->post(signUrl($setup), cardPayload($setup, ['locale' => 'ms']))
+        ->post(signUrl($setup), $payload)
         ->assertSessionHas('inertia.flash_data.toast.type', 'error');
 });
 
@@ -240,7 +242,7 @@ test('required fields follow the card layout', function () {
         ->assertSessionHasErrors('email')
         ->assertSessionDoesntHaveErrors('phone');
 
-    expect(RegistrationCard::query()->sole()->status)->toBe(RegistrationCardStatus::Draft);
+    expect(RegistrationCard::query()->where('status', RegistrationCardStatus::Signed)->exists())->toBeFalse();
 });
 
 test('a missing ID document is refused when the field is Required, and an existing one can be reused', function () {
@@ -313,7 +315,7 @@ test('only one open card exists for a unit guest', function () {
     $setup = cardSetup();
     app(PrepareRegistrationCard::class)($setup['unitGuest']);
 
-    expect(fn () => RegistrationCard::factory()->create(['unit_guest_id' => $setup['unitGuest']->id]))->toThrow(UniqueConstraintViolationException::class)
+    expect(fn () => DB::transaction(fn () => RegistrationCard::factory()->create(['unit_guest_id' => $setup['unitGuest']->id])))->toThrow(UniqueConstraintViolationException::class)
         ->and(app(PrepareRegistrationCard::class)($setup['unitGuest'])->id)->toBe(RegistrationCard::query()->sole()->id);
 });
 
@@ -332,7 +334,14 @@ test('the requirement follows the card scope and leaves out signed guests and mi
 
     expect($requirement->missingFor($setup['unit'], $property)->pluck('id')->sort()->values()->all())->toBe([$setup['unitGuest']->id, $adult->id]);
 
-    RegistrationCard::factory()->create(['unit_guest_id' => $adult->id, 'status' => 'signed']);
+    RegistrationCard::factory()->create([
+        'unit_guest_id' => $adult->id,
+        'status' => 'signed',
+        'signed_at' => now(),
+        'terms_id' => $property->termsDocuments()->sole()->versions()->value('id'),
+        'snapshot' => [],
+        'number' => 'RC-TEST-1',
+    ]);
 
     expect($requirement->missingFor($setup['unit'], $property)->pluck('id')->all())->toBe([$setup['unitGuest']->id]);
 });
