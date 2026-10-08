@@ -12,6 +12,7 @@ use App\Models\FolioLine;
 use App\Models\ReservationUnit;
 use App\Models\TransactionCode;
 use App\Models\User;
+use App\Services\Folio\FolioPostability;
 use App\Services\Folio\FolioRouter;
 use App\Services\Folio\NightChargeQuote;
 use App\Services\Folio\QuotedDiscount;
@@ -26,6 +27,7 @@ class PostRoomCharges
         private CurrentBusinessDate $currentBusinessDate,
         private NightChargeQuote $nightChargeQuote,
         private FolioRouter $folioRouter,
+        private FolioPostability $folioPostability,
         private CreateFolio $createFolio,
         private PostFolioCharge $postFolioCharge,
         private UnitNationality $unitNationality,
@@ -98,7 +100,7 @@ class PostRoomCharges
                 $folio = $this->folioRouter->targetFor($locked, $charge->code);
 
                 if ($folio !== null && $folio->status !== FolioStatus::Open) {
-                    return PostingResult::refused(PostingResult::REFUSAL_FOLIO_NOT_OPEN);
+                    return PostingResult::refused((string) $this->folioPostability->refusalFor($folio));
                 }
 
                 $targets[$charge->key] = $folio;

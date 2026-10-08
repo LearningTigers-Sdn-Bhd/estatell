@@ -10,9 +10,13 @@ use App\Enums\PaymentMethodType;
 use App\Enums\PaymentPurpose;
 use App\Enums\SurchargeType;
 use App\Enums\SystemTransactionCode;
+use App\Enums\TransactionCategory;
+use App\Enums\UnitStatus;
 use App\Models\BusinessDate;
 use App\Models\ChargeItem;
+use App\Models\Company;
 use App\Models\Folio;
+use App\Models\FolioRoutingRule;
 use App\Models\Payment;
 use App\Models\PaymentMethod;
 use App\Models\Property;
@@ -22,6 +26,7 @@ use App\Models\ReservationUnit;
 use App\Models\Tax;
 use App\Models\TransactionCode;
 use App\Models\User;
+use App\Services\Payments\PaymentPurposeChoices;
 use App\Services\Payments\PaymentReceipt;
 use App\Services\Property\PrintProfile;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -270,7 +275,7 @@ test('the payment options load on request only and leave out city ledger and OTA
         ->assertOk()
         ->assertJsonCount(1, 'props.paymentOptions.methods')
         ->assertJsonPath('props.paymentOptions.methods.0.id', $setup['cash']->id)
-        ->assertJsonPath('props.paymentOptions.purposes.0.value', 'advance');
+        ->assertJsonMissingPath('props.paymentOptions.purposes');
 });
 
 test('the receipt opens inline as an A4 PDF named after the receipt number', function () {
@@ -340,4 +345,87 @@ test('a refund has no receipt, and the receipt needs payment.record inside the r
 
     $this->actingAs($setup['user'])->get($url($foreign))->assertNotFound();
     $this->actingAs(User::factory()->withRole(DefaultRoleEnum::Owner)->create())->get($url($payment))->assertNotFound();
+});
+
+/**
+ * The folio entry of the folio tab, as the page sends it.
+ *
+ * @return array<string, mixed>
+ */
+function fpFolioProps(array $setup, string $folio): array
+{
+    $props = [];
+
+    test()->actingAs($setup['user'])->get(fpUrl($setup, 'reservations.folio', ['folio' => $folio]))
+        ->assertInertia(function (Assert $page) use (&$props): void {
+            $props = $page->toArray()['props']['folio'];
+        });
+
+    return $props;
+}
+
+test('each folio offers the purposes of its stage, the first as the default', function (Closure $arrange, array $purposes) {
+    $setup = fpSetup();
+    TransactionCode::factory()->system(SystemTransactionCode::RoomRevenue)->create(['property_id' => $setup['property']->id]);
+    $key = $arrange($setup);
+
+    $folio = fpFolioProps($setup, $key);
+
+    expect(collect($folio['paymentPurposes'])->pluck('value')->all())->toBe($purposes)
+        ->and($folio['defaultPaymentPurpose'])->toBe($purposes[0] ?? null)
+        ->and($folio['canRecordPayment'])->toBe($purposes !== []);
+})->with([
+    'unit folio, checked in' => [fn (array $setup) => (string) $setup['folio']->id, ['settlement', 'security_deposit']],
+    'unit folio, checked out' => [function (array $setup) {
+        $setup['unit']->forceFill(['status' => UnitStatus::CheckedOut, 'checked_out_at' => now()])->save();
+
+        return (string) $setup['folio']->id;
+    }, ['settlement']],
+    'unit folio, cancelled unit' => [function (array $setup) {
+        $setup['unit']->forceFill(['status' => UnitStatus::Cancelled])->save();
+
+        return (string) $setup['folio']->id;
+    }, ['settlement']],
+    'unit entry before arrival' => [fn (array $setup) => 'u'.ReservationUnit::factory()->withNights()->create(['reservation_id' => $setup['reservation']->id])->id, ['advance']],
+    'unit folio in-house, Room goes to the Master' => [function (array $setup) {
+        $master = Folio::factory()->master()->create(['property_id' => $setup['property']->id, 'reservation_id' => $setup['reservation']->id]);
+        FolioRoutingRule::factory()->forCategory(TransactionCategory::Room)->toFolio($master)->create(['reservation_id' => $setup['reservation']->id]);
+
+        return (string) $setup['folio']->id;
+    }, ['settlement', 'security_deposit']],
+    'Master before the first check-in' => [function (array $setup) {
+        $setup['unit']->forceFill(['status' => UnitStatus::Confirmed, 'checked_in_at' => null])->save();
+
+        return (string) Folio::factory()->master()->create(['property_id' => $setup['property']->id, 'reservation_id' => $setup['reservation']->id])->id;
+    }, ['advance']],
+    'Master with a unit in-house' => [fn (array $setup) => (string) Folio::factory()->master()->create(['property_id' => $setup['property']->id, 'reservation_id' => $setup['reservation']->id])->id, ['settlement']],
+    'Master after every unit left' => [function (array $setup) {
+        $setup['unit']->forceFill(['status' => UnitStatus::CheckedOut, 'checked_out_at' => now()])->save();
+
+        return (string) Folio::factory()->master()->create(['property_id' => $setup['property']->id, 'reservation_id' => $setup['reservation']->id])->id;
+    }, ['settlement']],
+    'third-party folio' => [fn (array $setup) => (string) Folio::factory()->thirdParty()->create(['property_id' => $setup['property']->id, 'reservation_id' => $setup['reservation']->id])->id, ['settlement']],
+]);
+
+test('a company payer names the master and third-party folios in the rail', function () {
+    $setup = fpSetup();
+    $company = Company::factory()->for($setup['property'])->create(['name' => 'Borneo Travel']);
+    Folio::factory()->master()->create(['property_id' => $setup['property']->id, 'reservation_id' => $setup['reservation']->id, 'payer_company_id' => $company->id]);
+
+    $this->actingAs($setup['user'])->get(fpUrl($setup, 'reservations.folio'))->assertInertia(fn (Assert $page) => $page
+        ->where('folios', fn ($rail) => collect($rail)->firstWhere('kind', 'master')['subtitle'] === 'Borneo Travel'));
+});
+
+test('a unit before arrival has no purpose when its Room charges go to the Master', function () {
+    $setup = fpSetup();
+    TransactionCode::factory()->system(SystemTransactionCode::RoomRevenue)->create(['property_id' => $setup['property']->id]);
+    $unit = ReservationUnit::factory()->create(['reservation_id' => $setup['reservation']->id]);
+    $choices = app(PaymentPurposeChoices::class);
+
+    expect($choices->for($setup['reservation'], null, $unit->id))->toBe([PaymentPurpose::Advance]);
+
+    $master = Folio::factory()->master()->create(['property_id' => $setup['property']->id, 'reservation_id' => $setup['reservation']->id]);
+    FolioRoutingRule::factory()->forCategory(TransactionCategory::Room)->toFolio($master)->create(['reservation_id' => $setup['reservation']->id]);
+
+    expect($choices->for($setup['reservation'], null, $unit->id))->toBe([]);
 });

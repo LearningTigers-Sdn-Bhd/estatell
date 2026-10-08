@@ -6,14 +6,11 @@ use App\Data\Reservations\CheckInCollectionData;
 use App\Enums\FolioType;
 use App\Enums\PaymentPurpose;
 use App\Enums\PaymentStatus;
-use App\Enums\SystemTransactionCode;
-use App\Models\Folio;
 use App\Models\Payment;
 use App\Models\Property;
 use App\Models\Reservation;
 use App\Models\ReservationUnit;
 use App\Models\Tax;
-use App\Models\TransactionCode;
 use App\Services\Folio\FolioRouter;
 use App\Services\Folio\ScheduledFolioRows;
 use Brick\Math\BigDecimal;
@@ -36,8 +33,7 @@ class CheckInCollection
         $reservation = $unit->reservation()->with('booker')->firstOrFail();
         $property = $reservation->property()->with('settings')->firstOrFail();
         $flagged = Tax::query()->where('property_id', $property->id)->where('enabled', true)->where('collect_at_check_in', true)->orderBy('id')->get();
-        $roomCode = TransactionCode::query()->where('property_id', $property->id)->where('system_key', SystemTransactionCode::RoomRevenue->value)->first();
-        $hidden = $roomCode !== null && $this->routesToMaster($reservation, $unit, $roomCode);
+        $hidden = $this->folioRouter->roomChargesGoToMaster($unit);
         $taxes = [];
         $total = BigDecimal::zero();
 
@@ -84,13 +80,6 @@ class CheckInCollection
         }
 
         return $sums;
-    }
-
-    private function routesToMaster(Reservation $reservation, ReservationUnit $unit, TransactionCode $roomCode): bool
-    {
-        $target = ($this->folioRouter->resolverFor($reservation))($unit, $roomCode);
-
-        return $target !== null && Folio::query()->whereKey($target)->value('type') === FolioType::Master;
     }
 
     /**

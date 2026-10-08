@@ -9,6 +9,7 @@ use App\Enums\DocumentType;
 use App\Enums\FolioStatus;
 use App\Enums\FolioType;
 use App\Enums\PaymentMethodType;
+use App\Enums\PaymentPurpose;
 use App\Enums\PaymentStatus;
 use App\Enums\SurchargeType;
 use App\Enums\TransactionKind;
@@ -19,6 +20,7 @@ use App\Models\PaymentMethod;
 use App\Models\Reservation;
 use App\Models\ReservationUnit;
 use App\Models\User;
+use App\Services\Folio\FolioRouter;
 use App\Services\NightAudit\CurrentBusinessDate;
 use App\Services\NightAudit\NextDocumentNumber;
 use App\Services\Payments\PaymentQuote;
@@ -33,12 +35,15 @@ class RecordPayment
         private CreateFolio $createFolio,
         private PostFolioCharge $postFolioCharge,
         private NextDocumentNumber $nextDocumentNumber,
+        private FolioRouter $folioRouter,
     ) {}
 
     /**
      * Record a payment on a folio, or on a unit. Give exactly one. A unit with no folio yet gets its Unit folio here
      * (a deposit before check-in), and a unit that has one posts to it. The unit row (when given) and the folio row are
-     * locked first, and every check runs before the first write, so a refusal writes and logs nothing. A surcharge
+     * locked first, and every check runs before the first write, so a refusal writes and logs nothing. A SecurityDeposit
+     * on a Master or ThirdParty folio is refused (`deposit_on_unit_only`), and so is an Advance on a unit whose Room
+     * charges go to the Master folio (`advance_on_master`). A surcharge
      * posts as a charge on the same folio, and the payment line covers the amount, the fee and its tax, so the balance
      * falls by the amount entered. The key `payment:{uuid}` makes a repeat return the existing payment. The route
      * checks the permission and that the folio or unit belongs to the reservation's property.
@@ -72,6 +77,14 @@ class RecordPayment
 
             if ($target !== null && $target->status !== FolioStatus::Open) {
                 return PaymentResult::refused(PaymentResult::REFUSAL_FOLIO_NOT_OPEN);
+            }
+
+            if ($data->purpose === PaymentPurpose::SecurityDeposit && $target !== null && $target->type !== FolioType::Unit) {
+                return PaymentResult::refused(PaymentResult::REFUSAL_DEPOSIT_ON_UNIT_ONLY);
+            }
+
+            if ($data->purpose === PaymentPurpose::Advance && $this->roomsGoToMaster($reservation, $lockedUnit, $target)) {
+                return PaymentResult::refused(PaymentResult::REFUSAL_ADVANCE_ON_MASTER);
             }
 
             $method = $this->availableMethod($reservation, $data->paymentMethodId);
@@ -157,6 +170,20 @@ class RecordPayment
 
             return PaymentResult::recorded($payment->refresh(), [...$surchargeLines, $line->refresh()]);
         });
+    }
+
+    /**
+     * Whether an Advance would land on a Unit folio (or a unit entry) whose Room charges go to the Master folio.
+     */
+    private function roomsGoToMaster(Reservation $reservation, ?ReservationUnit $lockedUnit, ?Folio $target): bool
+    {
+        if ($target !== null && $target->type !== FolioType::Unit) {
+            return false;
+        }
+
+        $unit = $lockedUnit ?? ReservationUnit::query()->where('reservation_id', $reservation->id)->find($target?->reservation_unit_id);
+
+        return $unit !== null && $this->folioRouter->roomChargesGoToMaster($unit);
     }
 
     private function lockFolio(Reservation $reservation, ?Folio $folio): Folio

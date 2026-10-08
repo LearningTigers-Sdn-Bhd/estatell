@@ -29,7 +29,7 @@ class ReservationCityLedgerController extends Controller
         }
 
         Inertia::flash('toast', $result->isRefused()
-            ? ['type' => 'error', 'message' => $refusals->message((string) $result->refusal)]
+            ? ['type' => 'error', 'message' => $refusals->message((string) $result->refusal, $result->rooms)]
             : ['type' => 'success', 'message' => __('Settled to City ledger. Invoice :number issued.', ['number' => $result->invoice?->number])]);
 
         return back(fallback: route('reservations.folio', ['property' => $property, 'reservation' => $reservation, 'folio' => $folio->id]));

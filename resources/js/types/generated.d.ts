@@ -312,6 +312,11 @@ paymentUnitId: number | null,
 canPrintVoucher: boolean,
 canSettleToCityLedger: boolean,
 payerCompanyName: string | null,
+paymentPurposes: {
+value: string,
+label: string,
+}[],
+defaultPaymentPurpose: string | null,
 };
 export type FolioDiscountOptionData = {
 id: number,
@@ -634,10 +639,6 @@ idempotencyKey: string,
 };
 export type PaymentFormOptionsData = {
 methods: App.Data.Payments.PaymentMethodOptionData[],
-purposes: {
-value: string,
-label: string,
-}[],
 };
 export type PaymentMethodOptionData = {
 id: number,
@@ -1911,6 +1912,7 @@ export type PageOrientation = 'portrait' | 'landscape';
 export type PaymentMethodType = 'cash' | 'card' | 'bank_transfer' | 'e_wallet' | 'ota_collected' | 'direct_bill';
 export type PaymentPurpose = 'advance' | 'settlement' | 'security_deposit';
 export type PaymentReportStatus = 'pending' | 'completed' | 'failed' | 'voided';
+export type PaymentStage = 'before_arrival' | 'in_house' | 'departed';
 export type PaymentStatus = 'pending' | 'completed' | 'failed';
 export type PdfFont = 'office' | 'modern' | 'fancy' | 'handwritten';
 export type PdfFontSize = 'small' | 'medium' | 'large';

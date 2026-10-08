@@ -11,6 +11,7 @@ use App\Data\Shared\BadgeData;
 use App\Enums\FolioRowTag;
 use App\Enums\FolioStatus;
 use App\Enums\FolioType;
+use App\Enums\PaymentPurpose;
 use App\Enums\PaymentStatus;
 use App\Enums\TransactionKind;
 use App\Enums\UnitStatus;
@@ -21,6 +22,7 @@ use App\Models\Reservation;
 use App\Models\ReservationUnit;
 use App\Models\UnitAddOn;
 use App\Models\UnitNight;
+use App\Services\Payments\PaymentPurposeChoices;
 use Brick\Math\BigDecimal;
 use Illuminate\Support\Collection;
 
@@ -32,7 +34,7 @@ use Illuminate\Support\Collection;
  */
 class FolioStatement
 {
-    public function __construct(private ScheduledFolioRows $scheduledRows) {}
+    public function __construct(private ScheduledFolioRows $scheduledRows, private PaymentPurposeChoices $paymentPurposeChoices) {}
 
     /**
      * Expects the property's `settings` and the reservation's `booker` to be loaded. An unknown `$selected` falls back to the Master folio, or
@@ -60,7 +62,7 @@ class FolioStatement
                 (string) $folio->id,
                 $folio->type->value,
                 $this->name($folio, $labels),
-                $folio->payerGuest?->full_name,
+                $folio->payerGuest?->full_name ?? $folio->payerCompany?->name,
                 BadgeData::fromFolioStatus($folio->status),
                 $balances[$folio->id] ?? '0.00',
             ),
@@ -83,7 +85,7 @@ class FolioStatement
 
         return [
             'folios' => $entries->map(fn (array $entry): FolioRailItemData => $entry['item'])->all(),
-            'folio' => $open === null ? null : $this->data($open, $entries, $units, $blocks, $balances, $can, $labels),
+            'folio' => $open === null ? null : $this->data($reservation, $open, $entries, $units, $blocks, $balances, $can, $labels),
         ];
     }
 
@@ -130,13 +132,13 @@ class FolioStatement
 
     /**
      * The folio's name with its payer, as the transfer and routing selects show it: "Third party · Blue Reef Dive".
-     * Expects `payerGuest` to be loaded.
+     * Expects `payerGuest` and `payerCompany` to be loaded.
      *
      * @param  array<int, string>  $labels  Unit label by unit id
      */
     public function optionLabel(Folio $folio, array $labels): string
     {
-        return trim($this->name($folio, $labels).' · '.$folio->payerGuest?->full_name, ' ·');
+        return trim($this->name($folio, $labels).' · '.($folio->payerGuest?->full_name ?? $folio->payerCompany?->name), ' ·');
     }
 
     /**
@@ -160,7 +162,7 @@ class FolioStatement
      * @param  array{postCharge?: bool, reverse?: bool, transfer?: bool, discount?: bool, close?: bool, reopen?: bool, recordPayment?: bool, refund?: bool}  $can
      * @param  array<int, string>  $labels  Unit label by unit id
      */
-    private function data(array $entry, Collection $entries, array $units, array $blocks, array $balances, array $can, array $labels): FolioData
+    private function data(Reservation $reservation, array $entry, Collection $entries, array $units, array $blocks, array $balances, array $can, array $labels): FolioData
     {
         $folio = $entry['folio'];
         $isOpen = $folio?->status === FolioStatus::Open;
@@ -189,6 +191,9 @@ class FolioStatement
 
         [$posted, $discountable] = $folio === null ? [collect(), false] : $this->postedRows($folio, $allowed, $isOpen && ($can['discount'] ?? false), $isOpen && ($can['refund'] ?? false), $can['recordPayment'] ?? false, $can['printVoucher'] ?? false, $labels);
         $balance = $folio === null ? null : ($balances[$folio->id] ?? '0.00');
+        $purposes = ($can['recordPayment'] ?? false) && ($folio === null || $isOpen)
+            ? $this->paymentPurposeChoices->for($reservation, $folio, $entry['unit'])
+            : [];
         $projected = $scheduled->reduce(fn (BigDecimal $sum, FolioRowData $row): BigDecimal => $sum->plus($row->amount), BigDecimal::of($balance ?? '0'));
 
         return new FolioData(
@@ -208,11 +213,13 @@ class FolioStatement
             canPostCharge: $postUnits !== [],
             postUnits: $postUnits,
             transferTargets: $targets,
-            canRecordPayment: ($can['recordPayment'] ?? false) && ($folio === null || $isOpen),
+            canRecordPayment: $purposes !== [],
             canPrintVoucher: $posted->contains(fn (FolioRowData $row): bool => $row->printable) || $scheduled->contains(fn (FolioRowData $row): bool => $row->printable),
             paymentUnitId: $folio === null ? $entry['unit'] : null,
             canSettleToCityLedger: ($can['settleCityLedger'] ?? false) && $isOpen && $folio?->payer_company_id !== null && $balance !== null && bccomp($balance, '0', 2) > 0,
             payerCompanyName: $folio?->payerCompany?->name,
+            paymentPurposes: array_map(fn (PaymentPurpose $purpose): array => ['value' => $purpose->value, 'label' => $purpose->label()], $purposes),
+            defaultPaymentPurpose: ($purposes[0] ?? null)?->value,
         );
     }
 

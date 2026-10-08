@@ -211,6 +211,12 @@ Decisions made at build time (folio tab):
 - The Record payment button is the primary button when the folio has no Post charge button (a "not started" entry, or a user without `folio.post-charge`), and an outline button next to Post charge otherwise.
 - A payment row shows "Ref {reference}" under the method name. A refund row shows its reference the same way.
 
+Decisions made at build time (checklist item 21):
+
+- A unit whose Room charges go to the Master folio has no "not started" entry when all its Scheduled rows route to the Master, so the folio tab shows the Master instead. The "no purpose" case shows only for a unit folio, or for an entry that still has an unrouted row (an extra). `PaymentPurposeChoices` answers none in both.
+- `ReservationResult` gained `detail` (the amount held or the invoice number), `FolioStatusResult` and `ArInvoiceResult` gained `rooms`, so a refusal message can name what blocks it.
+- A mixed list reads "Room 103, Bed A1 are still in-house.": "Rooms 103, 104" is used only when every unit is a room.
+
 ## Not in this item
 
 OTA collected payments, the Stay View Record payment button ([Stay View](../18-front-desk/03-stay-view.md)), the Cards and List money strip, online gateways with Pending payments.

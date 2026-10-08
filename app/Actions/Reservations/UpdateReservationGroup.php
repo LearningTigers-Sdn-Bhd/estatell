@@ -6,14 +6,15 @@ use App\Actions\Folio\SyncRoutingRules;
 use App\Enums\BillingMode;
 use App\Models\Reservation;
 use App\Models\User;
+use App\Services\Folio\MasterPaymentsHeld;
 use Illuminate\Support\Facades\DB;
 
 class UpdateReservationGroup
 {
-    public function __construct(private SyncRoutingRules $syncRoutingRules) {}
+    public function __construct(private SyncRoutingRules $syncRoutingRules, private MasterPaymentsHeld $masterPaymentsHeld) {}
 
     /**
-     * Change the group name and billing mode. A blank name clears it. Nothing is written or logged when nothing changed. A changed billing mode runs `SyncRoutingRules`: later postings follow the new rules, and the result names units whose posted room lines stay on their own folio.
+     * Change the group name and billing mode. A blank name clears it. A billing mode change is refused while the Master folio holds money (`master_has_payments`); the refusal writes and logs nothing. Nothing is written or logged when nothing changed. A changed billing mode runs `SyncRoutingRules`: later postings follow the new rules, and the result names units whose posted room lines stay on their own folio.
      */
     public function __invoke(User $actor, Reservation $reservation, ?string $groupName, BillingMode $billingMode): GroupUpdateResult
     {
@@ -22,6 +23,14 @@ class UpdateReservationGroup
             $groupName = $groupName === null || trim($groupName) === '' ? null : trim($groupName);
 
             $unitsWithPostedRoomLines = [];
+
+            if ($locked->billing_mode !== $billingMode) {
+                $held = $this->masterPaymentsHeld->forReservation($locked);
+
+                if (bccomp($held, '0', 2) > 0) {
+                    return GroupUpdateResult::refused($reservation, GroupUpdateResult::REFUSAL_MASTER_HAS_PAYMENTS, $held);
+                }
+            }
 
             if ($locked->group_name !== $groupName || $locked->billing_mode !== $billingMode) {
                 $modeChanged = $locked->billing_mode !== $billingMode;

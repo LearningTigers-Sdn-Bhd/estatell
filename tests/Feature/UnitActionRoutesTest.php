@@ -3,15 +3,18 @@
 use App\Actions\Payments\RecordPayment;
 use App\Data\Payments\NewPaymentData;
 use App\Enums\DefaultRoleEnum;
+use App\Enums\FolioType;
 use App\Enums\PaymentMethodType;
 use App\Enums\PaymentPurpose;
 use App\Enums\PolicyScope;
 use App\Enums\ReservationStatus;
 use App\Enums\SystemTransactionCode;
+use App\Enums\TransactionCategory;
 use App\Enums\UnitStatus;
 use App\Models\BusinessDate;
 use App\Models\Folio;
 use App\Models\FolioLine;
+use App\Models\FolioRoutingRule;
 use App\Models\Guest;
 use App\Models\Payment;
 use App\Models\PaymentMethod;
@@ -403,6 +406,22 @@ test('check in with Collect now takes the taxes as an advance and the deposit on
         ->and($payments->pluck('amount')->all())->toBe(['16.00', '100.00'])
         ->and($payments->pluck('purpose')->all())->toBe([PaymentPurpose::Advance, PaymentPurpose::SecurityDeposit])
         ->and(Folio::query()->where('reservation_unit_id', $setup['unit']->id)->count())->toBe(1);
+});
+
+test('check in with Collect now on a unit whose rooms go to the Master folio takes no tax advance and the deposit still posts', function () {
+    $setup = uaSetup();
+    $cash = uaCheckInSetup($setup);
+    $master = Folio::factory()->master()->create(['property_id' => $setup['property']->id, 'reservation_id' => $setup['reservation']->id]);
+    FolioRoutingRule::factory()->forCategory(TransactionCategory::Room)->toFolio($master)->create(['reservation_id' => $setup['reservation']->id]);
+
+    $this->actingAs($setup['user'])
+        ->post(uaUrl($setup, 'check-in'), ['collect_now' => true, 'collect_taxes' => true, 'collect_deposit' => true, 'payment_method_id' => $cash->id, 'idempotency_key' => fake()->uuid()])
+        ->assertRedirect()
+        ->assertSessionHasNoErrors();
+
+    expect($setup['unit']->fresh()->status)->toBe(UnitStatus::CheckedIn)
+        ->and(Payment::query()->pluck('purpose')->all())->toBe([PaymentPurpose::SecurityDeposit])
+        ->and(Payment::query()->sole()->folio->type)->toBe(FolioType::Unit);
 });
 
 test('a refused payment leaves the unit checked in and shows on the method field', function () {

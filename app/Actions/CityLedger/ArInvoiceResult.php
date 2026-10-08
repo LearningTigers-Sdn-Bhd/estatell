@@ -11,6 +11,8 @@ class ArInvoiceResult
 {
     public const REFUSAL_FOLIO_NOT_OPEN = 'folio_not_open';
 
+    public const REFUSAL_UNITS_IN_HOUSE = 'units_in_house';
+
     public const REFUSAL_NO_COMPANY_PAYER = 'no_company_payer';
 
     public const REFUSAL_DIRECT_BILL_NOT_ALLOWED = 'direct_bill_not_allowed';
@@ -36,6 +38,8 @@ class ArInvoiceResult
     private function __construct(
         public readonly ?ArInvoice $invoice,
         public readonly ?string $refusal,
+        /** @var list<string> */
+        public readonly array $rooms = [],
     ) {}
 
     public static function done(ArInvoice $invoice): self
@@ -43,9 +47,12 @@ class ArInvoiceResult
         return new self($invoice, null);
     }
 
-    public static function refused(string $refusal): self
+    /**
+     * @param  list<string>  $rooms  The rooms still in-house, for `units_in_house`.
+     */
+    public static function refused(string $refusal, array $rooms = []): self
     {
-        return new self(null, $refusal);
+        return new self(null, $refusal, $rooms);
     }
 
     public function isRefused(): bool

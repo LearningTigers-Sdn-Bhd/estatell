@@ -3,6 +3,7 @@
 use App\Actions\Folio\CreateFolio;
 use App\Actions\Folio\PostingResult;
 use App\Actions\NightAudit\PostRoomCharges;
+use App\Enums\ArInvoiceStatus;
 use App\Enums\ChargingUnit;
 use App\Enums\FolioStatus;
 use App\Enums\FolioType;
@@ -10,6 +11,7 @@ use App\Enums\SystemTransactionCode;
 use App\Enums\TaxRateType;
 use App\Enums\TransactionKind;
 use App\Enums\UnitStatus;
+use App\Models\ArInvoice;
 use App\Models\BusinessDate;
 use App\Models\Discount;
 use App\Models\Folio;
@@ -168,6 +170,21 @@ test('a closed target folio refuses the night and writes nothing', function () {
     $result = app(PostRoomCharges::class)(null, $setup['unit'], $setup['date']);
 
     expect($result->refusal)->toBe(PostingResult::REFUSAL_FOLIO_NOT_OPEN)->and(FolioLine::query()->count())->toBe(0);
+});
+
+test('a target folio settled to the city ledger refuses the night with its own code, and a void invoice does not', function () {
+    $setup = nightSetup();
+    $folio = app(CreateFolio::class)($setup['reservation'], $setup['unit']);
+    $folio->forceFill(['status' => FolioStatus::Closed])->save();
+    $invoice = ArInvoice::factory()->create(['property_id' => $setup['property']->id, 'folio_id' => $folio->id]);
+
+    $result = app(PostRoomCharges::class)(null, $setup['unit'], $setup['date']);
+
+    expect($result->refusal)->toBe(PostingResult::REFUSAL_FOLIO_SETTLED)->and(FolioLine::query()->count())->toBe(0);
+
+    $invoice->update(['status' => ArInvoiceStatus::Void]);
+
+    expect(app(PostRoomCharges::class)(null, $setup['unit'], $setup['date'])->refusal)->toBe(PostingResult::REFUSAL_FOLIO_NOT_OPEN);
 });
 
 test('a refused tax writes nothing', function () {

@@ -7,6 +7,7 @@ use App\Actions\Reservations\AddOnResult;
 use App\Actions\Reservations\AssignmentResult;
 use App\Actions\Reservations\AttachGuestResult;
 use App\Actions\Reservations\BookingResult;
+use App\Actions\Reservations\GroupUpdateResult;
 use App\Actions\Reservations\ReservationResult;
 use App\Services\Rates\RateQuote;
 use Carbon\CarbonInterface;
@@ -20,15 +21,29 @@ class ReservationRefusals
     public const string FORM = 'form';
 
     /**
-     * The errors to flash back to a form, keyed by field name.
+     * The errors to flash back to a form, keyed by field name. `$detail` is the amount held (`master_has_payments`, as
+     * `MYR 1,000.00`) or the invoice number (`master_has_ar_invoice`).
      *
      * @return array<string, string>
      */
-    public function errors(string $code, ?CarbonInterface $date = null, bool $canOverrideRestrictions = false): array
+    public function errors(string $code, ?CarbonInterface $date = null, bool $canOverrideRestrictions = false, ?string $detail = null): array
     {
-        [$field, $message] = $this->entry($code, $date, $canOverrideRestrictions);
+        [$field, $message] = $this->entry($code, $date, $canOverrideRestrictions, $detail);
 
         return [$field => $message];
+    }
+
+    /**
+     * The errors to flash back to the Edit group form. `$amount` is the money the Master folio holds, as `MYR 1,000.00`.
+     *
+     * @return array<string, string>
+     */
+    public function groupErrors(string $code, ?string $amount = null): array
+    {
+        return match ($code) {
+            GroupUpdateResult::REFUSAL_MASTER_HAS_PAYMENTS => ['billing_mode' => __('The Master folio holds :amount in payments. Refund it before changing the billing mode.', ['amount' => $amount])],
+            default => [self::FORM => __('This change was refused.')],
+        };
     }
 
     /**
@@ -97,7 +112,7 @@ class ReservationRefusals
     /**
      * @return array{0: string, 1: string}
      */
-    private function entry(string $code, ?CarbonInterface $date, bool $canOverrideRestrictions): array
+    private function entry(string $code, ?CarbonInterface $date, bool $canOverrideRestrictions, ?string $detail = null): array
     {
         $day = $date?->format('d M Y') ?? '';
 
@@ -107,7 +122,8 @@ class ReservationRefusals
             ReservationResult::REFUSAL_RATE_PLAN_NOT_LINKED_TO_COMPANY => ['rate_plan_id', __('This rate plan is for certain companies only. Pick one of them on the reservation first.')],
             ReservationResult::REFUSAL_COMPANY_PLAN_CONFLICT => ['company_id', __('Units use plans only the old company can book.')],
             ReservationResult::REFUSAL_CREDIT_LIMIT_EXCEEDED => ['credit_override_reason', __('This company is over its credit limit.')],
-            ReservationResult::REFUSAL_MASTER_HAS_LINES => ['company_id', __('Move or void the master folio\'s charges first.')],
+            ReservationResult::REFUSAL_MASTER_HAS_PAYMENTS => ['company_id', __('Refund the :amount payment on the Master folio first, then change the company.', ['amount' => $detail])],
+            ReservationResult::REFUSAL_MASTER_HAS_AR_INVOICE => ['company_id', __('Void invoice :number first, then change the company.', ['number' => $detail])],
             ReservationResult::REFUSAL_UNITS_REQUIRED => [self::FORM, __('Add at least one room or bed.')],
             ReservationResult::REFUSAL_BOOKER_NOT_FOUND => ['guest_id', __('The booker is not one of this property\'s guests.')],
             ReservationResult::REFUSAL_ROOM_TYPE_NOT_FOUND => ['room_type_id', __('This room type is not for sale.')],

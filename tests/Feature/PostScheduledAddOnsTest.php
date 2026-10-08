@@ -6,6 +6,7 @@ use App\Actions\NightAudit\PostScheduledAddOns;
 use App\Enums\FolioStatus;
 use App\Enums\TaxRateType;
 use App\Enums\UnitStatus;
+use App\Models\ArInvoice;
 use App\Models\BusinessDate;
 use App\Models\ChargeItem;
 use App\Models\FolioLine;
@@ -117,6 +118,18 @@ test('a closed folio refuses its add-on and writes nothing', function () {
     $results = app(PostScheduledAddOns::class)(null, $setup['property'], $setup['date']);
 
     expect($results[$addOn->id]->refusal)->toBe(PostingResult::REFUSAL_FOLIO_NOT_OPEN)->and(FolioLine::query()->count())->toBe(0);
+});
+
+test('an add-on whose folio is settled to the city ledger is refused with its own code', function () {
+    $setup = addOnSetup();
+    $addOn = dueAddOn($setup['unit']);
+    $folio = app(CreateFolio::class)($setup['reservation'], $setup['unit']);
+    $folio->forceFill(['status' => FolioStatus::Closed])->save();
+    ArInvoice::factory()->create(['property_id' => $setup['property']->id, 'folio_id' => $folio->id]);
+
+    $results = app(PostScheduledAddOns::class)(null, $setup['property'], $setup['date']);
+
+    expect($results[$addOn->id]->refusal)->toBe(PostingResult::REFUSAL_FOLIO_SETTLED)->and(FolioLine::query()->count())->toBe(0);
 });
 
 test('a date that is not the business date posts nothing', function () {

@@ -3,6 +3,7 @@
 namespace App\Services\Folio;
 
 use App\Enums\FolioType;
+use App\Enums\SystemTransactionCode;
 use App\Models\Folio;
 use App\Models\FolioRoutingRule;
 use App\Models\Reservation;
@@ -32,6 +33,21 @@ class FolioRouter
             ->first();
 
         return $rule?->targetFolio ?? $this->unitFolio($unit);
+    }
+
+    /**
+     * Whether a Room revenue charge of the unit goes to a Master folio, by the real rules (BillingMode and Manual).
+     * `RecordPayment` refuses an Advance on such a unit, and `CheckInCollection` hides the tax rows. A property with
+     * no Room revenue code is false.
+     */
+    public function roomChargesGoToMaster(ReservationUnit $unit): bool
+    {
+        $roomCode = TransactionCode::query()
+            ->where('property_id', $unit->property_id)
+            ->where('system_key', SystemTransactionCode::RoomRevenue->value)
+            ->first();
+
+        return $roomCode !== null && $this->targetFor($unit, $roomCode)?->type === FolioType::Master;
     }
 
     /**

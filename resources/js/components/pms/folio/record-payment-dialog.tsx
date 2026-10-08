@@ -57,17 +57,16 @@ function RecordPaymentForm({
     onOpenChange,
     reservationId,
     folio,
-    options = { methods: [], purposes: [] },
+    options = { methods: [] },
     currency,
     loading,
 }: Props & { loading: boolean }) {
     useFormOptions(open, !loading, 'paymentOptions');
 
     const [key] = useState(() => crypto.randomUUID());
-    const notStarted = folio.paymentUnitId !== null;
     const form = useForm({
         payment_method_id: String(options.methods[0]?.id ?? ''),
-        purpose: notStarted ? 'advance' : 'settlement',
+        purpose: folio.defaultPaymentPurpose ?? '',
         amount:
             folio.balance !== null && Number(folio.balance) > 0
                 ? folio.balance
@@ -177,17 +176,21 @@ function RecordPaymentForm({
                 />
                 <FieldError>{errors.payment_method_id}</FieldError>
             </Field>
-            <Field data-invalid={!!errors.purpose}>
-                <FieldLabel htmlFor="payment-purpose">Purpose</FieldLabel>
-                <EnumSelect
-                    id="payment-purpose"
-                    options={options.purposes}
-                    value={data.purpose}
-                    onValueChange={(value) => form.setData('purpose', value)}
-                    aria-invalid={!!errors.purpose}
-                />
-                <FieldError>{errors.purpose}</FieldError>
-            </Field>
+            {folio.paymentPurposes.length > 1 && (
+                <Field data-invalid={!!errors.purpose}>
+                    <FieldLabel htmlFor="payment-purpose">Purpose</FieldLabel>
+                    <EnumSelect
+                        id="payment-purpose"
+                        options={folio.paymentPurposes}
+                        value={data.purpose}
+                        onValueChange={(value) =>
+                            form.setData('purpose', value)
+                        }
+                        aria-invalid={!!errors.purpose}
+                    />
+                    <FieldError>{errors.purpose}</FieldError>
+                </Field>
+            )}
             <Field data-invalid={!!errors.amount}>
                 <FieldLabel htmlFor="payment-amount">Amount</FieldLabel>
                 <MoneyInput

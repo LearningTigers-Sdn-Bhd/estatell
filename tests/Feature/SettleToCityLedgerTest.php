@@ -17,8 +17,11 @@ use App\Models\Folio;
 use App\Models\FolioLine;
 use App\Models\Property;
 use App\Models\PropertySetting;
+use App\Models\ReservationUnit;
 use App\Models\TransactionCode;
 use App\Models\User;
+use App\Services\CityLedger\ArInvoiceRefusals;
+use App\Services\Folio\InHouseUnits;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Spatie\Activitylog\Models\Activity;
@@ -100,7 +103,45 @@ test('it refuses and writes nothing when the folio cannot be settled', function 
     'direct billing off' => [ArInvoiceResult::REFUSAL_DIRECT_BILL_NOT_ALLOWED, fn (array $setup) => $setup['company']->update(['direct_bill_enabled' => false])],
     'nothing owed' => [ArInvoiceResult::REFUSAL_NOTHING_TO_SETTLE, fn (array $setup) => FolioLine::factory()->payment()->create(['folio_id' => $setup['folio']->id, 'posting_date' => today()->toDateString()])],
     'no business date' => [ArInvoiceResult::REFUSAL_NO_BUSINESS_DATE, fn () => BusinessDate::query()->delete()],
+    'unit in house' => [ArInvoiceResult::REFUSAL_UNITS_IN_HOUSE, fn (array $setup) => ReservationUnit::factory()->checkedIn()->create(['reservation_id' => $setup['folio']->reservation_id])],
 ]);
+
+test('a Master folio with a unit in house is refused before any line is posted, and the message names the room', function () {
+    $setup = cityLedgerSetup();
+    ReservationUnit::factory()->checkedIn()->create(['reservation_id' => $setup['folio']->reservation_id]);
+
+    $result = settle($setup);
+
+    expect($result->refusal)->toBe(ArInvoiceResult::REFUSAL_UNITS_IN_HOUSE)
+        ->and($result->rooms)->toHaveCount(1)
+        ->and(app(ArInvoiceRefusals::class)->message((string) $result->refusal, ['Room 103']))->toBe('Room 103 is still in-house. Check out all units first.')
+        ->and(FolioLine::query()->where('idempotency_key', 'like', 'city-ledger:%')->count())->toBe(0);
+});
+
+test('a third-party folio with a company payer settles while a unit is in house', function () {
+    $setup = cityLedgerSetup();
+    ReservationUnit::factory()->checkedIn()->create(['reservation_id' => $setup['folio']->reservation_id]);
+    $folio = Folio::factory()->thirdParty()->create(['property_id' => $setup['property']->id, 'reservation_id' => $setup['folio']->reservation_id, 'payer_company_id' => $setup['company']->id]);
+    FolioLine::factory()->create(['folio_id' => $folio->id, 'amount' => '40.00', 'unit_amount' => '40.00', 'posting_date' => today()->toDateString()]);
+
+    $result = app(SettleToCityLedger::class)($setup['actor'], $folio);
+
+    expect($result->isRefused())->toBeFalse()
+        ->and($result->invoice->amount)->toBe('40.00')
+        ->and($folio->fresh()->status)->toBe(FolioStatus::Closed);
+});
+
+test('the settle route shows the in-house refusal as an error toast', function () {
+    $setup = cityLedgerSetup();
+    ReservationUnit::factory()->checkedIn()->create(['reservation_id' => $setup['folio']->reservation_id]);
+    $owner = User::factory()->withRole(DefaultRoleEnum::Owner)->create(['property_id' => $setup['property']->id]);
+
+    $this->actingAs($owner)
+        ->post(route('reservations.folios.city-ledger', ['property' => $setup['property']->code, 'reservation' => $setup['folio']->reservation_id, 'folio' => $setup['folio']->id]))
+        ->assertInertiaFlash('toast', ['type' => 'error', 'message' => app(ArInvoiceRefusals::class)->message(ArInvoiceResult::REFUSAL_UNITS_IN_HOUSE, app(InHouseUnits::class)->roomsFor($setup['folio']))]);
+
+    expect(ArInvoice::query()->count())->toBe(0);
+});
 
 test('settling twice makes one invoice', function () {
     $setup = cityLedgerSetup();

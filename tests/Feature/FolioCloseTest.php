@@ -5,8 +5,10 @@ use App\Actions\Folio\FolioStatusResult;
 use App\Actions\Folio\PostCharge;
 use App\Actions\Folio\ReopenFolio;
 use App\Data\Folio\NewChargeData;
+use App\Enums\DefaultRoleEnum;
 use App\Enums\FolioStatus;
 use App\Enums\SystemTransactionCode;
+use App\Enums\UnitStatus;
 use App\Models\BusinessDate;
 use App\Models\Folio;
 use App\Models\FolioLine;
@@ -14,8 +16,12 @@ use App\Models\Property;
 use App\Models\PropertySetting;
 use App\Models\Reservation;
 use App\Models\ReservationUnit;
+use App\Models\Room;
 use App\Models\TransactionCode;
+use App\Models\UnitNight;
 use App\Models\User;
+use App\Services\Folio\FolioRefusals;
+use App\Services\Folio\InHouseUnits;
 use Spatie\Activitylog\Models\Activity;
 
 /**
@@ -155,4 +161,66 @@ test('a closed folio refuses new postings until it is reopened', function () {
     app(ReopenFolio::class)($setup['actor'], $setup['folio']);
 
     expect($post()->isRefused())->toBeFalse();
+});
+
+/**
+ * An empty Master folio of the setup's reservation, whose first unit is CheckedIn in room 103 tonight.
+ *
+ * @param  array{property: Property, actor: User, folio: Folio}  $setup
+ */
+function fcMasterWithRoom(array $setup): Folio
+{
+    $unit = ReservationUnit::query()->where('reservation_id', $setup['folio']->reservation_id)->sole();
+    $room = Room::factory()->create(['property_id' => $setup['property']->id, 'room_type_id' => $unit->room_type_id, 'number' => '103']);
+    UnitNight::factory()->create(['reservation_unit_id' => $unit->id, 'date' => today()->toDateString(), 'room_id' => $room->id]);
+
+    return Folio::factory()->master()->create(['property_id' => $setup['property']->id, 'reservation_id' => $setup['folio']->reservation_id]);
+}
+
+test('closing a Master folio refuses while a unit is checked in, names the room and writes nothing', function () {
+    $setup = fcSetup();
+    $master = fcMasterWithRoom($setup);
+
+    $result = app(CloseFolio::class)($setup['actor'], $master);
+
+    expect($result->refusal)->toBe(FolioStatusResult::REFUSAL_UNITS_IN_HOUSE)
+        ->and($result->rooms)->toBe(['Room 103'])
+        ->and(app(FolioRefusals::class)->message((string) $result->refusal, $result->rooms))->toBe('Room 103 is still in-house. Check out all units first.')
+        ->and($master->refresh()->status)->toBe(FolioStatus::Open)
+        ->and($master->invoice_number)->toBeNull()
+        ->and(Activity::query()->whereIn('event', ['folio.closed', 'folio.reopened'])->count())->toBe(0);
+});
+
+test('the in-house message lists several rooms and falls back to the room type', function () {
+    expect(InHouseUnits::message(['Room 103', 'Room 104']))->toBe('Rooms 103, 104 are still in-house. Check out all units first.')
+        ->and(InHouseUnits::message(['Room 103', 'Bed A1']))->toBe('Room 103, Bed A1 are still in-house. Check out all units first.');
+
+    $setup = fcSetup();
+    $master = Folio::factory()->master()->create(['property_id' => $setup['property']->id, 'reservation_id' => $setup['folio']->reservation_id]);
+
+    expect(app(InHouseUnits::class)->roomsFor($master))->toHaveCount(1)
+        ->and(app(InHouseUnits::class)->roomsFor($setup['folio']))->toBe([]);
+});
+
+test('a Master folio closes once its units have left, and a Unit folio closes while a unit is in-house', function () {
+    $setup = fcSetup();
+    $master = Folio::factory()->master()->create(['property_id' => $setup['property']->id, 'reservation_id' => $setup['folio']->reservation_id]);
+    fcSettle($setup['folio']);
+
+    expect(app(CloseFolio::class)($setup['actor'], $setup['folio'])->isRefused())->toBeFalse();
+
+    ReservationUnit::query()->where('reservation_id', $master->reservation_id)->update(['status' => UnitStatus::CheckedOut, 'checked_out_at' => now()]);
+
+    expect(app(CloseFolio::class)($setup['actor'], $master)->isRefused())->toBeFalse()
+        ->and($master->refresh()->status)->toBe(FolioStatus::Closed);
+});
+
+test('the close route shows the in-house refusal as an error toast', function () {
+    $setup = fcSetup();
+    $master = fcMasterWithRoom($setup);
+    $actor = User::factory()->withRole(DefaultRoleEnum::Owner)->create(['property_id' => $setup['property']->id]);
+
+    $this->actingAs($actor)
+        ->post(route('reservations.folios.close', ['property' => $setup['property']->code, 'reservation' => $master->reservation_id, 'folio' => $master->id]))
+        ->assertInertiaFlash('toast', ['type' => 'error', 'message' => 'Room 103 is still in-house. Check out all units first.']);
 });

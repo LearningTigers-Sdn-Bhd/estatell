@@ -5,7 +5,8 @@ namespace App\Actions\Folio;
 use App\Models\Folio;
 
 /**
- * What `CloseFolio` and `ReopenFolio` return: the folio in its new status, or a refusal code.
+ * What `CloseFolio` and `ReopenFolio` return: the folio in its new status, or a refusal code. `units_in_house` also
+ * names the rooms that are still in-house.
  */
 class FolioStatusResult
 {
@@ -17,9 +18,13 @@ class FolioStatusResult
 
     public const REFUSAL_HAS_AR_INVOICE = 'folio_has_ar_invoice';
 
+    public const REFUSAL_UNITS_IN_HOUSE = 'units_in_house';
+
     private function __construct(
         public readonly ?Folio $folio,
         public readonly ?string $refusal,
+        /** @var list<string> */
+        public readonly array $rooms = [],
     ) {}
 
     public static function done(Folio $folio): self
@@ -27,9 +32,12 @@ class FolioStatusResult
         return new self($folio, null);
     }
 
-    public static function refused(string $refusal): self
+    /**
+     * @param  list<string>  $rooms
+     */
+    public static function refused(string $refusal, array $rooms = []): self
     {
-        return new self(null, $refusal);
+        return new self(null, $refusal, $rooms);
     }
 
     public function isRefused(): bool

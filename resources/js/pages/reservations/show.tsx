@@ -236,6 +236,8 @@ export default function ReservationShow({
                                 chargeCodes={chargeCodes}
                                 folioDiscounts={folioDiscounts}
                                 paymentOptions={paymentOptions}
+                                canViewCompany={canViewCompany}
+                                companies={companies}
                                 canManageRouting={canManageRouting}
                                 canOverrideCredit={canOverrideCredit}
                                 routingRules={routingRules}

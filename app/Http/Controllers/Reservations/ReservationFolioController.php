@@ -149,7 +149,7 @@ class ReservationFolioController extends Controller
         $result = $closeFolio($request->user(), $folio);
 
         Inertia::flash('toast', $result->isRefused()
-            ? ['type' => 'error', 'message' => $refusals->message((string) $result->refusal)]
+            ? ['type' => 'error', 'message' => $refusals->message((string) $result->refusal, $result->rooms)]
             : ['type' => 'success', 'message' => __('Folio :number closed.', ['number' => $folio->number])]);
 
         return back(fallback: $this->page($property, $reservation, $folio));

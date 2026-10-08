@@ -13,6 +13,7 @@ use App\Models\TransactionCode;
 use App\Models\UnitAddOn;
 use App\Models\User;
 use App\Services\Catalogues\TaxCalculator;
+use App\Services\Folio\FolioPostability;
 use App\Services\Folio\FolioRouter;
 use App\Services\NightAudit\CurrentBusinessDate;
 use App\Services\Reservations\UnitNationality;
@@ -26,6 +27,7 @@ class PostCharge
     public function __construct(
         private CurrentBusinessDate $currentBusinessDate,
         private FolioRouter $folioRouter,
+        private FolioPostability $folioPostability,
         private TaxCalculator $taxCalculator,
         private CreateFolio $createFolio,
         private PostFolioCharge $postFolioCharge,
@@ -36,7 +38,7 @@ class PostCharge
      * Post one charge on a unit's folio, then one Tax child line for each tax component. The unit row is locked first,
      * so two postings of one unit never race. Every check runs before the first write, so a refusal writes and logs
      * nothing. The folio comes from `FolioRouter` (a routing rule or the unit's own folio), and a closed one refuses the posting with
-     * no fallback. `PostFolioCharge` writes the lines, and tax lines go on the folio of their charge. A key that already exists returns the existing lines and writes nothing, but only when the line's folio belongs to the unit's reservation (otherwise `charge_not_found`). The charge line holds the net
+     * no fallback (`folio_settled_to_city_ledger` when it is settled to the city ledger). `PostFolioCharge` writes the lines, and tax lines go on the folio of their charge. A key that already exists returns the existing lines and writes nothing, but only when the line's folio belongs to the unit's reservation (otherwise `charge_not_found`). The charge line holds the net
      * amount (the entered amount without inclusive tax), so the folio total is the gross amount.
      * See docs/13-folio/02-posting-charges.md.
      */
@@ -103,7 +105,7 @@ class PostCharge
             $folio = $this->folioRouter->targetFor($locked, $code);
 
             if ($folio !== null && $folio->status !== FolioStatus::Open) {
-                return PostingResult::refused(PostingResult::REFUSAL_FOLIO_NOT_OPEN);
+                return PostingResult::refused((string) $this->folioPostability->refusalFor($folio));
             }
 
             $entered = $unitAmount->multipliedBy($data->quantity);

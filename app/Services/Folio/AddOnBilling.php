@@ -36,7 +36,7 @@ class AddOnBilling
         $folios = Folio::query()
             ->where('property_id', $reservation->property_id)
             ->where('reservation_id', $reservation->id)
-            ->with('payerGuest')
+            ->with('payerGuest', 'payerCompany:id,name')
             ->get()
             ->keyBy('id');
         $unitFolioIds = $folios->where('type', FolioType::Unit)->pluck('id', 'reservation_unit_id');

@@ -51,7 +51,9 @@ class ReservationResult
 
     public const REFUSAL_CREDIT_LIMIT_EXCEEDED = 'credit_limit_exceeded';
 
-    public const REFUSAL_MASTER_HAS_LINES = 'master_has_lines';
+    public const REFUSAL_MASTER_HAS_PAYMENTS = 'master_has_payments';
+
+    public const REFUSAL_MASTER_HAS_AR_INVOICE = 'master_has_ar_invoice';
 
     private function __construct(
         public readonly ?Reservation $reservation,
@@ -60,6 +62,8 @@ class ReservationResult
         public readonly ?CarbonInterface $date,
         /** @var list<int> */
         public readonly array $unitsWithPostedRoomLines = [],
+        /** The amount held (`master_has_payments`) or the invoice number (`master_has_ar_invoice`). */
+        public readonly ?string $detail = null,
     ) {}
 
     /**
@@ -70,9 +74,9 @@ class ReservationResult
         return new self($reservation, null, null, null, $unitsWithPostedRoomLines);
     }
 
-    public static function refused(string $refusal, ?int $lineIndex = null, ?CarbonInterface $date = null): self
+    public static function refused(string $refusal, ?int $lineIndex = null, ?CarbonInterface $date = null, ?string $detail = null): self
     {
-        return new self(null, $refusal, $lineIndex, $date);
+        return new self(null, $refusal, $lineIndex, $date, [], $detail);
     }
 
     public function isRefused(): bool

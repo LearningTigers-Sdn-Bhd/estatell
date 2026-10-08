@@ -85,7 +85,7 @@ class ReservationFormOptions
     }
 
     /**
-     * The methods and purposes of the Record payment Dialog. City ledger and OTA collected methods are not offered
+     * The methods of the Record payment Dialog. City ledger and OTA collected methods are not offered
      * yet. `RecordPayment` checks the method again.
      */
     public function payments(Property $property): PaymentFormOptionsData

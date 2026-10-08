@@ -20,6 +20,7 @@ use App\Enums\ReservationSource;
 use App\Enums\RoutingRuleSource;
 use App\Enums\TransactionCategory;
 use App\Enums\UnitStatus;
+use App\Models\ArInvoice;
 use App\Models\BusinessDate;
 use App\Models\Company;
 use App\Models\Folio;
@@ -37,6 +38,7 @@ use App\Models\RoomType;
 use App\Models\Tax;
 use App\Models\TransactionCode;
 use App\Models\User;
+use App\Services\Folio\FolioRefusals;
 use App\Services\Folio\FolioRouter;
 use App\Services\Folio\RoutingRuleCheck;
 use Carbon\CarbonImmutable;
@@ -273,6 +275,33 @@ test('a closed target folio refuses the posting and writes nothing', function ()
         ->and(FolioLine::query()->count())->toBe(0)
         ->and(Folio::query()->where('type', FolioType::Unit)->count())->toBe(0)
         ->and(Activity::query()->count())->toBe(0);
+});
+
+test('a master settled to the city ledger refuses the posting with the third-party folio advice', function () {
+    $setup = routingSetup();
+    $master = routingFolio($setup, 'closed');
+    routingRule($setup['reservation'], $master, category: TransactionCategory::Room);
+    ArInvoice::factory()->create(['property_id' => $setup['property']->id, 'folio_id' => $master->id]);
+
+    $result = routingPost($setup, $setup['unit1'], $setup['room']);
+
+    expect($result->refusal)->toBe(PostingResult::REFUSAL_FOLIO_SETTLED)
+        ->and(app(FolioRefusals::class)->message((string) $result->refusal))->toContain('Open a third-party folio for the company')
+        ->and(FolioLine::query()->count())->toBe(0);
+});
+
+test('a third-party folio for a company takes the late charge once a unit rule points to it', function () {
+    $setup = routingSetup();
+    $master = routingFolio($setup, 'closed');
+    routingRule($setup['reservation'], $master, category: TransactionCategory::Room);
+    $company = Company::factory()->for($setup['property'])->create();
+    $late = app(CreateFolio::class)->thirdParty($setup['reservation'], null, $company->id);
+    routingRule($setup['reservation'], $late, $setup['unit1'], TransactionCategory::Room);
+
+    $result = routingPost($setup, $setup['unit1'], $setup['room']);
+
+    expect($result->isRefused())->toBeFalse()
+        ->and($result->line()->folio_id)->toBe($late->id);
 });
 
 test('a reversal stays on the folio of its line even after the rule is gone', function () {

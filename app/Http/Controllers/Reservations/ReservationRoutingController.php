@@ -8,6 +8,7 @@ use App\Actions\Folio\RemoveRoutingRule;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Folio\StoreRoutingRuleRequest;
 use App\Http\Requests\Folio\StoreThirdPartyFolioRequest;
+use App\Models\Company;
 use App\Models\FolioRoutingRule;
 use App\Models\Guest;
 use App\Models\Property;
@@ -24,20 +25,24 @@ use Inertia\Inertia;
 class ReservationRoutingController extends Controller
 {
     /**
-     * Create a third-party folio paid by a guest of the property, then open it on the folio tab. A merged or
-     * anonymized guest, or a guest of another property, is a 404.
+     * Create a third-party folio paid by a guest or by an Active company of the property, then open it on the folio
+     * tab. A merged or anonymized guest, or a guest of another property, is a 404. A company that is Suspended or of
+     * another property is a validation error on `payer_company_id`.
      */
     public function storeThirdPartyFolio(StoreThirdPartyFolioRequest $request, Property $property, Reservation $reservation, CreateFolio $createFolio): RedirectResponse
     {
-        $guest = Guest::query()
-            ->where('property_id', $property->id)
-            ->notMerged()
-            ->whereNull('anonymized_at')
-            ->findOrFail($request->integer('payer_guest_id'));
+        $guest = $request->filled('payer_guest_id')
+            ? Guest::query()
+                ->where('property_id', $property->id)
+                ->notMerged()
+                ->whereNull('anonymized_at')
+                ->findOrFail($request->integer('payer_guest_id'))
+            : null;
+        $company = $guest === null ? Company::query()->where('property_id', $property->id)->findOrFail($request->integer('payer_company_id')) : null;
 
-        $folio = $createFolio->thirdParty($reservation, $guest, null, $request->user());
+        $folio = $createFolio->thirdParty($reservation, $guest, $company?->id, $request->user());
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => __('Folio :number created for :payer.', ['number' => $folio->number, 'payer' => $guest->full_name])]);
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Folio :number created for :payer.', ['number' => $folio->number, 'payer' => $guest?->full_name ?? $company?->name])]);
 
         return to_route('reservations.folio', ['property' => $property, 'reservation' => $reservation, 'folio' => $folio->id]);
     }

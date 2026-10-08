@@ -25,6 +25,8 @@ class PostingResult
 
     public const REFUSAL_FOLIO_NOT_OPEN = 'folio_not_open';
 
+    public const REFUSAL_FOLIO_SETTLED = 'folio_settled_to_city_ledger';
+
     public const REFUSAL_LINE_IS_CHILD = 'line_is_child';
 
     public const REFUSAL_ALREADY_REVERSED = 'already_reversed';

@@ -5,6 +5,7 @@ use App\Enums\DefaultRoleEnum;
 use App\Enums\FolioType;
 use App\Enums\RoutingRuleSource;
 use App\Enums\TransactionCategory;
+use App\Models\Company;
 use App\Models\Folio;
 use App\Models\FolioRoutingRule;
 use App\Models\Guest;
@@ -12,6 +13,7 @@ use App\Models\Property;
 use App\Models\PropertySetting;
 use App\Models\Reservation;
 use App\Models\ReservationUnit;
+use App\Models\Role;
 use App\Models\TransactionCode;
 use App\Models\User;
 use App\Services\Folio\FolioRouter;
@@ -107,6 +109,52 @@ test('a third-party folio is created for the guest, logged and opened on the fol
 
     $response->assertRedirect(rrUrl($setup, 'reservations.folio', ['folio' => $folio->id]))
         ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Folio '.$folio->number.' created for Tan Travel.']);
+});
+
+test('a third-party folio is created for an Active company, logged and named after it', function () {
+    $setup = rrSetup();
+    $company = Company::factory()->for($setup['property'])->create(['name' => 'Borneo Travel']);
+
+    $response = $this->actingAs($setup['user'])->post(rrUrl($setup, 'reservations.folios.third-party.store'), ['payer_company_id' => $company->id]);
+
+    $folio = Folio::query()->where('payer_company_id', $company->id)->sole();
+
+    expect($folio->type)->toBe(FolioType::ThirdParty)
+        ->and($folio->payer_guest_id)->toBeNull()
+        ->and(Activity::query()->where('event', 'folio.third_party_created')->latest('id')->first()->properties['payer_company_id'])->toBe($company->id);
+
+    $response->assertRedirect(rrUrl($setup, 'reservations.folio', ['folio' => $folio->id]))
+        ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Folio '.$folio->number.' created for Borneo Travel.']);
+});
+
+test('a third-party folio needs exactly one payer, and a company must be Active and of the property', function (Closure $payload) {
+    $setup = rrSetup();
+
+    $this->actingAs($setup['user'])
+        ->post(rrUrl($setup, 'reservations.folios.third-party.store'), $payload($setup))
+        ->assertSessionHasErrors();
+
+    expect(Folio::query()->where('type', FolioType::ThirdParty)->count())->toBe(1);
+})->with([
+    'no payer' => [fn (array $setup) => []],
+    'guest and company' => [fn (array $setup) => ['payer_guest_id' => $setup['guest']->id, 'payer_company_id' => Company::factory()->for($setup['property'])->create()->id]],
+    'suspended company' => [fn (array $setup) => ['payer_company_id' => Company::factory()->for($setup['property'])->suspended()->create()->id]],
+    'company of another property' => [fn (array $setup) => ['payer_company_id' => Company::factory()->create()->id]],
+]);
+
+test('a company payer needs company.view', function () {
+    $setup = rrSetup();
+    $company = Company::factory()->for($setup['property'])->create();
+    $role = Role::query()->create(['property_id' => $setup['property']->id, 'name' => 'Transfer only']);
+    $role->givePermissionTo(['reservations.view', 'folio.transfer']);
+    $staff = User::factory()->for($setup['property'])->create();
+    setPermissionsTeamId($setup['property']->id);
+    $staff->assignRole($role);
+
+    $this->actingAs($staff)->post(rrUrl($setup, 'reservations.folios.third-party.store'), ['payer_company_id' => $company->id])
+        ->assertSessionHasErrors('payer_company_id');
+    $this->post(rrUrl($setup, 'reservations.folios.third-party.store'), ['payer_guest_id' => $setup['guest']->id])
+        ->assertSessionHasNoErrors();
 });
 
 test('a third-party payer from another property, merged or anonymized is a 404', function (Closure $payer) {

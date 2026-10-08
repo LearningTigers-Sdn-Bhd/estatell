@@ -18,27 +18,31 @@ class FolioRefusals
     /**
      * The errors to flash back to a form, keyed by field name.
      *
+     * @param  list<string>  $rooms  The rooms still in-house, for `units_in_house`.
      * @return array<string, string>
      */
-    public function errors(string $code): array
+    public function errors(string $code, array $rooms = []): array
     {
-        [$field, $message] = $this->entry($code);
+        [$field, $message] = $this->entry($code, $rooms);
 
         return [$field => $message];
     }
 
     /**
      * The message alone, for a toast.
+     *
+     * @param  list<string>  $rooms
      */
-    public function message(string $code): string
+    public function message(string $code, array $rooms = []): string
     {
-        return $this->entry($code)[1];
+        return $this->entry($code, $rooms)[1];
     }
 
     /**
+     * @param  list<string>  $rooms
      * @return array{0: string, 1: string}
      */
-    private function entry(string $code): array
+    private function entry(string $code, array $rooms = []): array
     {
         return match ($code) {
             PostingResult::REFUSAL_NO_BUSINESS_DATE => [self::FORM, __('The property has no open business date, so nothing can be posted.')],
@@ -48,6 +52,7 @@ class FolioRefusals
             PostingResult::REFUSAL_AMOUNT_INVALID => ['unit_amount', __('Enter an amount greater than 0.')],
             PostingResult::REFUSAL_AMOUNT_OVERRIDE_NOT_ALLOWED => ['unit_amount', __('The price of this charge cannot be changed.')],
             PostingResult::REFUSAL_FOLIO_NOT_OPEN => [self::FORM, __('This folio is not open, so it cannot change.')],
+            PostingResult::REFUSAL_FOLIO_SETTLED => [self::FORM, __('The folio these charges go to is settled to the city ledger. Open a third-party folio for the company, add a routing rule for this room and this charge category to it, then post again.')],
             PostingResult::REFUSAL_LINE_IS_CHILD => [self::FORM, __('A tax or discount line moves and reverses with its charge.')],
             PostingResult::REFUSAL_ALREADY_REVERSED => [self::FORM, __('This line is already reversed.')],
             PostingResult::REFUSAL_LINE_IS_REVERSAL => [self::FORM, __('A reversal cannot be reversed.')],
@@ -60,6 +65,7 @@ class FolioRefusals
             PostingResult::REFUSAL_QUOTE_CHANGED => [self::FORM, __('The folio changed. Check the new quote and apply again.')],
             PostingResult::REFUSAL_NOT_A_DISCOUNT => [self::FORM, __('This line is not a discount.')],
             PostingResult::REFUSAL_PAYMENT_LINE => [self::FORM, __('A payment cannot be reversed or moved. Refund it instead.')],
+            FolioStatusResult::REFUSAL_UNITS_IN_HOUSE => [self::FORM, InHouseUnits::message($rooms)],
             FolioStatusResult::REFUSAL_BALANCE_NOT_ZERO => [self::FORM, __('Only a folio with a balance of 0.00 can be closed. Settle it or move the charges first.')],
             FolioStatusResult::REFUSAL_HAS_AR_INVOICE => [self::FORM, __('This folio has a city ledger invoice. Issue a credit note instead of reopening it.')],
             FolioStatusResult::REFUSAL_NOT_CLOSED => [self::FORM, __('Only a closed folio can be reopened.')],

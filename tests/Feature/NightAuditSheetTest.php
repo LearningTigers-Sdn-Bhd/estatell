@@ -135,6 +135,17 @@ test('an exception left by an earlier audit says why in plain words', function (
         ->assertJsonPath('warnings.0.reasons.0', 'The folio was closed, so the night could not be charged.');
 });
 
+test('an exception for a folio settled to the city ledger says what to do', function () {
+    $setup = sheetSetup();
+    $unit = sheetUnit($setup['property']);
+    $unit->nights()->update(['room_id' => Room::factory()->for($setup['property'])->create()->id]);
+    $audit = NightAudit::factory()->completed()->create(['business_date_id' => BusinessDate::factory()->closed()->create(['property_id' => $setup['property']->id, 'date' => '2026-10-11'])->id]);
+    NightAuditException::factory()->create(['night_audit_id' => $audit->id, 'reservation_unit_id' => $unit->id, 'message' => 'folio_settled_to_city_ledger']);
+
+    $this->actingAs($setup['user'])->getJson(route('night-audit.show', $setup['property']->code))
+        ->assertJsonPath('warnings.0.reasons.0', 'The folio was settled to the city ledger, so the charge could not be posted. Open a third-party folio for the company and route it there.');
+});
+
 test('the sheet needs night-audit.run and a live property', function () {
     $setup = sheetSetup([PermissionEnum::ReservationsView]);
 
@@ -388,7 +399,7 @@ test('the dialog data is the reservation, its units with their actions, and the 
         ->assertJsonPath('units.0.actions.0.key', 'check-in')
         ->assertJsonPath('canAssignRoom', true)
         ->assertJsonPath('canWaiveFees', false)
-        ->assertJsonStructure(['paymentOptions' => ['methods', 'purposes'], 'currency']);
+        ->assertJsonStructure(['paymentOptions' => ['methods'], 'currency']);
     $this->getJson(route('night-audit.reservation', [$property->code, $foreign->reservation_id]))->assertNotFound();
 
     $blind = sheetSetup([PermissionEnum::NightAuditRun]);

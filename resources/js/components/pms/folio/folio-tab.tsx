@@ -78,6 +78,8 @@ export function FolioTab({
     chargeCodes,
     folioDiscounts,
     paymentOptions,
+    canViewCompany,
+    companies,
     canManageRouting,
     canOverrideCredit,
     routingRules,
@@ -93,6 +95,8 @@ export function FolioTab({
     chargeCodes?: App.Data.Reservations.ChargeCodeOptionData[];
     folioDiscounts?: App.Data.Folio.FolioDiscountOptionData[];
     paymentOptions?: App.Data.Payments.PaymentFormOptionsData;
+    canViewCompany: boolean;
+    companies?: App.Data.CityLedger.CompanyOptionData[];
     canManageRouting: boolean;
     canOverrideCredit: boolean;
     routingRules?: App.Data.Folio.RoutingRulesData | null;
@@ -147,6 +151,8 @@ export function FolioTab({
                 open={creatingThirdParty}
                 onOpenChange={setCreatingThirdParty}
                 reservationId={reservationId}
+                canViewCompany={canViewCompany}
+                companies={companies}
             />
             <RoutingRulesSheet
                 open={routing}

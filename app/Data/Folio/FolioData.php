@@ -13,7 +13,8 @@ use Spatie\LaravelData\Data;
  * `paymentUnitId` is the unit a "not started" entry records on. `canPrintVoucher` is true when the user holds
  * `folio.print-voucher` and the folio has a line that can go on a voucher. `canSettleToCityLedger` is true for an Open
  * folio paid by a company with a balance above 0, when the user holds `city-ledger.invoice`, and `payerCompanyName` names
- * the company for the confirmation.
+ * the company for the confirmation. `paymentPurposes` are the purposes the Record payment Dialog offers for this folio's
+ * stage, the default first, and `defaultPaymentPurpose` is that first one. With none, `canRecordPayment` is false.
  */
 class FolioData extends Data
 {
@@ -21,6 +22,7 @@ class FolioData extends Data
      * @param  list<FolioRowData>  $rows
      * @param  list<FolioOptionData>  $postUnits
      * @param  list<FolioOptionData>  $transferTargets
+     * @param  list<array{value: string, label: string}>  $paymentPurposes
      */
     public function __construct(
         public string $key,
@@ -44,5 +46,7 @@ class FolioData extends Data
         public bool $canPrintVoucher = false,
         public bool $canSettleToCityLedger = false,
         public ?string $payerCompanyName = null,
+        public array $paymentPurposes = [],
+        public ?string $defaultPaymentPurpose = null,
     ) {}
 }

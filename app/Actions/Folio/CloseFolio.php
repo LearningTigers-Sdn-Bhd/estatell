@@ -7,6 +7,7 @@ use App\Enums\FolioStatus;
 use App\Models\Folio;
 use App\Models\User;
 use App\Services\Folio\FolioBalance;
+use App\Services\Folio\InHouseUnits;
 use App\Services\NightAudit\NextDocumentNumber;
 use Illuminate\Support\Facades\DB;
 
@@ -14,15 +15,16 @@ class CloseFolio
 {
     public function __construct(
         private FolioBalance $folioBalance,
+        private InHouseUnits $inHouseUnits,
         private NextDocumentNumber $nextDocumentNumber,
     ) {}
 
     /**
-     * Close an Open folio with a balance of 0. The folio row is locked first, and every check runs before the first
+     * Close an Open folio with a balance of 0. A Master folio is refused while a unit is CheckedIn (`units_in_house`,
+     * naming the rooms), before the balance check. The folio row is locked first, and every check runs before the first
      * write, so a refusal writes and logs nothing. Closing changes the status and assigns `invoice_number` once: a
      * folio that was reopened keeps its number. Ledger lines are never touched. Permissions are checked by the route.
-     * The refusal of a Master folio while a unit is in-house waits for the front desk states. See
-     * docs/13-folio/01-folios-and-lines.md.
+     * See docs/13-folio/01-folios-and-lines.md.
      */
     public function __invoke(User $actor, Folio $folio): FolioStatusResult
     {
@@ -31,6 +33,12 @@ class CloseFolio
 
             if (! $current->status->canTransitionTo(FolioStatus::Closed)) {
                 return FolioStatusResult::refused(FolioStatusResult::REFUSAL_NOT_OPEN);
+            }
+
+            $rooms = $this->inHouseUnits->roomsFor($current);
+
+            if ($rooms !== []) {
+                return FolioStatusResult::refused(FolioStatusResult::REFUSAL_UNITS_IN_HOUSE, $rooms);
             }
 
             if ($this->folioBalance->forFolio($current) !== '0.00') {

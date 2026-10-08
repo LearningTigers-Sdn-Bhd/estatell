@@ -14,6 +14,7 @@ use App\Models\ReservationUnit;
 use App\Models\UnitAddOn;
 use App\Models\User;
 use App\Services\Catalogues\TaxCalculator;
+use App\Services\Folio\FolioPostability;
 use App\Services\Folio\FolioRouter;
 use App\Services\NightAudit\CurrentBusinessDate;
 use App\Services\Reservations\UnitNationality;
@@ -26,6 +27,7 @@ class PostScheduledAddOns
     public function __construct(
         private CurrentBusinessDate $currentBusinessDate,
         private FolioRouter $folioRouter,
+        private FolioPostability $folioPostability,
         private TaxCalculator $taxCalculator,
         private CreateFolio $createFolio,
         private PostFolioCharge $postFolioCharge,
@@ -100,7 +102,7 @@ class PostScheduledAddOns
             $folio = $this->folioRouter->targetFor($unit, $code);
 
             if ($folio !== null && $folio->status !== FolioStatus::Open) {
-                return PostingResult::refused(PostingResult::REFUSAL_FOLIO_NOT_OPEN);
+                return PostingResult::refused((string) $this->folioPostability->refusalFor($folio));
             }
 
             $folio ??= ($this->createFolio)($unit->reservation, $unit);

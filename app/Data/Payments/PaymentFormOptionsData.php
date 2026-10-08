@@ -2,24 +2,21 @@
 
 namespace App\Data\Payments;
 
-use App\Enums\PaymentPurpose;
 use Spatie\LaravelData\Attributes\DataCollectionOf;
 use Spatie\LaravelData\Data;
 
 /**
- * The option lists of the Record payment Dialog: the methods in position order (active, not City ledger or OTA
- * collected) and the purposes.
+ * The option list of the Record payment Dialog: the methods in position order (active, not City ledger or OTA
+ * collected). The purposes are per folio, on `FolioData`.
  */
 class PaymentFormOptionsData extends Data
 {
     /**
      * @param  list<PaymentMethodOptionData>  $methods
-     * @param  list<array{value: string, label: string}>  $purposes
      */
     public function __construct(
         #[DataCollectionOf(PaymentMethodOptionData::class)]
         public array $methods,
-        public array $purposes,
     ) {}
 
     /**
@@ -27,6 +24,6 @@ class PaymentFormOptionsData extends Data
      */
     public static function forMethods(array $methods): self
     {
-        return new self($methods, PaymentPurpose::options());
+        return new self($methods);
     }
 }

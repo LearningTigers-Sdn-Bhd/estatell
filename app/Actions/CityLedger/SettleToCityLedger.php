@@ -14,6 +14,7 @@ use App\Models\TransactionCode;
 use App\Models\User;
 use App\Services\CityLedger\CreditCheck;
 use App\Services\Folio\FolioBalance;
+use App\Services\Folio\InHouseUnits;
 use App\Services\NightAudit\CurrentBusinessDate;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
@@ -27,12 +28,14 @@ class SettleToCityLedger
         private CreateArInvoiceFromFolio $createArInvoiceFromFolio,
         private CreditCheck $creditCheck,
         private RecordCreditOverride $recordCreditOverride,
+        private InHouseUnits $inHouseUnits,
     ) {}
 
     /**
      * Move the whole balance of an Open folio to the city ledger: post one negative `DIRECT_BILL` line on the business
      * date (key `city-ledger:{folio_id}`), close the folio, and make the AR invoice, in one transaction. The folio
-     * row is locked first and every check runs before the first write, so a refusal writes and logs nothing. It does
+     * row is locked first and every check runs before the first write, so a refusal writes and logs nothing. A Master folio
+     * is refused while a unit is CheckedIn (`units_in_house`), so no line is posted and then rolled back. It does
      * not use `RecordPayment`: there is no `payments` row and no receipt. A company over its credit limit is refused unless
      * `$overrideReason` is given, which the route passes only to users with `company.credit-override`. Permissions are checked by the route. See docs/15-city-ledger/02-ar-invoices.md.
      */
@@ -43,6 +46,12 @@ class SettleToCityLedger
 
             if ($locked->status !== FolioStatus::Open) {
                 return ArInvoiceResult::refused(ArInvoiceResult::REFUSAL_FOLIO_NOT_OPEN);
+            }
+
+            $rooms = $this->inHouseUnits->roomsFor($locked);
+
+            if ($rooms !== []) {
+                return ArInvoiceResult::refused(ArInvoiceResult::REFUSAL_UNITS_IN_HOUSE, $rooms);
             }
 
             $company = $locked->payer_company_id === null

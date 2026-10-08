@@ -22,6 +22,24 @@ enum PaymentPurpose: string
     }
 
     /**
+     * The purposes a folio offers at a stage, the default first. A ThirdParty folio is always Settlement. A Unit folio
+     * offers Advance before arrival, Settlement and Security deposit in-house, and Settlement after. A Master folio
+     * offers Advance before arrival and Settlement after. The caller drops Advance from a unit whose Room charges go
+     * to the Master folio.
+     *
+     * @return list<self>
+     */
+    public static function forStage(FolioType $type, PaymentStage $stage): array
+    {
+        return match (true) {
+            $type === FolioType::ThirdParty => [self::Settlement],
+            $stage === PaymentStage::BeforeArrival => [self::Advance],
+            $stage === PaymentStage::InHouse && $type === FolioType::Unit => [self::Settlement, self::SecurityDeposit],
+            default => [self::Settlement],
+        };
+    }
+
+    /**
      * @return list<array{value: string, label: string}>
      */
     public static function options(): array

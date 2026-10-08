@@ -1,5 +1,6 @@
 <?php
 
+use App\Actions\Folio\CreateFolio;
 use App\Actions\Folio\PostCharge;
 use App\Actions\Folio\PostingResult;
 use App\Actions\Folio\ReverseLine;
@@ -16,12 +17,14 @@ use App\Enums\PaymentPurpose;
 use App\Enums\PaymentStatus;
 use App\Enums\SurchargeType;
 use App\Enums\SystemTransactionCode;
+use App\Enums\TransactionCategory;
 use App\Enums\TransactionKind;
 use App\Enums\UnitStatus;
 use App\Models\BusinessDate;
 use App\Models\ChargeItem;
 use App\Models\Folio;
 use App\Models\FolioLine;
+use App\Models\FolioRoutingRule;
 use App\Models\Payment;
 use App\Models\PaymentMethod;
 use App\Models\Property;
@@ -32,6 +35,7 @@ use App\Models\Tax;
 use App\Models\TransactionCode;
 use App\Models\User;
 use App\Services\Folio\FolioBalance;
+use App\Services\Payments\PaymentRefusals;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Spatie\Activitylog\Models\Activity;
@@ -248,6 +252,76 @@ test('a payment refusal writes and logs nothing', function (string $refusal, Clo
         return payData($card, ['reference' => 'AUTH-1']);
     }],
 ]);
+
+/**
+ * Sends the Room charges of the setup's reservation to a new Master folio, as the MasterPays billing mode does.
+ *
+ * @param  array{property: Property, reservation: Reservation}  $setup
+ */
+function payRoomsToMaster(array $setup): Folio
+{
+    TransactionCode::factory()->system(SystemTransactionCode::RoomRevenue)->create(['property_id' => $setup['property']->id]);
+    $master = Folio::factory()->master()->create(['property_id' => $setup['property']->id, 'reservation_id' => $setup['reservation']->id]);
+    FolioRoutingRule::factory()->forCategory(TransactionCategory::Room)->toFolio($master)->create(['reservation_id' => $setup['reservation']->id]);
+
+    return $master;
+}
+
+test('an advance is refused on a unit entry and on a unit folio when Room charges go to the Master, and it writes nothing', function (bool $withFolio) {
+    $setup = paySetup();
+    payRoomsToMaster($setup);
+    $folio = $withFolio ? app(CreateFolio::class)($setup['reservation'], $setup['unit']) : null;
+    $before = payWritesCount();
+
+    $result = $folio === null
+        ? payDeposit($setup)
+        : app(RecordPayment::class)($setup['actor'], $setup['reservation'], $folio, null, payData($setup['cash']));
+
+    expect($result->refusal)->toBe(PaymentResult::REFUSAL_ADVANCE_ON_MASTER)
+        ->and(payWritesCount())->toBe($before)
+        ->and(Activity::query()->where('event', 'payment.recorded')->count())->toBe(0);
+})->with([false, true]);
+
+test('an advance is allowed on the Master folio, and on a unit folio when no rule sends Room to the Master', function () {
+    $setup = paySetup();
+
+    expect(payDeposit($setup)->isRefused())->toBeFalse();
+
+    $master = payRoomsToMaster($setup);
+
+    expect(app(RecordPayment::class)($setup['actor'], $setup['reservation'], $master, null, payData($setup['cash']))->isRefused())->toBeFalse();
+});
+
+test('a Settlement on a unit whose Room charges go to the Master is allowed', function () {
+    $setup = paySetup();
+    payRoomsToMaster($setup);
+
+    expect(payDeposit($setup, ['purpose' => PaymentPurpose::Settlement])->isRefused())->toBeFalse();
+});
+
+test('a security deposit is refused on a Master or ThirdParty folio and allowed on a unit folio and a unit entry', function () {
+    $setup = paySetup();
+    $record = fn (?Folio $folio, ?ReservationUnit $unit) => app(RecordPayment::class)($setup['actor'], $setup['reservation'], $folio, $unit, payData($setup['cash'], ['purpose' => PaymentPurpose::SecurityDeposit]));
+    $master = Folio::factory()->master()->create(['property_id' => $setup['property']->id, 'reservation_id' => $setup['reservation']->id]);
+    $thirdParty = Folio::factory()->thirdParty()->create(['property_id' => $setup['property']->id, 'reservation_id' => $setup['reservation']->id]);
+    $before = payWritesCount();
+
+    expect($record($master, null)->refusal)->toBe(PaymentResult::REFUSAL_DEPOSIT_ON_UNIT_ONLY)
+        ->and($record($thirdParty, null)->refusal)->toBe(PaymentResult::REFUSAL_DEPOSIT_ON_UNIT_ONLY)
+        ->and(payWritesCount())->toBe($before)
+        ->and($record(null, $setup['unit'])->isRefused())->toBeFalse();
+
+    $unitFolio = Folio::query()->where('reservation_unit_id', $setup['unit']->id)->sole();
+
+    expect($record($unitFolio, null)->isRefused())->toBeFalse();
+});
+
+test('the purpose refusals map to the form error', function () {
+    $refusals = app(PaymentRefusals::class);
+
+    expect($refusals->errors(PaymentResult::REFUSAL_ADVANCE_ON_MASTER))->toHaveKey('form')
+        ->and($refusals->errors(PaymentResult::REFUSAL_DEPOSIT_ON_UNIT_ONLY))->toHaveKey('form');
+});
 
 test('a closed folio refuses a payment', function () {
     $setup = paySetup();

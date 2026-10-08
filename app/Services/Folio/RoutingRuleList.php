@@ -33,7 +33,7 @@ class RoutingRuleList
 
         $rules = FolioRoutingRule::query()
             ->where('reservation_id', $reservation->id)
-            ->with(['transactionCode', 'targetFolio.payerGuest'])
+            ->with(['transactionCode', 'targetFolio.payerGuest', 'targetFolio.payerCompany:id,name'])
             ->get()
             ->sortBy(fn (FolioRoutingRule $rule): array => [
                 $rule->reservation_unit_id === null ? 0 : 1,
@@ -60,7 +60,7 @@ class RoutingRuleList
             ->where('property_id', $reservation->property_id)
             ->where('reservation_id', $reservation->id)
             ->where('status', FolioStatus::Open)
-            ->with('payerGuest')
+            ->with('payerGuest', 'payerCompany:id,name')
             ->get()
             ->sortBy(fn (Folio $folio): array => [
                 match ($folio->type) {

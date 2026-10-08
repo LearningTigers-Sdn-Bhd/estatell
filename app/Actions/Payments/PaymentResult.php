@@ -17,6 +17,10 @@ class PaymentResult
 
     public const REFUSAL_FOLIO_NOT_OPEN = 'folio_not_open';
 
+    public const REFUSAL_DEPOSIT_ON_UNIT_ONLY = 'deposit_on_unit_only';
+
+    public const REFUSAL_ADVANCE_ON_MASTER = 'advance_on_master';
+
     public const REFUSAL_METHOD_NOT_AVAILABLE = 'method_not_available';
 
     public const REFUSAL_AMOUNT_INVALID = 'amount_invalid';

@@ -50,6 +50,7 @@ class ReadinessAdvice
     {
         return match ($code) {
             'folio_not_open' => __('The folio was closed, so the night could not be charged.'),
+            'folio_settled_to_city_ledger' => __('The folio was settled to the city ledger, so the charge could not be posted. Open a third-party folio for the company and route it there.'),
             'nationality_required' => __('The guest has no nationality, and a tax needs it.'),
             'policy_not_found' => __('There is no no-show policy to charge.'),
             'charge_not_found' => __('A charge code is missing from the catalogue.'),
