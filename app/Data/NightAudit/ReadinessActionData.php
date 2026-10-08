@@ -44,6 +44,16 @@ class ReadinessActionData extends Data
         );
     }
 
+    public static function retry(Property $property, int $exceptionId): self
+    {
+        return new self(
+            kind: 'post',
+            label: __('Retry'),
+            url: route('night-audit.exceptions.retry', ['property' => $property->code, 'nightAuditException' => $exceptionId], absolute: false),
+            icon: 'rotate-cw',
+        );
+    }
+
     /**
      * @param  string  $dialog  `check-in`, `check-in-all` or `check-out`.
      */

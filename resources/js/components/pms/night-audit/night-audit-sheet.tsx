@@ -12,6 +12,7 @@ import {
     LogIn,
     LogOut,
     Receipt,
+    RotateCw,
     TriangleAlert,
     UserX,
 } from 'lucide-react';
@@ -92,6 +93,7 @@ const icons: Record<string, LucideIcon> = {
     'log-in': LogIn,
     'log-out': LogOut,
     receipt: Receipt,
+    'rotate-cw': RotateCw,
     'arrow-up-right': ArrowUpRight,
 };
 

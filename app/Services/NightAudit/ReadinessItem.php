@@ -5,8 +5,9 @@ namespace App\Services\NightAudit;
 use App\Enums\AuditCheck;
 
 /**
- * One unit that the night audit sheet lists. `message` is the refusal code of a carried exception. A folio check lists one reservation, with no unit and the
- * first folio it is about in `folioId`.
+ * One unit that the night audit sheet lists. `message` is the refusal code of a carried exception, and
+ * `retryExceptionId` is the carried room charge exception that **Retry** posts. A folio check lists one reservation,
+ * with no unit and the first folio it is about in `folioId`.
  */
 class ReadinessItem
 {
@@ -19,5 +20,6 @@ class ReadinessItem
         public readonly string $detail,
         public readonly ?string $message = null,
         public readonly ?int $folioId = null,
+        public readonly ?int $retryExceptionId = null,
     ) {}
 }

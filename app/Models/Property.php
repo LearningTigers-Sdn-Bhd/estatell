@@ -254,6 +254,14 @@ class Property extends Model implements FeatureScopeSerializeable, HasMedia
     }
 
     /**
+     * @return HasMany<NightAuditException, $this>
+     */
+    public function nightAuditExceptions(): HasMany
+    {
+        return $this->hasMany(NightAuditException::class);
+    }
+
+    /**
      * @return HasMany<Reservation, $this>
      */
     public function reservations(): HasMany

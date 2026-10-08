@@ -60,6 +60,7 @@ class ReadinessAdvice
             'not_available' => __('No room is free for the extra night.'),
             'restricted' => __('A rate restriction stops the extra night.'),
             'unit_not_postable' => __('The unit was not in a state that could be charged.'),
+            'exceeds_night_amount' => __('The night\'s price is less than its inclusions, so it could not be split.'),
             ResolveOverdueDepartures::MESSAGE_BLOCKED => __('The guest is past the departure date and your policy blocks extending.'),
             ResolveOverdueDepartures::MESSAGE_PAST_DEPARTURE => __('The guest is more than a day past the departure date.'),
             default => __('The audit could not finish this unit (:code).', ['code' => $code]),

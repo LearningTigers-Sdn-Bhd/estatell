@@ -61,13 +61,19 @@ class ReadinessGroupData extends Data
             reasons: $check === AuditCheck::CarriedException
                 ? array_values(array_unique(array_map(fn (ReadinessItem $item): string => $advice->reason((string) $item->message), $items)))
                 : [],
-            actions: self::actions($check, $property, $first->reservationId, $count, $unitIds, $advice, null, true, $canCheckIn, $canCheckOut, $first->folioId),
+            actions: [
+                ...($count === 1 && $first->retryExceptionId !== null ? [ReadinessActionData::retry($property, $first->retryExceptionId)] : []),
+                ...self::actions($check, $property, $first->reservationId, $count, $unitIds, $advice, null, true, $canCheckIn, $canCheckOut, $first->folioId),
+            ],
             units: $count === 1 ? [] : array_map(fn (ReadinessItem $item): ReadinessUnitData => new ReadinessUnitData(
                 unitId: (int) $item->reservationUnitId,
                 guest: $item->guest ?? $item->reference,
                 detail: $item->detail,
                 reason: $item->message === null ? null : $advice->reason($item->message),
-                actions: self::actions($check, $property, $item->reservationId, 1, [(int) $item->reservationUnitId], $advice, (int) $item->reservationUnitId, false, $canCheckIn, $canCheckOut),
+                actions: [
+                    ...($item->retryExceptionId !== null ? [ReadinessActionData::retry($property, $item->retryExceptionId)] : []),
+                    ...self::actions($check, $property, $item->reservationId, 1, [(int) $item->reservationUnitId], $advice, (int) $item->reservationUnitId, false, $canCheckIn, $canCheckOut),
+                ],
             ), $items),
             openUnits: $check === AuditCheck::DepartureNotCheckedOut && $count > 1,
         );

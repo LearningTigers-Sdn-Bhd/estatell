@@ -4,6 +4,7 @@ namespace App\Services\NightAudit;
 
 use App\Actions\NightAudit\NightAuditResult;
 use App\Enums\AuditCheck;
+use App\Enums\AuditExceptionType;
 use App\Enums\BusinessDateStatus;
 use App\Enums\FolioStatus;
 use App\Enums\FolioType;
@@ -263,7 +264,13 @@ class AuditReadiness
             ->with(['reservationUnit.reservation.booker', 'reservationUnit.guests.guest'])
             ->orderBy('id')
             ->get()
-            ->map(fn (NightAuditException $exception): ReadinessItem => $this->item(AuditCheck::CarriedException, $exception->reservationUnit, $exception->type->label(), $exception->message))
+            ->map(fn (NightAuditException $exception): ReadinessItem => $this->item(
+                AuditCheck::CarriedException,
+                $exception->reservationUnit,
+                $exception->type->label(),
+                $exception->message,
+                $exception->type === AuditExceptionType::RoomCharge ? $exception->id : null,
+            ))
             ->all();
     }
 
@@ -279,7 +286,7 @@ class AuditReadiness
             ->orderBy('id');
     }
 
-    private function item(AuditCheck $check, ReservationUnit $unit, ?string $detail = null, ?string $message = null): ReadinessItem
+    private function item(AuditCheck $check, ReservationUnit $unit, ?string $detail = null, ?string $message = null, ?int $retryExceptionId = null): ReadinessItem
     {
         return new ReadinessItem(
             check: $check,
@@ -289,6 +296,7 @@ class AuditReadiness
             guest: $unit->guests->firstWhere('is_primary', true)?->guest->full_name ?? $unit->reservation->booker?->full_name,
             detail: $detail ?? $unit->arrival_date->format('j M').' → '.$unit->departure_date->format('j M'),
             message: $message,
+            retryExceptionId: $retryExceptionId,
         );
     }
 }

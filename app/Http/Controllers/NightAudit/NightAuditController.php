@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\NightAudit;
 
 use App\Actions\NightAudit\NightAuditResult;
+use App\Actions\NightAudit\RetryRoomCharge;
 use App\Actions\NightAudit\RunAuditFix;
 use App\Actions\NightAudit\Steps\ResolveOverdueDepartures;
 use App\Data\NightAudit\NightAuditReservationData;
@@ -13,6 +14,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\NightAudit\RunAuditFixRequest;
 use App\Http\Requests\NightAudit\RunNightAuditRequest;
 use App\Jobs\RunNightAuditJob;
+use App\Models\NightAuditException;
 use App\Models\Property;
 use App\Models\Reservation;
 use App\Services\NightAudit\AuditReadiness;
@@ -92,6 +94,22 @@ class NightAuditController extends Controller
         }
 
         return response()->json(['done' => $result->done]);
+    }
+
+    /**
+     * Post the night a room charge exception left unposted. A refusal answers with its reason in words.
+     */
+    public function retry(Request $request, Property $property, NightAuditException $nightAuditException, RetryRoomCharge $retryRoomCharge, ReadinessAdvice $advice): JsonResponse
+    {
+        $result = $retryRoomCharge($request->user(), $nightAuditException);
+
+        if ($result->isRefused()) {
+            return $this->refused($result->refusal === RetryRoomCharge::REFUSAL_EXCEPTION_NOT_RETRIED
+                ? __('There is nothing left to fix here. The list has been refreshed.')
+                : $advice->reason((string) $result->refusal));
+        }
+
+        return response()->json(['done' => 1]);
     }
 
     private function refused(string $message): JsonResponse

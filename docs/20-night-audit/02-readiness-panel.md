@@ -67,7 +67,7 @@ A `RoomCharge` exception means the night of that audit's business date was never
 1. The night is the unit's night on the business date of the exception's audit.
 2. It calls `PostRoomCharges` for that night, with the user as the actor. The lines are posted on the **current** business date, like every posting. The room line keeps its key `night:{unit_night_id}` and its source, the unit night. Its description adds the night: "Room · night of 8 Oct".
 3. Posted, or already posted (the key exists): the exception is resolved (`resolved_at`, `resolved_by`) and leaves the panel.
-4. Refused: nothing is posted and the exception stays open. Its `message` becomes the new refusal code, so the row shows the reason of this try.
+4. Refused: nothing is written or logged and the exception stays open. The answer gives the reason of this try in words.
 
 | Check, in order                                | Refusal                 |
 | ---------------------------------------------- | ----------------------- |
@@ -76,9 +76,11 @@ A `RoomCharge` exception means the night of that audit's business date was never
 | Any refusal of `PostRoomCharges`               | that refusal            |
 
 - One transaction with the unit locked, like the audit. Two clicks post once, because of the key.
-- It logs one activity on the reservation, with the night and the result ("Room charge of 8 Oct posted" or the refusal).
+- A posted or already posted night logs one activity on the reservation (`reservation.room_charge_retried`), with the unit, the exception and the night.
 - A night whose stored price cannot hold its inclusions (`exceeds_night_amount`) is refused again. Its price was stored before the fix to [package nights](../08-rates/03-pricing-strategies.md#package-nights-and-inclusions), and Retry never changes a stored price.
-- Retry needs `reservations.manage` as well as `night-audit.run`, like the fixes. The sheet shows the answer as a toast and reloads.
+- Retry needs `reservations.manage` as well as `night-audit.run`, like the fixes. Like a fix, a refusal shows on the sheet and the sheet reloads.
+- The button shows on a row with one carried room charge, and on each unit of a row with several. `ReadinessItem::retryExceptionId` carries the exception.
+- `ReadinessAdvice` says `exceeds_night_amount` in words: "The night's price is less than its inclusions, so it could not be split."
 
 ## Not built
 
@@ -118,12 +120,12 @@ The sheet shows what its own run is doing until the audit of that date has finis
 
 All under `/p/{code}/night-audit` (`night-audit.`), behind `live` and `can:night-audit.run`.
 
-| Route                                                    | Purpose                                                                                                                                                   |
-| -------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `GET /` (`show`)                                         | The sheet data.                                                                                                                                           |
-| `POST run`                                               | Queue `RunNightAuditJob` for the current user. Body: `force`, `reason`. A blocker with no force gives 422. `force` without `night-audit.force` gives 422. |
-| `POST reservations/{reservation}/units/{unit}/assign`    | `AutoAssignRooms`. Needs `reservations.manage`. 422 with a message when nothing is free.                                                                  |
-| `POST exceptions/{exception}/retry` (`exceptions.retry`) | `RetryRoomCharge`. Needs `reservations.manage`. An exception of another property is a 404. A refusal answers 422 with the reason in words.                |
+| Route                                                              | Purpose                                                                                                                                                   |
+| ------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /` (`show`)                                                   | The sheet data.                                                                                                                                           |
+| `POST run`                                                         | Queue `RunNightAuditJob` for the current user. Body: `force`, `reason`. A blocker with no force gives 422. `force` without `night-audit.force` gives 422. |
+| `POST reservations/{reservation}/units/{unit}/assign`              | `AutoAssignRooms`. Needs `reservations.manage`. 422 with a message when nothing is free.                                                                  |
+| `POST exceptions/{nightAuditException}/retry` (`exceptions.retry`) | `RetryRoomCharge`. Needs `reservations.manage`. An exception of another property is a 404. A refusal answers 422 with the reason in words.                |
 
 ## Lessons from wastays
 

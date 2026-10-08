@@ -40,7 +40,9 @@ class PostRoomCharges
      * to the folio `FolioRouter` chooses for its code. A null actor is the night audit. The unit row is locked first, so
      * two runs never race. Every check runs before the first write, so a refusal writes nothing. A night whose room line
      * already exists returns it as replayed and writes nothing. Automatic postings log no activity: the lines are the
-     * record. See docs/13-folio/02-posting-charges.md.
+     * record. `$date` is the night: the business date for the audit, or an earlier night for `RetryRoomCharge`. The
+     * lines are always posted on the business date, and an earlier night may belong to a unit that has checked out
+     * since; its room line names the night. See docs/13-folio/02-posting-charges.md.
      */
     public function __invoke(?User $actor, ReservationUnit $unit, CarbonImmutable $date): PostingResult
     {
@@ -49,11 +51,13 @@ class PostRoomCharges
             $property = $locked->property;
             $businessDate = $this->currentBusinessDate->date($property);
 
-            if ($businessDate === null || ! $businessDate->isSameDay($date)) {
+            if ($businessDate === null || $date->startOfDay()->gt($businessDate)) {
                 return PostingResult::refused(PostingResult::REFUSAL_NO_BUSINESS_DATE);
             }
 
-            if ($locked->status !== UnitStatus::CheckedIn) {
+            $earlierNight = $date->startOfDay()->lt($businessDate);
+
+            if ($locked->status !== UnitStatus::CheckedIn && ! ($earlierNight && $locked->status === UnitStatus::CheckedOut)) {
                 return PostingResult::refused(PostingResult::REFUSAL_UNIT_NOT_POSTABLE);
             }
 
@@ -119,7 +123,9 @@ class PostRoomCharges
                     $actor,
                     $folio,
                     $charge->code,
-                    $charge->description,
+                    $earlierNight && $charge->key === 'night:'.$night->id
+                        ? __(':description · night of :date', ['description' => $charge->description, 'date' => $date->translatedFormat('j M')])
+                        : $charge->description,
                     1,
                     $charge->unitAmount,
                     $charge->tax,
