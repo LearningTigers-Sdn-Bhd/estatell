@@ -67,13 +67,17 @@ erDiagram
 
 - `CloseFolio` refuses a folio that is not Open, a Master folio while one of its units is CheckedIn (`units_in_house`), and a balance other than 0. The in-house check runs before the balance check. Only the Master folio is checked: a Unit or ThirdParty folio closes while units are in-house. Closing changes the status only. Ledger lines are never touched.
 - `units_in_house` names the rooms: "Room 103 is still in-house. Check out all units first." (or "Rooms 103, 104 are still in-house. …"). A unit is named by tonight's room or bed ("Room 103", "Bed A1"), or by its room type when it has none. `InHouseUnits` (`app/Services/Folio/`) finds them, and `SettleToCityLedger` uses it too.
+- **When to reopen.** Only to fix a guest's unit folio after check-out: a late charge (minibar, damage), a refund of an overpayment, or a reversal. A folio with an AR invoice never reopens: use a third-party folio sent to the company, or a credit note. The Master folio is not closed before Settle, so it has nothing to reopen.
+- **Who may reopen.** `folio.reopen` (Owner, Manager, Finance) reopens any Closed folio without an AR invoice. A user with `front-desk.check-out` may also reopen a **Unit** folio closed during the current business date (`closed_at` on or after the business date's `opened_at`). Most late charges are found the same day; after the night audit the day is final and a manager reopens. `FolioReopenRule` (`app/Services/Folio/`) decides it for a user and a folio, and `ReopenFolio`'s route uses it.
+- **The closed folio says what to do.** A Closed folio shows a notice above its rows (`FolioData.closedNotice`, from `FolioReopenRule`): "Closed at check-out today, 11:42. To add a charge, refund or fix a line, reopen it." with **Reopen folio** when the user may; "Closed at check-out yesterday. Ask a manager to reopen it." when not; "Billed to Acme Sdn Bhd on invoice F-0031. Use a third-party folio or a credit note." with an AR invoice. Post charge, Record payment and the row actions stay hidden on a Closed folio, so staff never meet a refusal after filling a form.
+- `folio_not_open` (posting, payment, refund) says: "This folio is closed. Reopen it on the folio tab first, then try again." for a closed folio.
 - `ReopenFolio` accepts a Closed folio only. A Voided folio cannot reopen. A folio with an AR invoice that is not Void cannot reopen (`folio_has_ar_invoice`, see [AR invoices](../15-city-ledger/02-ar-invoices.md)).
 - Both are logged on the reservation. Both run in one transaction.
 - Payments need `CloseFolio` first, so it lands before [Payments and refunds](../14-payments/01-payments-and-refunds.md).
 - `invoice_number` is issued once, from the `Invoice` document sequence, at the first close. A reopened folio keeps it, and closing again issues no new number.
 - Both Actions lock the folio row and return a `FolioStatusResult`. Refusal codes: `folio_not_open`, `units_in_house`, `balance_not_zero` (close) and `folio_not_closed` (reopen). A refusal writes and logs nothing.
 - Logged on the reservation: `folio.closed`, `folio.reopened`.
-- Defaults: `folio.close` for Owner, Manager, Front desk and Finance (front desk closes at check-out); `folio.reopen` for Owner, Manager and Finance.
+- Defaults: `folio.close` for Owner, Manager, Front desk and Finance (check-out closes the unit folio itself); `folio.reopen` for Owner, Manager and Finance, plus the same-day Unit folio rule above for `front-desk.check-out`.
 - Built in the folio tab: the Close and Reopen buttons ([Folio page](05-folio-page.md#build-status)). The in-house check for a Master folio comes with checklist item 21. A migration syncs the two permissions.
 
 ## Permissions

@@ -49,6 +49,8 @@ Every Action here returns a `UnitStayResult` and writes nothing on a refusal. Th
 - `CheckOutUnit` alone refuses a check-out before the departure date. An early check-out goes through `EarlyCheckOut`, which shortens the stay first. See [Early check-out](#early-check-out).
 - Check-out marks the room Dirty: the room of the unit's last night up to the business date, or the room of its bed.
 - A Master folio balance never blocks a unit check-out. Only the unit's own folios count.
+- **Check-out closes the unit's own folios.** After the balance check and the status change, `CheckOutUnit` closes each Open Unit folio of the unit through `CloseFolio`, in the same transaction. A close that is refused (a posting raced in) rolls the check-out back as `balance_not_settled`. `CheckOutAndRefund` and `EarlyCheckOut` go through `CheckOutUnit`, so they close too. Master and ThirdParty folios stay Open. Closing needs no `folio.close`: it is part of check-out (`front-desk.check-out`). Each close issues the folio's invoice number once and logs `folio.closed`.
+- **A checked-out unit's folio closes itself at 0.** After a posting, payment, refund, reversal or transfer leaves an Open Unit folio of a CheckedOut unit at 0, the Action closes it in the same transaction (`CloseFolio`). So staff reopen to fix something and never have to close again. A folio left above 0 stays Open, and the night audit lists it ("Folio still open": the guest left owing money).
 - Logged on the reservation: `reservation.unit_checked_in` and `reservation.unit_checked_out`.
 
 ### Early check-out
