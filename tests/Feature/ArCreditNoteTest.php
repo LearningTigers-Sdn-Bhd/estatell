@@ -36,7 +36,7 @@ function credit(array $setup, string $amount = '100.00', string $reason = 'Wrong
     return app(IssueCreditNote::class)($setup['actor'], $setup['invoice'], $amount, $reason);
 }
 
-function balanceOf(ArInvoice $invoice): string
+function invoiceBalanceOf(ArInvoice $invoice): string
 {
     return app(ArInvoiceBalance::class)->forInvoice($invoice->fresh());
 }
@@ -57,7 +57,7 @@ test('a credit note reduces the balance and takes its own number', function () {
         ->and($note->number)->not->toBe($setup['invoice']->number)
         ->and($note->due_on)->toBeNull()
         ->and($note->folio_id)->toBeNull()
-        ->and(balanceOf($setup['invoice']))->toBe('400.00')
+        ->and(invoiceBalanceOf($setup['invoice']))->toBe('400.00')
         ->and($setup['invoice']->fresh()->status)->toBe(ArInvoiceStatus::Open)
         ->and($activity->causer_id)->toBe($setup['actor']->id)
         ->and($activity->properties['amount'])->toBe('-100.00');
@@ -70,7 +70,7 @@ test('credit notes get consecutive numbers and a full credit settles the invoice
     $second = credit($setup, '300.00')->invoice;
 
     expect($first->number)->not->toBe($second->number)
-        ->and(balanceOf($setup['invoice']))->toBe('0.00')
+        ->and(invoiceBalanceOf($setup['invoice']))->toBe('0.00')
         ->and($setup['invoice']->fresh()->status)->toBe(ArInvoiceStatus::Settled);
 });
 
@@ -140,6 +140,6 @@ test('voiding a credit note reopens a settled invoice and frees the credit', fun
     expect($result->isRefused())->toBeFalse()
         ->and($note->fresh()->status)->toBe(ArInvoiceStatus::Void)
         ->and($setup['invoice']->fresh()->status)->toBe(ArInvoiceStatus::Open)
-        ->and(balanceOf($setup['invoice']))->toBe('500.00')
+        ->and(invoiceBalanceOf($setup['invoice']))->toBe('500.00')
         ->and(credit($setup, '500.00')->isRefused())->toBeFalse();
 });

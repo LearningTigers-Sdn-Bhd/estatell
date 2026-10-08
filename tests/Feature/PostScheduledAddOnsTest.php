@@ -24,7 +24,7 @@ use Carbon\CarbonImmutable;
  *
  * @return array{property: Property, reservation: Reservation, unit: ReservationUnit, date: CarbonImmutable}
  */
-function addOnSetup(): array
+function scheduledAddOnSetup(): array
 {
     test()->travelTo(now()->setDate(2026, 10, 12)->setTime(12, 0));
     $property = Property::factory()->live()->create();
@@ -46,7 +46,7 @@ function dueAddOn(ReservationUnit $unit, array $attributes = []): UnitAddOn
 }
 
 test('an add-on due tonight posts with its tax and links its line', function () {
-    $setup = addOnSetup();
+    $setup = scheduledAddOnSetup();
     $addOn = dueAddOn($setup['unit']);
     $tax = Tax::factory()->for($setup['property'])->create(['rate' => '10.00', 'rate_type' => TaxRateType::Percent]);
     $tax->applicableTransactionCodes()->attach($addOn->chargeItem->transaction_code_id);
@@ -67,7 +67,7 @@ test('an add-on due tonight posts with its tax and links its line', function () 
 });
 
 test('only add-ons due on the business date and not posted post', function () {
-    $setup = addOnSetup();
+    $setup = scheduledAddOnSetup();
     $due = dueAddOn($setup['unit']);
     dueAddOn($setup['unit'], ['service_date' => '2026-10-13']);
     dueAddOn($setup['unit'], ['service_date' => null]);
@@ -83,7 +83,7 @@ test('only add-ons due on the business date and not posted post', function () {
 });
 
 test('posting twice writes nothing the second time', function () {
-    $setup = addOnSetup();
+    $setup = scheduledAddOnSetup();
     dueAddOn($setup['unit']);
     $post = app(PostScheduledAddOns::class);
 
@@ -95,7 +95,7 @@ test('posting twice writes nothing the second time', function () {
 });
 
 test('one add-on that cannot post does not stop the others', function () {
-    $setup = addOnSetup();
+    $setup = scheduledAddOnSetup();
     $foreign = dueAddOn($setup['unit']);
     Tax::factory()->for($setup['property'])->create(['rate' => '6.00', 'rate_type' => TaxRateType::Percent, 'foreign_guests_only' => true])
         ->applicableTransactionCodes()->attach($foreign->chargeItem->transaction_code_id);
@@ -111,7 +111,7 @@ test('one add-on that cannot post does not stop the others', function () {
 });
 
 test('a closed folio refuses its add-on and writes nothing', function () {
-    $setup = addOnSetup();
+    $setup = scheduledAddOnSetup();
     $addOn = dueAddOn($setup['unit']);
     app(CreateFolio::class)($setup['reservation'], $setup['unit'])->forceFill(['status' => FolioStatus::Closed])->save();
 
@@ -121,7 +121,7 @@ test('a closed folio refuses its add-on and writes nothing', function () {
 });
 
 test('an add-on whose folio is settled to the city ledger is refused with its own code', function () {
-    $setup = addOnSetup();
+    $setup = scheduledAddOnSetup();
     $addOn = dueAddOn($setup['unit']);
     $folio = app(CreateFolio::class)($setup['reservation'], $setup['unit']);
     $folio->forceFill(['status' => FolioStatus::Closed])->save();
@@ -133,7 +133,7 @@ test('an add-on whose folio is settled to the city ledger is refused with its ow
 });
 
 test('a date that is not the business date posts nothing', function () {
-    $setup = addOnSetup();
+    $setup = scheduledAddOnSetup();
     dueAddOn($setup['unit'], ['service_date' => '2026-10-13']);
 
     expect(app(PostScheduledAddOns::class)(null, $setup['property'], CarbonImmutable::parse('2026-10-13')))->toBe([])
