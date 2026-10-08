@@ -25,6 +25,8 @@ class RateQuote
 
     public const REFUSAL_STAY_LENGTH_MISMATCH = 'stay_length_mismatch';
 
+    public const REFUSAL_PACKAGE_BELOW_INCLUSIONS = 'package_below_inclusions';
+
     public const REFUSAL_RATE_MISSING = 'rate_missing';
 
     public const REFUSAL_CHILD_PRICE_MISSING = 'child_price_missing';

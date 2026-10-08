@@ -10,7 +10,7 @@ use InvalidArgumentException;
 
 /**
  * Prices a stay night by night with the strategy of the plan's pricing basis. A derived plan is priced as its parent,
- * then adjusted by `DerivedRateResolver`. It reads only. Restrictions are
+ * then adjusted by `DerivedRateResolver`. The strategy then fits the nights to the plan's inclusions. It reads only. Restrictions are
  * checked by `RestrictionCheck`, not here.
  */
 class RateQuoteService
@@ -81,6 +81,8 @@ class RateQuoteService
             $units = $strategy->discountUnits($stay);
             $nights = array_map(fn ($night) => $this->derivedRateResolver->resolve($night, $plan, $units), $nights);
         }
+
+        $nights = $strategy->fitInclusions($nights, $plan->loadMissing('inclusions')->inclusions, $adults + count($childAgeGroupIds));
 
         return new PricedNights($nights, $strategy->discountUnits($stay));
     }

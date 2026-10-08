@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\AgeBandPricing;
+use App\Enums\ChargingUnit;
 use App\Enums\PackageUnit;
 use App\Enums\PricingBasis;
 use App\Enums\Weekday;
@@ -11,7 +12,9 @@ use App\Models\PropertySetting;
 use App\Models\Rate;
 use App\Models\RatePlan;
 use App\Models\RatePlanChildPrice;
+use App\Models\RatePlanInclusion;
 use App\Models\RoomType;
+use App\Services\Packages\InclusionAllocator;
 use App\Services\Rates\Pricing\StayPricing;
 use App\Services\Rates\RateQuote;
 use App\Services\Rates\RateQuoteRequest;
@@ -97,6 +100,40 @@ test('RM500 over 3 nights splits into 166.67, 166.67 and 166.66', function () {
 
     expect(packageNightTotals($quote))->toBe(['166.67', '166.67', '166.66'])
         ->and((string) $quote->total->getAmount())->toBe('500.00');
+});
+
+test('the Dive Package puts its one-off diving on the first night so every night covers its inclusions', function () {
+    [, $plan, $roomType] = packageQuoteSetup(nights: 3, amount: '880.00');
+    foreach (['20.00', '30.00', '50.00'] as $meal) {
+        RatePlanInclusion::factory()->for($plan)->create(['charging_unit' => ChargingUnit::PerGuestNight, 'allocated_amount' => $meal]);
+    }
+    RatePlanInclusion::factory()->for($plan)->create(['charging_unit' => ChargingUnit::PerGuest, 'quantity' => 2, 'allocated_amount' => '180.00']);
+
+    $quote = packageQuote($plan, $roomType);
+    $firstNight = app(InclusionAllocator::class)->allocate($quote->nights[0]->total(), $plan->inclusions()->get(), 2, true);
+
+    expect(packageNightTotals($quote))->toBe(['1066.67', '346.67', '346.66'])
+        ->and((string) $quote->total->getAmount())->toBe('1760.00')
+        ->and($firstNight->isRefused())->toBeFalse()
+        ->and((string) $firstNight->room?->getAmount())->toBe('146.67');
+});
+
+test('a package with inclusions splits the children part by the same night totals', function () {
+    [$property, $plan, $roomType] = packageQuoteSetup(amount: '300.00');
+    packageChildPrice($property, $plan, AgeBandPricing::Fixed, '100.00');
+    RatePlanInclusion::factory()->for($plan)->create(['charging_unit' => ChargingUnit::PerStay, 'allocated_amount' => '200.00']);
+
+    $quote = packageQuote($plan, $roomType, adults: 1, childAges: [8]);
+
+    expect(array_map(fn ($night): array => [(string) $night->base->getAmount(), (string) $night->extra->getAmount()], $quote->nights))
+        ->toBe([['225.00', '75.00'], ['75.00', '25.00']]);
+});
+
+test('a package priced below its inclusions is refused', function () {
+    [, $plan, $roomType] = packageQuoteSetup(amount: '100.00');
+    RatePlanInclusion::factory()->for($plan)->create(['charging_unit' => ChargingUnit::PerGuest, 'allocated_amount' => '150.00']);
+
+    expect(packageQuote($plan, $roomType)->refusal)->toBe(RateQuote::REFUSAL_PACKAGE_BELOW_INCLUSIONS);
 });
 
 test('the adults part and the children part are each split so the cents add up', function () {

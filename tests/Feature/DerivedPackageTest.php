@@ -4,6 +4,7 @@ use App\Actions\Rates\CreateDerivedRatePlan;
 use App\Actions\Rates\SavePackagePricing;
 use App\Actions\Rates\SaveRatePlanDerivation;
 use App\Actions\Rates\UpdateRatePlan;
+use App\Enums\ChargingUnit;
 use App\Enums\PackageUnit;
 use App\Enums\PricingBasis;
 use App\Enums\RateDerivation;
@@ -11,6 +12,7 @@ use App\Models\PackagePrice;
 use App\Models\Property;
 use App\Models\PropertySetting;
 use App\Models\RatePlan;
+use App\Models\RatePlanInclusion;
 use App\Models\RoomType;
 use App\Models\User;
 use App\Services\Rates\DerivedRatePlans;
@@ -100,6 +102,17 @@ test('a derived package quote is the parent package price after the percent', fu
     $quote = app(RateQuoteService::class)->quote(new RateQuoteRequest($child->fresh(), $roomType, $arrival, $arrival->addDays(2), 2));
 
     expect(array_map(fn ($night): string => (string) $night->total()->getAmount(), $quote->nights))->toBe(['540.00', '540.00']);
+});
+
+test('a derived package fits the nights to its own inclusions after the percent', function () {
+    [$owner, $property, $parent, $roomType] = derivedPackageSetup();
+    $child = derivedPackage($property, $parent, $roomType);
+    RatePlanInclusion::factory()->for($child)->create(['charging_unit' => ChargingUnit::PerGuest, 'allocated_amount' => '300.00']);
+    $arrival = Date::parse('2026-06-10');
+
+    $quote = app(RateQuoteService::class)->quote(new RateQuoteRequest($child->fresh(), $roomType, $arrival, $arrival->addDays(2), 2));
+
+    expect(array_map(fn ($night): string => (string) $night->total()->getAmount(), $quote->nights))->toBe(['840.00', '240.00']);
 });
 
 test('a derived package refuses a stay of another length like its parent', function () {

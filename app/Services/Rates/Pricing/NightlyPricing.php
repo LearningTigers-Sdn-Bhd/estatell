@@ -38,6 +38,14 @@ abstract class NightlyPricing implements StayPricing
     }
 
     /**
+     * Each night is priced on its own date, so the nights stay as they are.
+     */
+    public function fitInclusions(array $nights, iterable $inclusions, int $guests): array
+    {
+        return $nights;
+    }
+
+    /**
      * @throws QuoteRefused when the night cannot be priced
      */
     abstract protected function priceNight(StayContext $stay, Rate $rate): NightPrice;

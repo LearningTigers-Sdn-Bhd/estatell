@@ -145,6 +145,7 @@ class ReservationRefusals
             RateQuote::REFUSAL_STAY_LENGTH_MISMATCH => ['departure_date', __('This package sells a fixed number of nights.')],
             RateQuote::REFUSAL_RATE_MISSING => [self::FORM, $day === '' ? __('No rate is set for these dates.') : __('No rate is set for :date.', ['date' => $day])],
             RateQuote::REFUSAL_PACKAGE_PRICE_MISSING => [self::FORM, __('The package has no price for these dates.')],
+            RateQuote::REFUSAL_PACKAGE_BELOW_INCLUSIONS => [self::FORM, __('The package price is less than its inclusions.')],
             RateQuote::REFUSAL_CHILD_PRICE_MISSING => ['child_ages', __('No child price is set for these ages.')],
             RateQuote::REFUSAL_BEDS_REQUIRED => [self::FORM, __('At least one bed is required.')],
             AttachGuestResult::REFUSAL_GUEST_NOT_FOUND => ['guest_id', __('This guest cannot be found.')],

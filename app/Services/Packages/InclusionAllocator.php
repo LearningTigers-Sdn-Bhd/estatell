@@ -5,6 +5,7 @@ namespace App\Services\Packages;
 use App\Enums\ChargingUnit;
 use App\Models\RatePlanInclusion;
 use Brick\Math\RoundingMode;
+use Brick\Money\Currency;
 use Brick\Money\Money;
 
 class InclusionAllocator
@@ -26,15 +27,44 @@ class InclusionAllocator
             return InclusionSplit::refused(InclusionSplit::REFUSAL_GUESTS_REQUIRED);
         }
 
+        $lines = $this->lines($nightAmount->getCurrency(), $inclusions, $guests, $firstNight);
+        $room = array_reduce($lines, fn (Money $room, InclusionLine $line): Money => $room->minus($line->amount), $nightAmount);
+
+        if ($room->isNegative()) {
+            return InclusionSplit::refused(InclusionSplit::REFUSAL_EXCEEDS_NIGHT_AMOUNT);
+        }
+
+        return InclusionSplit::split($room, $lines);
+    }
+
+    /**
+     * The sum of one night's inclusion lines, with the same rules as `allocate()`. Read only.
+     *
+     * @param  iterable<RatePlanInclusion>  $inclusions
+     */
+    public function total(Currency $currency, iterable $inclusions, int $guests, bool $firstNight): Money
+    {
+        return array_reduce(
+            $this->lines($currency, $inclusions, $guests, $firstNight),
+            fn (Money $total, InclusionLine $line): Money => $total->plus($line->amount),
+            Money::zero($currency),
+        );
+    }
+
+    /**
+     * @param  iterable<RatePlanInclusion>  $inclusions
+     * @return list<InclusionLine>
+     */
+    private function lines(Currency $currency, iterable $inclusions, int $guests, bool $firstNight): array
+    {
         $lines = [];
-        $room = $nightAmount;
 
         foreach ($inclusions as $inclusion) {
             if (! $firstNight && $this->postsOnce($inclusion->charging_unit)) {
                 continue;
             }
 
-            $amount = Money::of($inclusion->allocated_amount, $nightAmount->getCurrency(), roundingMode: RoundingMode::HalfUp)
+            $amount = Money::of($inclusion->allocated_amount, $currency, roundingMode: RoundingMode::HalfUp)
                 ->multipliedBy($inclusion->quantity * $this->units($inclusion->charging_unit, $guests));
 
             if ($amount->isZero()) {
@@ -42,14 +72,9 @@ class InclusionAllocator
             }
 
             $lines[] = new InclusionLine($inclusion->id, $inclusion->charge_item_id, $amount);
-            $room = $room->minus($amount);
         }
 
-        if ($room->isNegative()) {
-            return InclusionSplit::refused(InclusionSplit::REFUSAL_EXCEEDS_NIGHT_AMOUNT);
-        }
-
-        return InclusionSplit::split($room, $lines);
+        return $lines;
     }
 
     private function postsOnce(ChargingUnit $unit): bool
