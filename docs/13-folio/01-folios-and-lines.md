@@ -65,15 +65,16 @@ erDiagram
 
 ## Close and reopen
 
-- `CloseFolio` refuses a folio that is not Open, a balance other than 0, and a Master folio while one of its units is in-house. The in-house check waits for the front desk states ([check-out](../18-front-desk/01-check-in-and-check-out.md)); until then it is a recorded follow-up. Closing changes the status only. Ledger lines are never touched.
+- `CloseFolio` refuses a folio that is not Open, a Master folio while one of its units is CheckedIn (`units_in_house`), and a balance other than 0. The in-house check runs before the balance check. Only the Master folio is checked: a Unit or ThirdParty folio closes while units are in-house. Closing changes the status only. Ledger lines are never touched.
+- `units_in_house` names the rooms: "Room 103 is still in-house. Check out all units first." (or "Rooms 103, 104 are still in-house. …"). A unit is named by tonight's room or bed ("Room 103", "Bed A1"), or by its room type when it has none. `InHouseUnits` (`app/Services/Folio/`) finds them, and `SettleToCityLedger` uses it too.
 - `ReopenFolio` accepts a Closed folio only. A Voided folio cannot reopen. A folio with an AR invoice that is not Void cannot reopen (`folio_has_ar_invoice`, see [AR invoices](../15-city-ledger/02-ar-invoices.md)).
 - Both are logged on the reservation. Both run in one transaction.
 - Payments need `CloseFolio` first, so it lands before [Payments and refunds](../14-payments/01-payments-and-refunds.md).
 - `invoice_number` is issued once, from the `Invoice` document sequence, at the first close. A reopened folio keeps it, and closing again issues no new number.
-- Both Actions lock the folio row and return a `FolioStatusResult`. Refusal codes: `folio_not_open`, `balance_not_zero` (close) and `folio_not_closed` (reopen). A refusal writes and logs nothing.
+- Both Actions lock the folio row and return a `FolioStatusResult`. Refusal codes: `folio_not_open`, `units_in_house`, `balance_not_zero` (close) and `folio_not_closed` (reopen). A refusal writes and logs nothing.
 - Logged on the reservation: `folio.closed`, `folio.reopened`.
 - Defaults: `folio.close` for Owner, Manager, Front desk and Finance (front desk closes at check-out); `folio.reopen` for Owner, Manager and Finance.
-- Built in the folio tab: the Close and Reopen buttons ([Folio page](05-folio-page.md#build-status)). Not built: the in-house check for a Master folio. A migration syncs the two permissions.
+- Built in the folio tab: the Close and Reopen buttons ([Folio page](05-folio-page.md#build-status)). The in-house check for a Master folio comes with checklist item 21. A migration syncs the two permissions.
 
 ## Permissions
 

@@ -36,15 +36,17 @@ payments    id, property_id, folio_id, payment_method_id, amount,
 - **A unit that already has a folio:** the Action locks the unit row, finds the unit's own folio and posts to it. It does not refuse, so two quick clicks on Record payment never make two folios.
 - `NewPaymentData`: `payment_method_id`, `purpose`, `amount` (the amount paid on the bill), `reference`, `idempotency_key` (a UUID sent by the form, as `manual:{uuid}` is for charges).
 
-| Check, in order                                                            | Refusal                                                          |
-| -------------------------------------------------------------------------- | ---------------------------------------------------------------- |
-| A business date exists                                                     | `no_business_date`                                               |
-| The folio (or the unit) belongs to the reservation and the property        | 404 in the route                                                 |
-| The folio is Open                                                          | `folio_not_open`                                                 |
-| The method is active, the property's, and not City ledger or OTA collected | `method_not_available`                                           |
-| The amount is greater than 0 with at most two decimals                     | `amount_invalid`                                                 |
-| A method with `requires_reference` has a reference                         | `reference_required`                                             |
-| The tax on the surcharge can be calculated                                 | the `TaxCalculator` refusal (for example `nationality_required`) |
+| Check, in order                                                                            | Refusal                                                          |
+| ------------------------------------------------------------------------------------------ | ---------------------------------------------------------------- |
+| A business date exists                                                                     | `no_business_date`                                               |
+| The folio (or the unit) belongs to the reservation and the property                        | 404 in the route                                                 |
+| The folio is Open                                                                          | `folio_not_open`                                                 |
+| A SecurityDeposit goes on a Unit folio or a unit entry                                     | `deposit_on_unit_only`                                           |
+| An Advance on a Unit folio or unit entry only when Room does not route to the Master folio | `advance_on_master`                                              |
+| The method is active, the property's, and not City ledger or OTA collected                 | `method_not_available`                                           |
+| The amount is greater than 0 with at most two decimals                                     | `amount_invalid`                                                 |
+| A method with `requires_reference` has a reference                                         | `reference_required`                                             |
+| The tax on the surcharge can be calculated                                                 | the `TaxCalculator` refusal (for example `nationality_required`) |
 
 - One transaction, with the folio row locked (the unit row first when a unit is given). A refusal writes and logs nothing.
 - Order of writes: the folio when needed, the receipt number, the surcharge lines, the payment line, then the `payments` row with `folio_line_id` and `surcharge_line_id`. The row is inserted once and never updated.
@@ -79,6 +81,9 @@ payments    id, property_id, folio_id, payment_method_id, amount,
 ## Rules
 
 - A deposit is a payment with a purpose. No deposit tables.
+- **A security deposit stays on a unit folio** (`deposit_on_unit_only`): check-out refunds it from the unit's own folio, so on a Master or ThirdParty folio it would never be found. "A security deposit stays on the unit's own folio. Record it on the unit folio."
+- **An advance goes where the room charges go** (`advance_on_master`): when `FolioRouter::roomChargesGoToMaster($unit)` is true (the real rules, BillingMode and Manual, for the property's Room revenue code), an Advance on that unit's folio or "not started" entry is refused. A payment line never moves, so it would sit next to no charges while the company is billed in full. "An advance for this room goes on the Master folio, because the Master folio pays the room charges. Record it there." `CheckInCollection` uses the same method, and Collect now never records the taxes when Room routes to the Master (the tax rows are hidden), so check-in never meets this refusal.
+- The two purpose checks run after `folio_not_open` and before `method_not_available`. Both map to the form error, because the Purpose field can be hidden. The server does not check the other stage rules below: only these two affect where money sits.
 - **A payment line is corrected only by a refund.** `ReverseLine` and `TransferLines` refuse a line that a `payments` row owns through `folio_line_id` (`payment_line`). Otherwise a reversed payment could still be refunded, and a transferred one would leave `payments.folio_id` on the old folio. The surcharge line is an ordinary charge and can be reversed or transferred. A deposit always stays on the unit's own folio, even with a Master folio, because a payment line is never transferred.
 - A payment with the SecurityDeposit purpose uses the method's own code. The system `SECURITY_DEPOSIT` code stays unused.
 - A held deposit is a credit on the unit folio like any payment, so [check-out](../18-front-desk/01-check-in-and-check-out.md#taxes-and-deposit) needs no deposit rule: the balance must reach 0, and the credit is refunded through `RefundPayment`.
@@ -118,19 +123,35 @@ A separate `ReservationPaymentController` (the folio controller is already long)
 - The quote needs only the method and the amount, so it hangs off the reservation. The "not started" entry uses it too.
 - A payment on a "not started" entry redirects to `?folio={new folio id}`, because the `u{unit id}` entry is gone once the folio exists.
 - `PaymentRefusals` maps each refusal code to a field (`payment_method_id`, `amount`, `reference`) or one message for the form, like `FolioRefusals`.
-- The methods and purposes are one optional prop, `paymentOptions`, read when the Dialog opens: active methods that are not City ledger or OTA collected, with `requiresReference`, and `PaymentPurpose::options()`.
-- `FolioData` gets `canRecordPayment` (an Open folio, or a "not started" entry) and `paymentUnitId` (the unit of a "not started" entry). `FolioRowData` gets `note` (the payment reference), `paymentId` and `refundable` (the amount left to refund), and the `refund` action on an Open folio for a user with `payment.refund` when something is left.
+- The methods are one optional prop, `paymentOptions`, read when the Dialog opens: active methods that are not City ledger or OTA collected, with `requiresReference`. The purposes are per folio, on `FolioData` (see [Purposes by stage](#purposes-by-stage)).
+- `FolioData` gets `paymentPurposes` and `defaultPaymentPurpose`, and `canRecordPayment` (an Open folio, or a "not started" entry, with at least one purpose) and `paymentUnitId` (the unit of a "not started" entry). `FolioRowData` gets `note` (the payment reference), `paymentId` and `refundable` (the amount left to refund), and the `refund` action on an Open folio for a user with `payment.refund` when something is left.
 
 ### Dialog defaults
 
 | Field   | Default                                                              |
 | ------- | -------------------------------------------------------------------- |
-| Purpose | Advance on a "not started" entry, Settlement on a folio              |
+| Purpose | The first purpose of the folio's stage (see below)                   |
 | Amount  | The balance when it is above 0. Empty otherwise and on "not started" |
 | Method  | The first method in position order                                   |
 
 - The quote runs again when the method or the amount changes. The Dialog shows Surcharge, Tax on surcharge and **Total to collect**, and the submit button names the total ("Record RM 105.40").
 - The form sends a new UUID as the idempotency key each time the Dialog opens, so a double click records once.
+
+### Purposes by stage
+
+`PaymentPurposeChoices` (`app/Services/Payments/`) gives each folio its purposes, through `PaymentPurpose::forStage(FolioType, PaymentStage)`. The first one is the default. When there is one, the Dialog hides the Purpose field and sends it. When there is none, the folio has no Record payment button.
+
+| Folio                                    | Before arrival | In-house                     | Departed   |
+| ---------------------------------------- | -------------- | ---------------------------- | ---------- |
+| Unit folio or entry, Room stays on it    | Advance        | Settlement, Security deposit | Settlement |
+| Unit folio or entry, Room goes to Master | none           | Settlement, Security deposit | Settlement |
+| Master folio                             | Advance        | Settlement                   | Settlement |
+| ThirdParty folio                         | Settlement     | Settlement                   | Settlement |
+
+- `PaymentStage` (enum): BeforeArrival, InHouse, Departed.
+- A unit's stage: Confirmed is BeforeArrival, CheckedIn is InHouse, CheckedOut, Cancelled and NoShow are Departed (a cancel or no-show fee is settled).
+- The Master's stage, from its live units: any CheckedIn is InHouse; all Confirmed is BeforeArrival; otherwise Departed.
+- Advance and Settlement differ only on the receipt. A long-stay guest paying next week ahead gets Settlement, which lowers the balance the same way.
 
 ## Receipt
 

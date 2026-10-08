@@ -109,7 +109,7 @@ A left rail lists the folios of the reservation, the same way the Units tab list
 | Balance   | Posted balance of that folio, in the danger tone when above 0                           |
 | Order     | Master, then Unit folios in unit order, then Third party folios, then not-started units |
 
-- **Not started:** a unit with no folio gets a read-only entry labelled "Unit X · not started". It shows the unit's Scheduled rows and no Balance. Its only action is Record payment, which creates the unit's folio on the first payment ([Payments and refunds](../14-payments/01-payments-and-refunds.md)). Nothing else creates a folio to show it. A folio is created on the first posting (see [Posting charges](02-posting-charges.md)).
+- **Not started:** a unit with no folio gets a read-only entry labelled "Unit X · not started". It shows the unit's Scheduled rows and no Balance. Its only action is Record payment, which creates the unit's folio on the first payment ([Payments and refunds](../14-payments/01-payments-and-refunds.md)). When Room charges route to the Master folio, the entry has no valid purpose before arrival, so it shows no Record payment: staff take the advance on the Master folio ([Purposes by stage](../14-payments/01-payments-and-refunds.md#purposes-by-stage)). Nothing else creates a folio to show it. A folio is created on the first posting (see [Posting charges](02-posting-charges.md)).
 - The default folio is the Master when it exists, otherwise the first Unit folio.
 - The rail takes about 200px, so the Room column is hidden while the rail names the unit.
 - A Closed folio is read only: no post, discount, transfer or reverse actions, and its menus are hidden. It shows the invoice number and a Reopen action.
@@ -126,19 +126,19 @@ A left rail lists the folios of the reservation, the same way the Units tab list
 
 Row and folio actions call the existing Actions. A refusal writes and logs nothing. A form (post charge, transfer, apply discount) shows the refusal in its Dialog, on the matching field or as one message for the form, like the add-on dialog. An AlertDialog (reverse, remove discount) has no field, so it shows an error toast.
 
-| Action          | Permission                              | Shown on                                                             |
-| --------------- | --------------------------------------- | -------------------------------------------------------------------- |
-| Post charge     | `folio.post-charge`                     | An Open folio with at least one unit that can receive a posting      |
-| Reverse         | `folio.reverse`                         | A Posted charge (not a child, a reversal or an already reversed one) |
-| Transfer        | `folio.transfer`                        | A Posted charge on an Open folio, when another Open folio exists     |
-| Apply discount  | `folio.discount`, `folio.discount-open` | An Open folio with eligible charges                                  |
-| Remove discount | `folio.discount`                        | A discount child row that is not reversed                            |
-| Close, Reopen   | `folio.close`, `folio.reopen`           | The folio header                                                     |
-| Record payment  | `payment.record`                        | The folio header of an Open folio, and a "not started" entry         |
-| Refund          | `payment.refund`                        | A Completed payment row with an amount left to refund                |
-| Print voucher   | `folio.print-voucher`                   | The folio header, and the row menu of a printable posted line        |
-| Third-party     | `folio.transfer`                        | The action row, for the reservation                                  |
-| Routing rules   | `folio.transfer`                        | The action row, for the reservation                                  |
+| Action          | Permission                              | Shown on                                                                                              |
+| --------------- | --------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| Post charge     | `folio.post-charge`                     | An Open folio with at least one unit that can receive a posting                                       |
+| Reverse         | `folio.reverse`                         | A Posted charge (not a child, a reversal or an already reversed one)                                  |
+| Transfer        | `folio.transfer`                        | A Posted charge on an Open folio, when another Open folio exists                                      |
+| Apply discount  | `folio.discount`, `folio.discount-open` | An Open folio with eligible charges                                                                   |
+| Remove discount | `folio.discount`                        | A discount child row that is not reversed                                                             |
+| Close, Reopen   | `folio.close`, `folio.reopen`           | The folio header                                                                                      |
+| Record payment  | `payment.record`                        | The folio header of an Open folio, and a "not started" entry, when the folio has at least one purpose |
+| Refund          | `payment.refund`                        | A Completed payment row with an amount left to refund                                                 |
+| Print voucher   | `folio.print-voucher`                   | The folio header, and the row menu of a printable posted line                                         |
+| Third-party     | `folio.transfer`                        | The action row, for the reservation                                                                   |
+| Routing rules   | `folio.transfer`                        | The action row, for the reservation                                                                   |
 
 A Scheduled row has no actions except Print voucher. A "not started" entry has only Record payment and Print voucher.
 
@@ -227,7 +227,7 @@ Two reservation-level actions sit in a **Routing** dropdown in the action row, b
 └────────────────────┴──────────────────────────────────────────────────┘
 ```
 
-**Third-party folio** opens a Dialog with one field, the payer (`GuestPicker`). On success the tab opens the new folio (`?folio=`) and a toast names it.
+**Third-party folio** opens a Dialog with the payer: Guest or Company (choice cards; Company shows only with `company.view`), then `GuestPicker` or `CompanySelect` (Active companies, the existing optional `companies` prop). It sends `payer_guest_id` or `payer_company_id`, never both. A Suspended or foreign company is a validation error on `payer_company_id`: "This company is not available. Pick an active company." On success the tab opens the new folio (`?folio=`) and a toast names the payer. **Settle to City ledger** works on a third-party folio with a company payer, also while units are in-house.
 
 **Routing rules** opens a Sheet:
 
@@ -323,4 +323,4 @@ Decisions made at build time:
 - A night with an `override_amount` is one row with the Overridden marker, with no discount rows and the tax on the override.
 - An add-on with no `service_date` shows on the unit's arrival date.
 - Posted rows follow the ledger: each charge or payment, then its children. A line with a reversal gets the Reversed marker, and a reversal line gets the Reversal marker. A posted row names its unit through the source of its line, or of its parent line for a tax or discount child (see [Posting charges](02-posting-charges.md#line-sources)). `FolioStatement` reads the units of all lines in one lookup for each source type (unit night, add-on, reservation unit), so the query count does not grow with the units. The Unit column shows on every folio type, for posted and Scheduled rows. A payment row has no unit.
-- The Master is named "Master" and a third-party folio "Third party". A guest payer shows under the name. A company payer shows no name until [Companies](../15-city-ledger/01-companies.md) exists.
+- The Master is named "Master" and a third-party folio "Third party". The payer shows under the name: the guest, or the company. `FolioStatement` (rail and `optionLabel`), `RoutingRuleList` and `AddOnBilling` load `payerCompany` with `payerGuest`.

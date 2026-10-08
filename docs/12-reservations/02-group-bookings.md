@@ -102,7 +102,11 @@ The `rates.override-restrictions` check runs with the permission team set to the
 
 ### `UpdateReservationGroup`
 
-Changes `group_name` and `billing_mode`. A changed billing mode runs `SyncRoutingRules` ([Routing](../13-folio/03-routing.md)). It returns a `GroupUpdateResult`: the `reservation` and `unitsWithPostedRoomLines` (see above).
+Changes `group_name` and `billing_mode`. A changed billing mode runs `SyncRoutingRules` ([Routing](../13-folio/03-routing.md)). It returns a `GroupUpdateResult`: the `reservation` and `unitsWithPostedRoomLines` (see above), or a refusal.
+
+- A billing mode change is refused while the Master folio holds money (`master_has_payments`): the net of its Completed payments minus their refunds is above 0 (`MasterPaymentsHeld`, `app/Services/Folio/`). Any change counts, not only to EachPays. A fully refunded payment does not block, and a name-only edit is never refused. The refusal writes and logs nothing.
+- The message names the amount, on the `billing_mode` field: "The Master folio holds MYR 1,000.00 in payments. Refund it before changing the billing mode."
+- `GroupUpdateResult` gains `refusal` and `amount`, with `isRefused()`. `ReservationGroupController::update` returns the refusal as a form error and shows "Group details saved." only on success.
 
 ## Build status
 

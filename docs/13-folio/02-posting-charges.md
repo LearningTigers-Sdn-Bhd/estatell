@@ -43,7 +43,7 @@ All Actions return a result and write nothing on a refusal. Each one is one tran
 | Quantity is from 1 to 999                                                                           | `quantity_invalid`            |
 | `unit_amount` is greater than 0 with at most two decimals                                           | `amount_invalid`              |
 | An amount different from `default_amount` needs `allow_override`; an item with no default needs one | `amount_override_not_allowed` |
-| The target folio is Open                                                                            | `folio_not_open`              |
+| The target folio is Open (`folio_settled_to_city_ledger` when it is settled to the city ledger)     | `folio_not_open`              |
 
 - The key is `manual:{uuid}`, sent by the form, so a double click never posts twice. A key that already exists returns the existing line and writes nothing, but only when the line's folio belongs to the unit's reservation. A key that belongs to another reservation is refused (`charge_not_found`), so a key never reveals another reservation's lines. Transfers stay inside one reservation, so a legitimate replay always passes.
 - The line description is the given `description`, or else the item name (the code name for a code with no item). It is copied at posting time.
@@ -141,13 +141,13 @@ The room line has `source_type` and `source_id` set to the unit night. Discount 
 
 `(?User $actor, ReservationUnit $unit, CarbonImmutable $date): PostingResult`. A null actor is the night audit. `PostFolioCharge` takes a nullable actor for the same reason (`folio_lines.user_id` is nullable).
 
-| Check, in order                                      | Refusal             |
-| ---------------------------------------------------- | ------------------- |
-| `$date` is the current business date of the property | `no_business_date`  |
-| The unit is CheckedIn                                | `unit_not_postable` |
-| The unit has a night on `$date`                      | `night_not_found`   |
-| The quote is calculated (tax, inclusions, discounts) | the quote's refusal |
-| The target folio is Open                             | `folio_not_open`    |
+| Check, in order                                      | Refusal                                                                              |
+| ---------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| `$date` is the current business date of the property | `no_business_date`                                                                   |
+| The unit is CheckedIn                                | `unit_not_postable`                                                                  |
+| The unit has a night on `$date`                      | `night_not_found`                                                                    |
+| The quote is calculated (tax, inclusions, discounts) | the quote's refusal                                                                  |
+| The target folio is Open                             | `folio_not_open`, or `folio_settled_to_city_ledger` ([Routing](03-routing.md#rules)) |
 
 - A night whose `night:{id}` line exists returns that line and writes nothing. It is not a refusal, so a rerun is quiet.
 - A refusal writes nothing. The audit turns it into an exception row for the unit.

@@ -36,12 +36,15 @@ The settle action does not go through `RecordPayment`: a City ledger line has no
 
 - Settle refuses (a result, not an error) when:
     - the folio is not Open (`folio_not_open`);
+    - it is a Master folio and a unit is still CheckedIn (`units_in_house`). The message names the rooms: "Room 103 is still in-house. Check out all units first." This runs before any write, so no DIRECT_BILL line is posted. `CloseFolio` checks the same as a backstop (see [Folios and lines](../13-folio/01-folios-and-lines.md#close-and-reopen)). Without it, the next night could not post and the folio could not reopen;
     - its payer is not a company of the property (`no_company_payer`);
     - the company is Suspended or has `direct_bill_enabled` off (`direct_bill_not_allowed`);
     - the balance is not above 0 (`nothing_to_settle`);
     - there is no business date (`no_business_date`).
 - The credit limit is checked with `CreditCheck` ([Credit control](04-credit-control-and-reports.md#credit-check)): a company already over its limit is refused (`credit_limit_exceeded`) unless the user passes `company.credit-override` with a reason.
 - `ReopenFolio` refuses a folio that has an AR invoice that is not Void (`folio_has_ar_invoice`): fix it with a credit note.
+- A ThirdParty folio with a company payer settles the same way, also while units are in-house. It makes its own invoice.
+- **A late charge after Settle** (for example a minibar found the next morning) cannot post to the settled folio (`folio_settled_to_city_ledger`). Staff open a third-party folio for the company, add a routing rule for that unit to it, post the charge, then settle that folio: a second invoice. See [Routing](../13-folio/03-routing.md#rules).
 - An AR invoice reuses the folio's invoice number. Credit notes take their own sequence (`DocumentType::CreditNote`).
 - Issued invoices are never edited. A correction is a credit note: a negative row with `credit_for_invoice_id`, issued with a reason, for at most the invoice's balance (`credit_exceeds_balance`). It is Settled at once, because it is applied to its invoice as it is issued.
 - Invoice balance = amount + its non-void credit notes - active allocations ([AR payments](03-ar-payments.md)). The invoice becomes Settled when the balance reaches 0, and Open again when a credit note is voided or an allocation is reversed. The invoice page lists its allocations. Balance and overdue status are calculated, not stored.

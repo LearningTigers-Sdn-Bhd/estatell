@@ -39,6 +39,8 @@ The router follows one rule and stops. A rule target is final, so there are no c
 - **Children follow their parent.** Tax and discount lines go to the folio of their charge. A rule never matches them, so a charge and its tax are never split.
 - **Reversals and transfers skip the router.** `ReverseLine` posts on the line's own folio. `TransferLines` posts on the chosen target.
 - **A closed target refuses the posting** (`folio_not_open`). There is never a silent fallback to the unit's folio. In the night audit this becomes an exception row that names the folio.
+- **A target settled to the city ledger** (Closed, with an AR invoice that is not Void) refuses with `folio_settled_to_city_ledger` instead, in `PostCharge`, `PostRoomCharges` and `PostScheduledAddOns`. That folio cannot reopen, so the message says what to do: "The folio these charges go to is settled to the city ledger. Open a third-party folio for the company, add a routing rule for this room and this charge category to it, then post again." `FolioPostability` (`app/Services/Folio/`) picks the code, only on the refusal path. `PostUnitPolicyFee` keeps `folio_not_open`.
+- **A late charge after the company invoice** goes on a second invoice: a third-party folio with the company as payer, a Manual rule for that unit to it, then **Settle to City ledger** on that folio. The Manual rule must be more specific than the BillingMode rule: under MasterPays use "this unit + Room" (a category rule for all units scores 2, so "this unit + all charges" scores only 1); under MasterPaysAll "this unit + all charges" is enough.
 - **Posted lines never move on their own.** A rule change affects only later postings. A re-run of a night finds its `night:{unit_night_id}` line and posts nothing new. `TransferLines` moves old lines by hand.
 - Rules are per reservation. Staff-made rules (Manual) are never touched by the billing mode.
 
@@ -55,7 +57,8 @@ The router follows one rule and stops. A rule target is final, so there are no c
 - A reservation with a `company_id` always gets a Master folio and its rules, even with one unit, because the AR invoice is made from the master folio. Without a company the 2-unit threshold applies.
 - The Master payer is the reservation's `company_id` (no foreign key until [Companies](../15-city-ledger/01-companies.md)). Without a company it has no payer.
 - A live unit is one that is not Cancelled or NoShow. Only live units count toward the 2 units, and only when the rules are created.
-- Once the Master folio and its BillingMode rules exist, a cancel or NoShow never removes them. Only a billing mode change to EachPays does. A surviving unit keeps routing to the Master, so the payer never changes silently.
+- Once the Master folio and its BillingMode rules exist, a cancel or NoShow never removes them. Only a billing mode change to EachPays does.
+- A billing mode change is refused while the Master folio holds money (`master_has_payments`, the net of its payments minus their refunds above 0). Payment lines never move, so the money would sit on a folio that no longer receives the charges. See [Group bookings](../12-reservations/02-group-bookings.md). A surviving unit keeps routing to the Master, so the payer never changes silently.
 - `SyncRoutingRules` runs after `CreateReservation`, after `AddUnit` and after `UpdateReservationGroup` changes the mode. It needs no hook on cancel.
 - Changing the mode affects later postings only. When a unit already holds posted room lines, the answer says so, and the lines stay on its folio.
 
@@ -77,7 +80,7 @@ Staff create third-party folios and Manual rules on the [folio tab](05-folio-pag
 | Decision                 | Rule                                                                                                                                                                                                                                                         |
 | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Permission               | `folio.transfer` covers both screens. Its label is "Transfer folio lines and manage routing". Routing decides who pays, the same trust as moving lines (wastays uses one permission, `manage_folio_movements`, for both). No new permission.                 |
-| Third-party payer        | An existing guest of the property, picked with `GuestPicker`. A company payer comes with [Companies](../15-city-ledger/01-companies.md).                                                                                                                     |
+| Third-party payer        | A guest (`GuestPicker`) or a company (`CompanySelect`). A company is any Active company of the property, and needs `company.view`. `direct_bill_enabled` is not needed to create the folio; Settle checks it.                                                |
 | Rule selectors           | Unit: all units or one unit. Charges: one category from `TransactionCategory::routableCases()` (Room and the charge item categories), one charge code, or all charges. Tax, discount and payment categories are never offered: children follow their charge. |
 | Rule target              | An Open folio of the reservation. `CreateRoutingRule` refuses a Closed or Voided target for a Manual rule with `target_folio_not_open`. BillingMode rules are not checked, so `SyncRoutingRules` does not change.                                            |
 | Remove                   | `RemoveRoutingRule` (Action) deletes a Manual rule. It refuses a BillingMode rule with `rule_not_manual`: change the billing mode to change those. Posted lines stay where they are.                                                                         |
@@ -115,11 +118,12 @@ Decisions made at build time (staff screen backend):
 ## Known later work
 
 - **Check-out under cross-routing:** unit 1 can be blocked by unit 2's charges on its folio. Decide in [check-out](../18-front-desk/01-check-in-and-check-out.md).
-- **Closing the Master while a unit is in-house:** `CloseFolio` should refuse it.
+- **Closing the Master while a unit is in-house:** decided. `CloseFolio` and `SettleToCityLedger` refuse it (`units_in_house`). See [Folios and lines](01-folios-and-lines.md#close-and-reopen).
 - **Folio discounts** apply from the folio that holds the charges. A RoomOnly discount finds nothing on a unit folio when the room lines are on the master.
 - **Cancellation and no-show fees** are Room charges and follow the Room rule.
 - **Folio page:** Scheduled rows for master and third-party folios follow the rules ([Folio page](05-folio-page.md)).
-- **Company change:** decided. The change is refused while the Master folio holds lines. Without lines, the Master payer follows the new company. See [Companies](../15-city-ledger/01-companies.md#rules).
+- **Company change:** decided again (checklist item 21). The Master payer follows the new company with its charges. The change is refused only while the Master holds money or has an AR invoice. See [Companies](../15-city-ledger/01-companies.md#rules).
+- **An advance stranded by a later routing change:** `AddUnit` (1 to 2 units) or setting a company can start routing Room to the Master after an Advance was taken on a unit folio. That payment cannot move. Later work.
 - **Third-party label:** decided. A third-party folio has no label and its payer names it. A third-party folio is one payer on one reservation, so the payer's name already identifies it. Add a nullable `label` later only when a real case needs one.
 
 ## Out of scope

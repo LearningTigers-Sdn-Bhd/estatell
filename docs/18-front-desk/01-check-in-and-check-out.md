@@ -301,7 +301,7 @@ A section of the check-in Dialog, shown only with `payment.record`. The form sen
 - The amount is read-only. A guest who pays only part unticks **Collect now** and uses Record payment on the folio.
 - The deposit box is ticked by default. It shows only when `security_deposit_amount` is above 0.
 - With Collect now ticked, the server runs `CheckInUnit`, then `RecordPayment` for the taxes (Advance), then `RecordPayment` for the deposit (SecurityDeposit), with the same method and reference. A payment refusal shows on the method or reference field and leaves the unit checked in. A payment that already succeeded stays.
-- When the room charges route to a Master folio, the tax rows are hidden. The deposit still posts to the unit folio.
+- When the room charges route to a Master folio, the tax rows are hidden. The deposit still posts to the unit folio. So Collect now never records an Advance on a unit whose rooms go to the Master, and never meets the `advance_on_master` refusal ([Payments](../14-payments/01-payments-and-refunds.md#rules)). `CheckInCollection` and `RecordPayment` share `FolioRouter::roomChargesGoToMaster`.
 - The Dialog counts five fields at most: Nationality, the deposit box, Collect now, Method and Reference.
 
 ### Check out
