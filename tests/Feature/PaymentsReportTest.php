@@ -211,11 +211,11 @@ test('the spreadsheet of selected rows has the total row and no summary table', 
         ->and(end($csv)[6])->toBe('450');
 });
 
-test('the sidebar lists Payments and Folio ledger under the Finance category', function () {
+test('the sidebar lists the finance reports under the Finance category', function () {
     [$user, $property] = paymentsSetup();
 
     $this->actingAs($user)->get(paymentsUrl($property))->assertInertia(fn (Assert $page) => $page
-        ->where('navigation.contexts.2.groups', fn ($groups) => collect(collect($groups)->firstWhere('label', 'Finance')['items'])->pluck('title')->all() === ['Payments', 'Folio ledger']));
+        ->where('navigation.contexts.2.groups', fn ($groups) => collect(collect($groups)->firstWhere('label', 'Finance')['items'])->pluck('title')->all() === ['Payments', 'Folio ledger', 'Outstanding balance', 'Deposit liability']));
 });
 
 /**

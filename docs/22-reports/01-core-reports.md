@@ -6,27 +6,28 @@ The reports a small property needs daily and monthly, with a shared frame: a dat
 
 ## Reports
 
-| Report                        | `ReportKey`          | Source                                              | Dates    | Default orientation | Longest range |
-| ----------------------------- | -------------------- | --------------------------------------------------- | -------- | ------------------- | ------------- |
-| Arrivals                      | `Arrivals`           | `reservation_units`                                 | Range    | Portrait            | 31 days       |
-| Departures                    | `Departures`         | `reservation_units`                                 | Range    | Portrait            | 31 days       |
-| In-house                      | `InHouse`            | `reservation_units`, `unit_nights`                  | One date | Portrait            | –             |
-| Occupancy, ADR, RevPAR        | `Occupancy`          | `daily_statistics`                                  | Range    | Portrait            | 366 days      |
-| Revenue by transaction code   | `Revenue`            | `DailyRevenueQuery` (live)                          | Range    | Portrait            | 366 days      |
-| Payments by method            | `Payments`           | `payments`, `ar_payments`                           | Range    | Portrait            | 366 days      |
-| Folio ledger                  | `FolioLedger`        | `folio_lines`                                       | Range    | Landscape           | 31 days       |
-| Tax report (SST, tourism tax) | `Tax`                | `folio_lines` of kind Tax                           | Range    | Landscape           | 366 days      |
-| Kitchen meal counts           | `MealCounts`         | `MealCounts::between()` (`MealEntitlementResolver`) | Range    | Portrait            | 31 days       |
-| Night audit history           | `NightAuditHistory`  | `night_audits`, `daily_statistics`                  | Range    | Landscape           | 366 days      |
-| Outstanding balance           | `OutstandingBalance` | folio balances (`FolioBalance`)                     | One date | Portrait            | –             |
-| Deposit liability             | `DepositLiability`   | payments on stays not yet arrived                   | One date | Portrait            | –             |
-| Non-national guests           | `NonNationalGuests`  | in-house foreign guests and their tourism tax       | Range    | Landscape           | 31 days       |
-| Police report                 | `PoliceReport`       | foreign guests who arrived                          | Range    | Landscape           | 31 days       |
+| Report                        | `ReportKey`          | Source                                                | Dates    | Default orientation | Longest range |
+| ----------------------------- | -------------------- | ----------------------------------------------------- | -------- | ------------------- | ------------- |
+| Arrivals                      | `Arrivals`           | `reservation_units`                                   | Range    | Portrait            | 31 days       |
+| Departures                    | `Departures`         | `reservation_units`                                   | Range    | Portrait            | 31 days       |
+| In-house                      | `InHouse`            | `reservation_units`, `unit_nights`                    | One date | Portrait            | –             |
+| Occupancy, ADR, RevPAR        | `Occupancy`          | `daily_statistics`                                    | Range    | Portrait            | 366 days      |
+| Revenue by transaction code   | `Revenue`            | `DailyRevenueQuery` (live)                            | Range    | Portrait            | 366 days      |
+| Payments by method            | `Payments`           | `payments`, `ar_payments`                             | Range    | Portrait            | 366 days      |
+| Folio ledger                  | `FolioLedger`        | `folio_lines`                                         | Range    | Landscape           | 31 days       |
+| Tax report (SST, tourism tax) | `Tax`                | `folio_lines` of kind Tax                             | Range    | Landscape           | 366 days      |
+| Kitchen meal counts           | `MealCounts`         | `MealCounts::between()` (`MealEntitlementResolver`)   | Range    | Portrait            | 31 days       |
+| Night audit history           | `NightAuditHistory`  | `night_audits`, `daily_statistics`                    | Range    | Landscape           | 366 days      |
+| Outstanding balance           | `OutstandingBalance` | `FolioBalancesOnDate` (the folio balance on the date) | One date | Landscape           | –             |
+| Deposit liability             | `DepositLiability`   | `FolioBalancesOnDate` (every credit balance)          | One date | Landscape           | –             |
+| Non-national guests           | `NonNationalGuests`  | in-house foreign guests and their tourism tax         | Range    | Landscape           | 31 days       |
+| Police report                 | `PoliceReport`       | foreign guests who arrived                            | Range    | Landscape           | 31 days       |
 
 - Revenue by transaction code is live for every date, open or closed, from `DailyRevenueQuery` (`app/Services/Reports/`), with grouping by day or month and drill-down to the lines. The night audit copies one closed date of the same query into `daily_revenue`.
 - The last four reports come from wastays (step 7 of the build order). Payments also gets a **Received by** grouping with a cash-up total per staff member, and a **Refunds only** filter, in place of the wastays cashier activity and refund reports. Extra charges are covered by Revenue by transaction code.
 - Occupancy, ADR and RevPAR read the `daily_statistics` snapshot for closed dates and `StatisticsCalculator` for the open date.
 - City ledger aging and statements are already built on the Finance side (`AgingReport`, `StatementBuilder`). They stay there and are not in the registry. Their PDFs get the letterhead from [Printing settings](../02-property/05-printing-settings.md).
+- A company's debt after a folio is settled to the city ledger stays in City ledger aging: the settled folio is at 0 and is in neither Outstanding balance nor Deposit liability.
 - The **night audit packet** is one fixed PDF per closed date, built from the snapshot tables. It is not in the registry and has no layout or row selection. It uses the printing settings, in Portrait. It opens from the Night audit history report and from the Run Night Audit sheet. See [Built: Night audit history and packet](#built-night-audit-history-and-packet).
 
 ## Registry
@@ -131,6 +132,18 @@ Each report has a stable column list like Arrivals. Proposed in the overview and
 - **Sections.** (1) The header: "Night audit — {date}", closed by, trigger, completed time and "Forced: {reason}" when forced. (2) Statistics: rooms and beds available and sold, occupancy, ADR, RevPAR, room revenue, arrivals, departures, no-shows and in-house guests. (3) Revenue by code (code, description, lines, amount, total). (4) Payments by method (method, count, amount), then refunds, then a total. City ledger payments are in the methods. (5) "Meals for {next date} (as at printing)": adults, children and total from the live `MealCounts`, so a later reprint can differ; there is no snapshot table. The section is left out when no plan has a meal inclusion. (6) Every exception of the audit, open and resolved, with type, reservation, message and status. (7) The audit steps with status, processed and failed counts.
 - **Morning message.** City ledger payments are now part of the payments by method of the morning message too, and the message still lists only open exceptions.
 - **Run Night Audit sheet.** The Completed state has an "Open packet" link to the packet (a new tab). The sheet data has `canViewPacket` (`reports.view`), because the sheet needs only `night-audit.run`. The emails do not link to the packet.
+
+### Built: Outstanding balance and Deposit liability
+
+- **Source.** `FolioBalancesOnDate` (`app/Services/Reports/`) gives the balance of every folio of a property on one date with one grouped query over `folio_lines`, joined to `folios` and left-joined to `payments` through `folio_line_id`. It is scoped by `folios.property_id`, leaves out Voided folios and takes the lines with `posting_date <= date`. Lines are immutable and carry their posting date, so a past date is exact. A `HAVING` keeps only the debit or only the credit folios. For each folio it returns `charges` (Charge, Tax and Adjustment lines), `received` (payment lines that are not refunds, positive), `refunded` (refund lines, positive), `securityDeposit` and `balance` (the plain sum), so `charges - received + refunded = balance`.
+- **Refunds and deposits.** A refund is a Payment-kind line whose `payments` row has `refund_of_id`. A payment line with no `payments` row, such as the direct bill settlement, counts as received. The security deposit is the negative sum of the lines whose `payments.purpose` is `security_deposit`; a refund copies the purpose, so refunds net off with no second query. The ledger line is used, not `payments.amount`, which includes any surcharge.
+- **One row per folio** (key: the folio id), not per reservation. `FolioReportRows` loads the folios with the reservation, booker, payer and units in a fixed number of queries. **Guest / payer** follows the Folio ledger: the payer company, else the payer guest, else the booker.
+- **Dates and status.** A unit folio shows the dates and the status of its unit. A master or third party folio shows the first arrival and the last departure of the units that were not cancelled or missed (all units when none is left) and the reservation status. **Status is today's status**, not the status on the date: the ledger is exact for a past date, but the bookings are not kept by date. The unit status is more meaningful on a unit folio (checked out, no-show), and the reservation status on a master folio.
+- **Outstanding balance** (`-days` is the default sort, Landscape, Finance, icon `wallet`). Folios with a balance above 0 on the date. Columns, all visible by default: `folio`, `reservation`, `payer`, `arrival`, `departure`, `status`, `charges`, `payments`, `balance`, `days`. `payments` is paid minus refunded and shown negative, so `charges + payments = balance`. `days` ("Days since departure") is the date minus the departure date when the departure is on or before the date, else empty. A folio settled to the city ledger is at 0 and is not listed. The total row sums `charges`, `payments` and `balance`.
+- **Deposit liability** (`arrival` is the default sort, Landscape, Finance, icon `shield`). Folios with a balance below 0 on the date: an advance for a stay not yet arrived, an overpaid in-house folio, or a departed guest owed a refund. Columns, all visible by default: `folio`, `reservation`, `payer`, `arrival`, `departure`, `status`, `received`, `refunded`, `charged`, `deposit` ("Security deposit", the amount still held, net of refunds) and `held` (minus the balance, shown positive). The total row sums the five money columns.
+- **One-date URL.** Both take `?date=Y-m-d` (default: the business date) with the Today and Yesterday quick dates, as described under Departures and In-house.
+- **Note.** `HasNote` (an optional interface next to `HasTotals`) has `note(Property, ReportFilters): ?string`; `ReportKey::note()` asks the report. When the date is not the business date the note is "Status as of today". The page sends it as the `note` prop, `ReportScreen` shows it under the title, and `pdf/report.blade.php` prints it under the dates.
+- **Blank sorts last.** `ReportPage::sort()` puts rows with a null value in the sort column last, in either direction (a `days` that is empty, an unassigned In-house room).
 
 ### Categories
 

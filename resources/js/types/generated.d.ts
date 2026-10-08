@@ -1128,6 +1128,20 @@ company: string | null,
 status: App.Data.Shared.BadgeData,
 balance: string,
 };
+export type DepositLiabilityRow = {
+key: number,
+folio: string,
+reservation: string,
+payer: string,
+arrival: string | null,
+departure: string | null,
+status: App.Data.Shared.BadgeData,
+received: string,
+refunded: string,
+charged: string,
+deposit: string,
+held: string,
+};
 export type FolioLedgerRow = {
 key: number,
 date: string,
@@ -1188,6 +1202,19 @@ arrivals: number,
 departures: number,
 noshows: number,
 guests: number,
+};
+export type OutstandingBalanceRow = {
+key: number,
+folio: string,
+reservation: string,
+payer: string,
+arrival: string | null,
+departure: string | null,
+status: App.Data.Shared.BadgeData,
+charges: string,
+payments: string,
+balance: string,
+days: number | null,
 };
 export type PaymentRow = {
 key: string,
@@ -1839,7 +1866,7 @@ export type RegistrationCardStatus = 'draft' | 'signed' | 'void';
 export type ReportCategory = 'front-desk' | 'revenue' | 'finance' | 'kitchen' | 'audit';
 export type ReportDatePreset = 'today' | 'yesterday' | 'tomorrow' | 'next-7-days' | 'this-week' | 'last-week' | 'next-week' | 'this-month' | 'last-month' | 'this-year' | 'last-30-days';
 export type ReportGroup = 'day' | 'month' | 'method' | 'staff';
-export type ReportKey = 'arrivals' | 'departures' | 'in-house' | 'occupancy' | 'revenue' | 'payments' | 'folio-ledger' | 'tax' | 'meal-counts' | 'night-audit-history';
+export type ReportKey = 'arrivals' | 'departures' | 'in-house' | 'occupancy' | 'revenue' | 'payments' | 'folio-ledger' | 'tax' | 'meal-counts' | 'night-audit-history' | 'outstanding-balance' | 'deposit-liability';
 export type ReservationRoomBoxState = 'assigned' | 'unassigned' | 'auto_assign' | 'cancelled' | 'no_show';
 export type ReservationSource = 'direct' | 'walk_in' | 'phone' | 'channel' | 'portal';
 export type ReservationStatus = 'confirmed' | 'in_house' | 'completed' | 'cancelled';

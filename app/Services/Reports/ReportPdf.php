@@ -32,6 +32,7 @@ class ReportPdf
             'dates' => $this->dates($filters),
             'group' => $filters->group?->label(),
             'groupCaption' => $filters->group?->caption(),
+            'note' => $report->note($property, $filters),
             'currency' => $property->loadMissing('settings')->settings?->currency->value ?? '',
             'columns' => $layout->visibleColumns(),
             'rows' => $rows,

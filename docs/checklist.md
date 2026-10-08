@@ -61,7 +61,7 @@ The critical path: the front desk actions on the reservation, then the night aud
     - [x] `feat(reports): add kitchen meal counts` — Meal counts from `MealCounts::between()` per date and meal period, with adults and children, Checked-out units counted, and its own quick dates (Today, Tomorrow, Next 7 days, This week, Next week). Needs: payments, folio ledger and tax.
     - [x] `feat(reports): add the night audit packet PDF` — one PDF per closed date from the snapshot tables, opened from Night audit history. Needs: kitchen meal counts.
     - [x] `feat(reports): add cashier activity and refunds` — from wastays: a Received by grouping with a cash-up total per staff member and a Refunds only filter on Payments. Needs: the night audit packet PDF.
-    - [ ] `feat(reports): add outstanding balance and deposit liability` — from wastays: two one-date reports. Needs: cashier activity and refunds.
+    - [x] `feat(reports): add outstanding balance and deposit liability` — from wastays: two one-date reports. Needs: cashier activity and refunds.
     - [ ] `feat(reports): add non-national guests and the police report` — from wastays: foreign guests with their tourism tax, and the police list. Needs: outstanding balance and deposit liability.
 
 ## Next

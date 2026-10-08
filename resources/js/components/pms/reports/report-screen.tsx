@@ -78,6 +78,8 @@ type Props<TRow extends { key: number | string }> = {
     staff?: string | null;
     staffOptions?: EnumOption[];
     refundsOnly?: boolean;
+    /** A short note under the title, such as "Status as of today". */
+    note?: string | null;
     /** A small summary table under the main table (Payments: the total for each method). */
     breakdown?: App.Data.Reports.ReportBreakdown | null;
     /** The quick dates of a range report, from `ReportKey::datePresets()`. Without it the standard list shows. */
@@ -118,6 +120,7 @@ export function ReportScreen<TRow extends { key: number | string }>({
     staffOptions = [],
     refundsOnly,
     breakdown = null,
+    note = null,
     presets,
 }: Props<TRow>) {
     const column = useMemo(() => dataTableColumns<TRow>(), []);
@@ -302,6 +305,12 @@ export function ReportScreen<TRow extends { key: number | string }>({
 
             <div className="flex flex-1 flex-col gap-4 p-4">
                 <PageHeader title={title} description={description} />
+
+                {note && (
+                    <p className="-mt-2 text-sm text-muted-foreground">
+                        {note}
+                    </p>
+                )}
 
                 <div className="flex flex-wrap items-center gap-2">
                     {isOneDate ? (

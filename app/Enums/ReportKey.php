@@ -7,15 +7,19 @@ use App\Data\Reports\ReportColumn;
 use App\Data\Reports\ReportFilters;
 use App\Data\Reports\ReportRow;
 use App\Data\Reports\ReportTotals;
+use App\Models\Property;
 use App\Services\Reports\ArrivalsReport;
 use App\Services\Reports\DeparturesReport;
+use App\Services\Reports\DepositLiabilityReport;
 use App\Services\Reports\FolioLedgerReport;
 use App\Services\Reports\HasBreakdown;
+use App\Services\Reports\HasNote;
 use App\Services\Reports\HasTotals;
 use App\Services\Reports\InHouseReport;
 use App\Services\Reports\MealCountsReport;
 use App\Services\Reports\NightAuditHistoryReport;
 use App\Services\Reports\OccupancyReport;
+use App\Services\Reports\OutstandingBalanceReport;
 use App\Services\Reports\PaymentsReport;
 use App\Services\Reports\Report;
 use App\Services\Reports\RevenueReport;
@@ -37,6 +41,8 @@ enum ReportKey: string
     case Tax = 'tax';
     case MealCounts = 'meal-counts';
     case NightAuditHistory = 'night-audit-history';
+    case OutstandingBalance = 'outstanding-balance';
+    case DepositLiability = 'deposit-liability';
 
     public function label(): string
     {
@@ -51,6 +57,8 @@ enum ReportKey: string
             self::Tax => __('Tax'),
             self::MealCounts => __('Meal counts'),
             self::NightAuditHistory => __('Night audit history'),
+            self::OutstandingBalance => __('Outstanding balance'),
+            self::DepositLiability => __('Deposit liability'),
         };
     }
 
@@ -59,7 +67,7 @@ enum ReportKey: string
         return match ($this) {
             self::Arrivals, self::Departures, self::InHouse => ReportCategory::FrontDesk,
             self::Occupancy, self::Revenue, self::Tax => ReportCategory::Revenue,
-            self::Payments, self::FolioLedger => ReportCategory::Finance,
+            self::Payments, self::FolioLedger, self::OutstandingBalance, self::DepositLiability => ReportCategory::Finance,
             self::MealCounts => ReportCategory::Kitchen,
             self::NightAuditHistory => ReportCategory::Audit,
         };
@@ -69,7 +77,7 @@ enum ReportKey: string
     {
         return match ($this) {
             self::Arrivals, self::Departures, self::InHouse, self::Occupancy, self::Revenue, self::Payments, self::MealCounts => PageOrientation::Portrait,
-            self::FolioLedger, self::Tax, self::NightAuditHistory => PageOrientation::Landscape,
+            self::FolioLedger, self::Tax, self::NightAuditHistory, self::OutstandingBalance, self::DepositLiability => PageOrientation::Landscape,
         };
     }
 
@@ -88,6 +96,8 @@ enum ReportKey: string
             self::Revenue, self::Tax => 'period',
             self::FolioLedger, self::MealCounts => 'date',
             self::NightAuditHistory => '-date',
+            self::OutstandingBalance => '-days',
+            self::DepositLiability => 'arrival',
         };
     }
 
@@ -98,7 +108,7 @@ enum ReportKey: string
     {
         return match ($this) {
             self::Arrivals, self::Departures, self::FolioLedger, self::MealCounts => 31,
-            self::InHouse => null,
+            self::InHouse, self::OutstandingBalance, self::DepositLiability => null,
             self::Occupancy, self::Revenue, self::Payments, self::Tax, self::NightAuditHistory => 366,
         };
     }
@@ -271,6 +281,31 @@ enum ReportKey: string
                 new ReportColumn('revenue', __('Room revenue'), ColumnAlign::Right, true),
                 new ReportColumn('packet', __('Packet'), ColumnAlign::Left, true),
             ],
+            self::OutstandingBalance => [
+                new ReportColumn('folio', __('Folio'), ColumnAlign::Left, true),
+                new ReportColumn('reservation', __('Reservation'), ColumnAlign::Left, true),
+                new ReportColumn('payer', __('Guest / payer'), ColumnAlign::Left, true),
+                new ReportColumn('arrival', __('Arrival'), ColumnAlign::Left, true),
+                new ReportColumn('departure', __('Departure'), ColumnAlign::Left, true),
+                new ReportColumn('status', __('Status'), ColumnAlign::Left, true),
+                new ReportColumn('charges', __('Charges'), ColumnAlign::Right, true),
+                new ReportColumn('payments', __('Payments'), ColumnAlign::Right, true),
+                new ReportColumn('balance', __('Balance'), ColumnAlign::Right, true),
+                new ReportColumn('days', __('Days since departure'), ColumnAlign::Right, true),
+            ],
+            self::DepositLiability => [
+                new ReportColumn('folio', __('Folio'), ColumnAlign::Left, true),
+                new ReportColumn('reservation', __('Reservation'), ColumnAlign::Left, true),
+                new ReportColumn('payer', __('Guest / payer'), ColumnAlign::Left, true),
+                new ReportColumn('arrival', __('Arrival'), ColumnAlign::Left, true),
+                new ReportColumn('departure', __('Departure'), ColumnAlign::Left, true),
+                new ReportColumn('status', __('Status'), ColumnAlign::Left, true),
+                new ReportColumn('received', __('Received'), ColumnAlign::Right, true),
+                new ReportColumn('refunded', __('Refunded'), ColumnAlign::Right, true),
+                new ReportColumn('charged', __('Charged'), ColumnAlign::Right, true),
+                new ReportColumn('deposit', __('Security deposit'), ColumnAlign::Right, true),
+                new ReportColumn('held', __('Held'), ColumnAlign::Right, true),
+            ],
         };
     }
 
@@ -290,6 +325,8 @@ enum ReportKey: string
             self::Tax => 'landmark',
             self::MealCounts => 'utensils',
             self::NightAuditHistory => 'moon',
+            self::OutstandingBalance => 'wallet',
+            self::DepositLiability => 'shield',
         };
     }
 
@@ -306,6 +343,8 @@ enum ReportKey: string
             self::Tax => app(TaxReport::class),
             self::MealCounts => app(MealCountsReport::class),
             self::NightAuditHistory => app(NightAuditHistoryReport::class),
+            self::OutstandingBalance => app(OutstandingBalanceReport::class),
+            self::DepositLiability => app(DepositLiabilityReport::class),
         };
     }
 
@@ -319,6 +358,16 @@ enum ReportKey: string
         $report = $this->report();
 
         return $report instanceof HasTotals ? $report->totals($rows) : null;
+    }
+
+    /**
+     * The note under the report title, or null when the report has none.
+     */
+    public function note(Property $property, ReportFilters $filters): ?string
+    {
+        $report = $this->report();
+
+        return $report instanceof HasNote ? $report->note($property, $filters) : null;
     }
 
     /**

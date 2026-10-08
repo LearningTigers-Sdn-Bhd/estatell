@@ -6,6 +6,7 @@
      * @var string $dates
      * @var string|null $group
      * @var string|null $groupCaption
+     * @var string|null $note
      * @var string $currency
      * @var list<\App\Data\Reports\ReportLayoutColumnData> $columns
      * @var list<\App\Data\Reports\ReportRow> $rows
@@ -30,6 +31,9 @@
         <div class="small muted">{{ $dates }}</div>
         @if ($groupCaption !== null)
             <div class="small muted">{{ $groupCaption }}</div>
+        @endif
+        @if ($note !== null)
+            <div class="small muted">{{ $note }}</div>
         @endif
         @if ($currency !== '')
             <div class="small muted">{{ $currency }}</div>

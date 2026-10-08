@@ -10,7 +10,8 @@ use Spatie\LaravelData\Data;
 
 /**
  * Sorts and pages the full row list of a report on the server, with the `?sort` (`name` or `-name`) and `?page`
- * keys of `DataTable`. The sort name is a column key, which is also a property of the row.
+ * keys of `DataTable`. The sort name is a column key, which is also a property of the row. A row with no value (null)
+ * in the sort column comes last, in either direction.
  */
 class ReportPage
 {
@@ -59,11 +60,15 @@ class ReportPage
             $key = ltrim($sort, '-');
         }
 
-        $sorted = Collection::make($rows)->sortBy(
+        $isBlank = fn (Data $row): bool => property_exists($row, $key) && $row->{$key} === null;
+        $filled = Collection::make($rows)->reject($isBlank);
+        $blank = Collection::make($rows)->filter($isBlank);
+
+        $sorted = $filled->sortBy(
             fn (Data $row): float|int|string => $this->sortValue($row, $key),
             SORT_REGULAR,
             $descending,
-        )->values()->all();
+        )->concat($blank)->values()->all();
 
         return [$sorted, $sort];
     }
