@@ -1,13 +1,14 @@
 import { ChartColumn } from 'lucide-react';
-import { DateText } from '@/components/pms/date-text';
 import type { EnumOption } from '@/components/pms/enum-select';
 import { MoneyText } from '@/components/pms/money-text';
+import { ReportCellLink } from '@/components/pms/reports/report-cell-link';
+import { ReportPeriod } from '@/components/pms/reports/report-period';
 import { ReportScreen } from '@/components/pms/reports/report-screen';
 import type {
     ReportCells,
     ReportTotalCells,
 } from '@/components/pms/reports/report-screen';
-import { revenue } from '@/routes/reports';
+import { folioLedger, revenue } from '@/routes/reports';
 
 type Row = App.Data.Reports.RevenueRow;
 type Layout = App.Data.Reports.ReportLayoutData;
@@ -28,20 +29,16 @@ type Props = {
 };
 
 const cells: ReportCells<Row> = {
-    period: (row) =>
-        row.group === 'month' ? (
-            <time dateTime={row.period} className="tabular-nums">
-                {new Date(`${row.period}-01T00:00:00`).toLocaleDateString(
-                    'en-GB',
-                    { month: 'short', year: 'numeric' },
-                )}
-            </time>
-        ) : (
-            <DateText date={row.period} />
-        ),
+    period: (row) => <ReportPeriod period={row.period} group={row.group} />,
     code: (row) => <span className="font-medium">{row.code}</span>,
     amount: (row, currency) => (
-        <MoneyText amount={row.amount} currency={currency} />
+        <ReportCellLink
+            href={folioLedger(undefined, {
+                query: { code: row.code, from: row.from, to: row.to },
+            })}
+        >
+            <MoneyText amount={row.amount} currency={currency} />
+        </ReportCellLink>
     ),
 };
 

@@ -274,6 +274,14 @@ test('the Reports navigation groups the reports by category and needs reports.vi
                     'items' => [
                         ['title' => 'Occupancy', 'href' => "/p/{$property->code}/reports/occupancy", 'icon' => 'percent', 'external' => false, 'active' => false, 'action' => null],
                         ['title' => 'Revenue', 'href' => "/p/{$property->code}/reports/revenue", 'icon' => 'chart-column', 'external' => false, 'active' => false, 'action' => null],
+                        ['title' => 'Tax', 'href' => "/p/{$property->code}/reports/tax", 'icon' => 'landmark', 'external' => false, 'active' => false, 'action' => null],
+                    ],
+                ],
+                [
+                    'label' => 'Finance',
+                    'items' => [
+                        ['title' => 'Payments', 'href' => "/p/{$property->code}/reports/payments", 'icon' => 'credit-card', 'external' => false, 'active' => false, 'action' => null],
+                        ['title' => 'Folio ledger', 'href' => "/p/{$property->code}/reports/folio-ledger", 'icon' => 'receipt', 'external' => false, 'active' => false, 'action' => null],
                     ],
                 ],
             ],

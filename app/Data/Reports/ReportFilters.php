@@ -8,8 +8,8 @@ use Spatie\LaravelData\Data;
 
 /**
  * The checked filters of a report: the first and last date (`Y-m-d`, both included) and the extra filters that only
- * some reports take. `group` is set only for a report that groups its rows (Revenue); the next filter (`code`) is
- * added here the same way.
+ * some reports take. `group` is set only for a report that groups its rows (Revenue, Tax) and `code` only for a report
+ * that filters by transaction code (Folio ledger).
  */
 class ReportFilters extends Data
 {
@@ -17,6 +17,7 @@ class ReportFilters extends Data
         public string $from,
         public string $to,
         public ?ReportGroup $group = null,
+        public ?string $code = null,
     ) {}
 
     /**
@@ -38,6 +39,7 @@ class ReportFilters extends Data
         return [
             ...($isOneDate ? ['date' => $this->from] : ['from' => $this->from, 'to' => $this->to]),
             ...($this->group === null ? [] : ['group' => $this->group->value]),
+            ...($this->code === null ? [] : ['code' => $this->code]),
         ];
     }
 }

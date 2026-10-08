@@ -13,7 +13,7 @@ The reports a small property needs daily and monthly, with a shared frame: a dat
 | In-house                      | `InHouse`            | `reservation_units`, `unit_nights`            | One date | Portrait            | –             |
 | Occupancy, ADR, RevPAR        | `Occupancy`          | `daily_statistics`                            | Range    | Portrait            | 366 days      |
 | Revenue by transaction code   | `Revenue`            | `DailyRevenueQuery` (live)                    | Range    | Portrait            | 366 days      |
-| Payments by method            | `Payments`           | `payments`                                    | Range    | Portrait            | 366 days      |
+| Payments by method            | `Payments`           | `payments`, `ar_payments`                     | Range    | Portrait            | 366 days      |
 | Folio ledger                  | `FolioLedger`        | `folio_lines`                                 | Range    | Landscape           | 31 days       |
 | Tax report (SST, tourism tax) | `Tax`                | `folio_lines` of kind Tax                     | Range    | Landscape           | 366 days      |
 | Kitchen meal counts           | `MealCounts`         | `MealEntitlementResolver`                     | Range    | Portrait            | 31 days       |
@@ -65,9 +65,9 @@ Each report has a stable column list like Arrivals. Proposed in the overview and
 | In-house     | a unit staying on the date    | Reservation, Guest, Room, Arrival, Departure, Guests, Company, Balance                                                                                                                     |
 | Occupancy    | a date                        | Date, Rooms available, Rooms sold, Occupancy %, ADR, RevPAR, Room revenue, Arrivals, Departures, No-shows, In-house guests. The open date is marked **Live**; dates after it are left out. |
 | Revenue      | a date (or month) and a code  | Date, Code, Description, Lines, Amount                                                                                                                                                     |
-| Payments     | a payment                     | Date, Receipt no., Reservation or company, Method, Status, Staff, Amount                                                                                                                   |
-| Folio ledger | a folio line                  | Posting date, Folio, Reservation, Guest, Code, Description, Kind, Staff, Amount                                                                                                            |
-| Tax          | a date and a tax              | Date, Tax, Lines, Tax amount. A Base column is added only if tax lines store their base (to verify in step 5c).                                                                            |
+| Payments     | a payment                     | Date, Receipt no., Reservation or company, Method, Status, Staff, Amount, Reference (hidden by default)                                                                                    |
+| Folio ledger | a folio line                  | Posting date, Folio, Reservation, Guest / payer, Code, Description, Kind, Staff, Amount                                                                                                    |
+| Tax          | a date and a tax              | Date / month, Tax, Registration no. (hidden by default), Lines, Tax amount. There is no Base column, because tax lines do not store their base.                                            |
 | Meal counts  | a date and a meal period      | Date, Meal, Adults, Children, Total                                                                                                                                                        |
 
 ### Built: Departures and In-house
@@ -84,6 +84,17 @@ Each report has a stable column list like Arrivals. Proposed in the overview and
 - **Totals.** `HasTotals::totals(rows)` (an optional interface next to `Report`) works on the rows it gets, so it covers every row that matches the filters on the page and only the selected rows in an export. It returns `ReportTotals`, a map of column key to a count, a two-decimal string or null. Occupancy sums `available`, `sold`, `revenue`, `arrivals`, `departures` and `noshows`, and works `occupancy`, `adr` and `revpar` out again from the sums. `guests` has no total, because each date counts the same guests again. Revenue sums `lines` and `amount`. The screen shows it in the `DataTable` footer (the `footer` prop); the PDF adds a `tfoot` row and the spreadsheet a last row. Only visible columns show a figure, and "Total" goes in the first visible column that has none.
 - **Filter `group`.** `ReportFilters` has a typed `?ReportGroup $group` (Day or Month). `ReportKey::groups()` lists the values a report takes (Revenue only; the first is the default). `ReportFiltersRequest` validates `group` against that list, and other reports ignore it. It stays in the page URL, the exports and the layout preview, and a Day / Month `ToggleGroup` in the toolbar sets it. Changing it clears the row selection. The `code` filter of step 5c is added to `ReportFilters` the same way.
 
+### Built: Payments, Folio ledger and Tax
+
+- **Payments** (`date` is the default sort, 366 days, Portrait, Finance). Columns: `date`, `receipt`, `payer` ("Reservation / company"), `method`, `status`, `staff`, `amount`, `reference` (hidden by default). One row for each folio payment or refund (`payments`) and each city ledger payment (`ar_payments`). Row key: `p:{id}` or `ar:{id}`. The date is the business date: the posting date of the payment's folio line, or `received_on` for a city ledger payment (`received_at` is the clock and is not used). The payer is the reservation number, or the company name for a city ledger payment. A refund has a negative amount (`payments.amount` is always positive; `refund_of_id` marks the refund) and no receipt number.
+- **Status.** A folio payment shows its `PaymentStatus`. A voided city ledger payment shows **Voided**. `PaymentReportStatus` (Pending, Completed, Failed, Voided) holds these labels and tones, so `PaymentStatus` has no fake case. A city ledger payment that is not voided is Completed.
+- **Totals count only Completed rows.** Pending, Failed and Voided rows show in the table but add nothing, in the total row and in the total for each method. Refunds subtract.
+- **Total for each method.** `HasBreakdown::breakdown(rows)` (an optional interface next to `HasTotals`) returns a `ReportBreakdown`: a title, headings, rows of display text and a total row. Payments returns Method, Count and Amount for the Completed rows, with a Total row. The page controller sends it as the `breakdown` prop, `ReportScreen` shows it as a small table under the main table, and the PDF prints it under the main table. The spreadsheet has only the normal total row. Like `totals()`, it works on the rows it gets, so an export covers only the selected rows.
+- **Folio ledger** (`date` is the default sort, 31 days, Landscape, Finance). Columns: `date` ("Posting date"), `folio`, `reservation`, `guest` ("Guest / payer"), `code`, `description`, `kind`, `staff`, `amount`. One row for each folio line of any kind; the row key is the line id and the amount is signed as in the ledger. **Guest / payer** is the company of a company folio, else the payer guest, else the booker of the reservation. Staff is empty for an automatic posting. The total row sums `amount`.
+- **Filter `code`.** `ReportFilters` has `?string $code`. `ReportKey::hasCodeFilter()` is true for the Folio ledger only; `ReportFiltersRequest` validates `code` against the transaction codes of the property (`?code=ROOM`) and other reports ignore it. It stays in the page URL, the exports and the layout preview. A Select of the codes with **All codes** first sets it in the toolbar, and changing it clears the row selection.
+- **Revenue drill-down.** The Revenue **Amount** cell links to the Folio ledger with that code and the dates of the row. A day row opens that day; a month row opens the month cut to the report's from and to dates (the row carries `from` and `to`). `ReportCellLink` (`components/pms/reports/`) is the reusable link for any cell renderer of `ReportScreen`.
+- **Tax** (`period` is the default sort, 366 days, Landscape, Revenue). Columns: `period` ("Date / month"), `tax`, `registration` (hidden by default), `lines`, `amount` ("Tax amount"). The rows are the lines of kind Tax, one row for each date and tax, or for each month and tax with `group=month` (Tax is added to `ReportKey::groups()`). The row key is `{period}:{transaction_code_id}`. A tax is found by the transaction code of its lines (one code for each tax). Reversals reduce the date they were posted on. There is no Base column. The total row sums `lines` and `amount`.
+
 ### Categories
 
 `ReportCategory` groups the Reports sidebar: **Front desk** (Arrivals, Departures, In-house, Police report), **Revenue** (Occupancy, Revenue, Tax, Non-national guests), **Finance** (Payments, Folio ledger, Outstanding balance, Deposit liability) and **Kitchen** (Meal counts).
@@ -96,8 +107,8 @@ A report may implement an optional `totals()` that returns one row of sums for i
 
 Some reports take one extra filter in the URL, validated by `ReportFilters` for that report only and kept in exports:
 
-- Revenue: `group` (`day` or `month`), a toggle in the toolbar.
-- Folio ledger: `code` (a transaction code). **Revenue drill-down**: clicking a Revenue row opens the Folio ledger for that date (or month) and code.
+- Revenue and Tax: `group` (`day` or `month`), a toggle in the toolbar.
+- Folio ledger: `code`, the transaction code string (`?code=ROOM`), a Select in the toolbar, checked against the codes of the property. **Revenue drill-down**: the Revenue Amount cell opens the Folio ledger for that date (or month) and code.
 - Payments: `group=staff` (Received by) and `refunds=1` (step 7).
 
 ## Date range and quick dates

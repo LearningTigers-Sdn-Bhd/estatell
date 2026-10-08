@@ -20,6 +20,8 @@ use Illuminate\Validation\Rule;
  * A report of one date (`maxRangeDays()` is null) takes a single `date` instead and uses it as both ends.
  * A report that groups its rows (`ReportKey::groups()`) also takes `group`, which must be one of its groups and falls
  * back to the first. Other reports ignore `group`.
+ * A report that filters by transaction code (`ReportKey::hasCodeFilter()`) also takes `code`, which must be a code of
+ * the property. Other reports ignore `code`.
  * The report is the `{report}` route parameter, or the slug after `reports.` in the route name.
  */
 class ReportFiltersRequest extends FormRequest
@@ -43,6 +45,7 @@ class ReportFiltersRequest extends FormRequest
             ...($this->reportKey()->maxRangeDays() === null
                 ? ['date' => ['nullable', 'date_format:Y-m-d']]
                 : ['from' => ['nullable', 'date_format:Y-m-d'], 'to' => ['nullable', 'date_format:Y-m-d']]),
+            ...($this->reportKey()->hasCodeFilter() ? ['code' => ['nullable', 'string', Rule::exists('transaction_codes', 'code')->where('property_id', $this->property()->id)]] : []),
             ...($groups === [] ? [] : ['group' => ['nullable', Rule::in(array_map(fn (ReportGroup $group): string => $group->value, $groups))]]),
         ];
     }
@@ -101,7 +104,7 @@ class ReportFiltersRequest extends FormRequest
             $date = $this->input('date');
             $date = is_string($date) && $date !== '' ? $date : $this->businessDate();
 
-            return new ReportFilters(from: $date, to: $date, group: $this->group());
+            return new ReportFilters(from: $date, to: $date, group: $this->group(), code: $this->code());
         }
 
         $from = $this->input('from');
@@ -110,7 +113,17 @@ class ReportFiltersRequest extends FormRequest
         $to = is_string($to) && $to !== '' ? $to : null;
         $default = $this->businessDate();
 
-        return new ReportFilters(from: $from ?? $to ?? $default, to: $to ?? $from ?? $default, group: $this->group());
+        return new ReportFilters(from: $from ?? $to ?? $default, to: $to ?? $from ?? $default, group: $this->group(), code: $this->code());
+    }
+
+    /**
+     * The transaction code of a report that filters by one: the `code` in the URL, or null for every code.
+     */
+    private function code(): ?string
+    {
+        $code = $this->string('code')->toString();
+
+        return $this->reportKey()->hasCodeFilter() && $code !== '' ? $code : null;
     }
 
     /**

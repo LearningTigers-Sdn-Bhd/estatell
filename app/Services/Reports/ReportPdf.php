@@ -35,6 +35,7 @@ class ReportPdf
             'columns' => $layout->visibleColumns(),
             'rows' => $rows,
             'totals' => $report->totals($rows),
+            'breakdown' => $report->breakdown($rows),
             'selectedOnly' => $rowKeys !== null,
         ], $layout->orientation->value);
     }

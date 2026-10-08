@@ -2,16 +2,21 @@
 
 namespace App\Enums;
 
+use App\Data\Reports\ReportBreakdown;
 use App\Data\Reports\ReportColumn;
 use App\Data\Reports\ReportRow;
 use App\Data\Reports\ReportTotals;
 use App\Services\Reports\ArrivalsReport;
 use App\Services\Reports\DeparturesReport;
+use App\Services\Reports\FolioLedgerReport;
+use App\Services\Reports\HasBreakdown;
 use App\Services\Reports\HasTotals;
 use App\Services\Reports\InHouseReport;
 use App\Services\Reports\OccupancyReport;
+use App\Services\Reports\PaymentsReport;
 use App\Services\Reports\Report;
 use App\Services\Reports\RevenueReport;
+use App\Services\Reports\TaxReport;
 
 /**
  * The reports in the registry. The value is the URL slug (`/p/{code}/reports/arrivals`) and the route name suffix.
@@ -24,6 +29,9 @@ enum ReportKey: string
     case InHouse = 'in-house';
     case Occupancy = 'occupancy';
     case Revenue = 'revenue';
+    case Payments = 'payments';
+    case FolioLedger = 'folio-ledger';
+    case Tax = 'tax';
 
     public function label(): string
     {
@@ -33,6 +41,9 @@ enum ReportKey: string
             self::InHouse => __('In-house'),
             self::Occupancy => __('Occupancy'),
             self::Revenue => __('Revenue'),
+            self::Payments => __('Payments'),
+            self::FolioLedger => __('Folio ledger'),
+            self::Tax => __('Tax'),
         };
     }
 
@@ -40,14 +51,16 @@ enum ReportKey: string
     {
         return match ($this) {
             self::Arrivals, self::Departures, self::InHouse => ReportCategory::FrontDesk,
-            self::Occupancy, self::Revenue => ReportCategory::Revenue,
+            self::Occupancy, self::Revenue, self::Tax => ReportCategory::Revenue,
+            self::Payments, self::FolioLedger => ReportCategory::Finance,
         };
     }
 
     public function defaultOrientation(): PageOrientation
     {
         return match ($this) {
-            self::Arrivals, self::Departures, self::InHouse, self::Occupancy, self::Revenue => PageOrientation::Portrait,
+            self::Arrivals, self::Departures, self::InHouse, self::Occupancy, self::Revenue, self::Payments => PageOrientation::Portrait,
+            self::FolioLedger, self::Tax => PageOrientation::Landscape,
         };
     }
 
@@ -62,7 +75,8 @@ enum ReportKey: string
             self::Departures => 'departure',
             self::InHouse => 'room',
             self::Occupancy => 'date',
-            self::Revenue => 'period',
+            self::Revenue, self::Tax => 'period',
+            self::Payments, self::FolioLedger => 'date',
         };
     }
 
@@ -72,9 +86,9 @@ enum ReportKey: string
     public function maxRangeDays(): ?int
     {
         return match ($this) {
-            self::Arrivals, self::Departures => 31,
+            self::Arrivals, self::Departures, self::FolioLedger => 31,
             self::InHouse => null,
-            self::Occupancy, self::Revenue => 366,
+            self::Occupancy, self::Revenue, self::Payments, self::Tax => 366,
         };
     }
 
@@ -86,9 +100,17 @@ enum ReportKey: string
     public function groups(): array
     {
         return match ($this) {
-            self::Revenue => [ReportGroup::Day, ReportGroup::Month],
+            self::Revenue, self::Tax => [ReportGroup::Day, ReportGroup::Month],
             default => [],
         };
+    }
+
+    /**
+     * Whether the report takes `?code`, a transaction code to list the lines of. Other reports ignore it.
+     */
+    public function hasCodeFilter(): bool
+    {
+        return $this === self::FolioLedger;
     }
 
     /**
@@ -153,6 +175,34 @@ enum ReportKey: string
                 new ReportColumn('lines', __('Lines'), ColumnAlign::Right, true),
                 new ReportColumn('amount', __('Amount'), ColumnAlign::Right, true),
             ],
+            self::Payments => [
+                new ReportColumn('date', __('Date'), ColumnAlign::Left, true),
+                new ReportColumn('receipt', __('Receipt no.'), ColumnAlign::Left, true),
+                new ReportColumn('payer', __('Reservation / company'), ColumnAlign::Left, true),
+                new ReportColumn('method', __('Method'), ColumnAlign::Left, true),
+                new ReportColumn('status', __('Status'), ColumnAlign::Left, true),
+                new ReportColumn('staff', __('Staff'), ColumnAlign::Left, true),
+                new ReportColumn('amount', __('Amount'), ColumnAlign::Right, true),
+                new ReportColumn('reference', __('Reference'), ColumnAlign::Left, false),
+            ],
+            self::FolioLedger => [
+                new ReportColumn('date', __('Posting date'), ColumnAlign::Left, true),
+                new ReportColumn('folio', __('Folio'), ColumnAlign::Left, true),
+                new ReportColumn('reservation', __('Reservation'), ColumnAlign::Left, true),
+                new ReportColumn('guest', __('Guest / payer'), ColumnAlign::Left, true),
+                new ReportColumn('code', __('Code'), ColumnAlign::Left, true),
+                new ReportColumn('description', __('Description'), ColumnAlign::Left, true),
+                new ReportColumn('kind', __('Kind'), ColumnAlign::Left, true),
+                new ReportColumn('staff', __('Staff'), ColumnAlign::Left, true),
+                new ReportColumn('amount', __('Amount'), ColumnAlign::Right, true),
+            ],
+            self::Tax => [
+                new ReportColumn('period', __('Date / month'), ColumnAlign::Left, true),
+                new ReportColumn('tax', __('Tax'), ColumnAlign::Left, true),
+                new ReportColumn('registration', __('Registration no.'), ColumnAlign::Left, false),
+                new ReportColumn('lines', __('Lines'), ColumnAlign::Right, true),
+                new ReportColumn('amount', __('Tax amount'), ColumnAlign::Right, true),
+            ],
         };
     }
 
@@ -167,6 +217,9 @@ enum ReportKey: string
             self::InHouse => 'users',
             self::Occupancy => 'percent',
             self::Revenue => 'chart-column',
+            self::Payments => 'credit-card',
+            self::FolioLedger => 'receipt',
+            self::Tax => 'landmark',
         };
     }
 
@@ -178,6 +231,9 @@ enum ReportKey: string
             self::InHouse => app(InHouseReport::class),
             self::Occupancy => app(OccupancyReport::class),
             self::Revenue => app(RevenueReport::class),
+            self::Payments => app(PaymentsReport::class),
+            self::FolioLedger => app(FolioLedgerReport::class),
+            self::Tax => app(TaxReport::class),
         };
     }
 
@@ -191,5 +247,17 @@ enum ReportKey: string
         $report = $this->report();
 
         return $report instanceof HasTotals ? $report->totals($rows) : null;
+    }
+
+    /**
+     * The summary table under the report, or null when the report has none.
+     *
+     * @param  list<ReportRow>  $rows
+     */
+    public function breakdown(array $rows): ?ReportBreakdown
+    {
+        $report = $this->report();
+
+        return $report instanceof HasBreakdown ? $report->breakdown($rows) : null;
     }
 }

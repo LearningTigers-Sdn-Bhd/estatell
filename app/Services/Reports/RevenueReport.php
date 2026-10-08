@@ -58,6 +58,7 @@ class RevenueReport implements HasTotals, Report
 
         foreach ($buckets as $key => $bucket) {
             $code = $codes->get($bucket['codeId']);
+            $periodDate = CarbonImmutable::parse($bucket['period'].($group === ReportGroup::Month ? '-01' : ''));
             $rows[] = new RevenueRow(
                 key: $key,
                 group: $group,
@@ -66,6 +67,8 @@ class RevenueReport implements HasTotals, Report
                 description: $code?->name ?? '',
                 lines: $bucket['lines'],
                 amount: (string) $bucket['amount']->toScale(2, RoundingMode::HalfUp),
+                from: $group === ReportGroup::Month ? max($periodDate->startOfMonth()->toDateString(), $filters->from) : $bucket['period'],
+                to: $group === ReportGroup::Month ? min($periodDate->endOfMonth()->toDateString(), $filters->to) : $bucket['period'],
             );
         }
 

@@ -1127,6 +1127,18 @@ company: string | null,
 status: App.Data.Shared.BadgeData,
 balance: string,
 };
+export type FolioLedgerRow = {
+key: number,
+date: string,
+folio: string,
+reservation: string,
+guest: string,
+code: string,
+description: string,
+kind: string,
+staff: string | null,
+amount: string,
+};
 export type InHouseRow = {
 key: number,
 reservation: string,
@@ -1153,6 +1165,23 @@ departures: number,
 noshows: number,
 guests: number,
 };
+export type PaymentRow = {
+key: string,
+date: string,
+receipt: string,
+payer: string,
+method: string,
+status: App.Data.Shared.BadgeData,
+staff: string,
+amount: string,
+reference: string | null,
+};
+export type ReportBreakdown = {
+title: string,
+headings: string[],
+rows: string[][],
+total: string[],
+};
 export type ReportColumn = {
 key: string,
 label: string,
@@ -1163,6 +1192,7 @@ export type ReportFilters = {
 from: string,
 to: string,
 group: App.Enums.ReportGroup | null,
+code: string | null,
 };
 export type ReportLayoutColumnData = {
 key: string,
@@ -1183,6 +1213,17 @@ group: App.Enums.ReportGroup,
 period: string,
 code: string,
 description: string,
+lines: number,
+amount: string,
+from: string,
+to: string,
+};
+export type TaxRow = {
+key: string,
+group: App.Enums.ReportGroup,
+period: string,
+tax: string,
+registration: string | null,
 lines: number,
 amount: string,
 };
@@ -1747,6 +1788,7 @@ export type PackageUnit = 'per_guest' | 'per_room';
 export type PageOrientation = 'portrait' | 'landscape';
 export type PaymentMethodType = 'cash' | 'card' | 'bank_transfer' | 'e_wallet' | 'ota_collected' | 'direct_bill';
 export type PaymentPurpose = 'advance' | 'settlement' | 'security_deposit';
+export type PaymentReportStatus = 'pending' | 'completed' | 'failed' | 'voided';
 export type PaymentStatus = 'pending' | 'completed' | 'failed';
 export type PdfFont = 'office' | 'modern' | 'fancy' | 'handwritten';
 export type PdfFontSize = 'small' | 'medium' | 'large';
@@ -1767,7 +1809,7 @@ export type RegistrationCardScope = 'primary_only' | 'every_adult';
 export type RegistrationCardStatus = 'draft' | 'signed' | 'void';
 export type ReportCategory = 'front-desk' | 'revenue' | 'finance' | 'kitchen';
 export type ReportGroup = 'day' | 'month';
-export type ReportKey = 'arrivals' | 'departures' | 'in-house' | 'occupancy' | 'revenue';
+export type ReportKey = 'arrivals' | 'departures' | 'in-house' | 'occupancy' | 'revenue' | 'payments' | 'folio-ledger' | 'tax';
 export type ReservationRoomBoxState = 'assigned' | 'unassigned' | 'auto_assign' | 'cancelled' | 'no_show';
 export type ReservationSource = 'direct' | 'walk_in' | 'phone' | 'channel' | 'portal';
 export type ReservationStatus = 'confirmed' | 'in_house' | 'completed' | 'cancelled';

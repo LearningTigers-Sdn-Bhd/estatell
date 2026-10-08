@@ -9,6 +9,7 @@
      * @var list<\App\Data\Reports\ReportLayoutColumnData> $columns
      * @var list<\App\Data\Reports\ReportRow> $rows
      * @var \App\Data\Reports\ReportTotals|null $totals
+     * @var \App\Data\Reports\ReportBreakdown|null $breakdown
      * @var bool $selectedOnly
      */
 @endphp
@@ -70,4 +71,33 @@
             </tfoot>
         @endif
     </table>
+
+    @if ($breakdown !== null && count($breakdown->rows) > 0)
+        <div class="gap-24"><strong>{{ $breakdown->title }}</strong></div>
+        <table>
+            <thead>
+                <tr class="rule">
+                    @foreach ($breakdown->headings as $index => $heading)
+                        <th @class(['num' => $index > 0])>{{ $heading }}</th>
+                    @endforeach
+                </tr>
+            </thead>
+            <tbody>
+                @foreach ($breakdown->rows as $line)
+                    <tr class="rule">
+                        @foreach ($line as $index => $cell)
+                            <td @class(['num' => $index > 0])>{{ $cell }}</td>
+                        @endforeach
+                    </tr>
+                @endforeach
+            </tbody>
+            <tfoot>
+                <tr class="rule">
+                    @foreach ($breakdown->total as $index => $cell)
+                        <td @class(['num' => $index > 0])><strong>{{ $cell }}</strong></td>
+                    @endforeach
+                </tr>
+            </tfoot>
+        </table>
+    @endif
 @endsection

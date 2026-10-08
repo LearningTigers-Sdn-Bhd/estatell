@@ -298,6 +298,7 @@ test('the report view prints only the visible columns in layout order', function
         'columns' => $layout->visibleColumns(),
         'rows' => $rows,
         'totals' => null,
+        'breakdown' => null,
         'selectedOnly' => false,
     ])->render();
 

@@ -6,6 +6,7 @@ use App\Enums\ArInvoiceStatus;
 use App\Enums\CompanyStatus;
 use App\Enums\FolioRowTag;
 use App\Enums\FolioStatus;
+use App\Enums\PaymentReportStatus;
 use App\Enums\PropertyStatus;
 use App\Enums\RatePlanStatus;
 use App\Enums\RegistrationCardStatus;
@@ -53,6 +54,11 @@ class BadgeData extends Data
     public static function fromFolioRowTag(FolioRowTag $tag): self
     {
         return new self($tag->value, $tag->label(), $tag->tone());
+    }
+
+    public static function fromPaymentReportStatus(PaymentReportStatus $status): self
+    {
+        return new self($status->value, $status->label(), $status->tone());
     }
 
     public static function fromRatePlanStatus(RatePlanStatus $status): self

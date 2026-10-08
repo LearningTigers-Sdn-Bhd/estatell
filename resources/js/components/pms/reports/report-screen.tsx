@@ -8,11 +8,21 @@ import { DataTable, dataTableColumns } from '@/components/pms/data-table';
 import { DatePicker } from '@/components/pms/date-picker';
 import { DateRangePicker } from '@/components/pms/date-range-picker';
 import { EmptyState } from '@/components/pms/empty-state';
+import { EnumSelect } from '@/components/pms/enum-select';
 import type { EnumOption } from '@/components/pms/enum-select';
 import { PageHeader } from '@/components/pms/page-header';
 import { ReportExportMenu } from '@/components/pms/reports/report-export-menu';
 import { ReportLayoutSheet } from '@/components/pms/reports/report-layout-sheet';
 import { Button } from '@/components/ui/button';
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableFooter,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from '@/components/ui/table';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { toast } from '@/components/ui/toast';
 import {
@@ -59,6 +69,11 @@ type Props<TRow extends { key: number | string }> = {
     /** The grouping of a report that takes one, with its options for the Day / Month toggle. */
     group?: App.Enums.ReportGroup | null;
     groupOptions?: EnumOption[];
+    /** The transaction code of a report that filters by one (`''` or null for every code), with its options. */
+    code?: string | null;
+    codeOptions?: EnumOption[];
+    /** A small summary table under the main table (Payments: the total for each method). */
+    breakdown?: App.Data.Reports.ReportBreakdown | null;
 };
 
 const MAX_SELECTED = 500;
@@ -89,6 +104,9 @@ export function ReportScreen<TRow extends { key: number | string }>({
     totalCells = {},
     group = null,
     groupOptions = [],
+    code = null,
+    codeOptions = [],
+    breakdown = null,
 }: Props<TRow>) {
     const column = useMemo(() => dataTableColumns<TRow>(), []);
     const [draft, setDraft] = useState<Layout | null>(null);
@@ -101,8 +119,9 @@ export function ReportScreen<TRow extends { key: number | string }>({
         (): Record<string, string> => ({
             ...(isOneDate ? { date: from } : { from, to }),
             ...(group ? { group } : {}),
+            ...(code ? { code } : {}),
         }),
-        [isOneDate, from, to, group],
+        [isOneDate, from, to, group, code],
     );
 
     const visible = useMemo(
@@ -206,10 +225,23 @@ export function ReportScreen<TRow extends { key: number | string }>({
             to?: string;
             sort?: string;
             group?: App.Enums.ReportGroup;
+            code?: string;
         }) => {
-            const next = { from, to, sort, group, ...changes };
+            const next = {
+                from,
+                to,
+                sort,
+                group,
+                code: code ?? '',
+                ...changes,
+            };
 
-            if (next.from !== from || next.to !== to || next.group !== group) {
+            if (
+                next.from !== from ||
+                next.to !== to ||
+                next.group !== group ||
+                next.code !== (code ?? '')
+            ) {
                 setSelected(new Set());
             }
 
@@ -220,12 +252,13 @@ export function ReportScreen<TRow extends { key: number | string }>({
                         ? { date: next.from }
                         : { from: next.from, to: next.to }),
                     ...(next.group ? { group: next.group } : {}),
+                    ...(next.code ? { code: next.code } : {}),
                     ...(next.sort ? { sort: next.sort } : {}),
                 },
                 { preserveState: true, preserveScroll: true, replace: true },
             );
         },
-        [url, isOneDate, from, to, sort, group],
+        [url, isOneDate, from, to, sort, group, code],
     );
 
     const changeSelection = (next: Set<string>) => {
@@ -299,6 +332,16 @@ export function ReportScreen<TRow extends { key: number | string }>({
                             ))}
                         </ToggleGroup>
                     )}
+                    {codeOptions.length > 0 && (
+                        <EnumSelect
+                            options={codeOptions}
+                            allLabel="All codes"
+                            value={code ?? ''}
+                            onValueChange={(next) => visit({ code: next })}
+                            aria-label="Transaction code"
+                            className="w-auto"
+                        />
+                    )}
                     <div className="ml-auto flex items-center gap-2">
                         {canEditLayout && (
                             <Button
@@ -345,6 +388,70 @@ export function ReportScreen<TRow extends { key: number | string }>({
                         />
                     }
                 />
+
+                {breakdown && breakdown.rows.length > 0 && (
+                    <div className="flex flex-col gap-2">
+                        <h2 className="text-sm font-medium">
+                            {breakdown.title}
+                        </h2>
+                        <div className="max-w-md overflow-hidden rounded-lg border">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        {breakdown.headings.map(
+                                            (heading, index) => (
+                                                <TableHead
+                                                    key={heading}
+                                                    className={
+                                                        index > 0
+                                                            ? 'text-right'
+                                                            : undefined
+                                                    }
+                                                >
+                                                    {heading}
+                                                </TableHead>
+                                            ),
+                                        )}
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {breakdown.rows.map((line) => (
+                                        <TableRow key={line[0]}>
+                                            {line.map((cell, index) => (
+                                                <TableCell
+                                                    key={index}
+                                                    className={
+                                                        index > 0
+                                                            ? 'text-right tabular-nums'
+                                                            : undefined
+                                                    }
+                                                >
+                                                    {cell}
+                                                </TableCell>
+                                            ))}
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                                <TableFooter>
+                                    <TableRow>
+                                        {breakdown.total.map((cell, index) => (
+                                            <TableCell
+                                                key={index}
+                                                className={
+                                                    index > 0
+                                                        ? 'text-right tabular-nums'
+                                                        : undefined
+                                                }
+                                            >
+                                                {cell}
+                                            </TableCell>
+                                        ))}
+                                    </TableRow>
+                                </TableFooter>
+                            </Table>
+                        </div>
+                    </div>
+                )}
 
                 <BulkActionBar count={selected.size} onClear={clearSelection}>
                     <ReportExportMenu
