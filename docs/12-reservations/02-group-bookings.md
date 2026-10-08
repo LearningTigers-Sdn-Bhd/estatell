@@ -39,13 +39,14 @@ In code the properties are camelCase (`roomTypeId`, `arrivalDate`). Dates are `Y
 
 Both Actions return a `ReservationResult` and never throw for an expected refusal (see `.ai/rules/actions.md`):
 
-| Field                      | Meaning                                                                                                                                  |
-| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| `reservation`              | The saved reservation, or null when refused                                                                                              |
-| `refusal`                  | A refusal code (constants on `ReservationResult`), or null                                                                               |
-| `lineIndex`                | The index in `units` of the refused line                                                                                                 |
-| `date`                     | The night that caused the refusal, when there is one                                                                                     |
-| `unitsWithPostedRoomLines` | Unit ids whose posted room lines stay on their own folio because `SyncRoutingRules` now routes Room to the Master folio (`AddUnit` only) |
+| Field                      | Meaning                                                                                                                                                                                               |
+| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `reservation`              | The saved reservation, or null when refused                                                                                                                                                           |
+| `refusal`                  | A refusal code (constants on `ReservationResult`), or null                                                                                                                                            |
+| `lineIndex`                | The index in `units` of the refused line                                                                                                                                                              |
+| `date`                     | The night that caused the refusal, when there is one                                                                                                                                                  |
+| `unitsWithPostedRoomLines` | Unit ids whose posted room lines stay on their own folio because `SyncRoutingRules` now routes Room to the Master folio (`AddUnit` and `UpdateReservationCompany`, only when the sync created a rule) |
+| `unitAdvances`             | Advance money left on those units' own folios, by unit id. The controller shows both lists in a warning toast ([Routing](../13-folio/03-routing.md#billing-mode-rules))                               |
 
 Refusal codes: `units_required`, `booker_not_found`, `room_type_not_found`, `rate_plan_not_linked`, `invalid_stay`, `arrival_in_past`, `adults_required`, `child_age_invalid`, `discount_not_allowed`, `restricted`, `restriction_override_not_allowed`, `not_available`, `override_reason_required`, `override_invalid`, `reservation_closed`, `company_not_available`, `rate_plan_not_linked_to_company`, plus the `RateQuote` and [add-on](04-add-ons.md#addunitaddon) refusal codes passed through as they are.
 
@@ -106,7 +107,7 @@ Changes `group_name` and `billing_mode`. A changed billing mode runs `SyncRoutin
 
 - A billing mode change is refused while the Master folio holds money (`master_has_payments`): the net of its Completed payments minus their refunds is above 0 (`MasterPaymentsHeld`, `app/Services/Folio/`). Any change counts, not only to EachPays. A fully refunded payment does not block, and a name-only edit is never refused. The refusal writes and logs nothing.
 - The message names the amount, on the `billing_mode` field: "The Master folio holds MYR 1,000.00 in payments. Refund it before changing the billing mode."
-- `GroupUpdateResult` gains `refusal` and `amount`, with `isRefused()`. `ReservationGroupController::update` returns the refusal as a form error and shows "Group details saved." only on success.
+- `GroupUpdateResult` gains `refusal`, `amount` and `unitAdvances`, with `isRefused()`. `ReservationGroupController::update` returns the refusal as a form error and shows "Group details saved." only on success.
 
 ## Build status
 

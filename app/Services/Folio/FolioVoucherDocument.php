@@ -6,7 +6,8 @@ namespace App\Services\Folio;
  * Everything the voucher PDF shows, already formatted, so the Blade view does no lookups. `rows` are the posted lines
  * in ledger order, then the Scheduled rows; the PDF does not tell them apart. `level` is 0 for a row with no parent
  * on the voucher and 1 or 2 for its discount and tax rows. Amounts are signed decimal strings with two places.
- * `total` is the sum of all rows. `folioNumber` is null for a unit that has no folio yet.
+ * `total` is the sum of all rows. `folioNumber` is null for a unit that has no folio yet. `billedTo` is the company that
+ * pays the folio, printed next to the guest, or null when a guest pays.
  */
 class FolioVoucherDocument
 {
@@ -23,5 +24,6 @@ class FolioVoucherDocument
         public readonly string $currency,
         public readonly array $rows,
         public readonly string $total,
+        public readonly ?string $billedTo = null,
     ) {}
 }

@@ -23,6 +23,7 @@ class UpdateReservationGroup
             $groupName = $groupName === null || trim($groupName) === '' ? null : trim($groupName);
 
             $unitsWithPostedRoomLines = [];
+            $unitAdvances = [];
 
             if ($locked->billing_mode !== $billingMode) {
                 $held = $this->masterPaymentsHeld->forReservation($locked);
@@ -41,7 +42,9 @@ class UpdateReservationGroup
                 $locked->save();
 
                 if ($modeChanged) {
-                    $unitsWithPostedRoomLines = ($this->syncRoutingRules)($locked)->unitsWithPostedRoomLines;
+                    $routing = ($this->syncRoutingRules)($locked);
+                    $unitsWithPostedRoomLines = $routing->unitsWithPostedRoomLines;
+                    $unitAdvances = $routing->unitAdvances;
                 }
 
                 activity()
@@ -58,7 +61,7 @@ class UpdateReservationGroup
 
             $reservation->setRawAttributes($locked->getAttributes(), true);
 
-            return new GroupUpdateResult($reservation, $unitsWithPostedRoomLines);
+            return new GroupUpdateResult($reservation, $unitsWithPostedRoomLines, unitAdvances: $unitAdvances);
         });
     }
 }

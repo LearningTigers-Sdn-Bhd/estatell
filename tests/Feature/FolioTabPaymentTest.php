@@ -330,6 +330,17 @@ test('a receipt without a surcharge leaves the surcharge lines out', function ()
         ->and(view('pdf.receipt', ['receipt' => $receipt, 'print' => app(PrintProfile::class)->for($setup['property'])])->render())->not->toContain('Surcharge');
 });
 
+test('a receipt for a folio paid by a company is received from the company', function () {
+    $setup = fpSetup();
+    $company = Company::factory()->for($setup['property'])->create(['name' => 'Acme Sdn Bhd']);
+    $setup['folio']->forceFill(['payer_guest_id' => null, 'payer_company_id' => $company->id])->save();
+    $payment = fpPay($setup);
+
+    $receipt = app(PaymentReceipt::class)->forPayment($payment);
+
+    expect($receipt->payerName)->toBe('Acme Sdn Bhd');
+});
+
 test('a refund has no receipt, and the receipt needs payment.record inside the reservation', function () {
     $setup = fpSetup();
     $payment = fpPay($setup);

@@ -13,11 +13,16 @@ use App\Models\Folio;
 use App\Models\FolioLine;
 use App\Models\FolioRoutingRule;
 use App\Models\Reservation;
+use App\Services\Folio\UnitAdvancesHeld;
 use Illuminate\Support\Facades\DB;
 
 class SyncRoutingRules
 {
-    public function __construct(private CreateFolio $createFolio, private CreateRoutingRule $createRoutingRule) {}
+    public function __construct(
+        private CreateFolio $createFolio,
+        private CreateRoutingRule $createRoutingRule,
+        private UnitAdvancesHeld $unitAdvancesHeld,
+    ) {}
 
     /**
      * Make the BillingMode rules of a reservation match its `billing_mode`. MasterPays sends Room charges to the Master
@@ -26,7 +31,8 @@ class SyncRoutingRules
      * later cancels never removes them: only EachPays or a stale rule does. The reservation row is locked first. The Master folio is created once, when the rules need it, or
      * when the reservation has a company (the AR invoice is made from it). Only BillingMode rules are removed or
      * changed: Manual rules are never touched, and a Manual rule on the same selectors keeps its place. Folios are
-     * never deleted. Running it again changes nothing. See docs/13-folio/03-routing.md.
+     * never deleted. Running it again changes nothing. When it creates a rule, the result names the units whose own folio
+     * keeps posted room lines or Advance money. See docs/13-folio/03-routing.md.
      */
     public function __invoke(Reservation $reservation): RoutingSyncResult
     {
@@ -89,7 +95,14 @@ class SyncRoutingRules
                 }
             }
 
-            return new RoutingSyncResult($master, $created, $added, $removed, $needsRule ? $this->unitsWithPostedRoomLines($locked) : []);
+            return new RoutingSyncResult(
+                $master,
+                $created,
+                $added,
+                $removed,
+                $added > 0 ? $this->unitsWithPostedRoomLines($locked) : [],
+                $added > 0 ? $this->unitAdvancesHeld->forReservation($locked) : [],
+            );
         });
     }
 

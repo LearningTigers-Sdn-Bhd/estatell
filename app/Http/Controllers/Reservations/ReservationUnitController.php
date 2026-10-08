@@ -14,15 +14,16 @@ use App\Models\Property;
 use App\Models\Reservation;
 use App\Models\ReservationUnit;
 use App\Services\Reservations\ReservationRefusals;
+use App\Services\Reservations\RoutingChangeNotice;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 
 class ReservationUnitController extends Controller
 {
     /**
-     * Add one unit. A refusal goes back to the Sheet as an error on the matching field.
+     * Add one unit. A refusal goes back to the Sheet as an error on the matching field. A second unit that starts sending room charges to the Master folio saves with a warning toast when a unit's own folio keeps room lines or an advance.
      */
-    public function store(AddUnitRequest $request, Property $property, Reservation $reservation, AddUnit $addUnit, ReservationRefusals $refusals): RedirectResponse
+    public function store(AddUnitRequest $request, Property $property, Reservation $reservation, AddUnit $addUnit, ReservationRefusals $refusals, RoutingChangeNotice $notice): RedirectResponse
     {
         $result = $addUnit($request->user(), $reservation, $request->toUnitData());
 
@@ -32,7 +33,7 @@ class ReservationUnitController extends Controller
             );
         }
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => __('Unit added.')]);
+        Inertia::flash('toast', $notice->toast(__('Unit added.'), $reservation, $result->unitsWithPostedRoomLines, $result->unitAdvances));
 
         return back(fallback: $this->page($property, $reservation));
     }

@@ -73,7 +73,7 @@ class FolioVoucher
      */
     public function forLines(Folio $folio, array $lineIds, ?Collection $scheduled = null): FolioVoucherDocument
     {
-        $folio->loadMissing(['property.settings', 'reservation.booker', 'payerGuest']);
+        $folio->loadMissing(['property.settings', 'reservation.booker', 'payerGuest', 'payerCompany']);
         $parents = $folio->lines()->pluck('parent_line_id', 'id');
         $chosen = $this->printableLines($folio)->whereIn('id', $lineIds)->values();
         $posted = $chosen->map(fn (FolioLine $line): array => [
@@ -124,6 +124,7 @@ class FolioVoucher
             currency: $property->settings?->currency->value ?? '',
             rows: [...$posted->all(), ...$later->all()],
             total: (string) $sum($posted->concat($later))->toScale(2),
+            billedTo: $folio?->payerCompany?->name,
         );
     }
 

@@ -1,10 +1,13 @@
 <?php
 
+use App\Actions\Folio\CreateFolio;
 use App\Enums\BillingMode;
 use App\Enums\DefaultRoleEnum;
+use App\Enums\PaymentPurpose;
 use App\Enums\UnitStatus;
 use App\Models\ChargeItem;
 use App\Models\Guest;
+use App\Models\Payment;
 use App\Models\Property;
 use App\Models\PropertySetting;
 use App\Models\Rate;
@@ -125,6 +128,23 @@ test('another property\'s reservation, unit or add-on returns 404', function () 
 
     expect(UnitAddOn::query()->count())->toBe(2)
         ->and($ownAddOn->exists)->toBeTrue();
+});
+
+test('adding a unit that sends room charges to the master warns about an advance left on a unit folio', function () {
+    $setup = actionsSetup();
+    $folio = app(CreateFolio::class)($setup['reservation'], $setup['unit']);
+    Payment::factory()->for($folio)->create(['purpose' => PaymentPurpose::Advance, 'amount' => '200.00']);
+
+    $this->actingAs($setup['user'])
+        ->from(actionsRoute($setup, 'reservations.show'))
+        ->post(actionsRoute($setup, 'reservations.units.store'), actionsUnitPayload($setup))
+        ->assertRedirect(actionsRoute($setup, 'reservations.show'))
+        ->assertInertiaFlash('toast', [
+            'type' => 'warning',
+            'message' => "Unit added. Room charges now go to the Master folio, but a unit's own folio holds a MYR 200.00 advance. Transfer its room charges back to it, or refund the advance.",
+        ]);
+
+    expect($setup['reservation']->units()->count())->toBe(2);
 });
 
 test('a unit is added with a toast and a log', function () {

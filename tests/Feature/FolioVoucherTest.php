@@ -9,6 +9,7 @@ use App\Enums\DefaultRoleEnum;
 use App\Enums\SystemTransactionCode;
 use App\Models\BusinessDate;
 use App\Models\ChargeItem;
+use App\Models\Company;
 use App\Models\Folio;
 use App\Models\FolioLine;
 use App\Models\Property;
@@ -97,6 +98,21 @@ test('the document lists the chosen lines in ledger order with their level and t
         ->and($document->total)->toBe('108.00')
         ->and($document->folioNumber)->toBe($setup['folio']->number)
         ->and($document->reservationReference)->toBe($setup['reservation']->reference);
+});
+
+test('a voucher names the company billed for the folio, and none when a guest pays', function () {
+    $setup = fvSetup();
+    $charge = fvPost($setup);
+    $service = app(FolioVoucher::class);
+    $guestPays = $service->forLines($setup['folio'], [$charge->id]);
+    $company = Company::factory()->for($setup['property'])->create(['name' => 'Acme Sdn Bhd']);
+    $setup['folio']->forceFill(['payer_guest_id' => null, 'payer_company_id' => $company->id])->save();
+
+    $companyPays = $service->forLines($setup['folio']->fresh(), [$charge->id]);
+
+    expect($guestPays->billedTo)->toBeNull()
+        ->and($companyPays->billedTo)->toBe('Acme Sdn Bhd')
+        ->and($companyPays->guestName)->toBe($setup['reservation']->booker->full_name);
 });
 
 test('the printable lines leave out payments, reversals and reversed lines', function () {

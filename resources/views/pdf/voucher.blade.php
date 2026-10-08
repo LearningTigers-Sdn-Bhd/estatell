@@ -19,6 +19,9 @@
             @endcomponent
 
             <table class="gap-24">
+                @if ($voucher->billedTo !== null)
+                    <tr class="rule"><td class="label">{{ __('Billed to') }}</td><td>{{ $voucher->billedTo }}</td></tr>
+                @endif
                 <tr class="rule"><td class="label">{{ __('Guest') }}</td><td>{{ $voucher->guestName }}</td></tr>
                 @if ($voucher->nationality !== null)
                     <tr class="rule"><td class="label">{{ __('Nationality') }}</td><td>{{ $voucher->nationality }}</td></tr>

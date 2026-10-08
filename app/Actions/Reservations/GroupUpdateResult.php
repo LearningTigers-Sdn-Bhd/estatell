@@ -16,12 +16,14 @@ class GroupUpdateResult
 
     /**
      * @param  list<int>  $unitsWithPostedRoomLines
+     * @param  array<int, string>  $unitAdvances  Advance money left on the units' own folios, by unit id
      */
     public function __construct(
         public readonly Reservation $reservation,
         public readonly array $unitsWithPostedRoomLines = [],
         public readonly ?string $refusal = null,
         public readonly ?string $amount = null,
+        public readonly array $unitAdvances = [],
     ) {}
 
     public static function refused(Reservation $reservation, string $refusal, ?string $amount = null): self

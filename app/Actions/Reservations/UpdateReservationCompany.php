@@ -85,7 +85,7 @@ class UpdateReservationCompany
             $locked->company_id = $companyId;
             $locked->save();
 
-            ($this->syncRoutingRules)($locked);
+            $routing = ($this->syncRoutingRules)($locked);
 
             activity()
                 ->performedOn($locked)
@@ -100,7 +100,7 @@ class UpdateReservationCompany
 
             $reservation->setRawAttributes($locked->getAttributes(), true);
 
-            return ReservationResult::created($reservation);
+            return ReservationResult::created($reservation, $routing->unitsWithPostedRoomLines, $routing->unitAdvances);
         });
     }
 }

@@ -83,7 +83,7 @@ payments    id, property_id, folio_id, payment_method_id, amount,
 - A deposit is a payment with a purpose. No deposit tables.
 - **A security deposit stays on a unit folio** (`deposit_on_unit_only`): check-out refunds it from the unit's own folio, so on a Master or ThirdParty folio it would never be found. "A security deposit stays on the unit's own folio. Record it on the unit folio."
 - **An advance goes where the room charges go** (`advance_on_master`): when `FolioRouter::roomChargesGoToMaster($unit)` is true (the real rules, BillingMode and Manual, for the property's Room revenue code), an Advance on that unit's folio or "not started" entry is refused. A payment line never moves, so it would sit next to no charges while the company is billed in full. "An advance for this room goes on the Master folio, because the Master folio pays the room charges. Record it there." `CheckInCollection` uses the same method, and Collect now never records the taxes when Room routes to the Master (the tax rows are hidden), so check-in never meets this refusal.
-- The two purpose checks run after `folio_not_open` and before `method_not_available`. Both map to the form error, because the Purpose field can be hidden. The server does not check the other stage rules below: only these two affect where money sits.
+- The two purpose checks run after `folio_not_open` and before `method_not_available`. Both map to the form error, because the Purpose field can be hidden. The server does not check the other stage rules below: only these two affect where money sits. It cannot check them: Collect now records the check-in taxes as an Advance on a unit that is already CheckedIn (`CheckInAndCollect`), which the table would forbid.
 - **A payment line is corrected only by a refund.** `ReverseLine` and `TransferLines` refuse a line that a `payments` row owns through `folio_line_id` (`payment_line`). Otherwise a reversed payment could still be refunded, and a transferred one would leave `payments.folio_id` on the old folio. The surcharge line is an ordinary charge and can be reversed or transferred. A deposit always stays on the unit's own folio, even with a Master folio, because a payment line is never transferred.
 - A payment with the SecurityDeposit purpose uses the method's own code. The system `SECURITY_DEPOSIT` code stays unused.
 - A held deposit is a credit on the unit folio like any payment, so [check-out](../18-front-desk/01-check-in-and-check-out.md#taxes-and-deposit) needs no deposit rule: the balance must reach 0, and the credit is refunded through `RefundPayment`.
@@ -166,14 +166,14 @@ A table-based Blade PDF on A4 portrait (dompdf has no flex or grid, see [design 
 - Views: `resources/views/pdf/layout.blade.php` (shared by later PDFs) and `resources/views/pdf/receipt.blade.php`.
 - The row menu of a payment row has **Download receipt** (a plain link, new tab). `FolioRowData.hasReceipt` is true for a payment (not a refund) when the user holds `payment.record`. It is a flag, not a row action, so a closed folio still offers it while its rows show no actions.
 
-| Block         | Content                                                                                                              |
-| ------------- | -------------------------------------------------------------------------------------------------------------------- |
-| Header        | Property name, address, phone, email, registration number and TIN (each only when set)                               |
-| Title         | "Receipt", the receipt number, the posting (business) date and the time received in the property's time zone         |
-| Received from | The folio's payer guest, or the booker when the folio has none; the reservation reference and the folio number       |
-| Payment       | Method, reference, purpose                                                                                           |
-| Amounts       | Amount paid on the bill, Surcharge and Tax on surcharge (only with a fee), **Total collected**, read from the ledger |
-| Footer        | Received by (the staff member's name)                                                                                |
+| Block         | Content                                                                                                                          |
+| ------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| Header        | Property name, address, phone, email, registration number and TIN (each only when set)                                           |
+| Title         | "Receipt", the receipt number, the posting (business) date and the time received in the property's time zone                     |
+| Received from | The folio's payer guest, or its payer company, or the booker when it has neither; the reservation reference and the folio number |
+| Payment       | Method, reference, purpose                                                                                                       |
+| Amounts       | Amount paid on the bill, Surcharge and Tax on surcharge (only with a fee), **Total collected**, read from the ledger             |
+| Footer        | Received by (the staff member's name)                                                                                            |
 
 Money shows as `MYR 105.40` with the property currency.
 

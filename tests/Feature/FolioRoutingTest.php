@@ -16,6 +16,7 @@ use App\Data\Reservations\NewUnitData;
 use App\Enums\BillingMode;
 use App\Enums\FolioStatus;
 use App\Enums\FolioType;
+use App\Enums\PaymentPurpose;
 use App\Enums\ReservationSource;
 use App\Enums\RoutingRuleSource;
 use App\Enums\TransactionCategory;
@@ -27,6 +28,7 @@ use App\Models\Folio;
 use App\Models\FolioLine;
 use App\Models\FolioRoutingRule;
 use App\Models\Guest;
+use App\Models\Payment;
 use App\Models\Property;
 use App\Models\PropertySetting;
 use App\Models\Rate;
@@ -486,6 +488,34 @@ test('AddUnit names units whose posted room lines stay on their own folio', func
 
     expect($result->unitsWithPostedRoomLines)->toBe([$first->id])
         ->and($folio->lines()->count())->toBe(1);
+});
+
+test('AddUnit names the advance a unit folio keeps once room charges go to the master, net of refunds', function () {
+    $setup = routingBookingSetup();
+    $first = $setup['reservation']->units()->sole();
+    $folio = app(CreateFolio::class)($setup['reservation'], $first);
+    $advance = Payment::factory()->for($folio)->create(['purpose' => PaymentPurpose::Advance, 'amount' => '200.00']);
+    Payment::factory()->for($folio)->create(['purpose' => PaymentPurpose::Advance, 'amount' => '50.00', 'refund_of_id' => $advance->id, 'receipt_number' => null]);
+    Payment::factory()->for($folio)->create(['purpose' => PaymentPurpose::SecurityDeposit, 'amount' => '100.00']);
+
+    $result = app(AddUnit::class)($setup['user'], $setup['reservation'], routingUnitData($setup));
+
+    expect($result->unitAdvances)->toBe([$first->id => '150.00']);
+});
+
+test('a sync that creates no rule reports no advance and no posted room lines', function () {
+    $setup = routingBookingSetup();
+    $first = $setup['reservation']->units()->sole();
+    $room = TransactionCode::factory()->create(['property_id' => $setup['property']->id, 'category' => TransactionCategory::Room]);
+    $folio = app(CreateFolio::class)($setup['reservation'], $first);
+    FolioLine::factory()->for($folio)->create(['transaction_code_id' => $room->id]);
+    Payment::factory()->for($folio)->create(['purpose' => PaymentPurpose::Advance, 'amount' => '200.00']);
+    app(AddUnit::class)($setup['user'], $setup['reservation'], routingUnitData($setup));
+
+    $again = app(SyncRoutingRules::class)($setup['reservation']);
+
+    expect($again->unitAdvances)->toBe([])
+        ->and($again->unitsWithPostedRoomLines)->toBe([]);
 });
 
 test('a reversed room line does not count as posted', function () {

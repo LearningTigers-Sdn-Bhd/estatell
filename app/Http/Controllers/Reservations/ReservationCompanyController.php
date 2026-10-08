@@ -11,15 +11,16 @@ use App\Models\Property;
 use App\Models\Reservation;
 use App\Services\Folio\MasterPaymentsHeld;
 use App\Services\Reservations\ReservationRefusals;
+use App\Services\Reservations\RoutingChangeNotice;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 
 class ReservationCompanyController extends Controller
 {
     /**
-     * Set or clear the billed company. A refusal goes back to the Dialog as an error on the company field.
+     * Set or clear the billed company. A refusal goes back to the Dialog as an error on the company field. A change that leaves room lines or an advance on a unit's own folio saves with a warning toast.
      */
-    public function update(UpdateReservationCompanyRequest $request, Property $property, Reservation $reservation, UpdateReservationCompany $updateReservationCompany, ReservationRefusals $refusals, MasterPaymentsHeld $masterPaymentsHeld): RedirectResponse
+    public function update(UpdateReservationCompanyRequest $request, Property $property, Reservation $reservation, UpdateReservationCompany $updateReservationCompany, ReservationRefusals $refusals, MasterPaymentsHeld $masterPaymentsHeld, RoutingChangeNotice $notice): RedirectResponse
     {
         $result = $updateReservationCompany($request->user(), $reservation, $request->filled('company_id') ? $request->integer('company_id') : null, $request->user()->can(PermissionEnum::CompanyCreditOverride->value) ? $request->input('credit_override_reason') : null);
 
@@ -28,7 +29,7 @@ class ReservationCompanyController extends Controller
                 ->withErrors($refusals->errors((string) $result->refusal, detail: $result->refusal === ReservationResult::REFUSAL_MASTER_HAS_PAYMENTS ? $masterPaymentsHeld->label($reservation, (string) $result->detail) : $result->detail));
         }
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => __('Company saved.')]);
+        Inertia::flash('toast', $notice->toast(__('Company saved.'), $reservation, $result->unitsWithPostedRoomLines, $result->unitAdvances));
 
         return back(fallback: route('reservations.show', ['property' => $property, 'reservation' => $reservation]));
     }
