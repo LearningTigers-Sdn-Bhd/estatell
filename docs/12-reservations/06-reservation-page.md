@@ -95,6 +95,9 @@ Status tabs, filters, and two views of the same page of results: **Cards** (defa
 │ ┌─────────────┬─────────────┬─────────────┐ │
 │ │ Total       │ Paid        │ Balance     │ │  money strip (tabular-nums)
 │ │ 2,390.00    │ 500.00      │ 412.60      │ │
+│ │             │ + MYR 1,400 │             │ │  billed to company, only above 0
+│ │             │ billed to   │             │ │
+│ │             │ company     │             │ │
 │ └─────────────┴─────────────┴─────────────┘ │
 └─────────────────────────────────────────────┘
 ```
@@ -116,15 +119,17 @@ Status tabs, filters, and two views of the same page of results: **Cards** (defa
 
 Three columns in the muted strip, each with a small muted label above the amount. Amounts are left-aligned, `tabular-nums`, with no currency code (one code per amount does not fit). The List view shows the same three figures as columns.
 
-| Figure  | Source                                                                                     | Notes                                                          |
-| ------- | ------------------------------------------------------------------------------------------ | -------------------------------------------------------------- |
-| Total   | Sum of `unit_nights.amount` of units that hold inventory                                   | Same as before. Sortable (`total`). No tax, no add-ons.        |
-| Paid    | `-SUM(folio_lines.amount)` of Payment lines of the folios that are not Voided              | Net of refunds. 0.00 while the reservation has no folio.       |
-| Balance | `SUM(folio_lines.amount)` of the folios that are not Voided, as the summary card's Balance | Danger tone above 0. 0.00 with no folio. Sortable (`balance`). |
+| Figure            | Source                                                                                                                                                        | Notes                                                                                                                                                          |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Total             | Sum of `unit_nights.amount` of units that hold inventory                                                                                                      | Same as before. Sortable (`total`). No tax, no add-ons.                                                                                                        |
+| Paid              | `-SUM(folio_lines.amount)` of Payment lines of the folios that are not Voided, except DIRECT_BILL lines (transaction code `system_key` `direct_bill_payment`) | Net of refunds. 0.00 while the reservation has no folio. Real money only                                                                                       |
+| Billed to company | `-SUM(folio_lines.amount)` of the DIRECT_BILL lines (Settle to City ledger)                                                                                   | A muted sub-line under Paid, "+ MYR 1,700.00 billed to company", only above 0. A reversed DIRECT_BILL line nets out. `ReservationListItemData.billedToCompany` |
+| Balance           | `SUM(folio_lines.amount)` of the folios that are not Voided, as the summary card's Balance                                                                    | Danger tone above 0. 0.00 with no folio. Sortable (`balance`).                                                                                                 |
 
 - Total is kept instead of posted charges: nights post only at the night audit, so posted charges read 0.00 before check-in.
 - `Total - Paid` is not always the Balance. Balance counts only posted lines, with tax and add-ons. A negative Balance is a deposit held.
-- Paid and Balance come from one more grouped sub-query joined into the list query, so the list runs no extra queries.
+- Paid, Billed to company and Balance come from one more grouped sub-query joined into the list query, so the list runs no extra queries.
+- Before item 21, a settled company folio read as fully Paid while the company had paid nothing. DIRECT_BILL is found by its system code, not by "a Payment line with no `payments` row", because older and factory lines have no `payments` row.
 - No placeholder dash: a reservation with no folio shows 0.00, and the balance sort reads it as 0.
 
 ### Room box
@@ -214,6 +219,7 @@ The Units list is hidden for one unit, and the Folio rail for one folio, so thos
 - The status opens a **Status by unit** popover: each unit's room type, room or bed, and status.
 - **Add unit** opens a Sheet with one booking line (room type, rate plan, dates, adults, child ages) and calls `AddUnit` (needs `reservations.manage`). Room or bed is not picked here: `AssignRoom` and `AssignBed` come with the booking form, so the new unit shows as not assigned. A collapsed **Price override** section holds the stay total and reason. After a `restricted` refusal, a restriction override reason field appears for staff with `rates.override-restrictions`. Add-ons, the catalogue discount and a live price preview are not in this Sheet. The room types and plans load as an Inertia optional prop when the Sheet opens. The Sheet has no time fields: the new unit copies the arrival and departure times of the reservation's first unit (see [Expected times](01-reservation-shape.md#expected-times)). Hidden on Cancelled and Completed reservations.
 - **⋯ More**: Edit group (a Dialog with group name, and billing mode when there are 2 or more units, `UpdateReservationGroup`) and **Change company** (a Dialog with the company combobox, `UpdateReservationCompany`; needs `company.view`, hidden on closed reservations). A `master_has_payments`, `master_has_ar_invoice`, `company_plan_conflict` or `company_not_available` refusal shows inline on the combobox. The Active company list loads as an Inertia optional prop when the Dialog opens. Edit group works on closed reservations too. Cancel whole reservation (front desk) and Print confirmation (later) are added when they exist.
+- **Each unit pays with a company:** when a reservation has a company and `billing_mode` EachPays, nothing is billed to the company (the Master folio exists but no rule routes to it). The Edit group Dialog shows a hint under the billing mode: "Guests pay everything. Nothing is billed to Acme Sdn Bhd. Choose Master folio pays to bill the company." The Change company Dialog replaces its description "The company is billed through the master folio." with "This reservation is set to Each unit pays. Guests pay everything. Nothing is billed to Acme Sdn Bhd. Change it in Edit group." The hint is derived in the browser from the chosen company and mode (`eachPaysHint`, display only).
 
 ### Units tab
 

@@ -32,6 +32,12 @@ Payments and allocations are never edited. Only the void and reversal columns ar
 - **Invoice status:** an invoice becomes Settled when its balance reaches 0, and Open again when an allocation is reversed.
 - **Void invoice** ([AR invoices](02-ar-invoices.md#rules)) is refused while the invoice has active allocations.
 - **Void payment:** allowed only while the payment has no active allocations. Reverse them first.
+- **Which place records company money.** Money received before check-out (an early payment for a stay) is an Advance on the Master folio ([Payments](../14-payments/01-payments-and-refunds.md)). Money received after the invoice is an AR payment here. Recording one transfer in both places counts it twice.
+- **Reference warning.** As the reference is typed, the Dialog asks `FolioPaymentReferences` (`app/Services/CityLedger/`) whether the same reference was already recorded, and shows a warning under the field. It never blocks the payment. A match is exact after trim, ignoring case; a blank reference never matches; refunds and voided AR payments never match. It looks at:
+    - Completed folio payments on a folio the company pays, or on any folio of a reservation of the company: "Reference MBB-88231 was already recorded on folio F-0031 (receipt R-1002) on 08 Oct. Check it is not the same money before you record it.";
+    - the company's other AR payments: "Reference MBB-88231 was already recorded as AR payment RC-0045 on 08 Oct. Check it is not the same money before you record it."
+    - With more matches it adds "and 2 more." The date is the business posting date (folio) or `received_on` (AR).
+- The warning is one-way: Record payment on a folio does not check AR payments. The usual order is the advance first and the bank transfer later.
 - The credit limit is not checked here. It comes with [Credit control](04-credit-control-and-reports.md).
 
 ## Actions
@@ -57,17 +63,18 @@ Viewing the Payments tab and the receipt needs `company.view`.
 
 ## Pages
 
-| Page                       | Route                                                                              | Permission             |
-| -------------------------- | ---------------------------------------------------------------------------------- | ---------------------- |
-| Company page, Payments tab | `GET .../companies/{company}/payments` (`finance.city-ledger.companies.payments`)  | `company.view`         |
-| Record payment             | `POST .../companies/{company}/payments` (Dialog)                                   | `city-ledger.payment`  |
-| Allocate                   | `POST .../companies/{company}/payments/{payment}/allocations` (Dialog)             | `city-ledger.allocate` |
-| Reverse allocation         | `POST .../companies/{company}/payments/{payment}/allocations/{allocation}/reverse` | `city-ledger.allocate` |
-| Void payment               | `POST .../companies/{company}/payments/{payment}/void` (AlertDialog)               | `city-ledger.payment`  |
-| Receipt PDF                | `GET .../companies/{company}/payments/{payment}/receipt`                           | `company.view`         |
+| Page                       | Route                                                                                                                                                                                  | Permission             |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------- |
+| Company page, Payments tab | `GET .../companies/{company}/payments` (`finance.city-ledger.companies.payments`)                                                                                                      | `company.view`         |
+| Record payment             | `POST .../companies/{company}/payments` (Dialog)                                                                                                                                       | `city-ledger.payment`  |
+| Allocate                   | `POST .../companies/{company}/payments/{payment}/allocations` (Dialog)                                                                                                                 | `city-ledger.allocate` |
+| Reverse allocation         | `POST .../companies/{company}/payments/{payment}/allocations/{allocation}/reverse`                                                                                                     | `city-ledger.allocate` |
+| Reference check            | `POST .../companies/{company}/payments/reference-check` (JSON, `finance.city-ledger.companies.payments.reference-check`). POST so a bank reference never goes in a URL. Writes nothing | `city-ledger.payment`  |
+| Void payment               | `POST .../companies/{company}/payments/{payment}/void` (AlertDialog)                                                                                                                   | `city-ledger.payment`  |
+| Receipt PDF                | `GET .../companies/{company}/payments/{payment}/receipt`                                                                                                                               | `company.view`         |
 
 - **Payments tab:** a **Record payment** button, then the list: receipt number, date, method, reference, amount, unallocated amount and status (Voided is a neutral badge). The row menu has Allocate, Receipt and Void.
-- **Record payment Dialog:** method, amount, received on, reference (required when the method requires it), notes and an **Allocate to oldest invoices** tick, on by default.
+- **Record payment Dialog:** method, amount, received on, reference (required when the method requires it), notes and an **Allocate to oldest invoices** tick, on by default. Under the reference, the reference warning (debounced 300 ms, like the payment quote) when there is a match. The Record button is never disabled by it.
 - **Allocate Dialog:** the payment's unallocated amount at the top, then the company's open invoices (number, due date, balance) with an amount box each.
 - **Invoice page:** an **Allocations** section (payment receipt number, date, amount, status) with **Reverse** on each active allocation, which asks for a reason.
 - The tab, the open invoices and the payment methods are read in a constant number of queries (grouped sums, no query per row).
