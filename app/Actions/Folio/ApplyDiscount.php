@@ -23,6 +23,7 @@ class ApplyDiscount
     public function __construct(
         private CurrentBusinessDate $currentBusinessDate,
         private DiscountQuote $discountQuote,
+        private CloseSettledUnitFolio $closeSettledUnitFolio,
     ) {}
 
     /**
@@ -88,6 +89,8 @@ class ApplyDiscount
                     'posting_date' => $date,
                 ])
                 ->log('Folio discount applied');
+
+            ($this->closeSettledUnitFolio)($actor, $locked);
 
             return PostingResult::posted($lines);
         });

@@ -51,7 +51,7 @@ class FolioRefusals
             PostingResult::REFUSAL_QUANTITY_INVALID => ['quantity', __('Quantity must be from 1 to 999.')],
             PostingResult::REFUSAL_AMOUNT_INVALID => ['unit_amount', __('Enter an amount greater than 0.')],
             PostingResult::REFUSAL_AMOUNT_OVERRIDE_NOT_ALLOWED => ['unit_amount', __('The price of this charge cannot be changed.')],
-            PostingResult::REFUSAL_FOLIO_NOT_OPEN => [self::FORM, __('This folio is not open, so it cannot change.')],
+            PostingResult::REFUSAL_FOLIO_NOT_OPEN => [self::FORM, __('This folio is closed. Reopen it on the folio tab first, then try again.')],
             PostingResult::REFUSAL_FOLIO_SETTLED => [self::FORM, __('The folio these charges go to is settled to the city ledger. Open a third-party folio for the company, add a routing rule for this room and this charge category to it, then post again.')],
             PostingResult::REFUSAL_LINE_IS_CHILD => [self::FORM, __('A tax or discount line moves and reverses with its charge.')],
             PostingResult::REFUSAL_ALREADY_REVERSED => [self::FORM, __('This line is already reversed.')],

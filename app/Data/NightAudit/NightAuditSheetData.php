@@ -86,7 +86,7 @@ class NightAuditSheetData extends Data
         }
 
         if ($warnings > 0) {
-            return trans_choice('Ready to run. :count reservation needs a look, and the audit settles it by your policy.|Ready to run. :count reservations need a look, and the audit settles them by your policy.', $warnings);
+            return trans_choice('Ready to run. :count reservation needs a look.|Ready to run. :count reservations need a look.', $warnings);
         }
 
         return __('Ready to run. Nothing needs you.');

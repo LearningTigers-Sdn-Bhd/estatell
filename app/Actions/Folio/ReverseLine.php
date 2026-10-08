@@ -11,14 +11,18 @@ use Illuminate\Support\Facades\DB;
 
 class ReverseLine
 {
-    public function __construct(private CurrentBusinessDate $currentBusinessDate) {}
+    public function __construct(
+        private CurrentBusinessDate $currentBusinessDate,
+        private CloseSettledUnitFolio $closeSettledUnitFolio,
+    ) {}
 
     /**
      * Post a line with the opposite amount and `reversal_of_id`, then a reversal for each descendant line, at every
      * level (a discount line has its own tax lines). A reversal of a child sits under the reversal of its parent. A
      * descendant that already has a reversal is skipped (the key `reverse:{line_id}` is unique). The folio row is locked first, so two
      * reversals of one line never race. Every check runs before the first write, so a refusal writes and logs nothing.
-     * A line that a payment or refund owns is refused: a refund corrects a payment.
+     * A line that a payment or refund owns is refused: a refund corrects a payment. The last step closes the folio when
+     * it is an Open Unit folio of a CheckedOut unit at 0 (`CloseSettledUnitFolio`).
      * A reversed add-on keeps its `folio_line_id`, and a reversal keeps the source of its line. See docs/13-folio/02-posting-charges.md.
      */
     public function __invoke(User $actor, FolioLine $line): PostingResult
@@ -67,6 +71,8 @@ class ReverseLine
                     'posting_date' => $businessDate->toDateString(),
                 ])
                 ->log('Folio line reversed');
+
+            ($this->closeSettledUnitFolio)($actor, $folio);
 
             return PostingResult::posted($lines);
         });

@@ -80,6 +80,13 @@ erDiagram
 - Defaults: `folio.close` for Owner, Manager, Front desk and Finance (check-out closes the unit folio itself); `folio.reopen` for Owner, Manager and Finance, plus the same-day Unit folio rule above for `front-desk.check-out`.
 - Built in the folio tab: the Close and Reopen buttons ([Folio page](05-folio-page.md#build-status)). The in-house check for a Master folio comes with checklist item 21. A migration syncs the two permissions.
 
+Decisions made at build time (checklist item 21, commit 2):
+
+- A folio counts as closed "at check-out" when it closed within a minute of its unit's `checked_out_at`. A Unit folio closed by hand or by the auto-close afterwards reads "Closed today, 11:42.", "Closed yesterday." or "Closed on 5 Oct." (property time zone). Both end with the reopen sentence for the user.
+- `folio_not_open` has one message for every Action that uses it (posting, payment, refund, discount, transfer, close of a closed folio): "This folio is closed. Reopen it on the folio tab first, then try again."
+- The **Reopen folio** button moved from the folio header into the notice. `FolioStatement::build()` takes the user, because `canReopen` and `closedNotice` depend on `FolioReopenRule`.
+- `CloseSettledUnitFolio` (`app/Actions/Folio/`) is the one place that closes a CheckedOut unit's folio at 0. `PostCharge`, `RecordPayment`, `RefundPayment`, `ReverseLine`, `TransferLines` (both folios), `ApplyDiscount` and `RemoveDiscount` call it last. The night audit postings never touch a CheckedOut unit.
+
 ## Permissions
 
 `folio.close`, `folio.reopen`. Posting permissions are in [Posting charges](02-posting-charges.md).

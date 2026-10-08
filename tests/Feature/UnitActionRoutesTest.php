@@ -3,6 +3,7 @@
 use App\Actions\Payments\RecordPayment;
 use App\Data\Payments\NewPaymentData;
 use App\Enums\DefaultRoleEnum;
+use App\Enums\FolioStatus;
 use App\Enums\FolioType;
 use App\Enums\PaymentMethodType;
 use App\Enums\PaymentPurpose;
@@ -526,7 +527,19 @@ test('check out refunds the deposit first and then checks the unit out', functio
         ->assertSessionHasNoErrors();
 
     expect($setup['unit']->fresh()->status)->toBe(UnitStatus::CheckedOut)
-        ->and(Payment::query()->whereNotNull('refund_of_id')->sole()->amount)->toBe('100.00');
+        ->and(Payment::query()->whereNotNull('refund_of_id')->sole()->amount)->toBe('100.00')
+        ->and(Folio::query()->where('reservation_unit_id', $setup['unit']->id)->sole()->status)->toBe(FolioStatus::Closed);
+});
+
+test('a user with check-out but not folio.close closes the unit folio by checking out', function () {
+    $setup = uaDepartingSetup();
+    $clerk = uaStaffWith($setup['property'], ['reservations.view', 'front-desk.check-out', 'payment.refund']);
+
+    $this->actingAs($clerk)
+        ->post(uaUrl($setup, 'check-out'), ['refund_amount' => '100.00', 'idempotency_key' => fake()->uuid()])
+        ->assertSessionHasNoErrors();
+
+    expect(Folio::query()->where('reservation_unit_id', $setup['unit']->id)->sole()->status)->toBe(FolioStatus::Closed);
 });
 
 test('check out is refused while the deposit credit is still on the folio', function () {
@@ -777,7 +790,8 @@ test('early check-out shortens the stay, posts the fee, refunds the deposit and 
         ->and(uaEarlyFeeLines($unit))->toBe(1)
         ->and(Payment::query()->whereNotNull('refund_of_id')->sole()->amount)->toBe('60.00')
         ->and(Activity::query()->where('event', 'reservation.unit_dates_changed')->count())->toBe(1)
-        ->and(Activity::query()->where('event', 'reservation.unit_checked_out')->count())->toBe(1);
+        ->and(Activity::query()->where('event', 'reservation.unit_checked_out')->count())->toBe(1)
+        ->and(Folio::query()->where('reservation_unit_id', $unit->id)->sole()->status)->toBe(FolioStatus::Closed);
 });
 
 test('a refused check-out also undoes the fee and the shorter stay', function () {

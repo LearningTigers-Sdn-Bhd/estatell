@@ -4,12 +4,16 @@ use App\Actions\Folio\CloseFolio;
 use App\Actions\Folio\FolioStatusResult;
 use App\Actions\Folio\PostCharge;
 use App\Actions\Folio\ReopenFolio;
+use App\Actions\Folio\ReverseLine;
+use App\Actions\Folio\TransferLines;
 use App\Data\Folio\NewChargeData;
 use App\Enums\DefaultRoleEnum;
 use App\Enums\FolioStatus;
 use App\Enums\SystemTransactionCode;
 use App\Enums\UnitStatus;
+use App\Models\ArInvoice;
 use App\Models\BusinessDate;
+use App\Models\Company;
 use App\Models\Folio;
 use App\Models\FolioLine;
 use App\Models\Property;
@@ -21,6 +25,7 @@ use App\Models\TransactionCode;
 use App\Models\UnitNight;
 use App\Models\User;
 use App\Services\Folio\FolioRefusals;
+use App\Services\Folio\FolioReopenRule;
 use App\Services\Folio\InHouseUnits;
 use Spatie\Activitylog\Models\Activity;
 
@@ -223,4 +228,153 @@ test('the close route shows the in-house refusal as an error toast', function ()
     $this->actingAs($actor)
         ->post(route('reservations.folios.close', ['property' => $setup['property']->code, 'reservation' => $master->reservation_id, 'folio' => $master->id]))
         ->assertInertiaFlash('toast', ['type' => 'error', 'message' => 'Room 103 is still in-house. Check out all units first.']);
+});
+
+/**
+ * The setup, with its unit checked out and the unit folio still Open at 100.00.
+ *
+ * @return array{property: Property, actor: User, folio: Folio}
+ */
+function fcCheckedOut(): array
+{
+    $setup = fcSetup();
+    ReservationUnit::query()->where('reservation_id', $setup['folio']->reservation_id)->update(['status' => UnitStatus::CheckedOut, 'checked_in_at' => now()->subDay(), 'checked_out_at' => now()]);
+
+    return $setup;
+}
+
+test('reversing the last charge of a checked-out unit folio closes it', function () {
+    $setup = fcCheckedOut();
+    $charge = FolioLine::query()->where('folio_id', $setup['folio']->id)->whereNull('parent_line_id')->sole();
+
+    $result = app(ReverseLine::class)($setup['actor'], $charge);
+
+    expect($result->isRefused())->toBeFalse()
+        ->and($setup['folio']->refresh()->status)->toBe(FolioStatus::Closed)
+        ->and($setup['folio']->invoice_number)->not->toBeNull()
+        ->and(Activity::query()->where('event', 'folio.closed')->count())->toBe(1);
+});
+
+test('a transfer that empties a checked-out unit folio closes it and leaves the Master open', function () {
+    $setup = fcCheckedOut();
+    $master = Folio::factory()->master()->create(['property_id' => $setup['property']->id, 'reservation_id' => $setup['folio']->reservation_id]);
+    $charge = FolioLine::query()->where('folio_id', $setup['folio']->id)->whereNull('parent_line_id')->sole();
+
+    $result = app(TransferLines::class)($setup['actor'], [$charge], $master);
+
+    expect($result->isRefused())->toBeFalse()
+        ->and($setup['folio']->refresh()->status)->toBe(FolioStatus::Closed)
+        ->and($master->refresh()->status)->toBe(FolioStatus::Open);
+});
+
+test('a folio stays open above 0, for a unit that is still in house, and for a Master', function (Closure $arrange) {
+    $setup = fcCheckedOut();
+    $folio = $arrange($setup);
+    $charge = FolioLine::query()->where('folio_id', $folio->id)->whereNull('parent_line_id')->first() ?? FolioLine::query()->where('folio_id', $folio->id)->first();
+
+    app(ReverseLine::class)($setup['actor'], $charge);
+
+    expect($folio->refresh()->status)->toBe(FolioStatus::Open);
+})->with([
+    'a balance above 0 after the reversal' => [function (array $setup) {
+        FolioLine::factory()->create(['folio_id' => $setup['folio']->id, 'amount' => '40.00', 'unit_amount' => '40.00', 'posting_date' => today()->toDateString()]);
+
+        return $setup['folio'];
+    }],
+    'a unit still in house' => [function (array $setup) {
+        ReservationUnit::query()->where('reservation_id', $setup['folio']->reservation_id)->update(['status' => UnitStatus::CheckedIn, 'checked_out_at' => null]);
+
+        return $setup['folio'];
+    }],
+    'a Master folio' => [function (array $setup) {
+        $master = Folio::factory()->master()->create(['property_id' => $setup['property']->id, 'reservation_id' => $setup['folio']->reservation_id]);
+        FolioLine::factory()->create(['folio_id' => $master->id, 'amount' => '60.00', 'unit_amount' => '60.00', 'posting_date' => today()->toDateString()]);
+
+        return $master;
+    }],
+]);
+
+test('a late charge on a checked-out unit with a closed folio is refused with the reopen advice, and posts after reopening', function () {
+    $setup = fcCheckedOut();
+    $charge = FolioLine::query()->where('folio_id', $setup['folio']->id)->whereNull('parent_line_id')->sole();
+    app(ReverseLine::class)($setup['actor'], $charge);
+    $unit = ReservationUnit::query()->where('reservation_id', $setup['folio']->reservation_id)->sole();
+    $room = TransactionCode::query()->where('system_key', SystemTransactionCode::RoomRevenue->value)->sole();
+    $post = fn () => app(PostCharge::class)($setup['actor'], $unit, NewChargeData::from([
+        'chargeItemId' => null, 'transactionCodeId' => $room->id, 'description' => null, 'quantity' => 1, 'unitAmount' => '25.00', 'idempotencyKey' => 'manual:'.fake()->uuid(),
+    ]));
+
+    $refused = $post();
+
+    expect($refused->refusal)->toBe('folio_not_open')
+        ->and(app(FolioRefusals::class)->message((string) $refused->refusal))->toBe('This folio is closed. Reopen it on the folio tab first, then try again.');
+
+    app(ReopenFolio::class)($setup['actor'], $setup['folio']);
+
+    expect($post()->isRefused())->toBeFalse()
+        ->and($setup['folio']->refresh()->status)->toBe(FolioStatus::Open);
+});
+
+test('who may reopen: folio.reopen any closed folio, check-out staff a unit folio closed this business date', function () {
+    $setup = fcCheckedOut();
+    $charge = FolioLine::query()->where('folio_id', $setup['folio']->id)->whereNull('parent_line_id')->sole();
+    app(ReverseLine::class)($setup['actor'], $charge);
+    $folio = $setup['folio']->refresh();
+    $rule = app(FolioReopenRule::class);
+    setPermissionsTeamId($setup['property']->id);
+    $manager = User::factory()->withRole(DefaultRoleEnum::Manager)->create(['property_id' => $setup['property']->id]);
+    $frontDesk = User::factory()->withRole(DefaultRoleEnum::FrontDesk)->create(['property_id' => $setup['property']->id]);
+    $housekeeping = User::factory()->withRole(DefaultRoleEnum::Housekeeping)->create(['property_id' => $setup['property']->id]);
+    $master = Folio::factory()->master()->closed()->create(['property_id' => $setup['property']->id, 'reservation_id' => $folio->reservation_id]);
+
+    expect($rule->allows($frontDesk, $folio))->toBeTrue()
+        ->and($rule->allows($housekeeping, $folio))->toBeFalse()
+        ->and($rule->allows($frontDesk, $master))->toBeFalse()
+        ->and($rule->allows($manager, $master))->toBeTrue();
+
+    $folio->forceFill(['closed_at' => BusinessDate::query()->sole()->opened_at->subHour()])->save();
+
+    expect($rule->allows($frontDesk, $folio->refresh()))->toBeFalse()
+        ->and($rule->allows($manager, $folio))->toBeTrue();
+});
+
+test('a closed folio says what to do, by who closed it, when and for whom', function () {
+    $setup = fcCheckedOut();
+    $charge = FolioLine::query()->where('folio_id', $setup['folio']->id)->whereNull('parent_line_id')->sole();
+    app(ReverseLine::class)($setup['actor'], $charge);
+    $folio = $setup['folio']->refresh();
+    $rule = app(FolioReopenRule::class);
+    setPermissionsTeamId($setup['property']->id);
+    $manager = User::factory()->withRole(DefaultRoleEnum::Manager)->create(['property_id' => $setup['property']->id]);
+    $housekeeping = User::factory()->withRole(DefaultRoleEnum::Housekeeping)->create(['property_id' => $setup['property']->id]);
+    $time = $folio->closed_at->setTimezone($setup['property']->settings->time_zone ?? config('app.timezone'))->format('H:i');
+
+    expect($rule->notice($manager, $folio))->toBe('Closed at check-out today, '.$time.'. To add a charge, refund or fix a line, reopen it.')
+        ->and($rule->notice($housekeeping, $folio))->toBe('Closed at check-out today, '.$time.'. Ask a manager to reopen it.');
+
+    $folio->forceFill(['closed_at' => $folio->closed_at->subDay()])->save();
+    ReservationUnit::query()->where('reservation_id', $folio->reservation_id)->update(['checked_out_at' => now()->subDay()]);
+
+    expect($rule->notice($housekeeping, $folio->refresh()))->toBe('Closed at check-out yesterday. Ask a manager to reopen it.');
+
+    $company = Company::factory()->for($setup['property'])->create(['name' => 'Acme Sdn Bhd']);
+    $billed = Folio::factory()->thirdParty()->closed()->create(['property_id' => $setup['property']->id, 'reservation_id' => $folio->reservation_id, 'payer_company_id' => $company->id, 'invoice_number' => 'F-0031']);
+    ArInvoice::factory()->create(['property_id' => $setup['property']->id, 'company_id' => $company->id, 'folio_id' => $billed->id, 'number' => 'F-0031']);
+    $byHand = Folio::factory()->master()->closed()->create(['property_id' => $setup['property']->id, 'reservation_id' => $folio->reservation_id]);
+
+    expect($rule->notice($manager, $billed))->toBe('Billed to Acme Sdn Bhd on invoice F-0031. Use a third-party folio or a credit note.')
+        ->and($rule->notice($manager, $byHand))->toStartWith('Closed today, ')
+        ->and($rule->notice($manager, $setup['folio']->fresh()->forceFill(['status' => FolioStatus::Open])))->toBeNull();
+});
+
+test('the folio page sends the notice of a closed folio', function () {
+    $setup = fcCheckedOut();
+    $owner = User::factory()->withRole(DefaultRoleEnum::Owner)->create(['property_id' => $setup['property']->id]);
+    app(ReverseLine::class)($setup['actor'], FolioLine::query()->where('folio_id', $setup['folio']->id)->whereNull('parent_line_id')->sole());
+
+    $this->actingAs($owner)
+        ->get(route('reservations.folio', ['property' => $setup['property']->code, 'reservation' => $setup['folio']->reservation_id, 'folio' => $setup['folio']->id]))
+        ->assertInertia(fn ($page) => $page
+            ->where('folio.canReopen', true)
+            ->where('folio.closedNotice', fn ($notice) => str_starts_with((string) $notice, 'Closed at check-out today, ')));
 });

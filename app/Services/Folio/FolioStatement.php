@@ -22,6 +22,7 @@ use App\Models\Reservation;
 use App\Models\ReservationUnit;
 use App\Models\UnitAddOn;
 use App\Models\UnitNight;
+use App\Models\User;
 use App\Services\Payments\PaymentPurposeChoices;
 use Brick\Math\BigDecimal;
 use Illuminate\Support\Collection;
@@ -34,20 +35,24 @@ use Illuminate\Support\Collection;
  */
 class FolioStatement
 {
-    public function __construct(private ScheduledFolioRows $scheduledRows, private PaymentPurposeChoices $paymentPurposeChoices) {}
+    public function __construct(
+        private ScheduledFolioRows $scheduledRows,
+        private PaymentPurposeChoices $paymentPurposeChoices,
+        private FolioReopenRule $folioReopenRule,
+    ) {}
 
     /**
      * Expects the property's `settings` and the reservation's `booker` to be loaded. An unknown `$selected` falls back to the Master folio, or
      * the first entry.
      *
-     * `$can` says what the user may do: post a charge, reverse a line, transfer a line, apply or remove a discount, close or reopen the folio, record or refund a payment. Rows and options carry only
+     * `$can` says what the user may do: post a charge, reverse a line, transfer a line, apply or remove a discount, close the folio, record or refund a payment. Rows and options carry only
      * what is allowed now, so the page never works it out.
      *
      * @param  list<ReservationUnitOptionData>  $units
-     * @param  array{postCharge?: bool, reverse?: bool, transfer?: bool, discount?: bool, close?: bool, reopen?: bool, recordPayment?: bool, refund?: bool, printVoucher?: bool, settleCityLedger?: bool}  $can
+     * @param  array{postCharge?: bool, reverse?: bool, transfer?: bool, discount?: bool, close?: bool, recordPayment?: bool, refund?: bool, printVoucher?: bool, settleCityLedger?: bool}  $can
      * @return array{folios: list<FolioRailItemData>, folio: FolioData|null}
      */
-    public function build(Property $property, Reservation $reservation, array $units, string $selected = '', array $can = []): array
+    public function build(Property $property, Reservation $reservation, array $units, string $selected = '', array $can = [], ?User $user = null): array
     {
         $labels = collect($units)->mapWithKeys(fn (ReservationUnitOptionData $unit): array => [$unit->id => $unit->assigned ?? $unit->roomType])->all();
         $folios = $this->folios($reservation, array_keys($labels));
@@ -85,7 +90,7 @@ class FolioStatement
 
         return [
             'folios' => $entries->map(fn (array $entry): FolioRailItemData => $entry['item'])->all(),
-            'folio' => $open === null ? null : $this->data($reservation, $open, $entries, $units, $blocks, $balances, $can, $labels),
+            'folio' => $open === null ? null : $this->data($reservation, $open, $entries, $units, $blocks, $balances, $can, $labels, $user),
         ];
     }
 
@@ -159,10 +164,10 @@ class FolioStatement
      * @param  list<ReservationUnitOptionData>  $units
      * @param  list<array{target: int|null, unit: int, date: string, rows: list<FolioRowData>}>  $blocks
      * @param  array<int, string>  $balances
-     * @param  array{postCharge?: bool, reverse?: bool, transfer?: bool, discount?: bool, close?: bool, reopen?: bool, recordPayment?: bool, refund?: bool}  $can
+     * @param  array{postCharge?: bool, reverse?: bool, transfer?: bool, discount?: bool, close?: bool, recordPayment?: bool, refund?: bool}  $can
      * @param  array<int, string>  $labels  Unit label by unit id
      */
-    private function data(Reservation $reservation, array $entry, Collection $entries, array $units, array $blocks, array $balances, array $can, array $labels): FolioData
+    private function data(Reservation $reservation, array $entry, Collection $entries, array $units, array $blocks, array $balances, array $can, array $labels, ?User $user): FolioData
     {
         $folio = $entry['folio'];
         $isOpen = $folio?->status === FolioStatus::Open;
@@ -208,7 +213,7 @@ class FolioStatement
             lineCount: $posted->count(),
             rows: [...$posted->all(), ...$scheduled->all()],
             canClose: $isOpen && ($can['close'] ?? false),
-            canReopen: $folio?->status === FolioStatus::Closed && ($can['reopen'] ?? false),
+            canReopen: $folio?->status === FolioStatus::Closed && $user !== null && $this->folioReopenRule->allows($user, $folio),
             canApplyDiscount: $isOpen && ($can['discount'] ?? false) && $discountable,
             canPostCharge: $postUnits !== [],
             postUnits: $postUnits,
@@ -220,6 +225,7 @@ class FolioStatement
             payerCompanyName: $folio?->payerCompany?->name,
             paymentPurposes: array_map(fn (PaymentPurpose $purpose): array => ['value' => $purpose->value, 'label' => $purpose->label()], $purposes),
             defaultPaymentPurpose: ($purposes[0] ?? null)?->value,
+            closedNotice: $folio !== null && $user !== null ? $this->folioReopenRule->notice($user, $folio) : null,
         );
     }
 

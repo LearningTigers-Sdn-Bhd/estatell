@@ -1,9 +1,12 @@
 <?php
 
+use App\Actions\Folio\CloseFolio;
+use App\Actions\Folio\FolioStatusResult;
 use App\Actions\FrontDesk\CheckInUnit;
 use App\Actions\FrontDesk\CheckOutUnit;
 use App\Actions\FrontDesk\UnitStayResult;
 use App\Enums\DefaultRoleEnum;
+use App\Enums\FolioStatus;
 use App\Enums\HousekeepingStatus;
 use App\Enums\PermissionEnum;
 use App\Enums\RegistrationCardStatus;
@@ -371,6 +374,56 @@ test('a Master folio balance does not block a unit check-out', function () {
     FolioLine::factory()->create(['folio_id' => $master->id, 'amount' => '300.00', 'unit_amount' => '300.00', 'posting_date' => today()->toDateString()]);
 
     expect(stayDeskCheckOut($setup)->isRefused())->toBeFalse();
+});
+
+test('check-out closes the unit folio at 0, issues its invoice number and logs it', function () {
+    $setup = stayDeskInHouse();
+    $folio = stayDeskFolio($setup, '80.00');
+    FolioLine::factory()->create(['folio_id' => $folio->id, 'amount' => '-80.00', 'unit_amount' => '-80.00', 'posting_date' => today()->toDateString()]);
+
+    $result = stayDeskCheckOut($setup);
+
+    expect($result->isRefused())->toBeFalse()
+        ->and($folio->fresh()->status)->toBe(FolioStatus::Closed)
+        ->and($folio->fresh()->invoice_number)->not->toBeNull()
+        ->and($folio->fresh()->closed_by)->toBe($setup['actor']->id)
+        ->and(Activity::query()->where('event', 'folio.closed')->count())->toBe(1);
+});
+
+test('check-out leaves the Master and ThirdParty folios open', function () {
+    $setup = stayDeskInHouse();
+    $master = Folio::factory()->master()->create(['property_id' => $setup['property']->id, 'reservation_id' => $setup['reservation']->id]);
+    $agent = Folio::factory()->thirdParty()->create(['property_id' => $setup['property']->id, 'reservation_id' => $setup['reservation']->id]);
+    FolioLine::factory()->create(['folio_id' => $master->id, 'amount' => '300.00', 'unit_amount' => '300.00', 'posting_date' => today()->toDateString()]);
+
+    expect(stayDeskCheckOut($setup)->isRefused())->toBeFalse()
+        ->and($master->fresh()->status)->toBe(FolioStatus::Open)
+        ->and($agent->fresh()->status)->toBe(FolioStatus::Open);
+});
+
+test('a refused check-out leaves the unit folio open', function () {
+    $setup = stayDeskInHouse();
+    $folio = stayDeskFolio($setup, '80.00');
+
+    expect(stayDeskCheckOut($setup)->refusal)->toBe(UnitStayResult::REFUSAL_BALANCE_NOT_SETTLED)
+        ->and($folio->fresh()->status)->toBe(FolioStatus::Open)
+        ->and($setup['unit']->fresh()->status)->toBe(UnitStatus::CheckedIn)
+        ->and(Activity::query()->where('event', 'folio.closed')->count())->toBe(0);
+});
+
+test('a close that is refused rolls the check-out back as balance not settled', function () {
+    $setup = stayDeskInHouse();
+    $folio = Folio::factory()->forUnit($setup['unit'])->create(['property_id' => $setup['property']->id, 'reservation_id' => $setup['reservation']->id]);
+    $closer = Mockery::mock(CloseFolio::class);
+    $closer->shouldReceive('__invoke')->andReturn(FolioStatusResult::refused(FolioStatusResult::REFUSAL_BALANCE_NOT_ZERO));
+    app()->instance(CloseFolio::class, $closer);
+
+    $result = app(CheckOutUnit::class)($setup['actor'], $setup['unit']);
+
+    expect($result->refusal)->toBe(UnitStayResult::REFUSAL_BALANCE_NOT_SETTLED)
+        ->and($setup['unit']->fresh()->status)->toBe(UnitStatus::CheckedIn)
+        ->and($setup['unit']->fresh()->checked_out_at)->toBeNull()
+        ->and($folio->fresh()->status)->toBe(FolioStatus::Open);
 });
 
 test('a group reservation stays in house until every unit is out', function () {

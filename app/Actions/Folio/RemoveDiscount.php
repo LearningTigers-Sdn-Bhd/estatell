@@ -15,6 +15,7 @@ class RemoveDiscount
     public function __construct(
         private CurrentBusinessDate $currentBusinessDate,
         private ReverseLine $reverseLine,
+        private CloseSettledUnitFolio $closeSettledUnitFolio,
     ) {}
 
     /**
@@ -63,6 +64,8 @@ class RemoveDiscount
                     'posting_date' => $businessDate->toDateString(),
                 ])
                 ->log('Folio discount removed');
+
+            ($this->closeSettledUnitFolio)($actor, $folio);
 
             return PostingResult::posted($lines);
         });

@@ -2,6 +2,7 @@
 
 namespace App\Actions\FrontDesk;
 
+use App\Actions\Folio\CloseFolio;
 use App\Actions\Reservations\SyncReservationStatus;
 use App\Enums\FolioStatus;
 use App\Enums\FolioType;
@@ -22,16 +23,29 @@ class CheckOutUnit
         private CurrentBusinessDate $currentBusinessDate,
         private FolioBalance $folioBalance,
         private SyncReservationStatus $syncReservationStatus,
+        private CloseFolio $closeFolio,
     ) {}
 
     /**
      * Check one unit out: set `checked_out_at` and `UnitStatus::CheckedOut`, mark its room Dirty and sync the
      * reservation status. The unit's own folio must have a balance of 0. A balance that belongs on the Master folio
      * is moved first with `TransferLines`, and a held security deposit is a credit that must be refunded or used
-     * against charges first. A stay is checked out on or after its departure date. A shorter stay is changed first
+     * against charges first. After the status change it closes each Open Unit folio of the unit through `CloseFolio`
+     * (at 0 by the check above), which issues the folio's invoice number once. A close that is refused (a posting raced
+     * in) rolls the check-out back as `balance_not_settled`. Master and ThirdParty folios stay Open. No `folio.close`
+     * is needed: closing is part of check-out. A stay is checked out on or after its departure date. A shorter stay is changed first
      * with `ChangeUnitDates`. Permissions are checked by the route. See docs/18-front-desk/01-check-in-and-check-out.md.
      */
     public function __invoke(User $actor, ReservationUnit $unit): UnitStayResult
+    {
+        try {
+            return $this->checkOut($actor, $unit);
+        } catch (UnitStayRefused $refused) {
+            return $refused->result;
+        }
+    }
+
+    private function checkOut(User $actor, ReservationUnit $unit): UnitStayResult
     {
         return DB::transaction(function () use ($actor, $unit): UnitStayResult {
             $locked = ReservationUnit::query()->lockForUpdate()->findOrFail($unit->id);
@@ -66,6 +80,19 @@ class CheckOutUnit
             $locked->status = UnitStatus::CheckedOut;
             $locked->checked_out_at = now();
             $locked->save();
+
+            $openFolios = Folio::query()
+                ->where('reservation_unit_id', $locked->id)
+                ->where('type', FolioType::Unit)
+                ->where('status', FolioStatus::Open)
+                ->orderBy('id')
+                ->get();
+
+            foreach ($openFolios as $folio) {
+                if (($this->closeFolio)($actor, $folio)->isRefused()) {
+                    throw new UnitStayRefused(UnitStayResult::refused(UnitStayResult::REFUSAL_BALANCE_NOT_SETTLED));
+                }
+            }
 
             $roomId = $this->roomOf($locked, $today);
 

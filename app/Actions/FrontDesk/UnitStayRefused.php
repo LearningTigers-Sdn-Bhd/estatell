@@ -5,7 +5,8 @@ namespace App\Actions\FrontDesk;
 use RuntimeException;
 
 /**
- * Raised inside the transaction of `CheckInUnit` when an add-on cannot post, so the status change rolls back with it.
+ * Raised inside the transaction of `CheckInUnit` when an add-on cannot post, or of `CheckOutUnit` when a folio cannot
+ * close, so the status change rolls back with it.
  * It never leaves the Action.
  */
 class UnitStayRefused extends RuntimeException

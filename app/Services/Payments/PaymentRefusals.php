@@ -41,7 +41,7 @@ class PaymentRefusals
     {
         return match ($code) {
             PaymentResult::REFUSAL_NO_BUSINESS_DATE => [self::FORM, __('The property has no open business date, so no payment can be recorded.')],
-            PaymentResult::REFUSAL_FOLIO_NOT_OPEN => [self::FORM, __('This folio is not open, so it cannot change.')],
+            PaymentResult::REFUSAL_FOLIO_NOT_OPEN => [self::FORM, __('This folio is closed. Reopen it on the folio tab first, then try again.')],
             PaymentResult::REFUSAL_DEPOSIT_ON_UNIT_ONLY => [self::FORM, __('A security deposit stays on the unit\'s own folio. Record it on the unit folio.')],
             PaymentResult::REFUSAL_ADVANCE_ON_MASTER => [self::FORM, __('An advance for this room goes on the Master folio, because the Master folio pays the room charges. Record it there.')],
             PaymentResult::REFUSAL_METHOD_NOT_AVAILABLE => ['payment_method_id', __('This payment method is not available.')],

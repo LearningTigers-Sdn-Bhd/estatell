@@ -9,6 +9,8 @@ use App\Enums\SystemTransactionCode;
 use App\Enums\UnitStatus;
 use App\Jobs\RunNightAuditJob;
 use App\Models\BusinessDate;
+use App\Models\Company;
+use App\Models\Folio;
 use App\Models\FolioLine;
 use App\Models\NightAudit;
 use App\Models\NightAuditException;
@@ -144,6 +146,41 @@ test('an exception for a folio settled to the city ledger says what to do', func
 
     $this->actingAs($setup['user'])->getJson(route('night-audit.show', $setup['property']->code))
         ->assertJsonPath('warnings.0.reasons.0', 'The folio was settled to the city ledger, so the charge could not be posted. Open a third-party folio for the company and route it there.');
+});
+
+test('the sheet lists an unbilled master with its payer, its amount and a link to that folio', function () {
+    $setup = sheetSetup();
+    $property = $setup['property'];
+    $out = ReservationUnit::factory()->for(Reservation::factory()->create(['property_id' => $property->id]))->checkedOut()->create(['arrival_date' => '2026-10-09', 'departure_date' => '2026-10-11']);
+    $company = Company::factory()->for($property)->create(['name' => 'Acme Sdn Bhd']);
+    $master = Folio::factory()->master()->create(['property_id' => $property->id, 'reservation_id' => $out->reservation_id, 'payer_company_id' => $company->id]);
+    FolioLine::factory()->create(['folio_id' => $master->id, 'amount' => '1700.00', 'unit_amount' => '1700.00', 'posting_date' => '2026-10-12']);
+
+    $this->actingAs($setup['user'])->getJson(route('night-audit.show', $property->code))
+        ->assertOk()
+        ->assertJsonPath('summary', 'Ready to run. 1 reservation needs a look.')
+        ->assertJsonCount(0, 'blockers')
+        ->assertJsonPath('warnings.0.check', 'master_not_billed')
+        ->assertJsonPath('warnings.0.headline', 'Master folio not billed')
+        ->assertJsonPath('warnings.0.guest', 'Acme Sdn Bhd')
+        ->assertJsonPath('warnings.0.dates', 'Master '.$master->number.' · MYR 1,700.00 owed')
+        ->assertJsonPath('warnings.0.consequence', 'The audit does not touch it. Settle the folio to the city ledger, or collect the balance and close it.')
+        ->assertJsonPath('warnings.0.actions.0.label', 'Open folio')
+        ->assertJsonPath('warnings.0.actions.0.url', route('reservations.folio', ['property' => $property->code, 'reservation' => $out->reservation_id, 'folio' => $master->id], absolute: false));
+});
+
+test('the sheet lists money held on a closed booking', function () {
+    $setup = sheetSetup();
+    $property = $setup['property'];
+    $cancelled = ReservationUnit::factory()->for(Reservation::factory()->create(['property_id' => $property->id]))->cancelled()->create(['arrival_date' => '2026-10-14', 'departure_date' => '2026-10-16']);
+    $folio = Folio::factory()->forUnit($cancelled)->create(['property_id' => $property->id, 'reservation_id' => $cancelled->reservation_id]);
+    FolioLine::factory()->create(['folio_id' => $folio->id, 'amount' => '-250.00', 'unit_amount' => '-250.00', 'posting_date' => '2026-10-12']);
+
+    $this->actingAs($setup['user'])->getJson(route('night-audit.show', $property->code))
+        ->assertJsonPath('warnings.0.check', 'money_held_on_closed_booking')
+        ->assertJsonPath('warnings.0.headline', 'Money held on a closed booking')
+        ->assertJsonPath('warnings.0.dates', 'MYR 250.00 to refund · '.$folio->number)
+        ->assertJsonPath('warnings.0.consequence', 'The audit does not touch it. Refund the money, or post the charge it covers.');
 });
 
 test('the sheet needs night-audit.run and a live property', function () {

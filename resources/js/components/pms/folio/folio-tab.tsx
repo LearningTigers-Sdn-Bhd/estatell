@@ -4,6 +4,7 @@ import {
     Banknote,
     ChevronDown,
     CreditCard,
+    Info,
     Landmark,
     Lock,
     LockOpen,
@@ -34,6 +35,7 @@ import { ThirdPartyFolioDialog } from '@/components/pms/folio/third-party-folio-
 import { TransferLineDialog } from '@/components/pms/folio/transfer-line-dialog';
 import { MoneyText } from '@/components/pms/money-text';
 import { StatusBadge } from '@/components/pms/status-badge';
+import { Alert, AlertAction, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import {
     DropdownMenu,
@@ -203,34 +205,6 @@ export function FolioTab({
                             )}
                         </div>
                         <div className="flex items-center gap-2">
-                            {folio.canReopen && (
-                                <Form
-                                    {...reopen.form({
-                                        reservation: reservationId,
-                                        folio: Number(folio.key),
-                                    })}
-                                    options={{
-                                        preserveScroll: true,
-                                        except: KEEP_OPTIONS,
-                                    }}
-                                >
-                                    {({ processing }) => (
-                                        <Button
-                                            type="submit"
-                                            variant="outline"
-                                            disabled={processing}
-                                            focusableWhenDisabled
-                                        >
-                                            {processing ? (
-                                                <Spinner data-icon="inline-start" />
-                                            ) : (
-                                                <LockOpen data-icon="inline-start" />
-                                            )}
-                                            Reopen folio
-                                        </Button>
-                                    )}
-                                </Form>
-                            )}
                             {folio.canPrintVoucher && (
                                 <Button
                                     variant="outline"
@@ -350,6 +324,45 @@ export function FolioTab({
                             )}
                         </div>
                     </div>
+                    {folio.closedNotice && (
+                        <Alert>
+                            <Info />
+                            <AlertDescription>
+                                {folio.closedNotice}
+                            </AlertDescription>
+                            {folio.canReopen && (
+                                <AlertAction>
+                                    <Form
+                                        {...reopen.form({
+                                            reservation: reservationId,
+                                            folio: Number(folio.key),
+                                        })}
+                                        options={{
+                                            preserveScroll: true,
+                                            except: KEEP_OPTIONS,
+                                        }}
+                                    >
+                                        {({ processing }) => (
+                                            <Button
+                                                type="submit"
+                                                variant="outline"
+                                                size="sm"
+                                                disabled={processing}
+                                                focusableWhenDisabled
+                                            >
+                                                {processing ? (
+                                                    <Spinner data-icon="inline-start" />
+                                                ) : (
+                                                    <LockOpen data-icon="inline-start" />
+                                                )}
+                                                Reopen folio
+                                            </Button>
+                                        )}
+                                    </Form>
+                                </AlertAction>
+                            )}
+                        </Alert>
+                    )}
                     {folio.rows.length === 0 ? (
                         <EmptyState
                             icon={CreditCard}

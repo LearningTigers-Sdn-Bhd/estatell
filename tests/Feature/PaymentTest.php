@@ -323,6 +323,35 @@ test('the purpose refusals map to the form error', function () {
         ->and($refusals->errors(PaymentResult::REFUSAL_DEPOSIT_ON_UNIT_ONLY))->toHaveKey('form');
 });
 
+test('a payment that settles a checked-out unit folio closes it, and one that leaves a balance does not', function () {
+    $setup = paySetup();
+    $setup['unit']->forceFill(['status' => UnitStatus::CheckedOut, 'checked_in_at' => now()->subDay(), 'checked_out_at' => now()])->save();
+    $folio = app(CreateFolio::class)($setup['reservation'], $setup['unit']);
+    FolioLine::factory()->create(['folio_id' => $folio->id, 'amount' => '100.00', 'unit_amount' => '100.00', 'posting_date' => today()->toDateString()]);
+    $pay = fn (string $amount) => app(RecordPayment::class)($setup['actor'], $setup['reservation'], $folio, null, payData($setup['cash'], ['purpose' => PaymentPurpose::Settlement, 'amount' => $amount]));
+
+    expect($pay('40.00')->isRefused())->toBeFalse()
+        ->and($folio->refresh()->status)->toBe(FolioStatus::Open);
+
+    expect($pay('60.00')->isRefused())->toBeFalse()
+        ->and($folio->refresh()->status)->toBe(FolioStatus::Closed)
+        ->and($folio->invoice_number)->not->toBeNull();
+});
+
+test('a refund that brings a checked-out unit folio back to 0 closes it', function () {
+    $setup = paySetup();
+    $setup['unit']->forceFill(['status' => UnitStatus::CheckedOut, 'checked_in_at' => now()->subDay(), 'checked_out_at' => now()])->save();
+    $folio = app(CreateFolio::class)($setup['reservation'], $setup['unit']);
+    $payment = app(RecordPayment::class)($setup['actor'], $setup['reservation'], $folio, null, payData($setup['cash'], ['purpose' => PaymentPurpose::Settlement, 'amount' => '30.00']))->payment;
+
+    expect($folio->refresh()->status)->toBe(FolioStatus::Open);
+
+    $result = app(RefundPayment::class)($setup['actor'], $payment, '30.00', null, fake()->uuid());
+
+    expect($result->isRefused())->toBeFalse()
+        ->and($folio->refresh()->status)->toBe(FolioStatus::Closed);
+});
+
 test('a closed folio refuses a payment', function () {
     $setup = paySetup();
     $folio = Folio::factory()->master()->closed()->create(['property_id' => $setup['property']->id, 'reservation_id' => $setup['reservation']->id]);

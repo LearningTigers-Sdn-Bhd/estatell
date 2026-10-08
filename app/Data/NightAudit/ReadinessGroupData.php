@@ -46,7 +46,7 @@ class ReadinessGroupData extends Data
         $first = $items[0];
         $check = $first->check;
         $count = count($items);
-        $unitIds = array_map(fn (ReadinessItem $item): int => (int) $item->reservationUnitId, $items);
+        $unitIds = array_values(array_filter(array_map(fn (ReadinessItem $item): int => (int) $item->reservationUnitId, $items)));
         $dates = array_values(array_unique(array_map(fn (ReadinessItem $item): string => $item->detail, $items)));
 
         return new self(
@@ -61,7 +61,7 @@ class ReadinessGroupData extends Data
             reasons: $check === AuditCheck::CarriedException
                 ? array_values(array_unique(array_map(fn (ReadinessItem $item): string => $advice->reason((string) $item->message), $items)))
                 : [],
-            actions: self::actions($check, $property, $first->reservationId, $count, $unitIds, $advice, null, true, $canCheckIn, $canCheckOut),
+            actions: self::actions($check, $property, $first->reservationId, $count, $unitIds, $advice, null, true, $canCheckIn, $canCheckOut, $first->folioId),
             units: $count === 1 ? [] : array_map(fn (ReadinessItem $item): ReadinessUnitData => new ReadinessUnitData(
                 unitId: (int) $item->reservationUnitId,
                 guest: $item->guest ?? $item->reference,
@@ -77,7 +77,7 @@ class ReadinessGroupData extends Data
      * @param  list<int>  $unitIds
      * @return list<ReadinessActionData>
      */
-    private static function actions(AuditCheck $check, Property $property, int $reservationId, int $count, array $unitIds, ReadinessAdvice $advice, ?int $unitId, bool $isGroup, bool $canCheckIn, bool $canCheckOut): array
+    private static function actions(AuditCheck $check, Property $property, int $reservationId, int $count, array $unitIds, ReadinessAdvice $advice, ?int $unitId, bool $isGroup, bool $canCheckIn, bool $canCheckOut, ?int $folioId = null): array
     {
         $parameters = ['property' => $property->code, 'reservation' => $reservationId];
         $reservationUrl = route('reservations.show', $parameters, absolute: false);
@@ -105,6 +105,7 @@ class ReadinessGroupData extends Data
                 ReadinessActionData::fix(AuditFix::ExtendOneNight, __('Extend 1 night'), $property, $reservationId, $unitId, __('Move the departure one day later? One more night is charged.')),
             ],
             AuditCheck::FolioOpenAfterCheckOut => $isGroup ? [ReadinessActionData::link(__('Open folio'), route('reservations.folio', $parameters, absolute: false), 'receipt')] : [],
+            AuditCheck::MasterNotBilled, AuditCheck::MoneyHeldOnClosedBooking => $isGroup ? [ReadinessActionData::link(__('Open folio'), route('reservations.folio', [...$parameters, 'folio' => $folioId], absolute: false), 'receipt')] : [],
             AuditCheck::CarriedException => $isGroup ? [ReadinessActionData::link(__('Open'), $reservationUrl)] : [],
         };
     }

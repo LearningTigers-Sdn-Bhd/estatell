@@ -2,6 +2,7 @@
 
 namespace App\Actions\Payments;
 
+use App\Actions\Folio\CloseSettledUnitFolio;
 use App\Enums\FolioStatus;
 use App\Enums\PaymentStatus;
 use App\Enums\SystemTransactionCode;
@@ -18,14 +19,18 @@ use InvalidArgumentException;
 
 class RefundPayment
 {
-    public function __construct(private CurrentBusinessDate $currentBusinessDate) {}
+    public function __construct(
+        private CurrentBusinessDate $currentBusinessDate,
+        private CloseSettledUnitFolio $closeSettledUnitFolio,
+    ) {}
 
     /**
      * Give money back from a payment. A refund is a payment row with `refund_of_id`, the same purpose and method, no
      * receipt number, and a positive line with the system Refund code on the payment's folio. The surcharge is not
      * refunded: staff reverse that charge by hand. The folio row is locked first, so two refunds of one payment never
      * exceed it, and every check runs before the first write. The key `refund:{uuid}` makes a repeat return the
-     * existing refund. See docs/14-payments/01-payments-and-refunds.md.
+     * existing refund. The last step closes the folio when it is an Open Unit folio of a CheckedOut unit at 0
+     * (`CloseSettledUnitFolio`). See docs/14-payments/01-payments-and-refunds.md.
      */
     public function __invoke(User $actor, Payment $payment, string $amount, ?string $reference, string $idempotencyKey): PaymentResult
     {
@@ -121,6 +126,8 @@ class RefundPayment
                     'posting_date' => $postingDate,
                 ])
                 ->log('Payment refunded');
+
+            ($this->closeSettledUnitFolio)($actor, $folio);
 
             return PaymentResult::recorded($refund->refresh(), [$line->refresh()]);
         });

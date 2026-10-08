@@ -95,7 +95,7 @@ test('closing a folio with a balance or one that is already closed is an error t
     $this->actingAs($setup['user'])->post(fkUrl($setup, 'reservations.folios.close'));
     $this->actingAs($setup['user'])
         ->post(fkUrl($setup, 'reservations.folios.close'))
-        ->assertInertiaFlash('toast', ['type' => 'error', 'message' => 'This folio is not open, so it cannot change.']);
+        ->assertInertiaFlash('toast', ['type' => 'error', 'message' => 'This folio is closed. Reopen it on the folio tab first, then try again.']);
 
     expect(Activity::query()->where('event', 'folio.closed')->count())->toBe(1);
 });
@@ -131,6 +131,12 @@ test('close and reopen need their permission and stay inside the reservation', f
 
     $this->actingAs($housekeeping)->post(fkUrl($setup, 'reservations.folios.close'))->assertForbidden();
     $this->actingAs($frontDesk)->post(fkUrl($setup, 'reservations.folios.close'))->assertSessionHasNoErrors();
+    $this->actingAs($housekeeping)->post(fkUrl($setup, 'reservations.folios.reopen'))->assertForbidden();
+
+    expect($setup['folio']->refresh()->status)->toBe(FolioStatus::Closed);
+
+    $setup['folio']->forceFill(['closed_at' => now()->subDay()])->save();
+
     $this->actingAs($frontDesk)->post(fkUrl($setup, 'reservations.folios.reopen'))->assertForbidden();
 
     expect($setup['folio']->refresh()->status)->toBe(FolioStatus::Closed);
@@ -160,5 +166,10 @@ test('the page offers close on an open folio and reopen on a closed one, by perm
 
     $this->actingAs($frontDesk)->get(fkPage($setup))->assertInertia(fn (Assert $page) => $page
         ->where('folio.canClose', false)
+        ->where('folio.canReopen', true));
+
+    $setup['folio']->forceFill(['closed_at' => now()->subDay()])->save();
+
+    $this->actingAs($frontDesk)->get(fkPage($setup))->assertInertia(fn (Assert $page) => $page
         ->where('folio.canReopen', false));
 });

@@ -146,12 +146,11 @@ class ReservationController extends Controller
                 'transfer' => $canManageRouting,
                 'discount' => $request->user()->can(PermissionEnum::FolioDiscount->value),
                 'close' => $request->user()->can(PermissionEnum::FolioClose->value),
-                'reopen' => $request->user()->can(PermissionEnum::FolioReopen->value),
                 'recordPayment' => $request->user()->can(PermissionEnum::PaymentRecord->value),
                 'refund' => $request->user()->can(PermissionEnum::PaymentRefund->value),
                 'printVoucher' => $request->user()->can(PermissionEnum::FolioPrintVoucher->value),
                 'settleCityLedger' => $request->user()->can(PermissionEnum::CityLedgerInvoice->value),
-            ]),
+            ], $request->user()),
             'voucher' => [
                 'kinds' => array_values(array_filter(TransactionKind::options(), fn (array $kind): bool => $kind['value'] !== TransactionKind::Payment->value)),
                 'maxLines' => FolioVoucher::MAX_LINES,

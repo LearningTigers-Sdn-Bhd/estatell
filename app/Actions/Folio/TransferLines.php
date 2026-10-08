@@ -15,13 +15,15 @@ class TransferLines
     public function __construct(
         private CurrentBusinessDate $currentBusinessDate,
         private ReverseLine $reverseLine,
+        private CloseSettledUnitFolio $closeSettledUnitFolio,
     ) {}
 
     /**
      * Move whole charges to another folio of the same reservation: a reversal on the source (with all its descendants) and a
      * copy on the target (with its descendants that were not reversed). All lines of one transfer share one `transfer_group_id`. Both folio rows
      * are locked in id order, and every check runs before the first write, so a refusal writes and logs nothing.
-     * A line that a payment or refund owns is refused. The result lists the copies on the target. See docs/13-folio/02-posting-charges.md.
+     * A line that a payment or refund owns is refused. The result lists the copies on the target. The last step closes either folio when it is an Open Unit folio of a CheckedOut
+     * unit at 0 (`CloseSettledUnitFolio`). See docs/13-folio/02-posting-charges.md.
      *
      * @param  list<FolioLine>  $lines
      */
@@ -88,6 +90,9 @@ class TransferLines
                     'posting_date' => $date,
                 ])
                 ->log('Folio lines transferred');
+
+            ($this->closeSettledUnitFolio)($actor, $sourceFolio);
+            ($this->closeSettledUnitFolio)($actor, $targetFolio);
 
             return PostingResult::posted($copies);
         });

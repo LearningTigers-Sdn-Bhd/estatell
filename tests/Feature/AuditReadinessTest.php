@@ -8,7 +8,9 @@ use App\Enums\BusinessDateStatus;
 use App\Enums\FolioStatus;
 use App\Enums\FolioType;
 use App\Models\BusinessDate;
+use App\Models\Company;
 use App\Models\Folio;
+use App\Models\FolioLine;
 use App\Models\NightAudit;
 use App\Models\NightAuditException;
 use App\Models\Property;
@@ -17,6 +19,7 @@ use App\Models\Reservation;
 use App\Models\ReservationUnit;
 use App\Models\Room;
 use App\Services\NightAudit\AuditReadiness;
+use App\Services\NightAudit\ReadinessItem;
 use Carbon\CarbonImmutable;
 
 /**
@@ -94,6 +97,132 @@ test('an open unit folio after check-out and an open exception from an earlier a
 
     expect(array_map(fn ($item): string => $item->check->value, $items))->toBe([AuditCheck::FolioOpenAfterCheckOut->value, AuditCheck::CarriedException->value])
         ->and($items[1]->message)->toBe('folio_not_open');
+});
+
+/**
+ * An Open folio of the type on the unit's reservation, with one posted line of the amount.
+ */
+function readinessFolio(Property $property, ReservationUnit $unit, FolioType $type, string $amount, array $attributes = []): Folio
+{
+    $folio = Folio::factory()->create([
+        'property_id' => $property->id,
+        'reservation_id' => $unit->reservation_id,
+        'reservation_unit_id' => $type === FolioType::Unit ? $unit->id : null,
+        'type' => $type,
+        'status' => FolioStatus::Open,
+        ...$attributes,
+    ]);
+    FolioLine::factory()->create(['folio_id' => $folio->id, 'amount' => $amount, 'unit_amount' => $amount, 'posting_date' => '2026-10-12']);
+
+    return $folio;
+}
+
+/**
+ * @return list<ReadinessItem>
+ */
+function readinessOf(Property $property, AuditCheck $check): array
+{
+    return array_values(array_filter(app(AuditReadiness::class)->items($property), fn ($item): bool => $item->check === $check));
+}
+
+test('a master still open with a balance after every unit has left is listed once for the reservation', function () {
+    $property = readinessProperty();
+    $company = Company::factory()->for($property)->create(['name' => 'Acme Sdn Bhd']);
+    $out = readinessUnit($property, 'checkedOut', '2026-10-09', '2026-10-11');
+    ReservationUnit::factory()->cancelled()->create(['reservation_id' => $out->reservation_id]);
+    $master = readinessFolio($property, $out, FolioType::Master, '1200.00', ['payer_company_id' => $company->id]);
+    $agent = readinessFolio($property, $out, FolioType::ThirdParty, '500.00');
+
+    $items = readinessOf($property, AuditCheck::MasterNotBilled);
+
+    expect($items)->toHaveCount(1)
+        ->and($items[0]->reservationId)->toBe($out->reservation_id)
+        ->and($items[0]->reservationUnitId)->toBeNull()
+        ->and($items[0]->guest)->toBe('Acme Sdn Bhd')
+        ->and($items[0]->folioId)->toBe($master->id)
+        ->and($items[0]->detail)->toContain('2 folios')->toContain('1,700.00 owed');
+
+    $agent->forceFill(['status' => FolioStatus::Closed])->save();
+
+    expect(readinessOf($property, AuditCheck::MasterNotBilled)[0]->detail)->toContain('Master '.$master->number)->toContain('1,200.00 owed');
+});
+
+test('a master with no payer is listed with the booker, and the other cases are not', function (Closure $arrange) {
+    $property = readinessProperty();
+    $out = readinessUnit($property, 'checkedOut', '2026-10-09', '2026-10-11');
+    $master = readinessFolio($property, $out, FolioType::Master, '300.00');
+    $arrange($property, $out, $master);
+
+    expect(readinessOf($property, AuditCheck::MasterNotBilled))->toBe([]);
+})->with([
+    'a unit still in house' => [fn (Property $property, ReservationUnit $out) => ReservationUnit::factory()->checkedIn()->create(['reservation_id' => $out->reservation_id])],
+    'a unit still to arrive' => [fn (Property $property, ReservationUnit $out) => ReservationUnit::factory()->create(['reservation_id' => $out->reservation_id])],
+    'a balance of zero' => [fn (Property $property, ReservationUnit $out, Folio $master) => FolioLine::factory()->create(['folio_id' => $master->id, 'amount' => '-300.00', 'unit_amount' => '-300.00', 'posting_date' => '2026-10-12'])],
+    'a closed folio' => [fn (Property $property, ReservationUnit $out, Folio $master) => $master->forceFill(['status' => FolioStatus::Closed])->save()],
+    'a credit balance' => [fn (Property $property, ReservationUnit $out, Folio $master) => FolioLine::factory()->create(['folio_id' => $master->id, 'amount' => '-900.00', 'unit_amount' => '-900.00', 'posting_date' => '2026-10-12'])],
+]);
+
+test('a master with no payer names the booker, and a reservation where nobody checked out is not listed', function () {
+    $property = readinessProperty();
+    $out = readinessUnit($property, 'checkedOut', '2026-10-09', '2026-10-11');
+    readinessFolio($property, $out, FolioType::Master, '300.00');
+    $cancelled = readinessUnit($property, 'cancelled', '2026-10-09', '2026-10-11');
+    readinessFolio($property, $cancelled, FolioType::Master, '80.00');
+
+    $items = readinessOf($property, AuditCheck::MasterNotBilled);
+
+    expect($items)->toHaveCount(1)
+        ->and($items[0]->guest)->toBe($out->reservation->booker->full_name);
+});
+
+test('money held on a cancelled or no-show unit folio, or a master credit once everyone has left, is listed', function () {
+    $property = readinessProperty();
+    $cancelled = readinessUnit($property, 'cancelled', '2026-10-14', '2026-10-16');
+    ReservationUnit::factory()->create(['reservation_id' => $cancelled->reservation_id]);
+    readinessFolio($property, $cancelled, FolioType::Unit, '-250.00');
+    $noShow = readinessUnit($property, 'noShow', '2026-10-12', '2026-10-13');
+    readinessFolio($property, $noShow, FolioType::Unit, '-80.00');
+    $completed = readinessUnit($property, 'checkedOut', '2026-10-09', '2026-10-11');
+    $master = readinessFolio($property, $completed, FolioType::Master, '-400.00');
+
+    $items = collect(readinessOf($property, AuditCheck::MoneyHeldOnClosedBooking))->keyBy('reservationId');
+
+    expect($items)->toHaveCount(3)
+        ->and($items[$cancelled->reservation_id]->detail)->toContain('250.00 to refund')
+        ->and($items[$noShow->reservation_id]->detail)->toContain('80.00 to refund')
+        ->and($items[$completed->reservation_id]->detail)->toBe('MYR 400.00 to refund · '.$master->number)
+        ->and($items[$completed->reservation_id]->folioId)->toBe($master->id);
+
+});
+
+test('a credit is not listed while a unit is in house or to arrive, and a debit, a zero balance or a closed folio are not listed', function (Closure $arrange) {
+    $property = readinessProperty();
+    $out = readinessUnit($property, 'checkedOut', '2026-10-09', '2026-10-11');
+    $master = readinessFolio($property, $out, FolioType::Master, '-400.00');
+    $arrange($property, $out, $master);
+
+    expect(readinessOf($property, AuditCheck::MoneyHeldOnClosedBooking))->toBe([]);
+})->with([
+    'a unit in house' => [fn (Property $property, ReservationUnit $out) => ReservationUnit::factory()->checkedIn()->create(['reservation_id' => $out->reservation_id])],
+    'a unit to arrive' => [fn (Property $property, ReservationUnit $out) => ReservationUnit::factory()->create(['reservation_id' => $out->reservation_id])],
+    'a debit' => [fn (Property $property, ReservationUnit $out, Folio $master) => FolioLine::factory()->create(['folio_id' => $master->id, 'amount' => '900.00', 'unit_amount' => '900.00', 'posting_date' => '2026-10-12'])],
+    'a zero balance' => [fn (Property $property, ReservationUnit $out, Folio $master) => FolioLine::factory()->create(['folio_id' => $master->id, 'amount' => '400.00', 'unit_amount' => '400.00', 'posting_date' => '2026-10-12'])],
+    'a closed folio' => [fn (Property $property, ReservationUnit $out, Folio $master) => $master->forceFill(['status' => FolioStatus::Closed])->save()],
+]);
+
+test('the two folio checks are warnings: the gate and the blockers ignore them', function () {
+    $property = readinessProperty();
+    $out = readinessUnit($property, 'checkedOut', '2026-10-09', '2026-10-11');
+    readinessFolio($property, $out, FolioType::Master, '300.00');
+    $cancelled = readinessUnit($property, 'cancelled', '2026-10-14', '2026-10-16');
+    readinessFolio($property, $cancelled, FolioType::Unit, '-250.00');
+
+    $readiness = app(AuditReadiness::class);
+
+    expect(readinessChecks($property))->toBe([AuditCheck::MasterNotBilled->value, AuditCheck::MoneyHeldOnClosedBooking->value])
+        ->and($readiness->blockers($property))->toBe([])
+        ->and($readiness->gate($property))->toBeNull()
+        ->and(app(RunNightAudit::class)($property)->isCompleted())->toBeTrue();
 });
 
 test('another property\'s units and a property without a business date list nothing', function () {

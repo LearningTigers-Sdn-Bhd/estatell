@@ -317,6 +317,7 @@ value: string,
 label: string,
 }[],
 defaultPaymentPurpose: string | null,
+closedNotice: string | null,
 };
 export type FolioDiscountOptionData = {
 id: number,
@@ -1866,7 +1867,7 @@ namespace Enums {
 export type AgeBandPricing = 'free' | 'percent' | 'fixed';
 export type ArInvoiceStatus = 'open' | 'settled' | 'void';
 export type ArInvoiceType = 'invoice' | 'credit_note';
-export type AuditCheck = 'in_house_without_room' | 'arrival_not_checked_in' | 'departure_not_checked_out' | 'folio_open_after_check_out' | 'carried_exception';
+export type AuditCheck = 'in_house_without_room' | 'arrival_not_checked_in' | 'departure_not_checked_out' | 'folio_open_after_check_out' | 'master_not_billed' | 'money_held_on_closed_booking' | 'carried_exception';
 export type AuditExceptionType = 'missed_arrival' | 'overdue_departure' | 'room_charge' | 'add_on' | 'unexpected_error';
 export type AuditFix = 'assign' | 'no-show' | 'extend';
 export type AuditStatus = 'running' | 'completed' | 'failed';

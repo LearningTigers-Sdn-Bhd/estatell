@@ -32,6 +32,7 @@ class PostCharge
         private CreateFolio $createFolio,
         private PostFolioCharge $postFolioCharge,
         private UnitNationality $unitNationality,
+        private CloseSettledUnitFolio $closeSettledUnitFolio,
     ) {}
 
     /**
@@ -40,6 +41,7 @@ class PostCharge
      * nothing. The folio comes from `FolioRouter` (a routing rule or the unit's own folio), and a closed one refuses the posting with
      * no fallback (`folio_settled_to_city_ledger` when it is settled to the city ledger). `PostFolioCharge` writes the lines, and tax lines go on the folio of their charge. A key that already exists returns the existing lines and writes nothing, but only when the line's folio belongs to the unit's reservation (otherwise `charge_not_found`). The charge line holds the net
      * amount (the entered amount without inclusive tax), so the folio total is the gross amount.
+     * The last step closes the folio when it is an Open Unit folio of a CheckedOut unit at 0 (`CloseSettledUnitFolio`).
      * See docs/13-folio/02-posting-charges.md.
      */
     public function __invoke(User $actor, ReservationUnit $unit, NewChargeData $data): PostingResult
@@ -155,6 +157,8 @@ class PostCharge
                     'posting_date' => $businessDate->toDateString(),
                 ])
                 ->log('Charge posted to folio');
+
+            ($this->closeSettledUnitFolio)($actor, $folio);
 
             return PostingResult::posted($lines);
         });

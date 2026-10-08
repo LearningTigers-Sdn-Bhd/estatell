@@ -39,6 +39,8 @@ class ReadinessAdvice
                 ? __('If you leave it: one more night is charged and the departure moves a day.')
                 : __('If you leave it: no new night is charged. You finish it later.'),
             AuditCheck::FolioOpenAfterCheckOut => __('The audit does not touch it. Close it when the balance is settled.'),
+            AuditCheck::MasterNotBilled => __('The audit does not touch it. Settle the folio to the city ledger, or collect the balance and close it.'),
+            AuditCheck::MoneyHeldOnClosedBooking => __('The audit does not touch it. Refund the money, or post the charge it covers.'),
             AuditCheck::CarriedException => null,
         };
     }

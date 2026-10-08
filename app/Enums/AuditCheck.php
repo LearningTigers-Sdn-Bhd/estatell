@@ -12,6 +12,8 @@ enum AuditCheck: string
     case ArrivalNotCheckedIn = 'arrival_not_checked_in';
     case DepartureNotCheckedOut = 'departure_not_checked_out';
     case FolioOpenAfterCheckOut = 'folio_open_after_check_out';
+    case MasterNotBilled = 'master_not_billed';
+    case MoneyHeldOnClosedBooking = 'money_held_on_closed_booking';
     case CarriedException = 'carried_exception';
 
     public function label(): string
@@ -21,6 +23,8 @@ enum AuditCheck: string
             self::ArrivalNotCheckedIn => __('Not checked in'),
             self::DepartureNotCheckedOut => __('Not checked out'),
             self::FolioOpenAfterCheckOut => __('Folio still open after check-out'),
+            self::MasterNotBilled => __('Master folio not billed'),
+            self::MoneyHeldOnClosedBooking => __('Money held on a closed booking'),
             self::CarriedException => __('Left from an earlier audit'),
         };
     }

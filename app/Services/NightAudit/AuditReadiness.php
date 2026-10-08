@@ -14,7 +14,9 @@ use App\Models\Property;
 use App\Models\ReservationUnit;
 use App\Services\Property\PropertyToday;
 use Carbon\CarbonImmutable;
+use Closure;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Collection;
 
 /**
  * What stands between a property and a clean night audit: the units the audit would otherwise settle by policy or
@@ -74,6 +76,8 @@ class AuditReadiness
             ...$this->arrivalsNotCheckedIn($property, $date),
             ...$this->departuresNotCheckedOut($property, $date),
             ...$this->foliosOpenAfterCheckOut($property),
+            ...$this->mastersNotBilled($property),
+            ...$this->moneyHeldOnClosedBookings($property),
             ...$this->carriedExceptions($property),
         ];
 
@@ -144,6 +148,107 @@ class AuditReadiness
             ->get()
             ->map(fn (Folio $folio): ReadinessItem => $this->item(AuditCheck::FolioOpenAfterCheckOut, $folio->reservationUnit, $folio->number))
             ->all();
+    }
+
+    /**
+     * Master and ThirdParty folios that are still Open with a balance above 0 after every unit has left: the reservation
+     * has a CheckedOut unit and no CheckedIn or Confirmed one. With or without a payer, so a group whose organiser has
+     * not paid is listed too. One item for each reservation, summing its folios. It is a warning: the audit never acts on it.
+     *
+     * @return list<ReadinessItem>
+     */
+    private function mastersNotBilled(Property $property): array
+    {
+        $folios = $this->billingFolios($property)
+            ->whereHas('reservation.units', fn (Builder $units) => $units->where('status', UnitStatus::CheckedOut->value))
+            ->whereDoesntHave('reservation.units', fn (Builder $units) => $units->whereIn('status', [UnitStatus::CheckedIn->value, UnitStatus::Confirmed->value]))
+            ->get()
+            ->filter(fn (Folio $folio): bool => bccomp($this->balance($folio), '0', 2) > 0);
+
+        return $this->folioItems(AuditCheck::MasterNotBilled, $property, $folios, fn (string $amount): string => __(':amount owed', ['amount' => $amount]));
+    }
+
+    /**
+     * Open folios holding money (a balance below 0) that nobody refunds: a Unit folio of a Cancelled or NoShow unit, or
+     * a Master or ThirdParty folio of a reservation with at least one unit and none CheckedIn or Confirmed (cancelled,
+     * missed or finished). One item for each reservation, summing the credits. A Closed folio is at 0, so only Open
+     * folios are read. It matches the folios of the Deposit liability report.
+     *
+     * @return list<ReadinessItem>
+     */
+    private function moneyHeldOnClosedBookings(Property $property): array
+    {
+        $unitFolios = $this->billingFolios($property, [FolioType::Unit])
+            ->whereHas('reservationUnit', fn (Builder $units) => $units->whereIn('status', [UnitStatus::Cancelled->value, UnitStatus::NoShow->value]))
+            ->get();
+        $bookingFolios = $this->billingFolios($property)
+            ->whereHas('reservation.units')
+            ->whereDoesntHave('reservation.units', fn (Builder $units) => $units->whereIn('status', [UnitStatus::CheckedIn->value, UnitStatus::Confirmed->value]))
+            ->get();
+
+        return $this->folioItems(
+            AuditCheck::MoneyHeldOnClosedBooking,
+            $property,
+            $unitFolios->concat($bookingFolios)->unique('id')->filter(fn (Folio $folio): bool => bccomp($this->balance($folio), '0', 2) < 0)->sortBy('id'),
+            fn (string $amount): string => __(':amount to refund', ['amount' => $amount]),
+            credit: true,
+        );
+    }
+
+    /**
+     * Open folios of the property with their posted balance and what a row needs.
+     *
+     * @param  list<FolioType>  $types
+     * @return Builder<Folio>
+     */
+    private function billingFolios(Property $property, array $types = [FolioType::Master, FolioType::ThirdParty]): Builder
+    {
+        return Folio::query()
+            ->where('property_id', $property->id)
+            ->whereIn('type', array_map(fn (FolioType $type): string => $type->value, $types))
+            ->where('status', FolioStatus::Open->value)
+            ->withSum('lines', 'amount')
+            ->with(['reservation.booker', 'payerCompany:id,name'])
+            ->orderBy('id');
+    }
+
+    private function balance(Folio $folio): string
+    {
+        return bcadd((string) ($folio->lines_sum_amount ?? '0'), '0', 2);
+    }
+
+    /**
+     * One item for each reservation: the folios named in the detail, the amounts summed (credits as a positive figure),
+     * the payer company or else the booker as the guest, and the first folio as the link target.
+     *
+     * @param  Collection<int, Folio>  $folios
+     * @param  Closure(string): string  $phrase
+     * @return list<ReadinessItem>
+     */
+    private function folioItems(AuditCheck $check, Property $property, Collection $folios, Closure $phrase, bool $credit = false): array
+    {
+        $currency = $property->loadMissing('settings')->settings?->currency->value;
+
+        return $folios->groupBy('reservation_id')->map(function (Collection $group) use ($check, $currency, $phrase, $credit): ReadinessItem {
+            $first = $group->first();
+            $total = $group->reduce(fn (string $sum, Folio $folio): string => bcadd($sum, $credit ? bcmul($this->balance($folio), '-1', 2) : $this->balance($folio), 2), '0.00');
+            $amount = trim($currency.' '.number_format((float) $total, 2));
+            $names = match (true) {
+                $group->count() > 1 => __(':count folios', ['count' => $group->count()]),
+                $credit => $first->number,
+                default => ($first->type === FolioType::Master ? __('Master') : __('Third party')).' '.$first->number,
+            };
+
+            return new ReadinessItem(
+                check: $check,
+                reservationId: $first->reservation_id,
+                reservationUnitId: null,
+                reference: $first->reservation->reference,
+                guest: $group->first(fn (Folio $folio): bool => $folio->payerCompany !== null)?->payerCompany->name ?? $first->reservation->booker?->full_name,
+                detail: $credit ? $phrase($amount).' · '.$names : $names.' · '.$phrase($amount),
+                folioId: $first->id,
+            );
+        })->values()->all();
     }
 
     /**

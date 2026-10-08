@@ -2,6 +2,7 @@
 
 namespace App\Actions\Payments;
 
+use App\Actions\Folio\CloseSettledUnitFolio;
 use App\Actions\Folio\CreateFolio;
 use App\Actions\Folio\PostFolioCharge;
 use App\Data\Payments\NewPaymentData;
@@ -36,6 +37,7 @@ class RecordPayment
         private PostFolioCharge $postFolioCharge,
         private NextDocumentNumber $nextDocumentNumber,
         private FolioRouter $folioRouter,
+        private CloseSettledUnitFolio $closeSettledUnitFolio,
     ) {}
 
     /**
@@ -43,7 +45,8 @@ class RecordPayment
      * (a deposit before check-in), and a unit that has one posts to it. The unit row (when given) and the folio row are
      * locked first, and every check runs before the first write, so a refusal writes and logs nothing. A SecurityDeposit
      * on a Master or ThirdParty folio is refused (`deposit_on_unit_only`), and so is an Advance on a unit whose Room
-     * charges go to the Master folio (`advance_on_master`). A surcharge
+     * charges go to the Master folio (`advance_on_master`). The last step closes the folio when it is an Open Unit folio of a
+     * CheckedOut unit at 0 (`CloseSettledUnitFolio`). A surcharge
      * posts as a charge on the same folio, and the payment line covers the amount, the fee and its tax, so the balance
      * falls by the amount entered. The key `payment:{uuid}` makes a repeat return the existing payment. The route
      * checks the permission and that the folio or unit belongs to the reservation's property.
@@ -167,6 +170,8 @@ class RecordPayment
                     'posting_date' => $postingDate,
                 ])
                 ->log('Payment recorded');
+
+            ($this->closeSettledUnitFolio)($actor, $target);
 
             return PaymentResult::recorded($payment->refresh(), [...$surchargeLines, $line->refresh()]);
         });

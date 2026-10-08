@@ -25,6 +25,7 @@ use App\Models\Reservation;
 use App\Models\ReservationUnit;
 use App\Services\Folio\DiscountQuote;
 use App\Services\Folio\FolioRefusals;
+use App\Services\Folio\FolioReopenRule;
 use App\Services\Folio\FolioVoucher;
 use App\Services\NightAudit\CurrentBusinessDate;
 use App\Services\Property\PrintedPdf;
@@ -156,10 +157,13 @@ class ReservationFolioController extends Controller
     }
 
     /**
-     * Reopen a Closed folio. A refusal is an error toast.
+     * Reopen a Closed folio. `FolioReopenRule` decides who may (`folio.reopen`, or `front-desk.check-out` for a Unit
+     * folio closed on the current business date); anyone else gets a 403. A refusal of the Action is an error toast.
      */
-    public function reopen(Request $request, Property $property, Reservation $reservation, Folio $folio, ReopenFolio $reopenFolio, FolioRefusals $refusals): RedirectResponse
+    public function reopen(Request $request, Property $property, Reservation $reservation, Folio $folio, ReopenFolio $reopenFolio, FolioRefusals $refusals, FolioReopenRule $reopenRule): RedirectResponse
     {
+        abort_unless($reopenRule->allows($request->user(), $folio), 403);
+
         $result = $reopenFolio($request->user(), $folio);
 
         Inertia::flash('toast', $result->isRefused()
