@@ -192,7 +192,8 @@ Some reports take one extra filter in the URL, validated by `ReportFilters` for 
 ```
 report_layouts            id, property_id, report_key, orientation, timestamps
                           unique (property_id, report_key)
-report_layout_columns     id, report_layout_id (FK, cascade), column_key, position, is_visible
+report_layout_columns     id, report_layout_id (FK, cascade), column_key, position, is_visible,
+                          align (nullable: left, center, right)
                           unique (report_layout_id, column_key)
                           unique (report_layout_id, position)
 ```
@@ -201,9 +202,10 @@ report_layout_columns     id, report_layout_id (FK, cascade), column_key, positi
 - No row means the code defaults: `defaultOrientation()` and `columns()`.
 - `ReportLayoutResolver` (`app/Services/Reports/`) merges the stored rows with `columns()`. A column added later in code goes at the end with its default visibility. A stored key that is no longer in `columns()` is ignored.
 - At least one column stays visible.
+- **Alignment.** `ColumnAlign` has Left, Center and Right. The code sets a default for each column (numbers and money align right). A layout may override it with `report_layout_columns.align`. Null means "use the code default". A CHECK constraint allows only null, `left`, `center` or `right`. `ReportLayoutColumnData` carries `align` (the one that applies) and `defaultAlign` (the code default).
 - The report page gets the resolved layout as one `ReportLayoutData` prop (the orientation and the columns in order, each with `visible`), plus `canEditLayout`.
 - When the sorted column is hidden, the server falls back to the report's default sort.
-- The screen table, the PDF, the CSV and the Excel file all use the resolved order and visibility. The PDF also uses the orientation.
+- The screen table, the PDF, the CSV and the Excel file all use the resolved order and visibility. The PDF also uses the orientation. The screen table and the PDF also follow the alignment. The spreadsheets ignore it.
 - `PageOrientation`: Portrait, Landscape. It is added with the registry (step 2), because `defaultOrientation()` returns it.
 - `category()` returns a `ReportCategory` (the sidebar group, for example Front desk) and `ReportColumn::align` is a `ColumnAlign` enum.
 
@@ -231,10 +233,11 @@ Arrivals     [ This week ▾ ]   [⚙ Layout]   [ Export ▾ ]
 
 - **The table behind the Sheet is the preview.** Hiding or moving a column changes it at once.
 - **Preview PDF** (a native form POST with `target="_blank"`) opens the real PDF of the current dates with the unsaved layout, in a new tab. This shows the orientation, which the screen cannot.
+- **Alignment.** Each column row has a Left, Center and Right control. It edits the draft, so the table behind the Sheet changes at once. Preview PDF sends the alignment too.
 - Order uses up and down arrows. There is no drag-and-drop package.
-- **Save** calls `UpdateReportLayout`: orientation and the full column list in order, in one transaction. It refuses a list whose keys do not match `columns()`.
+- **Save** calls `UpdateReportLayout`: orientation and the full column list in order (with the alignment of each), in one transaction. An alignment equal to the code default is saved as null, so a later change of the default still shows. It refuses a list whose keys do not match `columns()`.
 - **Cancel**, or closing the Sheet, puts the table back. A dirty Sheet asks before it closes.
-- **Reset to default** asks first, then calls `ResetReportLayout`, which deletes the layout.
+- **Reset to default** asks first, then calls `ResetReportLayout`, which deletes the layout. This also clears the alignment overrides.
 - Both log `report_layout.updated`.
 - Every report PDF uses one generic view, `pdf/report.blade.php`: the letterhead, the title, the dates and the table. Preview PDF and the exports share it.
 - `ReportPdf` (`app/Services/Reports/`) renders that view. Every row class implements `ReportRow`: `cells()` returns the display text by column key, so the view prints any report without knowing its columns. The preview route reads `from`, `to`, the orientation and the column list from the POST, checks the list with `ReportLayoutResolver::fromDraft()` (the same check as Save) and runs `rows()` on the server. The page gets the CSRF token for the native form from the shared `csrfToken` prop.

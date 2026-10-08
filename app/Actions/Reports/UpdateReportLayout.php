@@ -17,9 +17,10 @@ class UpdateReportLayout
 
     /**
      * Saves the orientation and the full column list of a report for the property. The list must hold exactly the
-     * columns of the report, each once, with at least one visible. The positions are the list order.
+     * columns of the report, each once, with at least one visible. The positions are the list order. An alignment equal to
+     * the code default is saved as null, so a later change of the default still shows.
      *
-     * @param  list<array{key: string, visible: bool}>  $columns  In their new order.
+     * @param  list<array{key: string, visible: bool, align?: string|null}>  $columns  In their new order.
      *
      * @throws ValidationException
      */
@@ -40,7 +41,7 @@ class UpdateReportLayout
 
             $layout->columns()->delete();
             $layout->columns()->createMany(array_map(
-                fn ($column, int $position): array => ['column_key' => $column->key, 'position' => $position, 'is_visible' => $column->visible],
+                fn ($column, int $position): array => ['column_key' => $column->key, 'position' => $position, 'is_visible' => $column->visible, 'align' => $column->align === $column->defaultAlign ? null : $column->align],
                 $layoutData->columns,
                 array_keys($layoutData->columns),
             ));

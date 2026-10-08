@@ -40,6 +40,20 @@ export function dataTableColumns<TData extends RowData>() {
     return createColumnHelper<Features, TData>();
 }
 
+export type ColumnAlignment = 'left' | 'center' | 'right';
+
+const TEXT_ALIGN: Record<ColumnAlignment, string> = {
+    left: 'text-left',
+    center: 'text-center',
+    right: 'text-right',
+};
+
+const SORT_ALIGN: Record<ColumnAlignment, string> = {
+    left: '',
+    center: 'mx-auto',
+    right: '-mr-1 ml-auto',
+};
+
 export type DataTablePagination = PaginationData;
 
 export type DataTableSelection = {
@@ -57,8 +71,8 @@ type Props<TData extends RowData> = {
     onSortChange: (sort: string) => void;
     pagination: DataTablePagination;
     onRowClick?: (row: TData) => void;
-    /** Ids of the columns whose header and cells align right, for numbers and money. */
-    rightAlign?: string[];
+    /** Alignment by column id, for numbers and money. A column with no entry aligns left. */
+    columnAlign?: Record<string, ColumnAlignment>;
     /** Adds a leading checkbox column. The header checkbox selects or clears the rows on this page. */
     selection?: DataTableSelection;
     /** A total row under the rows: the content of each cell by column id. A column with no entry stays empty. */
@@ -91,7 +105,7 @@ export function DataTable<TData extends RowData>({
     onSortChange,
     pagination,
     onRowClick,
-    rightAlign = [],
+    columnAlign = {},
     selection,
     footer,
     empty,
@@ -189,9 +203,11 @@ export function DataTable<TData extends RowData>({
                                         <TableHead
                                             key={header.id}
                                             className={cn(
-                                                rightAlign.includes(
-                                                    header.column.id,
-                                                ) && 'text-right',
+                                                TEXT_ALIGN[
+                                                    columnAlign[
+                                                        header.column.id
+                                                    ] ?? 'left'
+                                                ],
                                             )}
                                             aria-sort={
                                                 sorted === 'asc'
@@ -207,9 +223,11 @@ export function DataTable<TData extends RowData>({
                                                     onClick={header.column.getToggleSortingHandler()}
                                                     className={cn(
                                                         '-ml-1 flex items-center gap-1 rounded px-1 hover:text-foreground',
-                                                        rightAlign.includes(
-                                                            header.column.id,
-                                                        ) && '-mr-1 ml-auto',
+                                                        SORT_ALIGN[
+                                                            columnAlign[
+                                                                header.column.id
+                                                            ] ?? 'left'
+                                                        ],
                                                     )}
                                                 >
                                                     <table.FlexRender
@@ -275,9 +293,11 @@ export function DataTable<TData extends RowData>({
                                         <TableCell
                                             key={cell.id}
                                             className={cn(
-                                                rightAlign.includes(
-                                                    cell.column.id,
-                                                ) && 'text-right',
+                                                TEXT_ALIGN[
+                                                    columnAlign[
+                                                        cell.column.id
+                                                    ] ?? 'left'
+                                                ],
                                             )}
                                         >
                                             <table.FlexRender cell={cell} />
@@ -296,8 +316,9 @@ export function DataTable<TData extends RowData>({
                                         key={column.id}
                                         className={cn(
                                             'font-medium',
-                                            rightAlign.includes(column.id) &&
-                                                'text-right',
+                                            TEXT_ALIGN[
+                                                columnAlign[column.id] ?? 'left'
+                                            ],
                                         )}
                                     >
                                         {footer[column.id]}

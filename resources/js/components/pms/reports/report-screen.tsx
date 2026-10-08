@@ -199,11 +199,8 @@ export function ReportScreen<TRow extends { key: number | string }>({
         [column, visible, cells, currency],
     );
 
-    const rightAlign = useMemo(
-        () =>
-            visible
-                .filter((item) => item.align === 'right')
-                .map((item) => item.key),
+    const columnAlign = useMemo(
+        () => Object.fromEntries(visible.map((item) => [item.key, item.align])),
         [visible],
     );
 
@@ -452,7 +449,7 @@ export function ReportScreen<TRow extends { key: number | string }>({
                     getRowId={(row) => String(row.key)}
                     sort={sort}
                     onSortChange={(next) => visit({ sort: next })}
-                    rightAlign={rightAlign}
+                    columnAlign={columnAlign}
                     selection={{ selected, onChange: changeSelection }}
                     footer={footer}
                     pagination={{

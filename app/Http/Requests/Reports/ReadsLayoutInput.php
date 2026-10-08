@@ -2,12 +2,14 @@
 
 namespace App\Http\Requests\Reports;
 
+use App\Enums\ColumnAlign;
 use App\Enums\PageOrientation;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Validation\Rule;
 
 /**
- * The layout fields of a report request: the orientation and the columns as `{key, visible}` in order. Whether the
+ * The layout fields of a report request: the orientation and the columns as `{key, visible, align}` in order. `align` is optional;
+ * null means the code default. Whether the
  * keys match the report is checked by `ReportLayoutResolver::fromDraft()`.
  */
 trait ReadsLayoutInput
@@ -22,6 +24,7 @@ trait ReadsLayoutInput
             'columns' => ['required', 'array', 'min:1', 'max:100'],
             'columns.*.key' => ['required', 'string', 'max:64'],
             'columns.*.visible' => ['required', 'boolean'],
+            'columns.*.align' => ['nullable', Rule::enum(ColumnAlign::class)],
         ];
     }
 
@@ -31,7 +34,7 @@ trait ReadsLayoutInput
     }
 
     /**
-     * @return list<array{key: string, visible: bool}>
+     * @return list<array{key: string, visible: bool, align: string|null}>
      */
     public function layoutColumns(): array
     {
@@ -39,6 +42,7 @@ trait ReadsLayoutInput
             fn (array $column): array => [
                 'key' => (string) $column['key'],
                 'visible' => filter_var($column['visible'], FILTER_VALIDATE_BOOLEAN),
+                'align' => ($column['align'] ?? null) === null ? null : (string) $column['align'],
             ],
             $this->array('columns'),
         ));

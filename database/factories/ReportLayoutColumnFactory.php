@@ -23,6 +23,7 @@ class ReportLayoutColumnFactory extends Factory
             'column_key' => 'reservation',
             'position' => 0,
             'is_visible' => true,
+            'align' => null,
         ];
     }
 }

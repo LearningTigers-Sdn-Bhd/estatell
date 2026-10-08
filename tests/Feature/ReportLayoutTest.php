@@ -3,6 +3,7 @@
 use App\Actions\Reports\ResetReportLayout;
 use App\Actions\Reports\UpdateReportLayout;
 use App\Data\Reports\ReportFilters;
+use App\Enums\ColumnAlign;
 use App\Enums\DefaultRoleEnum;
 use App\Enums\PageOrientation;
 use App\Enums\PermissionEnum;
@@ -241,7 +242,7 @@ test('the arrivals page receives the saved layout and canEditLayout', function (
         ->where('canEditLayout', true)
         ->where('layout.orientation', 'landscape')
         ->has('layout.columns', 10)
-        ->where('layout.columns.0', ['key' => 'balance', 'label' => 'Balance', 'align' => 'right', 'visible' => true])
+        ->where('layout.columns.0', ['key' => 'balance', 'label' => 'Balance', 'align' => 'right', 'visible' => true, 'defaultAlign' => 'right'])
         ->where('layout.columns.2.visible', false)
         ->missing('columns'));
 
@@ -312,4 +313,68 @@ test('the report view prints only the visible columns in layout order', function
     $pdf = app(ReportPdf::class)->make($property, ReportKey::Arrivals, $filters, $layout);
 
     expect($pdf->output())->toStartWith('%PDF');
+});
+
+test('a stored alignment wins and a null alignment falls back to the code default', function () {
+    [, $property] = layoutSetup();
+    $layout = storeLayout($property, [['reservation', true], ['nights', true]]);
+    $layout->columns()->where('column_key', 'reservation')->update(['align' => 'center']);
+
+    $columns = collect(app(ReportLayoutResolver::class)->resolve($property, ReportKey::Arrivals)->columns)->keyBy('key');
+
+    expect($columns['reservation']->align)->toBe(ColumnAlign::Center)
+        ->and($columns['reservation']->defaultAlign)->toBe(ColumnAlign::Left)
+        ->and($columns['nights']->align)->toBe(ColumnAlign::Right)
+        ->and($columns['nights']->defaultAlign)->toBe(ColumnAlign::Right);
+});
+
+test('UpdateReportLayout saves an override and saves null when it matches the code default', function () {
+    [$user, $property] = layoutSetup();
+    $draft = array_map(fn (array $item): array => match ($item['key']) {
+        'guest' => [...$item, 'align' => 'center'],
+        'nights' => [...$item, 'align' => 'right'],
+        default => $item,
+    }, layoutDraft());
+
+    app(UpdateReportLayout::class)($user, $property, ReportKey::Arrivals, PageOrientation::Portrait, $draft);
+
+    $columns = ReportLayout::query()->where('property_id', $property->id)->sole()->columns->keyBy('column_key');
+
+    expect($columns['guest']->align)->toBe(ColumnAlign::Center)
+        ->and($columns['nights']->align)->toBeNull()
+        ->and($columns['reservation']->align)->toBeNull();
+});
+
+test('an unknown alignment is rejected on save and on preview', function () {
+    [$user, $property] = layoutSetup();
+    $payload = layoutPayload();
+    $payload['columns'][0]['align'] = 'justify';
+
+    $this->actingAs($user)->putJson(layoutUrl($property), $payload)->assertJsonValidationErrors('columns.0.align');
+    $this->actingAs($user)->post(layoutUrl($property, '/preview'), [...$payload, 'from' => '2026-10-10', 'to' => '2026-10-10'])->assertSessionHasErrors('columns.0.align');
+    expect(ReportLayout::query()->count())->toBe(0);
+});
+
+test('the report view aligns the cells as the layout says', function () {
+    [, $property] = layoutSetup();
+    $draft = array_map(fn (array $item): array => $item['key'] === 'guest' ? [...$item, 'align' => 'center'] : $item, layoutDraft());
+    $layout = app(ReportLayoutResolver::class)->fromDraft(ReportKey::Arrivals, PageOrientation::Portrait, $draft);
+
+    $html = view('pdf.report', [
+        'print' => app(PrintProfile::class)->for($property),
+        'title' => 'Arrivals',
+        'dates' => '10 Oct 2026',
+        'group' => null,
+        'groupCaption' => null,
+        'note' => null,
+        'currency' => 'MYR',
+        'columns' => $layout->visibleColumns(),
+        'rows' => [],
+        'totals' => null,
+        'breakdown' => null,
+        'selectedOnly' => false,
+    ])->render();
+
+    expect($html)->toContain('<th class="center">Guest</th>')
+        ->and($html)->toContain('<th class="num">Nights</th>');
 });

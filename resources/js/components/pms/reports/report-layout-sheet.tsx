@@ -1,5 +1,13 @@
 import { router, usePage } from '@inertiajs/react';
-import { ArrowDown, ArrowUp, ExternalLink, RotateCcw } from 'lucide-react';
+import {
+    AlignCenter,
+    AlignLeft,
+    AlignRight,
+    ArrowDown,
+    ArrowUp,
+    ExternalLink,
+    RotateCcw,
+} from 'lucide-react';
 import { useState } from 'react';
 import type { EnumOption } from '@/components/pms/enum-select';
 import { FormOverlay } from '@/components/pms/form-overlay';
@@ -24,9 +32,17 @@ import {
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Spinner } from '@/components/ui/spinner';
 import { Switch } from '@/components/ui/switch';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { destroy, preview, update } from '@/routes/reports/layout';
 
 type Layout = App.Data.Reports.ReportLayoutData;
+type Align = App.Data.Reports.ReportLayoutColumnData['align'];
+
+const ALIGNMENTS: { value: Align; label: string; Icon: typeof AlignLeft }[] = [
+    { value: 'left', label: 'Left', Icon: AlignLeft },
+    { value: 'center', label: 'Center', Icon: AlignCenter },
+    { value: 'right', label: 'Right', Icon: AlignRight },
+];
 
 type Props = {
     open: boolean;
@@ -56,7 +72,8 @@ function sameLayout(a: Layout, b: Layout): boolean {
         a.columns.every(
             (column, index) =>
                 column.key === b.columns[index].key &&
-                column.visible === b.columns[index].visible,
+                column.visible === b.columns[index].visible &&
+                column.align === b.columns[index].align,
         )
     );
 }
@@ -105,14 +122,24 @@ export function ReportLayoutSheet({
         });
     };
 
+    const align = (index: number, next: Align) => {
+        onDraftChange({
+            ...draft,
+            columns: draft.columns.map((column, position) =>
+                position === index ? { ...column, align: next } : column,
+            ),
+        });
+    };
+
     const save = () => {
         router.put(
             update.url({ report }),
             {
                 orientation: draft.orientation,
-                columns: draft.columns.map(({ key, visible }) => ({
-                    key,
-                    visible,
+                columns: draft.columns.map((column) => ({
+                    key: column.key,
+                    visible: column.visible,
+                    align: column.align,
                 })),
             },
             {
@@ -147,7 +174,7 @@ export function ReportLayoutSheet({
                 open={open}
                 onOpenChange={onOpenChange}
                 title={`Layout · ${reportLabel}`}
-                description="Choose the paper orientation and the columns, in the order they show. The table behind this panel shows your changes."
+                description="Choose the paper orientation and the columns, in the order they show, and how each aligns. The table behind this panel shows your changes."
                 errors={errors}
                 dirty={dirty}
                 discardTitle="Discard layout changes?"
@@ -257,6 +284,35 @@ export function ReportLayoutSheet({
                                             {column.label}
                                         </FieldLabel>
                                     </FieldContent>
+                                    <ToggleGroup
+                                        variant="outline"
+                                        size="sm"
+                                        spacing={0}
+                                        aria-label={`Align ${column.label}`}
+                                        value={[column.align]}
+                                        onValueChange={(values) => {
+                                            const next = ALIGNMENTS.find(
+                                                (option) =>
+                                                    option.value === values[0],
+                                            );
+
+                                            if (next) {
+                                                align(index, next.value);
+                                            }
+                                        }}
+                                    >
+                                        {ALIGNMENTS.map(
+                                            ({ value, label, Icon }) => (
+                                                <ToggleGroupItem
+                                                    key={value}
+                                                    value={value}
+                                                    aria-label={`${label} align ${column.label}`}
+                                                >
+                                                    <Icon />
+                                                </ToggleGroupItem>
+                                            ),
+                                        )}
+                                    </ToggleGroup>
                                     <Button
                                         type="button"
                                         variant="ghost"
@@ -314,6 +370,11 @@ export function ReportLayoutSheet({
                             name={`columns[${index}][visible]`}
                             value={column.visible ? '1' : '0'}
                         />
+                        <input
+                            type="hidden"
+                            name={`columns[${index}][align]`}
+                            value={column.align}
+                        />
                     </span>
                 ))}
             </form>
@@ -328,9 +389,9 @@ export function ReportLayoutSheet({
                             Reset the {reportLabel} layout?
                         </AlertDialogTitle>
                         <AlertDialogDescription>
-                            The saved orientation and column order are deleted
-                            for everyone. The report goes back to its default
-                            layout.
+                            The saved orientation, column order and alignment
+                            are deleted for everyone. The report goes back to
+                            its default layout.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>

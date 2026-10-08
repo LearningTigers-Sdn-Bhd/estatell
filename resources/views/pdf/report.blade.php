@@ -22,8 +22,12 @@
     // A report with many columns prints its table text 1 pt smaller. Dates, times, references and phones never wrap.
     $isWide = count($columns) > 9;
     $noWrapKeys = ['reservation', 'room', 'date_of_birth', 'phone', 'arrival', 'departure', 'checked_in_at', 'checked_out_at'];
-    $cellClass = fn ($column): array => [
+    $alignClass = fn ($column): array => [
         'num' => $column->align === \App\Enums\ColumnAlign::Right,
+        'center' => $column->align === \App\Enums\ColumnAlign::Center,
+    ];
+    $cellClass = fn ($column): array => [
+        ...$alignClass($column),
         'nowrap' => in_array($column->key, $noWrapKeys, true),
     ];
 @endphp
@@ -33,6 +37,7 @@
         .data td, .data th { padding-right: 4pt; }
         .data td:last-child, .data th:last-child { padding-right: 0; }
         .nowrap { white-space: nowrap; }
+        .center { text-align: center; }
         @if ($isWide)
             .data { font-size: {{ ($print?->fontSize->points() ?? 9.0) - 1 }}pt; }
         @endif
@@ -86,7 +91,7 @@
             <tfoot>
                 <tr class="rule">
                     @foreach ($columns as $column)
-                        <td @class(['num' => $column->align === \App\Enums\ColumnAlign::Right])><strong>{{ $totalCells[$column->key] }}</strong></td>
+                        <td @class($alignClass($column))><strong>{{ $totalCells[$column->key] }}</strong></td>
                     @endforeach
                 </tr>
             </tfoot>

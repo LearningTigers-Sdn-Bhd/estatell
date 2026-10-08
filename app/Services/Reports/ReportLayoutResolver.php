@@ -5,6 +5,7 @@ namespace App\Services\Reports;
 use App\Data\Reports\ReportColumn;
 use App\Data\Reports\ReportLayoutColumnData;
 use App\Data\Reports\ReportLayoutData;
+use App\Enums\ColumnAlign;
 use App\Enums\PageOrientation;
 use App\Enums\ReportKey;
 use App\Models\Property;
@@ -43,7 +44,7 @@ class ReportLayoutResolver
         foreach ($layout->columns as $stored) {
             /** @var ReportLayoutColumn $stored */
             if (isset($byKey[$stored->column_key])) {
-                $columns[] = ReportLayoutColumnData::fromColumn($byKey[$stored->column_key], $stored->is_visible);
+                $columns[] = ReportLayoutColumnData::fromColumn($byKey[$stored->column_key], $stored->is_visible, $stored->align);
                 unset($byKey[$stored->column_key]);
             }
         }
@@ -70,7 +71,7 @@ class ReportLayoutResolver
      * Builds a layout from a draft list, which must hold exactly the columns of the report, each once, with at least one
      * visible. Used to check a layout before it is saved or previewed.
      *
-     * @param  list<array{key: string, visible: bool}>  $draft
+     * @param  list<array{key: string, visible: bool, align?: string|null}>  $draft
      *
      * @throws ValidationException
      */
@@ -92,11 +93,12 @@ class ReportLayoutResolver
         }
 
         $visibility = array_column($draft, 'visible', 'key');
+        $alignment = array_column($draft, 'align', 'key');
         $columns = [];
 
         foreach ($draftKeys as $key) {
             $column = collect($report->columns())->firstWhere('key', $key);
-            $columns[] = ReportLayoutColumnData::fromColumn($column, (bool) $visibility[$key]);
+            $columns[] = ReportLayoutColumnData::fromColumn($column, (bool) $visibility[$key], ColumnAlign::tryFrom((string) ($alignment[$key] ?? '')));
         }
 
         return new ReportLayoutData($orientation, $columns);
