@@ -34,6 +34,7 @@ The reports a small property needs daily and monthly, with a shared frame: a dat
 
 - `ReportKey` (backed enum, the value is the URL slug, for example `folio-ledger`): `label()`, `category()`, `defaultOrientation()`, `maxRangeDays()` (null for a one-date report), `columns()` and `report()`.
 - `columns()` returns `ReportColumn` data objects in their default order: `key`, `label`, `align` (left or right) and `defaultVisible`. Column keys are stable. Renaming a key is a migration of stored layouts.
+- **Merged and split columns.** Some columns pack two values in one cell (`unit` "Room type / room", `guests` "Adults / children", `identity` "ID", `exceptions`, and the date-and-time columns). A merged column keeps its key, label and default visibility. Its split columns are new keys, hidden by default, so staff choose them in the Layout Sheet. A split column sits right after its merged column and has its own typed row property, so it sorts and exports as a number, a date or a time. `ReportLayoutResolver` adds a new code column to a stored layout at the end with its default visibility, so adding split columns needs no data migration.
 - `report()` returns the report class. Each report is one class in `app/Services/Reports/` that implements `Report`: `rows(Property, ReportFilters, ?array $rowKeys)` returns its row data objects, each with a stable `key` (the reservation unit id, the payment id, the date, the transaction code).
 - `rows()` returns the full list for the dates and filters. `maxRangeDays()` keeps it small. The page controller sorts and pages that list on the server with the `?sort` and `?page` keys of `DataTable`. Exports call the same `rows()`, so the screen, the PDF and the spreadsheet always match.
 - One controller per report page, as before. The layout and export routes are shared and thin: they take `{report}` as a `ReportKey` and call `report()`. There is no reports controller with logic in it.
@@ -42,20 +43,26 @@ The reports a small property needs daily and monthly, with a shared frame: a dat
 
 Arrivals lists the reservation units that arrive in the range. The row `key` is the reservation unit id.
 
-| Key           | Label             | Align | Default visible |
-| ------------- | ----------------- | ----- | --------------- |
-| `reservation` | Reservation no.   | left  | ✓               |
-| `guest`       | Guest             | left  | ✓               |
-| `phone`       | Phone             | left  |                 |
-| `arrival`     | Arrival           | left  | ✓               |
-| `nights`      | Nights            | right | ✓               |
-| `unit`        | Room type / room  | left  | ✓               |
-| `guests`      | Adults / children | right |                 |
-| `company`     | Company           | left  |                 |
-| `status`      | Status            | left  | ✓               |
-| `balance`     | Balance           | right | ✓               |
+| Key            | Label             | Align | Default visible |
+| -------------- | ----------------- | ----- | --------------- |
+| `reservation`  | Reservation no.   | left  | ✓               |
+| `guest`        | Guest             | left  | ✓               |
+| `phone`        | Phone             | left  |                 |
+| `arrival`      | Arrival           | left  | ✓               |
+| `arrival_time` | Arrival time      | left  | ✓               |
+| `nights`       | Nights            | right | ✓               |
+| `unit`         | Room type / room  | left  | ✓               |
+| `room_type`    | Room type         | left  |                 |
+| `room`         | Room              | left  |                 |
+| `guests`       | Adults / children | right |                 |
+| `adults`       | Adults            | right |                 |
+| `children`     | Children          | right |                 |
+| `company`      | Company           | left  |                 |
+| `status`       | Status            | left  | ✓               |
+| `balance`      | Balance           | right | ✓               |
 
 - Units that hold inventory count (Confirmed, Checked in, Checked out). Cancelled and no-show units are left out, because nobody arrives. **Guest** and **Phone** are the primary guest of the unit, or the booker when the unit has none. **Room type / room** shows the room or bed of the first night when one is assigned. **Balance** is the balance of the reservation (its folios that are not Voided), from `FolioBalance::forReservations()`.
+- **Split columns** (hidden by default): `room_type` and `room` split **Room type / room**; `room` is empty when no room is assigned. `adults` and `children` split **Adults / children** and are whole numbers. **Arrival time** is `reservation_units.arrival_time` as `H:i`. It is visible by default. Arrivals has no totals.
 
 ## Other report columns
 
@@ -64,7 +71,7 @@ Each report has a stable column list like Arrivals. Proposed in the overview and
 | Report       | Row is                        | Columns                                                                                                                                                                                    |
 | ------------ | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Departures   | a unit departing in the range | as Arrivals, with Departure in place of Arrival                                                                                                                                            |
-| In-house     | a unit staying on the date    | Reservation, Guest, Room, Arrival, Departure, Guests, Company, Balance                                                                                                                     |
+| In-house     | a unit staying on the date    | Reservation, Guest, Room, Arrival, Arrival time (hidden), Departure, Departure time (hidden), Guests, Adults (hidden), Children (hidden), Company, Balance                                 |
 | Occupancy    | a date                        | Date, Rooms available, Rooms sold, Occupancy %, ADR, RevPAR, Room revenue, Arrivals, Departures, No-shows, In-house guests. The open date is marked **Live**; dates after it are left out. |
 | Revenue      | a date (or month) and a code  | Date, Code, Description, Lines, Amount                                                                                                                                                     |
 | Payments     | a payment                     | Date, Receipt no., Reservation or company, Method, Status, Staff, Amount, Reference (hidden by default), Original receipt (hidden by default)                                              |
@@ -74,8 +81,8 @@ Each report has a stable column list like Arrivals. Proposed in the overview and
 
 ### Built: Departures and In-house
 
-- **Departures** has the Arrivals columns with `departure` in place of `arrival`, the same status rule, and a default sort of `departure`. **Room type / room** shows the room or bed of the last night.
-- **In-house** (`room` is the default sort) lists the Checked in and Checked out units with arrival on or before the date and departure after it, so the arrival day counts and the departure day does not. Dates alone are enough: an early check-out moves the departure date and removes the unused nights, so a unit that left early is in-house on the dates it stayed. `unit_nights` is read only for **Room**, the room or bed of that date. Confirmed units are left out: an expected or missed arrival belongs on Arrivals, not In-house. Defaults visible: all columns except Company.
+- **Departures** has the Arrivals columns with `departure` and `departure_time` in place of `arrival` and `arrival_time`, the same status rule, and a default sort of `departure`. **Room type / room** and its split `room` show the room or bed of the last night. **Departure time** is visible by default. Departures has no totals.
+- **In-house** (`room` is the default sort) lists the Checked in and Checked out units with arrival on or before the date and departure after it, so the arrival day counts and the departure day does not. Dates alone are enough: an early check-out moves the departure date and removes the unused nights, so a unit that left early is in-house on the dates it stayed. `unit_nights` is read only for **Room**, the room or bed of that date. Confirmed units are left out: an expected or missed arrival belongs on Arrivals, not In-house. Defaults visible: all columns except Company, the two time columns and the split `adults` and `children`. In-house has a total row that sums `adults` and `children`; `guests` has no figure.
 - **One-date URL.** A report with `maxRangeDays()` of null takes `?date=Y-m-d` (default: the business date) in the page URL, the exports and the layout preview. `ReportFilters` keeps `from` = `to` = that date, and the page props still send `from` and `to`. `from` and `to` are ignored for these reports.
 - Arrivals, Departures and In-house share `UnitReportRows` (the guest, company and balance lookups).
 
@@ -123,7 +130,7 @@ Each report has a stable column list like Arrivals. Proposed in the overview and
 
 ### Built: Night audit history and packet
 
-- **Night audit history** (`-date` is the default sort, newest first; 366 days; Landscape; category Audit; icon `moon`). Columns: `date`, `status` (a badge), `trigger` (Scheduled or Run by staff), `run_by`, `started`, `completed` (in the property time zone), `forced`, `exceptions` ("open / total"), `occupancy` (%), `revenue` (room revenue) and `packet`, all visible by default. One row for each night audit with a business date in the range; the row key is the business date (`2026-10-08`). It has no total row.
+- **Night audit history** (`-date` is the default sort, newest first; 366 days; Landscape; category Audit; icon `moon`). Columns: `date`, `status` (a badge), `trigger` (Scheduled or Run by staff), `run_by`, `started`, `completed` (in the property time zone), `forced`, `exceptions` ("open / total"), `occupancy` (%), `revenue` (room revenue) and `packet`, all visible by default. Split columns, hidden by default and right after the merged one: `started_date` and `started_time` (`j M Y`, `H:i`), `completed_date` and `completed_time` (same, property time zone), `exceptions_open` ("Open exceptions") and `exceptions_total` ("Exceptions"), both whole numbers. One row for each night audit with a business date in the range; the row key is the business date (`2026-10-08`). The total row sums `exceptions_open` and `exceptions_total`; `exceptions` has no figure.
 - **Figures.** `occupancy` reads the `daily_statistics` snapshot and is empty when the audit has none. `revenue` is the room revenue of `DailyRevenueQuery::roomRevenueBetween()`, like the Occupancy report, and shows only for a Completed audit: the date of a Running or Failed audit is not closed yet.
 - **Forced.** The screen shows "Yes" with the force reason as a tooltip. The PDF and the spreadsheets print "Yes: {reason}". An audit that was not forced is empty.
 - **Packet column.** A Completed audit shows an "Open packet" link (a new tab) on the screen. There is no screen-only column mechanism, so the exports keep the column and leave it empty.
@@ -149,16 +156,16 @@ Each report has a stable column list like Arrivals. Proposed in the overview and
 
 Both list the Checked in and Checked out units whose stay overlaps the range (arrival on or before the last date, departure after the first date), through `StayUnits`. Confirmed units (not arrived), Cancelled units and No-shows are left out. The Police report covers **all guests of every nationality**, which changes the old wastays idea of "foreign guests who arrived"; its Foreign only filter gives the foreign list.
 
-- **Non-national guests** (`arrival` is the default sort, 31 days, Landscape, Revenue, icon `users`). Columns, all visible by default: `reservation`, `guest`, `nationality`, `identity` ("ID"), `room`, `arrival`, `departure`, `nights`, `guests` ("Adults / children"), `tourism_tax`. One row for each foreign unit; the row key is the unit id. **Guest** is the primary guest, else the booker. **Room** is the room or bed of the first night. **Nights** counts the nights of the stay inside the dates. The total row sums `nights` and `tourism_tax`.
+- **Non-national guests** (`arrival` is the default sort, 31 days, Landscape, Revenue, icon `users`). Columns, all visible by default: `reservation`, `guest`, `nationality`, `identity` ("ID"), `id_type`, `id_number`, `room`, `arrival`, `arrival_time`, `departure`, `departure_time`, `nights`, `guests` ("Adults / children"), `adults`, `children`, `tourism_tax`. The split columns `id_type` ("ID type"), `id_number` ("ID number"), the two time columns, `adults` and `children` are hidden by default; the rest are visible. One row for each foreign unit; the row key is the unit id. **Guest** is the primary guest, else the booker. **Room** is the room or bed of the first night. **Nights** counts the nights of the stay inside the dates. The total row sums `nights`, `adults`, `children` and `tourism_tax`.
 - **Foreign** is the rule of `TaxCalculator`: the unit nationality is set and is not `MY`. `UnitNationality::isForeign()` holds it and `UnitNationality::forUnits()` gives the nationality (primary guest, else booker) of all units with the guests and bookers eager-loaded, so there is no query for each unit.
 - **Tourism tax.** `TourismTaxByUnit` is one grouped query over the Tax lines of the property's `foreign_guests_only` taxes (found by the transaction code of the line) with a posting date in the range. Reversals count, because they are negative. A tax line has no source, so the query follows `parent_line_id` up to two levels (a tax on a discount) to the charge, whose source names a reservation unit, a unit night or an add-on, and joins those to the unit. It reads only the folios of the reservations in the report.
 - **Note.** `HasNote` shows "{n} units have no nationality. Their tourism tax may be missing." for the units staying in the dates with no nationality at all (primary guest and booker both blank), and nothing when there are none.
-- **Police report** (`room` is the default sort, 31 days, Landscape, Front desk, icon `id-card`). Columns, all visible by default: `guest`, `reservation`, `room`, `nationality`, `gender`, `date_of_birth`, `identity` ("ID"), `address`, `phone`, `arrival`, `checked_in_at`, `departure`, `checked_out_at`, `status`. One row for each guest attached to a unit (`unit_guests`); a unit with no attached guest gives one row for the booker. The row key is `{unit id}:{guest id}`. `address` is one line from the guest address fields and the country name. `checked_in_at` and `checked_out_at` are shown in the property time zone (`j M Y H:i`), like Night audit history. There is no total row.
+- **Police report** (`room` is the default sort, 31 days, Landscape, Front desk, icon `id-card`). Columns: `guest`, `reservation`, `room`, `nationality`, `gender`, `date_of_birth`, `identity` ("ID"), `id_type`, `id_number`, `address`, `phone`, `arrival`, `arrival_time`, `checked_in_at`, `checked_in_date`, `checked_in_time`, `departure`, `departure_time`, `checked_out_at`, `checked_out_date`, `checked_out_time`, `status`. The merged columns are visible by default. The split columns (`id_type`, `id_number`, the two time columns and the four check-in and check-out date and time columns) are hidden by default. One row for each guest attached to a unit (`unit_guests`); a unit with no attached guest gives one row for the booker. The row key is `{unit id}:{guest id}`. `address` is one line from the guest address fields and the country name. `checked_in_at` and `checked_out_at` are shown in the property time zone (`j M Y H:i`), like Night audit history; their `_date` (`j M Y`) and `_time` (`H:i`) columns use the same conversion. `arrival_time` and `departure_time` are the expected times of the unit (`reservation_units`, already local), as `H:i`. There is no total row.
 - **Filter `foreign`.** `?foreign=1` lists only the guests whose own `nationality_code` is set and is not `MY`. `ReportFilters::foreignOnly`, `ReportKey::hasForeignFilter()` (Police report only) and a "Foreign only" checkbox in the toolbar carry it like `refunds`: in the page URL, the exports and the layout preview, validated as a boolean, and changing it clears the row selection. Other reports ignore it.
 - **Country names.** Nationality, and the country in `address`, show the full name from `CountryOptions::name()` ("Singapore", not "SG") on screen, in the PDF and in the spreadsheets. A blank code shows blank.
-- **ID.** `GuestIdentities` picks the latest document of the guest shown: a Passport before any other type, then the newest by `created_at` and `id`. It shows the type and the number ("Passport · A1234567"). The documents are picked from their plain columns with one query and only the picked documents are loaded and decrypted with a second one, so a selected-row export decrypts only the selected rows.
+- **ID.** `GuestIdentities` picks the latest document of the guest shown: a Passport before any other type, then the newest by `created_at` and `id`. It shows the type and the number ("Passport · A1234567"). `identity` keeps that text; `id_type` and `id_number` are its two parts, from `GuestIdentities::partsForGuests()`, with the same masking. The documents are picked from their plain columns with one query and only the picked documents are loaded and decrypted with a second one, so a selected-row export decrypts only the selected rows.
 - **Masking.** A user without `guests.view-documents` sees the masked number (`•••• 4567`) on screen, in the PDF and in the spreadsheets. A user with it sees the full number (a MyKad with its dashes). The masking happens in the report service, so a row never carries a number the user may not see.
-- **Activity log.** `LogIdentityExport` writes `report.exported_identity_numbers` (the user as causer, the property as subject; properties: `property_id`, `report_key`, `from`, `to`, `rows`, `format` as `pdf`, `csv` or `xlsx`) when a PDF, a spreadsheet or the layout preview PDF holds full numbers: the user has `guests.view-documents`, the ID column is visible and at least one exported row has an ID. A masked export, an export with no ID and a page view write nothing. The entry holds no number.
+- **Activity log.** `LogIdentityExport` writes `report.exported_identity_numbers` (the user as causer, the property as subject; properties: `property_id`, `report_key`, `from`, `to`, `rows`, `format` as `pdf`, `csv` or `xlsx`) when a PDF, a spreadsheet or the layout preview PDF holds full numbers: the user has `guests.view-documents`, the `identity` or the `id_number` column is visible and at least one exported row has a value in a visible one of them. A masked export, an export with no ID and a page view write nothing. The entry holds no number.
 
 ### Categories
 

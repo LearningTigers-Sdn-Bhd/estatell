@@ -162,8 +162,8 @@ test('the CSV follows the saved layout order and visibility and writes money as 
 
     $rows = csvRows($response->streamedContent());
 
-    expect($rows[0])->toBe(['Balance', 'Guest', 'Arrival', 'Nights', 'Room type / room', 'Status'])
-        ->and($rows[1])->toBe(['350.5', 'Tan', '2026-10-10', '2', $unit->roomType->name, 'Confirmed']);
+    expect($rows[0])->toBe(['Balance', 'Guest', 'Arrival', 'Nights', 'Arrival time', 'Room type / room', 'Status'])
+        ->and($rows[1])->toBe(['350.5', 'Tan', '2026-10-10', '2', '15:00', $unit->roomType->name, 'Confirmed']);
 });
 
 test('the spreadsheet sorts like the table and honours the selection', function () {

@@ -25,9 +25,10 @@ class InHouseReportController extends Controller
         $key = ReportKey::InHouse;
         $filters = $request->filters();
         $layout = $layoutResolver->resolve($property, $key);
+        $allRows = $key->report()->rows($property, $filters);
 
         [$rows, $sort] = $reportPage->paginate(
-            rows: $key->report()->rows($property, $filters),
+            rows: $allRows,
             sort: $request->string('sort')->toString(),
             defaultSort: $key->defaultSort(),
             columnKeys: $layout->visibleKeys(),
@@ -37,6 +38,7 @@ class InHouseReportController extends Controller
 
         return Inertia::render('reports/in-house', [
             'rows' => InHouseRow::collect($rows->withQueryString(), PaginatedDataCollection::class),
+            'totals' => $key->totals($allRows),
             'sort' => $sort,
             'layout' => $layout,
             'orientationOptions' => PageOrientation::options(),

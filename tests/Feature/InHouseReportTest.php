@@ -85,7 +85,7 @@ test('the page opens on the business date and a date in the URL replaces it', fu
         ->where('to', '2026-10-10')
         ->where('maxRangeDays', null)
         ->where('sort', 'room')
-        ->has('layout.columns', 8)
+        ->has('layout.columns', 12)
         ->where('rows.meta.total', 1));
 
     $this->actingAs($user)->get(inHouseUrl($property, '?date=2026-10-14'))->assertInertia(fn (Assert $page) => $page
@@ -162,7 +162,7 @@ test('the report returns only the requested row keys and is in the registry', fu
     $keys = array_map(fn ($column): string => $column->key, ReportKey::InHouse->columns());
 
     expect(array_map(fn (InHouseRow $row): int => $row->key, $report->rows($property, $filters, [$first->id])))->toBe([$first->id])
-        ->and($keys)->toBe(['reservation', 'guest', 'room', 'arrival', 'departure', 'guests', 'company', 'balance'])
+        ->and($keys)->toBe(['reservation', 'guest', 'room', 'arrival', 'arrival_time', 'departure', 'departure_time', 'guests', 'adults', 'children', 'company', 'balance'])
         ->and(ReportKey::InHouse->maxRangeDays())->toBeNull()
         ->and(ReportKey::InHouse->report())->toBeInstanceOf(InHouseReport::class);
 });
@@ -187,7 +187,27 @@ test('the PDF and the CSV export the date and the layout preview accepts it', fu
 
     expect($pdfRows)->toHaveCount(1)
         ->and($csv->headers->get('Content-Disposition'))->toContain('in-house-2026-10-14.csv')
-        ->and(array_values(array_filter(explode("\n", ltrim($csv->streamedContent(), "\xEF\xBB\xBF")))))->toHaveCount(2);
+        ->and(array_values(array_filter(explode("\n", ltrim($csv->streamedContent(), "\xEF\xBB\xBF")))))->toHaveCount(3);
 
     $this->actingAs($user)->postJson("/p/{$property->code}/reports/in-house/spreadsheet", ['format' => 'csv', 'date' => 'bogus'])->assertJsonValidationErrors('date');
+});
+
+test('the split columns and the totals count adults and children, and the time columns are hidden by default', function () {
+    [$user, $property] = inHouseSetup();
+    stayingUnit($property, '2026-10-09', '2026-10-12', ['adults' => 2, 'children' => 1, 'arrival_time' => '13:00:00', 'departure_time' => '11:30:00']);
+    stayingUnit($property, '2026-10-09', '2026-10-12', ['adults' => 3, 'children' => 0]);
+    $rows = app(InHouseReport::class)->rows($property, new ReportFilters('2026-10-10', '2026-10-10'));
+
+    expect($rows[0]->cells())->toMatchArray(['guests' => '2 / 1', 'adults' => '2', 'children' => '1', 'arrival_time' => '13:00', 'departure_time' => '11:30'])
+        ->and($rows[0]->values())->toMatchArray(['adults' => 2, 'children' => 1])
+        ->and(ReportKey::InHouse->totals($rows)->figures)->toMatchArray(['adults' => 5, 'children' => 1, 'guests' => null, 'balance' => null]);
+
+    $defaults = collect(ReportKey::InHouse->columns())->mapWithKeys(fn ($column): array => [$column->key => $column->defaultVisible]);
+
+    expect($defaults->only(['arrival_time', 'departure_time', 'adults', 'children'])->contains(true))->toBeFalse()
+        ->and($defaults['guests'])->toBeTrue();
+
+    $this->actingAs($user)->get(inHouseUrl($property))->assertInertia(fn (Assert $page) => $page
+        ->where('totals.figures.adults', 5)
+        ->where('totals.figures.children', 1));
 });

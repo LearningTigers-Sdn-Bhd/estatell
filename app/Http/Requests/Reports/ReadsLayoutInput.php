@@ -8,9 +8,9 @@ use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Validation\Rule;
 
 /**
- * The layout fields of a report request: the orientation and the columns as `{key, visible, align}` in order. `align` is optional;
- * null means the code default. Whether the
- * keys match the report is checked by `ReportLayoutResolver::fromDraft()`.
+ * The layout fields of a report request: the orientation and the columns as `{key, visible, align}` in order. `align`
+ * is optional; null means the code default. Whether the keys match the report is checked by
+ * `ReportLayoutResolver::fromDraft()`.
  */
 trait ReadsLayoutInput
 {

@@ -4,6 +4,7 @@ namespace App\Services\Reports;
 
 use App\Data\Reports\InHouseRow;
 use App\Data\Reports\ReportFilters;
+use App\Data\Reports\ReportTotals;
 use App\Enums\UnitStatus;
 use App\Models\Property;
 use App\Models\ReservationUnit;
@@ -14,9 +15,9 @@ use App\Services\Reservations\ReservationRoomBox;
  * day counts and the departure day does not. Only Checked in and Checked out units count, so an expected or missed
  * arrival is not in-house. An early check-out moves the departure date to the day it happens and removes the unused
  * nights, so the dates alone give the right answer for any date, past or open. `unit_nights` is read only for the
- * room or bed of that night.
+ * room or bed of that night. The total row sums adults and children.
  */
-class InHouseReport implements Report
+class InHouseReport implements HasTotals, Report
 {
     public function __construct(
         private UnitReportRows $unitRows,
@@ -42,5 +43,28 @@ class InHouseReport implements Report
             fn (array $unitIds): array => $this->roomBox->assignmentsForUnitsOn($unitIds, $date),
             fn (ReservationUnit $unit, ?string $room, string $balance): InHouseRow => InHouseRow::fromModel($unit, $room, $balance),
         );
+    }
+
+    /**
+     * The sums of adults and children.
+     *
+     * @param  list<InHouseRow>  $rows
+     */
+    public function totals(array $rows): ReportTotals
+    {
+        return new ReportTotals([
+            'reservation' => null,
+            'guest' => null,
+            'room' => null,
+            'arrival' => null,
+            'arrival_time' => null,
+            'departure' => null,
+            'departure_time' => null,
+            'guests' => null,
+            'adults' => array_sum(array_map(fn (InHouseRow $row): int => $row->adults, $rows)),
+            'children' => array_sum(array_map(fn (InHouseRow $row): int => $row->children, $rows)),
+            'company' => null,
+            'balance' => null,
+        ]);
     }
 }

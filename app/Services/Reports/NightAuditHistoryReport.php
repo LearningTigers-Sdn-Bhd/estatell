@@ -4,6 +4,7 @@ namespace App\Services\Reports;
 
 use App\Data\Reports\NightAuditHistoryRow;
 use App\Data\Reports\ReportFilters;
+use App\Data\Reports\ReportTotals;
 use App\Enums\AuditStatus;
 use App\Models\DailyStatistic;
 use App\Models\NightAudit;
@@ -16,9 +17,9 @@ use Illuminate\Database\Eloquent\Builder;
  * One row for each night audit whose business date is in the range, with its status, who ran it, the exceptions and
  * the date's occupancy (from the `daily_statistics` snapshot) and room revenue (from `DailyRevenueQuery`, like the
  * Occupancy report). Room revenue shows only for a Completed audit: the date of any other audit is not closed. A
- * Completed audit links to its packet PDF. The report has no total row. See docs/22-reports/01-core-reports.md.
+ * Completed audit links to its packet PDF. The total row sums the two exception counts. See docs/22-reports/01-core-reports.md.
  */
-class NightAuditHistoryReport implements Report
+class NightAuditHistoryReport implements HasTotals, Report
 {
     public function __construct(private DailyRevenueQuery $revenue) {}
 
@@ -65,5 +66,33 @@ class NightAuditHistoryReport implements Report
             })
             ->values()
             ->all();
+    }
+
+    /**
+     * The sums of the open exceptions and of all exceptions.
+     *
+     * @param  list<NightAuditHistoryRow>  $rows
+     */
+    public function totals(array $rows): ReportTotals
+    {
+        return new ReportTotals([
+            'date' => null,
+            'status' => null,
+            'trigger' => null,
+            'run_by' => null,
+            'started' => null,
+            'started_date' => null,
+            'started_time' => null,
+            'completed' => null,
+            'completed_date' => null,
+            'completed_time' => null,
+            'forced' => null,
+            'exceptions' => null,
+            'exceptions_open' => array_sum(array_map(fn (NightAuditHistoryRow $row): int => $row->exceptions_open, $rows)),
+            'exceptions_total' => array_sum(array_map(fn (NightAuditHistoryRow $row): int => $row->exceptions_total, $rows)),
+            'occupancy' => null,
+            'revenue' => null,
+            'packet' => null,
+        ]);
     }
 }

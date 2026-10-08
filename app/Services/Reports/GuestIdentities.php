@@ -35,6 +35,27 @@ class GuestIdentities
      */
     public function forGuests(array $guestIds): array
     {
+        return array_map(self::text(...), $this->partsForGuests($guestIds));
+    }
+
+    /**
+     * The "Passport · A1234567" text of one document, or an empty string for a guest with none.
+     *
+     * @param  array{type: string, number: string}|null  $parts
+     */
+    public static function text(?array $parts): string
+    {
+        return $parts === null ? '' : $parts['type'].self::SEPARATOR.$parts['number'];
+    }
+
+    /**
+     * The same document as `forGuests()`, with the type label and the number apart. The number is masked by the same rule.
+     *
+     * @param  list<int>  $guestIds  Guests of one property.
+     * @return array<int, array{type: string, number: string}> By guest id; a guest with no document has no entry.
+     */
+    public function partsForGuests(array $guestIds): array
+    {
         if ($guestIds === []) {
             return [];
         }
@@ -52,7 +73,10 @@ class GuestIdentities
             ->whereIn('id', $chosen)
             ->get()
             ->mapWithKeys(fn (GuestIdentityDocument $document): array => [
-                $document->guest_id => $document->type->label().self::SEPARATOR.($full ? $document->formattedNumber() : $document->maskedNumber()),
+                $document->guest_id => [
+                    'type' => $document->type->label(),
+                    'number' => $full ? $document->formattedNumber() : $document->maskedNumber(),
+                ],
             ])
             ->all();
     }

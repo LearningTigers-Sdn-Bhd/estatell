@@ -49,14 +49,16 @@ class NonNationalGuestsReport implements HasNote, HasTotals, Report
         $taxes = $this->tourismTax->forRange($property, $filters, $foreign->pluck('reservation_id')->unique()->values()->all());
         $rooms = $this->roomBox->assignmentsForUnits($foreign->pluck('id')->all());
         $guests = $foreign->mapWithKeys(fn (ReservationUnit $unit): array => [$unit->id => $this->guestOf($unit)]);
-        $identities = $this->identities->forGuests($guests->pluck('id')->all());
+        $identities = $this->identities->partsForGuests($guests->pluck('id')->all());
 
         return $foreign
             ->map(fn (ReservationUnit $unit): NonNationalGuestRow => NonNationalGuestRow::fromUnit(
                 $unit,
                 $guests[$unit->id]->full_name,
                 $this->countries->name($nationalities[$unit->id]) ?? '',
-                $identities[$guests[$unit->id]->id] ?? '',
+                GuestIdentities::text($identities[$guests[$unit->id]->id] ?? null),
+                $identities[$guests[$unit->id]->id]['type'] ?? '',
+                $identities[$guests[$unit->id]->id]['number'] ?? '',
                 $rooms[$unit->id] ?? null,
                 $this->stays->nightsInRange($unit, $filters),
                 $taxes[$unit->id] ?? '0.00',
@@ -77,7 +79,7 @@ class NonNationalGuestsReport implements HasNote, HasTotals, Report
     }
 
     /**
-     * The sums of nights and tourism tax.
+     * The sums of nights, adults, children and tourism tax.
      *
      * @param  list<NonNationalGuestRow>  $rows
      */
@@ -88,11 +90,17 @@ class NonNationalGuestsReport implements HasNote, HasTotals, Report
             'guest' => null,
             'nationality' => null,
             'identity' => null,
+            'id_type' => null,
+            'id_number' => null,
             'room' => null,
             'arrival' => null,
+            'arrival_time' => null,
             'departure' => null,
+            'departure_time' => null,
             'nights' => array_sum(array_map(fn (NonNationalGuestRow $row): int => $row->nights, $rows)),
             'guests' => null,
+            'adults' => array_sum(array_map(fn (NonNationalGuestRow $row): int => $row->adults, $rows)),
+            'children' => array_sum(array_map(fn (NonNationalGuestRow $row): int => $row->children, $rows)),
             'tourism_tax' => (string) array_reduce($rows, fn (BigDecimal $sum, NonNationalGuestRow $row): BigDecimal => $sum->plus($row->tourism_tax), BigDecimal::zero())->toScale(2, RoundingMode::HalfUp),
         ]);
     }

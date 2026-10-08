@@ -1,6 +1,8 @@
 <?php
 
+use App\Data\Reports\ReportFilters;
 use App\Enums\DefaultRoleEnum;
+use App\Enums\ReportKey;
 use App\Enums\SystemTransactionCode;
 use App\Models\BusinessDate;
 use App\Models\DailyStatistic;
@@ -12,6 +14,7 @@ use App\Models\Property;
 use App\Models\PropertySetting;
 use App\Models\TransactionCode;
 use App\Models\User;
+use App\Services\Reports\NightAuditHistoryReport;
 use Inertia\Testing\AssertableInertia as Assert;
 
 beforeEach(function () {
@@ -67,7 +70,7 @@ test('the page needs reports.view, is scoped to the property and opens on the la
         ->where('to', '2026-10-10')
         ->where('maxRangeDays', 366)
         ->where('sort', '-date')
-        ->has('layout.columns', 11)
+        ->has('layout.columns', 17)
         ->where('rows.meta.total', 2)
         ->where('rows.data', fn ($rows) => collect($rows)->pluck('key')->all() === ['2026-10-09', '2026-09-11']));
 });
@@ -123,8 +126,8 @@ test('the exports hold only the selected audits, with the force reason as text a
 
     $rows = array_map('str_getcsv', array_values(array_filter(explode("\n", ltrim($response->streamedContent(), "\xEF\xBB\xBF")))));
 
-    expect($rows)->toHaveCount(3)
-        ->and(array_column($rows, 0))->toBe(['Date', '2026-10-08', '2026-10-06'])
+    expect($rows)->toHaveCount(4)
+        ->and(array_column($rows, 0))->toBe(['Date', '2026-10-08', '2026-10-06', 'Total'])
         ->and($rows[0][10])->toBe('Packet')
         ->and($rows[1][6])->toBe('Yes: Power cut')
         ->and($rows[1][10])->toBe('')
@@ -133,4 +136,33 @@ test('the exports hold only the selected audits, with the force reason as text a
     $this->actingAs($user)->post("/p/{$property->code}/reports/night-audit-history/pdf", ['from' => '2026-10-01', 'to' => '2026-10-10'])
         ->assertOk()
         ->assertHeader('Content-Type', 'application/pdf');
+});
+
+test('the split columns hold the exception counts and the dates and times in the property time zone, and the totals sum the counts', function () {
+    [$user, $property] = auditHistorySetup();
+    $property->settings->forceFill(['time_zone' => 'Asia/Kuala_Lumpur'])->save();
+    $audit = auditOn($property, '2026-10-08', 'completed', ['started_at' => '2026-10-08 16:30:00', 'completed_at' => '2026-10-08 16:45:00']);
+    NightAuditException::factory()->count(2)->create(['night_audit_id' => $audit->id]);
+    NightAuditException::factory()->resolved()->create(['night_audit_id' => $audit->id]);
+    $second = auditOn($property, '2026-10-07');
+    NightAuditException::factory()->create(['night_audit_id' => $second->id]);
+
+    $rows = collect(app(NightAuditHistoryReport::class)->rows($property, new ReportFilters('2026-10-07', '2026-10-08')))->keyBy('key');
+
+    expect($rows['2026-10-08']->cells())->toMatchArray([
+        'exceptions' => '2 / 3', 'exceptions_open' => '2', 'exceptions_total' => '3',
+        'started' => '9 Oct 2026 00:30', 'started_date' => '9 Oct 2026', 'started_time' => '00:30',
+        'completed' => '9 Oct 2026 00:45', 'completed_date' => '9 Oct 2026', 'completed_time' => '00:45',
+    ])
+        ->and($rows['2026-10-08']->values())->toMatchArray(['exceptions_open' => 2, 'exceptions_total' => 3])
+        ->and(ReportKey::NightAuditHistory->totals($rows->values()->all())->figures)->toMatchArray(['exceptions' => null, 'exceptions_open' => 3, 'exceptions_total' => 4, 'started_date' => null]);
+
+    $defaults = collect(ReportKey::NightAuditHistory->columns())->mapWithKeys(fn ($column): array => [$column->key => $column->defaultVisible]);
+
+    expect($defaults->only(['exceptions_open', 'exceptions_total', 'started_date', 'started_time', 'completed_date', 'completed_time'])->contains(true))->toBeFalse()
+        ->and($defaults['exceptions'])->toBeTrue();
+
+    $this->actingAs($user)->get(auditHistoryUrl($property, '?from=2026-10-07&to=2026-10-08'))->assertInertia(fn (Assert $page) => $page
+        ->where('totals.figures.exceptions_open', 3)
+        ->where('totals.figures.exceptions_total', 4));
 });

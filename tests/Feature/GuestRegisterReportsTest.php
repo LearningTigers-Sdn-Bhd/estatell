@@ -521,7 +521,7 @@ test('an export without any ID number or with the ID column hidden is not logged
     expect(Activity::query()->where('event', 'report.exported_identity_numbers')->count())->toBe(0);
 
     registerDocument($unit->guests->first()->guest, 'passport', 'A1234567');
-    $columns = array_map(fn ($column): array => ['key' => $column->key, 'visible' => $column->key !== 'identity'], ReportKey::PoliceReport->columns());
+    $columns = array_map(fn ($column): array => ['key' => $column->key, 'visible' => ! in_array($column->key, ['identity', 'id_number'], true)], ReportKey::PoliceReport->columns());
     $this->actingAs($manager)->put("/p/{$property->code}/reports/police-report/layout", ['orientation' => 'landscape', 'columns' => $columns])->assertRedirect();
     registerCsv($this, $manager, $property, 'police-report', registerRange());
     registerPdfCells($this, $manager, $property, 'police-report', registerRange());
@@ -581,8 +581,8 @@ test('the report only returns the requested row keys and is in the registry', fu
         ->and(ReportKey::PoliceReport->report())->toBeInstanceOf(PoliceReport::class)
         ->and(ReportKey::NonNationalGuests->maxRangeDays())->toBe(31)
         ->and(ReportKey::PoliceReport->maxRangeDays())->toBe(31)
-        ->and(array_map(fn ($column): string => $column->key, ReportKey::NonNationalGuests->columns()))->toBe(['reservation', 'guest', 'nationality', 'identity', 'room', 'arrival', 'departure', 'nights', 'guests', 'tourism_tax'])
-        ->and(array_map(fn ($column): string => $column->key, ReportKey::PoliceReport->columns()))->toBe(['guest', 'reservation', 'room', 'nationality', 'gender', 'date_of_birth', 'identity', 'address', 'phone', 'arrival', 'checked_in_at', 'departure', 'checked_out_at', 'status']);
+        ->and(array_map(fn ($column): string => $column->key, ReportKey::NonNationalGuests->columns()))->toBe(['reservation', 'guest', 'nationality', 'identity', 'id_type', 'id_number', 'room', 'arrival', 'arrival_time', 'departure', 'departure_time', 'nights', 'guests', 'adults', 'children', 'tourism_tax'])
+        ->and(array_map(fn ($column): string => $column->key, ReportKey::PoliceReport->columns()))->toBe(['guest', 'reservation', 'room', 'nationality', 'gender', 'date_of_birth', 'identity', 'id_type', 'id_number', 'address', 'phone', 'arrival', 'arrival_time', 'checked_in_at', 'checked_in_date', 'checked_in_time', 'departure', 'departure_time', 'checked_out_at', 'checked_out_date', 'checked_out_time', 'status']);
 });
 
 test('a range longer than 31 days is refused', function () {
@@ -626,4 +626,96 @@ test('the reports are listed in the sidebar and read in a fixed number of querie
     $this->actingAs($user)->get(policeUrl($property))->assertInertia(fn (Assert $page) => $page
         ->where('navigation.contexts.2.groups', fn ($groups) => collect(collect($groups)->firstWhere('label', 'Front desk')['items'])->pluck('title')->contains('Police report')
             && collect(collect($groups)->firstWhere('label', 'Revenue')['items'])->pluck('title')->contains('Non-national guests')));
+});
+
+test('the non-national guests split columns, time columns and totals', function () {
+    [$user, $property] = registerSetup();
+    $first = registerUnit($property, '2026-10-09', '2026-10-12', 'SG', ['adults' => 2, 'children' => 1, 'arrival_time' => '14:00:00', 'departure_time' => '12:00:00']);
+    registerUnit($property, '2026-10-09', '2026-10-12', 'SG', ['adults' => 1, 'children' => 2]);
+    registerDocument($first->reservation->booker, 'passport', 'A1234567');
+    $rows = app(NonNationalGuestsReport::class)->rows($property, new ReportFilters('2026-10-01', '2026-10-31'));
+    $row = collect($rows)->firstWhere('key', $first->id);
+
+    expect($row->cells())->toMatchArray(['id_type' => 'Passport', 'guests' => '2 / 1', 'adults' => '2', 'children' => '1', 'arrival_time' => '14:00', 'departure_time' => '12:00'])
+        ->and($row->values())->toMatchArray(['id_type' => 'Passport', 'adults' => 2, 'children' => 1])
+        ->and(ReportKey::NonNationalGuests->totals($rows)->figures)->toMatchArray(['adults' => 3, 'children' => 3, 'guests' => null, 'identity' => null, 'id_number' => null]);
+
+    $defaults = collect(ReportKey::NonNationalGuests->columns())->mapWithKeys(fn ($column): array => [$column->key => $column->defaultVisible]);
+
+    expect($defaults->only(['id_type', 'id_number', 'arrival_time', 'departure_time', 'adults', 'children'])->contains(true))->toBeFalse()
+        ->and($defaults['identity'])->toBeTrue();
+
+    $this->actingAs($user)->get(nonNationalUrl($property, '?from=2026-10-01&to=2026-10-31'))->assertInertia(fn (Assert $page) => $page
+        ->where('totals.figures.adults', 3)
+        ->where('totals.figures.children', 3));
+});
+
+test('the police report split columns hold the ID parts and the dates and times in the property time zone', function () {
+    [$user, $property] = registerSetup();
+    $unit = registerUnit($property, '2026-10-09', '2026-10-12', 'SG', [
+        'status' => UnitStatus::CheckedOut,
+        'checked_in_at' => '2026-10-09 06:30:00',
+        'checked_out_at' => '2026-10-11 16:15:00',
+        'arrival_time' => '14:00:00',
+        'departure_time' => '12:00:00',
+    ]);
+    registerDocument(registerGuest($unit, ['nationality_code' => 'SG'], primary: true), 'passport', 'A1234567');
+    $bare = registerUnit($property, '2026-10-09', '2026-10-12', 'SG');
+
+    $rows = collect(app(PoliceReport::class)->rows($property, new ReportFilters('2026-10-01', '2026-10-31')))->keyBy(fn (PoliceReportRow $row): int => (int) explode(':', $row->key)[0]);
+
+    expect($rows[$unit->id]->cells())->toMatchArray([
+        'id_type' => 'Passport', 'arrival_time' => '14:00', 'departure_time' => '12:00',
+        'checked_in_at' => '9 Oct 2026 14:30', 'checked_in_date' => '9 Oct 2026', 'checked_in_time' => '14:30',
+        'checked_out_at' => '12 Oct 2026 00:15', 'checked_out_date' => '12 Oct 2026', 'checked_out_time' => '00:15',
+    ])
+        ->and($rows[$unit->id]->values())->toMatchArray(['id_type' => 'Passport'])
+        ->and($rows[$bare->id]->cells())->toMatchArray(['id_type' => '', 'id_number' => '']);
+
+    $defaults = collect(ReportKey::PoliceReport->columns())->mapWithKeys(fn ($column): array => [$column->key => $column->defaultVisible]);
+
+    expect($defaults->only(['id_type', 'id_number', 'arrival_time', 'departure_time', 'checked_in_date', 'checked_in_time', 'checked_out_date', 'checked_out_time'])->contains(true))->toBeFalse()
+        ->and($defaults['identity'])->toBeTrue();
+});
+
+test('the ID type and number are split, and the number is masked for a user without guests.view-documents', function () {
+    [$finance, $property] = registerSetup(DefaultRoleEnum::Finance);
+    $unit = registerUnit($property, '2026-10-09', '2026-10-12', 'SG');
+    registerDocument(registerGuest($unit, ['nationality_code' => 'SG'], primary: true), 'passport', 'A1234567');
+    $range = '?from=2026-10-01&to=2026-10-31';
+
+    foreach ([policeUrl($property, $range), nonNationalUrl($property, $range)] as $url) {
+        $this->actingAs($finance)->get($url)->assertInertia(fn (Assert $page) => $page
+            ->where('rows.data.0.id_type', 'Passport')
+            ->where('rows.data.0.id_number', '•••• 4567'));
+    }
+
+    [$manager, $managerProperty] = registerSetup();
+    $managerUnit = registerUnit($managerProperty, '2026-10-09', '2026-10-12', 'SG');
+    registerDocument(registerGuest($managerUnit, ['nationality_code' => 'SG'], primary: true), 'passport', 'A1234567');
+
+    $this->actingAs($manager)->get(policeUrl($managerProperty, $range))->assertInertia(fn (Assert $page) => $page
+        ->where('rows.data.0.id_number', 'A1234567'));
+});
+
+test('the identity export is logged when only the ID number column is visible and not when both are hidden', function () {
+    [$manager, $property] = registerSetup();
+    $unit = registerUnit($property, '2026-10-09', '2026-10-12', 'SG');
+    registerDocument(registerGuest($unit, ['nationality_code' => 'SG'], primary: true), 'passport', 'A1234567');
+    $layout = fn (array $visible): array => ['orientation' => 'landscape', 'columns' => array_map(fn ($column): array => ['key' => $column->key, 'visible' => in_array($column->key, $visible, true)], ReportKey::PoliceReport->columns())];
+
+    $this->actingAs($manager)->put("/p/{$property->code}/reports/police-report/layout", $layout(['guest', 'id_number']))->assertRedirect();
+    registerCsv($this, $manager, $property, 'police-report', registerRange());
+
+    $entries = Activity::query()->where('event', 'report.exported_identity_numbers')->get();
+
+    expect($entries)->toHaveCount(1)
+        ->and($entries[0]->properties['report_key'])->toBe('police-report')
+        ->and(json_encode($entries->pluck('properties')))->not->toContain('A1234567');
+
+    $this->actingAs($manager)->put("/p/{$property->code}/reports/police-report/layout", $layout(['guest', 'id_type']))->assertRedirect();
+    registerCsv($this, $manager, $property, 'police-report', registerRange());
+    registerPdfCells($this, $manager, $property, 'police-report', registerRange());
+
+    expect(Activity::query()->where('event', 'report.exported_identity_numbers')->count())->toBe(1);
 });

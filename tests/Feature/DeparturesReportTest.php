@@ -81,7 +81,7 @@ test('the page opens on the business date with the departure columns and sort', 
         ->where('to', '2026-10-10')
         ->where('maxRangeDays', 31)
         ->where('sort', 'departure')
-        ->has('layout.columns', 10)
+        ->has('layout.columns', 15)
         ->where('rows.meta.total', 1)
         ->where('rows.data.0.departure', '2026-10-10')
         ->where('rows.data.0.nights', 2));
@@ -150,6 +150,26 @@ test('the PDF and the CSV export the departures', function () {
 
     $lines = array_values(array_filter(explode("\n", ltrim($csv->streamedContent(), "\xEF\xBB\xBF"))));
 
-    expect(str_getcsv($lines[0]))->toBe(['Reservation no.', 'Guest', 'Departure', 'Nights', 'Room type / room', 'Status', 'Balance'])
+    expect(str_getcsv($lines[0]))->toBe(['Reservation no.', 'Guest', 'Departure', 'Departure time', 'Nights', 'Room type / room', 'Status', 'Balance'])
         ->and($lines)->toHaveCount(2);
+});
+
+test('the split columns hold the room type, the room of the last night, the guest counts and the departure time', function () {
+    [, $property] = departuresSetup();
+    $unit = departingUnit($property, '2026-10-10', ['adults' => 2, 'children' => 3, 'departure_time' => '10:45:00']);
+    $room = Room::factory()->for($property)->create(['room_type_id' => $unit->room_type_id, 'number' => '202']);
+    UnitNight::factory()->create(['reservation_unit_id' => $unit->id, 'date' => '2026-10-09', 'room_id' => $room->id]);
+    $unassigned = departingUnit($property, '2026-10-10');
+
+    $rows = collect(app(DeparturesReport::class)->rows($property, new ReportFilters('2026-10-10', '2026-10-10')))->keyBy('key');
+
+    expect($rows[$unit->id]->cells())->toMatchArray(['room_type' => $unit->roomType->name, 'room' => '202', 'adults' => '2', 'children' => '3', 'departure_time' => '10:45'])
+        ->and($rows[$unit->id]->values())->toMatchArray(['adults' => 2, 'children' => 3, 'departure_time' => '10:45'])
+        ->and($rows[$unassigned->id]->room)->toBeNull()
+        ->and($rows[$unassigned->id]->cells()['room'])->toBe('');
+
+    $defaults = collect(ReportKey::Departures->columns())->mapWithKeys(fn ($column): array => [$column->key => $column->defaultVisible]);
+
+    expect($defaults->only(['room_type', 'room', 'adults', 'children'])->contains(true))->toBeFalse()
+        ->and($defaults['departure_time'])->toBeTrue();
 });

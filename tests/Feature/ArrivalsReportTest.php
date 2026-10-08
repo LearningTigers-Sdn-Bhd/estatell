@@ -86,7 +86,7 @@ test('the page opens on the business date and lists the units that arrive', func
         ->has('businessDate.timeZone')
         ->where('maxRangeDays', 31)
         ->where('sort', 'arrival')
-        ->has('layout.columns', 10)
+        ->has('layout.columns', 15)
         ->where('layout.orientation', 'portrait')
         ->where('canEditLayout', true)
         ->has('rows.data', 1)
@@ -235,8 +235,8 @@ test('the arrivals report is in the registry with its columns', function () {
     $keys = array_map(fn ($column): string => $column->key, ReportKey::Arrivals->columns());
     $visible = array_map(fn ($column): string => $column->key, array_filter(ReportKey::Arrivals->columns(), fn ($column): bool => $column->defaultVisible));
 
-    expect($keys)->toBe(['reservation', 'guest', 'phone', 'arrival', 'nights', 'unit', 'guests', 'company', 'status', 'balance'])
-        ->and(array_values($visible))->toBe(['reservation', 'guest', 'arrival', 'nights', 'unit', 'status', 'balance'])
+    expect($keys)->toBe(['reservation', 'guest', 'phone', 'arrival', 'arrival_time', 'nights', 'unit', 'room_type', 'room', 'guests', 'adults', 'children', 'company', 'status', 'balance'])
+        ->and(array_values($visible))->toBe(['reservation', 'guest', 'arrival', 'arrival_time', 'nights', 'unit', 'status', 'balance'])
         ->and(ReportKey::Arrivals->maxRangeDays())->toBe(31)
         ->and(ReportKey::Arrivals->report())->toBeInstanceOf(ArrivalsReport::class);
 });
@@ -305,4 +305,30 @@ test('the Reports navigation groups the reports by category and needs reports.vi
 
     $this->actingAs($front)->get(route('dashboard', $frontProperty->code))->assertInertia(fn (Assert $page) => $page
         ->where('navigation.contexts', fn ($contexts) => collect($contexts)->doesntContain('key', 'reports')));
+});
+
+test('the split columns hold the room type, the room, the guest counts and the arrival time, and are hidden by default', function () {
+    [, $property] = arrivalsSetup();
+    $assigned = arrivingUnit($property, '2026-10-10', ['adults' => 2, 'children' => 1, 'arrival_time' => '14:30:00']);
+    $room = Room::factory()->for($property)->create(['room_type_id' => $assigned->room_type_id, 'number' => '204']);
+    UnitNight::factory()->create(['reservation_unit_id' => $assigned->id, 'date' => '2026-10-10', 'room_id' => $room->id]);
+    $unassigned = arrivingUnit($property, '2026-10-10', ['adults' => 1, 'children' => 0]);
+
+    $rows = collect(app(ArrivalsReport::class)->rows($property, new ReportFilters('2026-10-10', '2026-10-10')))->keyBy('key');
+    $withRoom = $rows[$assigned->id];
+    $withoutRoom = $rows[$unassigned->id];
+
+    expect($withRoom->unit)->toBe("{$assigned->roomType->name} / 204")
+        ->and($withRoom->cells())->toMatchArray(['room_type' => $assigned->roomType->name, 'room' => '204', 'guests' => '2 / 1', 'adults' => '2', 'children' => '1', 'arrival_time' => '14:30'])
+        ->and($withRoom->values())->toMatchArray(['room_type' => $assigned->roomType->name, 'room' => '204', 'adults' => 2, 'children' => 1, 'arrival_time' => '14:30'])
+        ->and($withoutRoom->room)->toBeNull()
+        ->and($withoutRoom->cells()['room'])->toBe('')
+        ->and($withoutRoom->unit)->toBe($unassigned->roomType->name);
+
+    $defaults = collect(ReportKey::Arrivals->columns())->mapWithKeys(fn ($column): array => [$column->key => $column->defaultVisible]);
+
+    expect($defaults->only(['room_type', 'room', 'adults', 'children'])->contains(true))->toBeFalse()
+        ->and($defaults['arrival_time'])->toBeTrue()
+        ->and($defaults['unit'])->toBeTrue()
+        ->and($defaults['guests'])->toBeFalse();
 });

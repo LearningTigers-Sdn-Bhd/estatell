@@ -38,6 +38,7 @@ class NightAuditHistoryReportController extends Controller
 
         return Inertia::render('reports/night-audit-history', [
             'rows' => NightAuditHistoryRow::collect($rows->withQueryString(), PaginatedDataCollection::class),
+            'totals' => $key->totals($allRows),
             'sort' => $sort,
             'layout' => $layout,
             'orientationOptions' => PageOrientation::options(),

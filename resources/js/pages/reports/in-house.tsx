@@ -11,6 +11,7 @@ type Layout = App.Data.Reports.ReportLayoutData;
 
 type Props = {
     rows: Illuminate.LengthAwarePaginator<number, Row>;
+    totals: App.Data.Reports.ReportTotals;
     sort: string;
     layout: Layout;
     canEditLayout: boolean;

@@ -11,7 +11,6 @@ use App\Models\UnitGuest;
 use App\Services\Guests\CountryOptions;
 use App\Services\Reservations\ReservationRoomBox;
 use App\Services\Reservations\UnitNationality;
-use Carbon\CarbonInterface;
 use Illuminate\Support\Collection;
 
 /**
@@ -56,19 +55,21 @@ class PoliceReport implements Report
         }
 
         $rooms = $this->roomBox->assignmentsForUnits(array_values(array_unique(array_map(fn (array $pair): int => $pair[0]->id, $pairs))));
-        $identities = $this->identities->forGuests(array_map(fn (array $pair): int => $pair[1]->id, $pairs));
+        $identities = $this->identities->partsForGuests(array_map(fn (array $pair): int => $pair[1]->id, $pairs));
         $timeZone = $property->loadMissing('settings')->settings?->time_zone ?? config('app.timezone');
-        $time = fn (?CarbonInterface $moment): string => $moment === null ? '' : $moment->copy()->setTimezone($timeZone)->format('j M Y H:i');
 
         return array_map(fn (array $pair): PoliceReportRow => PoliceReportRow::fromGuest(
             $pair[0],
             $pair[1],
             $rooms[$pair[0]->id] ?? null,
             $this->countries->name($pair[1]->nationality_code) ?? '',
-            $identities[$pair[1]->id] ?? '',
+            GuestIdentities::text($identities[$pair[1]->id] ?? null),
+            $identities[$pair[1]->id]['type'] ?? '',
+            $identities[$pair[1]->id]['number'] ?? '',
             $this->address($pair[1]),
-            $time($pair[0]->checked_in_at),
-            $time($pair[0]->checked_out_at),
+            $pair[0]->checked_in_at,
+            $pair[0]->checked_out_at,
+            $timeZone,
         ), $pairs);
     }
 
