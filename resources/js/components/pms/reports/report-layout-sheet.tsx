@@ -1,3 +1,18 @@
+import {
+    closestCenter,
+    DndContext,
+    KeyboardSensor,
+    PointerSensor,
+    useSensor,
+    useSensors,
+} from '@dnd-kit/core';
+import type { DragEndEvent } from '@dnd-kit/core';
+import {
+    SortableContext,
+    sortableKeyboardCoordinates,
+    useSortable,
+    verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
 import { router, usePage } from '@inertiajs/react';
 import {
     AlignCenter,
@@ -6,9 +21,11 @@ import {
     ArrowDown,
     ArrowUp,
     ExternalLink,
+    GripVertical,
     RotateCcw,
 } from 'lucide-react';
 import { useState } from 'react';
+import type { ReactNode } from 'react';
 import type { EnumOption } from '@/components/pms/enum-select';
 import { FormOverlay } from '@/components/pms/form-overlay';
 import {
@@ -78,6 +95,56 @@ function sameLayout(a: Layout, b: Layout): boolean {
     );
 }
 
+/** One column row. Only the grip handle starts a drag, so the switch and the alignment stay clickable. */
+function SortableColumnRow({
+    id,
+    label,
+    children,
+}: {
+    id: string;
+    label: string;
+    children: ReactNode;
+}) {
+    const {
+        attributes,
+        listeners,
+        setNodeRef,
+        setActivatorNodeRef,
+        transform,
+        transition,
+        isDragging,
+    } = useSortable({ id });
+
+    return (
+        <li
+            ref={setNodeRef}
+            style={{
+                transform: transform
+                    ? `translate3d(${Math.round(transform.x)}px, ${Math.round(transform.y)}px, 0) scaleX(${transform.scaleX}) scaleY(${transform.scaleY})`
+                    : undefined,
+                transition,
+            }}
+            className={`flex items-center gap-3 bg-popover px-3 py-2 ${
+                isDragging ? 'relative z-10 shadow-md' : ''
+            }`}
+        >
+            <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                className="cursor-grab touch-none"
+                aria-label={`Drag to reorder ${label}`}
+                ref={setActivatorNodeRef}
+                {...attributes}
+                {...listeners}
+            >
+                <GripVertical />
+            </Button>
+            {children}
+        </li>
+    );
+}
+
 /**
  * The column layout of a report: orientation, the order and visibility of every column, a PDF preview and reset. The
  * page owns the draft, so its table follows each change. See docs/22-reports/01-core-reports.md.
@@ -111,6 +178,26 @@ export function ReportLayoutSheet({
 
         columns.splice(to, 0, moved);
         onDraftChange({ ...draft, columns });
+    };
+
+    const sensors = useSensors(
+        useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+        useSensor(KeyboardSensor, {
+            coordinateGetter: sortableKeyboardCoordinates,
+        }),
+    );
+
+    const handleDragEnd = ({ active, over }: DragEndEvent) => {
+        if (!over || active.id === over.id) {
+            return;
+        }
+
+        const from = draft.columns.findIndex((c) => c.key === active.id);
+        const to = draft.columns.findIndex((c) => c.key === over.id);
+
+        if (from !== -1 && to !== -1) {
+            move(from, to);
+        }
     };
 
     const toggle = (index: number, visible: boolean) => {
@@ -259,85 +346,112 @@ export function ReportLayoutSheet({
 
                     <FieldSet>
                         <FieldLegend variant="label">Columns</FieldLegend>
-                        <ul className="flex flex-col divide-y rounded-md border">
-                            {draft.columns.map((column, index) => (
-                                <li
-                                    key={column.key}
-                                    className="flex items-center gap-3 px-3 py-2"
-                                >
-                                    <Switch
-                                        size="sm"
-                                        id={`column-${column.key}`}
-                                        checked={column.visible}
-                                        disabled={
-                                            column.visible && visibleCount === 1
-                                        }
-                                        onCheckedChange={(checked) =>
-                                            toggle(index, checked)
-                                        }
-                                    />
-                                    <FieldContent className="min-w-0 flex-1">
-                                        <FieldLabel
-                                            htmlFor={`column-${column.key}`}
-                                            className="truncate"
+                        <DndContext
+                            sensors={sensors}
+                            collisionDetection={closestCenter}
+                            onDragEnd={handleDragEnd}
+                        >
+                            <SortableContext
+                                items={draft.columns.map((c) => c.key)}
+                                strategy={verticalListSortingStrategy}
+                            >
+                                <ul className="flex flex-col divide-y rounded-md border">
+                                    {draft.columns.map((column, index) => (
+                                        <SortableColumnRow
+                                            key={column.key}
+                                            id={column.key}
+                                            label={column.label}
                                         >
-                                            {column.label}
-                                        </FieldLabel>
-                                    </FieldContent>
-                                    <ToggleGroup
-                                        variant="outline"
-                                        size="sm"
-                                        spacing={0}
-                                        aria-label={`Align ${column.label}`}
-                                        value={[column.align]}
-                                        onValueChange={(values) => {
-                                            const next = ALIGNMENTS.find(
-                                                (option) =>
-                                                    option.value === values[0],
-                                            );
-
-                                            if (next) {
-                                                align(index, next.value);
-                                            }
-                                        }}
-                                    >
-                                        {ALIGNMENTS.map(
-                                            ({ value, label, Icon }) => (
-                                                <ToggleGroupItem
-                                                    key={value}
-                                                    value={value}
-                                                    aria-label={`${label} align ${column.label}`}
+                                            <Switch
+                                                size="sm"
+                                                id={`column-${column.key}`}
+                                                checked={column.visible}
+                                                disabled={
+                                                    column.visible &&
+                                                    visibleCount === 1
+                                                }
+                                                onCheckedChange={(checked) =>
+                                                    toggle(index, checked)
+                                                }
+                                            />
+                                            <FieldContent className="min-w-0 flex-1">
+                                                <FieldLabel
+                                                    htmlFor={`column-${column.key}`}
+                                                    className="truncate"
                                                 >
-                                                    <Icon />
-                                                </ToggleGroupItem>
-                                            ),
-                                        )}
-                                    </ToggleGroup>
-                                    <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="icon-sm"
-                                        aria-label={`Move ${column.label} up`}
-                                        disabled={index === 0}
-                                        onClick={() => move(index, index - 1)}
-                                    >
-                                        <ArrowUp />
-                                    </Button>
-                                    <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="icon-sm"
-                                        aria-label={`Move ${column.label} down`}
-                                        disabled={
-                                            index === draft.columns.length - 1
-                                        }
-                                        onClick={() => move(index, index + 1)}
-                                    >
-                                        <ArrowDown />
-                                    </Button>
-                                </li>
-                            ))}
-                        </ul>
+                                                    {column.label}
+                                                </FieldLabel>
+                                            </FieldContent>
+                                            <ToggleGroup
+                                                variant="outline"
+                                                size="sm"
+                                                spacing={0}
+                                                aria-label={`Align ${column.label}`}
+                                                value={[column.align]}
+                                                onValueChange={(values) => {
+                                                    const next =
+                                                        ALIGNMENTS.find(
+                                                            (option) =>
+                                                                option.value ===
+                                                                values[0],
+                                                        );
+
+                                                    if (next) {
+                                                        align(
+                                                            index,
+                                                            next.value,
+                                                        );
+                                                    }
+                                                }}
+                                            >
+                                                {ALIGNMENTS.map(
+                                                    ({
+                                                        value,
+                                                        label,
+                                                        Icon,
+                                                    }) => (
+                                                        <ToggleGroupItem
+                                                            key={value}
+                                                            value={value}
+                                                            aria-label={`${label} align ${column.label}`}
+                                                        >
+                                                            <Icon />
+                                                        </ToggleGroupItem>
+                                                    ),
+                                                )}
+                                            </ToggleGroup>
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="icon-sm"
+                                                aria-label={`Move ${column.label} up`}
+                                                disabled={index === 0}
+                                                onClick={() =>
+                                                    move(index, index - 1)
+                                                }
+                                            >
+                                                <ArrowUp />
+                                            </Button>
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="icon-sm"
+                                                aria-label={`Move ${column.label} down`}
+                                                disabled={
+                                                    index ===
+                                                    draft.columns.length - 1
+                                                }
+                                                onClick={() =>
+                                                    move(index, index + 1)
+                                                }
+                                            >
+                                                <ArrowDown />
+                                            </Button>
+                                        </SortableColumnRow>
+                                    ))}
+                                </ul>
+                            </SortableContext>
+                        </DndContext>
                     </FieldSet>
                 </FieldGroup>
             </FormOverlay>

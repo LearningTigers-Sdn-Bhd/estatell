@@ -241,7 +241,7 @@ Arrivals     [ This week ▾ ]   [⚙ Layout]   [ Export ▾ ]
 - **The table behind the Sheet is the preview.** Hiding or moving a column changes it at once.
 - **Preview PDF** (a native form POST with `target="_blank"`) opens the real PDF of the current dates with the unsaved layout, in a new tab. This shows the orientation, which the screen cannot.
 - **Alignment.** Each column row has a Left, Center and Right control. It edits the draft, so the table behind the Sheet changes at once. Preview PDF sends the alignment too.
-- Order uses up and down arrows. There is no drag-and-drop package.
+- **Order** uses drag and drop (`@dnd-kit/sortable`). Each row has a grip handle on the left. Only the handle starts a drag, so the switch and the alignment stay clickable. The keyboard works too: focus the handle, press Space, move with the arrow keys, press Space to drop. The up and down arrows stay as a fallback. A drop edits the same draft as the arrows, so the table behind the Sheet follows at once.
 - **Save** calls `UpdateReportLayout`: orientation and the full column list in order (with the alignment of each), in one transaction. An alignment equal to the code default is saved as null, so a later change of the default still shows. It refuses a list whose keys do not match `columns()`.
 - **Cancel**, or closing the Sheet, puts the table back. A dirty Sheet asks before it closes.
 - **Reset to default** asks first, then calls `ResetReportLayout`, which deletes the layout. This also clears the alignment overrides.
