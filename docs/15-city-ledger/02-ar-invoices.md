@@ -41,7 +41,7 @@ The settle action does not go through `RecordPayment`: a City ledger line has no
     - the company is Suspended or has `direct_bill_enabled` off (`direct_bill_not_allowed`);
     - the balance is not above 0 (`nothing_to_settle`);
     - there is no business date (`no_business_date`).
-- The credit limit is checked with `CreditCheck` ([Credit control](04-credit-control-and-reports.md#credit-check)): a company already over its limit is refused (`credit_limit_exceeded`) unless the user passes `company.credit-override` with a reason.
+- Settle is **never refused by the credit limit**: it adds no debt, it moves the folio balance into AR. Over the limit, the confirmation shows a warning ("Acme Sdn Bhd is over its credit limit by MYR 100.00. The invoice is still issued.") and no override reason is asked. See [Credit control](04-credit-control-and-reports.md#credit-check).
 - `ReopenFolio` refuses a folio that has an AR invoice that is not Void (`folio_has_ar_invoice`): fix it with a credit note.
 - A ThirdParty folio with a company payer settles the same way, also while units are in-house. It makes its own invoice.
 - **A late charge after Settle** (for example a minibar found the next morning) cannot post to the settled folio (`folio_settled_to_city_ledger`). Staff open a third-party folio for the company, add a routing rule for that unit to it, post the charge, then settle that folio: a second invoice. See [Routing](../13-folio/03-routing.md#rules).

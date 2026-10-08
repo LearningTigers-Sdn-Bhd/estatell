@@ -2,7 +2,7 @@
 
 ## Services
 
-- `CreditExposure`: what a company owes or may owe: open AR plus its in-house folios.
+- `CreditExposure`: what a company owes or may owe: open AR plus its open folios.
 - `CreditCheck`: asks whether an action keeps the company under its credit limit.
 - `AgingReport`: what companies owe, by days past due.
 - `StatementBuilder`: statement of account per company, shown on screen and rendered as PDF with dompdf.
@@ -11,29 +11,32 @@
 
 `CreditExposure::forCompany(Company)` returns the exposure, the limit and the headroom. Amounts are decimal strings with two places. It reads and writes nothing else.
 
-| Part               | Rule                                                                                                                                                                                             |
-| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Open AR            | The balances of the company's invoices (amount + credit notes that are not Void - active allocations) minus its unallocated payments. A total below 0 counts as 0, because credit is not a limit |
-| In-house balance   | The balances of the company's Open folios (`payer_company_id`) on reservations that are not Cancelled or Completed. A balance below 0 counts as 0                                                |
-| Exposure           | Open AR + in-house balance                                                                                                                                                                       |
-| Limit and headroom | `companies.credit_limit`. Empty means no limit: no check and no headroom. Headroom = limit - exposure, and can be negative                                                                       |
+| Part               | Rule                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Open AR            | The balances of the company's invoices (amount + credit notes that are not Void - active allocations) minus its unallocated payments. A total below 0 counts as 0, because credit is not a limit                                                                                                                                                                                                                                                                              |
+| Open folio balance | The balances of the company's Open folios (`payer_company_id`: Master or ThirdParty), whatever the reservation status. A departed or cancelled reservation's folio that nobody has settled yet still counts, until Settle moves it into open AR (the folio is then Closed, so it never counts twice). A balance below 0 counts as 0. A folio with no company payer is not company debt. The code keeps the historical key `inHouse`; the company page labels it "Open folios" |
+| Exposure           | Open AR + open folio balance                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| Limit and headroom | `companies.credit_limit`. Empty means no limit: no check and no headroom. Headroom = limit - exposure, and can be negative                                                                                                                                                                                                                                                                                                                                                    |
 
 ## Credit check
 
 `CreditCheck::check(Company, additional)` answers allowed or refused, with the exposure, the limit and by how much the action goes over. It refuses when exposure + `additional` is above the limit. A company with no limit always passes.
 
-| Action                                                                 | `additional`                              | Notes                                                                                                    |
-| ---------------------------------------------------------------------- | ----------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| `SettleToCityLedger`                                                   | 0                                         | The balance is already in the in-house figure, so settling only refuses a company already over its limit |
-| `CreateReservation` and `UpdateReservationCompany`                     | The stay total of the booking's new units | Checked when the company is set. A reservation without a company is never checked                        |
-| Check-in ([Front desk](../18-front-desk/01-check-in-and-check-out.md)) | 0                                         | Built with front desk, which calls `CreditCheck`                                                         |
+| Action                                                                 | `additional`                              | Notes                                                                                                                                                                                                                                                                                   |
+| ---------------------------------------------------------------------- | ----------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `SettleToCityLedger`                                                   | —                                         | **Never refused by the limit.** Settling adds no debt: it moves an open folio balance into open AR, so the exposure is the same before and after. Blocking it would only leave the bill unsent. Over the limit, the Settle confirmation shows a warning and the invoice is still issued |
+| `CreateReservation` and `UpdateReservationCompany`                     | The stay total of the booking's new units | Checked when the company is set. A reservation without a company is never checked                                                                                                                                                                                                       |
+| Check-in ([Front desk](../18-front-desk/01-check-in-and-check-out.md)) | 0                                         | Built with front desk, which calls `CreditCheck`                                                                                                                                                                                                                                        |
 
-- A refusal returns `credit_limit_exceeded` and writes nothing.
+- A refusal returns `credit_limit_exceeded` and writes nothing. The limit stops **new** debt (a booking, a company change, a check-in), never the billing of debt that already exists.
+- **Settle over the limit:** `FolioData.settleCreditWarning` carries "Acme Sdn Bhd is over its credit limit by MYR 100.00. The invoice is still issued." (from `CreditCheck`, additional 0) for the Settle confirmation, or null. No reason is asked and nothing is logged as an override.
 - `company.credit-override` lets a user pass the check. The action takes an `overrideReason`. Without a reason the check still refuses. With one, the action goes ahead and logs `credit.overridden` on the company, with the exposure, the limit, the amount and the reason.
-- The Settle button, the Change company Dialog and the booking form show the refusal. A user with the override permission sees the warning and a required reason field, then can continue.
+- The Change company Dialog and the booking form show the refusal. A user with the override permission sees the warning and a required reason field, then can continue.
 - There is no payment hold. A company over its limit shows a warning badge on the companies list and the company page (**Over limit**, danger tone), and nothing else changes.
 
 ## Aging report
+
+The Aging report and the Statement are AR only: a folio that has not been settled yet is not in them. It is in the exposure above, in the [Outstanding balance](../22-reports/01-core-reports.md) report, and in the night audit's **Master folio not billed** warning.
 
 `AgingReport::build(Property, asAt)` returns one row per company with a balance, and totals.
 
