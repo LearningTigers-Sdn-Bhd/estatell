@@ -74,6 +74,8 @@ type Props<TRow extends { key: number | string }> = {
     codeOptions?: EnumOption[];
     /** A small summary table under the main table (Payments: the total for each method). */
     breakdown?: App.Data.Reports.ReportBreakdown | null;
+    /** The quick dates of a range report, from `ReportKey::datePresets()`. Without it the standard list shows. */
+    presets?: App.Enums.ReportDatePreset[];
 };
 
 const MAX_SELECTED = 500;
@@ -107,6 +109,7 @@ export function ReportScreen<TRow extends { key: number | string }>({
     code = null,
     codeOptions = [],
     breakdown = null,
+    presets,
 }: Props<TRow>) {
     const column = useMemo(() => dataTableColumns<TRow>(), []);
     const [draft, setDraft] = useState<Layout | null>(null);
@@ -187,8 +190,8 @@ export function ReportScreen<TRow extends { key: number | string }>({
     const { url, props } = usePage();
     const businessDay = props.businessDate?.date;
     const rangePresets = useMemo(
-        () => (businessDay ? reportDatePresets(businessDay) : []),
-        [businessDay],
+        () => (businessDay ? reportDatePresets(businessDay, presets) : []),
+        [businessDay, presets],
     );
     const datePresets = useMemo(
         () => (businessDay ? reportDatePresetsForOneDate(businessDay) : []),

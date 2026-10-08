@@ -33,55 +33,79 @@ function weekStart(date: Date): Date {
     return addDays(date, -((date.getUTCDay() + 6) % 7));
 }
 
+/** The quick dates a range report offers when its page sends none, in the order shown. */
+export const defaultReportPresets: App.Enums.ReportDatePreset[] = [
+    'today',
+    'yesterday',
+    'this-week',
+    'last-week',
+    'this-month',
+    'last-month',
+    'this-year',
+    'last-30-days',
+];
+
 /**
  * The quick dates of a report, counted from the business date and not from the clock.
- * Weeks run Monday to Sunday and months and years run in full.
+ * Weeks run Monday to Sunday and months and years run in full. `keys` picks the presets and their order; a report
+ * sends its own list (`ReportKey::datePresets()`), and without one the standard list shows.
  */
-export function reportDatePresets(businessDate: string): DateRangePreset[] {
+export function reportDatePresets(
+    businessDate: string,
+    keys: App.Enums.ReportDatePreset[] = defaultReportPresets,
+): DateRangePreset[] {
     const today = parse(businessDate);
     const year = today.getUTCFullYear();
     const month = today.getUTCMonth();
     const thisWeek = weekStart(today);
-    const lastWeek = addDays(thisWeek, -7);
+    const day = (offset: number) => {
+        const date = format(addDays(today, offset));
 
-    return [
-        { label: 'Today', from: format(today), to: format(today) },
-        {
-            label: 'Yesterday',
-            from: format(addDays(today, -1)),
-            to: format(addDays(today, -1)),
+        return { from: date, to: date };
+    };
+    const week = (start: Date) => ({
+        from: format(start),
+        to: format(addDays(start, 6)),
+    });
+
+    const ranges: Record<
+        App.Enums.ReportDatePreset,
+        { label: string; from: string; to: string }
+    > = {
+        today: { label: 'Today', ...day(0) },
+        yesterday: { label: 'Yesterday', ...day(-1) },
+        tomorrow: { label: 'Tomorrow', ...day(1) },
+        'next-7-days': {
+            label: 'Next 7 days',
+            from: format(today),
+            to: format(addDays(today, 6)),
         },
-        {
-            label: 'This week',
-            from: format(thisWeek),
-            to: format(addDays(thisWeek, 6)),
-        },
-        {
-            label: 'Last week',
-            from: format(lastWeek),
-            to: format(addDays(lastWeek, 6)),
-        },
-        {
+        'this-week': { label: 'This week', ...week(thisWeek) },
+        'last-week': { label: 'Last week', ...week(addDays(thisWeek, -7)) },
+        'next-week': { label: 'Next week', ...week(addDays(thisWeek, 7)) },
+        'this-month': {
             label: 'This month',
             from: format(new Date(Date.UTC(year, month, 1))),
             to: format(new Date(Date.UTC(year, month + 1, 0))),
         },
-        {
+        'last-month': {
             label: 'Last month',
             from: format(new Date(Date.UTC(year, month - 1, 1))),
             to: format(new Date(Date.UTC(year, month, 0))),
         },
-        {
+        'this-year': {
             label: 'This year',
             from: format(new Date(Date.UTC(year, 0, 1))),
             to: format(new Date(Date.UTC(year, 11, 31))),
         },
-        {
+        'last-30-days': {
             label: 'Last 30 days',
             from: format(addDays(today, -29)),
             to: format(today),
         },
-    ];
+    };
+
+    return keys.map((key) => ranges[key]);
 }
 
 /**

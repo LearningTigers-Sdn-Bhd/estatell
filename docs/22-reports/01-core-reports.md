@@ -6,21 +6,21 @@ The reports a small property needs daily and monthly, with a shared frame: a dat
 
 ## Reports
 
-| Report                        | `ReportKey`          | Source                                        | Dates    | Default orientation | Longest range |
-| ----------------------------- | -------------------- | --------------------------------------------- | -------- | ------------------- | ------------- |
-| Arrivals                      | `Arrivals`           | `reservation_units`                           | Range    | Portrait            | 31 days       |
-| Departures                    | `Departures`         | `reservation_units`                           | Range    | Portrait            | 31 days       |
-| In-house                      | `InHouse`            | `reservation_units`, `unit_nights`            | One date | Portrait            | –             |
-| Occupancy, ADR, RevPAR        | `Occupancy`          | `daily_statistics`                            | Range    | Portrait            | 366 days      |
-| Revenue by transaction code   | `Revenue`            | `DailyRevenueQuery` (live)                    | Range    | Portrait            | 366 days      |
-| Payments by method            | `Payments`           | `payments`, `ar_payments`                     | Range    | Portrait            | 366 days      |
-| Folio ledger                  | `FolioLedger`        | `folio_lines`                                 | Range    | Landscape           | 31 days       |
-| Tax report (SST, tourism tax) | `Tax`                | `folio_lines` of kind Tax                     | Range    | Landscape           | 366 days      |
-| Kitchen meal counts           | `MealCounts`         | `MealEntitlementResolver`                     | Range    | Portrait            | 31 days       |
-| Outstanding balance           | `OutstandingBalance` | folio balances (`FolioBalance`)               | One date | Portrait            | –             |
-| Deposit liability             | `DepositLiability`   | payments on stays not yet arrived             | One date | Portrait            | –             |
-| Non-national guests           | `NonNationalGuests`  | in-house foreign guests and their tourism tax | Range    | Landscape           | 31 days       |
-| Police report                 | `PoliceReport`       | foreign guests who arrived                    | Range    | Landscape           | 31 days       |
+| Report                        | `ReportKey`          | Source                                              | Dates    | Default orientation | Longest range |
+| ----------------------------- | -------------------- | --------------------------------------------------- | -------- | ------------------- | ------------- |
+| Arrivals                      | `Arrivals`           | `reservation_units`                                 | Range    | Portrait            | 31 days       |
+| Departures                    | `Departures`         | `reservation_units`                                 | Range    | Portrait            | 31 days       |
+| In-house                      | `InHouse`            | `reservation_units`, `unit_nights`                  | One date | Portrait            | –             |
+| Occupancy, ADR, RevPAR        | `Occupancy`          | `daily_statistics`                                  | Range    | Portrait            | 366 days      |
+| Revenue by transaction code   | `Revenue`            | `DailyRevenueQuery` (live)                          | Range    | Portrait            | 366 days      |
+| Payments by method            | `Payments`           | `payments`, `ar_payments`                           | Range    | Portrait            | 366 days      |
+| Folio ledger                  | `FolioLedger`        | `folio_lines`                                       | Range    | Landscape           | 31 days       |
+| Tax report (SST, tourism tax) | `Tax`                | `folio_lines` of kind Tax                           | Range    | Landscape           | 366 days      |
+| Kitchen meal counts           | `MealCounts`         | `MealCounts::between()` (`MealEntitlementResolver`) | Range    | Portrait            | 31 days       |
+| Outstanding balance           | `OutstandingBalance` | folio balances (`FolioBalance`)                     | One date | Portrait            | –             |
+| Deposit liability             | `DepositLiability`   | payments on stays not yet arrived                   | One date | Portrait            | –             |
+| Non-national guests           | `NonNationalGuests`  | in-house foreign guests and their tourism tax       | Range    | Landscape           | 31 days       |
+| Police report                 | `PoliceReport`       | foreign guests who arrived                          | Range    | Landscape           | 31 days       |
 
 - Revenue by transaction code is live for every date, open or closed, from `DailyRevenueQuery` (`app/Services/Reports/`), with grouping by day or month and drill-down to the lines. The night audit copies one closed date of the same query into `daily_revenue`.
 - The last four reports come from wastays (step 7 of the build order). Payments also gets a **Received by** grouping with a cash-up total per staff member, and a **Refunds only** filter, in place of the wastays cashier activity and refund reports. Extra charges are covered by Revenue by transaction code.
@@ -95,6 +95,17 @@ Each report has a stable column list like Arrivals. Proposed in the overview and
 - **Revenue drill-down.** The Revenue **Amount** cell links to the Folio ledger with that code and the dates of the row. A day row opens that day; a month row opens the month cut to the report's from and to dates (the row carries `from` and `to`). `ReportCellLink` (`components/pms/reports/`) is the reusable link for any cell renderer of `ReportScreen`.
 - **Tax** (`period` is the default sort, 366 days, Landscape, Revenue). Columns: `period` ("Date / month"), `tax`, `registration` (hidden by default), `lines`, `amount` ("Tax amount"). The rows are the lines of kind Tax, one row for each date and tax, or for each month and tax with `group=month` (Tax is added to `ReportKey::groups()`). The row key is `{period}:{transaction_code_id}`. A tax is found by the transaction code of its lines (one code for each tax). Reversals reduce the date they were posted on. There is no Base column. The total row sums `lines` and `amount`.
 
+### Built: Meal counts
+
+- **Meal counts** (`date` is the default sort, 31 days, Portrait, Kitchen, icon `utensils`). Columns: `date`, `meal`, `adults`, `children`, `total`, all visible by default. One row for each date and meal period that has guests; the row key is `{date}:{meal_period_id}` (`2026-10-07:3`). Rows come in date order and, inside a date, in the order of the meal start times.
+- **Source.** `MealCounts::between(Property, from, to)` loads the units once for the whole range. For each unit it calls `MealEntitlementResolver` once with adults plus children to get the dates and periods, then adds the unit's adults and children to each of them. Two inclusions for the same period count a guest once. `MealCounts::forDate()` calls `between()` for one date, and `MealCount` keeps `guests` as the total beside the new `adults` and `children`.
+- **Units counted.** Confirmed, Checked-in and Checked-out. An early check-out has already moved `departure_date`, so a unit that left early is counted only for the meals it stayed for. Cancelled and No-show units are left out. The night audit message uses the same rule.
+- **Future dates** are allowed, up to the 31-day range, and use the bookings as they are now. There is no forecast badge.
+- **Totals.** The total row sums `adults`, `children` and `total`.
+- **Empty state.** The controller sends `hasMealPlans`, false when no rate plan of the property has a meal inclusion (`MealCounts::propertyHasMealInclusions()`). The table then shows "No rate plan includes meals" in place of "No meals in these dates".
+- **Quick dates.** Today, Tomorrow, Next 7 days, This week and Next week (see below).
+- Children stay one count: there is no infant or age-group split.
+
 ### Categories
 
 `ReportCategory` groups the Reports sidebar: **Front desk** (Arrivals, Departures, In-house, Police report), **Revenue** (Occupancy, Revenue, Tax, Non-national guests), **Finance** (Payments, Folio ledger, Outstanding balance, Deposit liability) and **Kitchen** (Meal counts).
@@ -115,6 +126,7 @@ Some reports take one extra filter in the URL, validated by `ReportFilters` for 
 
 - `DateRangePicker` gets a `presets` prop. The presets show in a **Quick dates** Select before the date trigger, with **Custom dates** when the range matches no preset (choosing it opens the calendar). The Select and the trigger sit in a toolbar row under the page header, not in the header. Reports pass: Today, Yesterday, This week, Last week, This month, Last month, This year, Last 30 days.
 - **Presets count from the business date, not the clock.** At 01:00 before the audit, Today is still the open business date. The page gets `businessDate` from the server, and the browser works out the presets from it. Weeks start on Monday, in the presets and in the calendar. A preset longer than `maxDays` (This year on Arrivals) is left out of the list.
+- **Quick dates for each report.** `ReportKey::datePresets()` returns a list of `ReportDatePreset` values, or null for the standard list above. The page controller sends it as the `presets` prop, `ReportScreen` passes it to `reportDatePresets(businessDate, presets)` (`resources/js/lib/date-presets.ts`), and a report that sends none keeps the standard list. Meal counts sends Today, Tomorrow, Next 7 days, This week and Next week, all counted from the business date. The longer-than-`maxDays` rule applies to every list.
 - A one-date report (In-house, Outstanding balance, Deposit liability) uses `DatePicker` with a `presets` prop: Today and Yesterday.
 - `from` and `to` are in the URL query (`?from=2026-10-01&to=2026-10-07`), so a report can be bookmarked and shared. With no dates, the report opens on Today.
 - `ReportFilters` (a Form Request plus a data object) checks that `from` is not after `to` and that the range is not longer than `maxRangeDays()`.

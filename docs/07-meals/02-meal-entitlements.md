@@ -39,6 +39,8 @@ These are the values the inclusion form prefills, by meal period name (`DefaultM
 
 The daily kitchen report groups entitlements by date and meal period. It is also part of the morning handoff after the night audit.
 
+The Meal counts report ([core reports](../22-reports/01-core-reports.md#built-meal-counts)) and the night audit message both read `MealCounts`. It counts Confirmed, Checked-in and Checked-out units (an early check-out has already moved the departure date) and leaves out Cancelled and No-show units. It splits each count into adults and children, with the total beside them.
+
 ## Future
 
 Use actual arrival and departure times (arrival catches every meal it lands before; departure catches every meal it leaves after), as wastays did for boats.

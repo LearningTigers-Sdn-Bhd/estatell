@@ -284,6 +284,12 @@ test('the Reports navigation groups the reports by category and needs reports.vi
                         ['title' => 'Folio ledger', 'href' => "/p/{$property->code}/reports/folio-ledger", 'icon' => 'receipt', 'external' => false, 'active' => false, 'action' => null],
                     ],
                 ],
+                [
+                    'label' => 'Kitchen',
+                    'items' => [
+                        ['title' => 'Meal counts', 'href' => "/p/{$property->code}/reports/meal-counts", 'icon' => 'utensils', 'external' => false, 'active' => false, 'action' => null],
+                    ],
+                ],
             ],
         ]));
 

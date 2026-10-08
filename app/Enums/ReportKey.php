@@ -12,6 +12,7 @@ use App\Services\Reports\FolioLedgerReport;
 use App\Services\Reports\HasBreakdown;
 use App\Services\Reports\HasTotals;
 use App\Services\Reports\InHouseReport;
+use App\Services\Reports\MealCountsReport;
 use App\Services\Reports\OccupancyReport;
 use App\Services\Reports\PaymentsReport;
 use App\Services\Reports\Report;
@@ -32,6 +33,7 @@ enum ReportKey: string
     case Payments = 'payments';
     case FolioLedger = 'folio-ledger';
     case Tax = 'tax';
+    case MealCounts = 'meal-counts';
 
     public function label(): string
     {
@@ -44,6 +46,7 @@ enum ReportKey: string
             self::Payments => __('Payments'),
             self::FolioLedger => __('Folio ledger'),
             self::Tax => __('Tax'),
+            self::MealCounts => __('Meal counts'),
         };
     }
 
@@ -53,13 +56,14 @@ enum ReportKey: string
             self::Arrivals, self::Departures, self::InHouse => ReportCategory::FrontDesk,
             self::Occupancy, self::Revenue, self::Tax => ReportCategory::Revenue,
             self::Payments, self::FolioLedger => ReportCategory::Finance,
+            self::MealCounts => ReportCategory::Kitchen,
         };
     }
 
     public function defaultOrientation(): PageOrientation
     {
         return match ($this) {
-            self::Arrivals, self::Departures, self::InHouse, self::Occupancy, self::Revenue, self::Payments => PageOrientation::Portrait,
+            self::Arrivals, self::Departures, self::InHouse, self::Occupancy, self::Revenue, self::Payments, self::MealCounts => PageOrientation::Portrait,
             self::FolioLedger, self::Tax => PageOrientation::Landscape,
         };
     }
@@ -76,7 +80,7 @@ enum ReportKey: string
             self::InHouse => 'room',
             self::Occupancy => 'date',
             self::Revenue, self::Tax => 'period',
-            self::Payments, self::FolioLedger => 'date',
+            self::Payments, self::FolioLedger, self::MealCounts => 'date',
         };
     }
 
@@ -86,7 +90,7 @@ enum ReportKey: string
     public function maxRangeDays(): ?int
     {
         return match ($this) {
-            self::Arrivals, self::Departures, self::FolioLedger => 31,
+            self::Arrivals, self::Departures, self::FolioLedger, self::MealCounts => 31,
             self::InHouse => null,
             self::Occupancy, self::Revenue, self::Payments, self::Tax => 366,
         };
@@ -102,6 +106,21 @@ enum ReportKey: string
         return match ($this) {
             self::Revenue, self::Tax => [ReportGroup::Day, ReportGroup::Month],
             default => [],
+        };
+    }
+
+    /**
+     * The quick dates of a range report, in the order shown, or null for the standard list (Today, Yesterday, This
+     * week, Last week, This month, Last month, This year, Last 30 days). A preset longer than the longest range is
+     * left out by the date picker.
+     *
+     * @return list<ReportDatePreset>|null
+     */
+    public function datePresets(): ?array
+    {
+        return match ($this) {
+            self::MealCounts => [ReportDatePreset::Today, ReportDatePreset::Tomorrow, ReportDatePreset::Next7Days, ReportDatePreset::ThisWeek, ReportDatePreset::NextWeek],
+            default => null,
         };
     }
 
@@ -203,6 +222,13 @@ enum ReportKey: string
                 new ReportColumn('lines', __('Lines'), ColumnAlign::Right, true),
                 new ReportColumn('amount', __('Tax amount'), ColumnAlign::Right, true),
             ],
+            self::MealCounts => [
+                new ReportColumn('date', __('Date'), ColumnAlign::Left, true),
+                new ReportColumn('meal', __('Meal'), ColumnAlign::Left, true),
+                new ReportColumn('adults', __('Adults'), ColumnAlign::Right, true),
+                new ReportColumn('children', __('Children'), ColumnAlign::Right, true),
+                new ReportColumn('total', __('Total'), ColumnAlign::Right, true),
+            ],
         };
     }
 
@@ -220,6 +246,7 @@ enum ReportKey: string
             self::Payments => 'credit-card',
             self::FolioLedger => 'receipt',
             self::Tax => 'landmark',
+            self::MealCounts => 'utensils',
         };
     }
 
@@ -234,6 +261,7 @@ enum ReportKey: string
             self::Payments => app(PaymentsReport::class),
             self::FolioLedger => app(FolioLedgerReport::class),
             self::Tax => app(TaxReport::class),
+            self::MealCounts => app(MealCountsReport::class),
         };
     }
 

@@ -52,7 +52,7 @@ The recipients are the active staff of the property (not admins, not deactivated
 - The occupancy, ADR and RevPAR and the front desk counts, from `daily_statistics`.
 - Revenue by code, from `daily_revenue`.
 - Payments by method: the completed payments whose folio line was posted on the business date, plus one total for refunds.
-- The meals to prepare, live from `MealCounts` (`app/Services/Meals/`, through `MealEntitlementResolver`), not stored in the snapshot. "Today" is the date that opens after the audit: the units that are CheckedIn or Confirmed and have that date inside their stay, with their adults and children. The section is left out when no plan has a meal inclusion.
+- The meals to prepare, live from `MealCounts` (`app/Services/Meals/`, through `MealEntitlementResolver`), not stored in the snapshot. "Today" is the date that opens after the audit: the units that are Confirmed, CheckedIn or CheckedOut and have that date inside their stay (an early check-out has already moved the departure date), with their adults and children. The section is left out when no plan has a meal inclusion.
 - The open exceptions of the audit with the reason in plain words, and a link to the night audit sheet.
 
 A Failed message names the step and the error and says that the next run resumes at that step. In-app messages carry the title, the business date, the number of open exceptions and the link.
