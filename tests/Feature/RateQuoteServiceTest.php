@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\AgeBandPricing;
+use App\Enums\ChargingUnit;
 use App\Enums\PricingBasis;
 use App\Enums\StayDiscountType;
 use App\Models\Property;
@@ -10,6 +11,7 @@ use App\Models\Rate;
 use App\Models\RateOccupancyPrice;
 use App\Models\RatePlan;
 use App\Models\RatePlanChildPrice;
+use App\Models\RatePlanInclusion;
 use App\Models\RatePlanStayDiscount;
 use App\Models\RoomType;
 use App\Services\Rates\RateQuote;
@@ -172,6 +174,34 @@ test('a night without a price refuses the quote', function () {
 
     expect($quote->refusal)->toBe(RateQuote::REFUSAL_RATE_MISSING)
         ->and($quote->refusalDate->toDateString())->toBe('2026-11-03');
+});
+
+test('a nightly night priced below the inclusions it posts is refused on its date', function (string $secondNight, ChargingUnit $unit, string $allocated, string $refusedOn) {
+    [, $plan, $roomType] = quoteSetup();
+    quoteRate($plan, $roomType, '2026-11-02', '200.00');
+    quoteRate($plan, $roomType, '2026-11-03', $secondNight);
+    RatePlanInclusion::factory()->for($plan)->create(['charging_unit' => $unit, 'allocated_amount' => $allocated]);
+
+    $quote = quoteFor($plan, $roomType, departure: '2026-11-04');
+
+    expect($quote->refusal)->toBe(RateQuote::REFUSAL_RATE_BELOW_INCLUSIONS)
+        ->and($quote->refusalDate->toDateString())->toBe($refusedOn);
+})->with([
+    'a one-off transfer above the first night' => ['200.00', ChargingUnit::PerStay, '300.00', '2026-11-02'],
+    'meals above a promo night' => ['80.00', ChargingUnit::PerGuestNight, '50.00', '2026-11-03'],
+]);
+
+test('a nightly plan whose nights cover their inclusions keeps its rates', function () {
+    [, $plan, $roomType] = quoteSetup();
+    quoteRate($plan, $roomType, '2026-11-02', '200.00');
+    quoteRate($plan, $roomType, '2026-11-03', '250.00');
+    RatePlanInclusion::factory()->for($plan)->create(['charging_unit' => ChargingUnit::PerGuestNight, 'allocated_amount' => '25.00']);
+    RatePlanInclusion::factory()->for($plan)->create(['charging_unit' => ChargingUnit::PerStay, 'allocated_amount' => '150.00']);
+
+    $quote = quoteFor($plan, $roomType, departure: '2026-11-04');
+
+    expect($quote->isRefused())->toBeFalse()
+        ->and(array_map(fn ($night): string => (string) $night->total()->getAmount(), $quote->nights))->toBe(['200.00', '250.00']);
 });
 
 test('an archived plan and an unlinked room type are refused', function () {
