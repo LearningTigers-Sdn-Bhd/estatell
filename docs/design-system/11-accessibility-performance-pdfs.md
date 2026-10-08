@@ -28,6 +28,6 @@ dompdf does not support flex or grid layouts.
 - A small token set: font, 4-point spacing scale, rule widths.
 - PDFs do not reuse screen components.
 - The shared layout is `resources/views/pdf/layout.blade.php`: A4, spacing in steps of 4 pt, rules of 0.5 pt (light) and 1 pt (strong). Each document extends it (the first is the payment receipt).
-- The property's [printing settings](../02-property/05-printing-settings.md) set the font style (Office, Modern, Fancy or Handwritten, each falling back to Noto Sans SC and TC for Chinese), the body size (8, 9 or 10.5 pt), the letterhead on the first page and the footer on every page. Reports also set the orientation (portrait or landscape) from their layout.
+- The property's [printing settings](../02-property/05-printing-settings.md) set the font style (Office, Modern, Fancy or Handwritten, each falling back to Noto Sans SC and TC for Chinese), the body size (8, 9 or 10.5 pt), the letterhead on the first page and the footer on every page. Reports also set the orientation (portrait or landscape) from their layout. Report tables have a 4 pt gap between columns. A report with more than 9 visible columns prints its table 1 pt smaller, and dates, times, references and phone numbers never wrap.
 - The registration card keeps its own layout and font choice.
 - A PDF opens inline in a new tab (`stream()`), so staff can print or save it.

@@ -18,8 +18,24 @@
 
 @section('title', $title)
 
+@php
+    // A report with many columns prints its table text 1 pt smaller. Dates, times, references and phones never wrap.
+    $isWide = count($columns) > 9;
+    $noWrapKeys = ['reservation', 'room', 'date_of_birth', 'phone', 'arrival', 'departure', 'checked_in_at', 'checked_out_at'];
+    $cellClass = fn ($column): array => [
+        'num' => $column->align === \App\Enums\ColumnAlign::Right,
+        'nowrap' => in_array($column->key, $noWrapKeys, true),
+    ];
+@endphp
+
 @push('head')
     <style>
+        .data td, .data th { padding-right: 4pt; }
+        .data td:last-child, .data th:last-child { padding-right: 0; }
+        .nowrap { white-space: nowrap; }
+        @if ($isWide)
+            .data { font-size: {{ ($print?->fontSize->points() ?? 9.0) - 1 }}pt; }
+        @endif
         thead { display: table-header-group; }
         tr { page-break-inside: avoid; }
     </style>
@@ -43,11 +59,11 @@
         @endif
     @endcomponent
 
-    <table class="gap-24">
+    <table class="gap-24 data">
         <thead>
             <tr class="rule">
                 @foreach ($columns as $column)
-                    <th @class(['num' => $column->align === \App\Enums\ColumnAlign::Right])>{{ $column->label }}</th>
+                    <th @class($cellClass($column))>{{ $column->label }}</th>
                 @endforeach
             </tr>
         </thead>
@@ -56,7 +72,7 @@
                 @php $cells = $row->cells(); @endphp
                 <tr class="rule">
                     @foreach ($columns as $column)
-                        <td @class(['num' => $column->align === \App\Enums\ColumnAlign::Right])>{{ $cells[$column->key] ?? '' }}</td>
+                        <td @class($cellClass($column))>{{ ($cells[$column->key] ?? '') !== '' ? $cells[$column->key] : '-' }}</td>
                     @endforeach
                 </tr>
             @empty

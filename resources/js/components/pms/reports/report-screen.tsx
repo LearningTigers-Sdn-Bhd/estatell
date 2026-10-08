@@ -183,12 +183,14 @@ export function ReportScreen<TRow extends { key: number | string }>({
                                 return render(info.row.original, currency);
                             }
 
-                            return (
-                                info.getValue() ?? (
-                                    <span className="text-muted-foreground">
-                                        —
-                                    </span>
-                                )
+                            const value = info.getValue();
+
+                            return value === null ||
+                                value === undefined ||
+                                value === '' ? (
+                                <span className="text-muted-foreground">—</span>
+                            ) : (
+                                value
                             );
                         },
                     },
