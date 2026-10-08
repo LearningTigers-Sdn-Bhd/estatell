@@ -1188,6 +1188,19 @@ occupancy: string | null,
 revenue: string | null,
 packet: boolean,
 };
+export type NonNationalGuestRow = {
+key: number,
+reservation: string,
+guest: string,
+nationality: string,
+identity: string,
+room: string | null,
+arrival: string,
+departure: string,
+nights: number,
+guests: string,
+tourism_tax: string,
+};
 export type OccupancyRow = {
 key: string,
 date: string,
@@ -1229,6 +1242,23 @@ reference: string | null,
 refund_of: string | null,
 staff_id: number,
 };
+export type PoliceReportRow = {
+key: string,
+guest: string,
+reservation: string,
+room: string | null,
+nationality: string,
+gender: string,
+date_of_birth: string | null,
+identity: string,
+address: string,
+phone: string,
+arrival: string,
+checked_in_at: string,
+departure: string,
+checked_out_at: string,
+status: App.Data.Shared.BadgeData,
+};
 export type ReportBreakdown = {
 title: string,
 headings: string[],
@@ -1249,6 +1279,7 @@ group: App.Enums.ReportGroup | null,
 code: string | null,
 staff: number | null,
 refundsOnly: boolean,
+foreignOnly: boolean,
 };
 export type ReportLayoutColumnData = {
 key: string,
@@ -1866,7 +1897,7 @@ export type RegistrationCardStatus = 'draft' | 'signed' | 'void';
 export type ReportCategory = 'front-desk' | 'revenue' | 'finance' | 'kitchen' | 'audit';
 export type ReportDatePreset = 'today' | 'yesterday' | 'tomorrow' | 'next-7-days' | 'this-week' | 'last-week' | 'next-week' | 'this-month' | 'last-month' | 'this-year' | 'last-30-days';
 export type ReportGroup = 'day' | 'month' | 'method' | 'staff';
-export type ReportKey = 'arrivals' | 'departures' | 'in-house' | 'occupancy' | 'revenue' | 'payments' | 'folio-ledger' | 'tax' | 'meal-counts' | 'night-audit-history' | 'outstanding-balance' | 'deposit-liability';
+export type ReportKey = 'arrivals' | 'departures' | 'in-house' | 'occupancy' | 'revenue' | 'payments' | 'folio-ledger' | 'tax' | 'meal-counts' | 'night-audit-history' | 'outstanding-balance' | 'deposit-liability' | 'non-national-guests' | 'police-report';
 export type ReservationRoomBoxState = 'assigned' | 'unassigned' | 'auto_assign' | 'cancelled' | 'no_show';
 export type ReservationSource = 'direct' | 'walk_in' | 'phone' | 'channel' | 'portal';
 export type ReservationStatus = 'confirmed' | 'in_house' | 'completed' | 'cancelled';

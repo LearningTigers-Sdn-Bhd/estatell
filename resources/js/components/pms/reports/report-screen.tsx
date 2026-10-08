@@ -78,6 +78,8 @@ type Props<TRow extends { key: number | string }> = {
     staff?: string | null;
     staffOptions?: EnumOption[];
     refundsOnly?: boolean;
+    /** The Foreign only filter of the Police report. */
+    foreignOnly?: boolean;
     /** A short note under the title, such as "Status as of today". */
     note?: string | null;
     /** A small summary table under the main table (Payments: the total for each method). */
@@ -119,6 +121,7 @@ export function ReportScreen<TRow extends { key: number | string }>({
     staff = null,
     staffOptions = [],
     refundsOnly,
+    foreignOnly,
     breakdown = null,
     note = null,
     presets,
@@ -137,8 +140,9 @@ export function ReportScreen<TRow extends { key: number | string }>({
             ...(code ? { code } : {}),
             ...(staff ? { staff } : {}),
             ...(refundsOnly ? { refunds: '1' } : {}),
+            ...(foreignOnly ? { foreign: '1' } : {}),
         }),
-        [isOneDate, from, to, group, code, staff, refundsOnly],
+        [isOneDate, from, to, group, code, staff, refundsOnly, foreignOnly],
     );
 
     const visible = useMemo(
@@ -245,6 +249,7 @@ export function ReportScreen<TRow extends { key: number | string }>({
             code?: string;
             staff?: string;
             refundsOnly?: boolean;
+            foreignOnly?: boolean;
         }) => {
             const next = {
                 from,
@@ -254,6 +259,7 @@ export function ReportScreen<TRow extends { key: number | string }>({
                 code: code ?? '',
                 staff: staff ?? '',
                 refundsOnly: refundsOnly ?? false,
+                foreignOnly: foreignOnly ?? false,
                 ...changes,
             };
 
@@ -263,7 +269,8 @@ export function ReportScreen<TRow extends { key: number | string }>({
                 next.group !== group ||
                 next.code !== (code ?? '') ||
                 next.staff !== (staff ?? '') ||
-                next.refundsOnly !== (refundsOnly ?? false)
+                next.refundsOnly !== (refundsOnly ?? false) ||
+                next.foreignOnly !== (foreignOnly ?? false)
             ) {
                 setSelected(new Set());
             }
@@ -278,12 +285,24 @@ export function ReportScreen<TRow extends { key: number | string }>({
                     ...(next.code ? { code: next.code } : {}),
                     ...(next.staff ? { staff: next.staff } : {}),
                     ...(next.refundsOnly ? { refunds: '1' } : {}),
+                    ...(next.foreignOnly ? { foreign: '1' } : {}),
                     ...(next.sort ? { sort: next.sort } : {}),
                 },
                 { preserveState: true, preserveScroll: true, replace: true },
             );
         },
-        [url, isOneDate, from, to, sort, group, code, staff, refundsOnly],
+        [
+            url,
+            isOneDate,
+            from,
+            to,
+            sort,
+            group,
+            code,
+            staff,
+            refundsOnly,
+            foreignOnly,
+        ],
     );
 
     const changeSelection = (next: Set<string>) => {
@@ -392,6 +411,17 @@ export function ReportScreen<TRow extends { key: number | string }>({
                                 }
                             />
                             Refunds only
+                        </Label>
+                    ) : null}
+                    {foreignOnly !== undefined ? (
+                        <Label className="flex items-center gap-2 text-sm font-normal">
+                            <Checkbox
+                                checked={foreignOnly}
+                                onCheckedChange={(checked) =>
+                                    visit({ foreignOnly: checked })
+                                }
+                            />
+                            Foreign only
                         </Label>
                     ) : null}
                     <div className="ml-auto flex items-center gap-2">

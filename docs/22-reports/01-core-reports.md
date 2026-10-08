@@ -6,25 +6,25 @@ The reports a small property needs daily and monthly, with a shared frame: a dat
 
 ## Reports
 
-| Report                        | `ReportKey`          | Source                                                | Dates    | Default orientation | Longest range |
-| ----------------------------- | -------------------- | ----------------------------------------------------- | -------- | ------------------- | ------------- |
-| Arrivals                      | `Arrivals`           | `reservation_units`                                   | Range    | Portrait            | 31 days       |
-| Departures                    | `Departures`         | `reservation_units`                                   | Range    | Portrait            | 31 days       |
-| In-house                      | `InHouse`            | `reservation_units`, `unit_nights`                    | One date | Portrait            | –             |
-| Occupancy, ADR, RevPAR        | `Occupancy`          | `daily_statistics`                                    | Range    | Portrait            | 366 days      |
-| Revenue by transaction code   | `Revenue`            | `DailyRevenueQuery` (live)                            | Range    | Portrait            | 366 days      |
-| Payments by method            | `Payments`           | `payments`, `ar_payments`                             | Range    | Portrait            | 366 days      |
-| Folio ledger                  | `FolioLedger`        | `folio_lines`                                         | Range    | Landscape           | 31 days       |
-| Tax report (SST, tourism tax) | `Tax`                | `folio_lines` of kind Tax                             | Range    | Landscape           | 366 days      |
-| Kitchen meal counts           | `MealCounts`         | `MealCounts::between()` (`MealEntitlementResolver`)   | Range    | Portrait            | 31 days       |
-| Night audit history           | `NightAuditHistory`  | `night_audits`, `daily_statistics`                    | Range    | Landscape           | 366 days      |
-| Outstanding balance           | `OutstandingBalance` | `FolioBalancesOnDate` (the folio balance on the date) | One date | Landscape           | –             |
-| Deposit liability             | `DepositLiability`   | `FolioBalancesOnDate` (every credit balance)          | One date | Landscape           | –             |
-| Non-national guests           | `NonNationalGuests`  | in-house foreign guests and their tourism tax         | Range    | Landscape           | 31 days       |
-| Police report                 | `PoliceReport`       | foreign guests who arrived                            | Range    | Landscape           | 31 days       |
+| Report                        | `ReportKey`          | Source                                                 | Dates    | Default orientation | Longest range |
+| ----------------------------- | -------------------- | ------------------------------------------------------ | -------- | ------------------- | ------------- |
+| Arrivals                      | `Arrivals`           | `reservation_units`                                    | Range    | Portrait            | 31 days       |
+| Departures                    | `Departures`         | `reservation_units`                                    | Range    | Portrait            | 31 days       |
+| In-house                      | `InHouse`            | `reservation_units`, `unit_nights`                     | One date | Portrait            | –             |
+| Occupancy, ADR, RevPAR        | `Occupancy`          | `daily_statistics`                                     | Range    | Portrait            | 366 days      |
+| Revenue by transaction code   | `Revenue`            | `DailyRevenueQuery` (live)                             | Range    | Portrait            | 366 days      |
+| Payments by method            | `Payments`           | `payments`, `ar_payments`                              | Range    | Portrait            | 366 days      |
+| Folio ledger                  | `FolioLedger`        | `folio_lines`                                          | Range    | Landscape           | 31 days       |
+| Tax report (SST, tourism tax) | `Tax`                | `folio_lines` of kind Tax                              | Range    | Landscape           | 366 days      |
+| Kitchen meal counts           | `MealCounts`         | `MealCounts::between()` (`MealEntitlementResolver`)    | Range    | Portrait            | 31 days       |
+| Night audit history           | `NightAuditHistory`  | `night_audits`, `daily_statistics`                     | Range    | Landscape           | 366 days      |
+| Outstanding balance           | `OutstandingBalance` | `FolioBalancesOnDate` (the folio balance on the date)  | One date | Landscape           | –             |
+| Deposit liability             | `DepositLiability`   | `FolioBalancesOnDate` (every credit balance)           | One date | Landscape           | –             |
+| Non-national guests           | `NonNationalGuests`  | foreign units that stayed, and their tourism tax lines | Range    | Landscape           | 31 days       |
+| Police report                 | `PoliceReport`       | every guest of a unit that stayed (`unit_guests`)      | Range    | Landscape           | 31 days       |
 
 - Revenue by transaction code is live for every date, open or closed, from `DailyRevenueQuery` (`app/Services/Reports/`), with grouping by day or month and drill-down to the lines. The night audit copies one closed date of the same query into `daily_revenue`.
-- The last four reports come from wastays (step 7 of the build order). Payments also gets a **Received by** grouping with a cash-up total per staff member, and a **Refunds only** filter, in place of the wastays cashier activity and refund reports. Extra charges are covered by Revenue by transaction code.
+- The core reports (item 20) are complete. The last six reports come from wastays (step 7 of the build order). Payments also gets a **Received by** grouping with a cash-up total per staff member, and a **Refunds only** filter, in place of the wastays cashier activity and refund reports. Extra charges are covered by Revenue by transaction code.
 - Occupancy, ADR and RevPAR read the `daily_statistics` snapshot for closed dates and `StatisticsCalculator` for the open date.
 - City ledger aging and statements are already built on the Finance side (`AgingReport`, `StatementBuilder`). They stay there and are not in the registry. Their PDFs get the letterhead from [Printing settings](../02-property/05-printing-settings.md).
 - A company's debt after a folio is settled to the city ledger stays in City ledger aging: the settled folio is at 0 and is in neither Outstanding balance nor Deposit liability.
@@ -145,6 +145,21 @@ Each report has a stable column list like Arrivals. Proposed in the overview and
 - **Note.** `HasNote` (an optional interface next to `HasTotals`) has `note(Property, ReportFilters): ?string`; `ReportKey::note()` asks the report. When the date is not the business date the note is "Status as of today". The page sends it as the `note` prop, `ReportScreen` shows it under the title, and `pdf/report.blade.php` prints it under the dates.
 - **Blank sorts last.** `ReportPage::sort()` puts rows with a null value in the sort column last, in either direction (a `days` that is empty, an unassigned In-house room).
 
+### Built: Non-national guests and Police report
+
+Both list the Checked in and Checked out units whose stay overlaps the range (arrival on or before the last date, departure after the first date), through `StayUnits`. Confirmed units (not arrived), Cancelled units and No-shows are left out. The Police report covers **all guests of every nationality**, which changes the old wastays idea of "foreign guests who arrived"; its Foreign only filter gives the foreign list.
+
+- **Non-national guests** (`arrival` is the default sort, 31 days, Landscape, Revenue, icon `users`). Columns, all visible by default: `reservation`, `guest`, `nationality`, `identity` ("ID"), `room`, `arrival`, `departure`, `nights`, `guests` ("Adults / children"), `tourism_tax`. One row for each foreign unit; the row key is the unit id. **Guest** is the primary guest, else the booker. **Room** is the room or bed of the first night. **Nights** counts the nights of the stay inside the dates. The total row sums `nights` and `tourism_tax`.
+- **Foreign** is the rule of `TaxCalculator`: the unit nationality is set and is not `MY`. `UnitNationality::isForeign()` holds it and `UnitNationality::forUnits()` gives the nationality (primary guest, else booker) of all units with the guests and bookers eager-loaded, so there is no query for each unit.
+- **Tourism tax.** `TourismTaxByUnit` is one grouped query over the Tax lines of the property's `foreign_guests_only` taxes (found by the transaction code of the line) with a posting date in the range. Reversals count, because they are negative. A tax line has no source, so the query follows `parent_line_id` up to two levels (a tax on a discount) to the charge, whose source names a reservation unit, a unit night or an add-on, and joins those to the unit. It reads only the folios of the reservations in the report.
+- **Note.** `HasNote` shows "{n} units have no nationality. Their tourism tax may be missing." for the units staying in the dates with no nationality at all (primary guest and booker both blank), and nothing when there are none.
+- **Police report** (`room` is the default sort, 31 days, Landscape, Front desk, icon `id-card`). Columns, all visible by default: `guest`, `reservation`, `room`, `nationality`, `gender`, `date_of_birth`, `identity` ("ID"), `address`, `phone`, `arrival`, `checked_in_at`, `departure`, `checked_out_at`, `status`. One row for each guest attached to a unit (`unit_guests`); a unit with no attached guest gives one row for the booker. The row key is `{unit id}:{guest id}`. `address` is one line from the guest address fields and the country name. `checked_in_at` and `checked_out_at` are shown in the property time zone (`j M Y H:i`), like Night audit history. There is no total row.
+- **Filter `foreign`.** `?foreign=1` lists only the guests whose own `nationality_code` is set and is not `MY`. `ReportFilters::foreignOnly`, `ReportKey::hasForeignFilter()` (Police report only) and a "Foreign only" checkbox in the toolbar carry it like `refunds`: in the page URL, the exports and the layout preview, validated as a boolean, and changing it clears the row selection. Other reports ignore it.
+- **Country names.** Nationality, and the country in `address`, show the full name from `CountryOptions::name()` ("Singapore", not "SG") on screen, in the PDF and in the spreadsheets. A blank code shows blank.
+- **ID.** `GuestIdentities` picks the latest document of the guest shown: a Passport before any other type, then the newest by `created_at` and `id`. It shows the type and the number ("Passport · A1234567"). The documents are picked from their plain columns with one query and only the picked documents are loaded and decrypted with a second one, so a selected-row export decrypts only the selected rows.
+- **Masking.** A user without `guests.view-documents` sees the masked number (`•••• 4567`) on screen, in the PDF and in the spreadsheets. A user with it sees the full number (a MyKad with its dashes). The masking happens in the report service, so a row never carries a number the user may not see.
+- **Activity log.** `LogIdentityExport` writes `report.exported_identity_numbers` (the user as causer, the property as subject; properties: `property_id`, `report_key`, `from`, `to`, `rows`, `format` as `pdf`, `csv` or `xlsx`) when a PDF, a spreadsheet or the layout preview PDF holds full numbers: the user has `guests.view-documents`, the ID column is visible and at least one exported row has an ID. A masked export, an export with no ID and a page view write nothing. The entry holds no number.
+
 ### Categories
 
 `ReportCategory` groups the Reports sidebar: **Front desk** (Arrivals, Departures, In-house, Police report), **Revenue** (Occupancy, Revenue, Tax, Non-national guests), **Finance** (Payments, Folio ledger, Outstanding balance, Deposit liability) and **Kitchen** (Meal counts) and **Audit** (Night audit history; the Activity log joins it in a later item). Audit is the last group in the sidebar.
@@ -160,6 +175,7 @@ Some reports take one extra filter in the URL, validated by `ReportFilters` for 
 - Revenue and Tax: `group` (`day` or `month`), a toggle in the toolbar.
 - Folio ledger: `code`, the transaction code string (`?code=ROOM`), a Select in the toolbar, checked against the codes of the property. **Revenue drill-down**: the Revenue Amount cell opens the Folio ledger for that date (or month) and code.
 - Payments: `group` (`method` or `staff`, default `method`) picks the summary under the table; `staff`, a user id of the property (`?staff=12`), a Select in the toolbar; `refunds=1` shows refunds only, a checkbox in the toolbar. `staff` and `refunds` change the rows, the totals and both summaries.
+- Police report: `foreign=1` lists foreign guests only, a checkbox in the toolbar.
 
 ## Date range and quick dates
 

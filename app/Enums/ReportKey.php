@@ -18,9 +18,11 @@ use App\Services\Reports\HasTotals;
 use App\Services\Reports\InHouseReport;
 use App\Services\Reports\MealCountsReport;
 use App\Services\Reports\NightAuditHistoryReport;
+use App\Services\Reports\NonNationalGuestsReport;
 use App\Services\Reports\OccupancyReport;
 use App\Services\Reports\OutstandingBalanceReport;
 use App\Services\Reports\PaymentsReport;
+use App\Services\Reports\PoliceReport;
 use App\Services\Reports\Report;
 use App\Services\Reports\RevenueReport;
 use App\Services\Reports\TaxReport;
@@ -43,6 +45,8 @@ enum ReportKey: string
     case NightAuditHistory = 'night-audit-history';
     case OutstandingBalance = 'outstanding-balance';
     case DepositLiability = 'deposit-liability';
+    case NonNationalGuests = 'non-national-guests';
+    case PoliceReport = 'police-report';
 
     public function label(): string
     {
@@ -59,14 +63,16 @@ enum ReportKey: string
             self::NightAuditHistory => __('Night audit history'),
             self::OutstandingBalance => __('Outstanding balance'),
             self::DepositLiability => __('Deposit liability'),
+            self::NonNationalGuests => __('Non-national guests'),
+            self::PoliceReport => __('Police report'),
         };
     }
 
     public function category(): ReportCategory
     {
         return match ($this) {
-            self::Arrivals, self::Departures, self::InHouse => ReportCategory::FrontDesk,
-            self::Occupancy, self::Revenue, self::Tax => ReportCategory::Revenue,
+            self::Arrivals, self::Departures, self::InHouse, self::PoliceReport => ReportCategory::FrontDesk,
+            self::Occupancy, self::Revenue, self::Tax, self::NonNationalGuests => ReportCategory::Revenue,
             self::Payments, self::FolioLedger, self::OutstandingBalance, self::DepositLiability => ReportCategory::Finance,
             self::MealCounts => ReportCategory::Kitchen,
             self::NightAuditHistory => ReportCategory::Audit,
@@ -77,7 +83,7 @@ enum ReportKey: string
     {
         return match ($this) {
             self::Arrivals, self::Departures, self::InHouse, self::Occupancy, self::Revenue, self::Payments, self::MealCounts => PageOrientation::Portrait,
-            self::FolioLedger, self::Tax, self::NightAuditHistory, self::OutstandingBalance, self::DepositLiability => PageOrientation::Landscape,
+            self::FolioLedger, self::Tax, self::NightAuditHistory, self::OutstandingBalance, self::DepositLiability, self::NonNationalGuests, self::PoliceReport => PageOrientation::Landscape,
         };
     }
 
@@ -97,7 +103,8 @@ enum ReportKey: string
             self::FolioLedger, self::MealCounts => 'date',
             self::NightAuditHistory => '-date',
             self::OutstandingBalance => '-days',
-            self::DepositLiability => 'arrival',
+            self::DepositLiability, self::NonNationalGuests => 'arrival',
+            self::PoliceReport => 'room',
         };
     }
 
@@ -107,7 +114,7 @@ enum ReportKey: string
     public function maxRangeDays(): ?int
     {
         return match ($this) {
-            self::Arrivals, self::Departures, self::FolioLedger, self::MealCounts => 31,
+            self::Arrivals, self::Departures, self::FolioLedger, self::MealCounts, self::NonNationalGuests, self::PoliceReport => 31,
             self::InHouse, self::OutstandingBalance, self::DepositLiability => null,
             self::Occupancy, self::Revenue, self::Payments, self::Tax, self::NightAuditHistory => 366,
         };
@@ -168,6 +175,23 @@ enum ReportKey: string
     public function hasPaymentFilters(): bool
     {
         return $this === self::Payments;
+    }
+
+    /**
+     * Whether the report takes `?foreign` (foreign guests only). Other reports ignore it.
+     */
+    public function hasForeignFilter(): bool
+    {
+        return $this === self::PoliceReport;
+    }
+
+    /**
+     * Whether the report shows ID numbers. The number is masked unless the user has `guests.view-documents`, and an
+     * export that holds full numbers is written to the activity log.
+     */
+    public function showsIdentityNumbers(): bool
+    {
+        return in_array($this, [self::NonNationalGuests, self::PoliceReport], true);
     }
 
     /**
@@ -306,6 +330,34 @@ enum ReportKey: string
                 new ReportColumn('deposit', __('Security deposit'), ColumnAlign::Right, true),
                 new ReportColumn('held', __('Held'), ColumnAlign::Right, true),
             ],
+            self::NonNationalGuests => [
+                new ReportColumn('reservation', __('Reservation'), ColumnAlign::Left, true),
+                new ReportColumn('guest', __('Guest'), ColumnAlign::Left, true),
+                new ReportColumn('nationality', __('Nationality'), ColumnAlign::Left, true),
+                new ReportColumn('identity', __('ID'), ColumnAlign::Left, true),
+                new ReportColumn('room', __('Room'), ColumnAlign::Left, true),
+                new ReportColumn('arrival', __('Arrival'), ColumnAlign::Left, true),
+                new ReportColumn('departure', __('Departure'), ColumnAlign::Left, true),
+                new ReportColumn('nights', __('Nights'), ColumnAlign::Right, true),
+                new ReportColumn('guests', __('Adults / children'), ColumnAlign::Right, true),
+                new ReportColumn('tourism_tax', __('Tourism tax'), ColumnAlign::Right, true),
+            ],
+            self::PoliceReport => [
+                new ReportColumn('guest', __('Guest'), ColumnAlign::Left, true),
+                new ReportColumn('reservation', __('Reservation'), ColumnAlign::Left, true),
+                new ReportColumn('room', __('Room'), ColumnAlign::Left, true),
+                new ReportColumn('nationality', __('Nationality'), ColumnAlign::Left, true),
+                new ReportColumn('gender', __('Gender'), ColumnAlign::Left, true),
+                new ReportColumn('date_of_birth', __('Date of birth'), ColumnAlign::Left, true),
+                new ReportColumn('identity', __('ID'), ColumnAlign::Left, true),
+                new ReportColumn('address', __('Address'), ColumnAlign::Left, true),
+                new ReportColumn('phone', __('Phone'), ColumnAlign::Left, true),
+                new ReportColumn('arrival', __('Arrival'), ColumnAlign::Left, true),
+                new ReportColumn('checked_in_at', __('Checked in'), ColumnAlign::Left, true),
+                new ReportColumn('departure', __('Departure'), ColumnAlign::Left, true),
+                new ReportColumn('checked_out_at', __('Checked out'), ColumnAlign::Left, true),
+                new ReportColumn('status', __('Status'), ColumnAlign::Left, true),
+            ],
         };
     }
 
@@ -327,6 +379,8 @@ enum ReportKey: string
             self::NightAuditHistory => 'moon',
             self::OutstandingBalance => 'wallet',
             self::DepositLiability => 'shield',
+            self::NonNationalGuests => 'users',
+            self::PoliceReport => 'id-card',
         };
     }
 
@@ -345,6 +399,8 @@ enum ReportKey: string
             self::NightAuditHistory => app(NightAuditHistoryReport::class),
             self::OutstandingBalance => app(OutstandingBalanceReport::class),
             self::DepositLiability => app(DepositLiabilityReport::class),
+            self::NonNationalGuests => app(NonNationalGuestsReport::class),
+            self::PoliceReport => app(PoliceReport::class),
         };
     }
 

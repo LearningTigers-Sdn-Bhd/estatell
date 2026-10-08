@@ -24,6 +24,8 @@ use Illuminate\Validation\Rule;
  * the property. Other reports ignore `code`.
  * A report with payment filters (`ReportKey::hasPaymentFilters()`) also takes `staff`, which must be a user of the
  * property, and `refunds` (1 for refunds only). Other reports ignore them.
+ * A report with a foreign filter (`ReportKey::hasForeignFilter()`, the Police report) also takes `foreign` (1 for foreign
+ * guests only). Other reports ignore it.
  * The report is the `{report}` route parameter, or the slug after `reports.` in the route name.
  */
 class ReportFiltersRequest extends FormRequest
@@ -52,6 +54,7 @@ class ReportFiltersRequest extends FormRequest
                 'staff' => ['nullable', 'integer', Rule::exists('users', 'id')->where('property_id', $this->property()->id)],
                 'refunds' => ['nullable', 'boolean'],
             ] : []),
+            ...($this->reportKey()->hasForeignFilter() ? ['foreign' => ['nullable', 'boolean']] : []),
             ...($groups === [] ? [] : ['group' => ['nullable', Rule::in(array_map(fn (ReportGroup $group): string => $group->value, $groups))]]),
         ];
     }
@@ -110,7 +113,7 @@ class ReportFiltersRequest extends FormRequest
             $date = $this->input('date');
             $date = is_string($date) && $date !== '' ? $date : $this->businessDate();
 
-            return new ReportFilters(from: $date, to: $date, group: $this->group(), code: $this->code(), staff: $this->staff(), refundsOnly: $this->refundsOnly());
+            return new ReportFilters(from: $date, to: $date, group: $this->group(), code: $this->code(), staff: $this->staff(), refundsOnly: $this->refundsOnly(), foreignOnly: $this->foreignOnly());
         }
 
         $from = $this->input('from');
@@ -120,7 +123,7 @@ class ReportFiltersRequest extends FormRequest
         $default = $this->businessDate();
         $defaultFrom = Date::parse($default)->subDays($this->reportKey()->defaultDays() - 1)->toDateString();
 
-        return new ReportFilters(from: $from ?? $to ?? $defaultFrom, to: $to ?? $from ?? $default, group: $this->group(), code: $this->code(), staff: $this->staff(), refundsOnly: $this->refundsOnly());
+        return new ReportFilters(from: $from ?? $to ?? $defaultFrom, to: $to ?? $from ?? $default, group: $this->group(), code: $this->code(), staff: $this->staff(), refundsOnly: $this->refundsOnly(), foreignOnly: $this->foreignOnly());
     }
 
     /**
@@ -144,6 +147,11 @@ class ReportFiltersRequest extends FormRequest
     private function refundsOnly(): bool
     {
         return $this->reportKey()->hasPaymentFilters() && $this->boolean('refunds');
+    }
+
+    private function foreignOnly(): bool
+    {
+        return $this->reportKey()->hasForeignFilter() && $this->boolean('foreign');
     }
 
     /**

@@ -9,9 +9,11 @@ use App\Http\Controllers\Reports\InHouseReportController;
 use App\Http\Controllers\Reports\MealCountsReportController;
 use App\Http\Controllers\Reports\NightAuditHistoryReportController;
 use App\Http\Controllers\Reports\NightAuditPacketController;
+use App\Http\Controllers\Reports\NonNationalGuestsReportController;
 use App\Http\Controllers\Reports\OccupancyReportController;
 use App\Http\Controllers\Reports\OutstandingBalanceReportController;
 use App\Http\Controllers\Reports\PaymentsReportController;
+use App\Http\Controllers\Reports\PoliceReportController;
 use App\Http\Controllers\Reports\ReportExportController;
 use App\Http\Controllers\Reports\ReportLayoutController;
 use App\Http\Controllers\Reports\RevenueReportController;
@@ -30,6 +32,8 @@ Route::prefix('reports')->name('reports.')->middleware('can:'.PermissionEnum::Re
     Route::get('meal-counts', MealCountsReportController::class)->name('meal-counts');
     Route::get('outstanding-balance', OutstandingBalanceReportController::class)->name('outstanding-balance');
     Route::get('deposit-liability', DepositLiabilityReportController::class)->name('deposit-liability');
+    Route::get('non-national-guests', NonNationalGuestsReportController::class)->name('non-national-guests');
+    Route::get('police-report', PoliceReportController::class)->name('police-report');
     Route::get('night-audit-history', NightAuditHistoryReportController::class)->name('night-audit-history');
     Route::get('night-audit-history/{date}/packet', NightAuditPacketController::class)->name('night-audit-packet');
 

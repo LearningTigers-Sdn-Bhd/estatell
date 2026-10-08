@@ -9,7 +9,7 @@ use Spatie\LaravelData\Data;
 /**
  * The checked filters of a report: the first and last date (`Y-m-d`, both included) and the extra filters that only
  * some reports take. `group` is set only for a report that groups its rows (Revenue, Tax) and `code` only for a report
- * that filters by transaction code (Folio ledger). `staff` (a user id) and `refundsOnly` are set only for Payments.
+ * that filters by transaction code (Folio ledger). `staff` (a user id) and `refundsOnly` are set only for Payments, and `foreignOnly` only for the Police report.
  */
 class ReportFilters extends Data
 {
@@ -20,6 +20,7 @@ class ReportFilters extends Data
         public ?string $code = null,
         public ?int $staff = null,
         public bool $refundsOnly = false,
+        public bool $foreignOnly = false,
     ) {}
 
     /**
@@ -44,6 +45,7 @@ class ReportFilters extends Data
             ...($this->code === null ? [] : ['code' => $this->code]),
             ...($this->staff === null ? [] : ['staff' => (string) $this->staff]),
             ...($this->refundsOnly ? ['refunds' => '1'] : []),
+            ...($this->foreignOnly ? ['foreign' => '1'] : []),
         ];
     }
 }

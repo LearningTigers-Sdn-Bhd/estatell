@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Reports;
 
+use App\Actions\Reports\LogIdentityExport;
 use App\Actions\Reports\ResetReportLayout;
 use App\Actions\Reports\UpdateReportLayout;
 use App\Enums\ReportKey;
@@ -43,11 +44,14 @@ class ReportLayoutController extends Controller
     /**
      * The PDF of the dates in the request with the unsaved layout, shown inline. The rows are read again on the server.
      */
-    public function preview(PreviewReportLayoutRequest $request, Property $property, ReportKey $report, ReportLayoutResolver $resolver, ReportPdf $reportPdf): Response
+    public function preview(PreviewReportLayoutRequest $request, Property $property, ReportKey $report, ReportLayoutResolver $resolver, ReportPdf $reportPdf, LogIdentityExport $logIdentityExport): Response
     {
         $filters = $request->filters();
         $layout = $resolver->fromDraft($report, $request->orientation(), $request->layoutColumns());
 
-        return $reportPdf->make($property, $report, $filters, $layout)->stream($reportPdf->filename($report, $filters));
+        $rows = $report->report()->rows($property, $filters);
+        $logIdentityExport($request->user(), $property, $report, $filters, $layout, $rows, null);
+
+        return $reportPdf->make($property, $report, $filters, $layout, null, $rows)->stream($reportPdf->filename($report, $filters));
     }
 }
