@@ -29,7 +29,7 @@ A business date has at most one audit. A Failed audit is resumed on the same row
 | `AuditStep`          | The steps below, in run order. `runner()` gives the class of a step, and `runnable()` lists them. |
 | `AuditExceptionType` | MissedArrival, OverdueDeparture, RoomCharge, AddOn, UnexpectedError                               |
 
-The exception `message` is the refusal code of the Action that refused the unit (for example `folio_not_open`), the code of the audit's own refusal (below), or the error text for `UnexpectedError`. The readiness panel turns a code into a sentence.
+A `RoomCharge` exception can be retried from the readiness panel ([Retry a room charge](02-readiness-panel.md#retry-a-room-charge)), which sets `resolved_at` and `resolved_by` once the night is posted. The exception `message` is the refusal code of the Action that refused the unit (for example `folio_not_open`), the code of the audit's own refusal (below), or the error text for `UnexpectedError`. The readiness panel turns a code into a sentence.
 
 ## Principles
 

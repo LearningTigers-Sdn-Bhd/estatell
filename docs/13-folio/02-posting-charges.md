@@ -141,14 +141,15 @@ The room line has `source_type` and `source_id` set to the unit night. Discount 
 
 `(?User $actor, ReservationUnit $unit, CarbonImmutable $date): PostingResult`. A null actor is the night audit. `PostFolioCharge` takes a nullable actor for the same reason (`folio_lines.user_id` is nullable).
 
-| Check, in order                                      | Refusal                                                                              |
-| ---------------------------------------------------- | ------------------------------------------------------------------------------------ |
-| `$date` is the current business date of the property | `no_business_date`                                                                   |
-| The unit is CheckedIn                                | `unit_not_postable`                                                                  |
-| The unit has a night on `$date`                      | `night_not_found`                                                                    |
-| The quote is calculated (tax, inclusions, discounts) | the quote's refusal                                                                  |
-| The target folio is Open                             | `folio_not_open`, or `folio_settled_to_city_ledger` ([Routing](03-routing.md#rules)) |
+| Check, in order                                                                                                                               | Refusal                                                                              |
+| --------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| `$date` is the current business date of the property, or before it for a [Retry](../20-night-audit/02-readiness-panel.md#retry-a-room-charge) | `no_business_date`                                                                   |
+| The unit is CheckedIn, or CheckedOut for a night before the business date                                                                     | `unit_not_postable`                                                                  |
+| The unit has a night on `$date`                                                                                                               | `night_not_found`                                                                    |
+| The quote is calculated (tax, inclusions, discounts)                                                                                          | the quote's refusal                                                                  |
+| The target folio is Open                                                                                                                      | `folio_not_open`, or `folio_settled_to_city_ledger` ([Routing](03-routing.md#rules)) |
 
+- `$date` is the night. `posting_date` is always the current business date. The night audit passes the business date. Only `RetryRoomCharge` passes an earlier night, and then the room line description adds "night of {date}".
 - A night whose `night:{id}` line exists returns that line and writes nothing. It is not a refusal, so a rerun is quiet.
 - A refusal writes nothing. The audit turns it into an exception row for the unit.
 - It is one transaction, with the unit row locked. It logs no activity: the lines are the record, and the audit run keeps its own step rows.
