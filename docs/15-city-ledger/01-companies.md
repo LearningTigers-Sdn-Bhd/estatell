@@ -90,8 +90,17 @@ Finance › City ledger › Companies                     [Add company]
  JKR Sabah        Government    —              60 d    Suspended
 ```
 
-- **Add company** is a Sheet with 7 fields in two sections: Company (name, type, contact email, contact phone) and Credit (credit limit, payment terms, direct billing, on by default). After saving, the company page opens; tax numbers and the billing address are added there.
-- The company page follows the Settings pattern: each tab is a link with its own URL, and each section is one form saved on its own. **Details tab:** a Details form (name, type, contact email and phone), then a **Tax numbers and billing address** form (BRN, TIN, SST, address lines, city, postcode, state, country). When the company manages them, that second section is read-only with the address in a read-only text area. **Credit tab:** credit limit (empty means no limit), payment terms, direct billing. **Rates tab:** a checklist of the property's active derived plans (name, "Follows Basic Rate -15%"), with one Save. With no derived plans, an empty state links to Rate plans. Later modules add Portal and Statement tabs.
+- **Add company** is a Sheet with 7 fields in two sections: Company (name, type, contact email, contact phone) and Credit (how the company pays, then credit limit and payment terms). After saving, the company page opens; tax numbers and the billing address are added there.
+- The company page follows the Settings pattern: each tab is a link with its own URL, and each section is one form saved on its own. **Details tab:** a Details form (name, type, contact email and phone), then a **Tax numbers and billing address** form (BRN, TIN, SST, address lines, city, postcode, state, country). When the company manages them, that second section is read-only with the address in a read-only text area. **Credit tab:** how the company pays, then credit limit (empty means no limit) and payment terms. **Rates tab:** a checklist of the property's active derived plans (name, "Follows Basic Rate -15%"), with one Save. With no derived plans, an empty state links to Rate plans. Later modules add Portal and Statement tabs.
+- **How the company pays** is two radio cards, side by side (stacked on phones). They set `direct_bill_enabled`. Direct billing is the default.
+
+    | Card                           | Description                                                                                                          |
+    | ------------------------------ | -------------------------------------------------------------------------------------------------------------------- |
+    | Pay at check-out (`Banknote`)  | The guest pays the bill at the front desk before leaving. Nothing is owed afterwards.                                |
+    | Direct billing (`ReceiptText`) | Stays are charged to the company's account. We send an invoice and the company pays later, within its payment terms. |
+
+    Credit limit and payment terms show only with Direct billing. With Pay at check-out they are hidden, and their values are kept.
+
 - Staff with only `company.view` see the same fields disabled, with no Save button.
 - Another property's company returns 404 (scoped binding).
 - The sidebar shows **City ledger › Companies** in the Finance context for users with `company.view`.

@@ -280,20 +280,23 @@ test('the details tab saves only its fields and logs the old and new values', fu
         ->and($activity->properties['attributes']['name'])->toBe('borneo travel');
 });
 
-test('the credit tab saves the limit, terms and direct billing', function () {
+test('the credit tab saves the limit, terms and how the company pays', function (string $choice, bool $directBill) {
     [$user, $property] = companyStaff(DefaultRoleEnum::Finance);
-    $company = Company::factory()->for($property)->create(['name' => 'Borneo Travel', 'credit_limit' => '100.00', 'payment_terms_days' => 30, 'direct_bill_enabled' => true]);
+    $company = Company::factory()->for($property)->create(['name' => 'Borneo Travel', 'credit_limit' => '100.00', 'payment_terms_days' => 30, 'direct_bill_enabled' => ! $directBill]);
 
     $this->actingAs($user)
-        ->put(companiesUrl($property, "/{$company->id}/credit"), ['credit_limit' => '', 'payment_terms_days' => '45'])
+        ->put(companiesUrl($property, "/{$company->id}/credit"), ['direct_bill_enabled' => $choice, 'credit_limit' => '', 'payment_terms_days' => '45'])
         ->assertRedirect(companiesUrl($property, "/{$company->id}/credit"))
         ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Borneo Travel saved.']);
 
     expect($company->refresh()->credit_limit)->toBeNull()
         ->and($company->payment_terms_days)->toBe(45)
-        ->and($company->direct_bill_enabled)->toBeFalse()
+        ->and($company->direct_bill_enabled)->toBe($directBill)
         ->and($company->name)->toBe('Borneo Travel');
-});
+})->with([
+    'pay at check-out' => ['0', false],
+    'direct billing' => ['1', true],
+]);
 
 test('each tab has its own URL and sends only its options', function () {
     [$user, $property] = companyStaff(DefaultRoleEnum::FrontDesk);

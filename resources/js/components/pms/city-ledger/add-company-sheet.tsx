@@ -1,4 +1,6 @@
 import { useForm } from '@inertiajs/react';
+import { ChoiceCards } from '@/components/pms/choice-cards';
+import { billingChoices } from '@/components/pms/city-ledger/billing-choices';
 import { EnumSelect } from '@/components/pms/enum-select';
 import type { EnumOption } from '@/components/pms/enum-select';
 import { FormOverlay } from '@/components/pms/form-overlay';
@@ -7,7 +9,6 @@ import { PhoneInput } from '@/components/pms/phone-input';
 import { useFreshOnOpen } from '@/components/pms/use-fresh-on-open';
 import {
     Field,
-    FieldContent,
     FieldDescription,
     FieldError,
     FieldLabel,
@@ -16,7 +17,6 @@ import {
     FieldSet,
 } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { Switch } from '@/components/ui/switch';
 import { store } from '@/routes/finance/city-ledger/companies';
 
 type Props = {
@@ -129,65 +129,65 @@ function AddCompanyForm({ open, onOpenChange, types, currency }: Props) {
             <FieldSet>
                 <FieldLegend>Credit</FieldLegend>
                 <FieldDescription>
-                    How much the company may owe and how many days it has to pay
-                    an invoice.
+                    How the company pays. With direct billing, how much it may
+                    owe and how many days it has to pay an invoice.
                 </FieldDescription>
-                <Field data-invalid={!!errors.credit_limit}>
-                    <FieldLabel htmlFor="add-company-credit_limit">
-                        Credit limit
-                    </FieldLabel>
-                    <MoneyInput
-                        id="add-company-credit_limit"
-                        value={data.credit_limit}
-                        onChange={(value) =>
-                            form.setData('credit_limit', value)
-                        }
-                        currency={currency}
-                        placeholder="No limit"
-                        invalid={!!errors.credit_limit}
-                    />
-                    <FieldError>{errors.credit_limit}</FieldError>
-                </Field>
-                <Field data-invalid={!!errors.payment_terms_days}>
-                    <FieldLabel htmlFor="add-company-payment_terms_days">
-                        Payment terms (days)
-                    </FieldLabel>
-                    <Input
-                        id="add-company-payment_terms_days"
-                        inputMode="numeric"
-                        className="tabular-nums"
-                        value={data.payment_terms_days}
-                        onChange={(event) =>
-                            form.setData(
-                                'payment_terms_days',
-                                event.target.value,
-                            )
-                        }
-                        placeholder="30"
-                        aria-invalid={!!errors.payment_terms_days}
-                    />
-                    <FieldError>{errors.payment_terms_days}</FieldError>
-                </Field>
-                <Field orientation="horizontal" className="items-start">
-                    <Switch
-                        id="add-company-direct_bill_enabled"
-                        checked={data.direct_bill_enabled}
-                        onCheckedChange={(checked) =>
-                            form.setData('direct_bill_enabled', checked)
-                        }
-                        className="mt-0.5"
-                    />
-                    <FieldContent>
-                        <FieldLabel htmlFor="add-company-direct_bill_enabled">
-                            Direct billing
-                        </FieldLabel>
-                        <FieldDescription>
-                            On: the company's stays can be charged to its
-                            account and paid later through the city ledger. Off:
-                            guests settle their own bills at check-out.
-                        </FieldDescription>
-                    </FieldContent>
-                </Field>
+                <ChoiceCards
+                    id="add-company-direct_bill_enabled"
+                    legend="How does this company pay?"
+                    choices={billingChoices}
+                    value={data.direct_bill_enabled ? '1' : '0'}
+                    onValueChange={(value) =>
+                        form.setData('direct_bill_enabled', value === '1')
+                    }
+                    error={errors.direct_bill_enabled}
+                />
+                {data.direct_bill_enabled && (
+                    <>
+                        <Field data-invalid={!!errors.credit_limit}>
+                            <FieldLabel htmlFor="add-company-credit_limit">
+                                Credit limit
+                            </FieldLabel>
+                            <MoneyInput
+                                id="add-company-credit_limit"
+                                value={data.credit_limit}
+                                onChange={(value) =>
+                                    form.setData('credit_limit', value)
+                                }
+                                currency={currency}
+                                placeholder="No limit"
+                                invalid={!!errors.credit_limit}
+                            />
+                            <FieldDescription>
+                                Leave empty for no limit.
+                            </FieldDescription>
+                            <FieldError>{errors.credit_limit}</FieldError>
+                        </Field>
+                        <Field data-invalid={!!errors.payment_terms_days}>
+                            <FieldLabel htmlFor="add-company-payment_terms_days">
+                                Payment terms (days)
+                            </FieldLabel>
+                            <Input
+                                id="add-company-payment_terms_days"
+                                inputMode="numeric"
+                                className="tabular-nums"
+                                value={data.payment_terms_days}
+                                onChange={(event) =>
+                                    form.setData(
+                                        'payment_terms_days',
+                                        event.target.value,
+                                    )
+                                }
+                                placeholder="30"
+                                aria-invalid={!!errors.payment_terms_days}
+                            />
+                            <FieldDescription>
+                                Days the company has to pay an invoice.
+                            </FieldDescription>
+                            <FieldError>{errors.payment_terms_days}</FieldError>
+                        </Field>
+                    </>
+                )}
             </FieldSet>
         </FormOverlay>
     );

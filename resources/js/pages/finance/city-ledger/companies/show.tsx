@@ -1,6 +1,8 @@
 import { Form, Head } from '@inertiajs/react';
 import { CreditCard, FileText, Info, Tag, Wallet } from 'lucide-react';
 import { useState } from 'react';
+import { ChoiceCards } from '@/components/pms/choice-cards';
+import { billingChoices } from '@/components/pms/city-ledger/billing-choices';
 import { CompanyStatement } from '@/components/pms/city-ledger/company-statement';
 import { ArPaymentsTab } from '@/components/pms/city-ledger/ar-payments-tab';
 import { CompanyRatesForm } from '@/components/pms/city-ledger/company-rates-form';
@@ -12,7 +14,6 @@ import { SettingsSection } from '@/components/pms/settings-section';
 import {
     SettingsInput,
     SettingsSelect,
-    SettingsSwitch,
 } from '@/components/pms/settings/form-fields';
 import { StatusBadge } from '@/components/pms/status-badge';
 import { TabLinks } from '@/components/pms/tab-links';
@@ -168,6 +169,65 @@ function CountryField({
             <input type="hidden" name={name} value={code} />
             <FieldError>{error}</FieldError>
         </Field>
+    );
+}
+
+/**
+ * How the company pays, then its credit limit and terms for direct billing. With Pay at check-out the credit fields are
+ * hidden but stay in the form, so their values are kept.
+ */
+function CreditFields({
+    company,
+    currency,
+    readOnly,
+    errors,
+}: {
+    company: Company;
+    currency: App.Enums.Currency | null;
+    readOnly: boolean;
+    errors: Record<string, string>;
+}) {
+    const [billing, setBilling] = useState(
+        company.directBillEnabled ? '1' : '0',
+    );
+
+    return (
+        <>
+            <ChoiceCards
+                id="direct_bill_enabled"
+                name="direct_bill_enabled"
+                legend="How does this company pay?"
+                choices={billingChoices}
+                value={billing}
+                onValueChange={setBilling}
+                disabled={readOnly}
+                error={errors.direct_bill_enabled}
+                className="md:col-span-2"
+            />
+            <div className={billing === '1' ? 'contents' : 'hidden'}>
+                <SettingsInput
+                    name="credit_limit"
+                    placeholder="No limit"
+                    label={`Credit limit${currency ? ` (${currency})` : ''}`}
+                    value={company.creditLimit}
+                    disabled={readOnly}
+                    error={errors.credit_limit}
+                    description="Leave empty for no limit."
+                />
+                <SettingsInput
+                    name="payment_terms_days"
+                    placeholder="30"
+                    label="Payment terms (days)"
+                    type="number"
+                    min={0}
+                    max={365}
+                    value={company.paymentTermsDays}
+                    disabled={readOnly}
+                    error={errors.payment_terms_days}
+                    description="Days the company has to pay an invoice."
+                />
+            </div>
+        </>
     );
 }
 
@@ -554,41 +614,17 @@ export default function CompanyShow({
                             key={`credit-${company.id}`}
                             form={form('credit')}
                             title="Credit"
-                            description="How much the company may owe and how many days it has to pay an invoice."
+                            description="How the company pays. With direct billing, how much it may owe and how many days it has to pay an invoice."
                             submitLabel="Save credit"
                             readOnly={readOnly}
                         >
                             {(errors) => (
-                                <>
-                                    <SettingsInput
-                                        name="credit_limit"
-                                        placeholder="No limit"
-                                        label={`Credit limit${currency ? ` (${currency})` : ''}`}
-                                        value={company.creditLimit}
-                                        disabled={readOnly}
-                                        error={errors.credit_limit}
-                                        description="Leave empty for no limit."
-                                    />
-                                    <SettingsInput
-                                        name="payment_terms_days"
-                                        placeholder="30"
-                                        label="Payment terms (days)"
-                                        type="number"
-                                        min={0}
-                                        max={365}
-                                        value={company.paymentTermsDays}
-                                        disabled={readOnly}
-                                        error={errors.payment_terms_days}
-                                    />
-                                    <SettingsSwitch
-                                        name="direct_bill_enabled"
-                                        label="Direct billing"
-                                        description="On: the company's stays can be charged to its account and paid later through the city ledger. Off: guests settle their own bills at check-out."
-                                        checked={company.directBillEnabled}
-                                        disabled={readOnly}
-                                        error={errors.direct_bill_enabled}
-                                    />
-                                </>
+                                <CreditFields
+                                    company={company}
+                                    currency={currency}
+                                    readOnly={readOnly}
+                                    errors={errors}
+                                />
                             )}
                         </SettingsSection>
                     )}
