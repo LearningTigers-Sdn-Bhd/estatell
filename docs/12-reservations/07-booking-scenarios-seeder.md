@@ -37,15 +37,15 @@ Rules this depends on:
 
 ## Setup
 
-| Item       | Value                                                                                                                                                     |
-| ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Room types | Standard Double: 10 rooms (101–110). Deluxe Twin: 8 rooms (201–208). Family Suite: 2 rooms (301–302). 6-Bed Dorm: 1 room (D1), beds A–F, `SellUnit::Bed`. |
-| Rate plans | Room Only (all types), Bed & Breakfast (rooms, with a breakfast inclusion), Corporate (Standard and Deluxe, linked to the company).                       |
-| Rates      | D0 to D+60 for every plan. Standard and Room Only on D15: `min_stay` 3 (for S5).                                                                          |
-| Age groups | The property defaults, plus child prices on Room Only and Bed & Breakfast, so S2 has child lines.                                                         |
-| Company    | Borneo Ventures Sdn Bhd, Active, linked to Corporate with `SyncCompanyRatePlans`.                                                                         |
-| Guests     | About 40, with Malaysian and foreign names. Every dorm bed gets its own guest.                                                                            |
-| Taxes      | SST 8% and Tourism tax, as in Sandbay.                                                                                                                    |
+| Item       | Value                                                                                                                                                                                                                                                       |
+| ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Room types | Standard Double: 10 rooms (101–110). Deluxe Twin: 8 rooms (201–208). Family Suite: 2 rooms (301–302). 6-Bed Dorm: 1 room (D1), six beds from `GenerateBeds`, `SellUnit::Bed`.                                                                               |
+| Rate plans | Room Only and Bed & Breakfast (the room types, B&B with a breakfast inclusion), Dorm Bed (`PricingBasis::PerBed`, the dorm only: a per-room plan cannot sell a Bed room type), Corporate (10% below Room Only, Standard and Deluxe, linked to the company). |
+| Rates      | D0 to D+60 for every plan. Standard and Room Only on D15: `min_stay` 3 (for S5).                                                                                                                                                                            |
+| Age groups | The property defaults (Infant 0–3, Child 4–11). Bed & Breakfast prices children with its extra child amount, so age 17 is priced as an adult.                                                                                                               |
+| Company    | Borneo Ventures Sdn Bhd, Active, linked to Corporate with `SyncCompanyRatePlans`.                                                                                                                                                                           |
+| Guests     | 64, with Malaysian and foreign names and a nationality. Every unit gets its own guest, so check-in never stops on `nationality_required`.                                                                                                                   |
+| Taxes      | SST 8% and Tourism tax, as in Sandbay.                                                                                                                                                                                                                      |
 
 ## Single bookings
 
@@ -68,27 +68,27 @@ Rules this depends on:
 
 ## Group bookings
 
-| Code | Scenario              | Units                                          | Billing       | Events                                                       | Status at D7 | Proves                                                                        |
-| ---- | --------------------- | ---------------------------------------------- | ------------- | ------------------------------------------------------------ | ------------ | ----------------------------------------------------------------------------- |
-| G1   | Wedding, staggered    | 2 Standard D6 → D9, 3 Deluxe D8 → D10, B&B     | MasterPays    | D6 check in the 2 Standard units.                            | InHouse      | Mixed dates and types. InHouse while other units are still to arrive (rule 3) |
-| G2   | Corporate team        | 4 Deluxe D5 → D9, Corporate, the company       | MasterPaysAll | D5 `CheckInAllUnits`. D6 post a laundry charge on one unit.  | InHouse      | The extra routed to the Master folio                                          |
-| G3   | Friends trip          | 3 Standard D6 → D8, Room Only                  | EachPays      | D6 `CheckInAllUnits`.                                        | InHouse      | One folio per unit, no routing rules                                          |
-| G4   | Partly cancelled      | 4 Standard D12 → D14, Room Only                | MasterPays    | D2 `CancelUnit` on one unit.                                 | Confirmed    | One cancelled unit leaves the others alone                                    |
-| G5   | Fully cancelled       | 2 Standard D18 → D20, Room Only                | EachPays      | D1 `CancelUnit` on both.                                     | Cancelled    | Rule 1                                                                        |
-| G6   | No live unit left     | 2 Standard D4 → D6, Room Only                  | EachPays      | D2 `CancelUnit` on one. The D4 audit marks the other NoShow. | Completed    | Rule 2, and a no-show made by the audit                                       |
-| G7   | One left, two to come | 1 Deluxe D1 → D3, 2 Deluxe D9 → D11, Room Only | MasterPays    | D1 check in the first unit. D3 check out.                    | Confirmed    | Rule 5. The Master folio holds room charges for a reservation not in house    |
-| G8   | Billing mode locked   | 2 Deluxe D10 → D12, Room Only                  | MasterPays    | D1 Advance of 500.00 by bank transfer on the Master folio.   | Confirmed    | `master_has_payments` can be tried from Edit group                            |
-| G9   | Unit added later      | 2 Standard D10 → D13, Room Only                | MasterPays    | D2 `AddUnit` adds a third Standard unit.                     | Confirmed    | `AddUnit` on an existing reservation, routing synced                          |
-| G10  | No group name         | 2 Deluxe D14 → D16, B&B, `group_name` null     | EachPays      | None                                                         | Confirmed    | The UI shows the booker's name                                                |
+| Code | Scenario              | Units                                          | Billing       | Events                                                          | Status at D7 | Proves                                                                        |
+| ---- | --------------------- | ---------------------------------------------- | ------------- | --------------------------------------------------------------- | ------------ | ----------------------------------------------------------------------------- |
+| G1   | Wedding, staggered    | 2 Standard D6 → D9, 3 Deluxe D8 → D10, B&B     | MasterPays    | D6 check in the 2 Standard units.                               | InHouse      | Mixed dates and types. InHouse while other units are still to arrive (rule 3) |
+| G2   | Corporate team        | 4 Deluxe D5 → D9, Corporate, the company       | MasterPaysAll | D5 `CheckInAllUnits`. D6 post a Laundry bag charge on one unit. | InHouse      | The extra routed to the Master folio                                          |
+| G3   | Friends trip          | 3 Standard D6 → D8, Room Only                  | EachPays      | D6 `CheckInAllUnits`.                                           | InHouse      | One folio per unit, no routing rules                                          |
+| G4   | Partly cancelled      | 4 Standard D12 → D14, Room Only                | MasterPays    | D2 `CancelUnit` on one unit.                                    | Confirmed    | One cancelled unit leaves the others alone                                    |
+| G5   | Fully cancelled       | 2 Standard D18 → D20, Room Only                | EachPays      | D1 `CancelUnit` on both.                                        | Cancelled    | Rule 1                                                                        |
+| G6   | No live unit left     | 2 Standard D4 → D6, Room Only                  | EachPays      | D2 `CancelUnit` on one. The D4 audit marks the other NoShow.    | Completed    | Rule 2, and a no-show made by the audit                                       |
+| G7   | One left, two to come | 1 Deluxe D1 → D3, 2 Deluxe D9 → D11, Room Only | MasterPays    | D1 check in the first unit. D3 check out.                       | Confirmed    | Rule 5. The Master folio holds room charges for a reservation not in house    |
+| G8   | Billing mode locked   | 2 Deluxe D10 → D12, Room Only                  | MasterPays    | D1 Advance of 500.00 by bank transfer on the Master folio.      | Confirmed    | `master_has_payments` can be tried from Edit group                            |
+| G9   | Unit added later      | 2 Standard D10 → D13, Room Only                | MasterPays    | D2 `AddUnit` adds a third Standard unit.                        | Confirmed    | `AddUnit` on an existing reservation, routing synced                          |
+| G10  | No group name         | 2 Deluxe D14 → D16, B&B, `group_name` null     | EachPays      | None                                                            | Confirmed    | The UI shows the booker's name                                                |
 
 ## Dorm beds
 
-| Code | Scenario         | Units                                               | Events                                                                                        | Status at D7 | Proves                                                              |
-| ---- | ---------------- | --------------------------------------------------- | --------------------------------------------------------------------------------------------- | ------------ | ------------------------------------------------------------------- |
-| B1   | Solo backpacker  | 1 bed D5 → D9, Room Only                            | D5 check in.                                                                                  | InHouse      | `bed_id` assignment. Attaching a second guest gives `bed_unit_full` |
-| B2   | Backpacker group | `beds: 4`, D3 → D9, Room Only, EachPays             | D3 check in 3 beds. The D3 audit marks the 4th NoShow. D5 settle one bed and `EarlyCheckOut`. | InHouse      | Each bed has its own status and folio                               |
-| B3   | Rooms and beds   | 2 Standard + 3 beds, D10 → D12, Room Only, EachPays | None                                                                                          | Confirmed    | Rooms and beds in one reservation                                   |
-| B4   | Full dorm        | `beds: 6`, D16 → D17, Room Only, MasterPays         | None                                                                                          | Confirmed    | Availability shows 0 beds on D16                                    |
+| Code | Scenario         | Units                                                             | Events                                                                                        | Status at D7 | Proves                                                              |
+| ---- | ---------------- | ----------------------------------------------------------------- | --------------------------------------------------------------------------------------------- | ------------ | ------------------------------------------------------------------- |
+| B1   | Solo backpacker  | 1 bed D5 → D9, Dorm Bed                                           | D5 check in.                                                                                  | InHouse      | `bed_id` assignment. Attaching a second guest gives `bed_unit_full` |
+| B2   | Backpacker group | `beds: 4`, D3 → D9, Dorm Bed, EachPays                            | D3 check in 3 beds. The D3 audit marks the 4th NoShow. D5 settle one bed and `EarlyCheckOut`. | InHouse      | Each bed has its own status and folio                               |
+| B3   | Rooms and beds   | 2 Standard on Room Only + 3 beds on Dorm Bed, D10 → D12, EachPays | None                                                                                          | Confirmed    | Rooms and beds in one reservation                                   |
+| B4   | Full dorm        | `beds: 6`, D16 → D17, Dorm Bed, MasterPays                        | None                                                                                          | Confirmed    | Availability shows 0 beds on D16                                    |
 
 ## Refusals to try in the UI
 
