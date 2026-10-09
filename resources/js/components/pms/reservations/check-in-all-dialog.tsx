@@ -36,6 +36,8 @@ function CheckInAllForm({ open, onOpenChange, reservation }: Props) {
     const selected = (picked ?? ready.map((row) => row.unitId)).filter((id) =>
         ready.some((row) => row.unitId === id),
     );
+    const noneReady =
+        preview !== null && preview.rows.length > 0 && ready.length === 0;
     const needsCard =
         preview?.rows.some(
             (row) => selected.includes(row.unitId) && row.cardsMissing > 0,
@@ -72,9 +74,11 @@ function CheckInAllForm({ open, onOpenChange, reservation }: Props) {
             errors={errors}
             onSubmit={submit}
             submitLabel={
-                selected.length === 1
-                    ? 'Check in 1 unit'
-                    : `Check in ${selected.length} units`
+                selected.length === 0
+                    ? 'Check in'
+                    : selected.length === 1
+                      ? 'Check in 1 unit'
+                      : `Check in ${selected.length} units`
             }
             processing={form.processing}
             submitDisabled={selected.length === 0}
@@ -92,6 +96,12 @@ function CheckInAllForm({ open, onOpenChange, reservation }: Props) {
                             No unit is waiting to check in.
                         </p>
                     )}
+                    {noneReady && (
+                        <p className="text-sm font-medium">
+                            No guest in this booking can check in today. The
+                            reason is under each name.
+                        </p>
+                    )}
                     <div className="flex flex-col gap-2">
                         {preview.rows.map((row) => {
                             const error = rowErrors[`units.${row.unitId}`];
@@ -101,6 +111,7 @@ function CheckInAllForm({ open, onOpenChange, reservation }: Props) {
                                     key={row.unitId}
                                     orientation="horizontal"
                                     data-invalid={!!error}
+                                    data-disabled={!row.ready}
                                 >
                                     <Checkbox
                                         id={`check-in-all-${row.unitId}`}
@@ -158,10 +169,12 @@ function CheckInAllForm({ open, onOpenChange, reservation }: Props) {
                             </Field>
                         </FieldLabel>
                     )}
-                    <p className="text-sm text-muted-foreground">
-                        Check in all takes no payment. Collect the taxes and the
-                        deposit for each unit afterwards.
-                    </p>
+                    {!noneReady && (
+                        <p className="text-sm text-muted-foreground">
+                            Check in all takes no payment. Collect the taxes and
+                            the deposit for each unit afterwards.
+                        </p>
+                    )}
                 </>
             )}
         </FormOverlay>

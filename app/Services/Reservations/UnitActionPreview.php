@@ -107,6 +107,7 @@ class UnitActionPreview
 
     /**
      * The rows of the group Check in all form: each Confirmed unit, ready when the business date is inside its stay.
+     * A row that is not ready says why in words the front desk can act on.
      */
     public function checkInAll(Reservation $reservation, User $user): CheckInAllPreviewData
     {
@@ -119,6 +120,7 @@ class UnitActionPreview
 
         $today = $businessDate->toDateString();
         $cardRequired = (bool) $property->settings?->card_required_for_check_in;
+        $autoAssign = (bool) $property->settings?->auto_assign_rooms;
         $rows = [];
 
         $units = $reservation->units()
@@ -141,15 +143,31 @@ class UnitActionPreview
                 'cardsMissing' => $cardRequired ? $this->registrationCardRequirement->missingFor($unit, $property)->count() : 0,
                 'ready' => $ready,
                 'note' => match (true) {
-                    ! $ready && $today < $arrival => __('Arrives :date', ['date' => $unit->arrival_date->format('d M Y')]),
-                    ! $ready => __('The stay has ended'),
-                    $room === null => __('No room assigned for tonight'),
+                    ! $ready && $today < $arrival => $this->notArrivedNote($unit, $businessDate),
+                    ! $ready => __('Cannot check in: the stay ended on :date.', ['date' => $unit->departure_date->format('d M Y')]),
+                    $room === null && $autoAssign => __('No room yet. One is given at check-in.'),
+                    $room === null => __('No room for tonight. Assign a room before check-in.'),
                     default => null,
                 },
             ];
         }
 
         return new CheckInAllPreviewData($rows, $user->can(PermissionEnum::FrontDeskCheckInWithoutCard->value), null);
+    }
+
+    /**
+     * Why a unit that arrives after the business date cannot check in, and what the front desk can do: change the
+     * dates first to check the guest in early.
+     */
+    private function notArrivedNote(ReservationUnit $unit, CarbonInterface $businessDate): string
+    {
+        $days = (int) CarbonImmutable::instance($businessDate)->startOfDay()->diffInDays($unit->arrival_date->startOfDay());
+        $when = $days === 1 ? __('tomorrow') : __('in :days days', ['days' => $days]);
+
+        return __('Cannot check in yet: booked to arrive :date (:when). To check in today, change the dates first.', [
+            'date' => $unit->arrival_date->format('d M Y'),
+            'when' => $when,
+        ]);
     }
 
     /**

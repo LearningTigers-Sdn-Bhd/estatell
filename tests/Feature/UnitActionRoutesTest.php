@@ -665,9 +665,9 @@ test('the group preview lists each confirmed unit and whether it is ready', func
         ->assertJsonPath('rows.0.ready', true)
         ->assertJsonPath('rows.1.unitId', $later->id)
         ->assertJsonPath('rows.1.ready', false)
-        ->assertJsonPath('rows.1.note', 'Arrives '.today()->addDay()->format('d M Y'))
+        ->assertJsonPath('rows.1.note', 'Cannot check in yet: booked to arrive '.today()->addDay()->format('d M Y').' (tomorrow). To check in today, change the dates first.')
         ->assertJsonPath('rows.2.unitId', $noRoom->id)
-        ->assertJsonPath('rows.2.note', 'No room assigned for tonight')
+        ->assertJsonPath('rows.2.note', 'No room for tonight. Assign a room before check-in.')
         ->assertJsonPath('canCheckInWithoutCard', true);
 
     expect(Activity::query()->count())->toBe(0);
