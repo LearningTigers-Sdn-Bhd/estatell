@@ -1,11 +1,15 @@
 import { Link, useForm } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
 import { DateText } from '@/components/pms/date-text';
+import { EnumSelect } from '@/components/pms/enum-select';
 import { FormOverlay } from '@/components/pms/form-overlay';
 import { MoneyInput } from '@/components/pms/money-input';
 import { MoneyText } from '@/components/pms/money-text';
 import { useUnitPreview } from '@/components/pms/reservations/use-unit-preview';
-import { KEEP_OPTIONS } from '@/components/pms/use-form-options';
+import {
+    KEEP_OPTIONS,
+    useFormOptions,
+} from '@/components/pms/use-form-options';
 import { useFreshOnOpen } from '@/components/pms/use-fresh-on-open';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -15,8 +19,12 @@ import {
     FieldError,
     FieldLabel,
 } from '@/components/ui/field';
+import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Separator } from '@/components/ui/separator';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
+import { cn } from '@/lib/utils';
 import { folio } from '@/routes/reservations';
 import {
     checkOut,
@@ -26,21 +34,47 @@ import {
 
 type Unit = App.Data.Reservations.ReservationUnitData;
 type Preview = App.Data.Reservations.UnitCheckOutPreviewData;
+type Options = App.Data.Payments.PaymentFormOptionsData;
+type DepositChoice = 'use' | 'refund' | 'keep';
 
 type Props = {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     reservationId: number;
     unit: Unit;
+    paymentOptions?: Options;
     canWaiveFees: boolean;
     currency: App.Enums.Currency | null;
 };
+
+function SummaryRow({
+    label,
+    amount,
+    currency,
+    negative = false,
+}: {
+    label: string;
+    amount: number;
+    currency: App.Enums.Currency | null;
+    negative?: boolean;
+}) {
+    return (
+        <div className="flex justify-between gap-4">
+            <span className="text-muted-foreground">{label}</span>
+            <span>
+                {negative && '−'}
+                <MoneyText amount={amount.toFixed(2)} currency={currency} />
+            </span>
+        </div>
+    );
+}
 
 function CheckOutForm({
     open,
     onOpenChange,
     reservationId,
     unit,
+    paymentOptions,
     canWaiveFees,
     currency,
 }: Props) {
@@ -49,10 +83,18 @@ function CheckOutForm({
         checkOutPreview.url(key),
         open,
     );
+    useFormOptions(
+        open && preview?.canCollect === true,
+        paymentOptions !== undefined,
+        'paymentOptions',
+    );
     const [idempotencyKey] = useState(() => crypto.randomUUID());
+    const methods = paymentOptions?.methods ?? [];
     const form = useForm({
-        deposit: 'refund',
+        deposit: '',
         refund_amount: '',
+        payment_method_id: '',
+        reference: '',
         do_not_charge: false,
         reason: '',
         expected_fee: '',
@@ -60,6 +102,8 @@ function CheckOutForm({
     const { data, errors } = form;
     const early = preview?.early ?? null;
     const held = Number(preview?.depositHeld ?? 0);
+    const methodId = data.payment_method_id || String(methods[0]?.id ?? '');
+    const method = methods.find((one) => String(one.id) === methodId);
 
     useEffect(() => {
         if (errors.expected_fee) {
@@ -76,23 +120,56 @@ function CheckOutForm({
     const feeOnFolio = early !== null && !waived ? Number(early.feeTotal) : 0;
     const balance = Number(preview?.balance ?? 0) + feeOnFolio;
     const owing = Math.max(balance, 0);
-    const refunding =
-        preview?.canRefund === true && held > 0 && data.deposit === 'refund';
+    const canCollect = preview?.canCollect === true;
+    const canRefund = preview?.canRefund === true && held > 0;
+    const deposit = (data.deposit ||
+        (owing > 0 ? 'use' : 'refund')) as DepositChoice;
+    const refunding = canRefund && deposit === 'refund';
+    // Owing money: refund the whole deposit and collect the rest. Only the deposit left: refund what settles the folio.
     const refundDefault =
-        early !== null
-            ? Math.min(held, Math.max(-balance, 0)).toFixed(2)
-            : (preview?.refundDefault ?? '0.00');
-    const amount =
-        data.refund_amount !== '' ? data.refund_amount : refundDefault;
-    const remaining = balance + (refunding ? Number(amount) : 0);
+        owing > 0
+            ? held.toFixed(2)
+            : early !== null
+              ? Math.min(held, Math.max(-balance, 0)).toFixed(2)
+              : (preview?.refundDefault ?? '0.00');
+    const refundAmount = refunding
+        ? data.refund_amount !== ''
+            ? data.refund_amount
+            : refundDefault
+        : '0.00';
+    const refund = Number(refundAmount);
+    const due = balance + refund;
+    const collecting = canCollect && deposit !== 'keep' && due > 0.005;
+    const collectAmount = collecting ? due : 0;
+    const remaining = due - collectAmount;
+    const depositUsed =
+        held > 0 && deposit !== 'keep' ? Math.max(held - refund, 0) : 0;
     const settled =
         preview !== null &&
         preview.error === null &&
         Math.abs(remaining) < 0.005;
+    const verbs = [
+        collecting && 'collect',
+        refunding && refund > 0 && 'refund',
+    ].filter(Boolean);
+    const action = early !== null ? 'check out early' : 'check out';
+    const label =
+        verbs.length === 0 ? action : `${verbs.join(', ')} and ${action}`;
+    const folioLink =
+        preview?.folioKey != null
+            ? folio.url(
+                  { reservation: reservationId },
+                  { query: { folio: preview.folioKey } },
+              )
+            : null;
 
     const submit = () => {
         form.transform((values) => ({
-            refund_amount: refunding ? amount : '',
+            refund_amount: refunding ? refundAmount : '',
+            collect_amount: collecting ? collectAmount.toFixed(2) : '',
+            payment_method_id: collecting ? methodId : '',
+            reference:
+                collecting && method?.requiresReference ? values.reference : '',
             idempotency_key: idempotencyKey,
             ...(early !== null && {
                 do_not_charge: waived,
@@ -122,9 +199,11 @@ function CheckOutForm({
             }
             errors={errors}
             onSubmit={submit}
-            submitLabel={early !== null ? 'Check out early' : 'Check out'}
+            submitLabel={label.charAt(0).toUpperCase() + label.slice(1)}
             processing={form.processing}
-            submitDisabled={!settled}
+            submitDisabled={
+                !settled || (collecting && paymentOptions === undefined)
+            }
             loading={preview === null}
         >
             {preview !== null && (
@@ -256,14 +335,11 @@ function CheckOutForm({
                             </div>
                         )}
                     </div>
-                    {owing > 0 && preview.folioKey !== null && (
+                    {owing > 0 && !canCollect && folioLink !== null && (
                         <p className="text-sm text-muted-foreground">
                             Collect the balance with Record payment on the{' '}
                             <Link
-                                href={folio.url(
-                                    { reservation: reservationId },
-                                    { query: { folio: preview.folioKey } },
-                                )}
+                                href={folioLink}
                                 className="underline underline-offset-4"
                             >
                                 folio
@@ -271,13 +347,26 @@ function CheckOutForm({
                             , then check out.
                         </p>
                     )}
-                    {held > 0 && preview.canRefund && (
+                    {canRefund && (
                         <RadioGroup
-                            value={data.deposit}
+                            value={deposit}
                             onValueChange={(value) =>
                                 form.setData('deposit', value)
                             }
                         >
+                            {owing > 0 && (
+                                <Field orientation="horizontal">
+                                    <RadioGroupItem
+                                        id="check-out-use"
+                                        value="use"
+                                    />
+                                    <FieldContent>
+                                        <FieldLabel htmlFor="check-out-use">
+                                            Use toward the bill
+                                        </FieldLabel>
+                                    </FieldContent>
+                                </Field>
+                            )}
                             <Field orientation="horizontal">
                                 <RadioGroupItem
                                     id="check-out-refund"
@@ -290,7 +379,7 @@ function CheckOutForm({
                                             ? ` · ${preview.depositMethod}`
                                             : ''}
                                     </FieldLabel>
-                                    {data.deposit === 'refund' && (
+                                    {deposit === 'refund' && (
                                         <Field
                                             data-invalid={
                                                 !!errors.refund_amount
@@ -298,7 +387,7 @@ function CheckOutForm({
                                         >
                                             <MoneyInput
                                                 id="check-out-refund_amount"
-                                                value={amount}
+                                                value={refundAmount}
                                                 onChange={(value) =>
                                                     form.setData(
                                                         'refund_amount',
@@ -329,20 +418,10 @@ function CheckOutForm({
                                         deposit offsets it, then refund the
                                         rest.
                                     </FieldDescription>
-                                    {data.deposit === 'keep' &&
-                                        preview.folioKey !== null && (
+                                    {deposit === 'keep' &&
+                                        folioLink !== null && (
                                             <Link
-                                                href={folio.url(
-                                                    {
-                                                        reservation:
-                                                            reservationId,
-                                                    },
-                                                    {
-                                                        query: {
-                                                            folio: preview.folioKey,
-                                                        },
-                                                    },
-                                                )}
+                                                href={folioLink}
                                                 className="text-sm underline underline-offset-4"
                                             >
                                                 Open the folio to post the
@@ -359,7 +438,122 @@ function CheckOutForm({
                             payments to give it back first.
                         </p>
                     )}
-                    {!settled && owing === 0 && (
+                    {collecting && (
+                        <div className="flex flex-col gap-4">
+                            <div className="flex justify-between gap-4 text-sm font-medium">
+                                Collect balance
+                                <MoneyText
+                                    amount={collectAmount.toFixed(2)}
+                                    currency={currency}
+                                />
+                            </div>
+                            <div
+                                className={cn(
+                                    'grid gap-4',
+                                    method?.requiresReference &&
+                                        'sm:grid-cols-2',
+                                )}
+                            >
+                                <Field
+                                    data-invalid={!!errors.payment_method_id}
+                                >
+                                    <FieldLabel htmlFor="check-out-payment_method_id">
+                                        Method
+                                    </FieldLabel>
+                                    {paymentOptions === undefined ? (
+                                        <Skeleton className="h-9 w-full" />
+                                    ) : (
+                                        <EnumSelect
+                                            id="check-out-payment_method_id"
+                                            options={methods.map((one) => ({
+                                                value: String(one.id),
+                                                label: one.name,
+                                            }))}
+                                            value={methodId}
+                                            onValueChange={(value) =>
+                                                form.setData(
+                                                    'payment_method_id',
+                                                    value,
+                                                )
+                                            }
+                                            aria-invalid={
+                                                !!errors.payment_method_id
+                                            }
+                                        />
+                                    )}
+                                    <FieldError>
+                                        {errors.payment_method_id}
+                                    </FieldError>
+                                </Field>
+                                {method?.requiresReference && (
+                                    <Field data-invalid={!!errors.reference}>
+                                        <FieldLabel htmlFor="check-out-reference">
+                                            Reference
+                                        </FieldLabel>
+                                        <Input
+                                            id="check-out-reference"
+                                            value={data.reference}
+                                            onChange={(event) =>
+                                                form.setData(
+                                                    'reference',
+                                                    event.target.value,
+                                                )
+                                            }
+                                            maxLength={100}
+                                            autoComplete="off"
+                                            aria-invalid={!!errors.reference}
+                                        />
+                                        <FieldError>
+                                            {errors.reference}
+                                        </FieldError>
+                                    </Field>
+                                )}
+                            </div>
+                        </div>
+                    )}
+                    {(collecting || (refunding && refund > 0)) && (
+                        <>
+                            <Separator />
+                            <div className="flex flex-col gap-1 text-sm">
+                                {collecting && (
+                                    <SummaryRow
+                                        label={`Collect${method ? ` by ${method.name}` : ''}`}
+                                        amount={collectAmount}
+                                        currency={currency}
+                                    />
+                                )}
+                                {refunding && refund > 0 && (
+                                    <SummaryRow
+                                        label={`Refund${preview.depositMethod ? ` by ${preview.depositMethod}` : ''}`}
+                                        amount={refund}
+                                        currency={currency}
+                                        negative
+                                    />
+                                )}
+                                {depositUsed > 0.005 && (
+                                    <SummaryRow
+                                        label="Deposit used toward the bill"
+                                        amount={depositUsed}
+                                        currency={currency}
+                                    />
+                                )}
+                                <div className="flex justify-between gap-4 font-medium">
+                                    <span>Remaining after check-out</span>
+                                    <span
+                                        className={cn(
+                                            !settled && 'text-destructive',
+                                        )}
+                                    >
+                                        <MoneyText
+                                            amount={remaining.toFixed(2)}
+                                            currency={currency}
+                                        />
+                                    </span>
+                                </div>
+                            </div>
+                        </>
+                    )}
+                    {!settled && !collecting && owing === 0 && (
                         <p className="text-sm text-muted-foreground">
                             The folio is not at 0 yet, so check-out is not open.
                         </p>
@@ -371,8 +565,10 @@ function CheckOutForm({
 }
 
 /**
- * Check out one unit. Shows the unit folio and the security deposit held. The deposit is a credit, so the form
- * refunds it (or leaves it for a damage charge) and opens check-out once the folio reaches 0.
+ * Check out one unit. Shows the unit folio and the security deposit held. The deposit is a credit, so the form uses
+ * it toward the bill, refunds it, or leaves it for a damage charge. For a user who may record payments, Collect
+ * balance takes what is still owed, and the server records the payment, the refund and the check-out in one step.
+ * Check-out opens once the folio will reach 0.
  */
 export function CheckOutDialog(props: Props) {
     return <CheckOutForm key={useFreshOnOpen(props.open)} {...props} />;

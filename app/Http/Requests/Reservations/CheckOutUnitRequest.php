@@ -2,13 +2,16 @@
 
 namespace App\Http\Requests\Reservations;
 
+use App\Data\Reservations\CheckOutCollectData;
 use App\Enums\PermissionEnum;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
- * The Check out form, and the early check-out form, which adds the fee choices. A deposit refund from a user without
- * `payment.refund` is dropped, and so is Do not charge from a user without `front-desk.waive-fees`.
+ * The Check out form, and the early check-out form, which adds the fee choices. Collect balance sends a method, a
+ * reference and the amount the form showed. A deposit refund from a user without `payment.refund` is dropped, so is
+ * Collect balance from a user without `payment.record`, and so is Do not charge from a user without
+ * `front-desk.waive-fees`.
  */
 class CheckOutUnitRequest extends FormRequest
 {
@@ -27,8 +30,10 @@ class CheckOutUnitRequest extends FormRequest
     {
         return [
             'refund_amount' => ['nullable', 'regex:/^\d+(\.\d{1,2})?$/'],
+            'collect_amount' => ['nullable', 'regex:/^\d+(\.\d{1,2})?$/'],
+            'payment_method_id' => ['nullable', 'required_with:collect_amount', 'integer'],
             'reference' => ['nullable', 'string', 'max:100'],
-            'idempotency_key' => ['nullable', 'required_with:refund_amount', 'uuid'],
+            'idempotency_key' => ['nullable', 'required_with:refund_amount,collect_amount', 'uuid'],
             'do_not_charge' => ['boolean'],
             'reason' => ['nullable', 'string', 'max:500'],
             'expected_fee' => ['nullable', 'regex:/^\d+(\.\d{1,2})?$/'],
@@ -42,9 +47,18 @@ class CheckOutUnitRequest extends FormRequest
             : null;
     }
 
-    public function reference(): ?string
+    public function collectBalance(): ?CheckOutCollectData
     {
-        return filled($this->input('reference')) ? $this->string('reference')->toString() : null;
+        if (! filled($this->input('collect_amount')) || ! $this->user()->can(PermissionEnum::PaymentRecord->value)) {
+            return null;
+        }
+
+        return new CheckOutCollectData(
+            paymentMethodId: $this->integer('payment_method_id'),
+            amount: $this->string('collect_amount')->toString(),
+            reference: filled($this->input('reference')) ? $this->string('reference')->toString() : null,
+            idempotencyKey: $this->string('idempotency_key')->toString(),
+        );
     }
 
     public function doNotCharge(): bool

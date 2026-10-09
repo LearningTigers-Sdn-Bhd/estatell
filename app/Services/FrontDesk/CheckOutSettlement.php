@@ -23,7 +23,7 @@ class CheckOutSettlement
 {
     public function __construct(private FolioBalance $folioBalance) {}
 
-    public function for(ReservationUnit $unit, bool $canRefund): UnitCheckOutPreviewData
+    public function for(ReservationUnit $unit, bool $canRefund, bool $canCollect = false): UnitCheckOutPreviewData
     {
         $folios = $this->folios($unit);
         $balance = $folios->reduce(fn (BigDecimal $sum, Folio $folio): BigDecimal => $sum->plus($this->folioBalance->forFolio($folio)), BigDecimal::zero());
@@ -40,6 +40,7 @@ class CheckOutSettlement
             canRefund: $canRefund,
             folioKey: $folios->first() === null ? null : (string) $folios->first()->id,
             error: null,
+            canCollect: $canCollect,
         );
     }
 

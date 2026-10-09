@@ -1416,6 +1416,12 @@ taxesTotal: string,
 taxesHidden: boolean,
 deposit: string | null,
 };
+export type CheckOutCollectData = {
+paymentMethodId: number,
+amount: string,
+reference: string | null,
+idempotencyKey: string,
+};
 export type CollectNowData = {
 taxes: boolean,
 deposit: boolean,
@@ -1686,6 +1692,7 @@ depositMethod: string | null,
 canRefund: boolean,
 folioKey: string | null,
 error: string | null,
+canCollect: boolean,
 early: App.Data.Reservations.UnitEarlyDepartureData | null,
 };
 export type UnitDatesPreviewData = {

@@ -65,7 +65,7 @@ Every Action here returns a `UnitStayResult` and writes nothing on a refusal. Th
 | The checks of `ProcessEarlyDeparture` (reason, policy row, `fee_changed`, charge) | its refusals                                    |
 | The refund and the checks of `CheckOutUnit`                                       | `refund_exceeds_payment`, `balance_not_settled` |
 
-- **One transaction.** The fee, the deleted nights, the refund and the check-out commit together. A refusal at any step writes nothing. This differs from `CheckOutAndRefund` alone, where a refund stays when the check-out is refused afterwards.
+- **One transaction.** The fee, the deleted nights, the payment, the refund and the check-out commit together. A refusal at any step writes nothing.
 - **New departure** is the business date. The form never sends it.
 - **Same-day stay.** A unit that arrived on the business date has no night to keep, so `departure_date > arrival_date` cannot hold. It is refused with `invalid_stay`, and staff use Cancel instead.
 - **Departure today or later.** `not_early` is refused. Normal check-out runs through `CheckOutAndRefund`.
@@ -141,7 +141,7 @@ Every Action here returns a `UnitStayResult` and writes nothing on a refusal. Th
 - **Nationality** for a foreign-only tax is the unit's primary guest, or the booker when the unit has no primary guest. Check-in shows a Nationality field when it is missing and saves it to the guest profile.
 - **Taxes stay on the room revenue line.** Check-in posts no tax. Each night's tax is a child line of the room line (see [Posting charges](../13-folio/02-posting-charges.md)). A tax with **Collect at check-in** ([Taxes](../06-catalogues/03-taxes.md)) only changes what the guest is asked to pay at check-in.
 - **Security deposit** is a payment with `PaymentPurpose::SecurityDeposit` on the unit's own folio. The default amount is `property_settings.security_deposit_amount`.
-- **Held deposit** is a credit, so the plain zero-balance rule at check-out covers it. The check-out form refunds the credit with `RefundPayment`. To keep part of it for damages, staff post a charge on the folio first (the deposit offsets it), then refund the rest.
+- **Held deposit** is a credit, so the plain zero-balance rule at check-out covers it. The check-out form uses the credit toward the bill, or refunds it with `RefundPayment`. To keep part of it for damages, staff post a charge on the folio first (the deposit offsets it), then refund the rest.
 
 ## Permissions
 
@@ -164,7 +164,7 @@ Each form uses `FormOverlay` and the container from [Form containers](../design-
 | Action                                         | Container | Fields and notes                                                                                                                                                        |
 | ---------------------------------------------- | --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Check in                                       | Dialog    | Shows the room, the registration card status, a card override (permission), Nationality when missing, and [Collect now](#collect-now)                                   |
-| Check out                                      | Dialog    | Shows the folio balance and the deposit credit. Settle, transfer or refund the balance                                                                                  |
+| Check out                                      | Dialog    | Shows the folio balance and the deposit credit. Collect the balance and use or refund the deposit. Transfer to the Master folio stays on the folio tab                  |
 | Cancel unit, Mark no-show                      | Dialog    | Shows the policy fee ("No charge" inside the free window), Do not charge, a reason, Also remove add-ons                                                                 |
 | Reinstate                                      | Dialog    | A required reason. Re-prices the unit and shows the new total. The rooms are cleared, so staff assign them again                                                        |
 | Check out, early mode                          | Dialog    | The check-out Dialog plus an **Early departure** block: the old departure, the nights removed, the policy fee, Do not charge and a reason, and the balance with the fee |
@@ -205,7 +205,7 @@ Each form uses `FormOverlay` and the container from [Form containers](../design-
 - **Room tonight.** The preview sends `roomState` (`CheckInRoomState`): `assigned` shows the room, `auto` (no room, `auto_assign_rooms` on) shows "Assigned when you check in", and `none` shows "Not assigned for tonight", disables **Check in** and offers **Assign a room**, which opens the Move room Dialog (a user without `reservations.manage` sees "Ask someone who can assign rooms"). In `auto` mode a check-in can still be refused as `no_room_assigned` when nothing is free.
 - **Nothing to collect.** When the offer has rows but nothing is due (every tax is exempt and there is no deposit), the Dialog shows "No collection is needed. You can check in the guest." in place of Collect now and the Method field, and sends `collect_now` false. The server also skips a 0.00 taxes total, so no payment is recorded either way.
 - **More fields.** The Dialog adds a **Check in without a card** box (with `front-desk.check-in-without-card`, shown when a card is missing) and a **Credit limit override reason** (with `company.credit-override`, shown when the company is over its limit). They appear only when needed, so the usual form still has the five fields above.
-- **Check out.** `CheckOutAndRefund` refunds the deposit (oldest deposit payment first, each through `RefundPayment`) and then runs `CheckOutUnit`. It refuses a refund above what is held before it writes. The Dialog needs `payment.refund` for the refund and opens check-out when the folio will be 0. **Keep for damages** links to the folio tab.
+- **Check out.** `CheckOutAndRefund` records the Collect balance payment (`RecordPayment`, Settlement, key `{uuid}:collect`), refunds the deposit (oldest deposit payment first, each through `RefundPayment`) and then runs `CheckOutUnit`, in one transaction. A refusal at any step rolls every step back. It refuses a refund above what is held before it writes. The Dialog needs `payment.record` for Collect balance and `payment.refund` for the refund, and opens check-out when the folio will be 0. **Keep for damages** links to the folio tab. See [Collect balance](#collect-balance).
 - **Late check-out.** `reservations.units.late-check-out` calls `ExtendDepartureTime` with the same Do not charge and reason fields as the other fee forms.
 - **Routes.** `reservations.units.check-in`, `.check-out` and `.late-check-out` with their `-preview` routes. Check in uses `front-desk.check-in`. Check out and late check-out use `front-desk.check-out`.
 
@@ -322,3 +322,41 @@ A section of the check-in Dialog, shown only with `payment.record`. The form sen
 ```
 
 **Keep for damages** links to the folio to post the charge. It does not open a second Dialog. Without a deposit credit, the deposit rows are hidden.
+
+### Collect balance
+
+A section of the check-out Dialog, shown only with `payment.record` and when the guest still owes money. It replaces the "Collect the balance with Record payment on the folio" line, which stays for a user without `payment.record`.
+
+```
+┌ Check out · Standard Double ─────────────── ✕ ┐
+│ Ong Kok Leong · 104 · departs 09 Oct 2026     │
+│                                               │
+│ Unit folio            MYR 396.00 to pay       │
+│ Deposit held          MYR 200.00              │
+│                                               │
+│ ( ) Use toward the bill                       │
+│ (•) Refund deposit · Cash   [ 200.00 ]        │
+│ ( ) Keep for damages                          │
+│                                               │
+│ Collect balance               MYR 596.00      │
+│ Method [ Card ⌄ ]   Reference [ ____ ]        │
+│ ───────────────────────────────────────────── │
+│ Collect by Card               MYR 596.00      │
+│ Refund by Cash               −MYR 200.00      │
+│ Remaining after check-out     MYR 0.00        │
+│        [Cancel] [Collect, refund and check out]│
+└───────────────────────────────────────────────┘
+```
+
+| Deposit choice                | Collect                        | Server steps                    |
+| ----------------------------- | ------------------------------ | ------------------------------- |
+| Use toward the bill (default) | The balance                    | Payment, check-out              |
+| Refund deposit                | The balance + the refund       | Payment, refund, check-out      |
+| Keep for damages              | Nothing; post the charge first | Same as before: folio tab first |
+
+- **Use toward the bill** shows only when the guest owes money, and is then the default. With only the deposit left, **Refund deposit** stays the default.
+- The collect amount is read-only: the balance plus the refund. The form sends it with the method and reference. The server records it as it is, and `CheckOutUnit` then needs the folio at 0, so an amount that no longer settles it (a charge posted while the form was open) is refused as `balance_not_settled` and nothing is written.
+- The payment, the refund and the check-out are one transaction. A payment refusal shows on the method or reference field.
+- The button names the steps: **Check out**, **Collect and check out**, **Refund and check out** or **Collect, refund and check out**.
+- A method with a surcharge adds the fee as a charge, and the payment covers it, so the folio still reaches 0. The Dialog does not show the fee yet.
+- Transfer to the Master folio is not in the Dialog. Staff use the folio tab.

@@ -105,6 +105,7 @@ export function AuditDialogHost({
                     onOpenChange={change}
                     reservationId={data.reservation.id}
                     unit={unit}
+                    paymentOptions={data.paymentOptions ?? undefined}
                     canWaiveFees={data.canWaiveFees}
                     currency={data.currency}
                 />

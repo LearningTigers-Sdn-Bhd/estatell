@@ -584,6 +584,102 @@ test('a unit with no deposit checks out when the folio is settled', function () 
     expect($setup['unit']->fresh()->status)->toBe(UnitStatus::CheckedOut);
 });
 
+/**
+ * Post a 300.00 charge on the unit folio, so the guest owes 200.00 with the 100.00 deposit held.
+ */
+function uaOwing(array $setup): void
+{
+    FolioLine::factory()->create(['folio_id' => Folio::query()->where('reservation_unit_id', $setup['unit']->id)->sole()->id, 'amount' => '300.00', 'unit_amount' => '300.00', 'posting_date' => today()->toDateString()]);
+}
+
+test('the check-out preview says who may collect the balance', function () {
+    $setup = uaDepartingSetup();
+    uaOwing($setup);
+
+    $this->actingAs($setup['user'])->postJson(uaUrl($setup, 'check-out-preview'))
+        ->assertJson(['balance' => '200.00', 'owing' => '200.00', 'canCollect' => true]);
+
+    $this->actingAs(uaStaffWith($setup['property'], ['reservations.view', 'front-desk.check-out', 'payment.refund']))
+        ->postJson(uaUrl($setup, 'check-out-preview'))
+        ->assertJson(['canCollect' => false]);
+});
+
+test('check out collects the balance, refunds the deposit and checks the unit out in one step', function () {
+    $setup = uaDepartingSetup();
+    uaOwing($setup);
+    $method = PaymentMethod::query()->sole();
+
+    $this->actingAs($setup['user'])
+        ->post(uaUrl($setup, 'check-out'), ['collect_amount' => '300.00', 'payment_method_id' => $method->id, 'refund_amount' => '100.00', 'idempotency_key' => fake()->uuid()])
+        ->assertSessionHasNoErrors();
+
+    expect($setup['unit']->fresh()->status)->toBe(UnitStatus::CheckedOut)
+        ->and(Payment::query()->where('purpose', PaymentPurpose::Settlement)->sole()->amount)->toBe('300.00')
+        ->and(Payment::query()->whereNotNull('refund_of_id')->sole()->amount)->toBe('100.00')
+        ->and(Folio::query()->where('reservation_unit_id', $setup['unit']->id)->sole()->status)->toBe(FolioStatus::Closed);
+});
+
+test('check out collects the rest when the deposit is used toward the bill', function () {
+    $setup = uaDepartingSetup();
+    uaOwing($setup);
+
+    $this->actingAs($setup['user'])
+        ->post(uaUrl($setup, 'check-out'), ['collect_amount' => '200.00', 'payment_method_id' => PaymentMethod::query()->sole()->id, 'idempotency_key' => fake()->uuid()])
+        ->assertSessionHasNoErrors();
+
+    expect($setup['unit']->fresh()->status)->toBe(UnitStatus::CheckedOut)
+        ->and(Payment::query()->whereNotNull('refund_of_id')->count())->toBe(0);
+});
+
+test('an amount that no longer settles the folio rolls back the payment and the refund', function () {
+    $setup = uaDepartingSetup();
+    uaOwing($setup);
+
+    $this->actingAs($setup['user'])
+        ->post(uaUrl($setup, 'check-out'), ['collect_amount' => '250.00', 'payment_method_id' => PaymentMethod::query()->sole()->id, 'refund_amount' => '100.00', 'idempotency_key' => fake()->uuid()])
+        ->assertSessionHasErrors('form');
+
+    expect($setup['unit']->fresh()->status)->toBe(UnitStatus::CheckedIn)
+        ->and(Payment::query()->where('purpose', PaymentPurpose::Settlement)->count())->toBe(0)
+        ->and(Payment::query()->whereNotNull('refund_of_id')->count())->toBe(0);
+});
+
+test('a refused payment goes back to its field and writes nothing', function () {
+    $setup = uaDepartingSetup();
+    uaOwing($setup);
+    $card = PaymentMethod::factory()->create(['property_id' => $setup['property']->id, 'type' => PaymentMethodType::Card, 'requires_reference' => true, 'position' => 2]);
+
+    $this->actingAs($setup['user'])
+        ->post(uaUrl($setup, 'check-out'), ['collect_amount' => '300.00', 'payment_method_id' => $card->id, 'refund_amount' => '100.00', 'idempotency_key' => fake()->uuid()])
+        ->assertSessionHasErrors('reference');
+
+    expect($setup['unit']->fresh()->status)->toBe(UnitStatus::CheckedIn)
+        ->and(Payment::query()->whereNotNull('refund_of_id')->count())->toBe(0);
+});
+
+test('collect balance from a user without payment.record is dropped', function () {
+    $setup = uaDepartingSetup();
+    uaOwing($setup);
+
+    $this->actingAs(uaStaffWith($setup['property'], ['reservations.view', 'front-desk.check-out', 'payment.refund']))
+        ->post(uaUrl($setup, 'check-out'), ['collect_amount' => '200.00', 'payment_method_id' => PaymentMethod::query()->sole()->id, 'idempotency_key' => fake()->uuid()])
+        ->assertSessionHasErrors('form');
+
+    expect(Payment::query()->where('purpose', PaymentPurpose::Settlement)->count())->toBe(0);
+});
+
+test('early check-out collects the balance with the fee in one step', function () {
+    $setup = uaEarlySetup();
+    uaOwing($setup);
+
+    $this->actingAs($setup['user'])
+        ->post(uaUrl($setup, 'early-check-out'), ['expected_fee' => '40.00', 'collect_amount' => '240.00', 'payment_method_id' => PaymentMethod::query()->sole()->id, 'idempotency_key' => fake()->uuid()])
+        ->assertSessionHasNoErrors();
+
+    expect($setup['unit']->fresh()->status)->toBe(UnitStatus::CheckedOut)
+        ->and(Payment::query()->where('purpose', PaymentPurpose::Settlement)->sole()->amount)->toBe('240.00');
+});
+
 test('late check-out previews the fee and posts it with a later time', function () {
     $setup = uaDepartingSetup();
     TransactionCode::factory()->for($setup['property'])->system(SystemTransactionCode::LateCheckoutRevenue)->create();

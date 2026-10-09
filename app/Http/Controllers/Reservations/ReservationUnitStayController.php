@@ -141,22 +141,23 @@ class ReservationUnitStayController extends Controller
     }
 
     /**
-     * Check one unit out, after giving back the security deposit when the form asks for it.
+     * Check one unit out, after collecting the balance and giving back the security deposit when the form asks for
+     * them. A refusal at any step writes nothing.
      */
     public function checkOut(CheckOutUnitRequest $request, Property $property, Reservation $reservation, ReservationUnit $unit, CheckOutAndRefund $checkOutAndRefund, ReservationRefusals $refusals): RedirectResponse
     {
-        $result = $checkOutAndRefund($request->user(), $unit, $request->refundAmount(), $request->reference(), $request->string('idempotency_key')->toString());
+        $result = $checkOutAndRefund($request->user(), $unit, $request->refundAmount(), $request->collectBalance(), $request->string('idempotency_key')->toString());
 
         return $this->respond($property, $reservation, $result->refusal, $refusals, __('Unit checked out.'));
     }
 
     /**
-     * Check one unit out before its departure date: the early departure fee, the deposit refund and the check-out in
-     * one step. A refusal at any step writes nothing.
+     * Check one unit out before its departure date: the early departure fee, the payment, the deposit refund and the
+     * check-out in one step. A refusal at any step writes nothing.
      */
     public function earlyCheckOut(CheckOutUnitRequest $request, Property $property, Reservation $reservation, ReservationUnit $unit, EarlyCheckOut $earlyCheckOut, ReservationRefusals $refusals): RedirectResponse
     {
-        $result = $earlyCheckOut($request->user(), $unit, $request->doNotCharge(), $request->reason(), $request->expectedFee(), $request->refundAmount(), $request->reference(), $request->string('idempotency_key')->toString());
+        $result = $earlyCheckOut($request->user(), $unit, $request->doNotCharge(), $request->reason(), $request->expectedFee(), $request->refundAmount(), $request->collectBalance(), $request->string('idempotency_key')->toString());
 
         return $this->respond($property, $reservation, $result->refusal, $refusals, __('Unit checked out early.'));
     }
