@@ -127,13 +127,10 @@ export function FormOverlay(props: Props) {
         onSubmit();
     };
 
-    // Nothing to submit yet (still loading, or the form says so): show a muted button so it does not look live.
-    // While saving it keeps its colour and shows the spinner.
-    const blocked = loading || submitDisabled;
     const primary = (
         <Button
             type="submit"
-            variant={blocked ? 'secondary' : submitVariant}
+            variant={submitVariant}
             disabled={processing || loading || submitDisabled}
             focusableWhenDisabled
         >

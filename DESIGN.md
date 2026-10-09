@@ -62,7 +62,6 @@ Always a full page for repeating rows, uploads, multiple steps, needing a URL, o
 - Every Select and Combobox has `items` (otherwise the raw value shows) and `name` in forms.
 - Enum options come from PHP enum `options()`. Display enums through `label()` or `StatusBadge`.
 - Icon-only buttons have `aria-label`. Loading buttons use `Spinner` + `disabled` + `focusableWhenDisabled`.
-- A form's submit button that cannot submit yet (`submitDisabled` or loading) uses the `secondary` look, so it never looks live. While saving it keeps its colour with a `Spinner`. `FormOverlay` does this.
 - Toasts use the Base UI `toast` component, not Sonner.
 
 ## 7. Data loading
