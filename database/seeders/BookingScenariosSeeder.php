@@ -6,8 +6,19 @@ use App\Actions\Catalogues\CreateChargeItem;
 use App\Actions\Catalogues\UpdateRoomRevenueTaxes;
 use App\Actions\Catalogues\UpdateTax;
 use App\Actions\CityLedger\CreateCompany;
+use App\Actions\Folio\PostCharge;
+use App\Actions\FrontDesk\CancelUnit;
+use App\Actions\FrontDesk\CheckInAllUnits;
+use App\Actions\FrontDesk\CheckOutUnit;
+use App\Actions\FrontDesk\EarlyCheckOut;
+use App\Actions\FrontDesk\ExtendStay;
+use App\Actions\FrontDesk\MoveUnit;
+use App\Actions\FrontDesk\ReinstateUnit;
+use App\Actions\FrontDesk\UnitStayResult;
 use App\Actions\Guests\CreateGuest;
 use App\Actions\NightAudit\OpenBusinessDate;
+use App\Actions\NightAudit\RunNightAudit;
+use App\Actions\Payments\RecordPayment;
 use App\Actions\Property\GenerateDocumentPrefix;
 use App\Actions\Property\SeedPropertyDefaults;
 use App\Actions\Property\UpdatePropertySettings;
@@ -17,51 +28,69 @@ use App\Actions\Rates\SaveRatePlanInclusions;
 use App\Actions\Rates\SaveRates;
 use App\Actions\Rates\UpdateRatePlan;
 use App\Actions\Rates\UpsertRates;
+use App\Actions\Reservations\AddUnit;
+use App\Actions\Reservations\AttachGuest;
 use App\Actions\Reservations\CreateBooking;
 use App\Actions\Rooms\CreateRoomType;
 use App\Actions\Rooms\GenerateBeds;
 use App\Actions\Rooms\GenerateRooms;
 use App\Actions\Staff\AssignOwnerRole;
 use App\Actions\Staff\AssignStaffRole;
+use App\Data\Folio\NewChargeData;
+use App\Data\Payments\NewPaymentData;
 use App\Data\Reservations\NewBookingData;
 use App\Data\Reservations\NewBookingGuestData;
 use App\Data\Reservations\NewUnitData;
+use App\Enums\AuditStepStatus;
+use App\Enums\AuditTrigger;
 use App\Enums\BillingMode;
 use App\Enums\ChargingUnit;
 use App\Enums\CompanyType;
 use App\Enums\DefaultRoleEnum;
+use App\Enums\FolioStatus;
+use App\Enums\FolioType;
 use App\Enums\InclusionEnd;
 use App\Enums\InclusionStart;
 use App\Enums\MissedArrivalPolicy;
+use App\Enums\PaymentMethodType;
+use App\Enums\PaymentPurpose;
 use App\Enums\PricingBasis;
 use App\Enums\PropertyStatus;
 use App\Enums\PropertyType;
 use App\Enums\RateDerivation;
 use App\Enums\ReservationSource;
+use App\Enums\ReservationStatus;
 use App\Enums\SellUnit;
 use App\Enums\TransactionCategory;
 use App\Models\ChargeItem;
 use App\Models\Company;
+use App\Models\Folio;
 use App\Models\Guest;
 use App\Models\MealPeriod;
+use App\Models\PaymentMethod;
 use App\Models\Property;
 use App\Models\Rate;
 use App\Models\RatePlan;
 use App\Models\Reservation;
+use App\Models\ReservationUnit;
 use App\Models\Role;
 use App\Models\Room;
 use App\Models\RoomType;
 use App\Models\User;
+use App\Services\Folio\FolioBalance;
 use App\Services\Property\PropertyToday;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use RuntimeException;
 
 /**
  * Seeds Kinabalu Hostel & Suites, a test bench with every single, group and dorm bed booking case. The first business
- * date opens seven days back (D0), and every booking is made on D0, so all arrivals are on or after it. Each
- * reservation's notes start with its scenario code, for example `[G4]`. It runs on demand
+ * date opens seven days back (D0), and every booking is made on D0, so all arrivals are on or after it. Then each day
+ * from D0 to D6 runs its front desk events and the night audit, so the business date ends on today with real stays,
+ * posted room charges and closed dates. Each reservation's notes start with its scenario code, for example `[G4]`. It runs on demand
  * (`php artisan db:seed --class=BookingScenariosSeeder`), uses the production Actions, and skips when the property
  * exists. See docs/12-reservations/07-booking-scenarios-seeder.md.
  */
@@ -113,6 +142,25 @@ class BookingScenariosSeeder extends Seeder
         ['Budi Santoso', 'ID'], ['Dewi Lestari', 'ID'], ['Agus Wijaya', 'ID'], ['Putri Maharani', 'ID'],
         ['Nguyen Van Minh', 'VN'], ['Tran Thi Lan', 'VN'], ['Somchai Prasert', 'TH'], ['Nattaya Srisuk', 'TH'],
         ['Juan dela Cruz', 'PH'], ['Maria Santos', 'PH'], ['Emily Johnson', 'US'], ['Michael Brown', 'US'],
+    ];
+
+    /**
+     * The status each reservation reaches on today's business date (D7).
+     *
+     * @var array<string, ReservationStatus>
+     */
+    private const array EXPECTED = [
+        'S1' => ReservationStatus::Completed, 'S2' => ReservationStatus::Confirmed, 'S3' => ReservationStatus::Confirmed,
+        'S4' => ReservationStatus::Confirmed, 'S5' => ReservationStatus::Confirmed, 'S6' => ReservationStatus::Confirmed,
+        'S7' => ReservationStatus::Confirmed, 'S8' => ReservationStatus::InHouse, 'S9' => ReservationStatus::InHouse,
+        'S10' => ReservationStatus::Completed, 'S11' => ReservationStatus::InHouse, 'S12' => ReservationStatus::Confirmed,
+        'S13' => ReservationStatus::Confirmed, 'S14' => ReservationStatus::Confirmed,
+        'G1' => ReservationStatus::InHouse, 'G2' => ReservationStatus::InHouse, 'G3' => ReservationStatus::InHouse,
+        'G4' => ReservationStatus::Confirmed, 'G5' => ReservationStatus::Cancelled, 'G6' => ReservationStatus::Completed,
+        'G7' => ReservationStatus::Confirmed, 'G8' => ReservationStatus::Confirmed, 'G9' => ReservationStatus::Confirmed,
+        'G10' => ReservationStatus::Confirmed,
+        'B1' => ReservationStatus::InHouse, 'B2' => ReservationStatus::InHouse, 'B3' => ReservationStatus::Confirmed,
+        'B4' => ReservationStatus::Confirmed,
     ];
 
     /**
@@ -189,6 +237,7 @@ class BookingScenariosSeeder extends Seeder
         $this->seedSingles();
         $this->seedGroups();
         $this->seedDormBeds();
+        $this->rollForward();
 
         $this->printScenarios();
         $this->printCredentials();
@@ -598,6 +647,275 @@ class BookingScenariosSeeder extends Seeder
         return $this->reservations[$code] = $result->reservation;
     }
 
+    /**
+     * Run the front desk events of each day from D0 to D6, then close that day with the night audit. The business date
+     * ends on D7, today. A refused or failed audit stops the run.
+     */
+    private function rollForward(): void
+    {
+        for ($day = 0; $day < self::DAYS_BACK; $day++) {
+            $this->runDay($day);
+
+            $result = app(RunNightAudit::class)($this->property, AuditTrigger::Manual, $this->owner);
+
+            if ($result->isRefused()) {
+                throw new RuntimeException("The night audit of D{$day} was refused: {$result->refusal}.");
+            }
+
+            if (! $result->isCompleted()) {
+                $error = $result->audit?->steps()->where('status', AuditStepStatus::Failed)->value('error_message');
+
+                throw new RuntimeException("The night audit of D{$day} failed: {$error}");
+            }
+        }
+    }
+
+    /**
+     * The events of one day, in the order the front desk would do them. See the Events column in the doc.
+     */
+    private function runDay(int $day): void
+    {
+        match ($day) {
+            0 => $this->checkIn('S1'),
+            1 => $this->dayOne(),
+            2 => $this->dayTwo(),
+            3 => $this->dayThree(),
+            4 => $this->dayFour(),
+            5 => $this->dayFive(),
+            6 => $this->daySix(),
+        };
+    }
+
+    private function dayOne(): void
+    {
+        $this->checkIn('G7', [0]);
+        $this->cancel('S12');
+        $this->cancel('G5');
+        $this->pay($this->reservations['G8'], $this->masterFolio('G8'), PaymentMethodType::BankTransfer, PaymentPurpose::Advance, '500.00');
+    }
+
+    private function dayTwo(): void
+    {
+        $this->settleAndCheckOut('S1');
+        $this->checkIn('S10');
+        $this->cancel('G4', [0]);
+        $this->cancel('G6', [0]);
+        $this->addUnit('G9', $this->line('Standard Double', 'Room Only', 10, 13, 2));
+    }
+
+    private function dayThree(): void
+    {
+        $this->checkIn('S9');
+        $this->stay(app(ReinstateUnit::class)($this->owner, $this->units('S12')->first(), 'The guest rebooked the same dates.'), 'S12 reinstate');
+        $this->settleAndCheckOut('G7', [0]);
+        $this->checkIn('B2', [0, 1, 2]);
+    }
+
+    private function dayFour(): void
+    {
+        $this->checkIn('S8');
+        $this->earlyCheckOut('S10', 0, 'Family emergency, flying home.');
+    }
+
+    private function dayFive(): void
+    {
+        $this->extend('S9', 8);
+        $this->checkIn('S11');
+        $this->checkIn('G2');
+        $this->checkIn('B1');
+        $this->earlyCheckOut('B2', 0, 'Moving on to Sandakan early.');
+    }
+
+    private function daySix(): void
+    {
+        $this->moveToFreeRoom($this->units('S8')->first(), $this->day(6), 'Air conditioning broke in the first room.', keepRoom: false);
+        $this->checkIn('G1', [0, 1]);
+        $this->charge($this->units('G2')->first(), $this->items['LAUNDRY_BAG']);
+        $this->checkIn('G3');
+    }
+
+    private function day(int $offset): CarbonImmutable
+    {
+        return $this->firstDate->addDays($offset);
+    }
+
+    /**
+     * @return Collection<int, ReservationUnit>
+     */
+    private function units(string $code): Collection
+    {
+        return $this->reservations[$code]->units()->orderBy('id')->get()->values();
+    }
+
+    /**
+     * @param  list<int>|null  $indexes  Unit positions in the booking. Null checks in every unit.
+     * @return Collection<int, ReservationUnit>
+     */
+    private function pick(string $code, ?array $indexes): Collection
+    {
+        $units = $this->units($code);
+
+        return $indexes === null ? $units : $units->filter(fn (ReservationUnit $unit, int $index): bool => in_array($index, $indexes, true))->values();
+    }
+
+    /**
+     * Check units in through `CheckInAllUnits`. Check-in assigns a room or bed (`auto_assign_rooms`).
+     *
+     * @param  list<int>|null  $indexes
+     */
+    private function checkIn(string $code, ?array $indexes = null): void
+    {
+        $refusals = array_filter(app(CheckInAllUnits::class)($this->owner, $this->reservations[$code], $this->pick($code, $indexes)->modelKeys()));
+
+        if ($refusals !== []) {
+            throw new RuntimeException("{$code} check-in was refused: ".implode(', ', $refusals).'.');
+        }
+    }
+
+    /**
+     * @param  list<int>|null  $indexes
+     */
+    private function cancel(string $code, ?array $indexes = null): void
+    {
+        foreach ($this->pick($code, $indexes) as $unit) {
+            $this->stay(app(CancelUnit::class)($this->owner, $unit, reason: 'The guest cancelled by phone.'), "{$code} cancel");
+        }
+    }
+
+    /**
+     * Pay each unit's own folio in cash, then check the unit out. Check-out closes the folio.
+     *
+     * @param  list<int>|null  $indexes
+     */
+    private function settleAndCheckOut(string $code, ?array $indexes = null): void
+    {
+        foreach ($this->pick($code, $indexes) as $unit) {
+            $this->settle($code, $unit);
+            $this->stay(app(CheckOutUnit::class)($this->owner, $unit), "{$code} check-out");
+        }
+    }
+
+    private function earlyCheckOut(string $code, int $index, string $reason): void
+    {
+        $unit = $this->units($code)->get($index);
+        $this->settle($code, $unit);
+        $this->stay(app(EarlyCheckOut::class)($this->owner, $unit, reason: $reason, idempotencyKey: (string) Str::uuid()), "{$code} early check-out");
+    }
+
+    /**
+     * Extend the first unit to a later departure, then give the added nights the room it already has.
+     */
+    private function extend(string $code, int $departure): void
+    {
+        $unit = $this->units($code)->first();
+        $firstAdded = $unit->departure_date->toImmutable();
+        $result = app(ExtendStay::class)($this->owner, $unit, $this->day($departure));
+
+        if ($result->isRefused()) {
+            throw new RuntimeException("{$code} extension was refused: {$result->refusal}.");
+        }
+
+        if ($result->unassignedNights > 0) {
+            $this->moveToFreeRoom($unit->refresh(), $firstAdded, 'Extended stay.', keepRoom: true);
+        }
+    }
+
+    /**
+     * Put the unit in a free room of its type from the given night on. With `$keepRoom` its current room is tried
+     * first, otherwise it is skipped. A room that is taken on one of the nights is passed over.
+     */
+    private function moveToFreeRoom(ReservationUnit $unit, CarbonImmutable $fromNight, string $reason, bool $keepRoom): void
+    {
+        $current = $unit->nights()->whereNotNull('room_id')->orderByDesc('date')->value('room_id');
+        $rooms = Room::query()->where('room_type_id', $unit->room_type_id)->orderBy('position')->get()
+            ->sortBy(fn (Room $room): int => $room->id === $current ? 0 : 1)
+            ->reject(fn (Room $room): bool => ! $keepRoom && $room->id === $current);
+
+        foreach ($rooms as $room) {
+            $result = app(MoveUnit::class)($this->owner, $unit, $room, $fromNight, $reason);
+
+            if (! $result->isRefused()) {
+                return;
+            }
+
+            if ($result->refusal !== 'room_not_free') {
+                throw new RuntimeException("Moving unit {$unit->id} was refused: {$result->refusal}.");
+            }
+        }
+
+        throw new RuntimeException("No free room for unit {$unit->id}.");
+    }
+
+    private function addUnit(string $code, NewUnitData $line): void
+    {
+        $result = app(AddUnit::class)($this->owner, $this->reservations[$code], $line);
+
+        if ($result->isRefused()) {
+            throw new RuntimeException("{$code} add unit was refused: {$result->refusal}.");
+        }
+
+        $attached = app(AttachGuest::class)($this->owner, $this->units($code)->last(), $this->nextGuest());
+
+        if ($attached->isRefused()) {
+            throw new RuntimeException("{$code} attach guest was refused: {$attached->refusal}.");
+        }
+    }
+
+    private function charge(ReservationUnit $unit, ChargeItem $item): void
+    {
+        $result = app(PostCharge::class)($this->owner, $unit, new NewChargeData(
+            chargeItemId: $item->id,
+            transactionCodeId: null,
+            description: null,
+            quantity: 1,
+            unitAmount: (string) $item->default_amount,
+            idempotencyKey: 'manual:'.Str::uuid(),
+        ));
+
+        if ($result->isRefused()) {
+            throw new RuntimeException("Posting {$item->name} was refused: {$result->refusal}.");
+        }
+    }
+
+    /**
+     * Pay what the unit's own folios owe, in cash.
+     */
+    private function settle(string $code, ReservationUnit $unit): void
+    {
+        $folios = Folio::query()->where('reservation_unit_id', $unit->id)->where('type', FolioType::Unit)->where('status', FolioStatus::Open)->get();
+
+        foreach ($folios as $folio) {
+            $balance = app(FolioBalance::class)->forFolio($folio);
+
+            if (bccomp($balance, '0', 2) > 0) {
+                $this->pay($this->reservations[$code], $folio, PaymentMethodType::Cash, PaymentPurpose::Settlement, $balance);
+            }
+        }
+    }
+
+    private function masterFolio(string $code): Folio
+    {
+        return Folio::query()->where('reservation_id', $this->reservations[$code]->id)->where('type', FolioType::Master)->where('status', FolioStatus::Open)->firstOrFail();
+    }
+
+    private function pay(Reservation $reservation, Folio $folio, PaymentMethodType $type, PaymentPurpose $purpose, string $amount): void
+    {
+        $method = PaymentMethod::query()->where('property_id', $this->property->id)->where('type', $type)->where('active', true)->firstOrFail();
+        $reference = $method->requires_reference ? 'REF-'.Str::upper(Str::random(6)) : null;
+        $result = app(RecordPayment::class)($this->owner, $reservation, $folio, null, new NewPaymentData($method->id, $purpose, $amount, $reference, (string) Str::uuid()));
+
+        if ($result->isRefused()) {
+            throw new RuntimeException("The payment on {$reservation->reference} was refused: {$result->refusal}.");
+        }
+    }
+
+    private function stay(UnitStayResult $result, string $label): void
+    {
+        if ($result->isRefused()) {
+            throw new RuntimeException("{$label} was refused: {$result->refusal}.");
+        }
+    }
+
     private function nextGuest(): Guest
     {
         return $this->guests[$this->guestCursor++] ?? throw new RuntimeException('The seeder ran out of guests.');
@@ -609,11 +927,12 @@ class BookingScenariosSeeder extends Seeder
 
         foreach ($this->reservations as $code => $reservation) {
             $reservation->refresh();
-            $rows[] = [$code, $reservation->reference, $reservation->units()->count(), $reservation->status->label()];
+            $expected = self::EXPECTED[$code];
+            $rows[] = [$code, $reservation->reference, $reservation->units()->count(), $expected->label(), $reservation->status === $expected ? $reservation->status->label() : '✗ '.$reservation->status->label()];
         }
 
-        $this->command?->info(self::NAME.' seeded: '.count($rows).' scenarios, business date '.$this->firstDate->toDateString().'.');
-        $this->command?->table(['Code', 'Reference', 'Units', 'Status'], $rows);
+        $this->command?->info(self::NAME.' seeded: '.count($rows).' scenarios, business date '.$this->day(self::DAYS_BACK)->toDateString().'.');
+        $this->command?->table(['Code', 'Reference', 'Units', 'Expected', 'Status'], $rows);
     }
 
     /**

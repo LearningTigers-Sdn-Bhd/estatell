@@ -32,7 +32,7 @@ Rules this depends on:
 
 - `missed_arrival_policy` is set to **Mark no-show** with `UpdatePropertySettings`, so an arrival that is not checked in by the audit becomes NoShow. `late_arrival_expected` units are skipped (S14).
 - `overdue_departure_policy` stays **Block**. Every unit that departs on a day is checked out before that day's audit.
-- Check-in runs `AutoAssignRooms`, so no in-house unit is without a room at audit time (the readiness blocker).
+- `auto_assign_rooms` is on, so check-in runs `AutoAssignRooms` and no in-house unit is without a room at audit time (the readiness blocker). No booking picks a room. After `ExtendStay` (S9), the added nights get the unit's room with `MoveUnit`.
 - A unit is checked out only after its folio balance is 0 (`balance_not_settled`), so the seeder records a Settlement payment first.
 
 ## Setup
@@ -49,22 +49,22 @@ Rules this depends on:
 
 ## Single bookings
 
-| Code | Scenario                | Room type, plan         | Stay      | Events                                                   | Status at D7 | Proves                                                                         |
-| ---- | ----------------------- | ----------------------- | --------- | -------------------------------------------------------- | ------------ | ------------------------------------------------------------------------------ |
-| S1   | Plain stay, finished    | Standard, Room Only     | D0 → D2   | D0 check in. D2 settle in cash, check out, `CloseFolio`. | Completed    | History, two nights of room charges posted by the audit, a closed folio        |
-| S2   | Family with children    | Family Suite, B&B       | D9 → D12  | None                                                     | Confirmed    | Child ages 4, 9 and 17. 17 is priced as an adult when past the last age group  |
-| S3   | Complimentary stay      | Standard, Room Only     | D8 → D9   | Booked with `overrideTotal` 0.00 and a reason            | Confirmed    | A 0 override, the reason in the log                                            |
-| S4   | Override with remainder | Standard, Room Only     | D9 → D12  | Booked with `overrideTotal` 100.00                       | Confirmed    | 33.33, 33.33, 33.34 over three nights                                          |
-| S5   | Restriction override    | Standard, Room Only     | D15 → D16 | Booked with a `restrictionOverrideReason`                | Confirmed    | One night against `min_stay` 3, allowed by `rates.override-restrictions`       |
-| S6   | OTA booking             | Family Suite, Room Only | D9 → D12  | `CreateBooking` with `fromChannel`, `source` Channel     | Confirmed    | `channel_name`, `external_reference`. With S2, Family Suite is sold out D9–D11 |
-| S7   | Company single          | Deluxe, Corporate       | D7 → D9   | None. Arrives today.                                     | Confirmed    | `company_id`, a company-linked plan, routing for one unit                      |
-| S8   | Room move mid-stay      | Standard, B&B           | D4 → D9   | D4 check in. D6 `MoveUnit` from night D6, with a reason. | InHouse      | Nights D4–D5 in one room, D6 onward in another                                 |
-| S9   | Extended stay           | Deluxe, Room Only       | D3 → D6   | D3 check in. D5 `ExtendStay` to D8.                      | InHouse      | Kept prices for old nights, a new quote for added nights                       |
-| S10  | Early departure         | Standard, Room Only     | D2 → D7   | D2 check in. D4 settle, `EarlyCheckOut`.                 | Completed    | `EarlyDeparturePolicy`, unused nights deleted                                  |
-| S11  | Departs today, unpaid   | Standard, B&B           | D5 → D7   | D5 check in. No payment.                                 | InHouse      | Departures list, balance due, `balance_not_settled` can be tried               |
-| S12  | Cancelled, reinstated   | Standard, Room Only     | D20 → D22 | D1 `CancelUnit`. D3 `ReinstateUnit` with a reason.       | Confirmed    | The room released, then re-priced                                              |
-| S13  | Unassigned arrival      | Standard, Room Only     | D7 → D9   | Booked with no pick. Arrives today.                      | Confirmed    | No room yet, check-in auto-assigns                                             |
-| S14  | Late arrival            | Standard, Room Only     | D6 → D8   | Booked with `lateArrivalExpected`. Not checked in.       | Confirmed    | The D6 audit skips it. Arrival date in the past but still Confirmed            |
+| Code | Scenario                | Room type, plan         | Stay      | Events                                                                  | Status at D7 | Proves                                                                         |
+| ---- | ----------------------- | ----------------------- | --------- | ----------------------------------------------------------------------- | ------------ | ------------------------------------------------------------------------------ |
+| S1   | Plain stay, finished    | Standard, Room Only     | D0 → D2   | D0 check in. D2 settle in cash, check out (check-out closes the folio). | Completed    | History, two nights of room charges posted by the audit, a closed folio        |
+| S2   | Family with children    | Family Suite, B&B       | D9 → D12  | None                                                                    | Confirmed    | Child ages 4, 9 and 17. 17 is priced as an adult when past the last age group  |
+| S3   | Complimentary stay      | Standard, Room Only     | D8 → D9   | Booked with `overrideTotal` 0.00 and a reason                           | Confirmed    | A 0 override, the reason in the log                                            |
+| S4   | Override with remainder | Standard, Room Only     | D9 → D12  | Booked with `overrideTotal` 100.00                                      | Confirmed    | 33.33, 33.33, 33.34 over three nights                                          |
+| S5   | Restriction override    | Standard, Room Only     | D15 → D16 | Booked with a `restrictionOverrideReason`                               | Confirmed    | One night against `min_stay` 3, allowed by `rates.override-restrictions`       |
+| S6   | OTA booking             | Family Suite, Room Only | D9 → D12  | `CreateBooking` with `fromChannel`, `source` Channel                    | Confirmed    | `channel_name`, `external_reference`. With S2, Family Suite is sold out D9–D11 |
+| S7   | Company single          | Deluxe, Corporate       | D7 → D9   | None. Arrives today.                                                    | Confirmed    | `company_id`, a company-linked plan, routing for one unit                      |
+| S8   | Room move mid-stay      | Standard, B&B           | D4 → D9   | D4 check in. D6 `MoveUnit` from night D6, with a reason.                | InHouse      | Nights D4–D5 in one room, D6 onward in another                                 |
+| S9   | Extended stay           | Deluxe, Room Only       | D3 → D6   | D3 check in. D5 `ExtendStay` to D8.                                     | InHouse      | Kept prices for old nights, a new quote for added nights                       |
+| S10  | Early departure         | Standard, Room Only     | D2 → D7   | D2 check in. D4 settle, `EarlyCheckOut`.                                | Completed    | `EarlyDeparturePolicy`, unused nights deleted                                  |
+| S11  | Departs today, unpaid   | Standard, B&B           | D5 → D7   | D5 check in. No payment.                                                | InHouse      | Departures list, balance due, `balance_not_settled` can be tried               |
+| S12  | Cancelled, reinstated   | Standard, Room Only     | D20 → D22 | D1 `CancelUnit`. D3 `ReinstateUnit` with a reason.                      | Confirmed    | The room released, then re-priced                                              |
+| S13  | Unassigned arrival      | Standard, Room Only     | D7 → D9   | Booked with no pick. Arrives today.                                     | Confirmed    | No room yet, check-in auto-assigns                                             |
+| S14  | Late arrival            | Standard, Room Only     | D6 → D8   | Booked with `lateArrivalExpected`. Not checked in.                      | Confirmed    | The D6 audit skips it. Arrival date in the past but still Confirmed            |
 
 ## Group bookings
 
@@ -121,18 +121,17 @@ Counted with every unit the seeder books (G9's third unit too), before cancellat
 
 `tests/Feature/BookingScenariosSeederTest.php`:
 
-- The seeder builds a live property whose business date is today, with 7 Closed dates.
-- Each scenario code has one reservation with the status in the tables above.
-- Room charges are posted for S1 (two nights) and none for the cancelled and no-show units.
+- The seeder builds a live property: 21 rooms, 6 beds, 4 plans, 28 reservations, 60 units (G9 gains one on D2), 7 Closed dates and today Open.
+- Each scenario code reaches the status in the tables above, with the unit statuses of G6 and B2.
+- The audit posts room nights for S1 (two) and S9 (four, D3 to D6), and none for G6 and S14.
 - Running it twice adds nothing.
 
-## To verify at build time
+## Build notes
 
-- `RunNightAudit` inside the seeder's transaction: savepoints for its own transactions, the `sync` batch, and `NotifyNightAuditResultJob` queued at the end.
-- No front desk Action compares with the real date instead of the business date.
-- The `UpdatePropertySettings` and `GenerateBeds` arguments, and that a MasterPays reservation has its Master folio before check-in (G8).
-- Whether S2's age 17 is past the default last age group. If not, the doc changes to an age that is.
+- `RunNightAudit` runs inside the seeder's one transaction. The audit gate passes because D0 to D6 are before the system date.
+- A unit is picked by its position in the booking. An Eloquent collection's `only()` filters by primary key, so the seeder filters by index.
+- The Laundry bag item uses the code `LAUNDRY_BAG`, because `LAUNDRY` is a system transaction code.
 
 ## Build status
 
-Planned. See the checklist.
+Built: `BookingScenariosSeeder` and its test. Run it with `php artisan db:seed --class=BookingScenariosSeeder`.
