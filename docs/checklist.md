@@ -164,6 +164,15 @@ Planned after item 22. Plan first, with the official MyInvois specification; not
 - [ ] `feat(platform): view a property as its staff` — view-as page, `StartImpersonation`, `StopImpersonation`, banner, `EnsurePropertyAccess` steps 2 and 3. Needs: staff, property settings (`allow_support_access`). Docs: [Impersonation](01-platform/04-impersonation.md).
 - [ ] `feat(platform): block risky actions during impersonation` — `block.impersonation` middleware.
 
+### WIP: not planned yet
+
+Topics on hold. Each one needs a planning session and its docs before it gets commit items. Do not build from these lines.
+
+- [ ] **Booking engine** — estatell stays the PMS core and sends property content to a separate booking engine app through an API (Sanctum): property and room type photos, amenities, nearby attractions, public rate plans and how policies are shown. Guests pay at the property.
+- [ ] **Concierge page** — like the booking engine, but for the guest's stay experience. After the booking engine.
+- [ ] **AI concierge** — can be turned on only when the concierge page is on. Admins hold the API key for now. After the concierge page.
+- [ ] **AroundThat programme** — recommends places from the AroundThat API. Later.
+
 ## Done
 
 ### Commits
