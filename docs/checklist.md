@@ -76,6 +76,8 @@ The critical path: the front desk actions on the reservation, then the night aud
     - [ ] `feat(folio): print a folio invoice` — `FolioInvoice` and `FolioInvoiceDocument` (`app/Services/Folio/`), `pdf/folio-invoice.blade.php`, `reservations.folios.invoice` (Closed folios only), **Print invoice** in the folio header and the closed notice, the `folio.print-voucher` label "Print folio vouchers and invoices". Needs: the booking summary.
     - [ ] `feat(city-ledger): apply document switches to the AR invoice` — the folio lines under room and staying guest, collapsed nights, tax summary, amount in words and payment details; the info strip without empty cells. Needs: the folio invoice.
 
+23. [ ] `fix(city-ledger): explain how to credit a paid invoice` — Issue credit note shows on every invoice that is not Void; `ArInvoiceData.creditBlockedBy` (active allocations); the Dialog's three cases (balance above 0, balance 0 with a Reverse button per payment, amount over the balance); `credit_exceeds_balance` names the balance and the payments. `IssueCreditNote` does not change. Tests for each case. Independent of item 22, so it can go first. Docs: [AR invoices](15-city-ledger/02-ar-invoices.md#pages).
+
 ## Next
 
 Needed for go-live, but nothing in Now waits for them.
@@ -117,7 +119,7 @@ Needs the Channex staging checks in [Staging verification](21-channels/06-stagin
 
 Planned after item 22. Plan first, with the official MyInvois specification; nothing below is decided.
 
-- [ ] `docs(einvoice): plan MyInvois e-invoicing` — what is submitted (folio invoice, AR invoice, credit note, consolidated invoice for walk-in guests), a snapshot of each issued document at close or settle, the buyer fields on guests and companies (TIN, ID, address), a credit note path for a folio invoice, and the "Reissue invoice" question for a paid AR invoice. Needs: print customer documents.
+- [ ] `docs(einvoice): plan MyInvois e-invoicing` — what is submitted (folio invoice, AR invoice, credit note, consolidated invoice for walk-in guests), a snapshot of each issued document at close or settle, the buyer fields on guests and companies (TIN, ID, address), a credit note path for a folio invoice, the "Reissue invoice" question for a paid AR invoice, a one-step credit for a paid invoice, and a refund of company credit (there is no AR refund). Needs: print customer documents.
 
 ### Registration and platform
 
