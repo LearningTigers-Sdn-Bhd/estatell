@@ -86,7 +86,7 @@ enum PermissionEnum: string
             self::FolioDiscountOpen => __('Apply discounts with an entered amount'),
             self::FolioClose => __('Close folios'),
             self::FolioReopen => __('Reopen closed folios'),
-            self::FolioPrintVoucher => __('Print folio vouchers'),
+            self::FolioPrintVoucher => __('Print folio vouchers and invoices'),
             self::PaymentRecord => __('Record payments and download receipts'),
             self::PaymentRefund => __('Refund payments'),
             self::CompanyView => __('View companies'),

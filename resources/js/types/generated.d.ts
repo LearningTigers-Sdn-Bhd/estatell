@@ -322,6 +322,7 @@ label: string,
 defaultPaymentPurpose: string | null,
 closedNotice: string | null,
 settleCreditWarning: string | null,
+canPrintInvoice: boolean,
 };
 export type FolioDiscountOptionData = {
 id: number,

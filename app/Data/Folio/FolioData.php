@@ -17,6 +17,7 @@ use Spatie\LaravelData\Data;
  * the company for the confirmation. `settleCreditWarning` is set only then, when the company is over its credit limit; it
  * warns and never stops the Settle. `paymentPurposes` are the purposes the Record payment Dialog offers for this folio's
  * stage, the default first, and `defaultPaymentPurpose` is that first one. With none, `canRecordPayment` is false.
+ * `canPrintInvoice` is true for a Closed folio when the user holds `folio.print-voucher`.
  */
 class FolioData extends Data
 {
@@ -52,5 +53,6 @@ class FolioData extends Data
         public ?string $defaultPaymentPurpose = null,
         public ?string $closedNotice = null,
         public ?string $settleCreditWarning = null,
+        public bool $canPrintInvoice = false,
     ) {}
 }

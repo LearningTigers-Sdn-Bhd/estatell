@@ -228,6 +228,7 @@ class FolioStatement
             paymentPurposes: array_map(fn (PaymentPurpose $purpose): array => ['value' => $purpose->value, 'label' => $purpose->label()], $purposes),
             defaultPaymentPurpose: ($purposes[0] ?? null)?->value,
             settleCreditWarning: $canSettle ? $this->settleCreditWarning($folio) : null,
+            canPrintInvoice: $folio?->status === FolioStatus::Closed && $folio->invoice_number !== null && ($can['printVoucher'] ?? false),
             closedNotice: $folio !== null && $user !== null ? $this->folioReopenRule->notice($user, $folio) : null,
         );
     }

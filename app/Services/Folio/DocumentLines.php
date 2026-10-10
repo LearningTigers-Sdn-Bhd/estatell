@@ -174,7 +174,7 @@ class DocumentLines
         }
 
         if (! $perTax) {
-            return [new DocumentTaxLine(__('Tax'), (string) $this->sum($taxRows)->toScale(2))];
+            return [new DocumentTaxLine(__('Tax'), (string) $this->sum($taxRows)->toScale(2), $this->numbers($taxRows))];
         }
 
         $sums = [];
@@ -186,10 +186,19 @@ class DocumentLines
         $lines = [];
 
         foreach ($sums as $label => $amount) {
-            $lines[] = new DocumentTaxLine((string) $label, (string) $amount->toScale(2));
+            $lines[] = new DocumentTaxLine((string) $label, (string) $amount->toScale(2), $this->numbers(array_values(array_filter($taxRows, fn (DocumentRow $row): bool => $row->description === (string) $label))));
         }
 
         return $lines;
+    }
+
+    /**
+     * @param  list<DocumentRow>  $taxRows
+     * @return list<string>
+     */
+    private function numbers(array $taxRows): array
+    {
+        return array_values(array_unique(array_filter(array_map(fn (DocumentRow $row): ?string => $row->taxNumber, $taxRows), filled(...))));
     }
 
     /**

@@ -176,3 +176,32 @@ test('merged rows keep their room and an unassigned unit shows the room type cod
         ['DLX', 'Room, 2 nights × 230.00'],
     ]);
 });
+
+function taxRow(string $description, string $amount, ?string $number): DocumentRow
+{
+    return new DocumentRow(TransactionKind::Tax, $description, CarbonImmutable::parse('2026-10-12'), 1, $amount, $amount, taxNumber: $number);
+}
+
+test('a tax line carries the distinct registration numbers of its taxes', function () {
+    $groups = group([
+        room('2026-10-12'),
+        taxRow('Service tax 8%', '20.00', 'SST W10-1'),
+        taxRow('Service tax 8%', '4.00', 'SST W10-1'),
+        taxRow('Tourism tax', '10.00', null),
+    ]);
+
+    expect(collect($groups->taxes)->mapWithKeys(fn ($tax) => [$tax->label => $tax->numbers])->all())
+        ->toBe(['Service tax 8%' => ['SST W10-1'], 'Tourism tax' => []]);
+});
+
+test('with the tax breakdown off the one Tax line holds every distinct number', function () {
+    $groups = group([
+        taxRow('Service tax 8%', '20.00', 'SST W10-1'),
+        taxRow('Tourism tax', '10.00', 'TTX 77'),
+        taxRow('Service tax 8%', '4.00', 'SST W10-1'),
+    ], ['tax_breakdown' => false]);
+
+    expect($groups->taxes)->toHaveCount(1)
+        ->and($groups->taxes[0]->amount)->toBe('34.00')
+        ->and($groups->taxes[0]->numbers)->toBe(['SST W10-1', 'TTX 77']);
+});

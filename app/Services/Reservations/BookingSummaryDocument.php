@@ -4,6 +4,7 @@ namespace App\Services\Reservations;
 
 use App\Enums\Currency;
 use App\Services\Folio\DocumentLineGroups;
+use App\Services\Folio\DocumentPayment;
 use Carbon\CarbonImmutable;
 
 /**
@@ -16,7 +17,7 @@ final readonly class BookingSummaryDocument
     /**
      * @param  list<array{label: string, value: string}>  $strip  The info strip cells that have a value.
      * @param  list<string>  $rooms  One line per live unit.
-     * @param  list<BookingSummaryPayment>  $payments
+     * @param  list<DocumentPayment>  $payments
      * @param  list<string>  $cancellationPolicy  The policy texts, one paragraph each; empty when the section is left out.
      */
     public function __construct(

@@ -3,40 +3,34 @@
 namespace App\Services\Reservations;
 
 use App\Data\Folio\FolioRowData;
-use App\Enums\ArInvoiceType;
-use App\Enums\ChargingUnit;
 use App\Enums\FolioStatus;
 use App\Enums\Locale;
 use App\Enums\ReservationStatus;
-use App\Enums\SellUnit;
 use App\Enums\SystemTransactionCode;
 use App\Enums\TransactionKind;
 use App\Enums\UnitStatus;
-use App\Models\ArInvoice;
 use App\Models\Folio;
 use App\Models\FolioLine;
-use App\Models\Payment;
 use App\Models\Property;
 use App\Models\Reservation;
 use App\Models\ReservationUnit;
 use App\Models\RoomRevenuePolicy;
 use App\Models\UnitAddOn;
-use App\Models\UnitNight;
+use App\Services\Folio\DateRange;
 use App\Services\Folio\DocumentLines;
 use App\Services\Folio\DocumentRow;
-use App\Services\Folio\LineSourceUnits;
+use App\Services\Folio\FolioDocumentRows;
+use App\Services\Folio\FolioPaymentRows;
 use App\Services\Folio\ScheduledFolioRows;
-use App\Services\NightAudit\CurrentBusinessDate;
 use App\Services\Property\AmountInWords;
-use App\Services\Property\PropertyToday;
 use Brick\Math\BigDecimal;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 
 /**
  * Works out the booking summary of one reservation: the info strip, the rooms, the charge rows (posted lines of every
- * folio that is not Voided, then the Scheduled rows), the payments, the balance due and the footer texts. It builds
- * the grouper's `DocumentRow`s itself and does not use `FolioStatement`. It writes nothing. Without prices (only for a
+ * folio that is not Voided, then the Scheduled rows), the payments, the balance due and the footer texts. The posted rows come from
+ * `FolioDocumentRows` (without tax numbers), the Scheduled rows from `ScheduledFolioRows`. It does not use `FolioStatement`. It writes nothing. Without prices (only for a
  * reservation with a company) it leaves out every amount. See docs/12-reservations/08-booking-summary.md.
  */
 class BookingSummary
@@ -44,10 +38,8 @@ class BookingSummary
     public function __construct(
         private ScheduledFolioRows $scheduledRows,
         private DocumentLines $documentLines,
-        private LineSourceUnits $lineSourceUnits,
-        private ReservationRoomBox $roomBox,
-        private CurrentBusinessDate $currentBusinessDate,
-        private PropertyToday $propertyToday,
+        private FolioDocumentRows $documentRows,
+        private FolioPaymentRows $paymentRows,
         private AmountInWords $amountInWords,
     ) {}
 
@@ -63,7 +55,7 @@ class BookingSummary
         $showPrices = $withPrices || $reservation->company_id === null;
 
         $units = $reservation->units()->with(['roomType', 'ratePlan', 'guests.guest'])->orderBy('id')->get();
-        $places = $this->places($property, $units);
+        $places = $this->documentRows->places($property, $units);
         $live = $units->filter(fn (ReservationUnit $unit): bool => $unit->status->holdsInventory());
         $dated = $live->isEmpty() ? $units : $live;
         $from = $dated->isEmpty() ? null : CarbonImmutable::parse($dated->min(fn (ReservationUnit $unit): string => $unit->arrival_date->toDateString()));
@@ -75,7 +67,7 @@ class BookingSummary
 
         if ($showPrices) {
             $lines = $this->documentLines->group($this->rows($property, $reservation, $units, $places), $settings);
-            [$payments, $paid, $billed] = $this->payments($property, $reservation);
+            [$payments, $paid, $billed] = $this->paymentRows->for($property, $this->folios($property, $reservation), $reservation->company?->name);
 
             if ($lines->groups !== [] || $lines->taxes !== [] || $payments !== []) {
                 $balance = (string) BigDecimal::of($lines->total)->minus($paid)->minus($billed)->toScale(2);
@@ -90,7 +82,7 @@ class BookingSummary
             stamp: $this->stamp($reservation, $units),
             showPrices: $showPrices,
             strip: $this->strip($reservation, $from, $to, $timeZone),
-            rooms: $units->map(fn (ReservationUnit $unit): string => $this->roomLine($unit, $places[$unit->id]['place'], $from, $to))->values()->all(),
+            rooms: $units->map(fn (ReservationUnit $unit): string => $this->roomLine($unit, $places[$unit->id]['place'], $from, $to, $showPrices))->values()->all(),
             lines: $lines,
             payments: $payments,
             paid: $paid,
@@ -117,36 +109,6 @@ class BookingSummary
     }
 
     /**
-     * Each unit's place ("Room 103", or the room type while none is assigned), its Room column label and its group
-     * heading. The room is tonight's, else the first night's.
-     *
-     * @param  Collection<int, ReservationUnit>  $units
-     * @return array<int, array{place: ?string, room: string, heading: string}> By unit id
-     */
-    private function places(Property $property, Collection $units): array
-    {
-        $ids = $units->modelKeys();
-        $tonight = $this->roomBox->assignmentsForUnitsOn($ids, ($this->currentBusinessDate->date($property) ?? $this->propertyToday->date($property))->toDateString());
-        $first = $this->roomBox->assignmentsForUnits($ids);
-        $places = [];
-
-        foreach ($units as $unit) {
-            $assigned = $tonight[$unit->id] ?? $first[$unit->id] ?? null;
-            $place = $assigned === null ? null : ($unit->roomType->sell_unit === SellUnit::Bed ? __('Bed :label', ['label' => $assigned]) : __('Room :number', ['number' => $assigned]));
-            $suffix = $unit->status->holdsInventory() ? '' : ' ('.$unit->status->label().')';
-            $primary = $unit->guests->firstWhere('is_primary', true)?->guest?->full_name;
-
-            $places[$unit->id] = [
-                'place' => $place,
-                'room' => $assigned ?? $unit->roomType->name,
-                'heading' => implode(' · ', array_filter([($place ?? $unit->roomType->name).$suffix, $primary], filled(...))),
-            ];
-        }
-
-        return $places;
-    }
-
-    /**
      * @param  Collection<int, ReservationUnit>  $units
      * @param  array<int, array{place: ?string, room: string, heading: string}>  $places
      * @return list<DocumentRow>
@@ -154,67 +116,18 @@ class BookingSummary
     private function rows(Property $property, Reservation $reservation, Collection $units, array $places): array
     {
         $blocks = $this->scheduledRows->forReservation($property, $reservation, []);
-        $folioIds = $this->folios($property, $reservation)->modelKeys();
-        $lines = FolioLine::query()->whereIn('folio_id', $folioIds)->orderBy('posting_date')->orderBy('id')->get();
-        $byId = $lines->keyBy('id');
-        $sourceUnits = $this->lineSourceUnits->for($lines);
+        $lines = FolioLine::query()->whereIn('folio_id', $this->folios($property, $reservation)->modelKeys())->orderBy('posting_date')->orderBy('id')->get();
         $addOns = UnitAddOn::query()->whereIn('reservation_unit_id', $units->modelKeys())->with('chargeItem')->get()->keyBy('id');
-        $nightMorph = (new UnitNight)->getMorphClass();
-        $addOnMorph = (new UnitAddOn)->getMorphClass();
         $order = array_flip($units->modelKeys());
-        $nightlyAddOn = fn (?UnitAddOn $addOn): bool => in_array($addOn?->chargeItem->charging_unit, [ChargingUnit::PerNight, ChargingUnit::PerGuestNight], true);
-
-        $unitOf = function (FolioLine $line) use (&$unitOf, $byId, $sourceUnits): ?int {
-            $own = $line->source_id === null ? null : ($sourceUnits[$line->source_type.':'.$line->source_id] ?? null);
-
-            if ($own !== null || $line->parent_line_id === null || ! $byId->has($line->parent_line_id)) {
-                return $own;
-            }
-
-            return $unitOf($byId[$line->parent_line_id]);
-        };
-        $nightlyOf = function (FolioLine $line) use (&$nightlyOf, $byId, $addOns, $nightMorph, $addOnMorph, $nightlyAddOn): bool {
-            if ($line->parent_line_id !== null && $byId->has($line->parent_line_id)) {
-                return $nightlyOf($byId[$line->parent_line_id]);
-            }
-
-            return match ($line->source_type) {
-                $nightMorph => true,
-                $addOnMorph => $nightlyAddOn($addOns->get($line->source_id)),
-                default => false,
-            };
-        };
-
         $entries = [];
 
-        foreach ($lines as $line) {
-            if ($line->kind === TransactionKind::Payment) {
-                continue;
-            }
-
-            $unitId = $unitOf($line);
-            $entries[] = [
-                'sort' => [$order[$unitId] ?? PHP_INT_MAX, $line->posting_date->toDateString(), 0, count($entries)],
-                'row' => new DocumentRow(
-                    $line->kind,
-                    $line->description,
-                    CarbonImmutable::parse($line->posting_date->toDateString()),
-                    $line->quantity,
-                    $line->quantity === 1 ? $line->amount : $line->unit_amount,
-                    $line->amount,
-                    $unitId,
-                    $unitId === null ? null : ($places[$unitId]['heading'] ?? null),
-                    $line->id,
-                    $line->reversal_of_id,
-                    $nightlyOf($line),
-                    $unitId === null ? null : ($places[$unitId]['room'] ?? null),
-                ),
-            ];
+        foreach ($this->documentRows->for($property, $lines, $units, $places, false) as $row) {
+            $entries[] = ['sort' => [$order[$row->unitId] ?? PHP_INT_MAX, $row->date->toDateString(), 0, count($entries)], 'row' => $row];
         }
 
         foreach ($blocks as $block) {
             $head = $block['rows'][0]->key;
-            $nightly = str_starts_with($head, 'night:') || (str_starts_with($head, 'addon:') && $nightlyAddOn($addOns->get((int) substr($head, 6))));
+            $nightly = str_starts_with($head, 'night:') || (str_starts_with($head, 'addon:') && FolioDocumentRows::isNightlyAddOn($addOns->get((int) substr($head, 6))));
 
             foreach ($block['rows'] as $row) {
                 /** @var FolioRowData $row */
@@ -257,62 +170,13 @@ class BookingSummary
     }
 
     /**
-     * The payment lines of the folios that are not Voided, with paid (net of refunds, without the city ledger line) and
-     * billed to company, as the reservation list counts them.
-     *
-     * @return array{0: list<BookingSummaryPayment>, 1: string, 2: string}
-     */
-    private function payments(Property $property, Reservation $reservation): array
-    {
-        $folios = $this->folios($property, $reservation);
-        $lines = FolioLine::query()
-            ->whereIn('folio_id', $folios->modelKeys())
-            ->where('kind', TransactionKind::Payment)
-            ->with('transactionCode:id,system_key')
-            ->orderBy('posting_date')
-            ->orderBy('id')
-            ->get();
-        $payments = Payment::query()->whereIn('folio_id', $folios->modelKeys())->with('paymentMethod:id,name')->get()->keyBy('folio_line_id');
-        $invoices = ArInvoice::query()
-            ->where('property_id', $property->id)
-            ->whereIn('folio_id', $folios->modelKeys())
-            ->where('type', ArInvoiceType::Invoice)
-            ->orderBy('id')
-            ->pluck('number', 'folio_id');
-        $paid = BigDecimal::zero();
-        $billed = BigDecimal::zero();
-        $rows = [];
-
-        foreach ($lines as $line) {
-            $payment = $payments->get($line->id);
-            $method = $payment?->paymentMethod->name ?? $line->description;
-            $date = CarbonImmutable::parse($line->posting_date->toDateString());
-
-            if ($line->transactionCode?->system_key === SystemTransactionCode::DirectBillPayment->value) {
-                $billed = $billed->minus($line->amount);
-                $company = $folios[$line->folio_id]->payerCompany?->name ?? $reservation->company?->name;
-                $invoice = $invoices->get($line->folio_id);
-                $text = $company === null ? $line->description : __('Billed to :company', ['company' => $company]);
-                $rows[] = new BookingSummaryPayment($date, null, $invoice === null ? $text : $text.', '.__('invoice :number', ['number' => $invoice]), $line->amount);
-
-                continue;
-            }
-
-            $paid = $paid->minus($line->amount);
-            $rows[] = new BookingSummaryPayment($date, $payment?->receipt_number, $payment?->refund_of_id === null ? $method : __('Refund').' · '.$method, $line->amount);
-        }
-
-        return [$rows, (string) $paid->toScale(2), (string) $billed->toScale(2)];
-    }
-
-    /**
      * @return list<array{label: string, value: string}>
      */
     private function strip(Reservation $reservation, ?CarbonImmutable $from, ?CarbonImmutable $to, string $timeZone): array
     {
         $cells = [
             [__('Bill to'), $reservation->company?->name ?? $reservation->booker->full_name],
-            [__('Stay'), $from === null || $to === null ? '' : $this->range($from, $to).' · '.trans_choice(':count night|:count nights', (int) $from->diffInDays($to))],
+            [__('Stay'), $from === null || $to === null ? '' : DateRange::long($from, $to).' · '.trans_choice(':count night|:count nights', (int) $from->diffInDays($to))],
             [__('Booked on'), $reservation->created_at->setTimezone($timeZone)->format('d M Y')],
             [__('Your ref'), trim((string) $reservation->external_reference)],
         ];
@@ -323,29 +187,17 @@ class BookingSummary
         ));
     }
 
-    /**
-     * "12–15 Oct 2026", "28 Oct – 2 Nov 2026" or, across years, both full dates.
-     */
-    private function range(CarbonImmutable $from, CarbonImmutable $to): string
-    {
-        if ($from->isSameMonth($to)) {
-            return $from->format('j').'–'.$to->format('j M Y');
-        }
-
-        return $from->isSameYear($to) ? $from->format('j M').' – '.$to->format('j M Y') : $from->format('j M Y').' – '.$to->format('j M Y');
-    }
-
-    private function roomLine(ReservationUnit $unit, ?string $place, ?CarbonImmutable $from, ?CarbonImmutable $to): string
+    private function roomLine(ReservationUnit $unit, ?string $place, ?CarbonImmutable $from, ?CarbonImmutable $to, bool $showPrices): string
     {
         $guests = array_filter([
             $unit->guests->firstWhere('is_primary', true)?->guest?->full_name,
             trans_choice(':count adult|:count adults', $unit->adults).($unit->children > 0 ? ', '.trans_choice(':count child|:count children', $unit->children) : ''),
         ], filled(...));
         $dates = $from !== null && $to !== null && ! ($unit->arrival_date->isSameDay($from) && $unit->departure_date->isSameDay($to))
-            ? $this->range(CarbonImmutable::parse($unit->arrival_date->toDateString()), CarbonImmutable::parse($unit->departure_date->toDateString()))
+            ? DateRange::long(CarbonImmutable::parse($unit->arrival_date->toDateString()), CarbonImmutable::parse($unit->departure_date->toDateString()))
             : null;
 
-        return implode(' · ', array_filter([$place, $unit->roomType->name, $unit->ratePlan->name, implode(', ', $guests), $dates, $unit->status->holdsInventory() ? null : $unit->status->label()], filled(...)));
+        return implode(' · ', array_filter([$place, $unit->roomType->name, $showPrices ? $unit->ratePlan->name : null, implode(', ', $guests), $dates, $unit->status->holdsInventory() ? null : $unit->status->label()], filled(...)));
     }
 
     /**

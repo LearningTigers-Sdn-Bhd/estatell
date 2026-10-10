@@ -50,11 +50,11 @@ The printed invoice of one closed folio. `CloseFolio` already gives the folio it
 
 ## Route and entry
 
-| Item  | Value                                                                                                                                                                   |
-| ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Route | `GET /p/{code}/reservations/{reservation}/folios/{folio}/invoice` (`reservations.folios.invoice`). An Open or Voided folio is a 404. A folio of another reservation too |
-| PDF   | Streams inline as `invoice-{invoice_number}.pdf` through `PrintedPdf`                                                                                                   |
-| Entry | **Print invoice** in the folio header of a Closed folio, and in the closed notice. Shown to users with `folio.print-voucher`                                            |
+| Item  | Value                                                                                                                                                                                               |
+| ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Route | `GET /p/{code}/reservations/{reservation}/folios/{folio}/invoice` (`reservations.folios.invoice`). An Open or Voided folio is a 404. A folio of another reservation too                             |
+| PDF   | Streams inline as `invoice-{invoice_number}.pdf` through `PrintedPdf`                                                                                                                               |
+| Entry | A **Print** dropdown in the folio header holds **Print voucher** and **Print invoice** (Closed folios only), plus **Print invoice** in the closed notice. Shown to users with `folio.print-voucher` |
 
 ## Tests
 

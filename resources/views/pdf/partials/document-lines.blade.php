@@ -1,7 +1,7 @@
 {{--
     The lines of a customer document: the groups, the tax summary, the total and, when switched on, the amount in
     words. Pass `'words' => false` to leave the words out (the booking summary prints them under Balance due). Expects $groups (App\Services\Folio\DocumentLineGroups), $currency (App\Enums\Currency) and $settings
-    (App\Models\PrintSetting). Empty values never print. See docs/02-property/05-printing-settings.md#line-grouper.
+    (App\Models\PrintSetting). A tax that has registration numbers prints them next to its label, or under the one "Tax" line with Tax breakdown off. Empty values never print. See docs/02-property/05-printing-settings.md#line-grouper.
 --}}
 @php
     /** @var \App\Services\Folio\DocumentLineGroups $groups */
@@ -45,9 +45,14 @@
     @endforeach
     @foreach ($groups->taxes as $tax)
         <tr>
-            <td colspan="{{ $span }}" class="num">{{ $tax->label }}</td>
+            <td colspan="{{ $span }}" class="num">{{ $tax->label }}@if ($settings->tax_breakdown && $tax->numbers !== []) · {{ implode(', ', $tax->numbers) }}@endif</td>
             <td class="num">{{ $money($tax->amount) }}</td>
         </tr>
+        @if (! $settings->tax_breakdown && $tax->numbers !== [])
+            <tr>
+                <td colspan="{{ $span + 1 }}" class="num small muted" style="padding-top: 0;">{{ implode(', ', $tax->numbers) }}</td>
+            </tr>
+        @endif
     @endforeach
     <tr class="total">
         <td colspan="{{ $span }}" class="num">{{ __('Total :currency', ['currency' => $currency->value]) }}</td>

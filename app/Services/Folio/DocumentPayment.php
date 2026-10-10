@@ -1,14 +1,14 @@
 <?php
 
-namespace App\Services\Reservations;
+namespace App\Services\Folio;
 
 use Carbon\CarbonImmutable;
 
 /**
- * One payment row of the booking summary. `amount` is the ledger amount: negative for a payment (printed in
+ * One payment row of a customer document (the booking summary and the folio invoice). `amount` is the ledger amount: negative for a payment (printed in
  * brackets), positive for a refund. `text` is the method, "Refund · {method}", or "Billed to {company}, invoice {number}".
  */
-final readonly class BookingSummaryPayment
+final readonly class DocumentPayment
 {
     public function __construct(
         public CarbonImmutable $date,

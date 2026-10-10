@@ -419,6 +419,27 @@ test('without prices no amount is held, and the request is ignored without a com
         ->and($plain->rooms)->toHaveCount(1);
 });
 
+test('the Rooms lines leave out the rate plan without prices and keep it with prices', function () {
+    $setup = bsSetup();
+    $unit = bsUnit($setup['reservation'], 2);
+    $company = Company::factory()->for($setup['property'])->create();
+    $setup['reservation']->forceFill(['company_id' => $company->id])->save();
+    $plan = $unit->ratePlan->name;
+
+    expect(bsSummary($setup, false)->rooms[0])->not->toContain($plan)
+        ->and(bsSummary($setup, true)->rooms[0])->toContain($plan);
+});
+
+test('the summary prints no tax numbers', function () {
+    $setup = bsSetup();
+    Tax::query()->where('property_id', $setup['property']->id)->update(['registration_number' => 'W10-1808']);
+    $unit = bsUnit($setup['reservation'], 1, '100.00', null, true);
+    app(CreateFolio::class)($setup['reservation'], $unit);
+    bsPostNight($unit);
+
+    expect(collect(bsSummary($setup)->lines->taxes)->flatMap(fn ($tax) => $tax->numbers)->all())->toBe([]);
+});
+
 test('the summary of a cancelled reservation is stamped', function () {
     $setup = bsSetup();
     $setup['reservation']->forceFill(['status' => 'cancelled'])->save();

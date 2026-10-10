@@ -11,6 +11,7 @@ use App\Actions\Folio\ReopenFolio;
 use App\Actions\Folio\ReverseLine;
 use App\Actions\Folio\TransferLines;
 use App\Data\Folio\FolioDiscountQuoteResponseData;
+use App\Enums\FolioStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Folio\FolioVoucherRequest;
 use App\Http\Requests\Folio\QuoteFolioDiscountRequest;
@@ -24,6 +25,7 @@ use App\Models\Property;
 use App\Models\Reservation;
 use App\Models\ReservationUnit;
 use App\Services\Folio\DiscountQuote;
+use App\Services\Folio\FolioInvoice;
 use App\Services\Folio\FolioRefusals;
 use App\Services\Folio\FolioReopenRule;
 use App\Services\Folio\FolioVoucher;
@@ -198,6 +200,20 @@ class ReservationFolioController extends Controller
 
         return $printedPdf->make($property, 'pdf.voucher', ['voucher' => $voucher->forLines($folio, $ids, $scheduled)])
             ->stream('voucher-'.$folio->number.'.pdf');
+    }
+
+    /**
+     * The invoice of a Closed folio as an A4 PDF shown inline. It is rendered on demand and stores nothing. An Open or
+     * Voided folio, or a folio of another reservation, is a 404.
+     */
+    public function invoice(Property $property, Reservation $reservation, Folio $folio, FolioInvoice $folioInvoice, PrintedPdf $printedPdf): Response
+    {
+        abort_unless($folio->reservation_id === $reservation->id && $folio->status === FolioStatus::Closed && $folio->invoice_number !== null, 404);
+
+        return $printedPdf->make($property, 'pdf.folio-invoice', [
+            'invoice' => $folioInvoice->for($folio),
+            'settings' => $property->printSetting,
+        ])->stream('invoice-'.$folio->invoice_number.'.pdf');
     }
 
     /**

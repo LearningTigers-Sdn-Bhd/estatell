@@ -20,6 +20,7 @@ final readonly class DocumentRow
      *                             name when no room is assigned yet. Null for a line with no unit.
      * @param  int|null  $lineId  The folio line id, null for a Scheduled row.
      * @param  int|null  $reversalOfId  The line this row reverses.
+     * @param  string|null  $taxNumber  On a tax row, the registration number of its tax as the letterhead prints it ("SST W10-1808-32000123"). Null when the tax has none or the document prints none.
      */
     public function __construct(
         public TransactionKind $kind,
@@ -34,5 +35,6 @@ final readonly class DocumentRow
         public ?int $reversalOfId = null,
         public bool $nightly = false,
         public ?string $room = null,
+        public ?string $taxNumber = null,
     ) {}
 }

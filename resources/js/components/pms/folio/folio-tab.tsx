@@ -12,7 +12,9 @@ import {
     PanelRightOpen,
     Plus,
     Printer,
+    FileText,
     Split,
+    Ticket,
     UserPlus,
 } from 'lucide-react';
 import { useState } from 'react';
@@ -36,7 +38,7 @@ import { TransferLineDialog } from '@/components/pms/folio/transfer-line-dialog'
 import { MoneyText } from '@/components/pms/money-text';
 import { StatusBadge } from '@/components/pms/status-badge';
 import { Alert, AlertAction, AlertDescription } from '@/components/ui/alert';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -50,7 +52,7 @@ import {
     TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { KEEP_OPTIONS } from '@/components/pms/use-form-options';
-import { reopen } from '@/routes/reservations/folios';
+import { invoice, reopen } from '@/routes/reservations/folios';
 import { cn } from '@/lib/utils';
 
 function Figure({
@@ -203,17 +205,50 @@ export function FolioTab({
                             )}
                         </div>
                         <div className="flex items-center gap-2">
-                            {folio.canPrintVoucher && (
-                                <Button
-                                    variant="outline"
-                                    onClick={() => {
-                                        setVoucherInitial([]);
-                                        setVoucherOpen(true);
-                                    }}
-                                >
-                                    <Printer data-icon="inline-start" />
-                                    Print voucher
-                                </Button>
+                            {(folio.canPrintVoucher ||
+                                folio.canPrintInvoice) && (
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger
+                                        render={<Button variant="outline" />}
+                                    >
+                                        <Printer data-icon="inline-start" />
+                                        Print
+                                        <ChevronDown data-icon="inline-end" />
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                        {folio.canPrintVoucher && (
+                                            <DropdownMenuItem
+                                                onClick={() => {
+                                                    setVoucherInitial([]);
+                                                    setVoucherOpen(true);
+                                                }}
+                                            >
+                                                <Ticket />
+                                                Print voucher
+                                            </DropdownMenuItem>
+                                        )}
+                                        {folio.canPrintInvoice && (
+                                            <DropdownMenuItem
+                                                render={
+                                                    <a
+                                                        href={invoice.url({
+                                                            reservation:
+                                                                reservationId,
+                                                            folio: Number(
+                                                                folio.key,
+                                                            ),
+                                                        })}
+                                                        target="_blank"
+                                                        rel="noreferrer"
+                                                    />
+                                                }
+                                            >
+                                                <FileText />
+                                                Print invoice
+                                            </DropdownMenuItem>
+                                        )}
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
                             )}
                             {folio.canClose && (
                                 <Button
@@ -323,40 +358,59 @@ export function FolioTab({
                         </div>
                     </div>
                     {folio.closedNotice && (
-                        <Alert>
+                        <Alert className="flex flex-wrap items-center gap-x-2 gap-y-2 has-data-[slot=alert-action]:pr-2.5 *:[svg]:translate-y-0">
                             <Info />
-                            <AlertDescription>
+                            <AlertDescription className="min-w-0 flex-1 basis-60">
                                 {folio.closedNotice}
                             </AlertDescription>
-                            {folio.canReopen && (
-                                <AlertAction>
-                                    <Form
-                                        {...reopen.form({
-                                            reservation: reservationId,
-                                            folio: Number(folio.key),
-                                        })}
-                                        options={{
-                                            preserveScroll: true,
-                                            except: KEEP_OPTIONS,
-                                        }}
-                                    >
-                                        {({ processing }) => (
-                                            <Button
-                                                type="submit"
-                                                variant="outline"
-                                                size="sm"
-                                                disabled={processing}
-                                                focusableWhenDisabled
-                                            >
-                                                {processing ? (
-                                                    <Spinner data-icon="inline-start" />
-                                                ) : (
-                                                    <LockOpen data-icon="inline-start" />
-                                                )}
-                                                Reopen folio
-                                            </Button>
-                                        )}
-                                    </Form>
+                            {(folio.canPrintInvoice || folio.canReopen) && (
+                                <AlertAction className="static flex flex-wrap items-center gap-2">
+                                    {folio.canPrintInvoice && (
+                                        <a
+                                            href={invoice.url({
+                                                reservation: reservationId,
+                                                folio: Number(folio.key),
+                                            })}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className={buttonVariants({
+                                                variant: 'outline',
+                                                size: 'sm',
+                                            })}
+                                        >
+                                            <Printer data-icon="inline-start" />
+                                            Print invoice
+                                        </a>
+                                    )}
+                                    {folio.canReopen && (
+                                        <Form
+                                            {...reopen.form({
+                                                reservation: reservationId,
+                                                folio: Number(folio.key),
+                                            })}
+                                            options={{
+                                                preserveScroll: true,
+                                                except: KEEP_OPTIONS,
+                                            }}
+                                        >
+                                            {({ processing }) => (
+                                                <Button
+                                                    type="submit"
+                                                    variant="outline"
+                                                    size="sm"
+                                                    disabled={processing}
+                                                    focusableWhenDisabled
+                                                >
+                                                    {processing ? (
+                                                        <Spinner data-icon="inline-start" />
+                                                    ) : (
+                                                        <LockOpen data-icon="inline-start" />
+                                                    )}
+                                                    Reopen folio
+                                                </Button>
+                                            )}
+                                        </Form>
+                                    )}
                                 </AlertAction>
                             )}
                         </Alert>
