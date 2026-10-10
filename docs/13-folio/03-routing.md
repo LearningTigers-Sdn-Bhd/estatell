@@ -118,7 +118,7 @@ Decisions made at build time (staff screen backend):
 
 ## Known later work
 
-- **Check-out under cross-routing:** unit 1 can be blocked by unit 2's charges on its folio. Decide in [check-out](../18-front-desk/01-check-in-and-check-out.md).
+- **Check-out under cross-routing:** decided. The unit folio must still be 0; the check-out Dialog splits the balance by room and links to Move charges, and a folio that still receives another live unit's Scheduled charges cannot close (`folio_receives_scheduled_charges`). See [Check-in and check-out](../18-front-desk/01-check-in-and-check-out.md#rooms-that-charge-to-another-rooms-folio).
 - **Closing the Master while a unit is in-house:** decided. `CloseFolio` and `SettleToCityLedger` refuse it (`units_in_house`). See [Folios and lines](01-folios-and-lines.md#close-and-reopen).
 - **Folio discounts** apply from the folio that holds the charges. A RoomOnly discount finds nothing on a unit folio when the room lines are on the master.
 - **Cancellation and no-show fees** are Room charges and follow the Room rule.

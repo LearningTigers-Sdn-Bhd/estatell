@@ -28,21 +28,22 @@ Move a unit through its stay.
 
 Every Action here returns a `UnitStayResult` and writes nothing on a refusal. The unit row is locked first.
 
-| Action         | Check, in order                                                                          | Refusal                                    |
-| -------------- | ---------------------------------------------------------------------------------------- | ------------------------------------------ |
-| `CheckInUnit`  | `UnitStatus::canTransitionTo()` allows CheckedIn                                         | `invalid_status`                           |
-|                | A business date exists                                                                   | `no_business_date`                         |
-|                | The business date is on or after the arrival date                                        | `arrival_not_reached`                      |
-|                | The business date is before the departure date                                           | `stay_ended`                               |
-|                | The unit has a room or bed on tonight's night                                            | `no_room_assigned`                         |
-|                | The card rule: with `card_required_for_check_in`, every required guest has a signed card | `card_missing` (skipped with the override) |
-|                | The nationality is known when an enabled foreign-only tax exists                         | `nationality_required`                     |
-|                | A company-billed reservation passes `CreditCheck` (additional 0)                         | `credit_limit_exceeded`                    |
-|                | Each undated add-on posts through `PostCharge`                                           | the `PostCharge` refusal code              |
-| `CheckOutUnit` | `UnitStatus::canTransitionTo()` allows CheckedOut                                        | `invalid_status`                           |
-|                | A business date exists                                                                   | `no_business_date`                         |
-|                | The business date is on or after the departure date                                      | `before_departure_date`                    |
-|                | The unit's own folios each have a balance of 0                                           | `balance_not_settled`                      |
+| Action         | Check, in order                                                                            | Refusal                                    |
+| -------------- | ------------------------------------------------------------------------------------------ | ------------------------------------------ |
+| `CheckInUnit`  | `UnitStatus::canTransitionTo()` allows CheckedIn                                           | `invalid_status`                           |
+|                | A business date exists                                                                     | `no_business_date`                         |
+|                | The business date is on or after the arrival date                                          | `arrival_not_reached`                      |
+|                | The business date is before the departure date                                             | `stay_ended`                               |
+|                | The unit has a room or bed on tonight's night                                              | `no_room_assigned`                         |
+|                | The card rule: with `card_required_for_check_in`, every required guest has a signed card   | `card_missing` (skipped with the override) |
+|                | The nationality is known when an enabled foreign-only tax exists                           | `nationality_required`                     |
+|                | A company-billed reservation passes `CreditCheck` (additional 0)                           | `credit_limit_exceeded`                    |
+|                | Each undated add-on posts through `PostCharge`                                             | the `PostCharge` refusal code              |
+| `CheckOutUnit` | `UnitStatus::canTransitionTo()` allows CheckedOut                                          | `invalid_status`                           |
+|                | A business date exists                                                                     | `no_business_date`                         |
+|                | The business date is on or after the departure date                                        | `before_departure_date`                    |
+|                | No live unit routes Scheduled rows after the business date to one of the unit's own folios | `folio_receives_scheduled_charges`         |
+|                | The unit's own folios each have a balance of 0                                             | `balance_not_settled`                      |
 
 - The route passes `$withoutCard` only to a user with `front-desk.check-in-without-card`, and `$creditOverrideReason` only to a user with `company.credit-override`. A credit override logs `credit.overridden` on the company with the action `check_in`.
 - An add-on refusal rolls the whole check-in back, so the unit stays Confirmed.
@@ -50,6 +51,20 @@ Every Action here returns a `UnitStayResult` and writes nothing on a refusal. Th
 - Check-out marks the room Dirty: the room of the unit's last night up to the business date, or the room of its bed.
 - A Master folio balance never blocks a unit check-out. Only the unit's own folios count.
 - **Check-out closes the unit's own folios.** After the balance check and the status change, `CheckOutUnit` closes each Open Unit folio of the unit through `CloseFolio`, in the same transaction. A close that is refused (a posting raced in) rolls the check-out back as `balance_not_settled`. `CheckOutAndRefund` and `EarlyCheckOut` go through `CheckOutUnit`, so they close too. Master and ThirdParty folios stay Open. Closing needs no `folio.close`: it is part of check-out (`front-desk.check-out`). Each close issues the folio's invoice number once and logs `folio.closed`.
+
+### Rooms that charge to another room's folio
+
+A unit's own folio can hold another room's charges: a Manual rule such as "Room 102 · Room → Unit 101", or charges moved there with [Move charges](../13-folio/07-move-charges.md). The Master and third-party folios are not part of this, because check-out does not close them.
+
+| Decision          | Rule                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Balance rule      | Unchanged: a unit checks out only when its own folios are at 0, whoever the charges belong to.                                                                                                                                                                                                                                                                                                                                              |
+| Whose charges     | The check-out preview splits the unit folio balance by room, from the line source (a child takes its parent's). When another room's charges are in it, the Dialog lists each room with its amount and says "This folio pays for another room. Collect it all here, or move Room 102's charges first." with **Move charges**, which opens the Move charges page with those lines ticked. With only the room's own charges nothing new shows. |
+| Scheduled charges | Check-out is refused while a live unit (Confirmed or CheckedIn) still routes Scheduled rows after the business date to one of the unit's own folios (`folio_receives_scheduled_charges`). Otherwise the folio closes and the next night audit fails those nights with `folio_not_open`. The check runs before the balance check, so the message is the right one.                                                                           |
+
+- **Message:** "Room 102 still charges its scheduled nights to this folio (15–16 Oct). Send them to another folio first." with **Move charges**, where the scheduled choice changes the rule. Several rooms are listed with their dates.
+- `IncomingScheduledCharges` (service, `app/Services/Folio/`) lists the live units and their dates whose Scheduled rows after the business date route to a folio, through `FolioRouter` and the same rows as the folio tab. `CheckOutUnit` and `CloseFolio` both use it.
+- The `balance_not_settled` message names other rooms when their charges are in the balance: "The unit folio is not settled. It holds MYR 540.00 for Room 102. Collect it, or move those charges first."
 - **A checked-out unit's folio closes itself at 0.** After a posting, payment, refund, reversal or transfer leaves an Open Unit folio of a CheckedOut unit at 0, the Action closes it in the same transaction (`CloseFolio`). So staff reopen to fix something and never have to close again. A folio left above 0 stays Open, and the night audit lists it ("Folio still open": the guest left owing money).
 - Logged on the reservation: `reservation.unit_checked_in` and `reservation.unit_checked_out`.
 
@@ -161,15 +176,15 @@ One checklist item per group, in this order. The Actions come first and the rese
 
 Each form uses `FormOverlay` and the container from [Form containers](../design-system/05-form-containers.md).
 
-| Action                                         | Container | Fields and notes                                                                                                                                                        |
-| ---------------------------------------------- | --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Check in                                       | Dialog    | Shows the room, the registration card status, a card override (permission), Nationality when missing, and [Collect now](#collect-now)                                   |
-| Check out                                      | Dialog    | Shows the folio balance and the deposit credit. Collect the balance and use or refund the deposit. Transfer to the Master folio stays on the folio tab                  |
-| Cancel unit, Mark no-show                      | Dialog    | Shows the policy fee ("No charge" inside the free window), Do not charge, a reason, Also remove add-ons                                                                 |
-| Reinstate                                      | Dialog    | A required reason. Re-prices the unit and shows the new total. The rooms are cleared, so staff assign them again                                                        |
-| Check out, early mode                          | Dialog    | The check-out Dialog plus an **Early departure** block: the old departure, the nights removed, the policy fee, Do not charge and a reason, and the balance with the fee |
-| Change dates (also Extend and Early departure) | Dialog    | Dates and a live price difference. A shorter stay shows the early departure policy result                                                                               |
-| Late check-out                                 | Dialog    | New time, the policy fee, Do not charge, a reason                                                                                                                       |
+| Action                                         | Container | Fields and notes                                                                                                                                                                                |
+| ---------------------------------------------- | --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Check in                                       | Dialog    | Shows the room, the registration card status, a card override (permission), Nationality when missing, and [Collect now](#collect-now)                                                           |
+| Check out                                      | Dialog    | Shows the folio balance (split by room when it holds another room's charges) and the deposit credit. Collect the balance and use or refund the deposit. Moving charges is the Move charges page |
+| Cancel unit, Mark no-show                      | Dialog    | Shows the policy fee ("No charge" inside the free window), Do not charge, a reason, Also remove add-ons                                                                                         |
+| Reinstate                                      | Dialog    | A required reason. Re-prices the unit and shows the new total. The rooms are cleared, so staff assign them again                                                                                |
+| Check out, early mode                          | Dialog    | The check-out Dialog plus an **Early departure** block: the old departure, the nights removed, the policy fee, Do not charge and a reason, and the balance with the fee                         |
+| Change dates (also Extend and Early departure) | Dialog    | Dates and a live price difference. A shorter stay shows the early departure policy result                                                                                                       |
+| Late check-out                                 | Dialog    | New time, the policy fee, Do not charge, a reason                                                                                                                                               |
 
 **Do not charge** means the fee is not posted to the folio. It shows only for staff with `front-desk.waive-fees` (the code keeps the word "waive"). The reason is required and the choice is logged with the user. The fee is read-only text from the server.
 
