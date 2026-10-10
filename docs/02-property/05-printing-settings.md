@@ -115,7 +115,7 @@ What the customer documents show. One set of switches: each applies to every doc
 - **Room and guest on lines**: charge rows are grouped under "Room 103 · Tan Wei Ming", from the line source (a child takes its parent's). Off: one list by date.
 - **Nightly breakdown**: off collapses a unit's room lines with the same description and amount into "Room, 3 nights × 250.00" with the date range (inclusions and discounts the same way). On: one row per night.
 - **Tax breakdown**: on sums the tax lines per tax ("Service tax 8%", "Tourism tax"). Off: one "Tax" total. The tax registration number still prints next to the tax total (see [Legal fields](#legal-fields)).
-- **Amount in words**: English words under the total, for example "Ringgit Malaysia one thousand five hundred and four only". How to spell it (PHP `intl` `NumberFormatter::SPELLOUT` or a small own class) is checked at build time; no new package.
+- **Amount in words**: English words under the total, for example "Ringgit Malaysia one thousand five hundred and four only", or "… and fifty sen only" when there are cents. See [Amount in words](#amount-in-words).
 - **Empty values never print**, whatever the switches: no "-", no "0.00" payment line, no country-only address, no empty strip cell.
 - The voucher, the receipts, the AR statement and the reports do not read these switches.
 
@@ -136,6 +136,34 @@ What the customer documents show. One set of switches: each applies to every doc
 
 - Each switch says which documents it changes in its description.
 - The preview draws a sample booking summary from the form state. **Open sample PDF** opens `settings.printing.sample?document=booking-summary`: the real dompdf output with sample data.
+- The sample PDF is `pdf/document-sample.blade.php`. It draws the letterhead, a sample info strip, the shared lines partial, the cancellation policy text and the payment details. Its sample rows go through the same line grouper as the real documents.
+
+### Line grouper
+
+`DocumentLines` (`app/Services/Folio/`) turns folio rows into what a customer document prints. The booking summary, the folio invoice and the AR invoice all use it, so the three print the same lines the same way.
+
+- **Input**: plain `DocumentRow` objects, not models. The booking summary sends posted lines and Scheduled rows; the folio invoice and the AR invoice send posted lines only. Each row carries its kind, description, date, quantity, unit amount, amount, tax, unit id, line id and reversal link.
+- **Output**: `DocumentLineGroups`: the groups (heading and rows), the tax summary, the charges subtotal and the total. It reads nothing from the database and computes nothing a folio does not already hold.
+
+```
+rows ─▶ DocumentLines::group(rows, PrintSetting) ─▶ DocumentLineGroups
+         1. drop payments, and drop a line together with its reversal
+         2. group by unit (switch on), or one list by date (off)
+         3. merge equal room nights, inclusions and discounts (breakdown off)
+         4. sum taxes per tax (switch on), or one "Tax" total
+```
+
+- **Unit of a line**: from its source, through `LineSourceUnits` (`app/Services/Folio/`): a unit night and an add-on point to their unit, a reservation unit is its own, and a child line takes its parent's. This lookup moved out of `FolioStatement`, which now uses the same service. The caller resolves the unit before it builds the rows.
+- **Group order**: units in the order the caller gives, then "Other charges" for lines with no unit, last.
+- **Merging**: rows of one unit with the same kind, description and unit amount on consecutive dates become one row, "Room, 3 nights × 250.00", with the date range. A price change or a gap in dates starts a new row.
+- **Transfers**: a transfer is a reversal plus a copy, so step 1 drops the pair and the copy prints once.
+- The partial `pdf/partials/document-lines.blade.php` draws the groups, the tax summary, the total and the amount in words. The three documents and the sample include it.
+
+### Amount in words
+
+- `AmountInWords` (`app/Services/Property/`) uses PHP `intl`: `NumberFormatter` with the `en_GB` locale and the `%spellout-numbering-verbose` rule set, which gives "one thousand five hundred and four". No new package.
+- It splits the amount into the major and minor parts and spells each one: "{major name} {words} and {words} {minor name} only". With no cents the "and … sen" part is left out.
+- The currency words come from `Currency::wordsName()` ("Ringgit Malaysia") and `Currency::minorUnitWords()` ("sen").
 
 ## UI
 
@@ -190,7 +218,7 @@ All tabs use the three-column grid of the registration card Layout tab: the form
 
 - `UpdatePrintSettings`: font style, font size and footer text.
 - `UpdatePrintHeader`: the five switches and the tax list, synced in one transaction. Refuses a tax of another property.
-- `UpdatePrintDocuments`: the six document switches and `bank_details`.
+- `UpdatePrintDocuments`: the six document switches and `bank_details` (trimmed, empty stored as null). `UpdatePrintDocumentsRequest` validates six booleans and `bank_details` as nullable text of 500 characters at most.
 
 Each logs `print_settings.updated` when something changed, with the changed fields.
 

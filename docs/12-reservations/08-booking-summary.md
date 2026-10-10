@@ -77,6 +77,8 @@ One line per live unit (not Cancelled or NoShow): tonight's room or bed (the fir
 
 ### Charges
 
+The rows below go through the shared [line grouper](../02-property/05-printing-settings.md#line-grouper) (`DocumentLines`), which the folio invoice and the AR invoice also use.
+
 - **Rows.** Every charge line of every folio that is not Voided, plus the Scheduled rows. This is the same set the [folio tab](../13-folio/05-folio-page.md) shows, so Total equals the sum of the folios' Projected totals minus their payments.
 - **Left out.** Payment lines, and a line together with its reversal (a pair nets to 0). A transfer is a reversal plus a copy, so a transferred charge shows once.
 - **Grouped by unit**, through the line source (a child takes its parent's), with the room and the primary guest as the group heading. Lines with no unit come last under "Other charges". The [document switch](../02-property/05-printing-settings.md#documents-tab) **Room and guest on lines** turns the grouping off.
