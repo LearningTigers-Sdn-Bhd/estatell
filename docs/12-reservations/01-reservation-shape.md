@@ -48,7 +48,7 @@ erDiagram
 
 ## Expected times
 
-`arrival_time` and `departure_time` (`time`, not null) are the expected times of the unit. The booking form fills them from the property's `check_in_time` and `check_out_time`, and staff can change them per booking. They are not `checked_in_at` and `checked_out_at`, which stay the real times. They never change nights, prices, availability or the night audit: those use business dates only. A unit added later with `AddUnit` and no times copies them from the first unit of the reservation, and falls back to the property times when there is none.
+`arrival_time` and `departure_time` (`time`, not null) are the expected times of the unit. The booking form fills them from the property's `check_in_time` and `check_out_time`, and staff can change them per booking. They are not `checked_in_at` and `checked_out_at`, which stay the real times. They never change nights, prices, availability or the night audit: those use business dates only. A unit added later with `AddUnit` and no times copies them from the first unit of the reservation, and falls back to the property times when there is none. With the Boats feature, a [boat trip](../24-boats/02-boat-trips.md#setting-a-trip) sets these times.
 
 ## Enums
 

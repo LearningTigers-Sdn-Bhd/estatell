@@ -15,6 +15,7 @@ It covers the PMS core:
 - Folios, payments, taxes and city ledger (accounts receivable).
 - Front desk, housekeeping status and night audit.
 - An optional channel manager (Channex) behind a feature flag.
+- Optional boat departures, fares, trips and manifest for island properties, behind a feature flag.
 
 ## Background
 
@@ -243,3 +244,4 @@ The build plan, as one commit per item, is in [checklist.md](checklist.md).
 | 21  | [Channels](21-channels/)             | Channex connection, mapping, sync                                                |
 | 22  | [Reports](22-reports/)               | Core reports, column layouts, row export (PDF, CSV, Excel)                       |
 | 23  | [Company portal](23-company-portal/) | Company users book and view their own stays across linked properties             |
+| 24  | [Boats](24-boats/)                   | Boat departures, fares, trips per room and the boat manifest (feature flag)      |

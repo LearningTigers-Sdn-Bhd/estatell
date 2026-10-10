@@ -133,6 +133,18 @@ Needs the Channex staging checks in [Staging verification](21-channels/06-stagin
 - [ ] `feat(portal): let company users book and manage stays` — `portal_access`, booking checks, cancel and request. Docs: [Company portal](23-company-portal/01-company-portal.md#rules).
 - [ ] `feat(portal): show company statements` — read-only invoices, payments and statement PDF. Docs: [Company portal](23-company-portal/01-company-portal.md#pages).
 
+### 24 Boats
+
+For island and jetty properties, behind the `Boats` feature. Build in this order.
+
+- [ ] `feat(boats): add boat departures and fares` — the `Boats` feature and `PlatformFeature::Boats`, `boat_departures` with its CHECKs, `BoatDirection`, `TransactionCategory::Transport`, the **Boats** settings item (Property group), the Departures and Fares tabs with the Available switch, the departure Sheet, the fare Sheet, `CreateBoatDeparture`, `UpdateBoatDeparture` (moves upcoming unit times), `DeleteBoatDeparture`, `CreateBoatFare` and `UpdateBoatFare` over the charge item Actions, and the disabled auto-add switch on a fare in use. Needs: item 29 (child prices and auto-add). Docs: [Boat settings](24-boats/01-boat-settings.md).
+- [ ] `feat(boats): set boat trips on units` — `unit_boat_trips`, `BoatMode`, `BoatTripData`, `SetBoatTrip` and `ClearBoatTrip` (unit times, refusals), `BoatSeats`, Boat in and Boat out on the booking form, `NewUnitData::$boatTrips` through `AddUnit`, Add unit copying the first unit's trips, the Boat row and Change Dialog on the unit panel, **⋯ More › Set boats**. Needs: boat departures and fares. Docs: [Boat trips](24-boats/02-boat-trips.md).
+- [ ] `feat(boats): add the boat fare to trips` — `boat_trip_add_ons`, the undated fare add-on through `AddUnitAddOn`, the package skip, removing unposted fare rows on change or clear, the posted-fare note. Needs: set boat trips. Docs: [Boat trips](24-boats/02-boat-trips.md#fare).
+- [ ] `feat(boats): add the boat manifest` — `ReportKey::BoatManifest`, the `BoatManifest` service, the Direction filter, subtotals per departure, the PDF with a page per departure. Needs: set boat trips. Docs: [Boat manifest](24-boats/03-boat-manifest.md).
+- [ ] `feat(meals): count meals by arrival and departure time` — `MealCounts` passes the unit times when the feature is on, and the resolver trims the first and last day. Needs: set boat trips. Docs: [Meal entitlements](07-meals/02-meal-entitlements.md#arrival-and-departure-times).
+- [ ] `feat(front-desk): show boat times on arrivals and departures` — the Boat column on Arrivals and Departures, and the **No boat** row on the dashboard. Needs: set boat trips, the dashboard. Docs: [Boat trips](24-boats/02-boat-trips.md#front-desk).
+- [ ] `feat(housekeeping): order rooms by expected times` — departures by `departure_time`, arrivals by `arrival_time`. Works without boats. Needs: the room status board. Docs: [Room status board](19-housekeeping/01-room-status-board.md).
+
 ### Front desk corrections
 
 - [ ] `feat(reservations): void a reservation entered by mistake` — only with nothing posted left and no money left; `voided_at` and a reason on the reservation, units Cancelled with no fee, left out of reports and hidden from the default list. Docs: [Cancel, void and undo](18-front-desk/01-check-in-and-check-out.md#cancel-void-and-undo).

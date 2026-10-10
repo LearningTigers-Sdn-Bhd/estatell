@@ -23,7 +23,7 @@ Each charge item **owns one charge transaction code**. The code gives the item i
 ## Enums
 
 - `ChargingUnit`: PerItem, PerNight, PerStay, PerGuestNight, PerGuest.
-- Item categories come from `TransactionCategory::chargeItemCases()`: FoodAndBeverage, Laundry, Minibar, Fee, Other.
+- Item categories come from `TransactionCategory::chargeItemCases()`: FoodAndBeverage, Laundry, Minibar, Fee, Transport, Other. Transport marks a boat fare (see [Boat settings](../24-boats/01-boat-settings.md#fares-tab)).
 
 ## Starter items
 
@@ -75,6 +75,7 @@ A PerGuest or PerGuestNight item can charge children less than adults, by [age g
 
 - It needs a default amount (database CHECK). With **Enter when charging** the switch is disabled: "Set a fixed price first."
 - Turning it on or off never changes existing bookings.
+- On a fare that a boat departure uses, the switch is disabled with "Added by boat trips", because the boat trip adds it (see [Boat trips](../24-boats/02-boat-trips.md#fare)).
 - Where it applies is in [Add-ons](../12-reservations/04-add-ons.md#added-automatically).
 
 ## Taxes

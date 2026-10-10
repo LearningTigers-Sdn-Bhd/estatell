@@ -41,6 +41,12 @@ The daily kitchen report groups entitlements by date and meal period. It is also
 
 The Meal counts report ([core reports](../22-reports/01-core-reports.md#built-meal-counts)) and the night audit message both read `MealCounts`. It counts Confirmed, Checked-in and Checked-out units (an early check-out has already moved the departure date) and leaves out Cancelled and No-show units. It splits each count into adults and children, with the total beside them.
 
-## Future
+## Arrival and departure times
 
-Use actual arrival and departure times (arrival catches every meal it lands before; departure catches every meal it leaves after), as wastays did for boats.
+Only when the [Boats](../24-boats/02-boat-trips.md#meals) feature is on. `MealCounts` passes the unit's `arrival_time` and `departure_time`, and the resolver trims the first and last day:
+
+- **Arrival day:** a meal counts when `arrival_time` is before the meal's `ends_at`.
+- **Departure day:** a meal counts when `departure_time` is after the meal's `starts_at`.
+- Days in between are not changed.
+
+It only trims what the inclusions already give, and it changes the kitchen counts only, never postings or prices. With the feature off, times of day are ignored as before. wastays did the same for boats with fixed meal flags on each boat schedule.

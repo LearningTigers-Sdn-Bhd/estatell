@@ -94,6 +94,7 @@ An item with **Add to every new booking** (`charge_items.auto_add`) is added to 
 - Add-ons with a `service_date` post in the night audit for that date (`PostScheduledAddOns`, `addon:{id}` idempotency key).
 - Add-ons without a date post at check-in (`CheckInUnit`). A CheckedIn unit never has undated add-ons (see above).
 - Add-ons on a Cancelled or NoShow unit stay as history and never post.
+- A [boat trip](../24-boats/02-boat-trips.md#fare) adds its fare as an undated add-on and links the rows in `boat_trip_add_ons`.
 - Add-ons are not split out of the rate. Package inclusions are (see [Inclusions](../09-packages/01-inclusions.md)).
 - Stay changes in [module 18](../18-front-desk/01-check-in-and-check-out.md) re-run the quantities of PerGuest and PerGuestNight add-ons and drop nightly rows outside the new dates.
 

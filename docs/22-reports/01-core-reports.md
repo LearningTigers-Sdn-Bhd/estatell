@@ -22,8 +22,10 @@ The reports a small property needs daily and monthly, with a shared frame: a dat
 | Deposit liability             | `DepositLiability`   | `FolioBalancesOnDate` (every credit balance)           | One date | Landscape           | –             |
 | Non-national guests           | `NonNationalGuests`  | foreign units that stayed, and their tourism tax lines | Range    | Landscape           | 31 days       |
 | Police report                 | `PoliceReport`       | every guest of a unit that stayed (`unit_guests`)      | Range    | Landscape           | 31 days       |
+| Boat manifest                 | `BoatManifest`       | `unit_boat_trips` (only with the Boats feature)        | One date | Portrait            | –             |
 
 - Revenue by transaction code is live for every date, open or closed, from `DailyRevenueQuery` (`app/Services/Reports/`), with grouping by day or month and drill-down to the lines. The night audit copies one closed date of the same query into `daily_revenue`.
+- **Boat manifest** belongs to the Boats module. See [Boat manifest](../24-boats/03-boat-manifest.md).
 - The core reports (item 20) are complete. The last six reports come from wastays (step 7 of the build order). Payments also gets a **Received by** grouping with a cash-up total per staff member, and a **Refunds only** filter, in place of the wastays cashier activity and refund reports. Extra charges are covered by Revenue by transaction code.
 - Occupancy, ADR and RevPAR read the `daily_statistics` snapshot for closed dates and `StatisticsCalculator` for the open date.
 - City ledger aging and statements are already built on the Finance side (`AgingReport`, `StatementBuilder`). They stay there and are not in the registry. Their PDFs get the letterhead from [Printing settings](../02-property/05-printing-settings.md).
@@ -171,7 +173,7 @@ Both list the Checked in and Checked out units whose stay overlaps the range (ar
 
 ### Categories
 
-`ReportCategory` groups the Reports sidebar: **Front desk** (Arrivals, Departures, In-house, Police report), **Revenue** (Occupancy, Revenue, Tax, Non-national guests), **Finance** (Payments, Folio ledger, Outstanding balance, Deposit liability) and **Kitchen** (Meal counts) and **Audit** (Night audit history; the Activity log joins it in a later item). Audit is the last group in the sidebar.
+`ReportCategory` groups the Reports sidebar: **Front desk** (Arrivals, Departures, In-house, Police report, and Boat manifest when the Boats feature is on), **Revenue** (Occupancy, Revenue, Tax, Non-national guests), **Finance** (Payments, Folio ledger, Outstanding balance, Deposit liability) and **Kitchen** (Meal counts) and **Audit** (Night audit history; the Activity log joins it in a later item). Audit is the last group in the sidebar.
 
 ### Totals
 

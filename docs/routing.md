@@ -111,7 +111,7 @@ import { stayView } from '@/routes/front-desk';
 
 ## Configuration vs operations (decided)
 
-- **Configuration** lives under `/p/{code}/settings/...` with names `settings.*`: property details, room types, rooms and beds, room groups, rate plans, packages, taxes, charge items, payment methods, discounts, meal periods, age groups, terms documents, registration card fields, staff and roles, notification settings.
+- **Configuration** lives under `/p/{code}/settings/...` with names `settings.*`: property details, room types, rooms and beds, room groups, rate plans, packages, taxes, charge items, payment methods, discounts, meal periods, age groups, boats, terms documents, registration card fields, staff and roles, notification settings.
 - **Daily operations** live under module prefixes: front desk, reservations, guests, housekeeping, night audit, finance (folios, payments, city ledger), reports, channels.
 - **Exception:** the rate calendar is used daily, so it lives at `/p/{code}/rates/calendar` (`rates.calendar`, with `rates.calendar.bulk` for bulk edit).
 - Onboarding steps render the same settings forms in the wizard layout.

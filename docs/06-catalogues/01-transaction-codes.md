@@ -26,7 +26,7 @@ transaction_codes    id, property_id, system_key (nullable), code, name,
 ## Enums
 
 - `TransactionKind`: Charge, Payment, Adjustment, Tax.
-- `TransactionCategory`: Room, FoodAndBeverage, Laundry, Minibar, Fee, Tax, Discount, Cash, Card, BankTransfer, EWallet, OtaCollected, DirectBill, Deposit, Refund, Adjustment, Other.
+- `TransactionCategory`: Room, FoodAndBeverage, Laundry, Minibar, Fee, Transport, Tax, Discount, Cash, Card, BankTransfer, EWallet, OtaCollected, DirectBill, Deposit, Refund, Adjustment, Other.
 
 ## Malaysia system codes
 

@@ -37,3 +37,4 @@ Turn optional capabilities on or off per property, without code changes. The fir
 | Feature          | Default | Unlocks                            |
 | ---------------- | ------- | ---------------------------------- |
 | `ChannelManager` | Off     | [Channels](../21-channels/) module |
+| `Boats`          | Off     | [Boats](../24-boats/) module       |

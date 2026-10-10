@@ -86,6 +86,7 @@ One list of what is left to act on, with a button on each row.
 - **Check in** and **Check out** open the reservation page's own Dialogs over the dashboard through `AuditDialogHost`, which loads what a Dialog needs only when the button is pressed. The dashboard is a page, so this is one overlay level. After the Dialog closes the list and the tiles reload (`only`).
 - A user without `front-desk.check-in` or `front-desk.check-out` gets **Open** (the reservation page) instead. **Open folio** is a link and needs `reservations.view`.
 - The first 10 rows show, then **See all arrivals**. With no rows: "Nothing left for today. All arrivals are in and all departures are out."
+- With the Boats feature, a **No boat** row follows the arrivals: Confirmed units arriving today or tomorrow with no Boat in trip (see [Boat trips](../24-boats/02-boat-trips.md#dashboard)).
 - Rooms to clean join the list when the [room status board](../19-housekeeping/01-room-status-board.md) is built.
 
 ## Not on the dashboard

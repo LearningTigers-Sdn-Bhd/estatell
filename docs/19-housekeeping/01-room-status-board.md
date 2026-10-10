@@ -15,6 +15,7 @@ Uses `room_statuses` (see [Room blocks and statuses](../05-rooms/04-room-blocks-
 - Out of service is shown from an open room block, not stored as a status.
 - Priority flag and note, do-not-disturb for today, assignee.
 - Filters: arrivals today, departures today, stayovers.
+- Departures sort by the unit's expected `departure_time` and arrivals by `arrival_time`, so rooms are cleaned in the order guests leave and arrive (with boats, the boat order).
 
 ## Actions
 

@@ -38,4 +38,4 @@ meal_periods    id, property_id, name, starts_at, ends_at, active, timestamps
 
 ## Lessons from wastays
 
-Meal times were three fixed columns on `hotel_boat_settings`, and boat schedules had `has_breakfast`, `has_lunch`, `has_dinner` booleans. A fourth meal needed a migration. If boats return, link them with a `boat_schedule_meal_period` pivot.
+Meal times were three fixed columns on `hotel_boat_settings`, and boat schedules had `has_breakfast`, `has_lunch`, `has_dinner` booleans. A fourth meal needed a migration. estatell has no link between boats and meal periods: the boat time sets the unit's expected time, and the meal times decide (see [Boat trips](../24-boats/02-boat-trips.md#meals)).
