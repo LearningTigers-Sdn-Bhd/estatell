@@ -70,6 +70,12 @@ The critical path: the front desk actions on the reservation, then the night aud
     - [x] `fix(city-ledger): count unbilled master folios in credit exposure` — every Open company folio counts in `CreditExposure` whatever the reservation status (the `inHouse` key stays, the company page says "Open folios"); `SettleToCityLedger` is never refused by the credit limit and `FolioData.settleCreditWarning` warns in its confirmation; tests in `CreditControlTest`, `SettleToCityLedgerTest`, `CityLedgerReportPagesTest`. Needs: the warnings above. Docs: [Credit control](15-city-ledger/04-credit-control-and-reports.md), [AR invoices](15-city-ledger/02-ar-invoices.md).
     - [x] `feat(reservations): show paid and billed to company apart` — `ReservationDirectory` splits Paid from DIRECT_BILL (`billedToCompany`, a muted sub-line in the list and card); `FolioPaymentReferences` with the JSON reference check route and the warning in the Record AR payment Dialog (folio payments and other AR payments); the `eachPaysHint` in the booking rail, Edit group and Change company (which drops its wrong "billed through the master folio" line). Docs: [Money strip](12-reservations/06-reservation-page.md#money-strip), [AR payments](15-city-ledger/03-ar-payments.md#rules).
 
+22. [ ] **Print customer documents**, in four commits, in this order. From a review of wastays booking summary and invoice fixes (missing bill-to, "Fixed line: -", "Total payments 0.00", a summary that missed extra charges, company invoices that did not name the staying guests). Docs: [Printing settings](02-property/05-printing-settings.md#documents-tab), [Booking summary](12-reservations/08-booking-summary.md), [Folio invoice](13-folio/06-folio-invoice.md), [AR invoices](15-city-ledger/02-ar-invoices.md#pdf).
+    - [ ] `feat(printing): add document switches` — the six switches and `bank_details` on `print_settings` (defaults as in the doc, `bank_details` CHECK like `footer_text`), `UpdatePrintDocuments`, the Documents tab with its preview and `settings.printing.sample?document=booking-summary`. A shared line grouper (unit grouping, collapsed room nights, tax summary, reversal pairs left out) that the three documents use, with Pest tests. The amount-in-words method is checked here (`intl` or a small own class, no new package).
+    - [ ] `feat(reservations): print a booking summary` — `BookingSummary` (`app/Services/Reservations/`), `pdf/booking-summary.blade.php`, `reservations.booking-summary` with `?prices=0`, **Print booking summary** and **Print without prices** in **⋯ More**. Reference and "As at", no number, nothing stored. Tests: the totals match the folios' Projected totals for a single room, a MasterPays group, a third-party folio and a transferred charge; without prices prints no amounts; 403 and 404. Needs: document switches.
+    - [ ] `feat(folio): print a folio invoice` — `FolioInvoice` and `FolioInvoiceDocument` (`app/Services/Folio/`), `pdf/folio-invoice.blade.php`, `reservations.folios.invoice` (Closed folios only), **Print invoice** in the folio header and the closed notice, the `folio.print-voucher` label "Print folio vouchers and invoices". Needs: the booking summary.
+    - [ ] `feat(city-ledger): apply document switches to the AR invoice` — the folio lines under room and staying guest, collapsed nights, tax summary, amount in words and payment details; the info strip without empty cells. Needs: the folio invoice.
+
 ## Next
 
 Needed for go-live, but nothing in Now waits for them.
@@ -106,6 +112,12 @@ Needs the Channex staging checks in [Staging verification](21-channels/06-stagin
 - [ ] `feat(portal): add the portal property list and invitations` — `/portal`, accept and decline, `portal` middleware, home redirect. Docs: [Company portal](23-company-portal/01-company-portal.md#pages).
 - [ ] `feat(portal): let company users book and manage stays` — `portal_access`, booking checks, cancel and request. Docs: [Company portal](23-company-portal/01-company-portal.md#rules).
 - [ ] `feat(portal): show company statements` — read-only invoices, payments and statement PDF. Docs: [Company portal](23-company-portal/01-company-portal.md#pages).
+
+### E-invoicing
+
+Planned after item 22. Plan first, with the official MyInvois specification; nothing below is decided.
+
+- [ ] `docs(einvoice): plan MyInvois e-invoicing` — what is submitted (folio invoice, AR invoice, credit note, consolidated invoice for walk-in guests), a snapshot of each issued document at close or settle, the buyer fields on guests and companies (TIN, ID, address), a credit note path for a folio invoice, and the "Reissue invoice" question for a paid AR invoice. Needs: print customer documents.
 
 ### Registration and platform
 

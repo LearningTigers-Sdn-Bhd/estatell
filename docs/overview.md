@@ -231,8 +231,8 @@ The build plan, as one commit per item, is in [checklist.md](checklist.md).
 | 09  | [Packages](09-packages/)             | Inclusions and package prices                                                    |
 | 10  | [Availability](10-availability/)     | Availability calculation                                                         |
 | 11  | [Guests](11-guests/)                 | Guest CRM, identity documents, privacy                                           |
-| 12  | [Reservations](12-reservations/)     | Reservation shape, groups, beds, add-ons, booking form, reservation page         |
-| 13  | [Folio](13-folio/)                   | Folios, ledger lines, routing, posting                                           |
+| 12  | [Reservations](12-reservations/)     | Shape, groups, beds, add-ons, booking form, reservation page, booking summary    |
+| 13  | [Folio](13-folio/)                   | Folios, ledger lines, routing, posting, folio invoice                            |
 | 14  | [Payments](14-payments/)             | Payments and refunds                                                             |
 | 15  | [City ledger](15-city-ledger/)       | Companies, invoices, payments received, statements, aging                        |
 | 16  | [Registration](16-registration/)     | Registration cards and terms                                                     |

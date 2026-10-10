@@ -2,7 +2,7 @@
 
 ## Purpose
 
-How every PDF of a property looks: the letterhead, the font style, the font size and the footer. Reports, receipts, AR invoices, AR statements and the aging report all use it.
+How every PDF of a property looks: the letterhead, the font style, the font size and the footer. Reports, receipts, AR invoices, AR statements and the aging report all use it. The Documents tab also chooses what the booking summary, the folio invoice and the AR invoice show.
 
 ## Data model
 
@@ -17,6 +17,13 @@ print_settings              one row per property
   show_registration_number  bool, default true
   show_tin                  bool, default false
   footer_text               varchar(500), null
+  show_unit_on_lines        bool, default true    (Documents tab)
+  nightly_breakdown         bool, default false   (Documents tab)
+  tax_breakdown             bool, default true    (Documents tab)
+  show_amount_in_words      bool, default false   (Documents tab)
+  show_cancellation_policy  bool, default true    (Documents tab)
+  show_signature_lines      bool, default false   (Documents tab)
+  bank_details              varchar(500), null    (Documents tab)
   timestamps
 
 print_setting_taxes         the tax numbers the header shows
@@ -37,7 +44,8 @@ print_setting_taxes         the tax numbers the header shows
 | Tax numbers           | `taxes.registration_number` of each tax in `print_setting_taxes`                     |
 
 - `SeedPropertyDefaults` creates the row with the defaults above and no tax rows. A back-fill migration creates it for existing properties, and `PropertyFactory` creates it in tests. Code that prints never checks for a missing row. The printing routes are a 404 before Basics, when the row does not exist yet.
-- `footer_text` is trimmed. An empty text is stored as null (CHECK, like `taxes.registration_number`).
+- `footer_text` and `bank_details` are trimmed. An empty text is stored as null (CHECK, like `taxes.registration_number`).
+- `bank_details` is the one value the table stores: the property has no bank account record, and the text is only ever printed.
 
 ## Enums
 
@@ -77,7 +85,7 @@ The font style sets a heading font (the property name, the document title and se
 
 ## Legal fields
 
-The switches control only the letterhead. A document that must show a number prints it in its own body, whatever the switches say. For example, an AR invoice shows the SST number next to the SST total.
+The Header switches control only the letterhead, and the Documents switches only the layout and the optional sections. A document that must show a fact prints it in its own body, whatever the switches say. For example, an AR invoice and a folio invoice show the SST number next to the SST total. Always printed on an invoice: the number, the date, Bill to, the tax amounts with the tax registration number, and the total.
 
 ## Letterhead and footer
 
@@ -90,18 +98,58 @@ The switches control only the letterhead. A document that must show a number pri
     - The registration card keeps its own font choice. It does not use the letterhead.
     - The temporary password slips are cut out and handed to staff, so a letterhead and a footer do not fit.
 
+## Documents tab
+
+What the customer documents show. One set of switches: each applies to every document where it fits. There is no column-count setting: a document's info strip leaves out empty cells and shares the width between the rest (2 to 4 cells).
+
+| Switch                                           | Booking summary | Folio invoice | AR invoice | Default |
+| ------------------------------------------------ | --------------- | ------------- | ---------- | ------- |
+| Room and guest on lines (`show_unit_on_lines`)   | ✓               | ✓             | ✓          | On      |
+| Nightly breakdown (`nightly_breakdown`)          | ✓               | ✓             | ✓          | Off     |
+| Tax breakdown (`tax_breakdown`)                  | ✓               | ✓             | ✓          | On      |
+| Amount in words (`show_amount_in_words`)         | ✓               | ✓             | ✓          | Off     |
+| Cancellation policy (`show_cancellation_policy`) | ✓               | –             | –          | On      |
+| Signature lines (`show_signature_lines`)         | –               | ✓             | –          | Off     |
+| Payment details (`bank_details`, text)           | ✓               | –             | ✓          | Empty   |
+
+- **Room and guest on lines**: charge rows are grouped under "Room 103 · Tan Wei Ming", from the line source (a child takes its parent's). Off: one list by date.
+- **Nightly breakdown**: off collapses a unit's room lines with the same description and amount into "Room, 3 nights × 250.00" with the date range (inclusions and discounts the same way). On: one row per night.
+- **Tax breakdown**: on sums the tax lines per tax ("Service tax 8%", "Tourism tax"). Off: one "Tax" total. The tax registration number still prints next to the tax total (see [Legal fields](#legal-fields)).
+- **Amount in words**: English words under the total, for example "Ringgit Malaysia one thousand five hundred and four only". How to spell it (PHP `intl` `NumberFormatter::SPELLOUT` or a small own class) is checked at build time; no new package.
+- **Empty values never print**, whatever the switches: no "-", no "0.00" payment line, no country-only address, no empty strip cell.
+- The voucher, the receipts, the AR statement and the reports do not read these switches.
+
+```
+┌ Documents ────────────────────────────────┬ Preview (sticky) ──────┐
+│ Lines                                     │ Booking summary        │
+│ ● Room and guest on lines                 │ BILL TO   STAY         │
+│ ○ Nightly breakdown                       │ Acme      12–15 Oct    │
+│ ● Tax breakdown                           │ Room 103 · Tan Wei Ming│
+│ ○ Amount in words                         │  Room, 3 nights 750.00 │
+│ Sections                                  │  Service tax 8%  60.00 │
+│ ● Cancellation policy  (booking summary)  │  Total MYR      810.00 │
+│ ○ Signature lines      (folio invoice)    │ Cancellation policy    │
+│ Payment details                           │ Free until 2 days…     │
+│ [ Maybank 5141 2233 4455 · Sandbay …    ] │ [Open sample PDF ↗]    │
+└───────────────────────────────────────────┴────────────────────────┘
+```
+
+- Each switch says which documents it changes in its description.
+- The preview draws a sample booking summary from the form state. **Open sample PDF** opens `settings.printing.sample?document=booking-summary`: the real dompdf output with sample data.
+
 ## UI
 
-**Printing** is its own Settings sidebar item (`settings.manage`, icon `printer`), below Registration card. It has two tabs with their own URLs:
+**Printing** is its own Settings sidebar item (`settings.manage`, icon `printer`), below Registration card. It has three tabs with their own URLs:
 
-| Tab     | URL                                  | Content                            |
-| ------- | ------------------------------------ | ---------------------------------- |
-| General | `/p/{code}/settings/printing`        | Font style, font size, footer text |
-| Header  | `/p/{code}/settings/printing/header` | Header line switches, tax numbers  |
+| Tab       | URL                                     | Content                                    |
+| --------- | --------------------------------------- | ------------------------------------------ |
+| General   | `/p/{code}/settings/printing`           | Font style, font size, footer text         |
+| Header    | `/p/{code}/settings/printing/header`    | Header line switches, tax numbers          |
+| Documents | `/p/{code}/settings/printing/documents` | Document switches and payment details text |
 
 Report column layouts are not here. They are a Sheet on each report page. See [Core reports](../22-reports/01-core-reports.md#layout-sheet).
 
-Both tabs use the three-column grid of the registration card Layout tab: the form takes two columns and a sticky preview takes one.
+All tabs use the three-column grid of the registration card Layout tab: the form takes two columns and a sticky preview takes one.
 
 ```
 ┌ General ──────────────────────────────────┬ Preview (sticky) ──────┐
@@ -142,6 +190,7 @@ Both tabs use the three-column grid of the registration card Layout tab: the for
 
 - `UpdatePrintSettings`: font style, font size and footer text.
 - `UpdatePrintHeader`: the five switches and the tax list, synced in one transaction. Refuses a tax of another property.
+- `UpdatePrintDocuments`: the six document switches and `bank_details`.
 
 Each logs `print_settings.updated` when something changed, with the changed fields.
 
@@ -149,8 +198,9 @@ Each logs `print_settings.updated` when something changed, with the changed fiel
 
 All need `settings.manage`. See [Routing](../routing.md).
 
-| Route                                    | Name                                         |
-| ---------------------------------------- | -------------------------------------------- |
-| `GET`, `PUT /p/{code}/settings/printing` | `settings.printing.general`, `.update`       |
-| `GET`, `PUT …/printing/header`           | `settings.printing.header`, `.header.update` |
-| `GET …/printing/sample`                  | `settings.printing.sample`                   |
+| Route                                    | Name                                                                           |
+| ---------------------------------------- | ------------------------------------------------------------------------------ |
+| `GET`, `PUT /p/{code}/settings/printing` | `settings.printing.general`, `.update`                                         |
+| `GET`, `PUT …/printing/header`           | `settings.printing.header`, `.header.update`                                   |
+| `GET`, `PUT …/printing/documents`        | `settings.printing.documents`, `.documents.update`                             |
+| `GET …/printing/sample`                  | `settings.printing.sample` (`?document=booking-summary` for the Documents tab) |
