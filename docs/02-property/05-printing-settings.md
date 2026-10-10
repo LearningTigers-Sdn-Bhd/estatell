@@ -85,7 +85,7 @@ The font style sets a heading font (the property name, the document title and se
 
 ## Legal fields
 
-The Header switches control only the letterhead, and the Documents switches only the layout and the optional sections. A document that must show a fact prints it in its own body, whatever the switches say. For example, an AR invoice and a folio invoice show the SST number next to the SST total. Always printed on an invoice: the number, the date, Bill to, the tax amounts with the tax registration number, and the total.
+The Header switches control only the letterhead, and the Documents switches only the layout and the optional sections. A document that must show a fact prints it in its own body, whatever the switches say. For example, an AR invoice and a folio invoice show the SST number next to the SST total. Always printed on an invoice: the number, the date, Bill to, the tax amounts with the tax registration number, and the total. An AR invoice also always names the staying guests.
 
 ## Letterhead and footer
 
@@ -142,8 +142,9 @@ What the customer documents show. One set of switches: each applies to every doc
 
 `DocumentLines` (`app/Services/Folio/`) turns folio rows into what a customer document prints. The booking summary, the folio invoice and the AR invoice all use it, so the three print the same lines the same way.
 
-- **Input**: plain `DocumentRow` objects, not models. The booking summary sends posted lines and Scheduled rows; the folio invoice and the AR invoice send posted lines only. Each row carries its kind, description, date, quantity, unit amount, amount, tax, unit id, line id and reversal link.
-- **Output**: `DocumentLineGroups`: the groups (heading and rows), the tax summary, the charges subtotal and the total. It reads nothing from the database and computes nothing a folio does not already hold.
+- **Input**: plain `DocumentRow` objects, not models. The booking summary sends posted lines and Scheduled rows; the folio invoice and the AR invoice send posted lines only. Each row carries its kind, description, date, quantity, unit amount, amount, unit id, line id, reversal link, nightly flag, room label and, on a tax row, the tax registration number (`taxNumber`).
+- **Posted rows**: `FolioDocumentRows` (`app/Services/Folio/`) turns posted folio lines into `DocumentRow`s: the unit through `LineSourceUnits`, a child line taking its parent's unit and nightly flag, the room label, the heading and the tax number (the tax whose transaction code the line uses). The booking summary, the folio invoice and the AR invoice all use it, so the three cannot drift apart.
+- **Output**: `DocumentLineGroups`: the groups (heading and rows), the tax summary, the charges subtotal and the total. A tax summary line carries the registration numbers of its taxes. An invoice prints them next to the tax ("Service tax 8% · SST W10-1808-32000123"); with **Tax breakdown** off, the one "Tax" line lists them under it. The booking summary sends no tax numbers, so it prints none. It reads nothing from the database and computes nothing a folio does not already hold.
 
 ```
 rows ─▶ DocumentLines::group(rows, PrintSetting) ─▶ DocumentLineGroups
@@ -181,6 +182,10 @@ Date        Room  Description                  Amount
 ```
 
 The browser preview and the sample PDF show the column the same way.
+
+### Rooms block
+
+The booking summary always has a Rooms section. The folio invoice and the AR invoice have none, so with **Room and guest on lines** off the guest names would be lost. They print a short **Rooms** block above the lines instead, one line per unit on the document: "Room 103 · Tan Wei Ming · 12–15 Oct". It prints only when the switch is off (on, the group headings name each room and guest), also for a single unit. On an AR invoice the staying guests are a legal fact (see [Legal fields](#legal-fields)).
 
 ### Amount in words
 

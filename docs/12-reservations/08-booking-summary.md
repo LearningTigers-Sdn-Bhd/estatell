@@ -73,6 +73,8 @@ One row of cells. A cell with no value is left out, and the others share the wid
 
 ### Rooms
 
+The posted rows come from the shared `FolioDocumentRows` (see [Line grouper](../02-property/05-printing-settings.md#line-grouper)); `BookingSummary` adds the Scheduled rows.
+
 One line per unit, every status, so the document always says what was booked. A Cancelled or NoShow unit adds its status at the end ("· No-show"). Each line: tonight's room or bed (the first night's before arrival, left out when none is assigned), the room type, the rate plan, the primary guest and the guest count. A unit with different dates from the strip adds its own dates.
 
 ### Charges
@@ -121,7 +123,7 @@ The rows below go through the shared [line grouper](../02-property/05-printing-s
 ## Rules
 
 - **Empty values never print.** No "-", no "0.00" payment line, no country-only address, no empty cell.
-- **Prices for the guest.** A reservation with a `company_id` offers a second print, **without prices**: the same document with the Charges, Payments, Balance due, amount in words and Payment details left out. The header, the info strip, Rooms and the cancellation policy stay. A negotiated company rate is never handed to the guest by mistake. This follows the [registration card](../16-registration/01-card-fields.md#booking-summary) rule.
+- **Prices for the guest.** A reservation with a `company_id` offers a second print, **without prices**: the same document with the Charges, Payments, Balance due, amount in words and Payment details left out. The header, the info strip, Rooms and the cancellation policy stay. Rooms leaves out the rate plan, because its name can name a negotiated rate ("Room Only –20% (Acme only)"). A negotiated company rate is never handed to the guest by mistake. This follows the [registration card](../16-registration/01-card-fields.md#booking-summary) rule.
 - **Outcome stamp** under "Not a tax invoice": CANCELLED when the reservation is Cancelled, NO-SHOW when every unit is NoShow. A mixed reservation gets no stamp; each unit shows its own status in Rooms. Either way it prints the fees and payments it holds.
 - **Totals differ from the money strip.** The [money strip](06-reservation-page.md#money-strip) shows **Room total** (room nights only, without tax and add-ons, labelled so). The booking summary Total includes everything that will be charged, and the reservation page [summary card](06-reservation-page.md#summary-card) shows the same Total from `BookingSummary`. This is the wastays lesson: a summary that missed extra charges showed a false credit.
 - **Currency** is the property currency, printed once in the Total and Balance due labels.

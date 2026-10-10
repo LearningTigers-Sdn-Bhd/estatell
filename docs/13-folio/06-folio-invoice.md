@@ -41,10 +41,12 @@ The printed invoice of one closed folio. `CloseFolio` already gives the folio it
 - **Header slot**: "Invoice", the `invoice_number` and the close date (`closed_at` in the property time zone).
 - **Info strip** (2 to 4 cells, empty ones left out): **Bill to**, **Stay**, **Reservation** (the `reference`), **Your ref** (`external_reference`).
 - **Bill to**: the payer company (name, its tax numbers and billing address), else the payer guest (name and address), else the booker. The same rule as the voucher's "Billed to".
-- **Lines**: the folio's charge, discount and tax lines, with the same rules as the [booking summary charges](../12-reservations/08-booking-summary.md#charges): a line and its reversal are both left out, grouping by unit, collapsed room nights and the tax summary follow the [document switches](../02-property/05-printing-settings.md#documents-tab). The folio invoice sends its posted lines to the shared [line grouper](../02-property/05-printing-settings.md#line-grouper). There are no Scheduled rows: the folio is closed.
-- **Legal facts always print**, whatever the switches: the number, the date, Bill to, the tax amounts and the tax registration number next to the tax total (see [Legal fields](../02-property/05-printing-settings.md#legal-fields)), and the total.
+- **Rooms block**: with **Room and guest on lines** off, a short Rooms block above the lines names each unit and its guest. See [Rooms block](../02-property/05-printing-settings.md#rooms-block).
+- **Lines**: the folio's charge, discount and tax lines, built by the shared `FolioDocumentRows`, with the same rules as the [booking summary charges](../12-reservations/08-booking-summary.md#charges): a line and its reversal are both left out, grouping by unit, collapsed room nights and the tax summary follow the [document switches](../02-property/05-printing-settings.md#documents-tab). The folio invoice sends its posted lines to the shared [line grouper](../02-property/05-printing-settings.md#line-grouper). There are no Scheduled rows: the folio is closed.
+- **Legal facts always print**, whatever the switches: the number, the date, Bill to, the tax amounts and the tax registration number next to each tax (or under the single "Tax" line) (see [Legal fields](../02-property/05-printing-settings.md#legal-fields)), and the total.
 - **Payments**: each payment and refund line (date, receipt number, method). A city ledger line prints as "Billed to {company}, invoice {AR number}". Then **Balance**, which is 0.00 on a closed folio.
-- **Footer blocks**: amount in words and signature lines when their switches are on, then the property `footer_text`.
+- **Footer blocks**: amount in words and signature lines (Guest and Cashier) when their switches are on, then the property `footer_text`.
+- **Bill to** prints the company's TIN, SST number and billing address, or the guest's address, only the parts that are set.
 
 ## Route and entry
 
@@ -59,6 +61,11 @@ The printed invoice of one closed folio. `CloseFolio` already gives the folio it
 - The total equals the sum of the printed charge, discount and tax rows, and the balance is 0.00.
 - A transferred-out charge (reversed on this folio) does not print. A transferred-in copy does.
 - A settled folio prints its city ledger line with the AR invoice number.
+- The tax number prints next to each tax, and under the single "Tax" line with Tax breakdown off.
+- Bill to falls back from the payer company to the payer guest to the booker.
+- The Rooms block prints only with Room and guest on lines off.
+- A Voided folio and a folio of another reservation are a 404.
+- The booking summary tests pass unchanged after `FolioDocumentRows` is taken out of it.
 - An Open folio is a 404. A user without `folio.print-voucher` is a 403.
 
 ## Later
