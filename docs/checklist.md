@@ -97,6 +97,7 @@ Needed for go-live, but nothing in Now waits for them.
 
 - [ ] `feat(housekeeping): add the room status board` — Docs: [Room status board](19-housekeeping/01-room-status-board.md).
 - [x] `feat(catalogues): add the collect at check-in switch to taxes` — `taxes.collect_at_check_in` (default false, on for the Tourism tax preset) and the switch on the tax form. Item 10 needs it for Collect now. Docs: [Taxes](06-catalogues/03-taxes.md).
+- [ ] `feat(front-desk): add the dashboard` — replaces the starter kit placeholder: the night audit alert, quick actions (New booking, Walk-in, Find reservation, Run night audit), four link tiles (Arrivals left, Departures left, Tonight with 7 nights and a room type popover, the month's Posted and Booked) and the To do list (overdue, arrivals, departures, folio warnings) with Check in, Check out and Open folio through `AuditDialogHost`. `DashboardController`, `DashboardAlert`, `DashboardTiles`, `DashboardTodo`, deferred props with skeletons, the Dashboard archetype. Docs: [Dashboard](18-front-desk/04-dashboard.md).
 - [ ] `feat(front-desk): add the stay view` — Docs: [Stay View](18-front-desk/03-stay-view.md).
 - [ ] `feat(reservations): preview the price in the Add unit Sheet` — reuse the booking form quote route. Docs: [Reservations list and reservation page](12-reservations/06-reservation-page.md#header).
 - [ ] `feat(onboarding): add the onboarding wizard steps` — Docs: [Wizard steps](17-onboarding/02-wizard-steps.md).

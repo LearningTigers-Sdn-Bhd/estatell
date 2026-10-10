@@ -237,7 +237,7 @@ The build plan, as one commit per item, is in [checklist.md](checklist.md).
 | 15  | [City ledger](15-city-ledger/)       | Companies, invoices, payments received, statements, aging                        |
 | 16  | [Registration](16-registration/)     | Registration cards and terms                                                     |
 | 17  | [Onboarding](17-onboarding/)         | Account creation, wizard, go-live                                                |
-| 18  | [Front desk](18-front-desk/)         | Check-in, check-out, assignment                                                  |
+| 18  | [Front desk](18-front-desk/)         | Check-in, check-out, assignment, dashboard                                       |
 | 19  | [Housekeeping](19-housekeeping/)     | Room status board                                                                |
 | 20  | [Night audit](20-night-audit/)       | Business dates, readiness, audit run                                             |
 | 21  | [Channels](21-channels/)             | Channex connection, mapping, sync                                                |
