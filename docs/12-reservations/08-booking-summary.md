@@ -97,7 +97,7 @@ The rows below go through the shared [line grouper](../02-property/05-printing-s
 | Scheduled rows | `ScheduledFolioRows::forReservation()`, the rows the folio tab shows. Each block carries its unit id.                                    | Key `night:`: yes. Key `addon:`: by the add-on's `ChargingUnit`.             |
 
 - A child line (discount, tax) takes its parent's nightly flag.
-- **Room label** (`DocumentRow::$room`): tonight's room number, else the first night's before arrival, else the room type code. The group heading is "Room 103 · Tan Wei Ming".
+- **Room label** (`DocumentRow::$room`): tonight's room number, else the first night's before arrival, else the room type name (room types have no code). The group heading is "Room 103 · Tan Wei Ming".
 - A posted night and Scheduled nights with the same description and price merge into one row, for example one posted and two to come print "Room, 3 nights × 250.00".
 
 ### Payments
@@ -107,7 +107,7 @@ The rows below go through the shared [line grouper](../02-property/05-printing-s
 - The receipt number and the method come from the line's `payments` row.
 - No payments: the section is left out. It never prints "Total payments 0.00".
 - **Balance due** = Total minus payments minus amounts billed to the company. It can be below 0 ("Credit").
-- Paid, billed to company and the balance match what `ReservationDirectory` computes for the reservations list. The tests compare them, so the list, this document and the summary card cannot drift apart.
+- Paid and billed to company match what `ReservationDirectory` computes for the reservations list, and so does the balance once nothing is Scheduled (the list balance counts posted lines only; Balance due also counts the Scheduled rows). The tests compare them, so the list, this document and the summary card cannot drift apart.
 
 ### Footer blocks
 
@@ -126,11 +126,11 @@ The rows below go through the shared [line grouper](../02-property/05-printing-s
 
 ## Route and entry
 
-| Item  | Value                                                                                                                                                                                                                        |
-| ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Route | `GET /p/{code}/reservations/{reservation}/booking-summary` (`reservations.booking-summary`, `BookingSummaryController`), `?prices=0` for the print without prices (only for a reservation with a company; otherwise ignored) |
-| PDF   | Streams inline as `booking-summary-{reference}.pdf` through `PrintedPdf`, view `resources/views/pdf/booking-summary.blade.php`                                                                                               |
-| Menu  | **⋯ More** on the reservation page: **Print booking summary**, plus **Print without prices** when the reservation has a company. Both open the PDF in a new tab. Shown on closed reservations too                            |
+| Item  | Value                                                                                                                                                                                                                                                     |
+| ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Route | `GET /p/{code}/reservations/{reservation}/booking-summary` (`reservations.booking-summary`, `BookingSummaryController`), `?prices=0` for the print without prices (only for a reservation with a company; otherwise ignored)                              |
+| PDF   | Streams inline as `booking-summary-{reference}.pdf` through `PrintedPdf`, view `resources/views/pdf/booking-summary.blade.php`                                                                                                                            |
+| Menu  | **⋯ More** on the reservation page: **Print booking summary**, plus **Print without prices** when the reservation has a company. Both open the PDF in a new tab. Shown on closed reservations too, and to a user who can view but not manage reservations |
 
 ## Tests
 

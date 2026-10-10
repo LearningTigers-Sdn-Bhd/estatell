@@ -1,12 +1,13 @@
 {{--
     The lines of a customer document: the groups, the tax summary, the total and, when switched on, the amount in
-    words. Expects $groups (App\Services\Folio\DocumentLineGroups), $currency (App\Enums\Currency) and $settings
+    words. Pass `'words' => false` to leave the words out (the booking summary prints them under Balance due). Expects $groups (App\Services\Folio\DocumentLineGroups), $currency (App\Enums\Currency) and $settings
     (App\Models\PrintSetting). Empty values never print. See docs/02-property/05-printing-settings.md#line-grouper.
 --}}
 @php
     /** @var \App\Services\Folio\DocumentLineGroups $groups */
     /** @var \App\Enums\Currency $currency */
     /** @var \App\Models\PrintSetting $settings */
+    $words ??= true;
     $room = $groups->showRoomColumn;
     $span = $room ? 3 : 2;
     $money = fn (string $amount): string => number_format((float) $amount, 2);
@@ -53,6 +54,6 @@
         <td class="num">{{ $money($groups->total) }}</td>
     </tr>
 </table>
-@if ($settings->show_amount_in_words)
+@if ($words && $settings->show_amount_in_words)
     <div class="small muted gap-8">{{ app(\App\Services\Property\AmountInWords::class)->for($groups->total, $currency) }}</div>
 @endif

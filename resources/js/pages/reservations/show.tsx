@@ -178,18 +178,17 @@ export default function ReservationShow({
                     }
                     back={{ href: index.url(), label: 'Reservations' }}
                     actions={
-                        canManage ? (
-                            <ReservationActions
-                                reservation={reservation}
-                                billingModes={billingModes}
-                                addUnitOptions={addUnitOptions}
-                                canViewCompany={canViewCompany}
-                                canCheckIn={canCheckIn}
-                                canOverrideCredit={canOverrideCredit}
-                                companies={companies}
-                                currency={currency}
-                            />
-                        ) : undefined
+                        <ReservationActions
+                            canManage={canManage}
+                            reservation={reservation}
+                            billingModes={billingModes}
+                            addUnitOptions={addUnitOptions}
+                            canViewCompany={canViewCompany}
+                            canCheckIn={canCheckIn}
+                            canOverrideCredit={canOverrideCredit}
+                            companies={companies}
+                            currency={currency}
+                        />
                     }
                 />
 

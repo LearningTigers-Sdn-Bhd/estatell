@@ -1,4 +1,11 @@
-import { Building2, LogIn, MoreHorizontal, Pencil, Plus } from 'lucide-react';
+import {
+    Building2,
+    LogIn,
+    MoreHorizontal,
+    Pencil,
+    Plus,
+    Printer,
+} from 'lucide-react';
 import { useState } from 'react';
 import type { EnumOption } from '@/components/pms/enum-select';
 import { AddUnitSheet } from '@/components/pms/reservations/add-unit-sheet';
@@ -12,11 +19,13 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { bookingSummary } from '@/routes/reservations';
 
 /**
- * The page header buttons: Add unit (hidden once the reservation is closed) and More, which holds Edit group, Change company and, for a group, Check in all.
+ * The page header buttons: Add unit (hidden once the reservation is closed) and More, which holds Edit group, Change company, for a group Check in all, and the booking summary prints (the second one without prices, for a reservation with a company). The prints show on closed reservations too.
  */
 export function ReservationActions({
+    canManage,
     reservation,
     billingModes,
     addUnitOptions,
@@ -26,6 +35,7 @@ export function ReservationActions({
     companies,
     currency,
 }: {
+    canManage: boolean;
     reservation: App.Data.Reservations.ReservationData;
     billingModes: EnumOption[];
     addUnitOptions?: App.Data.Reservations.AddUnitOptionsData;
@@ -40,11 +50,14 @@ export function ReservationActions({
     const [changingCompany, setChangingCompany] = useState(false);
     const [checkingInAll, setCheckingInAll] = useState(false);
     const canCheckInAll =
-        canCheckIn && !reservation.isClosed && reservation.unitCount > 1;
+        canManage &&
+        canCheckIn &&
+        !reservation.isClosed &&
+        reservation.unitCount > 1;
 
     return (
         <>
-            {!reservation.isClosed && (
+            {canManage && !reservation.isClosed && (
                 <Button onClick={() => setAddingUnit(true)}>
                     <Plus data-icon="inline-start" />
                     Add unit
@@ -59,10 +72,12 @@ export function ReservationActions({
                     More
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => setEditingGroup(true)}>
-                        <Pencil />
-                        Edit group
-                    </DropdownMenuItem>
+                    {canManage && (
+                        <DropdownMenuItem onClick={() => setEditingGroup(true)}>
+                            <Pencil />
+                            Edit group
+                        </DropdownMenuItem>
+                    )}
                     {canCheckInAll && (
                         <DropdownMenuItem
                             onClick={() => setCheckingInAll(true)}
@@ -71,7 +86,7 @@ export function ReservationActions({
                             Check in all
                         </DropdownMenuItem>
                     )}
-                    {canViewCompany && !reservation.isClosed && (
+                    {canManage && canViewCompany && !reservation.isClosed && (
                         <DropdownMenuItem
                             onClick={() => setChangingCompany(true)}
                         >
@@ -79,17 +94,50 @@ export function ReservationActions({
                             Change company
                         </DropdownMenuItem>
                     )}
+                    <DropdownMenuItem
+                        render={
+                            <a
+                                href={bookingSummary.url({
+                                    reservation: reservation.id,
+                                })}
+                                target="_blank"
+                                rel="noreferrer"
+                            />
+                        }
+                    >
+                        <Printer />
+                        Print booking summary
+                    </DropdownMenuItem>
+                    {reservation.companyId !== null && (
+                        <DropdownMenuItem
+                            render={
+                                <a
+                                    href={bookingSummary.url(
+                                        { reservation: reservation.id },
+                                        { query: { prices: 0 } },
+                                    )}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                />
+                            }
+                        >
+                            <Printer />
+                            Print without prices
+                        </DropdownMenuItem>
+                    )}
                 </DropdownMenuContent>
             </DropdownMenu>
 
-            <AddUnitSheet
-                open={addingUnit}
-                onOpenChange={setAddingUnit}
-                reservationId={reservation.id}
-                companyId={reservation.companyId}
-                options={addUnitOptions}
-                currency={currency}
-            />
+            {canManage && (
+                <AddUnitSheet
+                    open={addingUnit}
+                    onOpenChange={setAddingUnit}
+                    reservationId={reservation.id}
+                    companyId={reservation.companyId}
+                    options={addUnitOptions}
+                    currency={currency}
+                />
+            )}
             {canCheckInAll && (
                 <CheckInAllDialog
                     open={checkingInAll}
@@ -97,13 +145,15 @@ export function ReservationActions({
                     reservation={reservation}
                 />
             )}
-            <EditGroupDialog
-                open={editingGroup}
-                onOpenChange={setEditingGroup}
-                reservation={reservation}
-                billingModes={billingModes}
-            />
-            {canViewCompany && (
+            {canManage && (
+                <EditGroupDialog
+                    open={editingGroup}
+                    onOpenChange={setEditingGroup}
+                    reservation={reservation}
+                    billingModes={billingModes}
+                />
+            )}
+            {canManage && canViewCompany && (
                 <ChangeCompanyDialog
                     open={changingCompany}
                     onOpenChange={setChangingCompany}

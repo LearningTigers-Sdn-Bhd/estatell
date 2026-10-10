@@ -169,7 +169,7 @@ With **Room and guest on lines** off, the lines are one list by date. A Room col
 | More than one unit on the document      | Shown, room number only (no guest name)       |
 | One unit                                | Hidden: the room is already in the info strip |
 | A line with no unit (reservation level) | Empty cell                                    |
-| A unit with no room assigned yet        | The room type code, for example "DLX"         |
+| A unit with no room assigned yet        | The room type name                            |
 
 Merging still works per unit, so two rooms at different prices give two merged rows:
 

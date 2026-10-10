@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\PermissionEnum;
+use App\Http\Controllers\Reservations\BookingSummaryController;
 use App\Http\Controllers\Reservations\ReservationBookingController;
 use App\Http\Controllers\Reservations\ReservationCityLedgerController;
 use App\Http\Controllers\Reservations\ReservationCompanyController;
@@ -32,6 +33,7 @@ Route::prefix('reservations')->name('reservations.')->scopeBindings()->group(fun
             Route::get('add-ons', [ReservationController::class, 'addOns'])->name('add-ons');
             Route::get('folio', [ReservationController::class, 'folio'])->name('folio');
             Route::get('activity', [ReservationController::class, 'activity'])->name('activity');
+            Route::get('booking-summary', BookingSummaryController::class)->name('booking-summary');
 
             Route::prefix('folios/{folio}')->name('folios.')->group(function () {
                 Route::post('charges', [ReservationFolioController::class, 'storeCharge'])->middleware('can:'.PermissionEnum::FolioPostCharge->value)->name('charges.store');
