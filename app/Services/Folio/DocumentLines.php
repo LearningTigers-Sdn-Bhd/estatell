@@ -114,7 +114,7 @@ class DocumentLines
     }
 
     /**
-     * One row per line, or with the nightly breakdown off, equal rows on consecutive dates merged. Rows of one
+     * One row per line, or with the nightly breakdown off, equal rows on consecutive dates merged. Only nightly rows merge: rows of one
      * unit, kind, description, unit amount and quantity are equal; a price change or a gap in dates starts a new row.
      *
      * @param  list<DocumentRow>  $rows
@@ -127,6 +127,12 @@ class DocumentLines
         $open = [];
 
         foreach ($rows as $row) {
+            if (! $row->nightly) {
+                $result[] = new DocumentLineRow($row->description, $row->date, $row->date, 1, $row->unitAmount, (string) BigDecimal::of($row->amount)->toScale(2));
+
+                continue;
+            }
+
             $key = implode('|', [$row->unitId ?? 0, $row->kind->value, $row->description, $row->unitAmount, $row->quantity]);
             $index = $open[$key] ?? null;
 

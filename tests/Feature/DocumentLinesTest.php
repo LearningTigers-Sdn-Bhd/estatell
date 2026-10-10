@@ -7,14 +7,14 @@ use App\Services\Folio\DocumentLines;
 use App\Services\Folio\DocumentRow;
 use Carbon\CarbonImmutable;
 
-function documentRow(TransactionKind $kind, string $description, string $date, string $amount, ?int $unitId = null, ?int $lineId = null, ?int $reversalOfId = null, ?string $unitAmount = null): DocumentRow
+function documentRow(TransactionKind $kind, string $description, string $date, string $amount, ?int $unitId = null, ?int $lineId = null, ?int $reversalOfId = null, ?string $unitAmount = null, bool $nightly = false): DocumentRow
 {
-    return new DocumentRow($kind, $description, CarbonImmutable::parse($date), 1, $unitAmount ?? $amount, $amount, $unitId, $unitId === null ? null : "Unit {$unitId}", $lineId, $reversalOfId);
+    return new DocumentRow($kind, $description, CarbonImmutable::parse($date), 1, $unitAmount ?? $amount, $amount, $unitId, $unitId === null ? null : "Unit {$unitId}", $lineId, $reversalOfId, $nightly);
 }
 
 function room(string $date, string $amount = '250.00', int $unit = 1, ?int $lineId = null): DocumentRow
 {
-    return documentRow(TransactionKind::Charge, 'Room', $date, $amount, $unit, $lineId);
+    return documentRow(TransactionKind::Charge, 'Room', $date, $amount, $unit, $lineId, nightly: true);
 }
 
 function printSettings(array $attributes = []): PrintSetting
@@ -122,10 +122,19 @@ test('taxes are summed per tax or as one total', function () {
 test('a discount merges like a room and lowers the total', function () {
     $groups = group([
         room('2026-10-12'), room('2026-10-13'),
-        documentRow(TransactionKind::Adjustment, 'Early bird', '2026-10-12', '-25.00', 1),
-        documentRow(TransactionKind::Adjustment, 'Early bird', '2026-10-13', '-25.00', 1),
+        documentRow(TransactionKind::Adjustment, 'Early bird', '2026-10-12', '-25.00', 1, nightly: true),
+        documentRow(TransactionKind::Adjustment, 'Early bird', '2026-10-13', '-25.00', 1, nightly: true),
     ]);
 
     expect(collect($groups->groups[0]->rows)->map->text()->all())->toBe(['Room, 2 nights × 250.00', 'Early bird, 2 nights × -25.00'])
         ->and($groups->chargesSubtotal)->toBe('450.00');
+});
+
+test('only nightly rows merge', function () {
+    $laundry = fn (string $date) => documentRow(TransactionKind::Charge, 'Laundry', $date, '15.00', 1);
+    $breakfast = fn (string $date) => documentRow(TransactionKind::Charge, 'Breakfast', $date, '20.00', 1, nightly: true);
+
+    $rows = group([$laundry('2026-10-12'), $laundry('2026-10-13'), $breakfast('2026-10-12'), $breakfast('2026-10-13')])->groups[0]->rows;
+
+    expect(collect($rows)->map->text()->all())->toBe(['Laundry', 'Laundry', 'Breakfast, 2 nights × 20.00']);
 });

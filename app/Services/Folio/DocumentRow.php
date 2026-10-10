@@ -7,7 +7,10 @@ use Carbon\CarbonImmutable;
 
 /**
  * One folio row as a customer document sees it: plain values, no model. The caller resolves the unit (see
- * LineSourceUnits) and builds the rows. A Scheduled row has no line id. Amounts are decimal strings.
+ * LineSourceUnits) and builds the rows, and sets `nightly` from the line source, the same way for every document:
+ * a unit night and its inclusions are nightly; a child line (discount, tax) takes its parent's flag; an add-on charged
+ * PerNight or PerGuestNight is nightly; PerItem, PerStay and PerGuest add-ons, manual charges and policy fees (source
+ * is the reservation unit) are not. Only nightly rows merge into "3 nights × 250.00". A Scheduled row has no line id. Amounts are decimal strings.
  */
 final readonly class DocumentRow
 {
@@ -27,5 +30,6 @@ final readonly class DocumentRow
         public ?string $unitLabel = null,
         public ?int $lineId = null,
         public ?int $reversalOfId = null,
+        public bool $nightly = false,
     ) {}
 }

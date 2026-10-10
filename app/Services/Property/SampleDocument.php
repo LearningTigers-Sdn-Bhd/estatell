@@ -24,7 +24,7 @@ class SampleDocument
 
         foreach ([[1, 'Room 103 · Tan Wei Ming', '250.00'], [2, 'Room 104 · Lee Mei Ling', '230.00']] as [$unitId, $label, $rate]) {
             foreach (range(0, 2) as $night) {
-                $rows[] = new DocumentRow(TransactionKind::Charge, 'Room', $start->addDays($night), 1, $rate, $rate, $unitId, $label);
+                $rows[] = new DocumentRow(TransactionKind::Charge, 'Room', $start->addDays($night), 1, $rate, $rate, $unitId, $label, nightly: true);
             }
         }
 

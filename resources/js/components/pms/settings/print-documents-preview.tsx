@@ -12,6 +12,7 @@ type Night = {
     text: string;
     unitAmount: number;
     amount: number;
+    nightly: boolean;
 };
 type Row = { dates: string; text: string; amount: number };
 
@@ -28,6 +29,7 @@ const sampleNights: Night[] = [
         text: 'Room',
         unitAmount: 250,
         amount: 250,
+        nightly: true,
     })),
     {
         unit: 'Room 103 · Tan Wei Ming',
@@ -35,6 +37,7 @@ const sampleNights: Night[] = [
         text: 'Island hopping trip',
         unitAmount: 360,
         amount: 360,
+        nightly: false,
     },
     ...[12, 13, 14].map((day) => ({
         unit: 'Room 104 · Lee Mei Ling',
@@ -42,6 +45,7 @@ const sampleNights: Night[] = [
         text: 'Room',
         unitAmount: 230,
         amount: 230,
+        nightly: true,
     })),
 ];
 
@@ -58,6 +62,7 @@ function rowsFor(nights: Night[], nightly: boolean): Row[] {
     for (const night of nights) {
         const run = runs.find(
             (candidate) =>
+                night.nightly &&
                 !nightly &&
                 candidate.first.unit === night.unit &&
                 candidate.first.text === night.text &&

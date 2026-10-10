@@ -155,7 +155,7 @@ rows ─▶ DocumentLines::group(rows, PrintSetting) ─▶ DocumentLineGroups
 
 - **Unit of a line**: from its source, through `LineSourceUnits` (`app/Services/Folio/`): a unit night and an add-on point to their unit, a reservation unit is its own, and a child line takes its parent's. This lookup moved out of `FolioStatement`, which now uses the same service. The caller resolves the unit before it builds the rows.
 - **Group order**: units in the order the caller gives, then "Other charges" for lines with no unit, last.
-- **Merging**: rows of one unit with the same kind, description and unit amount on consecutive dates become one row, "Room, 3 nights × 250.00", with the date range. A price change or a gap in dates starts a new row.
+- **Merging**: rows of one unit with the same kind, description and unit amount on consecutive dates become one row, "Room, 3 nights × 250.00", with the date range. A price change or a gap in dates starts a new row. Only nightly rows merge (room nights, inclusions, their child lines, Per night and Per guest night add-ons); other charges print one row per line.
 - **Transfers**: a transfer is a reversal plus a copy, so step 1 drops the pair and the copy prints once.
 - The partial `pdf/partials/document-lines.blade.php` draws the groups, the tax summary, the total and the amount in words. The three documents and the sample include it.
 
