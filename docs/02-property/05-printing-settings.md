@@ -112,7 +112,7 @@ What the customer documents show. One set of switches: each applies to every doc
 | Signature lines (`show_signature_lines`)         | –               | ✓             | –          | Off     |
 | Payment details (`bank_details`, text)           | ✓               | –             | ✓          | Empty   |
 
-- **Room and guest on lines**: charge rows are grouped under "Room 103 · Tan Wei Ming", from the line source (a child takes its parent's). Off: one list by date.
+- **Room and guest on lines**: charge rows are grouped under "Room 103 · Tan Wei Ming", from the line source (a child takes its parent's). Off: one list by date with a **Room** column. See [Room column](#room-column).
 - **Nightly breakdown**: off collapses a unit's room lines with the same description and amount into "Room, 3 nights × 250.00" with the date range (inclusions and discounts the same way). On: one row per night.
 - **Tax breakdown**: on sums the tax lines per tax ("Service tax 8%", "Tourism tax"). Off: one "Tax" total. The tax registration number still prints next to the tax total (see [Legal fields](#legal-fields)).
 - **Amount in words**: English words under the total, for example "Ringgit Malaysia one thousand five hundred and four only", or "… and fifty sen only" when there are cents. See [Amount in words](#amount-in-words).
@@ -154,10 +154,33 @@ rows ─▶ DocumentLines::group(rows, PrintSetting) ─▶ DocumentLineGroups
 ```
 
 - **Unit of a line**: from its source, through `LineSourceUnits` (`app/Services/Folio/`): a unit night and an add-on point to their unit, a reservation unit is its own, and a child line takes its parent's. This lookup moved out of `FolioStatement`, which now uses the same service. The caller resolves the unit before it builds the rows.
-- **Group order**: units in the order the caller gives, then "Other charges" for lines with no unit, last.
+- **Group order**: units in the order the caller gives, then "Other charges" for lines with no unit, last. With grouping off, rows sort by date, then room, then posting order.
+- **Room label**: each output row carries the room label of its unit (`DocumentLineRow::$room`), so the template looks nothing up.
 - **Merging**: rows of one unit with the same kind, description and unit amount on consecutive dates become one row, "Room, 3 nights × 250.00", with the date range. A price change or a gap in dates starts a new row. Only nightly rows merge (room nights, inclusions, their child lines, Per night and Per guest night add-ons); other charges print one row per line.
 - **Transfers**: a transfer is a reversal plus a copy, so step 1 drops the pair and the copy prints once.
 - The partial `pdf/partials/document-lines.blade.php` draws the groups, the tax summary, the total and the amount in words. The three documents and the sample include it.
+
+### Room column
+
+With **Room and guest on lines** off, the lines are one list by date. A Room column keeps each line tied to its room, as on a group bill.
+
+| Case                                    | Room column                                   |
+| --------------------------------------- | --------------------------------------------- |
+| More than one unit on the document      | Shown, room number only (no guest name)       |
+| One unit                                | Hidden: the room is already in the info strip |
+| A line with no unit (reservation level) | Empty cell                                    |
+| A unit with no room assigned yet        | The room type code, for example "DLX"         |
+
+Merging still works per unit, so two rooms at different prices give two merged rows:
+
+```
+Date        Room  Description                  Amount
+12–14 Oct   103   Room, 3 nights × 250.00      750.00
+12–14 Oct   104   Room, 3 nights × 230.00      690.00
+13 Oct      103   Island hopping trip          360.00
+```
+
+The browser preview and the sample PDF show the column the same way.
 
 ### Amount in words
 
