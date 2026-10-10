@@ -11,6 +11,7 @@ use App\Enums\ReservationStatus;
 use App\Enums\SellUnit;
 use App\Enums\SystemTransactionCode;
 use App\Enums\TransactionKind;
+use App\Enums\UnitStatus;
 use App\Models\ArInvoice;
 use App\Models\Folio;
 use App\Models\FolioLine;
@@ -75,18 +76,21 @@ class BookingSummary
         if ($showPrices) {
             $lines = $this->documentLines->group($this->rows($property, $reservation, $units, $places), $settings);
             [$payments, $paid, $billed] = $this->payments($property, $reservation);
-            $balance = (string) BigDecimal::of($lines->total)->minus($paid)->minus($billed)->toScale(2);
-            $words = $settings->show_amount_in_words ? $this->amountInWords->for($balance, $property->settings->currency) : null;
+
+            if ($lines->groups !== [] || $lines->taxes !== [] || $payments !== []) {
+                $balance = (string) BigDecimal::of($lines->total)->minus($paid)->minus($billed)->toScale(2);
+                $words = $settings->show_amount_in_words ? $this->amountInWords->for($balance, $property->settings->currency) : null;
+            }
         }
 
         return new BookingSummaryDocument(
             reference: $reservation->reference,
             asAt: now()->setTimezone($timeZone),
             currency: $property->settings->currency,
-            isCancelled: $reservation->status === ReservationStatus::Cancelled,
+            stamp: $this->stamp($reservation, $units),
             showPrices: $showPrices,
             strip: $this->strip($reservation, $from, $to, $timeZone),
-            rooms: $live->map(fn (ReservationUnit $unit): string => $this->roomLine($unit, $places[$unit->id]['place'], $from, $to))->values()->all(),
+            rooms: $units->map(fn (ReservationUnit $unit): string => $this->roomLine($unit, $places[$unit->id]['place'], $from, $to))->values()->all(),
             lines: $lines,
             payments: $payments,
             paid: $paid,
@@ -96,6 +100,20 @@ class BookingSummary
             cancellationPolicy: $settings->show_cancellation_policy ? $this->policyTexts($property) : [],
             paymentDetails: $showPrices && filled($settings->bank_details) ? $settings->bank_details : null,
         );
+    }
+
+    /**
+     * CANCELLED for a cancelled reservation, NO-SHOW when every unit is a no-show, else none.
+     *
+     * @param  Collection<int, ReservationUnit>  $units
+     */
+    private function stamp(Reservation $reservation, Collection $units): ?string
+    {
+        if ($reservation->status === ReservationStatus::Cancelled) {
+            return __('CANCELLED');
+        }
+
+        return $units->isNotEmpty() && $units->every(fn (ReservationUnit $unit): bool => $unit->status === UnitStatus::NoShow) ? __('NO-SHOW') : null;
     }
 
     /**
@@ -327,7 +345,7 @@ class BookingSummary
             ? $this->range(CarbonImmutable::parse($unit->arrival_date->toDateString()), CarbonImmutable::parse($unit->departure_date->toDateString()))
             : null;
 
-        return implode(' · ', array_filter([$place, $unit->roomType->name, $unit->ratePlan->name, implode(', ', $guests), $dates], filled(...)));
+        return implode(' · ', array_filter([$place, $unit->roomType->name, $unit->ratePlan->name, implode(', ', $guests), $dates, $unit->status->holdsInventory() ? null : $unit->status->label()], filled(...)));
     }
 
     /**

@@ -17,8 +17,8 @@
         <div>{{ $summary->reference }}</div>
         <div class="small muted">{{ __('As at :date', ['date' => $summary->asAt->format('j M Y, H:i')]) }}</div>
         <div class="small muted">{{ __('Not a tax invoice') }}</div>
-        @if ($summary->isCancelled)
-            <div class="heading" style="margin-top: 6pt; color: #b3261e;">{{ __('CANCELLED') }}</div>
+        @if ($summary->stamp !== null)
+            <div class="heading" style="margin-top: 6pt; color: #b3261e;">{{ $summary->stamp }}</div>
         @endif
     @endcomponent
 
@@ -46,7 +46,11 @@
 
     @if ($summary->showPrices)
         <div class="heading gap-16">{{ __('Charges') }}</div>
-        @include('pdf.partials.document-lines', ['groups' => $summary->lines, 'currency' => $summary->currency, 'settings' => $settings, 'words' => false])
+        @if ($summary->hasCharges())
+            @include('pdf.partials.document-lines', ['groups' => $summary->lines, 'currency' => $summary->currency, 'settings' => $settings, 'words' => false])
+        @else
+            <div class="small muted">{{ __('No charges') }}</div>
+        @endif
 
         @if ($summary->payments !== [])
             <div class="heading gap-16">{{ __('Payments') }}</div>
@@ -62,12 +66,14 @@
             </table>
         @endif
 
+        @if ($summary->balanceDue !== null)
         <table class="gap-8">
             <tr class="total">
                 <td class="num">{{ $credit ? __('Credit :currency', ['currency' => $summary->currency->value]) : __('Balance due :currency', ['currency' => $summary->currency->value]) }}</td>
                 <td class="num" style="width: 22%;">{{ $money(ltrim($summary->balanceDue, '-')) }}</td>
             </tr>
         </table>
+        @endif
         @if ($summary->balanceInWords !== null)
             <div class="small muted gap-8">{{ $summary->balanceInWords }}</div>
         @endif

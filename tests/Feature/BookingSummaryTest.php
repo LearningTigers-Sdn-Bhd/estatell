@@ -296,7 +296,7 @@ test('a reversed line and its reversal are left out and a cancelled unit shows i
     expect($texts)->not->toContain('Wrong charge')
         ->and($texts)->toContain('Cancellation fee')
         ->and($headings)->toContain($cancelled->roomType->name.' (Cancelled) · Lee Mei Ling')
-        ->and($summary->rooms)->toHaveCount(1)
+        ->and($summary->rooms)->toHaveCount(2)
         ->and($fee->exists)->toBeTrue();
 });
 
@@ -423,7 +423,7 @@ test('the summary of a cancelled reservation is stamped', function () {
     $setup = bsSetup();
     $setup['reservation']->forceFill(['status' => 'cancelled'])->save();
 
-    expect(bsSummary($setup)->isCancelled)->toBeTrue();
+    expect(bsSummary($setup)->stamp)->toBe('CANCELLED');
 });
 
 test('the PDF streams inline under the reservation reference', function () {
@@ -463,4 +463,45 @@ test('a user without reservations.view gets a 403 and another property gets a 40
     $this->actingAs($setup['user'])->get(route('reservations.booking-summary', ['property' => $setup['property']->code, 'reservation' => $other->id]))->assertNotFound();
 
     expect(PermissionEnum::ReservationsView->value)->toBe('reservations.view');
+});
+
+test('a reservation of no-shows is stamped, lists every unit and prints no total or balance without charges', function () {
+    $setup = bsSetup();
+    ReservationUnit::factory()->for($setup['reservation'])->noShow()->count(2)->create(['arrival_date' => '2026-10-10', 'departure_date' => '2026-10-12']);
+
+    $summary = bsSummary($setup);
+
+    expect($summary->stamp)->toBe('NO-SHOW')
+        ->and($summary->rooms)->toHaveCount(2)
+        ->and($summary->rooms)->each->toEndWith('No-show')
+        ->and($summary->hasCharges())->toBeFalse()
+        ->and($summary->balanceDue)->toBeNull();
+
+    $url = route('reservations.booking-summary', ['property' => $setup['property']->code, 'reservation' => $setup['reservation']->id]);
+    $this->actingAs($setup['user'])->get($url)->assertOk();
+});
+
+test('no-shows with a payment held print the balance as a credit', function () {
+    $setup = bsSetup();
+    $unit = ReservationUnit::factory()->for($setup['reservation'])->noShow()->create(['arrival_date' => '2026-10-10', 'departure_date' => '2026-10-12']);
+    bsPay(app(CreateFolio::class)($setup['reservation'], $unit), '50.00');
+
+    $summary = bsSummary($setup);
+
+    expect($summary->hasCharges())->toBeFalse()
+        ->and($summary->balanceDue)->toBe('-50.00')
+        ->and($summary->payments)->toHaveCount(1);
+});
+
+test('a mixed reservation has no stamp and the no-show unit shows its status', function () {
+    $setup = bsSetup();
+    bsUnit($setup['reservation'], 1);
+    ReservationUnit::factory()->for($setup['reservation'])->noShow()->create(['arrival_date' => '2026-10-10', 'departure_date' => '2026-10-12']);
+
+    $summary = bsSummary($setup);
+
+    expect($summary->stamp)->toBeNull()
+        ->and($summary->rooms)->toHaveCount(2)
+        ->and($summary->rooms[0])->not->toContain('No-show')
+        ->and($summary->rooms[1])->toEndWith('No-show');
 });
