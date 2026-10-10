@@ -117,17 +117,17 @@ Status tabs, filters, and two views of the same page of results: **Cards** (defa
 
 ### Money strip
 
-Three columns in the muted strip, each with a small muted label above the amount. Its Total is room nights only; the [booking summary](08-booking-summary.md#rules) Total adds tax, add-ons and every other charge. Amounts are left-aligned, `tabular-nums`, with no currency code (one code per amount does not fit). The List view shows the same three figures as columns.
+Three columns in the muted strip, each with a small muted label above the amount: **Room total**, **Paid** and **Balance**. Room total is room nights only, so the label says so, with an info tooltip "Room nights only, before tax and extras." The full total (every charge, with tax) is on the reservation page's [summary card](#summary-card) and in the [booking summary](08-booking-summary.md#rules). Amounts are left-aligned, `tabular-nums`, with no currency code (one code per amount does not fit). The List view shows the same three figures as columns.
 
 | Figure            | Source                                                                                                                                                        | Notes                                                                                                                                                          |
 | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Total             | Sum of `unit_nights.amount` of units that hold inventory                                                                                                      | Same as before. Sortable (`total`). No tax, no add-ons.                                                                                                        |
+| Room total        | Sum of `unit_nights.amount` of units that hold inventory                                                                                                      | Labelled "Room total" with the tooltip. Sortable (`total`). No tax, no add-ons.                                                                                |
 | Paid              | `-SUM(folio_lines.amount)` of Payment lines of the folios that are not Voided, except DIRECT_BILL lines (transaction code `system_key` `direct_bill_payment`) | Net of refunds. 0.00 while the reservation has no folio. Real money only                                                                                       |
 | Billed to company | `-SUM(folio_lines.amount)` of the DIRECT_BILL lines (Settle to City ledger)                                                                                   | A muted sub-line under Paid, "+ MYR 1,700.00 billed to company", only above 0. A reversed DIRECT_BILL line nets out. `ReservationListItemData.billedToCompany` |
-| Balance           | `SUM(folio_lines.amount)` of the folios that are not Voided, as the summary card's Balance                                                                    | Danger tone above 0. 0.00 with no folio. Sortable (`balance`).                                                                                                 |
+| Balance           | `SUM(folio_lines.amount)` of the folios that are not Voided: the posted balance, as on the folio tab                                                          | Danger tone above 0. Below 0, a **Deposit held** badge (`BadgeData`, info tone) under the amount. 0.00 with no folio. Sortable (`balance`).                    |
 
-- Total is kept instead of posted charges: nights post only at the night audit, so posted charges read 0.00 before check-in.
-- `Total - Paid` is not always the Balance. Balance counts only posted lines, with tax and add-ons. A negative Balance is a deposit held.
+- Room total is kept instead of the full total on the list: nights post only at the night audit, and the full total needs the Scheduled rows with their tax worked out live, which one list query cannot do or sort by. The label and tooltip say what it counts, so a correct payment never looks like an overpayment (the wastays "false credit" lesson).
+- `Room total - Paid` is not the Balance. Balance counts only posted lines, with tax and add-ons. A negative Balance is money held before the charges post, and shows the **Deposit held** badge.
 - Paid, Billed to company and Balance come from one more grouped sub-query joined into the list query, so the list runs no extra queries.
 - Before item 21, a settled company folio read as fully Paid while the company had paid nothing. DIRECT_BILL is found by its system code, not by "a Payment line with no `payments` row", because older and factory lines have no `payments` row.
 - No placeholder dash: a reservation with no folio shows 0.00, and the balance sort reads it as 0.
@@ -300,7 +300,18 @@ A title row (Activity), then a timeline grouped by day (`ActivityTab`): a muted 
 
 ### Summary card
 
-Booker (name, VIP, phone, email; the name is an underlined link to the guest that opens in a new tab), earliest arrival, latest departure, units, room nights, stay total (sum of `unit_nights.amount` of units that hold inventory), balance ("from folio" until the [folio page](../13-folio/05-folio-page.md) lands), billing mode (2 or more units, with the `BillingMode` label), source, company (the name, a link to the [company page](../15-city-ledger/01-companies.md#pages) for staff with `company.view`, or "None"), Created at (the date) and Created by (the user, or "System" when there is none) as two rows. Every row has an icon before its label, and only the top row (the Booker block) has `ps-3 pt-2`, like the title rows of the tab panels. Notes, when the booking has them, show in a rounded, bordered box of fixed height (`h-32`, the text scrolls inside) under the summary figures (added with the booking form).
+Booker (name, VIP, phone, email; the name is an underlined link to the guest that opens in a new tab), earliest arrival, latest departure, units, room nights, the money figures (below), billing mode (2 or more units, with the `BillingMode` label), source, company (the name, a link to the [company page](../15-city-ledger/01-companies.md#pages) for staff with `company.view`, or "None"), Created at (the date) and Created by (the user, or "System" when there is none) as two rows. Every row has an icon before its label, and only the top row (the Booker block) has `ps-3 pt-2`, like the title rows of the tab panels. Notes, when the booking has them, show in a rounded, bordered box of fixed height (`h-32`, the text scrolls inside) under the summary figures (added with the booking form).
+
+**Money figures.** The summary card shows the full figures of the reservation, from `BookingSummary` (the same service and numbers as the [booking summary](08-booking-summary.md) PDF):
+
+| Figure            | Value                                                                                     |
+| ----------------- | ----------------------------------------------------------------------------------------- |
+| Total             | Every charge, posted and Scheduled, with tax and discounts, on folios that are not Voided |
+| Paid              | Payments net of refunds                                                                   |
+| Billed to company | City ledger amounts, only above 0                                                         |
+| Still to pay      | Total − Paid − Billed to company. Below 0 it reads "Credit"                               |
+
+Room nights stay in the card as a count. The folio tab keeps each folio's own Balance (posted) and Projected total.
 
 ### Page build status
 

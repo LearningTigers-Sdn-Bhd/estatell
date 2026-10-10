@@ -104,7 +104,7 @@ One line per live unit (not Cancelled or NoShow): tonight's room or bed (the fir
 - **Empty values never print.** No "-", no "0.00" payment line, no country-only address, no empty cell.
 - **Prices for the guest.** A reservation with a `company_id` offers a second print, **without prices**: the same document with the Charges, Payments and Payment details sections left out. A negotiated company rate is never handed to the guest by mistake. This follows the [registration card](../16-registration/01-card-fields.md#booking-summary) rule.
 - **Cancelled reservation.** It still prints, stamped CANCELLED, with the fees and payments it holds.
-- **Totals differ from the money strip.** The [money strip](06-reservation-page.md#money-strip) Total is room nights only, without tax and add-ons. The booking summary Total includes everything that will be charged. This is the wastays lesson: a summary that missed extra charges showed a false credit.
+- **Totals differ from the money strip.** The [money strip](06-reservation-page.md#money-strip) shows **Room total** (room nights only, without tax and add-ons, labelled so). The booking summary Total includes everything that will be charged, and the reservation page [summary card](06-reservation-page.md#summary-card) shows the same Total from `BookingSummary`. This is the wastays lesson: a summary that missed extra charges showed a false credit.
 - **Currency** is the property currency, printed once in the Total and Balance due labels.
 
 ## Route and entry
