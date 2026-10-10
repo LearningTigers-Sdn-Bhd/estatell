@@ -56,7 +56,7 @@ Three buttons run a fix in place (**Assign**, **Mark no-show**, **Extend 1 night
 
 `RunAuditFix` runs a fix on the units the sheet lists for that reservation, or on one unit. It touches no unit that is not listed, so a unit that changed since the sheet loaded is skipped. The user is the actor, so the activity log names them. A unit an Action refuses does not stop the others: the answer says how many were done and why the rest were not. Fixes need `reservations.manage` as well as `night-audit.run`.
 
-An exception stops being listed when someone resolves it. **Retry** resolves a room charge exception (below). The other types have no way to be resolved yet, so they stay until the exceptions item adds one.
+An exception stops being listed when someone resolves it. **Retry** resolves a room charge exception, **Fix price** resolves a package night whose price cannot hold its inclusions, and **Dismiss** resolves any exception staff have dealt with another way (all below).
 
 ## Retry a room charge
 
@@ -77,7 +77,39 @@ A `RoomCharge` exception means the night of that audit's business date was never
 
 - One transaction with the unit locked, like the audit. Two clicks post once, because of the key.
 - A posted or already posted night logs one activity on the reservation (`reservation.room_charge_retried`), with the unit, the exception and the night.
-- A night whose stored price cannot hold its inclusions (`exceeds_night_amount`) is refused again. Its price was stored before the fix to [package nights](../08-rates/03-pricing-strategies.md#package-nights-and-inclusions), and Retry never changes a stored price.
+- A night whose stored price cannot hold its inclusions (`exceeds_night_amount`) is refused again: Retry never changes a stored price. Such a row shows **Fix price** instead of Retry (below).
+
+## Fix price of a package night
+
+A package night stored with an even split (before the fix to [package nights](../08-rates/03-pricing-strategies.md#package-nights-and-inclusions), or by an even `override_total` spread) can be smaller than its inclusions, so `PostRoomCharges` refuses it with `exceeds_night_amount` and Retry can never post it. Force close would leave the night uncharged.
+
+```
+┌ Fix package price · Room 202 · Dive Package ────────────┐
+│ Package price          MYR 1,760.00 (kept)              │
+│ Already charged        9 Oct  586.67                    │
+│ Spread again over the nights not charged yet:           │
+│   8 Oct   586.67  →  946.67                             │
+│  10 Oct   586.66  →  226.66                             │
+│ The 8 Oct night is charged after this.                  │
+│                                    [Cancel] [Fix price] │
+└─────────────────────────────────────────────────────────┘
+```
+
+`FixPackageNightPrice(User $actor, NightAuditException $exception): AuditFixResult` (`app/Actions/NightAudit/`):
+
+1. The unit's nights with no `night:{id}` line share the package price minus the room lines already posted for the unit's other nights. Charged nights are never touched.
+2. They are split with `PackagePricing::fitInclusions()`, so each night covers its own inclusions. A night with an `override_amount` gets the new amount as its override.
+3. It runs `RetryRoomCharge` for the exception's night in the same transaction, which posts it and resolves the exception.
+
+- The package total never changes. When the amount left cannot cover the inclusions of the nights left, it refuses (`package_below_inclusions`): "The package price left (MYR 1,173.33) cannot cover these nights' inclusions. Change the price with Change price."
+- The Dialog shows the old and new amount of each night from a preview (`POST night-audit/exceptions/{exception}/fix-price/preview`) before anything is saved.
+- Logged on the reservation: `reservation.package_nights_respread`, with the old and new amounts.
+- Needs `reservations.manage` and `night-audit.run`, like Retry. Only on a carried `RoomCharge` exception with the message `exceeds_night_amount` on a Package plan; other plans use [Change price](../12-reservations/09-change-night-price.md).
+
+## Dismiss an exception
+
+**Dismiss** on any carried exception asks for a required reason and resolves it without posting (`resolved_at`, `resolved_by`, and the reason in the activity log, `night_audit.exception_dismissed`). It is for an exception staff have handled another way, for example a night they charged by hand. Needs `night-audit.run`. Nothing is posted or reversed.
+
 - Retry needs `reservations.manage` as well as `night-audit.run`, like the fixes. Like a fix, a refusal shows on the sheet and the sheet reloads.
 - The button shows on a row with one carried room charge, and on each unit of a row with several. `ReadinessItem::retryExceptionId` carries the exception.
 - `ReadinessAdvice` says `exceeds_night_amount` in words: "The night's price is less than its inclusions, so it could not be split."

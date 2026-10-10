@@ -119,6 +119,62 @@ A unit's own folio can hold another room's charges: a Manual rule such as "Room 
 - Reinstate keeps a stay override: a night with an `override_amount` keeps it as its amount. It never touches a posted fee.
 - Logged on the reservation: `reservation.unit_cancelled`, `reservation.unit_no_show` and `reservation.unit_reinstated`.
 
+### Cancel reservation
+
+One Dialog cancels several units, so a group is not cancelled one Dialog at a time and never ends half cancelled.
+
+```
+┌ Cancel reservation · WA1-0142 · Acme Sdn Bhd ────────────────────────┐
+│ ⓘ Acme Sdn Bhd requested cancellation on 10 Oct.                     │
+│ ☑ Room 101 · Deluxe King · 14–17 Oct · Tan Wei Ming    Fee 280.00    │
+│ ☑ Room 102 · Deluxe King · 14–17 Oct · Lee Mei Ling    Fee 280.00    │
+│ ☐ Room 110 · Checked in: use Check out or Early check-out            │
+│ Cancellation policy: Free until 2 days before arrival.               │
+│ Fees            9 rooms         MYR 2,520.00 + tax  = 2,721.60       │
+│ ☐ Do not charge     Reason [ …required with Do not charge… ]         │
+│ ☐ Also remove add-ons                                                │
+│ Paid on this reservation        MYR 2,000.00                         │
+│ After the fees, Acme owes       MYR 721.60                           │
+│                             [Keep reservation] [Cancel 9 rooms]      │
+└──────────────────────────────────────────────────────────────────────┘
+```
+
+| Rule           | Detail                                                                                                                                                                                                                                         |
+| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Entry          | **⋯ More › Cancel reservation** on the reservation page, with `reservations.manage`, when at least one unit is Confirmed                                                                                                                       |
+| Rows           | Every unit. A Confirmed unit is ticked by default. Any other unit is dimmed with the reason; a CheckedIn unit says "Checked in: use Check out or Early check-out."                                                                             |
+| Untick         | Cancel only some rooms. The button reads "Cancel 3 rooms"                                                                                                                                                                                      |
+| Fee per row    | `PolicyChargeCalculator` on the business date, the same figure as Cancel unit; "No charge" inside the free window                                                                                                                              |
+| Do not charge  | One switch and one reason for every ticked unit, with `front-desk.waive-fees`. Waiving one room only uses Cancel unit                                                                                                                          |
+| Add-ons        | One **Also remove add-ons** switch, the same meaning as Cancel unit                                                                                                                                                                            |
+| Money line     | Paid on the reservation (net, every folio that is not Voided) against the fees with tax: "owes" or "to refund". Read only; a refund is made on the folio tab, and the night audit's **Money held on a closed booking** warning still covers it |
+| Portal request | When `cancellation_requested_at` is set, a banner names the company and the date. Cancelling resolves the request, and the log says so                                                                                                         |
+| Preview        | `UnitActionPreview::cancelAll()` gives the rows, fees and money line, from `POST …/{reservation}/cancel/preview`                                                                                                                               |
+
+`CancelUnits(User $actor, Reservation $reservation, list<ReservationUnit> $units, bool $doNotCharge, ?string $reason, bool $removeAddOns, array $expectedFees): CancelUnitsResult` (`app/Actions/FrontDesk/`):
+
+- Calls `CancelUnit` for each ticked unit **in one transaction, all or nothing**. A refusal cancels nothing and names the room ("Room 106: the folio is closed."). A failed check-in leaves the others in, but a half-cancelled group leaves rooms held and fees half posted, so cancel does not follow Check in all here.
+- `$expectedFees` holds one fee per unit from the preview; a changed fee refuses (`fee_changed`) with the room.
+- Each unit keeps its own `reservation.unit_cancelled` entry, and one `reservation.cancelled` entry holds the count, the total fee and the reason.
+- `SyncReservationStatus` runs once at the end.
+- Route `POST …/{reservation}/cancel` (`reservations.cancel`), `reservations.manage`; Do not charge is passed only with `front-desk.waive-fees`.
+- No **No-show all**: the night audit's missed arrivals step marks no-shows.
+
+### Cancel, void and undo
+
+|              | Cancel                                   | Void (later)                                                                                               | Undo check-in (later)                          | Undo check-out (later)                                                       |
+| ------------ | ---------------------------------------- | ---------------------------------------------------------------------------------------------------------- | ---------------------------------------------- | ---------------------------------------------------------------------------- |
+| For          | A real booking called off before arrival | A booking that should never have existed: duplicate, test, wrong property                                  | Checked in by mistake                          | Checked out by mistake, or the guest stays on                                |
+| Allowed when | The unit is Confirmed                    | Nothing posted is left (all reversed) and no money is left (refunded)                                      | Same business date, before any night is posted | Checked out on the current business date, and the room is still free tonight |
+| Fee          | Policy may charge                        | Never                                                                                                      | None                                           | None                                                                         |
+| Reports      | Counts as a cancellation                 | Left out                                                                                                   | –                                              | –                                                                            |
+| Result       | Unit Cancelled; Reinstate undoes it      | `voided_at` and a reason on the reservation; its units Cancelled with no fee; hidden from the default list | Unit back to Confirmed, room released          | Unit back to CheckedIn, its folios reopened                                  |
+
+- A CheckedIn unit cannot be cancelled: the guest has used the room. Early check-out or check-out is the action.
+- **Void** uses a `voided_at` mark on a Cancelled reservation instead of a new status, so code that reads "closed" statuses does not need a second case (the wastays bug where a voided booking read as Paid).
+- **Undo check-out** keeps every payment and refund made at check-out (ledger lines), reopens the unit folios with their invoice number through `ReopenFolio`, and leaves the room Dirty. It is refused after the night audit (`undo_too_late`), when another unit has the room tonight (`room_taken`), when a unit folio was settled to the city ledger since, and without a reason. After an **early** check-out it does not restore the removed nights or reverse the fee; the Dialog says to extend the stay and reverse the fee if it no longer applies. A guest staying on is Undo check-out, then Extend stay.
+- **Undo check-in** needs `front-desk.check-in` and undo check-out `front-desk.check-out`; both need a reason and log `reservation.unit_check_in_undone` or `reservation.unit_check_out_undone`.
+
 ### Change dates, extend and late check-out
 
 | Action                  | Check, in order                                                                          | Refusal                                              |
@@ -184,6 +240,7 @@ Each form uses `FormOverlay` and the container from [Form containers](../design-
 | ---------------------------------------------- | --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Check in                                       | Dialog    | Shows the room, the registration card status, a card override (permission), Nationality when missing, and [Collect now](#collect-now)                                                           |
 | Check out                                      | Dialog    | Shows the folio balance (split by room when it holds another room's charges) and the deposit credit. Collect the balance and use or refund the deposit. Moving charges is the Move charges page |
+| Cancel reservation                             | Dialog    | A row per unit with its fee, one Do not charge and reason, Also remove add-ons, and the money line. See [Cancel reservation](#cancel-reservation)                                               |
 | Cancel unit, Mark no-show                      | Dialog    | Shows the policy fee ("No charge" inside the free window), Do not charge, a reason, Also remove add-ons                                                                                         |
 | Reinstate                                      | Dialog    | A required reason. Re-prices the unit and shows the new total. The rooms are cleared, so staff assign them again                                                                                |
 | Check out, early mode                          | Dialog    | The check-out Dialog plus an **Early departure** block: the old departure, the nights removed, the policy fee, Do not charge and a reason, and the balance with the fee                         |

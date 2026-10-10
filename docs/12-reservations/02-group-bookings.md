@@ -97,7 +97,7 @@ Then it calls `SyncReservationStatus`.
 
 The `rates.override-restrictions` check runs with the permission team set to the reservation's property, then restores the previous team (like `AssignStaffRole`).
 
-**Price override**: `override_total` is the stay total for this one unit. It is spread evenly over the nights in `override_amount`, rounded down to the cent, and the last night takes the remainder (100.00 over 3 nights is 33.33, 33.33, 33.34). A bed line with an override gives every bed the same total.
+**Price override**: `override_total` is the stay total for this one unit. It is spread evenly over the nights in `override_amount`, rounded down to the cent, and the last night takes the remainder (100.00 over 3 nights is 33.33, 33.33, 33.34). On a **package** plan it is spread with the package rule instead, so each night covers its inclusions ([Package nights](../08-rates/03-pricing-strategies.md#package-nights-and-inclusions)); an override below the inclusions is refused (`package_below_inclusions`). A bed line with an override gives every bed the same total.
 
 **Catalogue discount**: `AddUnit` only stores `discount_id`. Its amount is not on `unit_nights`. The [folio](../13-folio/04-folio-discounts.md) calculates and posts it.
 

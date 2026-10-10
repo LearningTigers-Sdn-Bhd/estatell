@@ -60,6 +60,8 @@ It runs after the derived percent, with the inclusions of the plan being sold, s
 
 Example, Dive Package, 2 adults, RM880 per adult, 3 nights: meals RM100 per guest a night, diving RM180 × 2 per guest once. Inclusions: RM920 on night 1, RM200 on nights 2 and 3. Room part RM440 = 146.67 + 146.67 + 146.66. Nights: RM1,066.67 + RM346.67 + RM346.66 = RM1,760. The even split (586.67 a night) could not post night 1.
 
+A booking-time `override_total` on a package is spread with the same rule (each night covers its inclusions), not evenly; an override below the inclusions is refused (`package_below_inclusions`). See [Group bookings](../12-reservations/02-group-bookings.md). A night stored earlier with an even split is fixed with [Fix price](../20-night-audit/02-readiness-panel.md#fix-price-of-a-package-night).
+
 Only packages are re-split. A nightly plan keeps the price set for each date, so `NightlyPricing::fitInclusions()` only checks: each night, before the long-stay discount, must be at least the inclusions it posts (`InclusionAllocator::total()`). Otherwise the quote is refused as `rate_below_inclusions` with that night's date, so staff see it at booking, not at the night audit.
 
 Example: RM200 a night with a RM300 transfer (PerStay) is refused on the arrival date. RM200 a night with breakfast RM25 × 2 guests is fine.
