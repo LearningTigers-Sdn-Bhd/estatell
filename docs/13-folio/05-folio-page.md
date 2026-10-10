@@ -136,19 +136,19 @@ A left rail lists the folios of the reservation, the same way the Units tab list
 
 Row and folio actions call the existing Actions. A refusal writes and logs nothing. A form (post charge, transfer, apply discount) shows the refusal in its Dialog, on the matching field or as one message for the form, like the add-on dialog. An AlertDialog (reverse, remove discount) has no field, so it shows an error toast.
 
-| Action          | Permission                                                                               | Shown on                                                                                              |
-| --------------- | ---------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| Post charge     | `folio.post-charge`                                                                      | An Open folio with at least one unit that can receive a posting                                       |
-| Reverse         | `folio.reverse`                                                                          | A Posted charge (not a child, a reversal or an already reversed one)                                  |
-| Transfer        | `folio.transfer`                                                                         | A Posted charge on an Open folio, when another Open folio exists                                      |
-| Apply discount  | `folio.discount`, `folio.discount-open`                                                  | An Open folio with eligible charges                                                                   |
-| Remove discount | `folio.discount`                                                                         | A discount child row that is not reversed                                                             |
-| Close, Reopen   | `folio.close`, `folio.reopen` (or same-day for a Unit folio with `front-desk.check-out`) | The folio header                                                                                      |
-| Record payment  | `payment.record`                                                                         | The folio header of an Open folio, and a "not started" entry, when the folio has at least one purpose |
-| Refund          | `payment.refund`                                                                         | A Completed payment row with an amount left to refund                                                 |
-| Print voucher   | `folio.print-voucher`                                                                    | The folio header, and the row menu of a printable posted line                                         |
-| Third-party     | `folio.transfer`                                                                         | The action row, for the reservation                                                                   |
-| Routing rules   | `folio.transfer`                                                                         | The action row, for the reservation                                                                   |
+| Action              | Permission                                                                               | Shown on                                                                                                                                                                   |
+| ------------------- | ---------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Post charge         | `folio.post-charge`                                                                      | An Open folio with at least one unit that can receive a posting                                                                                                            |
+| Reverse             | `folio.reverse`                                                                          | A Posted charge (not a child, a reversal or an already reversed one)                                                                                                       |
+| Move…, Move charges | `folio.transfer`                                                                         | **Move…** on a Posted charge on an Open folio, **Move charges** in the folio header, when another Open folio exists. Both open the [Move charges](07-move-charges.md) page |
+| Apply discount      | `folio.discount`, `folio.discount-open`                                                  | An Open folio with eligible charges                                                                                                                                        |
+| Remove discount     | `folio.discount`                                                                         | A discount child row that is not reversed                                                                                                                                  |
+| Close, Reopen       | `folio.close`, `folio.reopen` (or same-day for a Unit folio with `front-desk.check-out`) | The folio header                                                                                                                                                           |
+| Record payment      | `payment.record`                                                                         | The folio header of an Open folio, and a "not started" entry, when the folio has at least one purpose                                                                      |
+| Refund              | `payment.refund`                                                                         | A Completed payment row with an amount left to refund                                                                                                                      |
+| Print voucher       | `folio.print-voucher`                                                                    | The folio header, and the row menu of a printable posted line                                                                                                              |
+| Third-party         | `folio.transfer`                                                                         | The action row, for the reservation                                                                                                                                        |
+| Routing rules       | `folio.transfer`                                                                         | The action row, for the reservation                                                                                                                                        |
 
 A Scheduled row has no actions except Print voucher. A "not started" entry has only Record payment and Print voucher.
 
@@ -160,7 +160,6 @@ One `ReservationFolioController` with named methods. The routes sit in the reser
 | ------------------------------------------------------------ | --------------------------------------- | ---------------- | --------------------- |
 | `POST …/{reservation}/folios/{folio}/charges`                | `reservations.folios.charges.store`     | `PostCharge`     | `folio.post-charge`   |
 | `POST …/folios/{folio}/lines/{line}/reversal`                | `reservations.folios.lines.reverse`     | `ReverseLine`    | `folio.reverse`       |
-| `POST …/folios/{folio}/transfers`                            | `reservations.folios.transfers.store`   | `TransferLines`  | `folio.transfer`      |
 | `GET …/folios/{folio}/voucher?lines[]=…&scheduled[]=…` (PDF) | `reservations.folios.voucher`           | `FolioVoucher`   | `folio.print-voucher` |
 | `GET …/units/{unit}/voucher?scheduled[]=…` (PDF)             | `reservations.units.voucher`            | `FolioVoucher`   | `folio.print-voucher` |
 | `POST …/folios/{folio}/discounts/quote` (JSON)               | `reservations.folios.discounts.quote`   | `DiscountQuote`  | `folio.discount`      |
@@ -185,9 +184,9 @@ Record payment and Refund have their own `ReservationPaymentController` and rout
 
 An AlertDialog names the target. No reason field: none of the Actions takes one.
 
-### Transfer
+### Move
 
-A single-row "Transfer…" in the row menu with a Select of the other Open folios of the reservation. The children travel with their charge. Selecting several lines with checkboxes can follow when front desk needs it.
+Moving charges has its own full page: [Move charges](07-move-charges.md). **Move…** in a row menu opens it with that line ticked and another Open folio as the target (see [Move charges](07-move-charges.md#shape)); **Move charges** in the folio header opens it with this folio as the target. It replaces the single-row Transfer Dialog and its `reservations.folios.transfers.store` route.
 
 ### Apply discount
 

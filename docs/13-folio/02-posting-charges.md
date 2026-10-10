@@ -75,15 +75,16 @@ All Actions return a result and write nothing on a refusal. Each one is one tran
 
 `(User $actor, list<FolioLine> $lines, Folio $target): PostingResult`. It reverses each line on its folio and posts a copy on the target, with children. All lines of one transfer share one `transfer_group_id`.
 
-| Check                                                         | Refusal                 |
-| ------------------------------------------------------------- | ----------------------- |
-| A business date exists                                        | `no_business_date`      |
-| All lines belong to one folio, and it differs from the target | `transfer_invalid`      |
-| Source and target belong to the same reservation              | `different_reservation` |
-| Both folios are Open                                          | `folio_not_open`        |
-| No line is a child, a reversal or already reversed            | `line_not_transferable` |
-| No payment owns a line                                        | `payment_line`          |
+| Check                                              | Refusal                 |
+| -------------------------------------------------- | ----------------------- |
+| A business date exists                             | `no_business_date`      |
+| No line is on the target folio                     | `transfer_invalid`      |
+| Source and target belong to the same reservation   | `different_reservation` |
+| Both folios are Open                               | `folio_not_open`        |
+| No line is a child, a reversal or already reversed | `line_not_transferable` |
+| No payment owns a line                             | `payment_line`          |
 
+- The lines may come from **several source folios** of the reservation (for [Move charges](07-move-charges.md)). Every folio is locked in id order before the checks.
 - A transfer moves whole charges. Their children move with them.
 - The copy keeps `description`, `kind`, `quantity` and `unit_amount`. Its key is `transfer:{group}:{line_id}`.
 - Source and target balances change by the same amount in opposite directions.

@@ -39,6 +39,8 @@ For 4–5 fields: use a Dialog when opened from a detail page, and a Sheet when 
 | Sheet          | `md` 480 px (default), `lg` 640 px (two sections or a table inside)                                                     |
 | Full page form | Content column max 720 px, one column. Two columns only for short paired fields (City + Postcode, Min stay + Max stay). |
 
+One exception: the [Move charges](../13-folio/07-move-charges.md) page uses the full width in two columns, **From** and **To**, because it is a worklist that shows a move before it happens. The columns stack on a narrow screen. No other full page uses two columns.
+
 ## Behavior
 
 - Submit with Inertia `<Form>` or `useForm` and a Form Request.

@@ -76,7 +76,7 @@ FM is the Master folio and FA a third-party folio for the travel agent.
 
 ## Staff screens
 
-Staff create third-party folios and Manual rules on the [folio tab](05-folio-page.md#routing-rules-and-third-party-folios). The rules belong to the reservation, not to one folio, so both actions sit above the folio rail.
+Staff create third-party folios and Manual rules on the [folio tab](05-folio-page.md#routing-rules-and-third-party-folios). The rules belong to the reservation, not to one folio, so both actions sit above the folio rail. The [Move charges](07-move-charges.md#scheduled-charges) page also creates Manual rules, per unit (unit + Room, or unit + Room and unit + all charges), and replaces a Manual rule with the same selectors. `FolioRouter` takes an optional list of proposed rules for its preview (read only).
 
 | Decision                 | Rule                                                                                                                                                                                                                                                         |
 | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
