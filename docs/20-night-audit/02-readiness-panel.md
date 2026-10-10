@@ -40,11 +40,11 @@ Each row gives, in plain words: who and which reservation, what is wrong ("3 uni
 
 Three buttons run a fix in place (**Assign**, **Mark no-show**, **Extend 1 night**). Three open a Dialog of the reservation page over the sheet:
 
-| Button           | Dialog             | Notes                                                                                                               |
-| ---------------- | ------------------ | ------------------------------------------------------------------------------------------------------------------- |
-| **Check in all** | `CheckInAllDialog` | A group row: one row for each unit, as on the reservation page.                                                     |
-| **Check in**     | `CheckInDialog`    | One unit, with Collect now. A unit with no room offers **Assign a room**, which opens the reservation page.         |
-| **Check out**    | `CheckOutDialog`   | One unit, with the folio balance and the deposit refund. A group opens its units, because each has its own balance. |
+| Button           | Dialog             | Notes                                                                                                                                                                                                           |
+| ---------------- | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Check in all** | `CheckInAllDialog` | A group row: one row for each unit, as on the reservation page.                                                                                                                                                 |
+| **Check in**     | `CheckInDialog`    | One unit, with Collect now. A unit with no room offers **Assign a room**, which opens the reservation page.                                                                                                     |
+| **Check out**    | `CheckOutDialog`   | One unit, with the folio balance and the deposit refund. A group row links to the [group check-out](../18-front-desk/05-group-check-out.md) page instead, where every room is settled and checked out together. |
 
 `AuditDialogHost` loads what a Dialog needs from `GET night-audit/reservations/{reservation}` (`NightAuditReservationData`: the reservation, its units with the actions the user may use, the payment options) only when the button is pressed, and the sheet reloads when the Dialog closes. The Dialogs are the reservation page's own, so their rules, previews and refusals are the same. This is the one place a Dialog opens over another overlay (see [Form containers](../design-system/05-form-containers.md#hard-rules)). A user without `front-desk.check-in` or `front-desk.check-out` gets a link to the reservation page on a group row, and no button on a unit row. **Open folio** and **Open** are links, because the folio tab is a full page.
 

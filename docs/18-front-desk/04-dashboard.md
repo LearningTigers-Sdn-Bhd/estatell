@@ -81,7 +81,7 @@ One list of what is left to act on, with a button on each row.
 | 3     | **Departure** | CheckedIn, departing on the business date and not yet due, by `departure_time`                                           | **Check out**  |
 | 4     | **Folio**     | The night audit's folio warnings: `MasterNotBilled`, `FolioOpenAfterCheckOut`, `MoneyHeldOnClosedBooking`                | **Open folio** |
 
-- A reservation with several units in the same state is **one row** ("2 rooms"). Its button opens **Check in all**, or the reservation page for check-out, because each unit has its own balance.
+- A reservation with several units in the same state is **one row** ("2 rooms"). Its button opens **Check in all**, or links to the [group check-out](05-group-check-out.md) page for check-out.
 - The rows reuse the night audit readiness rules (`AuditReadiness`), so the dashboard and the audit never disagree. A day use shows its hours ("Day use · 10:00–14:00").
 - **Check in** and **Check out** open the reservation page's own Dialogs over the dashboard through `AuditDialogHost`, which loads what a Dialog needs only when the button is pressed. The dashboard is a page, so this is one overlay level. After the Dialog closes the list and the tiles reload (`only`).
 - A user without `front-desk.check-in` or `front-desk.check-out` gets **Open** (the reservation page) instead. **Open folio** is a link and needs `reservations.view`.
