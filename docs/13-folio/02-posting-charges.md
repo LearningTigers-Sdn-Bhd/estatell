@@ -126,13 +126,14 @@ Built with the night audit postings item.
 5. `FolioRouter` chooses the target folio for each charge code. `CreateFolio` runs when the unit has no folio yet.
 6. `PostFolioCharge` writes each charge with its tax children.
 
-| Line             | Key                              | Parent     |
-| ---------------- | -------------------------------- | ---------- |
-| Room             | `night:{unit_night_id}`          |            |
-| Stay discount    | `night:{id}:stay-discount`       | Room       |
-| Booking discount | `night:{id}:discount`            | Room       |
-| Tax on a charge  | `{charge key}:tax:{tax_id}`      | Its charge |
-| Inclusion        | `night:{id}:incl:{inclusion_id}` |            |
+| Line             | Key                                              | Parent     |
+| ---------------- | ------------------------------------------------ | ---------- |
+| Room             | `night:{unit_night_id}`                          |            |
+| Stay discount    | `night:{id}:stay-discount`                       | Room       |
+| Booking discount | `night:{id}:discount`                            | Room       |
+| Tax on a charge  | `{charge key}:tax:{tax_id}`                      | Its charge |
+| Inclusion        | `night:{id}:incl:{inclusion_id}`                 |            |
+| Corrected night  | `night:{id}:fix:{n}` and the keys above after it | as above   |
 
 Example, RM300 with Breakfast RM50 for 2 guests and a 10% booking discount: Room 250.00, Booking discount -25.00, Breakfast 50.00, each with its tax lines.
 
@@ -151,7 +152,7 @@ The room line has `source_type` and `source_id` set to the unit night. Discount 
 | The target folio is Open                                                                                                                      | `folio_not_open`, or `folio_settled_to_city_ledger` ([Routing](03-routing.md#rules)) |
 
 - `$date` is the night. `posting_date` is always the current business date. The night audit passes the business date. Only `RetryRoomCharge` passes an earlier night, and then the room line description adds "night of {date}".
-- A night whose `night:{id}` line exists returns that line and writes nothing. It is not a refusal, so a rerun is quiet.
+- A night whose `night:{id}` line exists returns that line and writes nothing. It is not a refusal, so a rerun is quiet. A night corrected with [Change price](../12-reservations/09-change-night-price.md) keeps its reversed `night:{id}` line, so the audit never charges it again; the correction posts under `night:{id}:fix:{n}` through the same posting step.
 - A refusal writes nothing. The audit turns it into an exception row for the unit.
 - It is one transaction, with the unit row locked. It logs no activity: the lines are the record, and the audit run keeps its own step rows.
 - The nationality for foreign-only taxes is `UnitNationality`, like `PostCharge`.

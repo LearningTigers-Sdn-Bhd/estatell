@@ -85,7 +85,7 @@ It has no `canTransitionTo()` because nothing sets it by hand.
 - A unit holds inventory on its `unit_nights` while it is Confirmed, CheckedIn or CheckedOut. Cancelled and NoShow units release their nights ([availability](../10-availability/01-availability-service.md)). When a unit is cancelled or marked no-show, its Action clears `room_id` and `bed_id`, so the room can be sold again.
 - `reservation_unit_children.age` is from 0 to 17, and ages are always required when a unit has children. `AddUnit` checks them. The quote prices an age past the property's last age group as an adult.
 - `unit_nights` stores the quoted amounts at booking. Rate changes do not change existing bookings. `discount_amount` is the rate plan's stay discount from the quote. A catalogue discount (`reservation_units.discount_id`) is not stored on the nights; the folio posts it.
-- `amount` is `override_amount` when it is set, otherwise `base_amount + extra_amount + supplement_amount - discount_amount`. A CHECK enforces this. The quoted split stays as it was, so reports can show the quote and the override side by side.
+- `amount` is `override_amount` when it is set, otherwise `base_amount + extra_amount + supplement_amount - discount_amount`. A CHECK enforces this. The quoted split stays as it was, so reports can show the quote and the override side by side. `override_amount` is set at booking, or later by [Change a night's price](09-change-night-price.md).
 - `reservation_unit_children` holds one row per child, so the count always matches `children`. Extending a stay, changing plan or reinstating re-prices from these ages.
 - Every action works on one unit. Group actions loop over units.
 - `reference` comes from `document_sequences`.
