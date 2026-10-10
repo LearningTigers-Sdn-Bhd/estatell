@@ -77,6 +77,7 @@ The critical path: the front desk actions on the reservation, then the night aud
     - [ ] `feat(city-ledger): apply document switches to the AR invoice` — the folio lines under room and staying guest, collapsed nights, tax summary, amount in words and payment details; the info strip without empty cells. Needs: the folio invoice.
 
 23. [ ] `fix(city-ledger): explain how to credit a paid invoice` — Issue credit note shows on every invoice that is not Void; `ArInvoiceData.creditBlockedBy` (active allocations); the Dialog's three cases (balance above 0, balance 0 with a Reverse button per payment, amount over the balance); `credit_exceeds_balance` names the balance and the payments. `IssueCreditNote` does not change. Tests for each case. Independent of item 22, so it can go first. Docs: [AR invoices](15-city-ledger/02-ar-invoices.md#pages).
+24. [ ] `feat(reservations): add a guest after check-out` — `AttachGuest` accepts CheckedOut units (Cancelled and NoShow still `unit_not_open`), the Attach guest Dialog lists them with "Checked out" and the note, and the tax warning toast when a new primary on a CheckedOut unit differs from the booker in being foreign while a foreign-only tax is enabled (`AttachGuestResult` carries it). No folio, price or pax change. Tests: a CheckedOut unit takes a guest and posts nothing; Cancelled and NoShow are refused; the warning shows only for a new primary with a different foreign status. Independent of items 22 and 23. Docs: [Reservation page](12-reservations/06-reservation-page.md#adding-a-guest-after-check-out).
 
 ## Next
 

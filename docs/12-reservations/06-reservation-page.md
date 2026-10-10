@@ -255,11 +255,28 @@ Attach guest opens a Dialog (2 fields, see [form containers](../design-system/05
 | Check, in order                                                   | Refusal            |
 | ----------------------------------------------------------------- | ------------------ |
 | The guest belongs to the property and is not merged or anonymized | `guest_not_found`  |
-| The unit is Confirmed or CheckedIn                                | `unit_not_open`    |
+| The unit is Confirmed, CheckedIn or CheckedOut                    | `unit_not_open`    |
 | The guest is not already on this unit                             | `already_attached` |
 | A Bed room type unit has no guest yet                             | `bed_unit_full`    |
 
 Room units have no guest limit. Detaching a guest and changing the primary guest come later.
+
+### Adding a guest after check-out
+
+The desk often learns who else stayed only at or after departure. A CheckedOut unit takes guests, so the police report, the non-national guests report, meal counts and the guest's stay history are complete. Cancelled and NoShow units stay refused (`unit_not_open`): nobody stayed.
+
+| Decision          | Rule                                                                                                                                                                                                                                                                         |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Charges           | Adding a guest never changes the folio, prices, taxes or the pax count, also on a CheckedOut unit. Nothing is posted or reversed.                                                                                                                                            |
+| Primary           | The usual rule: the unit's first guest becomes primary. A CheckedOut unit has no nights left to post, so nothing is charged on the new nationality.                                                                                                                          |
+| Tax warning       | When the guest becomes primary on a CheckedOut unit, the property has an enabled foreign-only tax, and the guest and the booker differ in being foreign (nationality other than `MY`), the save succeeds with a warning toast (below). Either nationality empty: no warning. |
+| Time limit        | None. The activity log shows who added the guest and when.                                                                                                                                                                                                                   |
+| Registration card | None for a guest added after check-out. Signing a card is a check-in step.                                                                                                                                                                                                   |
+
+- **Why only a new primary warns.** Foreign-only taxes follow the unit's primary guest, or the booker when there is none (`UnitNationality`). A guest who is not primary never changed a tax, so adding one never warns.
+- **Warning toast:** "Guest added. Tourism tax was charged on the booker's nationality (Malaysia). If it is different for this guest, correct it on the folio." It names the foreign-only taxes of the property and the booker's country. `AttachGuestResult` carries the notice; the controller flashes it as a warning toast, like `RoutingChangeNotice`.
+- **Dialog.** "Stays in" lists CheckedOut units too, with "Checked out" after the room. With one picked, a muted note under the field says "This stay has ended. Adding a guest changes no charges."
+- **Reports change for past dates.** The police and non-national guests reports read the unit's guests, so a reprint after the guest is added lists them. A copy printed earlier does not match. This is the correction staff want.
 
 Built: `AttachGuest`, `AttachGuestResult` and the form, a Dialog on `FormOverlay` (2 fields). Its unit select lists only open units, and a blacklisted guest shows a warning. The header button and the **Attach guest** button on a unit without a guest both open it.
 
