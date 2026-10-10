@@ -25,9 +25,18 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
  * @property bool $show_registration_number
  * @property bool $show_tin
  * @property string|null $footer_text
+ * @property bool $show_unit_on_lines
+ * @property bool $nightly_breakdown
+ * @property bool $tax_breakdown
+ * @property bool $show_amount_in_words
+ * @property bool $show_cancellation_policy
+ * @property bool $show_signature_lines
+ * @property string|null $bank_details
  */
 #[Fillable([
     'font', 'font_size', 'show_logo', 'show_address', 'show_contact', 'show_registration_number', 'show_tin', 'footer_text',
+    'show_unit_on_lines', 'nightly_breakdown', 'tax_breakdown', 'show_amount_in_words', 'show_cancellation_policy',
+    'show_signature_lines', 'bank_details',
 ])]
 class PrintSetting extends Model
 {
@@ -47,6 +56,12 @@ class PrintSetting extends Model
             'show_contact' => 'boolean',
             'show_registration_number' => 'boolean',
             'show_tin' => 'boolean',
+            'show_unit_on_lines' => 'boolean',
+            'nightly_breakdown' => 'boolean',
+            'tax_breakdown' => 'boolean',
+            'show_amount_in_words' => 'boolean',
+            'show_cancellation_policy' => 'boolean',
+            'show_signature_lines' => 'boolean',
         ];
     }
 

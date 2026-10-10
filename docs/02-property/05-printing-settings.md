@@ -162,7 +162,7 @@ rows ─▶ DocumentLines::group(rows, PrintSetting) ─▶ DocumentLineGroups
 ### Amount in words
 
 - `AmountInWords` (`app/Services/Property/`) uses PHP `intl`: `NumberFormatter` with the `en_GB` locale and the `%spellout-numbering-verbose` rule set, which gives "one thousand five hundred and four". No new package.
-- It splits the amount into the major and minor parts and spells each one: "{major name} {words} and {words} {minor name} only". With no cents the "and … sen" part is left out.
+- It splits the amount into the major and minor parts and spells each one: "{major name} {words} and {words} {minor name} only". With no cents the "and … sen" part is left out. With cents only (0.05) it prints "Five sen only", without the currency name.
 - The currency words come from `Currency::wordsName()` ("Ringgit Malaysia") and `Currency::minorUnitWords()` ("sen").
 
 ## UI

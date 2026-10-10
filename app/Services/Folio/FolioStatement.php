@@ -20,9 +20,6 @@ use App\Models\Folio;
 use App\Models\FolioLine;
 use App\Models\Property;
 use App\Models\Reservation;
-use App\Models\ReservationUnit;
-use App\Models\UnitAddOn;
-use App\Models\UnitNight;
 use App\Models\User;
 use App\Services\CityLedger\CreditCheck;
 use App\Services\Payments\PaymentPurposeChoices;
@@ -42,6 +39,7 @@ class FolioStatement
         private PaymentPurposeChoices $paymentPurposeChoices,
         private FolioReopenRule $folioReopenRule,
         private CreditCheck $creditCheck,
+        private LineSourceUnits $lineSourceUnits,
     ) {}
 
     /**
@@ -279,7 +277,7 @@ class FolioStatement
         $reversed = $lines->pluck('reversal_of_id')->filter()->flip();
         $children = $lines->whereNotNull('parent_line_id')->groupBy('parent_line_id');
         $rows = collect();
-        $sourceUnits = $this->sourceUnits($lines);
+        $sourceUnits = $this->lineSourceUnits->for($lines);
 
         $walk = function (FolioLine $line, int $level, ?int $parentUnitId) use (&$walk, $sourceUnits, $labels, $children, $reversed, $rows, $allowed, $canRemoveDiscount, $payments, $canRefund, $canDownloadReceipt, $canPrintVoucher): void {
             $tags = [];
@@ -335,38 +333,5 @@ class FolioStatement
             && ! $discounted->has($line->id));
 
         return [$rows, $discountable];
-    }
-
-    /**
-     * The unit of each source the lines name, as `{source_type}:{source_id}` to unit id: three lookups at most, whatever
-     * the number of lines. A unit night and an add-on point to their unit, and a reservation unit is its own.
-     *
-     * @param  Collection<int, FolioLine>  $lines
-     * @return array<string, int>
-     */
-    private function sourceUnits(Collection $lines): array
-    {
-        $result = [];
-        $bySource = $lines->whereNotNull('source_id')->groupBy('source_type');
-        $unit = (new ReservationUnit)->getMorphClass();
-
-        foreach ($bySource->get($unit, []) as $line) {
-            $result[$unit.':'.$line->source_id] = $line->source_id;
-        }
-
-        foreach ([UnitNight::class, UnitAddOn::class] as $model) {
-            $morph = (new $model)->getMorphClass();
-            $ids = $bySource->get($morph, collect())->pluck('source_id')->unique()->all();
-
-            if ($ids === []) {
-                continue;
-            }
-
-            foreach ($model::query()->whereIn('id', $ids)->pluck('reservation_unit_id', 'id') as $id => $unitId) {
-                $result[$morph.':'.$id] = $unitId;
-            }
-        }
-
-        return $result;
     }
 }

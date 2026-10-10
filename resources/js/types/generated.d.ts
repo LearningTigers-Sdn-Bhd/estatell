@@ -723,6 +723,13 @@ showAddress: boolean,
 showContact: boolean,
 showRegistrationNumber: boolean,
 showTin: boolean,
+showUnitOnLines: boolean,
+nightlyBreakdown: boolean,
+taxBreakdown: boolean,
+showAmountInWords: boolean,
+showCancellationPolicy: boolean,
+showSignatureLines: boolean,
+bankDetails: string | null,
 taxIds: number[],
 };
 export type PrintTaxData = {

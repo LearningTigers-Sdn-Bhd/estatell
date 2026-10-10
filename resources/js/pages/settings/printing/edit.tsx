@@ -1,21 +1,24 @@
 import { Head } from '@inertiajs/react';
-import { PanelTop, Type } from 'lucide-react';
+import { FileText, PanelTop, Type } from 'lucide-react';
 import Heading from '@/components/heading';
 import { AutoSaveStatus } from '@/components/pms/settings/auto-save-status';
 import type {
     FontSizeOption,
     FontStyleOption,
 } from '@/components/pms/settings/print-general-form';
+import { PrintDocumentsForm } from '@/components/pms/settings/print-documents-form';
+import { PrintDocumentsPreview } from '@/components/pms/settings/print-documents-preview';
 import { PrintGeneralForm } from '@/components/pms/settings/print-general-form';
 import { PrintHeaderForm } from '@/components/pms/settings/print-header-form';
 import { PrintPreview } from '@/components/pms/settings/print-preview';
 import { TabLinks } from '@/components/pms/tab-links';
 import { useAutoSave } from '@/hooks/use-auto-save';
-import { general, header, update } from '@/routes/settings/printing';
+import { documents, general, header, update } from '@/routes/settings/printing';
+import { update as updateDocuments } from '@/routes/settings/printing/documents';
 import { update as updateHeader } from '@/routes/settings/printing/header';
 
 type Settings = App.Data.Property.PrintSettingsData;
-type Tab = 'general' | 'header';
+type Tab = 'general' | 'header' | 'documents';
 
 const request = (tab: Tab) => (value: Settings) =>
     tab === 'general'
@@ -27,17 +30,30 @@ const request = (tab: Tab) => (value: Settings) =>
                   footer_text: value.footerText,
               },
           }
-        : {
-              url: updateHeader.url(),
-              data: {
-                  show_logo: value.showLogo,
-                  show_address: value.showAddress,
-                  show_contact: value.showContact,
-                  show_registration_number: value.showRegistrationNumber,
-                  show_tin: value.showTin,
-                  tax_ids: value.taxIds,
-              },
-          };
+        : tab === 'header'
+          ? {
+                url: updateHeader.url(),
+                data: {
+                    show_logo: value.showLogo,
+                    show_address: value.showAddress,
+                    show_contact: value.showContact,
+                    show_registration_number: value.showRegistrationNumber,
+                    show_tin: value.showTin,
+                    tax_ids: value.taxIds,
+                },
+            }
+          : {
+                url: updateDocuments.url(),
+                data: {
+                    show_unit_on_lines: value.showUnitOnLines,
+                    nightly_breakdown: value.nightlyBreakdown,
+                    tax_breakdown: value.taxBreakdown,
+                    show_amount_in_words: value.showAmountInWords,
+                    show_cancellation_policy: value.showCancellationPolicy,
+                    show_signature_lines: value.showSignatureLines,
+                    bank_details: value.bankDetails,
+                },
+            };
 
 export default function PrintingSettings({
     tab,
@@ -85,6 +101,12 @@ export default function PrintingSettings({
                             icon: PanelTop,
                             href: header(),
                         },
+                        {
+                            value: 'documents',
+                            label: 'Documents',
+                            icon: FileText,
+                            href: documents(),
+                        },
                     ]}
                 >
                     <div className="grid gap-6 lg:grid-cols-3 lg:items-start">
@@ -98,21 +120,35 @@ export default function PrintingSettings({
                                     onChange={form.change}
                                     onDraft={form.draft}
                                 />
-                            ) : (
+                            ) : tab === 'header' ? (
                                 <PrintHeaderForm
                                     value={form.value}
                                     profile={profile}
                                     taxes={taxes}
                                     onChange={form.change}
                                 />
+                            ) : (
+                                <PrintDocumentsForm
+                                    value={form.value}
+                                    onChange={form.change}
+                                    onDraft={form.draft}
+                                />
                             )}
                         </div>
-                        <PrintPreview
-                            settings={form.value}
-                            profile={profile}
-                            taxes={taxes}
-                            fonts={fonts}
-                        />
+                        {tab === 'documents' ? (
+                            <PrintDocumentsPreview
+                                settings={form.value}
+                                fonts={fonts}
+                                propertyName={profile.name}
+                            />
+                        ) : (
+                            <PrintPreview
+                                settings={form.value}
+                                profile={profile}
+                                taxes={taxes}
+                                fonts={fonts}
+                            />
+                        )}
                     </div>
                 </TabLinks>
             </div>

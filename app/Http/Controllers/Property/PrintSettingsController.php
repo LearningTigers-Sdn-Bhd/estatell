@@ -2,20 +2,25 @@
 
 namespace App\Http\Controllers\Property;
 
+use App\Actions\Property\UpdatePrintDocuments;
 use App\Actions\Property\UpdatePrintHeader;
 use App\Actions\Property\UpdatePrintSettings;
 use App\Data\Property\PrintSettingsData;
 use App\Data\Property\PrintTaxData;
 use App\Data\Property\PropertyProfileData;
+use App\Enums\Currency;
 use App\Enums\PdfFont;
 use App\Enums\PdfFontSize;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Property\UpdatePrintDocumentsRequest;
 use App\Http\Requests\Property\UpdatePrintHeaderRequest;
 use App\Http\Requests\Property\UpdatePrintSettingsRequest;
 use App\Models\Property;
 use App\Models\Tax;
 use App\Services\Property\PrintedPdf;
+use App\Services\Property\SampleDocument;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Inertia\Inertia;
 use Inertia\Response as InertiaResponse;
@@ -53,6 +58,18 @@ class PrintSettingsController extends Controller
         return $this->renderTab($property, 'header');
     }
 
+    /**
+     * Printing page, Documents tab: the switches the booking summary, the folio invoice and the AR invoice read.
+     */
+    public function documents(Property $property): InertiaResponse|RedirectResponse
+    {
+        if ($property->printSetting === null) {
+            return to_route('settings.edit', $property);
+        }
+
+        return $this->renderTab($property, 'documents');
+    }
+
     public function update(UpdatePrintSettingsRequest $request, Property $property, UpdatePrintSettings $updatePrintSettings): RedirectResponse
     {
         abort_if($property->printSetting === null, 404);
@@ -73,12 +90,30 @@ class PrintSettingsController extends Controller
         return back();
     }
 
-    /**
-     * The real dompdf output of the saved settings, with a sample report table, shown inline.
-     */
-    public function sample(Property $property, PrintedPdf $printedPdf): Response
+    public function updateDocuments(UpdatePrintDocumentsRequest $request, Property $property, UpdatePrintDocuments $updatePrintDocuments): RedirectResponse
     {
         abort_if($property->printSetting === null, 404);
+
+        $updatePrintDocuments($request->user(), $property, $request->validated());
+
+        return back();
+    }
+
+    /**
+     * The real dompdf output of the saved settings, shown inline: a sample report table, or with
+     * `?document=booking-summary` a sample booking summary that reads the document switches.
+     */
+    public function sample(Request $request, Property $property, PrintedPdf $printedPdf, SampleDocument $sampleDocument): Response
+    {
+        abort_if($property->printSetting === null, 404);
+
+        if ($request->query('document') === 'booking-summary') {
+            return $printedPdf->make($property, 'pdf.document-sample', [
+                'currency' => $property->settings?->currency ?? Currency::Myr,
+                'groups' => $sampleDocument->groups($property->printSetting),
+                'settings' => $property->printSetting,
+            ])->stream('sample-booking-summary.pdf');
+        }
 
         return $printedPdf->make($property, 'pdf.print-sample', [
             'currency' => $property->settings?->currency->value ?? '',
@@ -86,10 +121,10 @@ class PrintSettingsController extends Controller
     }
 
     /**
-     * Each tab has its own URL. Both tabs draw the same preview, so both get the settings, the profile, the taxes and
+     * Each tab has its own URL. All tabs draw the same preview, so both get the settings, the profile, the taxes and
      * the font styles.
      *
-     * @param  'general'|'header'  $tab
+     * @param  'general'|'header'|'documents'  $tab
      * @param  array<string, mixed>  $tabProps
      */
     private function renderTab(Property $property, string $tab, array $tabProps = []): InertiaResponse

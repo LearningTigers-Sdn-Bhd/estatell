@@ -54,6 +54,8 @@ Route::prefix('settings')->name('settings.')->group(function () {
             Route::put('/', 'update')->name('update');
             Route::get('header', 'header')->name('header');
             Route::put('header', 'updateHeader')->name('header.update');
+            Route::get('documents', 'documents')->name('documents');
+            Route::put('documents', 'updateDocuments')->name('documents.update');
             Route::get('sample', 'sample')->name('sample');
         });
         Route::controller(PropertyLogoController::class)->group(function () {

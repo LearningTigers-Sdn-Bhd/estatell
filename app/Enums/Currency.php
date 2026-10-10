@@ -13,6 +13,22 @@ enum Currency: string
         };
     }
 
+    /** The currency name as an amount in words starts with it, for example "Ringgit Malaysia". */
+    public function wordsName(): string
+    {
+        return match ($this) {
+            self::Myr => 'Ringgit Malaysia',
+        };
+    }
+
+    /** The name of the minor unit (one hundredth), for example "sen". */
+    public function minorUnitWords(): string
+    {
+        return match ($this) {
+            self::Myr => 'sen',
+        };
+    }
+
     /** @return list<array{value: string, label: string}> */
     public static function options(): array
     {

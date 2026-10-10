@@ -21,6 +21,13 @@ class PrintSettingsData extends Data
         public bool $showContact,
         public bool $showRegistrationNumber,
         public bool $showTin,
+        public bool $showUnitOnLines,
+        public bool $nightlyBreakdown,
+        public bool $taxBreakdown,
+        public bool $showAmountInWords,
+        public bool $showCancellationPolicy,
+        public bool $showSignatureLines,
+        public ?string $bankDetails,
         public array $taxIds,
     ) {}
 
@@ -35,6 +42,13 @@ class PrintSettingsData extends Data
             showContact: $settings->show_contact,
             showRegistrationNumber: $settings->show_registration_number,
             showTin: $settings->show_tin,
+            showUnitOnLines: $settings->show_unit_on_lines,
+            nightlyBreakdown: $settings->nightly_breakdown,
+            taxBreakdown: $settings->tax_breakdown,
+            showAmountInWords: $settings->show_amount_in_words,
+            showCancellationPolicy: $settings->show_cancellation_policy,
+            showSignatureLines: $settings->show_signature_lines,
+            bankDetails: $settings->bank_details,
             taxIds: array_values(array_map(intval(...), $settings->taxes->modelKeys())),
         );
     }

@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\Currency;
 use App\Enums\DefaultRoleEnum;
 use App\Enums\PdfFont;
 use App\Enums\PdfFontSize;
@@ -9,6 +10,7 @@ use App\Models\Tax;
 use App\Models\User;
 use App\Services\Property\PrintedPdf;
 use App\Services\Property\PrintProfile;
+use App\Services\Property\SampleDocument;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -337,4 +339,136 @@ test('the profile needs a name, an address line, a city and a valid email', func
     $this->actingAs(User::factory()->withRole(DefaultRoleEnum::FrontDesk)->create(['property_id' => $property->id]))
         ->get(printSettingsUrl($property, 'profile'))
         ->assertForbidden();
+});
+
+/** @return array<string, mixed> */
+function documentPayload(array $overrides = []): array
+{
+    return [
+        'show_unit_on_lines' => true, 'nightly_breakdown' => false, 'tax_breakdown' => true,
+        'show_amount_in_words' => false, 'show_cancellation_policy' => true, 'show_signature_lines' => false,
+        'bank_details' => null,
+        ...$overrides,
+    ];
+}
+
+test('the document switches default for existing and new properties', function () {
+    [, $property] = printingProperty();
+    $settings = $property->printSetting->refresh();
+
+    expect($settings->show_unit_on_lines)->toBeTrue()
+        ->and($settings->nightly_breakdown)->toBeFalse()
+        ->and($settings->tax_breakdown)->toBeTrue()
+        ->and($settings->show_amount_in_words)->toBeFalse()
+        ->and($settings->show_cancellation_policy)->toBeTrue()
+        ->and($settings->show_signature_lines)->toBeFalse()
+        ->and($settings->bank_details)->toBeNull();
+});
+
+test('staff save the document switches and the change logs only the changed fields', function () {
+    [$owner, $property] = printingProperty();
+
+    $this->actingAs($owner)
+        ->put(printSettingsUrl($property, 'printing/documents'), documentPayload([
+            'nightly_breakdown' => true, 'show_signature_lines' => true, 'bank_details' => "  Maybank 5141 2233 4455\nSandbay Resort  ",
+        ]))
+        ->assertRedirect()
+        ->assertSessionHasNoErrors();
+
+    $settings = $property->printSetting->refresh();
+    $activity = Activity::query()->where('event', 'print_settings.updated')->sole();
+
+    expect($settings->nightly_breakdown)->toBeTrue()
+        ->and($settings->show_signature_lines)->toBeTrue()
+        ->and($settings->tax_breakdown)->toBeTrue()
+        ->and($settings->bank_details)->toBe("Maybank 5141 2233 4455\nSandbay Resort")
+        ->and($activity->properties['changed'])->toBe(['nightly_breakdown', 'show_signature_lines', 'bank_details']);
+});
+
+test('empty payment details are stored as null and an unchanged save is not logged', function () {
+    [$owner, $property] = printingProperty();
+    $property->printSetting->update(['bank_details' => 'Maybank 5141']);
+
+    $this->actingAs($owner)
+        ->put(printSettingsUrl($property, 'printing/documents'), documentPayload(['bank_details' => '   ']))
+        ->assertSessionHasNoErrors();
+
+    expect($property->printSetting->refresh()->bank_details)->toBeNull();
+
+    Activity::query()->delete();
+
+    $this->actingAs($owner)->put(printSettingsUrl($property, 'printing/documents'), documentPayload())->assertSessionHasNoErrors();
+
+    expect(Activity::query()->where('event', 'print_settings.updated')->count())->toBe(0);
+});
+
+test('the document switches are validated', function () {
+    [$owner, $property] = printingProperty();
+
+    $this->actingAs($owner)
+        ->put(printSettingsUrl($property, 'printing/documents'), ['nightly_breakdown' => 'maybe', 'bank_details' => str_repeat('a', 501)])
+        ->assertSessionHasErrors(['show_unit_on_lines', 'nightly_breakdown', 'tax_breakdown', 'show_amount_in_words', 'show_cancellation_policy', 'show_signature_lines', 'bank_details']);
+});
+
+test('the documents routes need settings.manage and Basics', function () {
+    [$owner, $property] = printingProperty();
+    $frontDesk = User::factory()->withRole(DefaultRoleEnum::FrontDesk)->create(['property_id' => $property->id]);
+
+    $this->actingAs($frontDesk)->get(printSettingsUrl($property, 'printing/documents'))->assertForbidden();
+    $this->actingAs($frontDesk)->put(printSettingsUrl($property, 'printing/documents'), documentPayload())->assertForbidden();
+
+    $property->printSetting()->delete();
+
+    $this->actingAs($owner)->get(printSettingsUrl($property, 'printing/documents'))->assertRedirect(route('settings.edit', $property->code));
+    $this->actingAs($owner)->put(printSettingsUrl($property->refresh(), 'printing/documents'), documentPayload())->assertNotFound();
+});
+
+test('the documents tab sends the document switches', function () {
+    [$owner, $property] = printingProperty();
+    $property->printSetting->update(['bank_details' => 'Maybank 5141', 'show_amount_in_words' => true]);
+
+    $this->actingAs($owner)
+        ->get(printSettingsUrl($property, 'printing/documents'))
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('settings/printing/edit')
+            ->where('tab', 'documents')
+            ->where('settings.showUnitOnLines', true)
+            ->where('settings.nightlyBreakdown', false)
+            ->where('settings.showAmountInWords', true)
+            ->where('settings.bankDetails', 'Maybank 5141')
+            ->has('fonts', 4));
+});
+
+test('the sample booking summary is a PDF that reads the document switches', function () {
+    [$owner, $property] = printingProperty();
+    $property->printSetting->update(['bank_details' => 'Maybank 5141', 'show_amount_in_words' => true]);
+
+    $this->actingAs($owner)
+        ->get(printSettingsUrl($property, 'printing/sample').'?document=booking-summary')
+        ->assertOk()
+        ->assertHeader('content-type', 'application/pdf');
+
+    $html = view('pdf.document-sample', [
+        'print' => app(PrintProfile::class)->for($property->refresh()),
+        'currency' => Currency::Myr,
+        'groups' => app(SampleDocument::class)->groups($property->printSetting),
+        'settings' => $property->printSetting,
+    ])->render();
+
+    expect($html)->toContain('Room, 3 nights × 250.00')
+        ->and($html)->toContain('Ringgit Malaysia two thousand and four only')
+        ->and($html)->toContain('Maybank 5141')
+        ->and($html)->toContain('Cancellation policy');
+
+    $property->printSetting->update(['show_cancellation_policy' => false, 'bank_details' => null, 'show_amount_in_words' => false]);
+    $html = view('pdf.document-sample', [
+        'print' => app(PrintProfile::class)->for($property->refresh()),
+        'currency' => Currency::Myr,
+        'groups' => app(SampleDocument::class)->groups($property->printSetting),
+        'settings' => $property->printSetting,
+    ])->render();
+
+    expect($html)->not->toContain('Cancellation policy')
+        ->not->toContain('Payment details')
+        ->not->toContain('only');
 });
