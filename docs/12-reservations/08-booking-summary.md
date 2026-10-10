@@ -73,7 +73,7 @@ One row of cells. A cell with no value is left out, and the others share the wid
 
 ### Rooms
 
-One line per live unit (not Cancelled or NoShow): tonight's room or bed (the first night's before arrival, left out when none is assigned), the room type, the rate plan, the primary guest and the guest count. A unit with different dates from the strip adds its own dates.
+One line per unit, every status, so the document always says what was booked. A Cancelled or NoShow unit adds its status at the end ("· No-show"). Each line: tonight's room or bed (the first night's before arrival, left out when none is assigned), the room type, the rate plan, the primary guest and the guest count. A unit with different dates from the strip adds its own dates.
 
 ### Charges
 
@@ -86,6 +86,7 @@ The rows below go through the shared [line grouper](../02-property/05-printing-s
 - **Taxes.** Tax lines are summed per tax under the rows ("Service tax 8%", "Tourism tax"). With **Tax breakdown** off, one "Tax" total.
 - **A Cancelled or NoShow unit** shows only when it has posted lines (its fee), with its status after the room name.
 - **Total** is the sum of all charge, discount and tax rows.
+- **No charge rows** (for example every unit a no-show under a Free policy): the section prints "No charges" and no Total line.
 
 ### How the rows are built
 
@@ -106,6 +107,7 @@ The rows below go through the shared [line grouper](../02-property/05-printing-s
 - A city ledger line (`DIRECT_BILL`) prints as "Billed to {company}, invoice {number}" and counts against the balance. The invoice is the AR invoice with that `folio_id` (credit notes left out).
 - The receipt number and the method come from the line's `payments` row.
 - No payments: the section is left out. It never prints "Total payments 0.00".
+- No charge rows and no payments: Balance due is left out too. With payments but no charges (a deposit held on a free no-show), Balance due prints as a Credit, so the refund owed shows.
 - **Balance due** = Total minus payments minus amounts billed to the company. It can be below 0 ("Credit").
 - Paid and billed to company match what `ReservationDirectory` computes for the reservations list, and so does the balance once nothing is Scheduled (the list balance counts posted lines only; Balance due also counts the Scheduled rows). The tests compare them, so the list, this document and the summary card cannot drift apart.
 
@@ -120,7 +122,7 @@ The rows below go through the shared [line grouper](../02-property/05-printing-s
 
 - **Empty values never print.** No "-", no "0.00" payment line, no country-only address, no empty cell.
 - **Prices for the guest.** A reservation with a `company_id` offers a second print, **without prices**: the same document with the Charges, Payments, Balance due, amount in words and Payment details left out. The header, the info strip, Rooms and the cancellation policy stay. A negotiated company rate is never handed to the guest by mistake. This follows the [registration card](../16-registration/01-card-fields.md#booking-summary) rule.
-- **Cancelled reservation.** It still prints, stamped CANCELLED, with the fees and payments it holds.
+- **Outcome stamp** under "Not a tax invoice": CANCELLED when the reservation is Cancelled, NO-SHOW when every unit is NoShow. A mixed reservation gets no stamp; each unit shows its own status in Rooms. Either way it prints the fees and payments it holds.
 - **Totals differ from the money strip.** The [money strip](06-reservation-page.md#money-strip) shows **Room total** (room nights only, without tax and add-ons, labelled so). The booking summary Total includes everything that will be charged, and the reservation page [summary card](06-reservation-page.md#summary-card) shows the same Total from `BookingSummary`. This is the wastays lesson: a summary that missed extra charges showed a false credit.
 - **Currency** is the property currency, printed once in the Total and Balance due labels.
 
@@ -135,10 +137,11 @@ The rows below go through the shared [line grouper](../02-property/05-printing-s
 ## Tests
 
 - Total equals the sum of the Projected totals of the folios that are not Voided plus their payments, and Balance due equals Total minus payments minus billed to company, for a single room, a MasterPays group, a group with a third-party folio and a reservation with a transferred charge.
-- Paid, billed to company and the balance match `ReservationDirectory`.
+- Paid and billed to company match `ReservationDirectory`, and the balance does once nothing is Scheduled.
 - A posted night and Scheduled nights at the same price merge. The Room column shows for two units and hides for one.
 - `?prices=0` is ignored without a company. Your ref is left out when empty. The Malay policy text falls back to English.
 - A reversed line and its reversal are both left out. A Cancelled unit with a fee shows the fee.
+- Every unit a no-show with no fee: NO-SHOW stamp, both units in Rooms with "No-show", "No charges", no Total and no Balance due. The same with a payment held: Balance due as a Credit.
 - Without prices prints no amounts.
 - A reservation of another property is a 404. A user without `reservations.view` is a 403.
 
