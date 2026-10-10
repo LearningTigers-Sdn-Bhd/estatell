@@ -52,6 +52,10 @@ Every Action here returns a `UnitStayResult` and writes nothing on a refusal. Th
 - A Master folio balance never blocks a unit check-out. Only the unit's own folios count.
 - **Check-out closes the unit's own folios.** After the balance check and the status change, `CheckOutUnit` closes each Open Unit folio of the unit through `CloseFolio`, in the same transaction. A close that is refused (a posting raced in) rolls the check-out back as `balance_not_settled`. `CheckOutAndRefund` and `EarlyCheckOut` go through `CheckOutUnit`, so they close too. Master and ThirdParty folios stay Open. Closing needs no `folio.close`: it is part of check-out (`front-desk.check-out`). Each close issues the folio's invoice number once and logs `folio.closed`.
 
+### Day use
+
+A day use unit checks in and out on its date, and its block posts at check-in. Cancel and no-show count it as one night priced at the block. Change dates, extend, early and late check-out are not offered for it at first. See [Day use](../12-reservations/10-day-use.md#front-desk).
+
 ### Rooms that charge to another room's folio
 
 A unit's own folio can hold another room's charges: a Manual rule such as "Room 102 · Room → Unit 101", or charges moved there with [Move charges](../13-folio/07-move-charges.md). The Master and third-party folios are not part of this, because check-out does not close them.

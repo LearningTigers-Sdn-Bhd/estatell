@@ -12,6 +12,8 @@ rate_plans              id, property_id, name, description, pricing_basis (Prici
                         parent_rate_plan_id (nullable), derivation (RateDerivation, nullable),
                         derivation_value (nullable, signed),
                         fixed_nights (nullable), package_unit (PackageUnit, nullable),
+                        day_use_min_hours, day_use_max_hours (nullable, 1–24),
+                        day_use_from, day_use_until (nullable time),
                         early_departure_policy (EarlyDeparturePolicy),
                         portal_access (PortalAccess, default Hidden),
                         position, archived_at, timestamps
@@ -50,9 +52,21 @@ Staff with `settings.manage` use Settings, Rates, Rate plans (`settings.rate-pla
 - **Room type links:** `ReconcileRoomTypeRatePlans` links new and restored room types and re-checks links when the sell unit changes (see [Room types](../05-rooms/01-room-types.md)).
 - **Permission:** no `rates.*` permission exists yet, so all routes use `settings.manage`.
 
+## Day use plans
+
+A plan with `pricing_basis = DayUse` sells a room for a number of hours on one day (see [Day use](../12-reservations/10-day-use.md)).
+
+- **Columns.** `day_use_min_hours` and `day_use_max_hours` (1 to 24, min ≤ max) say which whole hours are sold: each hour from the minimum to the maximum has its own price. `day_use_from` and `day_use_until` are the optional **Sold between** window: a block must start at or after `from` and end at or before `until`. A CHECK keeps the hours set on a Day use plan and empty on every other plan, and the two times both set or both empty, with `from` before `until`.
+- **New plan Sheet.** "How is it priced?" adds **Day use**, which asks **Hours sold** (from, to). Room types sold per room only; a Bed room type is disabled with the reason.
+- **Tabs.** Details adds **Hours sold** and **Sold between**. Room types as above. Pricing shows one row per hour count (see [Day use prices](02-daily-rates-and-restrictions.md#day-use-prices)). Inclusions is open (for example lunch). Children and Discounts are a 404, like a Package plan for Discounts. Portal is hidden: day use is front desk only.
+- **Changing the hours** later only affects new bookings. Prices for hours outside the new range stay stored but are not offered.
+- **Not derived.** A Day use plan cannot be a parent or follow a parent.
+- **Never mapped** to a channel.
+- Badge: "Day use" with a clock icon, from `PricingBasis::tone()`.
+
 ## Enums
 
-- `PricingBasis`: PerRoom, PerGuest, PerBed, Package. It has `tone()` and `familyTone()` for the list badges.
+- `PricingBasis`: PerRoom, PerGuest, PerBed, Package, DayUse. It has `tone()` and `familyTone()` for the list badges.
 - `RatePlanStatus`: Active, Archived. Derived from `archived_at`, used for the list badge and filter.
 - `RateDerivation`: Percent, Amount. See [Derived rate plans](04-derived-rate-plans.md).
 - `EarlyDeparturePolicy`: ChargeFull, ChargeUsedNights.
@@ -65,10 +79,10 @@ Staff with `settings.manage` use Settings, Rates, Rate plans (`settings.rate-pla
 
 A plan links only room types whose sell unit fits its pricing basis.
 
-| Room type `sell_unit` | Allowed `pricing_basis`    |
-| --------------------- | -------------------------- |
-| Room                  | PerRoom, PerGuest, Package |
-| Bed                   | PerBed, Package            |
+| Room type `sell_unit` | Allowed `pricing_basis`            |
+| --------------------- | ---------------------------------- |
+| Room                  | PerRoom, PerGuest, Package, DayUse |
+| Bed                   | PerBed, Package                    |
 
 Plans fall into two families: room plans and bed plans. Package is the only basis that can link both. The Form Request enforces the table with `Rule::enum(PricingBasis::class)->only(...)`.
 

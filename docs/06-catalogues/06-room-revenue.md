@@ -18,6 +18,8 @@ One set of taxes covers all five room revenue codes (`SystemTransactionCode::roo
 
 `UpdateRoomRevenueTaxes` links the chosen taxes to ROOM and to every policy code that follows the Taxes tab, in the `tax_transaction_code` pivot, so they cannot drift apart. A policy code with its own taxes is skipped.
 
+DAY_USE ([Day use](../12-reservations/10-day-use.md)) is a Room category code but not one of these five: it always keeps its own taxes, on the [Day use tab](#day-use-tab).
+
 ## Page
 
 The page has five tabs, each with its own URL, controller method and page: **Taxes**, **No-show**, **Cancellation**, **Early departure** and **Late check-out**. The Taxes tab is described here. The policy tabs are under [Policies](#policies).
@@ -83,6 +85,10 @@ A form on the left and a preview on the right, like the Taxes tab. The preview p
 │                        [ Save ]    │
 └────────────────────────────────────┘
 ```
+
+### Day use tab
+
+Shown when the property has a Day use plan (active or archived), at `/p/{code}/settings/room-revenue/day-use`. It has one **Taxes** multiselect for DAY_USE, the same component as the policy tabs but with no Follow switch, and the posting preview for a sample MYR 100.00 day use. `UpdateDayUseTaxes` saves it. When the first Day use plan is created, DAY_USE is linked to the Taxes tab's taxes except flat taxes (a fixed amount per room-night, such as Tourism tax), because a per-night tax does not fit an hourly stay. A later Taxes tab save does not change DAY_USE.
 
 ### Own taxes
 

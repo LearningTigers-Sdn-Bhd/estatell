@@ -14,6 +14,7 @@ Interface `StayPricing`: `priceStay()` returns one amount breakdown per night (b
 | `PerGuestPricing` | `rates`, `rate_occupancy_prices`, child prices | Occupancy price for the adults if set, else adult rate x adults. Plus each child by age group. Plus the single supplement when there is no occupancy price. |
 | `PerBedPricing`   | `rates`                                        | Bed rate                                                                                                                                                    |
 | `PackagePricing`  | `package_prices`                               | Stay price by arrival date, split so each night covers its inclusions                                                                                       |
+| `DayUsePricing`   | `rates`, `rate_hour_prices`                    | The price of one block: the hour price for the date and the hours. No nights. See [Day use](../12-reservations/10-day-use.md#pricing)                       |
 
 `PricingBasis::strategy()` returns the strategy class for every basis. `RateQuoteService` asks the strategy for the nights, adjusts a derived plan's nights, applies the long-stay discount to the whole stay, and sums.
 

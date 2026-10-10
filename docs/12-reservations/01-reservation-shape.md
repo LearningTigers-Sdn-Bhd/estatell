@@ -22,7 +22,8 @@ reservation_units    id, reservation_id, property_id, room_type_id, rate_plan_id
                      arrival_date, departure_date, arrival_time, departure_time,
                      adults, children,
                      status (UnitStatus), discount_id (nullable),
-                     late_arrival_expected, checked_in_at, checked_out_at, timestamps
+                     late_arrival_expected, checked_in_at, checked_out_at,
+                     stay_type (StayType, default Overnight), timestamps
 unit_nights          id, reservation_unit_id, date, rate_plan_id,
                      room_id (nullable), bed_id (nullable),
                      base_amount, extra_amount, supplement_amount, discount_amount,
@@ -86,6 +87,7 @@ It has no `canTransitionTo()` because nothing sets it by hand.
 - `reservation_unit_children.age` is from 0 to 17, and ages are always required when a unit has children. `AddUnit` checks them. The quote prices an age past the property's last age group as an adult.
 - `unit_nights` stores the quoted amounts at booking. Rate changes do not change existing bookings. `discount_amount` is the rate plan's stay discount from the quote. A catalogue discount (`reservation_units.discount_id`) is not stored on the nights; the folio posts it.
 - `amount` is `override_amount` when it is set, otherwise `base_amount + extra_amount + supplement_amount - discount_amount`. A CHECK enforces this. The quoted split stays as it was, so reports can show the quote and the override side by side. `override_amount` is set at booking, or later by [Change a night's price](09-change-night-price.md).
+- A unit with `stay_type = DayUse` has `arrival_date = departure_date`, no `unit_nights` and one `unit_day_uses` row with its room, hours and price. See [Day use](10-day-use.md).
 - `reservation_unit_children` holds one row per child, so the count always matches `children`. Extending a stay, changing plan or reinstating re-prices from these ages.
 - Every action works on one unit. Group actions loop over units.
 - `reference` comes from `document_sequences`.

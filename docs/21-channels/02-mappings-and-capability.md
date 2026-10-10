@@ -14,13 +14,14 @@ A rate plan mapping exists only for a plan and room type pair linked in `rate_pl
 
 ## Sell mode mapping
 
-| estatell                         | Channex                                                                                                |
-| -------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| PerRoom                          | `sell_mode: per_room`                                                                                  |
-| PerGuest                         | `sell_mode: per_person`, one price per occupancy (1..N adults). Children become a flat `children_fee`. |
-| PerBed                           | See [Dorm strategies](03-dorm-strategies.md)                                                           |
-| Package, flat price              | Price / nights, `min_stay = max_stay = fixed_nights`, closed-to-arrival on disallowed days             |
-| Package, price varies by arrival | Not distributable. Blocked with a reason.                                                              |
+| estatell                         | Channex                                                                                                                      |
+| -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| PerRoom                          | `sell_mode: per_room`                                                                                                        |
+| PerGuest                         | `sell_mode: per_person`, one price per occupancy (1..N adults). Children become a flat `children_fee`.                       |
+| PerBed                           | See [Dorm strategies](03-dorm-strategies.md)                                                                                 |
+| Package, flat price              | Price / nights, `min_stay = max_stay = fixed_nights`, closed-to-arrival on disallowed days                                   |
+| Package, price varies by arrival | Not distributable. Blocked with a reason.                                                                                    |
+| DayUse                           | Not distributable: "Day use plans are sold at the front desk only." See [Day use](../12-reservations/10-day-use.md#channels) |
 
 ## Service
 

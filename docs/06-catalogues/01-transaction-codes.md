@@ -37,6 +37,7 @@ transaction_codes    id, property_id, system_key (nullable), code, name,
 | cancellation_revenue      | CANCEL           | Cancellation revenue    | Charge     | Room            |
 | late_checkout_revenue     | LATE_CHECKOUT    | Late checkout revenue   | Charge     | Room            |
 | early_departure_revenue   | EARLY_DEPARTURE  | Early departure revenue | Charge     | Room            |
+| day_use_revenue           | DAY_USE          | Day use revenue         | Charge     | Room            |
 | food_and_beverage_revenue | FNB              | Food and beverage       | Charge     | FoodAndBeverage |
 | laundry_revenue           | LAUNDRY          | Laundry                 | Charge     | Laundry         |
 | minibar_revenue           | MINIBAR          | Minibar                 | Charge     | Minibar         |

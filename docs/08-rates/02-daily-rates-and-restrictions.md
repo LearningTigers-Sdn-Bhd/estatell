@@ -17,12 +17,13 @@ rate_occupancy_prices     id, rate_id, adults, amount
 
 ## Meaning of `amount`
 
-| Pricing basis | `amount` means                                  |
-| ------------- | ----------------------------------------------- |
-| PerRoom       | Room price for the room type's `base_occupancy` |
-| PerGuest      | Price for one adult                             |
-| PerBed        | Price per bed                                   |
-| Package       | Null. Rows carry restrictions only.             |
+| Pricing basis | `amount` means                                                    |
+| ------------- | ----------------------------------------------------------------- |
+| PerRoom       | Room price for the room type's `base_occupancy`                   |
+| PerGuest      | Price for one adult                                               |
+| PerBed        | Price per bed                                                     |
+| Package       | Null. Rows carry restrictions only.                               |
+| DayUse        | Null. Prices are in `rate_hour_prices`; the row carries Stop sell |
 
 ## Rules
 
@@ -89,14 +90,29 @@ One form fills `rates` for a date range. The rate plan editor's Pricing tab ("Se
 - The mode and the form's weekend choice are not stored. Only `rates` and `rate_occupancy_prices` are written.
 - On a phone, By day scrolls sideways inside a table for now.
 
-| Pricing basis | Simple                                                                                      | By day                                                         |
-| ------------- | ------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
-| PerRoom       | Weekdays and Weekend per room type. "Different price by adults" adds a row per adult count. | 7 columns per room type                                        |
-| PerGuest      | A row per adult count, Weekdays and Weekend, with Auto fill                                 | A row per adult count, 7 columns, one room type open at a time |
-| PerBed        | Weekdays and Weekend per room type                                                          | 7 columns per room type                                        |
-| Package       | Not used. Package plans use [package prices](../09-packages/02-package-prices.md).          | Not used                                                       |
+| Pricing basis | Simple                                                                                         | By day                                                         |
+| ------------- | ---------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| PerRoom       | Weekdays and Weekend per room type. "Different price by adults" adds a row per adult count.    | 7 columns per room type                                        |
+| PerGuest      | A row per adult count, Weekdays and Weekend, with Auto fill                                    | A row per adult count, 7 columns, one room type open at a time |
+| PerBed        | Weekdays and Weekend per room type                                                             | 7 columns per room type                                        |
+| Package       | Not used. Package plans use [package prices](../09-packages/02-package-prices.md).             | Not used                                                       |
+| DayUse        | A row per hour count, Weekdays and Weekend, with Auto fill ([Day use prices](#day-use-prices)) | A row per hour count, 7 columns                                |
 
 Bulk edit adds the restriction fields to the same form (see [Bulk edit](#bulk-edit)).
+
+## Day use prices
+
+```
+rate_hour_prices    id, rate_id, hours, amount
+                    unique (rate_id, hours), CHECK hours 1–24, amount ≥ 0
+```
+
+- It mirrors `rate_occupancy_prices`: one price per hour count for a room type, plan and date, on the `rates` row. The `rates.amount` of a Day use plan stays null.
+- A date sells an hour count only when its price exists. The booking form leaves out an hour count with no price, and the quote refuses it with `no_hour_price`.
+- Restrictions: only Stop sell applies. Min stay, max stay, closed to arrival and closed to departure are hidden for a Day use plan.
+- **Pricing form.** Each room type group has one row per hour count from the plan's minimum to its maximum, with Weekdays and Weekend (Simple) or Mon to Sun (By day). `SaveRates` writes the `rates` rows and their `rate_hour_prices`.
+- **Auto** asks for the first block (hours and price), the change for each extra hour (an amount or %, up or down) and an optional cap ("Never more than"). Example: first 1 hour 40.00, each extra hour +20.00, cap 180.00 gives 1h 40, 2h 60, 3h 80 … 12h 180. Like the adults Auto, it only fills the fields and its inputs are not stored.
+- **Rate calendar.** A Day use row shows the lowest hour price of each date ("from 40.00"), and a tooltip lists the hour prices. Open and sold counts stay overnight only.
 
 ## UI
 
