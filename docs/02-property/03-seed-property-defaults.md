@@ -43,6 +43,7 @@ Roles are the exception during self sign-up: `SeedDefaultRoles` runs when the pr
 ## Rules
 
 - Idempotent: running it twice creates nothing new.
+- The `print_settings` row also takes the [Documents tab](05-printing-settings.md#documents-tab) defaults from its column defaults: room and guest on lines on, nightly breakdown off, tax breakdown on, amount in words off, cancellation policy on, signature lines off, no payment details. The migration that adds the columns gives existing rows the same values.
 - System transaction codes are marked `is_system`, have stable system keys and have no deletion path. Repeated seeding preserves property changes.
 - Tax presets own the SST and Tourism tax posting codes. Repeated seeding preserves tax rates, names, applicability and enabled state.
 - Payment-method presets wrap the six payment transaction codes. Repeated seeding preserves names, surcharges, reference requirements, availability and order.

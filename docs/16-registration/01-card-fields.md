@@ -57,6 +57,8 @@ One preset for every property type, seeded by `SeedRegistrationCardFields`.
 
 ## Booking summary
 
+This is the price block printed on the registration card. It is not the [booking summary](../12-reservations/08-booking-summary.md) document, which prints the whole reservation with every charge and payment.
+
 - Prices print the quote of the booking, with room charges and taxes only, under "Estimated charges at booking". Extras and payments stay on the folio.
 - The price is copied into the card snapshot when the card is signed, so a later rate change does not change a signed card.
 - The card hides prices when the reservation has a company, so a negotiated rate is not shown to the guest.
