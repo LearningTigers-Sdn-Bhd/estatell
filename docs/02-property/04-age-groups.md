@@ -15,7 +15,7 @@ property_age_groups    id, property_id, label, min_age, max_age, timestamps
 
 Staff with `settings.manage` use `/p/{code}/settings/age-groups` (`settings.age-groups`), the Age groups tab of the property settings page (Settings, Property, Details). `AgeGroupController::update` saves with `PUT` on the same URL (`settings.age-groups.update`). One form holds every group and one Save button. `SaveAgeGroups` saves the whole ordered list in one transaction. Rows keep their ids, so rate plan child prices can point at them later. `SeedAgeGroups` seeds Infant 0–3 and Child 4–11 and does nothing once the property has groups.
 
-`SaveAgeGroups` also keeps rate plans in step: a new group gets a Free child price on every PerGuest plan and sets `rate_plans.needs_child_price_review` (the "Check child prices" flag). A removed group's child prices are deleted with it.
+`SaveAgeGroups` also keeps rate plans in step: a new group gets a Free child price on every PerGuest plan and sets `rate_plans.needs_child_price_review` (the "Check child prices" flag). A removed group's child prices are deleted with it. It does the same for per-guest [charge items](../06-catalogues/02-charge-items.md#child-prices), except that a new group gets Percent 100 (the item keeps charging children as adults) and sets `charge_items.needs_child_price_review`.
 
 ## Rules
 

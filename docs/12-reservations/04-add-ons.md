@@ -8,7 +8,7 @@ Extras sold with a booking that are not part of the rate: airport transfer, birt
 
 ```
 unit_add_ons    id, reservation_unit_id, charge_item_id, quantity, unit_amount,
-                service_date (nullable), timestamps
+                service_date (nullable), property_age_group_id (nullable), timestamps
 ```
 
 - Every add-on belongs to one unit. A group extra, such as one transfer for the whole group, goes on one unit.
@@ -28,7 +28,10 @@ The charge item's `ChargingUnit` decides how many rows are written and their qua
 | PerStay       | One           | Optional                          | 1                 |
 | PerGuest      | One           | Optional                          | Adults + children |
 
-`ChargeQuantityResolver` (`app/Services/Catalogues/`, one `match` returning row arrays) turns a charging unit and the unit's stay into these rows. Nightly rows let each night post under its own `addon:{id}` key, and let an early departure drop the later nights.
+- **Split by price.** A PerGuest or PerGuestNight item with [child prices](../06-catalogues/02-charge-items.md#child-prices) writes one row per price instead of one row for everyone: adults (`property_age_group_id` null, the default amount) and one row per age group that has children and is not Free (its own amount). Example, Breakfast 30.00, Child 4–11 at 50%, Infant Free, for 2 adults, a child of 6 and a baby: adults 2 × 30.00 and Child 4–11 1 × 15.00, and no infant row. Nightly items do this for each night. A staff override of the amount applies to the adult row only.
+- The folio line of a child row reads "Breakfast · Child 4–11".
+
+`ChargeQuantityResolver` (`app/Services/Catalogues/`, one `match` returning row arrays) turns a charging unit and the unit's stay (adults and `reservation_unit_children` ages) into these rows. Nightly rows let each night post under its own `addon:{id}` key, and let an early departure drop the later nights.
 
 ## Price
 
@@ -68,6 +71,23 @@ No UI in this item. The Add-ons tab on the [reservation page](06-reservation-pag
 ### Booking with add-ons
 
 `NewUnitData` gains `add_ons` (a list of `NewAddOnData`). `AddUnit` calls `AddUnitAddOn` for each one inside its transaction, so a booking stays all or nothing. An add-on refusal refuses the whole booking: `ReservationResult` passes the add-on code through and names the line. `AddUnit` rolls back its own unit too, so Add unit on the reservation page never leaves a unit behind. A bed line gives every bed the same add-ons.
+
+## Added automatically
+
+An item with **Add to every new booking** (`charge_items.auto_add`) is added to each new room as an ordinary add-on. `AutoAddOns` (service, `app/Services/Reservations/`) returns the active auto-add items as `NewAddOnData` for a unit.
+
+| Where a room is added                | Auto-add                                                                                              |
+| ------------------------------------ | ----------------------------------------------------------------------------------------------------- |
+| Booking form and walk-in             | Prefilled in each room's Add-ons with an **Added automatically** tag and **×** to remove it           |
+| **Add unit** on the reservation page | Added by the server (the Sheet has no add-ons); the toast names them: "Unit added with Cleaning fee." |
+| Company portal booking               | Added by the server; the company user cannot remove them                                              |
+| Channel booking                      | Not added. The OTA price and terms decide what the guest pays                                         |
+| Reinstate                            | Not added again. The unit's old add-ons come back as they were                                        |
+| Day use unit                         | PerStay, PerGuest and PerItem items only; nightly items have no nights                                |
+
+- An auto-added add-on posts, prices and follows stay changes like any add-on.
+- Removing one on the booking form is logged on the reservation: "Cleaning fee was not added (removed on the booking form)." The form sends the removed item ids as `declined_auto_add_ons`.
+- The price follows the item's `allow_override` rule, like any add-on.
 
 ## Rules
 
