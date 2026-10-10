@@ -8,13 +8,14 @@ type Settings = App.Data.Property.PrintSettingsData;
 
 type Night = {
     unit: string;
+    room: string;
     day: number;
     text: string;
     unitAmount: number;
     amount: number;
     nightly: boolean;
 };
-type Row = { dates: string; text: string; amount: number };
+type Row = { dates: string; room: string; text: string; amount: number };
 
 const money = (amount: number) =>
     amount.toLocaleString('en-MY', {
@@ -25,6 +26,7 @@ const money = (amount: number) =>
 const sampleNights: Night[] = [
     ...[12, 13, 14].map((day) => ({
         unit: 'Room 103 · Tan Wei Ming',
+        room: '103',
         day,
         text: 'Room',
         unitAmount: 250,
@@ -33,6 +35,7 @@ const sampleNights: Night[] = [
     })),
     {
         unit: 'Room 103 · Tan Wei Ming',
+        room: '103',
         day: 13,
         text: 'Island hopping trip',
         unitAmount: 360,
@@ -41,6 +44,7 @@ const sampleNights: Night[] = [
     },
     ...[12, 13, 14].map((day) => ({
         unit: 'Room 104 · Lee Mei Ling',
+        room: '104',
         day,
         text: 'Room',
         unitAmount: 230,
@@ -85,6 +89,7 @@ function rowsFor(nights: Night[], nightly: boolean): Row[] {
     }
 
     return runs.map((run) => ({
+        room: run.first.room,
         dates:
             run.count === 1
                 ? `${run.first.day} Oct`
@@ -112,7 +117,11 @@ export function PrintDocumentsPreview({
 }) {
     const font = fonts.find((option) => option.value === settings.font);
     const units = [...new Set(sampleNights.map((night) => night.unit))];
-    const flat = [...sampleNights].sort((a, b) => a.day - b.day);
+    const flat = [...sampleNights].sort(
+        (a, b) => a.day - b.day || a.room.localeCompare(b.room),
+    );
+    // Two units in the sample, so the Room column shows whenever the lines are one list.
+    const showRoom = !settings.showUnitOnLines;
     const taxLines = settings.taxBreakdown
         ? taxes
         : [
@@ -162,12 +171,19 @@ export function PrintDocumentsPreview({
                                       <LineRow
                                           key={row.dates + row.text}
                                           row={row}
+                                          showRoom={false}
                                       />
                                   ))}
                               </div>
                           ))
                         : rowsFor(flat, settings.nightlyBreakdown).map(
-                              (row, index) => <LineRow key={index} row={row} />,
+                              (row, index) => (
+                                  <LineRow
+                                      key={index}
+                                      row={row}
+                                      showRoom={showRoom}
+                                  />
+                              ),
                           )}
                 </div>
                 <div className="flex flex-col gap-1 tabular-nums">
@@ -233,12 +249,13 @@ export function PrintDocumentsPreview({
     );
 }
 
-function LineRow({ row }: { row: Row }) {
+function LineRow({ row, showRoom }: { row: Row; showRoom: boolean }) {
     return (
         <div className="flex justify-between gap-2">
             <span className="w-16 shrink-0 text-muted-foreground">
                 {row.dates}
             </span>
+            {showRoom && <span className="w-8 shrink-0">{row.room}</span>}
             <span className="min-w-0 flex-1 truncate">{row.text}</span>
             <span>{money(row.amount)}</span>
         </div>

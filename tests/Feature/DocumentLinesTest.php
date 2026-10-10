@@ -138,3 +138,41 @@ test('only nightly rows merge', function () {
 
     expect(collect($rows)->map->text()->all())->toBe(['Laundry', 'Laundry', 'Breakfast, 2 nights × 20.00']);
 });
+
+function roomRow(string $date, string $room, string $amount = '250.00', int $unit = 1, string $description = 'Room', bool $nightly = true): DocumentRow
+{
+    return new DocumentRow(TransactionKind::Charge, $description, CarbonImmutable::parse($date), 1, $amount, $amount, $unit, "Room {$room}", nightly: $nightly, room: $room);
+}
+
+test('the room column shows for two units and not for one or when grouping is on', function () {
+    $two = [roomRow('2026-10-12', '103'), roomRow('2026-10-12', '104', unit: 2)];
+    $one = [roomRow('2026-10-12', '103'), roomRow('2026-10-13', '103')];
+
+    expect(group($two, ['show_unit_on_lines' => false])->showRoomColumn)->toBeTrue()
+        ->and(group($one, ['show_unit_on_lines' => false])->showRoomColumn)->toBeFalse()
+        ->and(group($two)->showRoomColumn)->toBeFalse();
+});
+
+test('ungrouped lines sort by date, then room, then posting order', function () {
+    $groups = group([
+        roomRow('2026-10-13', '104', unit: 2, description: 'Trip A', nightly: false),
+        roomRow('2026-10-13', '103', description: 'Trip B', nightly: false),
+        roomRow('2026-10-12', '104', unit: 2, description: 'Trip C', nightly: false),
+        roomRow('2026-10-13', '103', description: 'Trip D', nightly: false),
+    ], ['show_unit_on_lines' => false]);
+
+    expect(collect($groups->groups[0]->rows)->map->description->all())->toBe(['Trip C', 'Trip B', 'Trip D', 'Trip A']);
+});
+
+test('merged rows keep their room and an unassigned unit shows the room type code', function () {
+    $groups = group([
+        roomRow('2026-10-12', '103'), roomRow('2026-10-13', '103'),
+        roomRow('2026-10-12', 'DLX', '230.00', 2), roomRow('2026-10-13', 'DLX', '230.00', 2),
+    ], ['show_unit_on_lines' => false]);
+    $rows = $groups->groups[0]->rows;
+
+    expect(collect($rows)->map(fn ($row) => [$row->room, $row->text()])->all())->toBe([
+        ['103', 'Room, 2 nights × 250.00'],
+        ['DLX', 'Room, 2 nights × 230.00'],
+    ]);
+});

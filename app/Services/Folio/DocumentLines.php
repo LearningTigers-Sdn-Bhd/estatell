@@ -34,6 +34,7 @@ class DocumentLines
             taxes: $taxes,
             chargesSubtotal: (string) $subtotal->toScale(2),
             total: (string) $total->toScale(2),
+            showRoomColumn: ! $settings->show_unit_on_lines && count(array_unique(array_filter(array_map(fn (DocumentRow $row): ?int => $row->unitId, $chargeRows)))) > 1,
         );
     }
 
@@ -108,7 +109,11 @@ class DocumentLines
             return [];
         }
 
-        usort($rows, fn (DocumentRow $a, DocumentRow $b): int => $a->date <=> $b->date);
+        $indexed = array_map(null, array_keys($rows), $rows);
+        usort($indexed, fn (array $a, array $b): int => $a[1]->date <=> $b[1]->date
+            ?: strnatcasecmp($a[1]->room ?? '', $b[1]->room ?? '')
+            ?: $a[0] <=> $b[0]);
+        $rows = array_map(fn (array $pair): DocumentRow => $pair[1], $indexed);
 
         return [new DocumentLineGroup(null, $this->lines($rows, $nightly))];
     }
@@ -128,7 +133,7 @@ class DocumentLines
 
         foreach ($rows as $row) {
             if (! $row->nightly) {
-                $result[] = new DocumentLineRow($row->description, $row->date, $row->date, 1, $row->unitAmount, (string) BigDecimal::of($row->amount)->toScale(2));
+                $result[] = new DocumentLineRow($row->description, $row->date, $row->date, 1, $row->unitAmount, (string) BigDecimal::of($row->amount)->toScale(2), $row->room);
 
                 continue;
             }
@@ -145,12 +150,13 @@ class DocumentLines
                     $last->nights + 1,
                     $last->unitAmount,
                     (string) BigDecimal::of($last->amount)->plus($row->amount)->toScale(2),
+                    $last->room,
                 );
 
                 continue;
             }
 
-            $result[] = new DocumentLineRow($row->description, $row->date, $row->date, 1, $row->unitAmount, (string) BigDecimal::of($row->amount)->toScale(2));
+            $result[] = new DocumentLineRow($row->description, $row->date, $row->date, 1, $row->unitAmount, (string) BigDecimal::of($row->amount)->toScale(2), $row->room);
             $open[$key] = array_key_last($result);
         }
 

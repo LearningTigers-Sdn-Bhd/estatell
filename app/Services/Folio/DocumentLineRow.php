@@ -16,6 +16,7 @@ final readonly class DocumentLineRow
         public int $nights,
         public string $unitAmount,
         public string $amount,
+        public ?string $room = null,
     ) {}
 
     /**

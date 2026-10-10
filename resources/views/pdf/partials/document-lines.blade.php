@@ -7,6 +7,8 @@
     /** @var \App\Services\Folio\DocumentLineGroups $groups */
     /** @var \App\Enums\Currency $currency */
     /** @var \App\Models\PrintSetting $settings */
+    $room = $groups->showRoomColumn;
+    $span = $room ? 3 : 2;
     $money = fn (string $amount): string => number_format((float) $amount, 2);
     $dates = fn (\App\Services\Folio\DocumentLineRow $row): string => $row->dateFrom->isSameDay($row->dateTo)
         ? $row->dateFrom->format('j M')
@@ -15,15 +17,26 @@
             : $row->dateFrom->format('j M').' – '.$row->dateTo->format('j M'));
 @endphp
 <table class="gap-16">
+    @if ($room)
+        <tr class="rule">
+            <th>{{ __('Date') }}</th>
+            <th>{{ __('Room') }}</th>
+            <th>{{ __('Description') }}</th>
+            <th class="num">{{ __('Amount') }}</th>
+        </tr>
+    @endif
     @foreach ($groups->groups as $group)
         @if ($group->heading !== null)
             <tr class="rule">
-                <th colspan="3">{{ $group->heading }}</th>
+                <th colspan="{{ $span + 1 }}">{{ $group->heading }}</th>
             </tr>
         @endif
         @foreach ($group->rows as $row)
             <tr class="rule">
                 <td class="muted" style="width: 18%;">{{ $dates($row) }}</td>
+                @if ($room)
+                    <td style="width: 10%;">{{ $row->room }}</td>
+                @endif
                 <td>{{ $row->text() }}</td>
                 <td class="num">{{ $money($row->amount) }}</td>
             </tr>
@@ -31,12 +44,12 @@
     @endforeach
     @foreach ($groups->taxes as $tax)
         <tr>
-            <td colspan="2" class="num">{{ $tax->label }}</td>
+            <td colspan="{{ $span }}" class="num">{{ $tax->label }}</td>
             <td class="num">{{ $money($tax->amount) }}</td>
         </tr>
     @endforeach
     <tr class="total">
-        <td colspan="2" class="num">{{ __('Total :currency', ['currency' => $currency->value]) }}</td>
+        <td colspan="{{ $span }}" class="num">{{ __('Total :currency', ['currency' => $currency->value]) }}</td>
         <td class="num">{{ $money($groups->total) }}</td>
     </tr>
 </table>

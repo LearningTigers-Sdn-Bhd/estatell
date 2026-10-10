@@ -22,13 +22,13 @@ class SampleDocument
         $start = CarbonImmutable::parse('2026-10-12');
         $rows = [];
 
-        foreach ([[1, 'Room 103 · Tan Wei Ming', '250.00'], [2, 'Room 104 · Lee Mei Ling', '230.00']] as [$unitId, $label, $rate]) {
+        foreach ([[1, 'Room 103 · Tan Wei Ming', '250.00', '103'], [2, 'Room 104 · Lee Mei Ling', '230.00', '104']] as [$unitId, $label, $rate, $room]) {
             foreach (range(0, 2) as $night) {
-                $rows[] = new DocumentRow(TransactionKind::Charge, 'Room', $start->addDays($night), 1, $rate, $rate, $unitId, $label, nightly: true);
+                $rows[] = new DocumentRow(TransactionKind::Charge, 'Room', $start->addDays($night), 1, $rate, $rate, $unitId, $label, nightly: true, room: $room);
             }
         }
 
-        $rows[] = new DocumentRow(TransactionKind::Charge, 'Island hopping trip', $start->addDay(), 1, '360.00', '360.00', 1, 'Room 103 · Tan Wei Ming');
+        $rows[] = new DocumentRow(TransactionKind::Charge, 'Island hopping trip', $start->addDay(), 1, '360.00', '360.00', 1, 'Room 103 · Tan Wei Ming', room: '103');
         $rows[] = new DocumentRow(TransactionKind::Tax, 'Service tax 8%', $start, 1, '144.00', '144.00');
         $rows[] = new DocumentRow(TransactionKind::Tax, 'Tourism tax', $start, 1, '60.00', '60.00');
 

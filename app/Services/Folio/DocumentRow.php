@@ -16,6 +16,8 @@ final readonly class DocumentRow
 {
     /**
      * @param  string|null  $unitLabel  The group heading of the unit, for example "Room 103 · Tan Wei Ming".
+     * @param  string|null  $room  The unit's short room label for the Room column: the room number, or the room type
+     *                             code when no room is assigned yet. Null for a line with no unit.
      * @param  int|null  $lineId  The folio line id, null for a Scheduled row.
      * @param  int|null  $reversalOfId  The line this row reverses.
      */
@@ -31,5 +33,6 @@ final readonly class DocumentRow
         public ?int $lineId = null,
         public ?int $reversalOfId = null,
         public bool $nightly = false,
+        public ?string $room = null,
     ) {}
 }
