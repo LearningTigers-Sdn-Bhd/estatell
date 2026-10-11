@@ -7,6 +7,7 @@ use App\Models\Folio;
 use App\Models\FolioLine;
 use App\Models\FolioRoutingRule;
 use App\Models\Guest;
+use App\Models\Payment;
 use App\Models\Property;
 use App\Models\PropertySetting;
 use App\Models\Reservation;
@@ -549,4 +550,23 @@ test('Check out all is offered for two or more units when one is checked in or h
 
     [$staff] = pageStaffWith(['reservations.view']);
     $this->actingAs($staff)->get(pageUrl($staff->property, pageReservation($staff->property)))->assertInertia(fn (Assert $page) => $page->where('canCheckOutAll', false));
+});
+
+test('Print receipts sends every payment that is not a refund, only with payment.record', function () {
+    [$user, $property] = pageOwner();
+    $reservation = pageReservation($property);
+    $folio = Folio::factory()->create(['property_id' => $property->id, 'reservation_id' => $reservation->id]);
+    $first = Payment::factory()->create(['folio_id' => $folio->id]);
+    $second = Payment::factory()->create(['folio_id' => $folio->id]);
+    Payment::factory()->create(['folio_id' => $folio->id, 'refund_of_id' => $first->id, 'receipt_number' => null, 'amount' => '10.00']);
+    $other = pageReservation($property);
+    Payment::factory()->create(['folio_id' => Folio::factory()->create(['property_id' => $property->id, 'reservation_id' => $other->id])->id]);
+
+    $this->actingAs($user)->get(pageUrl($property, $reservation))->assertInertia(fn (Assert $page) => $page->where('receiptPaymentIds', [$first->id, $second->id]));
+    $this->actingAs($user)->get(pageUrl($property, pageReservation($property)))->assertInertia(fn (Assert $page) => $page->where('receiptPaymentIds', []));
+
+    [$staff] = pageStaffWith(['reservations.view']);
+    $staffReservation = pageReservation($staff->property);
+    Payment::factory()->create(['folio_id' => Folio::factory()->create(['property_id' => $staff->property_id, 'reservation_id' => $staffReservation->id])->id]);
+    $this->actingAs($staff)->get(pageUrl($staff->property, $staffReservation))->assertInertia(fn (Assert $page) => $page->where('receiptPaymentIds', []));
 });

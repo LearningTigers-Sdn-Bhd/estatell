@@ -4,6 +4,7 @@ namespace App\Services\Payments;
 
 use App\Models\FolioLine;
 use App\Models\Payment;
+use App\Models\Reservation;
 use Brick\Math\BigDecimal;
 use InvalidArgumentException;
 
@@ -14,6 +15,24 @@ use InvalidArgumentException;
  */
 class PaymentReceipt
 {
+    /**
+     * The payments of a reservation that have a receipt (every payment that is not a refund), in id order, for the
+     * reservation page's Print receipts. See docs/12-reservations/06-reservation-page.md#header.
+     *
+     * @return list<int>
+     */
+    public function paymentIdsFor(Reservation $reservation): array
+    {
+        return Payment::query()
+            ->where('property_id', $reservation->property_id)
+            ->whereNull('refund_of_id')
+            ->whereHas('folio', fn ($folios) => $folios->where('reservation_id', $reservation->id))
+            ->orderBy('id')
+            ->pluck('id')
+            ->map(fn (mixed $id): int => (int) $id)
+            ->all();
+    }
+
     /**
      * @throws InvalidArgumentException for a refund, which has no receipt
      */

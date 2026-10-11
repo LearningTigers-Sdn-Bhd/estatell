@@ -6,6 +6,7 @@ import {
     Pencil,
     Plus,
     Printer,
+    ReceiptText,
 } from 'lucide-react';
 import { Link } from '@inertiajs/react';
 import { useState } from 'react';
@@ -22,9 +23,10 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { bookingSummary, checkOut } from '@/routes/reservations';
+import { receipts } from '@/routes/reservations/check-out';
 
 /**
- * The page header buttons: Add unit (hidden once the reservation is closed) and More, which holds Edit group, Change company, for a group Check in all and Check out all (the group check-out page), and the booking summary prints (the second one without prices, for a reservation with a company). The prints show on closed reservations too.
+ * The page header buttons: Add unit (hidden once the reservation is closed) and More, which holds Edit group, Change company, for a group Check in all and Check out all (the group check-out page), the booking summary prints (the second one without prices, for a reservation with a company) and Print receipts (one PDF with every receipt of the reservation; the server sends the payment ids only with payment.record). The prints show on closed reservations too.
  */
 export function ReservationActions({
     canManage,
@@ -34,6 +36,7 @@ export function ReservationActions({
     canViewCompany,
     canCheckIn,
     canCheckOutAll,
+    receiptPaymentIds,
     canOverrideCredit,
     companies,
     currency,
@@ -45,6 +48,7 @@ export function ReservationActions({
     canViewCompany: boolean;
     canCheckIn: boolean;
     canCheckOutAll: boolean;
+    receiptPaymentIds: number[];
     canOverrideCredit: boolean;
     companies?: App.Data.CityLedger.CompanyOptionData[];
     currency: App.Enums.Currency | null;
@@ -141,6 +145,27 @@ export function ReservationActions({
                         >
                             <Printer />
                             Print without prices
+                        </DropdownMenuItem>
+                    )}
+                    {receiptPaymentIds.length > 0 && (
+                        <DropdownMenuItem
+                            render={
+                                <a
+                                    href={receipts.url(
+                                        { reservation: reservation.id },
+                                        {
+                                            query: {
+                                                payments: receiptPaymentIds,
+                                            },
+                                        },
+                                    )}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                />
+                            }
+                        >
+                            <ReceiptText />
+                            Print receipts
                         </DropdownMenuItem>
                     )}
                 </DropdownMenuContent>
