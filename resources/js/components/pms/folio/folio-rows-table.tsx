@@ -129,7 +129,7 @@ export function FolioRowsTable({
     onPrintVoucher: (row: Row) => void;
     onAction: (
         row: Row,
-        action: 'reverse' | 'transfer' | 'remove_discount' | 'refund',
+        action: 'reverse' | 'move' | 'remove_discount' | 'refund',
     ) => void;
 }) {
     const [scheduledOpen, setScheduledOpen] = useState(true);
@@ -326,19 +326,18 @@ export function FolioRowsTable({
                                                             </DropdownMenuItem>
                                                         )}
                                                         {row.actions.includes(
-                                                            'transfer',
+                                                            'move',
                                                         ) && (
                                                             <DropdownMenuItem
                                                                 onClick={() =>
                                                                     onAction(
                                                                         row,
-                                                                        'transfer',
+                                                                        'move',
                                                                     )
                                                                 }
                                                             >
                                                                 <ArrowRightLeft />
-                                                                Move to another
-                                                                folio
+                                                                Move…
                                                             </DropdownMenuItem>
                                                         )}
                                                         {row.actions.includes(

@@ -87,7 +87,7 @@ Staff create third-party folios and Manual rules on the [folio tab](05-folio-pag
 | Remove                   | `RemoveRoutingRule` (Action) deletes a Manual rule. It refuses a BillingMode rule with `rule_not_manual`: change the billing mode to change those. Posted lines stay where they are.                                                                         |
 | Activity log             | On the reservation: third-party folio created, routing rule added, routing rule removed.                                                                                                                                                                     |
 | Unused third-party folio | No delete and no void. Close it at 0.00.                                                                                                                                                                                                                     |
-| Scheduled rows           | No change. The folio tab already routes Scheduled rows through the rules, so a new rule moves them at once. Posted lines never move; staff use Transfer.                                                                                                     |
+| Scheduled rows           | No change. The folio tab already routes Scheduled rows through the rules, so a new rule moves them at once. Posted lines never move; staff use Move charges.                                                                                                 |
 
 `RoutingRuleRefusals` maps each refusal code to a field and a message, the way `FolioRefusals` does.
 

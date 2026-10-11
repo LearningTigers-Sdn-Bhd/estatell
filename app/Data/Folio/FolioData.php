@@ -8,8 +8,9 @@ use Spatie\LaravelData\Data;
 /**
  * The open folio of the folio tab. `number` is the folio's own reference (null for a unit with no folio yet). Balance is the posted lines only (null for a unit with no folio yet). Projected
  * total is the posted lines plus the Scheduled rows. `canClose` is true for an Open folio when the user holds the permission (a balance other than 0 is refused by the Action). `canReopen` is true for a Closed folio the user may reopen (`FolioReopenRule`), and
- * `closedNotice` is the text above its rows that says what to do. `canApplyDiscount` says an Open folio has a charge that can still take a discount. `postUnits` are the units a charge can be posted for, and
- * `transferTargets` are the other Open folios of the reservation. Both are empty when the user may not act.
+ * `closedNotice` is the text above its rows that says what to do. `canApplyDiscount` says an Open folio has a charge that can still take a discount. `postUnits` are the units a charge can be posted for (empty when the user may not post), and
+ * `canMoveCharges` says an Open folio has another Open folio to move charges with and the user holds `folio.transfer`
+ * (it shows **Move charges** in the header and **Move…** in the row menu of a movable charge).
  * `canRecordPayment` is true for an Open folio or a "not started" entry when the user holds `payment.record`, and
  * `paymentUnitId` is the unit a "not started" entry records on. `canPrintVoucher` is true when the user holds
  * `folio.print-voucher` and the folio has a line that can go on a voucher. `canSettleToCityLedger` is true for an Open
@@ -26,7 +27,6 @@ class FolioData extends Data
      * @param  list<FolioOptionData>  $postUnits
      * @param  list<PostFolioOptionData>  $postFolios  The Open folios the Post charge Dialog can pick.
      * @param  list<FolioOptionData>  $postRooms  Every unit a charge can be posted for.
-     * @param  list<FolioOptionData>  $transferTargets
      * @param  list<array{value: string, label: string}>  $paymentPurposes
      */
     public function __construct(
@@ -47,7 +47,7 @@ class FolioData extends Data
         public array $postUnits = [],
         public array $postFolios = [],
         public array $postRooms = [],
-        public array $transferTargets = [],
+        public bool $canMoveCharges = false,
         public bool $canRecordPayment = false,
         public ?int $paymentUnitId = null,
         public bool $canPrintVoucher = false,

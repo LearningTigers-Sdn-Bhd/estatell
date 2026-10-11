@@ -1,5 +1,6 @@
 import { Form, Link, router } from '@inertiajs/react';
 import {
+    ArrowRightLeft,
     BadgePercent,
     Banknote,
     ChevronDown,
@@ -40,7 +41,6 @@ import { ReverseLineDialog } from '@/components/pms/folio/reverse-line-dialog';
 import { RoutingRulesSheet } from '@/components/pms/folio/routing-rules-sheet';
 import { ThirdPartyFolioDialog } from '@/components/pms/folio/third-party-folio-dialog';
 import { VoidInvoiceAndReopenDialog } from '@/components/pms/folio/void-invoice-and-reopen-dialog';
-import { TransferLineDialog } from '@/components/pms/folio/transfer-line-dialog';
 import { MoneyText } from '@/components/pms/money-text';
 import { StatusBadge } from '@/components/pms/status-badge';
 import { Alert, AlertAction, AlertDescription } from '@/components/ui/alert';
@@ -60,6 +60,7 @@ import {
 } from '@/components/ui/tooltip';
 import { KEEP_OPTIONS } from '@/components/pms/use-form-options';
 import { show as showArInvoice } from '@/routes/finance/city-ledger/invoices';
+import { move as moveCharges } from '@/routes/reservations/folio';
 import { invoice, reopen } from '@/routes/reservations/folios';
 import { cn } from '@/lib/utils';
 
@@ -156,8 +157,6 @@ export function FolioTab({
     const [removing, setRemoving] =
         useState<App.Data.Folio.FolioRowData | null>(null);
     const [reversing, setReversing] =
-        useState<App.Data.Folio.FolioRowData | null>(null);
-    const [transferring, setTransferring] =
         useState<App.Data.Folio.FolioRowData | null>(null);
 
     const summaryLabel = summaryHidden ? 'Show summary' : 'Hide summary';
@@ -379,6 +378,20 @@ export function FolioTab({
                     <div className="flex flex-wrap items-center justify-between gap-2">
                         <div className="flex flex-wrap items-center gap-2">
                             {routingButtons}
+                            {folio.canMoveCharges && (
+                                <Link
+                                    href={moveCharges.url(
+                                        { reservation: reservationId },
+                                        { query: { to: Number(folio.key) } },
+                                    )}
+                                    className={buttonVariants({
+                                        variant: 'outline',
+                                    })}
+                                >
+                                    <ArrowRightLeft data-icon="inline-start" />
+                                    Move charges
+                                </Link>
+                            )}
                         </div>
                         <div className="flex flex-wrap items-center gap-2">
                             {folio.canApplyDiscount && (
@@ -624,8 +637,13 @@ export function FolioTab({
                             onAction={(row, action) => {
                                 if (action === 'reverse') {
                                     setReversing(row);
-                                } else if (action === 'transfer') {
-                                    setTransferring(row);
+                                } else if (action === 'move') {
+                                    router.visit(
+                                        moveCharges.url(
+                                            { reservation: reservationId },
+                                            { query: { line: row.lineId } },
+                                        ),
+                                    );
                                 } else if (action === 'refund') {
                                     setRefunding(row);
                                 } else {
@@ -718,13 +736,6 @@ export function FolioTab({
                     folioId={Number(folio.key)}
                     row={reversing}
                     onClose={() => setReversing(null)}
-                />
-                <TransferLineDialog
-                    reservationId={reservationId}
-                    folioId={Number(folio.key)}
-                    row={transferring}
-                    targets={folio.transferTargets}
-                    onClose={() => setTransferring(null)}
                 />
             </div>
         </div>

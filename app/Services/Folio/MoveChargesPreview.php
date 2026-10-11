@@ -128,6 +128,23 @@ class MoveChargesPreview
     }
 
     /**
+     * The folio the To column starts on. `$to` is used when it is an Open folio of the reservation. Otherwise the Master
+     * folio, or the first Open folio, other than the folio of the line to tick (so Move… on a Master charge starts on
+     * the first other Open folio). Null when the reservation has no Open folio to choose.
+     */
+    public function startTarget(Reservation $reservation, ?Folio $to, ?FolioLine $line): ?Folio
+    {
+        if ($to !== null && $to->status === FolioStatus::Open) {
+            return $to;
+        }
+
+        $open = $this->folios($reservation, array_keys($this->unitLabels($reservation)))
+            ->filter(fn (Folio $folio): bool => $folio->status === FolioStatus::Open && $folio->id !== $line?->folio_id);
+
+        return $open->first(fn (Folio $folio): bool => $folio->type === FolioType::Master) ?? $open->first();
+    }
+
+    /**
      * The page props for a start: the Open folios with their movable charges, and the first preview.
      *
      * @param  list<int>  $lineIds
@@ -138,8 +155,10 @@ class MoveChargesPreview
         $preview = $this->compute($property, $reservation, $target, $lineIds, [], $state);
 
         return new MoveChargesPageData(
+            reservationId: $reservation->id,
+            reference: $reservation->reference,
             title: __('Move charges · :reference · :name', ['reference' => $reservation->reference, 'name' => $reservation->group_name ?? $reservation->booker->full_name]),
-            currency: (string) $property->settings?->currency->value,
+            currency: $property->settings?->currency,
             folios: $state['openFolios']->map(fn (Folio $folio): MoveFolioData => new MoveFolioData(
                 $folio->id,
                 $state['labels'][$folio->id],
@@ -148,7 +167,7 @@ class MoveChargesPreview
                 $state['charges']->where('folioId', $folio->id)->pluck('data')->values()->all(),
             ))->values()->all(),
             targetId: $target->id,
-            lineIds: array_values(array_filter($lineIds, fn (int $id): bool => $state['charges']->contains('lineId', $id))),
+            lineIds: array_values(array_filter($lineIds, fn (int $id): bool => $state['charges']->contains(fn (array $charge): bool => $charge['lineId'] === $id && $charge['folioId'] !== $target->id))),
             maxCharges: self::MAX_CHARGES,
             preview: $preview,
             cancelUrl: $cancelUrl,

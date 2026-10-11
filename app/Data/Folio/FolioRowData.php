@@ -9,7 +9,7 @@ use Spatie\LaravelData\Data;
 /**
  * One row of the folio page. `state` is posted or scheduled. `level` is 0 for a charge or a payment and 1 or 2 for
  * its discount and tax children. `tags` are `FolioRowTag` markers (Scheduled, Overridden, Reversal, Reversed, Refund) with their label and tone. A Posted
- * row has its `lineId` and the `actions` the user may take on it now (reverse, transfer, remove_discount, refund).
+ * row has its `lineId` and the `actions` the user may take on it now (reverse, move, remove_discount, refund).
  * Scheduled rows have neither. A payment or refund row carries its `paymentId` and its reference as `note`; a payment
  * also carries `refundable`, the amount left to refund, and `hasReceipt` when the user may download its receipt (on
  * any folio status, so it is not a row action). A row has its `kind`, and `printable` says it can go on a voucher

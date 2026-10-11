@@ -190,40 +190,12 @@ test('reversing a charge posts the reversal and a second try is an error toast',
         ->and(Activity::query()->where('event', 'folio.line_reversed')->count())->toBe(1);
 });
 
-test('transferring a charge moves it with its children to another folio of the reservation', function () {
-    $setup = faSetup();
-    Tax::factory()->for($setup['property'])->create(['rate' => '8.00', 'rate_type' => TaxRateType::Percent, 'is_inclusive' => false])->applicableTransactionCodes()->attach($setup['room']);
-    $charge = faPost($setup, $setup['unit'], '100.00');
-    $master = Folio::factory()->master()->create(['property_id' => $setup['property']->id, 'reservation_id' => $setup['reservation']->id]);
-
-    $this->actingAs($setup['user'])
-        ->post(faUrl($setup, 'reservations.folios.transfers.store', $setup['folio']), ['line_ids' => [$charge->id], 'target_folio_id' => $master->id])
-        ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Moved to folio '.$master->number.'.']);
-
-    expect($master->lines()->sum('amount'))->toEqual(108)
-        ->and($setup['folio']->lines()->sum('amount'))->toEqual(0);
-});
-
-test('a transfer to a closed folio or the same folio is refused on the target field', function () {
-    $setup = faSetup();
-    $charge = faPost($setup, $setup['unit']);
-    $closed = Folio::factory()->master()->closed()->create(['property_id' => $setup['property']->id, 'reservation_id' => $setup['reservation']->id]);
-    $url = faUrl($setup, 'reservations.folios.transfers.store', $setup['folio']);
-
-    $this->actingAs($setup['user'])->post($url, ['line_ids' => [$charge->id], 'target_folio_id' => $setup['folio']->id])->assertSessionHasErrors('target_folio_id');
-    $this->actingAs($setup['user'])->post($url, ['line_ids' => [$charge->id], 'target_folio_id' => $closed->id])->assertSessionHasErrors();
-
-    expect($setup['folio']->lines()->count())->toBe(1);
-});
-
 test('the actions need their permission and stay inside the property and the reservation', function () {
     $setup = faSetup();
     $charge = faPost($setup, $setup['unit']);
     $frontDesk = faStaff($setup, DefaultRoleEnum::FrontDesk);
-    $master = Folio::factory()->master()->create(['property_id' => $setup['property']->id, 'reservation_id' => $setup['reservation']->id]);
 
     $this->actingAs($frontDesk)->post(faUrl($setup, 'reservations.folios.lines.reverse', $setup['folio'], ['line' => $charge->id]))->assertForbidden();
-    $this->actingAs($frontDesk)->post(faUrl($setup, 'reservations.folios.transfers.store', $setup['folio']), ['line_ids' => [$charge->id], 'target_folio_id' => $master->id])->assertForbidden();
     $this->actingAs($frontDesk)->post(faUrl($setup, 'reservations.folios.charges.store', $setup['folio']), faCharge($setup))->assertSessionHasNoErrors();
 
     $otherReservation = Reservation::factory()->create(['property_id' => $setup['property']->id]);
@@ -231,7 +203,6 @@ test('the actions need their permission and stay inside the property and the res
 
     $this->actingAs($setup['user'])->post(faUrl($setup, 'reservations.folios.charges.store', $foreignFolio), faCharge($setup))->assertNotFound();
     $this->actingAs($setup['user'])->post(faUrl($setup, 'reservations.folios.lines.reverse', $setup['folio'], ['line' => faPost($setup, ReservationUnit::factory()->checkedIn()->create(['reservation_id' => $otherReservation->id]))->id]))->assertNotFound();
-    $this->actingAs($setup['user'])->post(faUrl($setup, 'reservations.folios.transfers.store', $setup['folio']), ['line_ids' => [$charge->id], 'target_folio_id' => $foreignFolio->id])->assertNotFound();
 
     expect(FolioLine::query()->where('reversal_of_id', '!=', null)->count())->toBe(0);
 });
@@ -248,18 +219,18 @@ test('rows carry only the actions the user may take on them', function () {
     $this->actingAs($setup['user'])->get($url)->assertInertia(fn (Assert $page) => $page
         ->where('folio.canPostCharge', true)
         ->where('folio.postUnits.0.id', $setup['unit']->id)
-        ->where('folio.transferTargets.0.id', $master->id)
+        ->where('folio.canMoveCharges', true)
         ->where('folio.postFolios', fn ($folios) => collect($folios)->pluck('id')->sort()->values()->all() === collect([$setup['folio']->id, $master->id])->sort()->values()->all())
         ->where('folio.postRooms.0.id', $setup['unit']->id)
         ->where('folio.rows', fn ($rows) => collect($rows)->map(fn ($row) => [$row['lineId'] === $charge->id, $row['actions']])->take(2)->all() === [
-            [true, ['reverse', 'transfer']],
+            [true, ['reverse', 'move']],
             [false, []],
         ])
         ->where('folio.rows', fn ($rows) => collect($rows)->every(fn ($row) => $row['tags'] === [] || $row['actions'] === [])));
 
     $this->actingAs(faStaff($setup, DefaultRoleEnum::FrontDesk))->get($url)->assertInertia(fn (Assert $page) => $page
         ->where('folio.canPostCharge', true)
-        ->where('folio.transferTargets', [])
+        ->where('folio.canMoveCharges', false)
         ->where('folio.rows', fn ($rows) => collect($rows)->every(fn ($row) => $row['actions'] === [])));
 
     app(ReverseLine::class)($setup['user'], $charge);
@@ -267,7 +238,7 @@ test('rows carry only the actions the user may take on them', function () {
 
     $this->actingAs($setup['user'])->get($url)->assertInertia(fn (Assert $page) => $page
         ->where('folio.canPostCharge', false)
-        ->where('folio.transferTargets', [])
+        ->where('folio.canMoveCharges', false)
         ->where('folio.rows', fn ($rows) => collect($rows)->every(fn ($row) => $row['actions'] === [])));
 });
 

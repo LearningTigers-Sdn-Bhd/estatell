@@ -52,7 +52,7 @@ class FolioStatement
      * Expects the property's `settings` and the reservation's `booker` to be loaded. An unknown `$selected` falls back to the Master folio, or
      * the first entry.
      *
-     * `$can` says what the user may do: post a charge, reverse a line, transfer a line, apply or remove a discount, close the folio, record or refund a payment. Rows and options carry only
+     * `$can` says what the user may do: post a charge, reverse a line, move charges, apply or remove a discount, close the folio, record or refund a payment. Rows and options carry only
      * what is allowed now, so the page never works it out.
      *
      * @param  list<ReservationUnitOptionData>  $units
@@ -143,7 +143,7 @@ class FolioStatement
     }
 
     /**
-     * The folio's name with its payer, as the transfer and routing selects show it: "Third party · Blue Reef Dive".
+     * The folio's name with its payer, as the Move charges page and the routing selects show it: "Third party · Blue Reef Dive".
      * Expects `payerGuest` and `payerCompany` to be loaded.
      *
      * @param  array<int, string>  $labels  Unit label by unit id
@@ -178,11 +178,7 @@ class FolioStatement
     {
         $folio = $entry['folio'];
         $isOpen = $folio?->status === FolioStatus::Open;
-        $targets = $isOpen && ($can['transfer'] ?? false) ? $entries
-            ->filter(fn (array $other): bool => $other['folio'] !== null && $other['folio']->id !== $folio->id && $other['folio']->status === FolioStatus::Open)
-            ->map(fn (array $other): FolioOptionData => new FolioOptionData($other['folio']->id, trim($other['item']->name.' · '.$other['item']->subtitle, ' ·')))
-            ->values()
-            ->all() : [];
+        $canMoveCharges = $isOpen && ($can['transfer'] ?? false) && $entries->contains(fn (array $other): bool => $other['folio'] !== null && $other['folio']->id !== $folio->id && $other['folio']->status === FolioStatus::Open);
         $postUnits = $isOpen && ($can['postCharge'] ?? false) ? collect($units)
             ->filter(fn (ReservationUnitOptionData $unit): bool => in_array($unit->status->value, [UnitStatus::CheckedIn->value, UnitStatus::CheckedOut->value], true))
             ->filter(fn (ReservationUnitOptionData $unit): bool => $folio->reservation_unit_id === null || $unit->id === $folio->reservation_unit_id)
@@ -201,7 +197,7 @@ class FolioStatement
             ->all();
         $allowed = $isOpen ? array_values(array_filter([
             ($can['reverse'] ?? false) ? 'reverse' : null,
-            ($can['transfer'] ?? false) && $targets !== [] ? 'transfer' : null,
+            $canMoveCharges ? 'move' : null,
         ])) : [];
         $scheduled = collect($blocks)
             ->filter(fn (array $block): bool => $folio === null ? ($block['target'] === null && $block['unit'] === $entry['unit']) : $block['target'] === $folio->id)
@@ -241,7 +237,7 @@ class FolioStatement
             postUnits: $postUnits,
             postFolios: $postFolios,
             postRooms: $postRooms,
-            transferTargets: $targets,
+            canMoveCharges: $canMoveCharges,
             canRecordPayment: $purposes !== [],
             canPrintVoucher: $posted->contains(fn (FolioRowData $row): bool => $row->printable) || $scheduled->contains(fn (FolioRowData $row): bool => $row->printable),
             paymentUnitId: $folio === null ? $entry['unit'] : null,

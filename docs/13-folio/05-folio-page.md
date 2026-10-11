@@ -112,7 +112,7 @@ A left rail lists the folios of the reservation, the same way the Units tab list
 - **Not started:** a unit with no folio gets a read-only entry labelled "Unit X · not started". It shows the unit's Scheduled rows and no Balance. Its only action is Record payment, which creates the unit's folio on the first payment ([Payments and refunds](../14-payments/01-payments-and-refunds.md)). When Room charges route to the Master folio, the entry has no valid purpose before arrival, so it shows no Record payment: staff take the advance on the Master folio ([Purposes by stage](../14-payments/01-payments-and-refunds.md#purposes-by-stage)). Nothing else creates a folio to show it. A folio is created on the first posting (see [Posting charges](02-posting-charges.md)).
 - The default folio is the Master when it exists, otherwise the first Unit folio.
 - The rail takes about 200px, so the Room column is hidden while the rail names the unit.
-- A Closed folio is read only: no post, discount, transfer or reverse actions, and its menus are hidden. It shows the invoice number and a notice above the rows that says what to do, with **Reopen folio** when the user may reopen it (see [When to reopen](01-folios-and-lines.md#close-and-reopen)):
+- A Closed folio is read only: no post, discount, move or reverse actions, and its menus are hidden. It shows the invoice number and a notice above the rows that says what to do, with **Reopen folio** when the user may reopen it (see [When to reopen](01-folios-and-lines.md#close-and-reopen)):
 
 ```
 ┌──────────────────────────────────────────────────────────┐
@@ -134,7 +134,7 @@ A left rail lists the folios of the reservation, the same way the Units tab list
 
 ## Actions
 
-Row and folio actions call the existing Actions. A refusal writes and logs nothing. A form (post charge, transfer, apply discount) shows the refusal in its Dialog, on the matching field or as one message for the form, like the add-on dialog. An AlertDialog (reverse, remove discount) has no field, so it shows an error toast.
+Row and folio actions call the existing Actions. A refusal writes and logs nothing. A form (post charge, apply discount) shows the refusal in its Dialog, on the matching field or as one message for the form, like the add-on dialog. An AlertDialog (reverse, remove discount) has no field, so it shows an error toast.
 
 | Action              | Permission                                                                               | Shown on                                                                                                                                                                   |
 | ------------------- | ---------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -170,7 +170,7 @@ One `ReservationFolioController` with named methods. The routes sit in the reser
 Record payment and Refund have their own `ReservationPaymentController` and routes, listed in [Payments and refunds](../14-payments/01-payments-and-refunds.md#routes).
 
 - **Refusal messages:** `FolioRefusals` maps each `PostingResult` refusal code (and the two tax refusals) to a message and a field, the way `ReservationRefusals` does. A form gets `errors()`, and an AlertDialog gets `message()` as a toast (`Inertia::flash('toast', ...)`).
-- **Server-driven buttons:** the server tells each row which actions it allows, from the user's permissions, the folio status and the row type. The browser never works it out. `FolioRowData` gets the line id and an `actions` list. `FolioData` gets `canPostCharge`, the units that can receive a posting, and the other Open folios as transfer targets.
+- **Server-driven buttons:** the server tells each row which actions it allows, from the user's permissions, the folio status and the row type. The browser never works it out. `FolioRowData` gets the line id and an `actions` list. `FolioData` gets `canPostCharge`, the units that can receive a posting, and `canMoveCharges` (an Open folio with another Open folio, for a user with `folio.transfer`).
 - **Option lists:** charge items and active discounts are optional props, read when a dialog opens, like the add-on dialog. `chargeCodes` is read only by the Routing rules sheet.
 
 ### Post charge
@@ -189,7 +189,7 @@ An AlertDialog names the target. No reason field: none of the Actions takes one.
 
 ### Move
 
-Moving charges has its own full page: [Move charges](07-move-charges.md). **Move…** in a row menu opens it with that line ticked and another Open folio as the target (see [Move charges](07-move-charges.md#shape)); **Move charges** in the folio header opens it with this folio as the target. It replaces the single-row Transfer Dialog and its `reservations.folios.transfers.store` route.
+Moving charges has its own full page: [Move charges](07-move-charges.md). **Move…** in a row menu opens it with that line ticked and another Open folio as the target (see [Move charges](07-move-charges.md#shape)); **Move charges** in the folio header opens it with this folio as the target. It replaced the single-row Transfer Dialog and its `reservations.folios.transfers.store` route (removed). Both entry points show when the row or the folio has `canMoveCharges` / the `move` action. **Move…** links to `reservations.folio.move?line={id}` and the page picks the starting target; **Move charges** links with `?to={folio}`.
 
 ### Apply discount
 
@@ -258,7 +258,7 @@ Two reservation-level actions sit in a **Routing** dropdown in the action row, b
 │          ( ) All charges                                │
 │ Goes to  [Third party · Blue Reef Dive ▾]  Open folios  │
 │ ⓘ Only later postings follow a new rule. Posted lines   │
-│   stay; move them with Transfer.                        │
+│   stay; use Move charges.                               │
 │                                          [Add rule]     │
 └─────────────────────────────────────────────────────────┘
 ```
@@ -314,15 +314,15 @@ Decisions made at build time (discounts):
 - The Remove discount action shows on a discount line (an Adjustment child of a charge) that is not reversed, on an Open folio, for a user with `folio.discount`.
 - The Dialog has two steps. The first picks the discount (and the amount) and asks for the quote. The second shows the eligible charges with each share and the total, and applies with the quote's `fingerprint`. A refusal shows in the Dialog, including `quote_changed`, and Back asks for a new quote.
 
-Built (post, reverse and transfer): `ReservationFolioController` with `storeCharge`, `reverse` and `transfer`, the routes `reservations.folios.charges.store`, `reservations.folios.lines.reverse` and `reservations.folios.transfers.store` (each with its own `can:`), `StoreFolioChargeRequest`, `StoreFolioTransferRequest`, `FolioRefusals`, `Reservation::folios()`, the `chargeCodes` optional prop, row `lineId` and `actions`, `canPostCharge`, `postUnits` and `transferTargets`, and the three dialogs. Nothing in the folio tab plan is left.
+Built (post, reverse and transfer): `ReservationFolioController` with `storeCharge`, `reverse` and `transfer`, the routes `reservations.folios.charges.store`, `reservations.folios.lines.reverse` and `reservations.folios.transfers.store` (each with its own `can:`), `StoreFolioChargeRequest`, `StoreFolioTransferRequest`, `FolioRefusals`, `Reservation::folios()`, the `chargeCodes` optional prop, row `lineId` and `actions`, `canPostCharge`, `postUnits` and `transferTargets`, and the three dialogs. The transfer parts were replaced by the [Move charges](07-move-charges.md) page (`transfer`, `StoreFolioTransferRequest`, the route, the Dialog and `transferTargets` are gone; `canMoveCharges` and the row action `move` took their place). Nothing in the folio tab plan is left.
 
 Decisions made at build time (actions):
 
-- A row offers actions only when it is a Posted charge with no parent, no reversal and no marker, on an Open folio. Reverse needs `folio.reverse`. Transfer needs `folio.transfer` and at least one other Open folio. The list is empty otherwise.
-- `postUnits` holds the CheckedIn and CheckedOut units (only the folio's own unit on a Unit folio). `canPostCharge` is true when the folio is Open, the user has `folio.post-charge` and that list is not empty. `transferTargets` is sent only to a user with `folio.transfer`.
+- A row offers actions only when it is a Posted charge with no parent, no reversal and no marker, on an Open folio. Reverse needs `folio.reverse`. Move needs `folio.transfer` and at least one other Open folio. The list is empty otherwise.
+- `postUnits` holds the CheckedIn and CheckedOut units (only the folio's own unit on a Unit folio). `canPostCharge` is true when the folio is Open, the user has `folio.post-charge` and that list is not empty. `canMoveCharges` is true only for a user with `folio.transfer`.
 - The post charge Dialog posts by charge item, with an optional description. An item with a fixed price shows the price and sends it. (An earlier version also had "Other amount" with a charge code; it was removed because staff should not pick codes.)
-- The success toast of a charge names the folio that received it. A transfer toast names the target folio.
-- A line, folio or target outside the reservation is a 404. `TransferLines` takes the lines the form names (the dialog sends one).
+- The success toast of a charge names the folio that received it. The Move charges toast names the target folio.
+- A line, folio or target outside the reservation is a 404. `MoveCharges` takes the lines the Move charges page names.
 
 Built (read-only tab): `reservations.folio` on `reservations.view`, `FolioStatement` and `ScheduledFolioRows` (services, read only), `FolioRouter::resolverFor()`, `FolioData`, `FolioRailItemData`, `FolioRowData`, the rail, the rows table, and the real Balance in the summary card (`ReservationData.balance`, null until the reservation has a folio). Not built at that step: every action (see Actions) and the Cards and List money strip, both built later.
 

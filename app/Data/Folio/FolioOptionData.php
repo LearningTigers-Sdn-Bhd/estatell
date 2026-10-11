@@ -5,7 +5,7 @@ namespace App\Data\Folio;
 use Spatie\LaravelData\Data;
 
 /**
- * One choice in a folio dialog: a unit that can receive a posting, or a folio that can receive a transfer.
+ * One choice in a folio dialog: a unit that can receive a posting.
  */
 class FolioOptionData extends Data
 {

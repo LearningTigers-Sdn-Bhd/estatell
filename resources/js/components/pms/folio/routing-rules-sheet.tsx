@@ -212,7 +212,7 @@ function AddRuleForm({
                     <Info />
                     <AlertDescription>
                         Only later postings follow a new rule. Charges already
-                        posted stay; move them with Transfer.
+                        posted stay; use Move charges to move them.
                     </AlertDescription>
                 </Alert>
             </FieldGroup>

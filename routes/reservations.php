@@ -46,7 +46,6 @@ Route::prefix('reservations')->name('reservations.')->scopeBindings()->group(fun
                 Route::post('close', [ReservationFolioController::class, 'close'])->middleware('can:'.PermissionEnum::FolioClose->value)->name('close');
                 Route::post('reopen', [ReservationFolioController::class, 'reopen'])->name('reopen');
                 Route::post('void-invoice-and-reopen', [ReservationFolioController::class, 'voidInvoiceAndReopen'])->middleware(['can:'.PermissionEnum::CityLedgerInvoice->value, 'can:'.PermissionEnum::FolioReopen->value])->name('void-invoice-and-reopen');
-                Route::post('transfers', [ReservationFolioController::class, 'transfer'])->middleware('can:'.PermissionEnum::FolioTransfer->value)->name('transfers.store');
                 Route::post('payments', [ReservationPaymentController::class, 'storeForFolio'])->middleware('can:'.PermissionEnum::PaymentRecord->value)->name('payments.store');
                 Route::post('payments/{payment}/refunds', [ReservationPaymentController::class, 'refund'])->middleware('can:'.PermissionEnum::PaymentRefund->value)->name('payments.refunds.store');
                 Route::get('voucher', [ReservationFolioController::class, 'voucher'])->middleware('can:'.PermissionEnum::FolioPrintVoucher->value)->name('voucher');
@@ -58,6 +57,7 @@ Route::prefix('reservations')->name('reservations.')->scopeBindings()->group(fun
                 Route::post('folios/third-party', [ReservationRoutingController::class, 'storeThirdPartyFolio'])->name('folios.third-party.store');
                 Route::post('routing-rules', [ReservationRoutingController::class, 'storeRule'])->name('routing-rules.store');
                 Route::delete('routing-rules/{routingRule}', [ReservationRoutingController::class, 'destroyRule'])->name('routing-rules.destroy');
+                Route::get('folio/move', [ReservationFolioMoveController::class, 'show'])->name('folio.move');
                 Route::post('folio/move/preview', [ReservationFolioMoveController::class, 'preview'])->name('folio.move.preview');
                 Route::post('folio/move', [ReservationFolioMoveController::class, 'store'])->name('folio.move.store');
             });

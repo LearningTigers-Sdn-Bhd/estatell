@@ -35,6 +35,7 @@ use App\Services\Folio\FolioRouter;
 use App\Services\Folio\MoveChargesPreview;
 use App\Services\Folio\ScheduledFolioRows;
 use Illuminate\Testing\TestResponse;
+use Inertia\Testing\AssertableInertia as Assert;
 use Spatie\Activitylog\Models\Activity;
 
 beforeEach(function () {
@@ -445,4 +446,68 @@ test('the router routes with proposed rules and without them is unchanged', func
         ->and($with($setup['units'][1], $setup['room']))->toBe($setup['folios'][1]->id)
         ->and($router->pickerFor($setup['reservation'], [$proposed])($unit, $setup['room']))->toBe($proposed)
         ->and(FolioRoutingRule::query()->count())->toBe(0);
+});
+
+function mcPage(array $setup, array $query = [], ?User $as = null): TestResponse
+{
+    return test()->actingAs($as ?? $setup['user'])->get(route('reservations.folio.move', ['property' => $setup['property']->code, 'reservation' => $setup['reservation']->id, ...$query]));
+}
+
+test('the page starts on the Master folio, or on the first other Open folio for a Master charge, and ticks the line', function () {
+    $setup = mcSetup();
+    $onUnit = mcPost($setup, 0, $setup['folios'][0]);
+    $onMaster = mcPost($setup, 1, $setup['master']);
+
+    mcPage($setup)->assertOk()->assertInertia(fn (Assert $page) => $page
+        ->component('reservations/move-charges')
+        ->where('move.targetId', $setup['master']->id)
+        ->where('move.lineIds', [])
+        ->where('move.maxCharges', 200)
+        ->has('move.folios', 3)
+        ->where('move.preview.targetId', $setup['master']->id)
+        ->where('move.preview.chargeCount', 0));
+
+    mcPage($setup, ['line' => $onUnit->id])->assertInertia(fn (Assert $page) => $page
+        ->where('move.targetId', $setup['master']->id)
+        ->where('move.lineIds', [$onUnit->id])
+        ->where('move.preview.chargeCount', 1)
+        ->where('move.preview.amount', '100.00'));
+
+    mcPage($setup, ['line' => $onMaster->id])->assertInertia(fn (Assert $page) => $page
+        ->where('move.targetId', $setup['folios'][0]->id)
+        ->where('move.lineIds', [$onMaster->id]));
+
+    mcPage($setup, ['to' => $setup['folios'][1]->id, 'line' => $onUnit->id])->assertInertia(fn (Assert $page) => $page
+        ->where('move.targetId', $setup['folios'][1]->id)
+        ->where('move.lineIds', [$onUnit->id])
+        ->where('move.cancelUrl', route('reservations.folio', ['property' => $setup['property']->code, 'reservation' => $setup['reservation']->id, 'folio' => $setup['folios'][1]->id])));
+
+    mcPage($setup, ['to' => $setup['folios'][0]->id, 'line' => $onUnit->id])->assertInertia(fn (Assert $page) => $page
+        ->where('move.lineIds', []));
+});
+
+test('the page needs folio.transfer, keeps to the reservation and sends a reservation with no open folio back', function () {
+    $setup = mcSetup();
+    $charge = mcPost($setup, 0, $setup['folios'][0]);
+    $frontDesk = User::factory()->withRole(DefaultRoleEnum::FrontDesk)->create(['property_id' => $setup['property']->id]);
+    $other = Reservation::factory()->create(['property_id' => $setup['property']->id]);
+    $foreignFolio = Folio::factory()->master()->create(['property_id' => $setup['property']->id, 'reservation_id' => $other->id]);
+    $foreignLine = FolioLine::factory()->create(['folio_id' => $foreignFolio->id, 'transaction_code_id' => $setup['room']->id]);
+
+    mcPage($setup, [], $frontDesk)->assertForbidden();
+    mcPage($setup, ['to' => $foreignFolio->id])->assertNotFound();
+    mcPage($setup, ['line' => $foreignLine->id])->assertNotFound();
+
+    Folio::query()->where('reservation_id', $setup['reservation']->id)->update(['status' => FolioStatus::Voided]);
+
+    mcPage($setup, ['line' => $charge->id])
+        ->assertRedirect(route('reservations.folio', ['property' => $setup['property']->code, 'reservation' => $setup['reservation']->id]))
+        ->assertInertiaFlash('toast', ['type' => 'error', 'message' => 'There is no open folio to move charges to.']);
+});
+
+test('a refusal on the target field shows on the page form', function () {
+    $setup = mcSetup();
+    $charge = mcPost($setup, 0, $setup['folios'][0]);
+
+    mcStore($setup, mcBody($setup['folios'][0], [$charge]))->assertSessionHasErrors('target_folio_id');
 });

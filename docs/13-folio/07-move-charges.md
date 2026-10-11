@@ -145,7 +145,8 @@ All need `folio.transfer`. A folio, line or unit of another reservation is a 404
 
 ## Build status
 
-Built (backend commit): `TransferLines` for several source folios (no log), `FolioRouter::resolverFor()` and `pickerFor()` with proposed rules, `MoveChargesPreview` (service) with the `Move*Data` classes, `MoveCharges` and `MoveChargesResult` (Actions), `ReservationFolioMoveController` (`preview`, `store`), `MoveChargesRequest`, the refusal messages in `FolioRefusals`, and the routes `reservations.folio.move.preview` and `reservations.folio.move.store`. The page route and the page come in the frontend commit.
+Built (backend commit): `TransferLines` for several source folios (no log), `FolioRouter::resolverFor()` and `pickerFor()` with proposed rules, `MoveChargesPreview` (service) with the `Move*Data` classes, `MoveCharges` and `MoveChargesResult` (Actions), `ReservationFolioMoveController` (`preview`, `store`), `MoveChargesRequest`, the refusal messages in `FolioRefusals`, and the routes `reservations.folio.move.preview` and `reservations.folio.move.store`.
+Built (frontend commit): the page route `reservations.folio.move` (`ReservationFolioMoveController::show`, `MoveChargesPageRequest`, `MoveChargesPreview::page()` and `startTarget()`), `pages/reservations/move-charges.tsx` with `move-charges-from.tsx`, `move-charges-to.tsx`, `move-charges-format.ts` and `use-move-preview.ts` in `components/pms/folio/`, **Move charges** in the folio header and **Move…** in the row menu (`FolioData.canMoveCharges`, row action `move`). Removed: `ReservationFolioController::transfer`, `StoreFolioTransferRequest`, `reservations.folios.transfers.store`, `TransferLineDialog` and `FolioData.transferTargets`.
 
 Decisions made at build time:
 
@@ -157,3 +158,10 @@ Decisions made at build time:
 - **Preview payload** (`MovePreviewData`): `balances` (posted before and after for every Open folio), `projectedBefore` and `projectedAfter` (the target), `schedules` (the choices per room, only rooms with Scheduled rows that do not already go to the target and a night after the business date), `incoming` (the Scheduled charges that land on the target), `notes`, `chargeCount`, `amount`, `scheduleCount` and `refusal`. The choice amounts come from routing the Scheduled rows again with each choice's rules, so a row kept by a more specific rule is not counted.
 - **Scheduled blocks** from `ScheduledFolioRows` now carry their transaction `code`.
 - Activity log text when only schedules move: "Scheduled room nights of 2 rooms now go to {to}." ("Scheduled charges" when any room chose Charge everything).
+
+Decisions made at build time (page):
+
+- **Starting target.** `?to=` is used when it is an Open folio of the reservation. Without it the page starts on the Master folio, or on the first Open folio, other than the folio of `?line=`. A line on the target folio is not ticked. A reservation with no Open folio goes back to the folio tab with an error toast.
+- **What the page holds.** The server sends every Open folio with its movable charges once (`MoveChargesPageData`). Ticks, the target and the room choices are browser state, so changing the target or ticking a charge changes the lists at once. The preview (balances, Projected, the scheduled choices, the notes) comes 300 ms after a change through Inertia's `useHttp`, and the page shows only the figures that match the current target.
+- **Unsaved changes.** Leaving the page with ticked charges or a room choice asks to save, discard or stay, like the other full pages.
+- **Narrow screens.** The columns stack with a ↓ between them. The title row buttons hide below `lg`, and a footer with Cancel and the Move button shows instead.

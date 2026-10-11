@@ -10,7 +10,6 @@ use App\Actions\Folio\PostingResult;
 use App\Actions\Folio\RemoveDiscount;
 use App\Actions\Folio\ReopenFolio;
 use App\Actions\Folio\ReverseLine;
-use App\Actions\Folio\TransferLines;
 use App\Actions\Folio\VoidInvoiceAndReopen;
 use App\Data\Folio\FolioDiscountQuoteResponseData;
 use App\Enums\FolioStatus;
@@ -19,7 +18,6 @@ use App\Http\Requests\Folio\FolioVoucherRequest;
 use App\Http\Requests\Folio\QuoteFolioDiscountRequest;
 use App\Http\Requests\Folio\StoreFolioChargeRequest;
 use App\Http\Requests\Folio\StoreFolioDiscountRequest;
-use App\Http\Requests\Folio\StoreFolioTransferRequest;
 use App\Models\Discount;
 use App\Models\Folio;
 use App\Models\FolioLine;
@@ -74,25 +72,6 @@ class ReservationFolioController extends Controller
         Inertia::flash('toast', $result->isRefused()
             ? ['type' => 'error', 'message' => $refusals->message((string) $result->refusal)]
             : ['type' => 'success', 'message' => __('Line reversed.')]);
-
-        return back(fallback: $this->page($property, $reservation, $folio));
-    }
-
-    /**
-     * Move charges, with their children, to another folio of the same reservation. A line or folio outside the
-     * reservation is a 404. A refusal goes back to the Dialog as an error.
-     */
-    public function transfer(StoreFolioTransferRequest $request, Property $property, Reservation $reservation, Folio $folio, TransferLines $transferLines, FolioRefusals $refusals): RedirectResponse
-    {
-        $lines = $folio->lines()->findOrFail(array_values(array_unique($request->array('line_ids'))))->all();
-        $target = $reservation->folios()->findOrFail($request->integer('target_folio_id'));
-        $result = $transferLines($request->user(), $lines, $target);
-
-        if ($result->isRefused()) {
-            return back(fallback: $this->page($property, $reservation, $folio))->withErrors($refusals->errors((string) $result->refusal));
-        }
-
-        Inertia::flash('toast', ['type' => 'success', 'message' => __('Moved to folio :number.', ['number' => $target->number])]);
 
         return back(fallback: $this->page($property, $reservation, $folio));
     }

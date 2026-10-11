@@ -6,6 +6,7 @@ use App\Actions\Folio\MoveCharges;
 use App\Data\Folio\MovePreviewData;
 use App\Enums\FolioStatus;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Folio\MoveChargesPageRequest;
 use App\Http\Requests\Folio\MoveChargesRequest;
 use App\Models\Folio;
 use App\Models\FolioLine;
@@ -18,6 +19,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Collection;
 use Inertia\Inertia;
+use Inertia\Response;
 
 /**
  * The Move charges page of a reservation: the preview of a choice and the save. A folio, line or unit of another
@@ -25,6 +27,27 @@ use Inertia\Inertia;
  */
 class ReservationFolioMoveController extends Controller
 {
+    /**
+     * The page. `to` is the starting target and `line` a charge to tick; each must belong to the reservation (404
+     * otherwise). A reservation with no Open folio goes back to the folio tab with an error toast.
+     */
+    public function show(MoveChargesPageRequest $request, Property $property, Reservation $reservation, MoveChargesPreview $preview): Response|RedirectResponse
+    {
+        $to = $request->filled('to') ? $reservation->folios()->findOrFail($request->integer('to')) : null;
+        $line = $request->filled('line') ? FolioLine::query()->whereIn('folio_id', $reservation->folios()->select('folios.id'))->findOrFail($request->integer('line')) : null;
+        $target = $preview->startTarget($reservation, $to, $line);
+
+        if ($target === null) {
+            Inertia::flash('toast', ['type' => 'error', 'message' => __('There is no open folio to move charges to.')]);
+
+            return redirect(route('reservations.folio', ['property' => $property, 'reservation' => $reservation]));
+        }
+
+        return Inertia::render('reservations/move-charges', [
+            'move' => $preview->page($property, $reservation, $target, $line === null ? [] : [$line->id], $this->folioTab($property, $reservation, $target)),
+        ]);
+    }
+
     /**
      * The figures and notes for a choice. It writes nothing. A target that is not Open is a 422.
      */
@@ -51,7 +74,7 @@ class ReservationFolioMoveController extends Controller
         $result = $moveCharges($request->user(), $target, $lines->all(), $units->map(fn (ReservationUnit $unit): array => ['unit' => $unit, 'scope' => $request->scopes()[$unit->id]])->values()->all());
 
         if ($result->isRefused()) {
-            return back(fallback: $this->folioTab($property, $reservation, $target))->withErrors($refusals->errors((string) $result->refusal, $result->rooms));
+            return back(fallback: $this->page($property, $reservation, $target))->withErrors($refusals->errors((string) $result->refusal, $result->rooms));
         }
 
         $to = $preview->folioLabel($target);
@@ -112,6 +135,11 @@ class ReservationFolioMoveController extends Controller
         abort_unless($units->count() === count($ids), 404);
 
         return $units;
+    }
+
+    private function page(Property $property, Reservation $reservation, Folio $target): string
+    {
+        return route('reservations.folio.move', ['property' => $property, 'reservation' => $reservation, 'to' => $target->id]);
     }
 
     private function folioTab(Property $property, Reservation $reservation, Folio $target): string
