@@ -31,6 +31,7 @@ import { store } from '@/routes/reservations/check-out';
 type Props = {
     checkOut: App.Data.Reservations.GroupCheckOutPageData;
     canWaiveFees: boolean;
+    canPrintReceipts: boolean;
     paymentOptions?: App.Data.Payments.PaymentFormOptionsData;
 };
 
@@ -47,6 +48,7 @@ const plural = (count: number, one: string, many: string) =>
 export default function CheckOut({
     checkOut: page,
     canWaiveFees,
+    canPrintReceipts,
     paymentOptions,
 }: Props) {
     const currency = page.currency;
@@ -367,7 +369,9 @@ export default function CheckOut({
                     <GroupCheckOutDone
                         done={done}
                         currency={currency}
+                        reservationId={page.reservationId}
                         reservationUrl={cancelUrl}
+                        canPrintReceipts={canPrintReceipts}
                     />
                 </div>
             </>

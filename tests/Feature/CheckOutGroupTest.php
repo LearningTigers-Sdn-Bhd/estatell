@@ -2,6 +2,7 @@
 
 use App\Actions\Folio\CreateFolio;
 use App\Actions\Payments\RecordPayment;
+use App\Actions\Payments\RefundPayment;
 use App\Data\Payments\NewPaymentData;
 use App\Enums\DefaultRoleEnum;
 use App\Enums\FolioStatus;
@@ -28,6 +29,8 @@ use App\Models\RoomType;
 use App\Models\TransactionCode;
 use App\Models\UnitNight;
 use App\Models\User;
+use App\Services\Payments\PaymentReceipt;
+use App\Services\Property\PrintProfile;
 use Inertia\Testing\AssertableInertia as Assert;
 use Spatie\Activitylog\Models\Activity;
 
@@ -542,4 +545,72 @@ test('a Check out early save, done or refused, goes back to the group page', fun
         'idempotency_key' => fake()->uuid(),
         'expected_fee' => '0.00',
     ])->assertRedirect($page);
+});
+
+test('Print receipts is one PDF with every receipt of the save, in id order', function () {
+    $s = gcSetup(2);
+    gcCharge($s, $s['folios'][0], '45.00');
+    gcCharge($s, $s['folios'][1], '30.00');
+
+    $response = gcSave($this, $s, [
+        ['unit_id' => $s['units'][0]->id, 'choice' => 'collect', 'payment_method_id' => $s['cash']->id, 'amount' => '45.00'],
+        ['unit_id' => $s['units'][1]->id, 'choice' => 'collect', 'payment_method_id' => $s['cash']->id, 'amount' => '30.00'],
+    ]);
+    $payments = Payment::query()->orderBy('id')->get();
+    $url = gcUrl($s, 'receipts').'?'.http_build_query(['payments' => [$payments[1]->id, $payments[0]->id]]);
+
+    $pdf = $this->actingAs($s['user'])->get($url)->assertOk()->assertHeader('Content-Type', 'application/pdf');
+    $html = view('pdf.receipts', ['receipts' => $payments->map(fn (Payment $payment) => app(PaymentReceipt::class)->forPayment($payment))->all(), 'print' => app(PrintProfile::class)->for($s['property'])])->render();
+
+    expect($pdf->headers->get('Content-Disposition'))->toStartWith('inline;')->toContain('receipts-'.$s['reservation']->reference.'.pdf')
+        ->and($pdf->getContent())->toStartWith('%PDF-')
+        ->and($payments)->toHaveCount(2)
+        ->and(substr_count($html, 'page-break-before'))->toBe(1)
+        ->and(strpos($html, $payments[0]->receipt_number))->toBeLessThan(strpos($html, $payments[1]->receipt_number));
+});
+
+test('Print receipts is a 404 for a payment of another reservation or property or a refund, and needs payment.record', function () {
+    $s = gcSetup(1);
+    $deposit = gcDeposit($s, $s['units'][0], '20.00');
+    $refund = app(RefundPayment::class)($s['user'], $deposit, '10.00', null, fake()->uuid())->payment;
+    gcCharge($s, $s['folios'][0], '45.00');
+    gcSave($this, $s, [['unit_id' => $s['units'][0]->id, 'choice' => 'collect', 'payment_method_id' => $s['cash']->id, 'amount' => '45.00']]);
+    $payment = Payment::query()->whereNull('refund_of_id')->latest('id')->first();
+    $query = fn (array $ids): string => gcUrl($s, 'receipts').'?'.http_build_query(['payments' => $ids]);
+
+    $otherReservation = Reservation::factory()->create(['property_id' => $s['property']->id]);
+    $foreign = Payment::factory()->create(['folio_id' => Folio::factory()->master()->create(['property_id' => $s['property']->id, 'reservation_id' => $otherReservation->id])->id]);
+
+    $this->actingAs($s['user'])->get($query([$payment->id, $refund->id]))->assertNotFound();
+    $this->actingAs($s['user'])->get($query([$payment->id, $foreign->id]))->assertNotFound();
+    $this->actingAs($s['user'])->get($query([$payment->id]))->assertOk();
+    $this->actingAs($s['user'])->get(gcUrl($s, 'receipts'))->assertInvalid('payments');
+    $this->actingAs(gcStaff($s['property'], ['front-desk.check-out']))->get($query([$payment->id]))->assertForbidden();
+
+    $other = gcSetup(1);
+    $this->actingAs($other['user'])->get($query([$payment->id]))->assertNotFound();
+});
+
+test('the page tells whether the user may print receipts, and a save without payments has no payment ids', function () {
+    $s = gcSetup(1);
+    $url = route('reservations.check-out', ['property' => $s['property']->code, 'reservation' => $s['reservation']->id]);
+
+    $this->actingAs($s['user'])->get($url)->assertInertia(fn (Assert $page) => $page->where('canPrintReceipts', true));
+    $this->actingAs(gcStaff($s['property'], ['front-desk.check-out', 'reservations.view']))->get($url)->assertInertia(fn (Assert $page) => $page->where('canPrintReceipts', false));
+
+    gcSave($this, $s, [['unit_id' => $s['units'][0]->id]])->assertInertiaFlash('groupCheckOut.paymentIds', []);
+});
+
+test('a room that is out shows the day it checked out, and a cancelled room none', function () {
+    $s = gcSetup(1);
+    $out = ReservationUnit::factory()->for($s['reservation'])->checkedOut()->create(['room_type_id' => $s['units'][0]->room_type_id, 'arrival_date' => '2026-10-08', 'departure_date' => '2026-10-09', 'checked_out_at' => '2026-10-09 04:00:00']);
+    gcCharge($s, app(CreateFolio::class)($s['reservation'], $out), '30.00');
+    $cancelled = ReservationUnit::factory()->for($s['reservation'])->create(['room_type_id' => $s['units'][0]->room_type_id, 'status' => UnitStatus::Cancelled]);
+    gcCharge($s, app(CreateFolio::class)($s['reservation'], $cancelled), '10.00');
+
+    $rows = collect($this->actingAs($s['user'])->postJson(gcUrl($s, 'preview'))->assertOk()->json('rows'))->keyBy('unitId');
+
+    expect($rows[$out->id]['checkedOutOn'])->toBe('2026-10-09')
+        ->and($rows[$cancelled->id]['checkedOutOn'])->toBeNull()
+        ->and($rows[$s['units'][0]->id]['checkedOutOn'])->toBeNull();
 });

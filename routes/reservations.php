@@ -68,6 +68,8 @@ Route::prefix('reservations')->name('reservations.')->scopeBindings()->group(fun
                 Route::post('units/{unit}/payments', [ReservationPaymentController::class, 'storeForUnit'])->name('units.payments.store');
             });
 
+            Route::get('check-out/receipts', [ReservationGroupCheckOutController::class, 'receipts'])->middleware('can:'.PermissionEnum::PaymentRecord->value)->name('check-out.receipts');
+
             Route::middleware('can:'.PermissionEnum::FrontDeskCheckOut->value)->group(function () {
                 Route::get('check-out', [ReservationGroupCheckOutController::class, 'show'])->name('check-out');
                 Route::post('check-out/preview', [ReservationGroupCheckOutController::class, 'preview'])->name('check-out.preview');

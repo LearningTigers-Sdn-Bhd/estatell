@@ -50,7 +50,7 @@ Can't check out yet (2)
 - **Ready to check out**: the header checkbox ticks or unticks every row in the section.
 - **Money to settle**: CheckedOut, Cancelled and NoShow rooms whose folios still hold money. Each has a checkbox and no check-out step.
 - **Departing later** and **Can't check out yet**: muted rows with no checkbox, after the tables.
-- A room that is out (or cancelled) with nothing to settle is not a row: one muted line names the rooms. Cancelled and no-show rooms get their own line ("1 room cancelled with nothing to settle (111)."). Money to settle shows "Checked out", "Cancelled" or "No-show" without a date.
+- A room that is out (or cancelled) with nothing to settle is not a row: one muted line names the rooms. Cancelled and no-show rooms get their own line ("1 room cancelled with nothing to settle (111)."). Money to settle shows "Checked out 11 Oct" for a room that is out (from `checked_out_at`, in the property time zone) and "Cancelled" or "No-show" without a date.
 - The summary leaves out every part that is 0. With no money at all it reads "2 rooms check out. Nothing to settle."
 - On a narrow screen each row is a card with its settle choice, and the summary and the button stay in a sticky footer.
 - UI words: **group bill** for the Master folio ("Add to group bill", "Group bill (Master folio)"). Code keeps the Master names.
@@ -125,15 +125,16 @@ The group leader often pays everyone's extras. With **One payment for all** tick
 - Every unit keeps its own log entries, room Dirty, folio close and status sync, as today. One `reservation.group_checked_out` entry holds the totals.
 - A CheckedOut unit's folio left at 0 closes itself (`CloseSettledUnitFolio`).
 - Permission: `front-desk.check-out` for the page, plus the money permissions above.
-- **After saving**: the store redirects to the same page with Inertia flash data `groupCheckOut` (`GroupCheckOutDoneData`: rooms checked out and settled, collected, refunded, moved, the invoice number, the payment ids of the save and the Master link). The page shows a success state with the totals, **Print receipts** (one PDF with every receipt of this save, built from the payment ids; added in the next commit) and the Master next step: **Settle to City ledger** while the Master is Open and the user may settle it, else **Open folio** (both open the Master folio tab).
+- **After saving**: the store redirects to the same page with Inertia flash data `groupCheckOut` (`GroupCheckOutDoneData`: rooms checked out and settled, collected, refunded, moved, the invoice number, the payment ids of the save and the Master link). The page shows a success state with the totals, **Print receipts** (opens one PDF with every receipt of this save in a new tab, built from the payment ids by `reservations.check-out.receipts`; shown only with payment.record and at least one payment) and the Master next step: **Settle to City ledger** while the Master is Open and the user may settle it, else **Open folio** (both open the Master folio tab).
 
 ## Routes and entry
 
-| URL                                                  | Name                             | Does                                           |
-| ---------------------------------------------------- | -------------------------------- | ---------------------------------------------- |
-| `GET /p/{code}/reservations/{reservation}/check-out` | `reservations.check-out`         | The page                                       |
-| `POST …/check-out/preview` (JSON)                    | `reservations.check-out.preview` | Rows, balances and the summary, writes nothing |
-| `POST …/check-out`                                   | `reservations.check-out.store`   | `CheckOutGroup`                                |
+| URL                                                  | Name                              | Does                                                                                                        |
+| ---------------------------------------------------- | --------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `GET /p/{code}/reservations/{reservation}/check-out` | `reservations.check-out`          | The page                                                                                                    |
+| `POST …/check-out/preview` (JSON)                    | `reservations.check-out.preview`  | Rows, balances and the summary, writes nothing                                                              |
+| `POST …/check-out`                                   | `reservations.check-out.store`    | `CheckOutGroup`                                                                                             |
+| `GET …/check-out/receipts?payments[]=…`              | `reservations.check-out.receipts` | One PDF with the receipts of the save (`payment.record`); an id of another reservation or a refund is a 404 |
 
 | Entry                                                                                                                            | Goes to                                  |
 | -------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------- |

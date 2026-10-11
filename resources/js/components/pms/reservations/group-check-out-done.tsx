@@ -3,6 +3,7 @@ import { CheckCircle2 } from 'lucide-react';
 import { MoneyText } from '@/components/pms/money-text';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { buttonVariants } from '@/components/ui/button';
+import { receipts } from '@/routes/reservations/check-out';
 
 type Done = App.Data.Reservations.GroupCheckOutDoneData;
 
@@ -27,17 +28,21 @@ function Figure({
 }
 
 /**
- * The state after a group check-out is saved: the totals, then the next steps. Print receipts (one PDF with every
- * receipt of this save, from `done.paymentIds`) goes in the marked spot; it is the next commit.
+ * The state after a group check-out is saved: the totals, then the next steps. Print receipts opens one PDF with every
+ * receipt of this save (`done.paymentIds`) in a new tab; it is shown only with `payment.record` (`canPrintReceipts`).
  */
 export function GroupCheckOutDone({
     done,
     currency,
+    reservationId,
     reservationUrl,
+    canPrintReceipts,
 }: {
     done: Done;
     currency: App.Enums.Currency | null;
+    reservationId: number;
     reservationUrl: string;
+    canPrintReceipts: boolean;
 }) {
     return (
         <div className="flex max-w-xl flex-col gap-4">
@@ -83,7 +88,19 @@ export function GroupCheckOutDone({
             </div>
 
             <div className="flex flex-wrap gap-2">
-                {/* Print receipts goes here (next commit): one PDF for done.paymentIds. */}
+                {canPrintReceipts && done.paymentIds.length > 0 && (
+                    <a
+                        href={receipts.url(
+                            { reservation: reservationId },
+                            { query: { payments: done.paymentIds } },
+                        )}
+                        target="_blank"
+                        rel="noopener"
+                        className={buttonVariants({ variant: 'outline' })}
+                    >
+                        Print receipts ({done.paymentIds.length})
+                    </a>
+                )}
                 {done.masterUrl !== null && (
                     <Link
                         href={done.masterUrl}

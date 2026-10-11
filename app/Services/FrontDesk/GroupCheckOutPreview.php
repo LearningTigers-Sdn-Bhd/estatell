@@ -100,13 +100,14 @@ class GroupCheckOutPreview
         }
 
         $master = $this->openMaster($reservation);
+        $timeZone = $property->settings->time_zone ?? config('app.timezone');
         $units = $reservation->units()->with(['guests.guest', 'roomType'])->orderBy('id')->get();
         $names = $this->incomingScheduledCharges->unitNames($units->modelKeys());
         $rows = [];
         $nothing = ['out' => [], 'cancelled' => []];
 
         foreach ($units as $unit) {
-            $row = $this->row($unit, $user, $businessDate, $master, $names, $methods, $nothing);
+            $row = $this->row($unit, $user, $businessDate, $master, $timeZone, $names, $methods, $nothing);
 
             if ($row !== null) {
                 $rows[] = $row;
@@ -183,7 +184,7 @@ class GroupCheckOutPreview
      * @param  array{data: list<PaymentMethodOptionData>, first: int|null}  $methods
      * @param  array{out: list<string>, cancelled: list<string>}  $nothing  Gets the name of a room that is out or cancelled with nothing to settle, which is not a row.
      */
-    private function row(ReservationUnit $unit, User $user, CarbonImmutable $businessDate, ?Folio $master, array $names, array $methods, array &$nothing): ?GroupCheckOutRowData
+    private function row(ReservationUnit $unit, User $user, CarbonImmutable $businessDate, ?Folio $master, string $timeZone, array $names, array $methods, array &$nothing): ?GroupCheckOutRowData
     {
         $kind = $this->kind($unit, $businessDate);
         $folios = $this->checkOutSettlement->folios($unit);
@@ -248,6 +249,7 @@ class GroupCheckOutPreview
                 default => $folioClosed ? __('Folio closed: reopen it to settle.') : null,
             },
             $unit->departure_date->toDateString(),
+            $kind === self::KIND_OUT ? $unit->checked_out_at?->setTimezone($timeZone)->toDateString() : null,
             (string) $balance->toScale(2),
             (string) ($balance->isPositive() ? $balance : BigDecimal::zero())->toScale(2),
             (string) ($credit->isLessThan($refundPool) ? $credit : $refundPool)->toScale(2),

@@ -8,15 +8,20 @@ use App\Data\Reservations\GroupCheckOutPageData;
 use App\Enums\PermissionEnum;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Reservations\CheckOutGroupPreviewRequest;
+use App\Http\Requests\Reservations\CheckOutGroupReceiptsRequest;
 use App\Http\Requests\Reservations\CheckOutGroupRequest;
+use App\Models\Payment;
 use App\Models\Property;
 use App\Models\Reservation;
 use App\Services\FrontDesk\GroupCheckOutPreview;
 use App\Services\FrontDesk\GroupCheckOutRefusals;
+use App\Services\Payments\PaymentReceipt;
+use App\Services\Property\PrintedPdf;
 use App\Services\Reservations\ReservationFormOptions;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response as HttpResponse;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -27,8 +32,8 @@ use Inertia\Response;
 class ReservationGroupCheckOutController extends Controller
 {
     /**
-     * The page: the rooms, the Master line and the summary of the prefilled choices. `paymentOptions` and `canWaiveFees`
-     * are for the **Check out** Dialog that **Check out early…** opens, as on the reservation page.
+     * The page: the rooms, the Master line and the summary of the prefilled choices. `canPrintReceipts` shows Print receipts on the
+     * success state. `paymentOptions` and `canWaiveFees` are for the **Check out** Dialog that **Check out early…** opens, as on the reservation page.
      */
     public function show(Request $request, Property $property, Reservation $reservation, GroupCheckOutPreview $preview, ReservationFormOptions $options): Response
     {
@@ -45,6 +50,7 @@ class ReservationGroupCheckOutController extends Controller
                 route('reservations.show', ['property' => $property, 'reservation' => $reservation]),
             ),
             'canWaiveFees' => $request->user()->can(PermissionEnum::FrontDeskWaiveFees->value),
+            'canPrintReceipts' => $request->user()->can(PermissionEnum::PaymentRecord->value),
             'paymentOptions' => Inertia::optional(fn () => $options->payments($property)),
         ]);
     }
@@ -88,6 +94,28 @@ class ReservationGroupCheckOutController extends Controller
         Inertia::flash('groupCheckOut', GroupCheckOutDoneData::fromResult($result, $master, $masterUrl)->toArray());
 
         return redirect($page);
+    }
+
+    /**
+     * One PDF with the receipt of every payment the save recorded, in id order, one per page. Every id must be a
+     * payment of this reservation and property and not a refund (a refund has no receipt), else 404.
+     */
+    public function receipts(CheckOutGroupReceiptsRequest $request, Property $property, Reservation $reservation, PaymentReceipt $paymentReceipt, PrintedPdf $printedPdf): HttpResponse
+    {
+        $ids = $request->paymentIds();
+        $payments = Payment::query()
+            ->whereIn('id', $ids)
+            ->whereNull('refund_of_id')
+            ->whereHas('folio', fn ($folios) => $folios->where('reservation_id', $reservation->id)->where('property_id', $property->id))
+            ->orderBy('id')
+            ->get();
+
+        abort_unless($payments->count() === count($ids), 404);
+
+        $receipts = $payments->map(fn (Payment $payment) => $paymentReceipt->forPayment($payment))->all();
+
+        return $printedPdf->make($property, 'pdf.receipts', ['receipts' => $receipts])
+            ->stream('receipts-'.$reservation->reference.'.pdf');
     }
 
     private function units(CheckOutGroupRequest $request, Reservation $reservation): void

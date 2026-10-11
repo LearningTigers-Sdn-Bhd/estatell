@@ -49,6 +49,22 @@ const statusText: Record<string, string> = {
     no_show: 'No-show',
 };
 
+/** "Checked out 11 Oct" for a room that is out, else the plain status. The date is parsed as a local date. */
+function statusLabel(row: Row): string | undefined {
+    const text = statusText[row.status];
+
+    if (text === undefined || row.checkedOutOn === null) {
+        return text;
+    }
+
+    const [year, month, day] = row.checkedOutOn.split('-').map(Number);
+
+    return `${text} ${new Date(year, month - 1, day).toLocaleDateString(
+        'en-GB',
+        { day: 'numeric', month: 'short' },
+    )}`;
+}
+
 /**
  * One section of the group check-out page as a real table: a heading with the count, a header checkbox that ticks or
  * unticks every room of the section, and one row per room. On a narrow screen each row is a card.
@@ -203,9 +219,9 @@ function GroupCheckOutRow({
             </TableCell>
             <TableCell className="align-top text-sm whitespace-normal max-lg:basis-full lg:min-w-72">
                 <div className="flex min-w-0 flex-col gap-2">
-                    {statusText[row.status] && (
+                    {statusLabel(row) && (
                         <p className="text-muted-foreground">
-                            {statusText[row.status]}
+                            {statusLabel(row)}
                         </p>
                     )}
                     {row.note !== null && (
