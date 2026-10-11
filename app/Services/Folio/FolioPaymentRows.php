@@ -24,9 +24,10 @@ class FolioPaymentRows
     /**
      * @param  Collection<int, Folio>  $folios  By folio id, with `payerCompany` loaded
      * @param  string|null  $fallbackCompany  The company named on a city ledger line when its folio has no payer company
+     * @param  bool  $withCityLedger  False leaves the city ledger line out of the rows and the billed total, for the AR invoice
      * @return array{0: list<DocumentPayment>, 1: string, 2: string} The rows, paid and billed
      */
-    public function for(Property $property, Collection $folios, ?string $fallbackCompany): array
+    public function for(Property $property, Collection $folios, ?string $fallbackCompany, bool $withCityLedger = true): array
     {
         $ids = $folios->keys()->all();
         $lines = FolioLine::query()
@@ -53,6 +54,10 @@ class FolioPaymentRows
             $date = CarbonImmutable::parse($line->posting_date->toDateString());
 
             if ($line->transactionCode?->system_key === SystemTransactionCode::DirectBillPayment->value) {
+                if (! $withCityLedger) {
+                    continue;
+                }
+
                 $billed = $billed->minus($line->amount);
                 $company = $folios[$line->folio_id]->payerCompany?->name ?? $fallbackCompany;
                 $invoice = $invoices->get($line->folio_id);

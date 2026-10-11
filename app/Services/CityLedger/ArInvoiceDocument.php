@@ -2,30 +2,50 @@
 
 namespace App\Services\CityLedger;
 
+use App\Enums\Currency;
+use App\Services\Folio\DocumentLineGroups;
+use App\Services\Folio\DocumentPayment;
+
 /**
  * Everything the AR invoice PDF shows, already formatted, so the Blade view does no lookups. Amounts are decimal
- * strings with two places. `lines` hold [date, description, amount]. `creditFor` is the invoice number a credit note
- * corrects, and `reason` is a credit note's reason.
+ * strings with two places. A credit note uses `billToLines`, the dates, `creditFor`, `reason` and `total`, and keeps
+ * its own layout. An invoice uses `strip` (the info strip cells that have a value), `rooms` (the Rooms block, empty when
+ * Room and guest on lines is on), `lines` (null without a folio), `payments` (the guest payments at the hotel, the city
+ * ledger line left out), `paid`, `amountDue`, `amountInWords` and `paymentDetails`.
  */
-class ArInvoiceDocument
+final readonly class ArInvoiceDocument
 {
     /**
      * @param  list<string>  $billToLines
-     * @param  list<array{0: string, 1: string, 2: string}>  $lines
+     * @param  list<array{label: string, lines: list<string>}>  $strip
+     * @param  list<string>  $rooms
+     * @param  list<DocumentPayment>  $payments
      */
     public function __construct(
-        public readonly string $title,
-        public readonly string $number,
-        public readonly string $companyName,
-        public readonly array $billToLines,
-        public readonly string $issuedOn,
-        public readonly ?string $dueOn,
-        public readonly ?string $folioNumber,
-        public readonly ?string $creditFor,
-        public readonly ?string $reason,
-        public readonly string $currency,
-        public readonly array $lines,
-        public readonly string $total,
-        public readonly bool $isVoid,
+        public string $title,
+        public string $number,
+        public bool $isCreditNote,
+        public string $companyName,
+        public array $billToLines,
+        public string $issuedOn,
+        public ?string $dueOn,
+        public ?string $creditFor,
+        public ?string $reason,
+        public ?Currency $currency,
+        public string $total,
+        public bool $isVoid,
+        public array $strip = [],
+        public array $rooms = [],
+        public ?DocumentLineGroups $lines = null,
+        public array $payments = [],
+        public string $paid = '0.00',
+        public string $amountDue = '0.00',
+        public ?string $amountInWords = null,
+        public ?string $paymentDetails = null,
     ) {}
+
+    public function currencyCode(): string
+    {
+        return $this->currency?->value ?? '';
+    }
 }

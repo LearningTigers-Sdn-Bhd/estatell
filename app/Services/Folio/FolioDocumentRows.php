@@ -5,6 +5,7 @@ namespace App\Services\Folio;
 use App\Enums\ChargingUnit;
 use App\Enums\SellUnit;
 use App\Enums\TransactionKind;
+use App\Models\Folio;
 use App\Models\FolioLine;
 use App\Models\Property;
 use App\Models\ReservationUnit;
@@ -152,6 +153,29 @@ class FolioDocumentRows
             $unit->guests->firstWhere('is_primary', true)?->guest?->full_name,
             DateRange::short(CarbonImmutable::parse($unit->arrival_date->toDateString()), CarbonImmutable::parse($unit->departure_date->toDateString())),
         ], filled(...))))->values()->all();
+    }
+
+    /**
+     * The units that have a charge on the folio (a line that is reversed on it does not count), and the unit of a Unit folio.
+     *
+     * @param  list<DocumentRow>  $rows
+     * @param  Collection<int, ReservationUnit>  $units
+     * @return Collection<int, ReservationUnit>
+     */
+    public function unitsOnFolio(Folio $folio, array $rows, Collection $units): Collection
+    {
+        $reversed = array_filter(array_map(fn (DocumentRow $row): ?int => $row->reversalOfId, $rows));
+        $ids = [$folio->reservation_unit_id];
+
+        foreach ($rows as $row) {
+            if ($row->reversalOfId === null && ! in_array($row->lineId, $reversed, true)) {
+                $ids[] = $row->unitId;
+            }
+        }
+
+        $ids = array_filter($ids);
+
+        return $units->filter(fn (ReservationUnit $unit): bool => in_array($unit->id, $ids, true))->values();
     }
 
     /**

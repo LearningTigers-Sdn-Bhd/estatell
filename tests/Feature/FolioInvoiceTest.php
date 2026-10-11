@@ -343,5 +343,5 @@ test('the folio tab offers Print invoice on a Closed folio to a user who may pri
     $url = route('reservations.folio', ['property' => $setup['property']->code, 'reservation' => $setup['reservation']->id, 'folio' => $folio->id]);
 
     $this->actingAs($setup['user'])->get($url)->assertInertia(fn ($page) => $page->where('folio.canPrintInvoice', true));
-    $this->actingAs($setup['user'])->get(str_replace((string) $folio->id, (string) $open->id, $url))->assertInertia(fn ($page) => $page->where('folio.canPrintInvoice', false));
+    $this->actingAs($setup['user'])->get(route('reservations.folio', ['property' => $setup['property']->code, 'reservation' => $setup['reservation']->id, 'folio' => $open->id]))->assertInertia(fn ($page) => $page->where('folio.canPrintInvoice', false));
 });

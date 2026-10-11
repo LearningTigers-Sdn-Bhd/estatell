@@ -60,7 +60,7 @@ class ArInvoiceController extends Controller
     {
         $document = $printer->forInvoice($invoice);
 
-        return $printedPdf->make($property, 'pdf.ar-invoice', ['document' => $document])
+        return $printedPdf->make($property, 'pdf.ar-invoice', ['document' => $document, 'settings' => $property->printSetting])
             ->stream('ar-'.$document->number.'.pdf');
     }
 

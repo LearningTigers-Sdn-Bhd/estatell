@@ -44,7 +44,7 @@ class FolioInvoice
         $lines = $folio->lines()->orderBy('posting_date')->orderBy('id')->get();
         $rows = $this->documentRows->for($property, $lines, $units, $places);
         $groups = $this->documentLines->group($rows, $settings);
-        $onFolio = $this->unitsOnFolio($folio, $rows, $units);
+        $onFolio = $this->documentRows->unitsOnFolio($folio, $rows, $units);
 
         [$payments, $paid, $billed] = $this->paymentRows->for($property, collect([$folio->id => $folio]), $reservation->company?->name);
         $balance = (string) BigDecimal::of($groups->total)->minus($paid)->minus($billed)->toScale(2);
@@ -63,29 +63,6 @@ class FolioInvoice
             totalInWords: $settings->show_amount_in_words && $groups->groups !== [] ? $this->amountInWords->for($groups->total, $currency) : null,
             showSignatureLines: $settings->show_signature_lines,
         );
-    }
-
-    /**
-     * The units that have a charge on the folio (a line that is reversed on it does not count), and the unit of a Unit folio.
-     *
-     * @param  list<DocumentRow>  $rows
-     * @param  Collection<int, ReservationUnit>  $units
-     * @return Collection<int, ReservationUnit>
-     */
-    private function unitsOnFolio(Folio $folio, array $rows, Collection $units): Collection
-    {
-        $reversed = array_filter(array_map(fn (DocumentRow $row): ?int => $row->reversalOfId, $rows));
-        $ids = [$folio->reservation_unit_id];
-
-        foreach ($rows as $row) {
-            if ($row->reversalOfId === null && ! in_array($row->lineId, $reversed, true)) {
-                $ids[] = $row->unitId;
-            }
-        }
-
-        $ids = array_filter($ids);
-
-        return $units->filter(fn (ReservationUnit $unit): bool => in_array($unit->id, $ids, true))->values();
     }
 
     /**
