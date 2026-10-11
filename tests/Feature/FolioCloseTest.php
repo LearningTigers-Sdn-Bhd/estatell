@@ -9,6 +9,7 @@ use App\Actions\Folio\TransferLines;
 use App\Data\Folio\NewChargeData;
 use App\Enums\DefaultRoleEnum;
 use App\Enums\FolioStatus;
+use App\Enums\PermissionEnum;
 use App\Enums\SystemTransactionCode;
 use App\Enums\UnitStatus;
 use App\Models\ArInvoice;
@@ -20,6 +21,7 @@ use App\Models\Property;
 use App\Models\PropertySetting;
 use App\Models\Reservation;
 use App\Models\ReservationUnit;
+use App\Models\Role;
 use App\Models\Room;
 use App\Models\TransactionCode;
 use App\Models\UnitNight;
@@ -377,4 +379,51 @@ test('the folio page sends the notice of a closed folio', function () {
         ->assertInertia(fn ($page) => $page
             ->where('folio.canReopen', true)
             ->where('folio.closedNotice', fn ($notice) => str_starts_with((string) $notice, 'Closed at check-out today, ')));
+});
+
+/**
+ * A Closed folio billed to a company on an AR invoice, and the folio page URL.
+ *
+ * @return array{setup: array, invoice: ArInvoice, url: string}
+ */
+function fcBilledFolio(bool $void = false): array
+{
+    $setup = fcSetup();
+    $company = Company::factory()->for($setup['property'])->create();
+    $folio = Folio::factory()->thirdParty()->closed()->create(['property_id' => $setup['property']->id, 'reservation_id' => $setup['folio']->reservation_id, 'payer_company_id' => $company->id, 'invoice_number' => 'F-0031']);
+    $invoice = ($void ? ArInvoice::factory()->void() : ArInvoice::factory())->create(['property_id' => $setup['property']->id, 'company_id' => $company->id, 'folio_id' => $folio->id, 'number' => 'F-0031']);
+
+    return ['setup' => $setup, 'invoice' => $invoice, 'url' => route('reservations.folio', ['property' => $setup['property']->code, 'reservation' => $folio->reservation_id, 'folio' => $folio->id])];
+}
+
+test('the closed notice links to the invoice and its credit note by permission', function () {
+    $billed = fcBilledFolio();
+    $manager = User::factory()->withRole(DefaultRoleEnum::Manager)->create(['property_id' => $billed['setup']['property']->id]);
+    $frontDesk = User::factory()->withRole(DefaultRoleEnum::FrontDesk)->create(['property_id' => $billed['setup']['property']->id]);
+
+    $this->actingAs($manager)->get($billed['url'])->assertInertia(fn ($page) => $page
+        ->where('folio.arInvoiceId', $billed['invoice']->id)
+        ->where('folio.canOpenArInvoice', true)
+        ->where('folio.canCreditArInvoice', true));
+
+    $this->actingAs($frontDesk)->get($billed['url'])->assertInertia(fn ($page) => $page
+        ->where('folio.canOpenArInvoice', true)
+        ->where('folio.canCreditArInvoice', false));
+
+    setPermissionsTeamId($billed['setup']['property']->id);
+    Role::query()->where('property_id', $billed['setup']['property']->id)->where('default_role', DefaultRoleEnum::Manager)->firstOrFail()->revokePermissionTo(PermissionEnum::CompanyView->value);
+
+    $this->actingAs($manager->fresh())->get($billed['url'])->assertInertia(fn ($page) => $page
+        ->where('folio.canOpenArInvoice', false)
+        ->where('folio.canCreditArInvoice', true));
+});
+
+test('a Void invoice gives the closed folio no invoice links', function () {
+    $billed = fcBilledFolio(void: true);
+    $manager = User::factory()->withRole(DefaultRoleEnum::Manager)->create(['property_id' => $billed['setup']['property']->id]);
+
+    $this->actingAs($manager)->get($billed['url'])->assertInertia(fn ($page) => $page
+        ->where('folio.arInvoiceId', null)
+        ->where('folio.canOpenArInvoice', false)
+        ->where('folio.canCreditArInvoice', false));
 });

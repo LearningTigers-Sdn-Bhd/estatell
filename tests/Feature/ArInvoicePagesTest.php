@@ -333,3 +333,19 @@ test('after reversing a payment a credit note at the new balance succeeds', func
 
     expect(ArInvoice::query()->where('type', ArInvoiceType::CreditNote)->sole()->amount)->toBe('-300.00');
 });
+
+test('credit=1 opens the credit note Dialog only when the user may issue one', function () {
+    $setup = invoicePagesSetup();
+    $invoice = ArInvoice::factory()->create(['property_id' => $setup['property']->id]);
+    $void = ArInvoice::factory()->void()->create(['property_id' => $setup['property']->id]);
+
+    $this->actingAs($setup['user']);
+    $this->get(invoiceUrl($setup, "/{$invoice->id}?credit=1"))->assertInertia(fn (Assert $page) => $page->where('openCreditNote', true));
+    $this->get(invoiceUrl($setup, "/{$invoice->id}"))->assertInertia(fn (Assert $page) => $page->where('openCreditNote', false));
+    $this->get(invoiceUrl($setup, "/{$void->id}?credit=1"))->assertInertia(fn (Assert $page) => $page->where('openCreditNote', false));
+
+    $frontDesk = invoicePagesSetup(DefaultRoleEnum::FrontDesk);
+    $other = ArInvoice::factory()->create(['property_id' => $frontDesk['property']->id]);
+
+    $this->actingAs($frontDesk['user'])->get(invoiceUrl($frontDesk, "/{$other->id}?credit=1"))->assertInertia(fn (Assert $page) => $page->where('openCreditNote', false));
+});

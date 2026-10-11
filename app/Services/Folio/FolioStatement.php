@@ -13,6 +13,7 @@ use App\Enums\FolioStatus;
 use App\Enums\FolioType;
 use App\Enums\PaymentPurpose;
 use App\Enums\PaymentStatus;
+use App\Enums\PermissionEnum;
 use App\Enums\TransactionKind;
 use App\Enums\UnitStatus;
 use App\Models\Company;
@@ -201,6 +202,7 @@ class FolioStatement
             ? $this->paymentPurposeChoices->for($reservation, $folio, $entry['unit'])
             : [];
         $canSettle = ($can['settleCityLedger'] ?? false) && $isOpen && $folio?->payer_company_id !== null && $balance !== null && bccomp($balance, '0', 2) > 0;
+        $billedBy = $folio !== null && $user !== null ? $this->folioReopenRule->billingInvoice($folio) : null;
         $projected = $scheduled->reduce(fn (BigDecimal $sum, FolioRowData $row): BigDecimal => $sum->plus($row->amount), BigDecimal::of($balance ?? '0'));
 
         return new FolioData(
@@ -229,6 +231,9 @@ class FolioStatement
             defaultPaymentPurpose: ($purposes[0] ?? null)?->value,
             settleCreditWarning: $canSettle ? $this->settleCreditWarning($folio) : null,
             canPrintInvoice: $folio?->status === FolioStatus::Closed && $folio->invoice_number !== null && ($can['printVoucher'] ?? false),
+            arInvoiceId: $billedBy?->id,
+            canOpenArInvoice: $billedBy !== null && $user->can(PermissionEnum::CompanyView->value),
+            canCreditArInvoice: $billedBy !== null && $user->can(PermissionEnum::CityLedgerCreditNote->value),
             closedNotice: $folio !== null && $user !== null ? $this->folioReopenRule->notice($user, $folio) : null,
         );
     }

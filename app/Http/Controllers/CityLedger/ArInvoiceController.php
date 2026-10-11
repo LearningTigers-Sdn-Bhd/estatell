@@ -48,8 +48,11 @@ class ArInvoiceController extends Controller
 
     public function show(Request $request, Property $property, ArInvoice $invoice, ArInvoiceDetail $detail): Response
     {
+        $data = $detail->build($invoice, $request->user());
+
         return Inertia::render('finance/city-ledger/invoices/show', [
-            'invoice' => $detail->build($invoice, $request->user()),
+            'invoice' => $data,
+            'openCreditNote' => $data->canCreditNote && $request->boolean('credit'),
             'currency' => $property->settings?->currency,
         ]);
     }

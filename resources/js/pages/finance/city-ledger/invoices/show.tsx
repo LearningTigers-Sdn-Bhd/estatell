@@ -1,6 +1,6 @@
-import { Form, Head, Link } from '@inertiajs/react';
+import { Form, Head, Link, router } from '@inertiajs/react';
 import { FilePlus2, Printer } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ReverseAllocationDialog } from '@/components/pms/city-ledger/reverse-allocation-dialog';
 import { IssueCreditNoteDialog } from '@/components/pms/city-ledger/issue-credit-note-dialog';
 import { DateText } from '@/components/pms/date-text';
@@ -101,11 +101,24 @@ function VoidAction({ invoice }: { invoice: Invoice }) {
 export default function InvoiceShow({
     invoice,
     currency,
+    openCreditNote,
 }: {
     invoice: Invoice;
     currency: App.Enums.Currency | null;
+    openCreditNote: boolean;
 }) {
-    const [crediting, setCrediting] = useState(false);
+    const [crediting, setCrediting] = useState(openCreditNote);
+
+    // Drop ?credit=1 after the first open, so a reload of this visit does not reopen the Dialog.
+    useEffect(() => {
+        if (openCreditNote) {
+            router.replace({
+                url: show.url({ invoice: invoice.row.id }),
+                preserveScroll: true,
+                preserveState: true,
+            });
+        }
+    }, [openCreditNote, invoice.row.id]);
     const [reversing, setReversing] =
         useState<App.Data.CityLedger.ArAllocationRowData | null>(null);
     const [returnToCredit, setReturnToCredit] = useState(false);

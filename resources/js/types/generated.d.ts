@@ -324,6 +324,9 @@ defaultPaymentPurpose: string | null,
 closedNotice: string | null,
 settleCreditWarning: string | null,
 canPrintInvoice: boolean,
+arInvoiceId: number | null,
+canOpenArInvoice: boolean,
+canCreditArInvoice: boolean,
 };
 export type FolioDiscountOptionData = {
 id: number,

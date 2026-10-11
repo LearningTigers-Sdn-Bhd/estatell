@@ -46,6 +46,18 @@ class FolioReopenRule
     }
 
     /**
+     * The AR invoice that bills a Closed folio and keeps it from reopening: the oldest one that is not Void.
+     */
+    public function billingInvoice(Folio $folio): ?ArInvoice
+    {
+        if ($folio->status !== FolioStatus::Closed) {
+            return null;
+        }
+
+        return ArInvoice::query()->where('folio_id', $folio->id)->where('status', '<>', ArInvoiceStatus::Void)->with('company:id,name')->oldest('id')->first();
+    }
+
+    /**
      * The notice above the rows of a Closed folio, or null for any other folio.
      */
     public function notice(User $user, Folio $folio): ?string
@@ -54,7 +66,7 @@ class FolioReopenRule
             return null;
         }
 
-        $invoice = ArInvoice::query()->where('folio_id', $folio->id)->where('status', '<>', ArInvoiceStatus::Void)->with('company:id,name')->oldest('id')->first();
+        $invoice = $this->billingInvoice($folio);
 
         if ($invoice !== null) {
             return __('Billed to :company on invoice :number. Use a third-party folio or a credit note.', [
