@@ -87,7 +87,10 @@ The group leader often pays everyone's extras. With **One payment for all** tick
 3. With `$settleMaster`, `SettleToCityLedger` on the Master.
 
 - **One transaction, all or nothing.** `CheckOutAndRefund` opens its own transaction, which becomes a savepoint here and rolls back only itself on a refusal, so `CheckOutGroup` checks every step's result and rolls back the whole save on the first refusal. Money is involved, and a half-done save (some receipts issued, some rooms still in) is hard to undo. A refusal saves nothing and shows on its row: "Room 108: the card payment needs a reference."
-- Each payment and refund uses `{uuid}:{unit}:collect` and `{uuid}:{payment id}` keys, as the check-out Dialog does, so a double click records once.
+- Each payment and refund uses `{uuid}:{unit}:collect` and `{uuid}:{payment id}` keys, as the check-out Dialog does, and One payment for all uses `{uuid}:all`, so a double click records once (a repeat of a save finds its payments and refunds and adds none).
+- One payment for all carries the amount the page showed. The server adds up what it moves to the paying room (plus the payer's own balance when its row is Collect) and refuses with `amount_changed` when the total differs. The paying room is a CheckedIn or CheckedOut row with an open folio, set to Collect or nothing.
+- A refusal comes back as the room (unit id) and a code, and shows as an error keyed `units.{id}`. A CheckedOut, Cancelled or NoShow room that was settled must end with its folios at 0, else `balance_not_settled`.
+- Server-side checks of the choices: Collect `payment.record`, Refund `payment.refund`, Add to Master and One payment for all `folio.transfer`, and a move of a folio that holds payments `payment.refund`. Otherwise the save is a 422 on the room.
 - Every unit keeps its own log entries, room Dirty, folio close and status sync, as today. One `reservation.group_checked_out` entry holds the totals.
 - A CheckedOut unit's folio left at 0 closes itself (`CloseSettledUnitFolio`).
 - Permission: `front-desk.check-out` for the page, plus the money permissions above.

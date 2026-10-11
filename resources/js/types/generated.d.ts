@@ -1536,6 +1536,54 @@ export type FreeUnitData = {
 id: number,
 label: string,
 };
+export type GroupCheckOutMasterData = {
+folioId: number,
+label: string,
+balance: string,
+payerCompany: string | null,
+canSettle: boolean,
+};
+export type GroupCheckOutPreviewData = {
+rows: App.Data.Reservations.GroupCheckOutRowData[],
+master: App.Data.Reservations.GroupCheckOutMasterData | null,
+summary: App.Data.Reservations.GroupCheckOutSummaryData,
+methods: App.Data.Payments.PaymentMethodOptionData[],
+error: string | null,
+};
+export type GroupCheckOutRowData = {
+unitId: number,
+label: string,
+guest: string | null,
+status: string,
+group: string,
+ticked: boolean,
+selectable: boolean,
+note: string | null,
+departure: string,
+balance: string,
+collectAmount: string,
+refundAmount: string,
+moveAmount: string,
+refundOnMove: string,
+moveNote: string | null,
+choices: string[],
+defaultChoice: string | null,
+methodId: number | null,
+incoming: string[],
+folioClosed: boolean,
+folioId: number | null,
+canReopen: boolean,
+};
+export type GroupCheckOutSummaryData = {
+collect: string,
+refund: string,
+moveToMaster: string,
+roomsOut: number,
+roomsSettled: number,
+settleMaster: boolean,
+masterAfter: string | null,
+onePayment: string | null,
+};
 export type NewAddOnData = {
 chargeItemId: number,
 quantity: number | null,

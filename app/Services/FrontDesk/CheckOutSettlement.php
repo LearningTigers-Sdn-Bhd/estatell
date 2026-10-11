@@ -8,6 +8,7 @@ use App\Enums\FolioStatus;
 use App\Enums\FolioType;
 use App\Enums\PaymentPurpose;
 use App\Enums\PaymentStatus;
+use App\Enums\TransactionKind;
 use App\Models\Folio;
 use App\Models\FolioLine;
 use App\Models\Payment;
@@ -141,6 +142,86 @@ class CheckOutSettlement
             'shares' => array_filter($shares, fn (BigDecimal $amount, int $unitId): bool => $unitId === $unit->id || ! $amount->isZero(), ARRAY_FILTER_USE_BOTH),
             'otherLineIds' => $otherLineIds,
         ];
+    }
+
+    /**
+     * The charges of the unit's Open folios that `TransferLines` accepts, oldest first: not a child, not a reversal,
+     * not reversed, not owned by a payment and not a payment-kind line (a City ledger line). Payments never move.
+     *
+     * @param  Collection<int, Folio>  $folios
+     * @return Collection<int, FolioLine>
+     */
+    public function movableLines(Collection $folios): Collection
+    {
+        $open = $folios->where('status', FolioStatus::Open);
+        $lines = FolioLine::query()->whereIn('folio_id', $open->modelKeys())->orderBy('id')->get();
+        $reversed = $lines->pluck('reversal_of_id')->filter()->flip();
+        $paymentLines = Payment::query()->whereIn('folio_id', $open->modelKeys())->pluck('folio_line_id')->flip();
+
+        return $lines
+            ->filter(fn (FolioLine $line): bool => $line->parent_line_id === null
+                && $line->reversal_of_id === null
+                && ! $reversed->has($line->id)
+                && ! $paymentLines->has($line->id)
+                && $line->kind !== TransactionKind::Payment)
+            ->values();
+    }
+
+    /**
+     * What `movableLines()` would move: the sum of every line on the unit's Open folios that is not a payment or a
+     * payment-kind line, so a tax or discount child counts with its charge and a reversed charge with its reversal.
+     *
+     * @param  Collection<int, Folio>  $folios
+     */
+    public function movableTotal(Collection $folios): BigDecimal
+    {
+        $open = $folios->where('status', FolioStatus::Open)->modelKeys();
+        $paymentLines = Payment::query()->whereIn('folio_id', $open)->select('folio_line_id');
+        $total = FolioLine::query()
+            ->whereIn('folio_id', $open)
+            ->where('kind', '!=', TransactionKind::Payment)
+            ->whereNotIn('id', $paymentLines)
+            ->sum('amount');
+
+        return BigDecimal::of((string) ($total ?: '0'))->toScale(2);
+    }
+
+    /**
+     * The completed payments of the unit's Open folios that still have money to give back, whatever their purpose,
+     * oldest first. A move to another folio refunds these, because a payment never moves.
+     *
+     * @param  Collection<int, Folio>  $folios
+     * @return Collection<int, Payment>
+     */
+    public function heldPayments(Collection $folios): Collection
+    {
+        return Payment::query()
+            ->whereIn('folio_id', $folios->where('status', FolioStatus::Open)->modelKeys())
+            ->whereNull('refund_of_id')
+            ->where('status', PaymentStatus::Completed)
+            ->withSum('refunds', 'amount')
+            ->with('paymentMethod')
+            ->orderBy('id')
+            ->get()
+            ->filter(fn (Payment $payment): bool => $this->refundable($payment)->isPositive())
+            ->values();
+    }
+
+    /**
+     * Whether an Open folio of the unit holds money that `RefundPayment` cannot give back: a live payment-kind line
+     * with no payment row (a City ledger line) or a payment that is not Completed.
+     *
+     * @param  Collection<int, Folio>  $folios
+     */
+    public function holdsUnrefundable(Collection $folios): bool
+    {
+        $open = $folios->where('status', FolioStatus::Open)->modelKeys();
+        $lines = FolioLine::query()->whereIn('folio_id', $open)->where('kind', TransactionKind::Payment)->whereNull('reversal_of_id')->get();
+        $reversed = FolioLine::query()->whereIn('folio_id', $open)->whereNotNull('reversal_of_id')->pluck('reversal_of_id')->flip();
+        $owned = Payment::query()->whereIn('folio_id', $open)->pluck('folio_line_id')->flip();
+
+        return $lines->contains(fn (FolioLine $line): bool => ! $reversed->has($line->id) && ! $owned->has($line->id) && BigDecimal::of($line->amount)->isNegative())
+            || Payment::query()->whereIn('folio_id', $open)->whereNull('refund_of_id')->where('status', '!=', PaymentStatus::Completed)->exists();
     }
 
     /**

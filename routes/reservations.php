@@ -8,6 +8,7 @@ use App\Http\Controllers\Reservations\ReservationCompanyController;
 use App\Http\Controllers\Reservations\ReservationController;
 use App\Http\Controllers\Reservations\ReservationFolioController;
 use App\Http\Controllers\Reservations\ReservationFolioMoveController;
+use App\Http\Controllers\Reservations\ReservationGroupCheckOutController;
 use App\Http\Controllers\Reservations\ReservationGroupController;
 use App\Http\Controllers\Reservations\ReservationPaymentController;
 use App\Http\Controllers\Reservations\ReservationRoutingController;
@@ -65,6 +66,11 @@ Route::prefix('reservations')->name('reservations.')->scopeBindings()->group(fun
             Route::middleware('can:'.PermissionEnum::PaymentRecord->value)->group(function () {
                 Route::post('payments/quote', [ReservationPaymentController::class, 'quote'])->name('payments.quote');
                 Route::post('units/{unit}/payments', [ReservationPaymentController::class, 'storeForUnit'])->name('units.payments.store');
+            });
+
+            Route::middleware('can:'.PermissionEnum::FrontDeskCheckOut->value)->group(function () {
+                Route::post('check-out/preview', [ReservationGroupCheckOutController::class, 'preview'])->name('check-out.preview');
+                Route::post('check-out', [ReservationGroupCheckOutController::class, 'store'])->name('check-out.store');
             });
 
             Route::middleware('can:'.PermissionEnum::FrontDeskCheckIn->value)->group(function () {
