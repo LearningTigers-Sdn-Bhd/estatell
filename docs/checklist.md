@@ -337,6 +337,8 @@ Topics on hold. Each one needs a planning session and its docs before it gets co
 | `e9d6c4d` | fix(folio): name the credit note that blocks void and reopen             |
 | `37daf98` | docs(folio): plan posting a charge on the chosen folio                   |
 | `5b74b7b` | fix(folio): post a charge on the folio staff choose                      |
+| `f779c99` | docs(city-ledger): plan settling a folio again after a void              |
+| `8b27888` | fix(city-ledger): settle a folio again after void and reopen             |
 
 Smaller fixes and reverts are in `git log`.
 

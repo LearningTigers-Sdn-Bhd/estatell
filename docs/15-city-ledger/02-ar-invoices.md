@@ -53,7 +53,7 @@ The settle action does not go through `RecordPayment`: a City ledger line has no
 - Void:
     - an invoice can be voided only while Open with no non-void credit notes and no active allocations (`invoice_not_voidable`);
     - a credit note can be voided, which puts its invoice back to its calculated status;
-    - voiding does not touch the folio. Staff can reopen it (now allowed), reverse the City ledger line and settle again, which makes a new invoice with the same number. The settled folio's **Invoice** dropdown offers **Void invoice and reopen**, which voids, reopens and reverses the City ledger line at once ([Folios and lines](../13-folio/01-folios-and-lines.md#close-and-reopen)).
+    - voiding does not touch the folio. Staff can reopen it (now allowed), reverse the City ledger line and settle again, which makes a new invoice with the same number. The settled folio's **Invoice** dropdown offers **Void invoice and reopen**, which voids, reopens and reverses the City ledger line at once. Its Dialog lists the credit notes to void and the payments to reverse first, each with its action, so staff never leave the folio ([Folios and lines](../13-folio/01-folios-and-lines.md#close-and-reopen)).
 - Refusal codes: `not_an_open_invoice`, `amount_invalid`, `reason_required`, `credit_exceeds_balance`, `no_business_date` (credit note); `invoice_not_voidable`, `already_void` (void). `ArInvoiceBalance` (`app/Services/CityLedger/`) calculates the balance.
 - Every action logs on the company: `ar_invoice.created`, `ar_invoice.credit_note_issued`, `ar_invoice.voided`.
 
