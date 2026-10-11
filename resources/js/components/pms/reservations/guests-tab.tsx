@@ -26,6 +26,7 @@ type Row = App.Data.Reservations.ReservationGuestData;
 type Unit = App.Data.Reservations.ReservationUnitOptionData;
 
 const OPEN = ['confirmed', 'checked_in'];
+const ATTACHABLE = [...OPEN, 'checked_out'];
 
 function RoleBadge({ role }: { role: string }) {
     if (role === 'Booker') {
@@ -60,7 +61,9 @@ export function GuestsTab({
 }) {
     const [attaching, setAttaching] = useState(false);
     const [unitId, setUnitId] = useState<number | null>(null);
-    const openUnits = units.filter((unit) => OPEN.includes(unit.status.value));
+    const openUnits = units.filter((unit) =>
+        ATTACHABLE.includes(unit.status.value),
+    );
     const canAttach = canManage && openUnits.length > 0;
 
     const attach = (forUnit: number | null) => {
@@ -148,7 +151,7 @@ export function GuestsTab({
                                                     canAttach &&
                                                     row.unitId !== null &&
                                                     row.unitStatus !== null &&
-                                                    OPEN.includes(
+                                                    ATTACHABLE.includes(
                                                         row.unitStatus.value,
                                                     ) && (
                                                         <Button

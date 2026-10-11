@@ -52,7 +52,9 @@ class ReservationUnitController extends Controller
             return back(fallback: $this->page($property, $reservation))->withErrors($refusals->errors((string) $result->refusal));
         }
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => __(':name added to the unit.', ['name' => $guest?->full_name])]);
+        Inertia::flash('toast', $result->taxWarning !== null
+            ? ['type' => 'warning', 'message' => $result->taxWarning]
+            : ['type' => 'success', 'message' => __(':name added to the unit.', ['name' => $guest?->full_name])]);
 
         return back(fallback: $this->page($property, $reservation));
     }

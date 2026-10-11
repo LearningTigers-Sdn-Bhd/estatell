@@ -17,6 +17,7 @@ use App\Models\ReservationUnit;
 use App\Models\Role;
 use App\Models\Room;
 use App\Models\RoomType;
+use App\Models\Tax;
 use App\Models\UnitAddOn;
 use App\Models\UnitGuest;
 use App\Models\User;
@@ -310,6 +311,18 @@ test('an existing guest is attached and the first one becomes primary', function
 
     expect(UnitGuest::query()->sole()->is_primary)->toBeTrue()
         ->and(Activity::query()->where('event', 'reservation.guest_attached')->count())->toBe(1);
+});
+
+test('a new primary on a checked-out unit with a tax warning flashes a warning toast', function () {
+    $setup = actionsSetup();
+    $setup['unit']->forceFill(['status' => UnitStatus::CheckedOut, 'checked_in_at' => now()->subDay(), 'checked_out_at' => now()])->save();
+    $setup['reservation']->booker->forceFill(['nationality_code' => 'MY'])->save();
+    Tax::factory()->create(['property_id' => $setup['property']->id, 'name' => 'Tourism tax', 'foreign_guests_only' => true]);
+    $guest = Guest::factory()->create(['property_id' => $setup['property']->id, 'nationality_code' => 'SG']);
+
+    $this->actingAs($setup['user'])
+        ->post(actionsRoute($setup, 'reservations.units.guests.store', ['unit' => $setup['unit']->id]), ['guest_id' => $guest->id])
+        ->assertInertiaFlash('toast', ['type' => 'warning', 'message' => "Guest added. Tourism tax was charged on the booker's nationality (Malaysia). If it is different for this guest, correct it on the folio."]);
 });
 
 test('a refused guest shows an inline error and writes nothing', function (string $case, string $field, string $message) {

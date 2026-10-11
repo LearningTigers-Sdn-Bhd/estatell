@@ -74,11 +74,20 @@ function AttachGuestForm({
                     id="attach-unit_id"
                     options={units.map((unit) => ({
                         value: String(unit.id),
-                        label: unit.label,
+                        label:
+                            unit.status.value === 'checked_out'
+                                ? `${unit.label} · ${unit.status.label}`
+                                : unit.label,
                     }))}
                     value={data.unit_id}
                     onValueChange={(value) => form.setData('unit_id', value)}
                 />
+                {units.find((unit) => String(unit.id) === data.unit_id)?.status
+                    .value === 'checked_out' && (
+                    <FieldDescription>
+                        This stay has ended. Adding a guest changes no charges.
+                    </FieldDescription>
+                )}
             </Field>
             <Field data-invalid={!!errors.guest_id}>
                 <FieldLabel htmlFor="attach-guest_id">Guest</FieldLabel>
@@ -111,7 +120,7 @@ function AttachGuestForm({
 }
 
 /**
- * Attaches an existing guest to a unit. Only units that are still open are offered.
+ * Attaches an existing guest to a unit. Open units and checked-out units are offered.
  */
 export function AttachGuestDialog(props: Props) {
     return <AttachGuestForm key={useFreshOnOpen(props.open)} {...props} />;

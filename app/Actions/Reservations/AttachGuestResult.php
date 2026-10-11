@@ -5,7 +5,7 @@ namespace App\Actions\Reservations;
 use App\Models\UnitGuest;
 
 /**
- * What `AttachGuest` returns: the new occupant row, or a refusal code.
+ * What `AttachGuest` returns: the new occupant row, or a refusal code. `taxWarning` is set when a new primary guest on a CheckedOut unit may change a foreign-only tax.
  */
 class AttachGuestResult
 {
@@ -20,11 +20,12 @@ class AttachGuestResult
     private function __construct(
         public readonly ?UnitGuest $unitGuest,
         public readonly ?string $refusal,
+        public readonly ?string $taxWarning = null,
     ) {}
 
-    public static function attached(UnitGuest $unitGuest): self
+    public static function attached(UnitGuest $unitGuest, ?string $taxWarning = null): self
     {
-        return new self($unitGuest, null);
+        return new self($unitGuest, null, $taxWarning);
     }
 
     public static function refused(string $refusal): self

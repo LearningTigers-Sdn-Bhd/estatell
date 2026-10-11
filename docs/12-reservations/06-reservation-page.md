@@ -278,7 +278,7 @@ The desk often learns who else stayed only at or after departure. A CheckedOut u
 - **Dialog.** "Stays in" lists CheckedOut units too, with "Checked out" after the room. With one picked, a muted note under the field says "This stay has ended. Adding a guest changes no charges."
 - **Reports change for past dates.** The police and non-national guests reports read the unit's guests, so a reprint after the guest is added lists them. A copy printed earlier does not match. This is the correction staff want.
 
-Built: `AttachGuest`, `AttachGuestResult` and the form, a Dialog on `FormOverlay` (2 fields). Its unit select lists only open units, and a blacklisted guest shows a warning. The header button and the **Attach guest** button on a unit without a guest both open it.
+Built: `AttachGuest`, `AttachGuestResult` and the form, a Dialog on `FormOverlay` (2 fields). Its unit select lists Confirmed, CheckedIn and CheckedOut units (a CheckedOut one ends with "Checked out" and shows the muted note), and a blacklisted guest shows a warning. The tax warning is built in `AttachGuest`, and `ReservationUnitController::storeGuest` flashes it as a warning toast. The header button and the **Attach guest** button on a unit without a guest both open it.
 
 ### Add-ons tab
 

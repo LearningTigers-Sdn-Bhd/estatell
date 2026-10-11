@@ -2,10 +2,12 @@
 
 use App\Actions\Reservations\AttachGuest;
 use App\Actions\Reservations\AttachGuestResult;
+use App\Models\FolioLine;
 use App\Models\Guest;
 use App\Models\Reservation;
 use App\Models\ReservationUnit;
 use App\Models\RoomType;
+use App\Models\Tax;
 use App\Models\UnitGuest;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -102,7 +104,7 @@ test('it refuses a unit that is not open', function (string $state) {
 
     expect(attachGuest(User::factory()->create(), $unit, attachGuestGuestOf($unit))->refusal)->toBe(AttachGuestResult::REFUSAL_UNIT_NOT_OPEN);
     expectNoGuestAttached();
-})->with(['cancelled', 'noShow', 'checkedOut']);
+})->with(['cancelled', 'noShow']);
 
 test('it refuses a guest already on the unit', function () {
     $unit = ReservationUnit::factory()->create();
@@ -151,4 +153,85 @@ test('the unit is read with a row lock before the checks', function () {
 
     expect($lock)->not->toBeFalse()
         ->and($lock)->toBeLessThan($write);
+});
+
+test('a checked-out unit takes a guest and posts nothing', function () {
+    $unit = ReservationUnit::factory()->checkedOut()->create();
+    $before = FolioLine::query()->count();
+
+    $result = attachGuest(User::factory()->create(), $unit, attachGuestGuestOf($unit));
+
+    expect($result->isRefused())->toBeFalse()
+        ->and($result->unitGuest->is_primary)->toBeTrue()
+        ->and(FolioLine::query()->count())->toBe($before)
+        ->and(Activity::query()->count())->toBe(1);
+});
+
+/**
+ * A checked-out unit whose booker is Malaysian, for the tax warning tests.
+ */
+function attachGuestCheckedOutUnit(?string $bookerNationality = 'MY'): ReservationUnit
+{
+    $unit = ReservationUnit::factory()->checkedOut()->create();
+    $unit->reservation->booker->update(['nationality_code' => $bookerNationality]);
+
+    return $unit;
+}
+
+function attachGuestForeignTax(ReservationUnit $unit, array $attributes = []): Tax
+{
+    return Tax::factory()->create(['property_id' => $unit->property_id, 'name' => 'Tourism tax', 'foreign_guests_only' => true, ...$attributes]);
+}
+
+test('a new primary with another foreign status than the booker gets a tax warning', function () {
+    $unit = attachGuestCheckedOutUnit('MY');
+    attachGuestForeignTax($unit);
+
+    $result = attachGuest(User::factory()->create(), $unit, attachGuestGuestOf($unit, ['nationality_code' => 'SG']));
+
+    expect($result->taxWarning)->toBe("Guest added. Tourism tax was charged on the booker's nationality (Malaysia). If it is different for this guest, correct it on the folio.");
+});
+
+test('several foreign-only taxes are named together', function () {
+    $unit = attachGuestCheckedOutUnit('MY');
+    attachGuestForeignTax($unit);
+    attachGuestForeignTax($unit, ['name' => 'Heritage levy']);
+
+    $result = attachGuest(User::factory()->create(), $unit, attachGuestGuestOf($unit, ['nationality_code' => 'SG']));
+
+    expect($result->taxWarning)->toContain('Heritage levy and Tourism tax');
+});
+
+test('there is no tax warning when nothing differs or nothing applies', function (string $case) {
+    $unit = attachGuestCheckedOutUnit($case === 'booker empty' ? null : 'MY');
+    $tax = attachGuestForeignTax($unit);
+    $actor = User::factory()->create();
+    $nationality = match ($case) {
+        'guest empty' => null,
+        'same status' => 'MY',
+        default => 'SG',
+    };
+
+    if ($case === 'disabled tax') {
+        $tax->update(['enabled' => false]);
+    }
+
+    if ($case === 'not primary') {
+        attachGuest($actor, $unit, attachGuestGuestOf($unit, ['nationality_code' => 'MY']));
+    }
+
+    $result = attachGuest($actor, $unit, attachGuestGuestOf($unit, ['nationality_code' => $nationality]));
+
+    expect($result->isRefused())->toBeFalse()
+        ->and($result->taxWarning)->toBeNull();
+})->with(['not primary', 'guest empty', 'booker empty', 'same status', 'disabled tax']);
+
+test('a unit that is not checked out never warns', function () {
+    $unit = ReservationUnit::factory()->checkedIn()->create();
+    $unit->reservation->booker->update(['nationality_code' => 'MY']);
+    attachGuestForeignTax($unit);
+
+    $result = attachGuest(User::factory()->create(), $unit, attachGuestGuestOf($unit, ['nationality_code' => 'SG']));
+
+    expect($result->taxWarning)->toBeNull();
 });
