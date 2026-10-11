@@ -1,82 +1,123 @@
-import { Link, router } from '@inertiajs/react';
+import { router } from '@inertiajs/react';
+import { Plus } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import type { EnumOption } from '@/components/pms/enum-select';
+import { emptyGuest } from '@/components/pms/reservations/booking-guests';
+import type { BookingGuest } from '@/components/pms/reservations/booking-guests';
 import {
-    BookUser,
-    IdCard,
-    MoreHorizontal,
-    Receipt,
-    UserPlus,
-} from 'lucide-react';
-import { Fragment, useState } from 'react';
-import { AttachGuestDialog } from '@/components/pms/reservations/attach-guest-dialog';
-import { StatusBadge } from '@/components/pms/status-badge';
-import { Badge } from '@/components/ui/badge';
+    draftHasContent,
+    MAX_DRAFTS,
+    takenBedUnits,
+    unitsWithoutGuest,
+    ATTACHABLE_STATUSES,
+} from '@/components/pms/reservations/guest-rows';
+import {
+    DraftGuestRow,
+    GuestsHeader,
+    SavedGuestRow,
+} from '@/components/pms/reservations/guest-table-row';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from '@/components/ui/table';
-import { show as showGuest } from '@/routes/guests';
-import { show as showCard } from '@/routes/registration';
+import { FieldDescription } from '@/components/ui/field';
+import { useUnsavedChanges } from '@/hooks/use-unsaved-changes';
 import { billToGuest } from '@/routes/reservations/units';
 
 type Row = App.Data.Reservations.ReservationGuestData;
 type Unit = App.Data.Reservations.ReservationUnitOptionData;
 
-const OPEN = ['confirmed', 'checked_in'];
-const ATTACHABLE = [...OPEN, 'checked_out'];
-
-function RoleBadge({ role }: { role: string }) {
-    if (role === 'Booker') {
-        return (
-            <Badge variant="secondary" className="bg-info/10 text-info">
-                <BookUser aria-hidden />
-                Booker
-            </Badge>
-        );
-    }
-
-    return (
-        <Badge variant={role === 'Primary' ? 'default' : 'secondary'}>
-            {role}
-        </Badge>
-    );
+/** A saved row is keyed by its unit and guest. The booker who does not stay has no unit. */
+function rowKey(row: Row, index: number): string {
+    return `${row.unitId ?? 'none'}-${row.guestId ?? 'x'}-${row.name === null ? index : ''}`;
 }
 
 /**
- * The Guests tab: each guest on a unit with their roles, the booker when they do not stay, and units with no guest.
+ * The Guests tab: one table of guests, edited in place. A saved row shows Name, Phone, the unit and the roles, and opens
+ * to edit the guest's profile. **+ Add guest** in the footer adds a draft row with the same autocomplete as the booking
+ * form; Save creates or picks the guest and attaches it to the unit. Units with no guest show a muted row with Add.
+ * Moving or removing a guest comes later. See docs/12-reservations/06-reservation-page.md.
  */
 export function GuestsTab({
     reservationId,
     guests,
     units,
     canManage,
+    canManageGuests,
+    countries,
+    genders,
+    locales,
 }: {
     reservationId: number;
     guests: Row[];
     units: Unit[];
     canManage: boolean;
+    canManageGuests: boolean;
+    countries: EnumOption[];
+    genders: EnumOption[];
+    locales: EnumOption[];
 }) {
-    const [attaching, setAttaching] = useState(false);
-    const [unitId, setUnitId] = useState<number | null>(null);
+    const [drafts, setDrafts] = useState<BookingGuest[]>([]);
+    const [dirtySaved, setDirtySaved] = useState<Set<string>>(new Set());
     const openUnits = units.filter((unit) =>
-        ATTACHABLE.includes(unit.status.value),
+        ATTACHABLE_STATUSES.includes(unit.status.value),
     );
-    const canAttach = canManage && openUnits.length > 0;
+    const canAdd = canManage && openUnits.length > 0;
+    const dirty = drafts.some(draftHasContent) || dirtySaved.size > 0;
+    const guard = useUnsavedChanges(dirty);
+    const empty = unitsWithoutGuest(guests, drafts);
 
-    const attach = (forUnit: number | null) => {
-        setUnitId(forUnit);
-        setAttaching(true);
+    useEffect(() => {
+        setDirtySaved(new Set());
+    }, [reservationId]);
+
+    const addDraft = (unitId: number | null = null) => {
+        if (drafts.length >= MAX_DRAFTS) {
+            return;
+        }
+
+        const preset =
+            unitId ?? (openUnits.length === 1 ? openUnits[0].id : null);
+
+        setDrafts((current) => [
+            ...current,
+            emptyGuest(preset === null ? '' : String(preset)),
+        ]);
     };
+
+    const patchDraft = (key: string, patch: Partial<BookingGuest>) =>
+        setDrafts((current) =>
+            current.map((draft) =>
+                draft.key === key ? { ...draft, ...patch } : draft,
+            ),
+        );
+
+    const removeDraft = (key: string) =>
+        setDrafts((current) => current.filter((draft) => draft.key !== key));
+
+    const markDirty = (key: string, isDirty: boolean) =>
+        setDirtySaved((current) => {
+            if (current.has(key) === isDirty) {
+                return current;
+            }
+
+            const next = new Set(current);
+
+            if (isDirty) {
+                next.add(key);
+            } else {
+                next.delete(key);
+            }
+
+            return next;
+        });
 
     const bill = (row: Row) => {
         if (row.unitId === null || row.guestId === null) {
@@ -90,204 +131,103 @@ export function GuestsTab({
         );
     };
 
-    const groups = [...Map.groupBy(guests, (row) => row.unitId).values()];
-
     return (
         <div className="flex flex-col gap-4">
-            <div className="flex items-center justify-between gap-3 ps-3 pt-2">
-                <h2 className="font-heading text-base font-medium">Guests</h2>
-                {canAttach && (
-                    <Button variant="outline" onClick={() => attach(null)}>
-                        <UserPlus data-icon="inline-start" />
-                        Attach guest
-                    </Button>
-                )}
-            </div>
-            <div className="overflow-hidden rounded-xl border">
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>Guest</TableHead>
-                            <TableHead>Phone</TableHead>
-                            <TableHead>Role</TableHead>
-                            <TableHead>
-                                <span className="sr-only">Card</span>
-                            </TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {groups.map((rows) => {
-                            const first = rows[0];
+            <div className="rounded-lg border">
+                <GuestsHeader />
+                <div className="divide-y">
+                    {guests.map((row, index) => {
+                        const key = rowKey(row, index);
 
-                            return (
-                                <Fragment key={first.unitId ?? 'not-staying'}>
-                                    <TableRow className="bg-muted/50 hover:bg-muted/50">
-                                        <TableCell
-                                            colSpan={4}
-                                            className="text-xs font-medium tracking-wide text-muted-foreground uppercase"
-                                        >
-                                            <span className="flex items-center gap-2">
-                                                {first.unitLabel ??
-                                                    'Not staying'}
-                                                {first.unitStatus &&
-                                                    !OPEN.includes(
-                                                        first.unitStatus.value,
-                                                    ) && (
-                                                        <StatusBadge
-                                                            status={
-                                                                first.unitStatus
-                                                            }
-                                                        />
-                                                    )}
-                                            </span>
-                                        </TableCell>
-                                    </TableRow>
-                                    {rows.map((row, index) => (
-                                        <TableRow key={index}>
-                                            <TableCell>
-                                                {row.name === null ? (
-                                                    <span className="text-muted-foreground">
-                                                        No guest yet
-                                                    </span>
-                                                ) : row.guestId !== null ? (
-                                                    <Link
-                                                        href={showGuest.url({
-                                                            guest: row.guestId,
-                                                        })}
-                                                        className="font-medium underline-offset-4 hover:underline"
-                                                    >
-                                                        {row.name}
-                                                    </Link>
-                                                ) : (
-                                                    row.name
-                                                )}
-                                                {row.billing !== null && (
-                                                    <span className="block text-xs text-muted-foreground">
-                                                        {row.billing}
-                                                    </span>
-                                                )}
-                                            </TableCell>
-                                            <TableCell className="tabular-nums">
-                                                {row.phone ?? ''}
-                                            </TableCell>
-                                            <TableCell>
-                                                {row.name === null ? (
-                                                    canAttach &&
-                                                    row.unitId !== null &&
-                                                    row.unitStatus !== null &&
-                                                    ATTACHABLE.includes(
-                                                        row.unitStatus.value,
-                                                    ) && (
-                                                        <Button
-                                                            variant="outline"
-                                                            size="sm"
-                                                            onClick={() =>
-                                                                attach(
-                                                                    row.unitId,
-                                                                )
-                                                            }
-                                                        >
-                                                            Attach guest
-                                                        </Button>
-                                                    )
-                                                ) : (
-                                                    <span className="flex flex-wrap gap-1">
-                                                        {row.roles.length ===
-                                                        0 ? (
-                                                            <Badge variant="outline">
-                                                                Guest
-                                                            </Badge>
-                                                        ) : (
-                                                            row.roles.map(
-                                                                (role) => (
-                                                                    <RoleBadge
-                                                                        key={
-                                                                            role
-                                                                        }
-                                                                        role={
-                                                                            role
-                                                                        }
-                                                                    />
-                                                                ),
-                                                            )
-                                                        )}
-                                                    </span>
-                                                )}
-                                            </TableCell>
-                                            <TableCell className="text-right">
-                                                {((row.cardUnitGuestId !==
-                                                    null &&
-                                                    row.unitStatus !== null &&
-                                                    OPEN.includes(
-                                                        row.unitStatus.value,
-                                                    )) ||
-                                                    (row.canBill &&
-                                                        row.guestId !==
-                                                            null)) && (
-                                                    <DropdownMenu>
-                                                        <DropdownMenuTrigger
-                                                            render={
-                                                                <Button
-                                                                    variant="ghost"
-                                                                    size="icon"
-                                                                    aria-label={`Actions for ${row.name}`}
-                                                                />
-                                                            }
-                                                        >
-                                                            <MoreHorizontal />
-                                                        </DropdownMenuTrigger>
-                                                        <DropdownMenuContent align="end">
-                                                            {row.cardUnitGuestId !==
-                                                                null && (
-                                                                <DropdownMenuItem
-                                                                    render={
-                                                                        <Link
-                                                                            href={showCard.url(
-                                                                                {
-                                                                                    unitGuest:
-                                                                                        row.cardUnitGuestId,
-                                                                                },
-                                                                            )}
-                                                                        />
-                                                                    }
-                                                                >
-                                                                    <IdCard />
-                                                                    Registration
-                                                                    card
-                                                                </DropdownMenuItem>
-                                                            )}
-                                                            {row.canBill && (
-                                                                <DropdownMenuItem
-                                                                    onClick={() =>
-                                                                        bill(
-                                                                            row,
-                                                                        )
-                                                                    }
-                                                                >
-                                                                    <Receipt />
-                                                                    Bill to this
-                                                                    guest
-                                                                </DropdownMenuItem>
-                                                            )}
-                                                        </DropdownMenuContent>
-                                                    </DropdownMenu>
-                                                )}
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                                </Fragment>
-                            );
-                        })}
-                    </TableBody>
-                </Table>
+                        return (
+                            <SavedGuestRow
+                                key={key}
+                                rowId={key}
+                                reservationId={reservationId}
+                                row={row}
+                                canAdd={canAdd}
+                                canEdit={
+                                    canManage &&
+                                    canManageGuests &&
+                                    row.guest !== null &&
+                                    row.unitId !== null &&
+                                    row.guestId !== null
+                                }
+                                countries={countries}
+                                genders={genders}
+                                locales={locales}
+                                onAdd={addDraft}
+                                onBill={bill}
+                                onDirtyChange={markDirty}
+                            />
+                        );
+                    })}
+                    {drafts.map((draft) => (
+                        <DraftGuestRow
+                            key={draft.key}
+                            reservationId={reservationId}
+                            draft={draft}
+                            units={openUnits}
+                            taken={takenBedUnits(
+                                guests,
+                                drafts,
+                                units,
+                                draft.key,
+                            )}
+                            canManageGuests={canManageGuests}
+                            countries={countries}
+                            genders={genders}
+                            locales={locales}
+                            onChange={(patch) => patchDraft(draft.key, patch)}
+                            onRemove={() => removeDraft(draft.key)}
+                        />
+                    ))}
+                </div>
+                <div className="flex items-center justify-between gap-3 rounded-b-lg border-t bg-muted/50 px-3 py-2">
+                    <FieldDescription>
+                        {empty === 0
+                            ? 'Every unit has a guest.'
+                            : `${empty} ${empty === 1 ? 'unit' : 'units'} without a guest`}
+                    </FieldDescription>
+                    {canAdd && (
+                        <Button
+                            type="button"
+                            variant="outline"
+                            disabled={drafts.length >= MAX_DRAFTS}
+                            onClick={() => addDraft()}
+                        >
+                            <Plus data-icon="inline-start" />
+                            Add guest
+                        </Button>
+                    )}
+                </div>
             </div>
-            <AttachGuestDialog
-                open={attaching}
-                onOpenChange={setAttaching}
-                reservationId={reservationId}
-                units={openUnits}
-                initialUnitId={unitId}
-            />
+
+            <AlertDialog
+                open={guard.target !== null}
+                onOpenChange={(open) => !open && guard.stay()}
+            >
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>
+                            Leave with unsaved guests?
+                        </AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Some guest rows are not saved. Leaving discards what
+                            you typed.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Keep editing</AlertDialogCancel>
+                        <AlertDialogAction
+                            variant="destructive"
+                            onClick={guard.proceed}
+                        >
+                            Discard and leave
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }

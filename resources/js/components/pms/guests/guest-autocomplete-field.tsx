@@ -55,6 +55,8 @@ type Props = {
     onLeave?: () => void;
     /** Without `guests.manage` the fields only search: a guest has to be picked. */
     existingOnly?: boolean;
+    /** Hides Change guest, for a saved row whose guest cannot be swapped. */
+    lockLink?: boolean;
     /** Extra classes for each label, for example `lg:sr-only` when a table header names the column. */
     labelClassName?: Partial<Record<GuestField, string>>;
     /** Shown at the end of the Name input, for example the Booker and VIP badges. */
@@ -90,6 +92,7 @@ export function GuestAutocompleteField({
     onUnlink,
     onLeave,
     existingOnly = false,
+    lockLink = false,
     labelClassName = {},
     nameBadges,
     children,
@@ -351,18 +354,20 @@ export function GuestAutocompleteField({
                     {linked.isBlacklisted && (
                         <Badge variant="destructive">Blacklisted</Badge>
                     )}
-                    <Button
-                        type="button"
-                        variant="outline"
-                        size="xs"
-                        className="ml-auto"
-                        onClick={() => {
-                            onUnlink();
-                            nameInput.current?.focus();
-                        }}
-                    >
-                        Change guest
-                    </Button>
+                    {!lockLink && (
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="xs"
+                            className="ml-auto"
+                            onClick={() => {
+                                onUnlink();
+                                nameInput.current?.focus();
+                            }}
+                        >
+                            Change guest
+                        </Button>
+                    )}
                 </div>
                 {linked.isBlacklisted && (
                     <Alert variant="destructive">

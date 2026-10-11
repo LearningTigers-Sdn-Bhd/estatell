@@ -11,6 +11,8 @@ use App\Data\Reservations\ReservationStatusCountData;
 use App\Data\Reservations\ReservationUnitData;
 use App\Data\Reservations\ReservationUnitOptionData;
 use App\Enums\BillingMode;
+use App\Enums\Gender;
+use App\Enums\Locale;
 use App\Enums\PermissionEnum;
 use App\Enums\ReservationSource;
 use App\Enums\ReservationStatus;
@@ -32,6 +34,7 @@ use App\Services\Folio\FolioStatement;
 use App\Services\Folio\FolioVoucher;
 use App\Services\Folio\RoutingRuleList;
 use App\Services\FrontDesk\GroupCheckOutPreview;
+use App\Services\Guests\CountryOptions;
 use App\Services\Payments\PaymentReceipt;
 use App\Services\Reservations\ReservationActivityLog;
 use App\Services\Reservations\ReservationDirectory;
@@ -118,8 +121,14 @@ class ReservationController extends Controller
      */
     public function guests(Request $request, Property $property, Reservation $reservation, ReservationGuestRows $guestRows): Response
     {
+        $canManageGuests = $request->user()->can(PermissionEnum::GuestsManage->value);
+
         return $this->renderTab($request->user(), $property, $reservation, 'guests', fn (array $units): array => [
             'guests' => $guestRows->rows($reservation, $units, $request->user()->can(PermissionEnum::GuestsView->value), $request->user()->can(PermissionEnum::RegistrationCardSign->value), $request->user()->can(PermissionEnum::FolioTransfer->value)),
+            'canManageGuests' => $canManageGuests,
+            'countries' => $canManageGuests ? app(CountryOptions::class)->options() : [],
+            'genders' => Gender::options(),
+            'locales' => Locale::options(),
         ]);
     }
 

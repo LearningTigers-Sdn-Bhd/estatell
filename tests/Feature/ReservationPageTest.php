@@ -289,10 +289,15 @@ test('the guest rows show the booker, unit guests with roles, and units without 
         ->where('guests.0.roles', ['Booker', 'Primary'])
         ->where('guests.0.unitId', $first->id)
         ->where('guests.0.phone', '+60111111111')
+        ->where('guests.0.guest.id', $booker->id)
+        ->where('guests.0.guest.profile.city', $booker->city)
+        ->where('canManageGuests', true)
+        ->has('countries')
         ->where('guests.1.name', 'Ahmad Faiz')
         ->where('guests.1.roles', [])
         ->where('guests.2.name', null)
         ->where('guests.2.unitId', $second->id)
+        ->where('guests.2.guest', null)
         ->where('guests.4.unitId', $cancelled->id)
         ->where('guests.4.unitStatus.label', 'Cancelled'));
 });

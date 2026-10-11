@@ -52,6 +52,10 @@ type Props = {
     paymentOptions?: App.Data.Payments.PaymentFormOptionsData;
     unit?: App.Data.Reservations.ReservationUnitData | null;
     guests?: App.Data.Reservations.ReservationGuestData[];
+    canManageGuests?: boolean;
+    countries?: EnumOption[];
+    genders?: EnumOption[];
+    locales?: EnumOption[];
     addOns?: App.Data.Reservations.ReservationAddOnData[];
     folios?: App.Data.Folio.FolioRailItemData[];
     folio?: App.Data.Folio.FolioData | null;
@@ -88,6 +92,10 @@ export default function ReservationShow({
     paymentOptions,
     unit = null,
     guests = [],
+    canManageGuests = false,
+    countries = [],
+    genders = [],
+    locales = [],
     addOns = [],
     folios = [],
     folio = null,
@@ -239,6 +247,10 @@ export default function ReservationShow({
                                 guests={guests}
                                 units={units}
                                 canManage={canManage}
+                                canManageGuests={canManageGuests}
+                                countries={countries}
+                                genders={genders}
+                                locales={locales}
                             />
                         ) : tab === 'add-ons' ? (
                             <AddOnsTab

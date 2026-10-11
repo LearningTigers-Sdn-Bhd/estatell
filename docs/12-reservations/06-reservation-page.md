@@ -18,7 +18,8 @@ Find a reservation and see everything about it on one page, with the same flow s
 | `PUT /p/{code}/reservations/{reservation}/group`       | `reservations.group.update`           | – (`UpdateReservationGroup`)                              |
 | `PUT …/{reservation}/company`                          | `reservations.company.update`         | – (`UpdateReservationCompany`; also needs `company.view`) |
 | `POST …/{reservation}/units`                           | `reservations.units.store`            | – (`AddUnit`)                                             |
-| `POST …/{reservation}/units/{unit}/guests`             | `reservations.units.guests.store`     | – (`AttachGuest`)                                         |
+| `POST …/{reservation}/units/{unit}/guests`             | `reservations.units.guests.store`     | – (`AddGuestToUnit`, then `AttachGuest`)                  |
+| `PUT …/{reservation}/units/{unit}/guests/{guestId}`    | `reservations.units.guests.update`    | `guests.manage` (`UpdateGuest`)                           |
 | `POST …/{reservation}/units/{unit}/add-ons`            | `reservations.units.add-ons.store`    | – (`AddUnitAddOn`)                                        |
 | `DELETE …/{reservation}/units/{unit}/add-ons/{addOn}`  | `reservations.units.add-ons.destroy`  | – (`RemoveUnitAddOn`)                                     |
 | `GET /p/{code}/guests/search`                          | `guests.search` (JSON, `guests.view`) | –                                                         |
@@ -232,7 +233,7 @@ The page shows no dash for an empty value: a missing room is `Not assigned` (an 
 
 ### Guests tab
 
-**Status: planned.** Until it is built, the tab is a read-only table with an Attach guest Dialog (see [Current build](#current-build-to-be-replaced)). This section is the target.
+**Status: built (table, rows and footer).** The All / Grouped toggle, the unit rail and the summary icon are planned (the next checklist item).
 
 The tab is one table of guests, edited in place. It reuses the booking form's Guests table: collapsible rows, `GuestAutocompleteField`, `DuplicateWarning` and `GuestDetailsFields`. The panel has no title row. Like the folio panel, it opens with one thin toolbar and then the table.
 
@@ -265,7 +266,7 @@ The tab is one table of guests, edited in place. It reuses the booking form's Gu
 | Unit, no guest | In All view a muted row "No guest yet" with a small **Add** button. It adds a draft row with that unit picked. In Grouped view the draft row uses the open unit.                                                                                                                                           |
 | Footer         | Left: "N units without a guest" (All) or "N guests in this unit" (Grouped). Right: **+ Add guest**, outline, like the booking form. It adds a draft row at the end and focuses its Name.                                                                                                                   |
 | Draft row      | Opens expanded. Buttons: **Discard** and **Save**. Leaving the page with a draft row asks first (`useUnsavedChanges`).                                                                                                                                                                                     |
-| Saved row      | **Save** and **Cancel** appear only after an edit in the expanded part. Name and Phone of a linked guest are the CRM profile, so a change needs **Update guest profile** on (off by default), as in the booking form.                                                                                      |
+| Saved row      | **Save** and **Cancel** appear only after an edit in the expanded part. Name, Phone, Email and the details are the CRM profile of the guest, so Save always updates it and there is no **Update guest profile** switch. The unit link does not change.                                                     |
 
 ### Save rules
 
@@ -275,9 +276,9 @@ There is no per-stay snapshot. `unit_guests` is a link to a CRM guest (`reservat
 | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
 | Draft, an existing guest picked | `AttachGuest` for the picked guest. With **Update guest profile** on, `UpdateGuest` runs first with the typed changes.                |
 | Draft, no guest picked          | `CreateGuest` with the typed profile, then `AttachGuest`. The `DuplicateWarning` (Use existing, Create new anyway) shows before save. |
-| Saved row, profile edited       | `UpdateGuest` only. The unit link does not change. Needs **Update guest profile** on.                                                 |
+| Saved row, profile edited       | `UpdateGuest` only, through `reservations.units.guests.update`. The unit link and the guest's tags do not change.                     |
 
-- One route saves a draft row: `reservations.units.guests.store`, the existing route (`ReservationUnitController::storeGuest`) widened. It runs `CreateGuest` or `UpdateGuest` and `AttachGuest` in one transaction and rolls back on a refusal, like `CreateBooking`. There is no new god object. A saved row's profile edit uses the existing `guests.update` route (to verify at build: it must go back to the reservation page, not to the guest page).
+- One route saves a draft row: `reservations.units.guests.store` (`ReservationUnitController::storeGuest`). The Action `AddGuestToUnit` runs `CreateGuest` or `UpdateGuest` and `AttachGuest` in one transaction and rolls back on a refusal, like `CreateBooking`, and keeps the tags of an updated guest. A saved row's profile edit uses `reservations.units.guests.update` (`guests.manage`), not the guest page route, which redirects to the guest page and syncs tags. The `{guestId}` is read through the unit's guests, so a guest who is not on the unit is a 404.
 - Refusals are the `AttachGuest` codes in the table below. They show inline on the row: `already_attached` and `bed_unit_full` on Stays in, `guest_not_found` on Name, `unit_not_open` as a row error.
 - Permissions: `reservations.manage` to attach. `guests.manage` to create a guest or update a profile. Without `guests.manage`, a draft row accepts an existing guest only, and **Update guest profile** is hidden (same rule as the booking form).
 - Stays in lists Confirmed, CheckedIn and CheckedOut units. A CheckedOut unit ends with "Checked out" and shows the muted note below. A Bed unit that has a guest is disabled.
@@ -303,7 +304,7 @@ Room units have no guest limit.
 
 **Bill to this guest** is an item in a guest row's **⋯** menu, for users with `folio.transfer`, on a Confirmed, CheckedIn or CheckedOut unit. It runs `BillToGuest` (see [Routing](../13-folio/03-routing.md#bill-to-guest)). A small grey line under the name shows the result: "Pays unit folio", "Own folio", or on the primary guest "Unit folio billed to {name}" when the payer is someone else. The item is hidden for a guest who already pays. The action has no dialog; a toast names the folio. The **Registration card** item stays in the same menu.
 
-#### Current build (to be replaced)
+#### Previous build (replaced)
 
 A title row with the **Attach guest** button sits above a rounded, bordered table, grouped by unit with one shaded group row per unit ("Not staying" for a booker who does not stay), with the columns Guest, Phone and Role. Attach guest opens a Dialog (2 fields) with `GuestPicker` (existing guests only, through `guests.search`) and "Stays in". Creating a guest here is not supported. A unit with no guest shows an **Attach guest** button in its row.
 
@@ -324,7 +325,9 @@ The desk often learns who else stayed only at or after departure. A CheckedOut u
 - **Dialog.** "Stays in" lists CheckedOut units too, with "Checked out" after the room. With one picked, a muted note under the field says "This stay has ended. Adding a guest changes no charges."
 - **Reports change for past dates.** The police and non-national guests reports read the unit's guests, so a reprint after the guest is added lists them. A copy printed earlier does not match. This is the correction staff want.
 
-Built: `AttachGuest`, `AttachGuestResult` and the form, a Dialog on `FormOverlay` (2 fields). Its unit select lists Confirmed, CheckedIn and CheckedOut units (a CheckedOut one ends with "Checked out" and shows the muted note), and a blacklisted guest shows a warning. The tax warning is built in `AttachGuest`, and `ReservationUnitController::storeGuest` flashes it as a warning toast. The header button and the **Attach guest** button on a unit without a guest both open it. The Guests tab redesign above replaces this Dialog.
+Built: `AttachGuest`, `AttachGuestResult` and the form, a Dialog on `FormOverlay` (2 fields). Its unit select lists Confirmed, CheckedIn and CheckedOut units (a CheckedOut one ends with "Checked out" and shows the muted note), and a blacklisted guest shows a warning. The tax warning is built in `AttachGuest`, and `ReservationUnitController::storeGuest` flashes it as a warning toast.
+
+Built (guest table): `AddGuestToUnit` (`CreateGuest` or `UpdateGuest`, then `AttachGuest`, one transaction), `AttachGuestRequest` (the profile fields, `update_profile`, and the `guests.manage` checks on the keys `full_name` and `update_profile`), `UpdateUnitGuestRequest` and `reservations.units.guests.update`. `ReservationGuestData.guest` carries the guest with its profile (null without `guests.view`). The Guests tab sends `canManageGuests`, `countries`, `genders` and `locales`. The page is `GuestsTab` with `SavedGuestRow` and `DraftGuestRow` (`guest-table-row.tsx`) and the pure helpers in `guest-rows.ts`; `GuestAutocompleteField` gained `lockLink`, which hides Change guest on a saved row. Leaving the page with a draft or an edited row asks first. The Attach guest Dialog (`attach-guest-dialog.tsx`) is removed.
 
 ### Add-ons tab
 

@@ -17,6 +17,7 @@ use App\Models\ReservationUnit;
 use App\Models\Role;
 use App\Models\Room;
 use App\Models\RoomType;
+use App\Models\Tag;
 use App\Models\Tax;
 use App\Models\UnitAddOn;
 use App\Models\UnitGuest;
@@ -323,6 +324,114 @@ test('a new primary on a checked-out unit with a tax warning flashes a warning t
     $this->actingAs($setup['user'])
         ->post(actionsRoute($setup, 'reservations.units.guests.store', ['unit' => $setup['unit']->id]), ['guest_id' => $guest->id])
         ->assertInertiaFlash('toast', ['type' => 'warning', 'message' => "Guest added. Tourism tax was charged on the booker's nationality (Malaysia). If it is different for this guest, correct it on the folio."]);
+});
+
+test('a new guest is created and attached in one save', function () {
+    $setup = actionsSetup();
+
+    $this->actingAs($setup['user'])
+        ->post(actionsRoute($setup, 'reservations.units.guests.store', ['unit' => $setup['unit']->id]), ['full_name' => 'Siti Aminah', 'phone' => '+60121234567', 'city' => 'Ipoh'])
+        ->assertSessionHasNoErrors()
+        ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Siti Aminah added to the unit.']);
+
+    $guest = Guest::query()->where('full_name', 'Siti Aminah')->sole();
+
+    expect($guest->property_id)->toBe($setup['property']->id)
+        ->and($guest->phone)->toBe('+60121234567')
+        ->and($guest->city)->toBe('Ipoh')
+        ->and(UnitGuest::query()->sole()->guest_id)->toBe($guest->id);
+});
+
+test('a new guest is not left behind when the unit refuses the attach', function () {
+    $setup = actionsSetup();
+    $setup['unit']->forceFill(['status' => UnitStatus::Cancelled])->save();
+
+    $this->actingAs($setup['user'])
+        ->post(actionsRoute($setup, 'reservations.units.guests.store', ['unit' => $setup['unit']->id]), ['full_name' => 'Siti Aminah'])
+        ->assertSessionHasErrors(['form' => 'This unit is closed, so it cannot change.']);
+
+    expect(Guest::query()->where('full_name', 'Siti Aminah')->exists())->toBeFalse()
+        ->and(UnitGuest::query()->count())->toBe(0)
+        ->and(Activity::query()->where('event', 'guest.created')->count())->toBe(0);
+});
+
+test('a picked guest is changed only when the profile update is on, and keeps its tags', function (bool $update, string $city) {
+    $setup = actionsSetup();
+    $guest = Guest::factory()->create(['property_id' => $setup['property']->id, 'full_name' => 'Ahmad Faiz', 'city' => 'Penang']);
+    $tag = Tag::factory()->create(['property_id' => $setup['property']->id, 'name' => 'Corporate']);
+    $guest->tags()->attach($tag);
+
+    $this->actingAs($setup['user'])
+        ->post(actionsRoute($setup, 'reservations.units.guests.store', ['unit' => $setup['unit']->id]), ['guest_id' => $guest->id, 'update_profile' => $update, 'full_name' => 'Ahmad Faiz', 'city' => 'Ipoh'])
+        ->assertSessionHasNoErrors();
+
+    expect($guest->refresh()->city)->toBe($city)
+        ->and($guest->tags()->pluck('name')->all())->toBe(['Corporate'])
+        ->and(UnitGuest::query()->sole()->guest_id)->toBe($guest->id);
+})->with([
+    'update off' => [false, 'Penang'],
+    'update on' => [true, 'Ipoh'],
+]);
+
+test('staff without guests.manage may only attach an existing guest as it is', function (array $body, string $key, string $message) {
+    $setup = actionsSetup();
+    $user = User::factory()->create(['property_id' => $setup['property']->id]);
+    actionsRoleWith($user, ['reservations.view', 'reservations.manage', 'guests.view']);
+    $guest = Guest::factory()->create(['property_id' => $setup['property']->id]);
+    $before = Guest::query()->count();
+
+    $this->actingAs($user)
+        ->post(actionsRoute($setup, 'reservations.units.guests.store', ['unit' => $setup['unit']->id]), array_replace(['guest_id' => $guest->id], $body))
+        ->assertSessionHasErrors([$key => $message]);
+
+    expect(UnitGuest::query()->count())->toBe(0)->and(Guest::query()->count())->toBe($before);
+})->with([
+    'a new guest' => [['guest_id' => null, 'full_name' => 'New Person'], 'full_name', 'Pick an existing guest.'],
+    'a profile update' => [['update_profile' => true, 'full_name' => 'Changed'], 'update_profile', "You may not change a guest's profile."],
+]);
+
+test('a new guest needs a name', function () {
+    $setup = actionsSetup();
+    $before = Guest::query()->count();
+
+    $this->actingAs($setup['user'])
+        ->post(actionsRoute($setup, 'reservations.units.guests.store', ['unit' => $setup['unit']->id]), ['phone' => '+60121234567'])
+        ->assertSessionHasErrors(['full_name' => "Enter the guest's name or pick an existing guest."]);
+
+    expect(Guest::query()->count())->toBe($before);
+});
+
+test('the profile of a guest on the unit is saved without moving the guest', function () {
+    $setup = actionsSetup();
+    $guest = Guest::factory()->create(['property_id' => $setup['property']->id, 'full_name' => 'Ahmad Faiz', 'city' => 'Penang']);
+    $guest->tags()->attach(Tag::factory()->create(['property_id' => $setup['property']->id, 'name' => 'Corporate']));
+    $link = UnitGuest::factory()->create(['reservation_unit_id' => $setup['unit']->id, 'guest_id' => $guest->id, 'is_primary' => true]);
+
+    $this->actingAs($setup['user'])
+        ->put(actionsRoute($setup, 'reservations.units.guests.update', ['unit' => $setup['unit']->id, 'guestId' => $guest->id]), ['full_name' => 'Ahmad Faiz bin Ali', 'city' => 'Ipoh'])
+        ->assertSessionHasNoErrors()
+        ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Ahmad Faiz bin Ali saved.']);
+
+    expect($guest->refresh()->full_name)->toBe('Ahmad Faiz bin Ali')
+        ->and($guest->city)->toBe('Ipoh')
+        ->and($guest->tags()->count())->toBe(1)
+        ->and($link->refresh()->is_primary)->toBeTrue()
+        ->and(UnitGuest::query()->count())->toBe(1);
+});
+
+test('only a guest on the unit can be saved from it, and only with guests.manage', function () {
+    $setup = actionsSetup();
+    $stranger = Guest::factory()->create(['property_id' => $setup['property']->id]);
+    $url = actionsRoute($setup, 'reservations.units.guests.update', ['unit' => $setup['unit']->id, 'guestId' => $stranger->id]);
+
+    $this->actingAs($setup['user'])->put($url, ['full_name' => 'Changed'])->assertNotFound();
+
+    $viewer = User::factory()->create(['property_id' => $setup['property']->id]);
+    actionsRoleWith($viewer, ['reservations.view', 'reservations.manage', 'guests.view']);
+
+    $this->actingAs($viewer)->put($url, ['full_name' => 'Changed'])->assertForbidden();
+
+    expect($stranger->refresh()->full_name)->not->toBe('Changed');
 });
 
 test('a refused guest shows an inline error and writes nothing', function (string $case, string $field, string $message) {

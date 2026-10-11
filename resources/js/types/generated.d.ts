@@ -1790,6 +1790,7 @@ roles: string[],
 cardUnitGuestId: number | null,
 billing: string | null,
 canBill: boolean,
+guest: App.Data.Guests.GuestOptionData | null,
 };
 export type ReservationListItemData = {
 id: number,

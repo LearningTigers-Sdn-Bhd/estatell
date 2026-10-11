@@ -145,12 +145,12 @@ Room types / New room type
 
 ## estatell forms by container
 
-| Container   | Forms                                                                                                                                                |
-| ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| AlertDialog | Void, cancel unit, force close audit                                                                                                                 |
-| Dialog      | Invite staff, guest note, tag, attach guest, record payment or refund, post charge, apply discount, guest quick-add, block room (from a detail page) |
-| Sheet       | Block room (from Stay View), housekeeping assign and status, transfer folio lines (`lg`), charge item, payment method, tax, discount, meal period    |
-| Full page   | Company, guest profile, room type, rate plan, booking form, registration card, terms editor, property settings, onboarding steps                     |
+| Container   | Forms                                                                                                                                             |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| AlertDialog | Void, cancel unit, force close audit                                                                                                              |
+| Dialog      | Invite staff, guest note, tag, record payment or refund, post charge, apply discount, guest quick-add, block room (from a detail page)            |
+| Sheet       | Block room (from Stay View), housekeeping assign and status, transfer folio lines (`lg`), charge item, payment method, tax, discount, meal period |
+| Full page   | Company, guest profile, room type, rate plan, booking form, registration card, terms editor, property settings, onboarding steps                  |
 
 ## Unsaved changes
 

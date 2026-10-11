@@ -2,6 +2,7 @@
 
 namespace App\Services\Reservations;
 
+use App\Data\Guests\GuestOptionData;
 use App\Data\Reservations\ReservationGuestData;
 use App\Data\Reservations\ReservationUnitOptionData;
 use App\Enums\FolioStatus;
@@ -46,7 +47,7 @@ class ReservationGuestRows
         $rows = [];
 
         if (! $bookerStays) {
-            $rows[] = new ReservationGuestData($canViewGuest ? $booker->id : null, $booker->full_name, $canViewGuest ? $booker->phone : null, null, null, null, [__('Booker')]);
+            $rows[] = new ReservationGuestData($canViewGuest ? $booker->id : null, $booker->full_name, $canViewGuest ? $booker->phone : null, null, null, null, [__('Booker')], guest: $canViewGuest ? GuestOptionData::fromModel($booker) : null);
         }
 
         foreach ($options as $unitId => $unit) {
@@ -76,6 +77,7 @@ class ReservationGuestRows
                     canBill: $canBill
                         && in_array($unit->status->value, [UnitStatus::Confirmed->value, UnitStatus::CheckedIn->value, UnitStatus::CheckedOut->value], true)
                         && $this->billable($unitGuest, $unitFolios->get($unitId), $ownFolioGuestIds),
+                    guest: $canViewGuest ? GuestOptionData::fromModel($unitGuest->guest) : null,
                 );
             }
         }
