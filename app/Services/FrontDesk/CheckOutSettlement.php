@@ -2,34 +2,47 @@
 
 namespace App\Services\FrontDesk;
 
+use App\Data\Reservations\CheckOutRoomShareData;
 use App\Data\Reservations\UnitCheckOutPreviewData;
 use App\Enums\FolioStatus;
 use App\Enums\FolioType;
 use App\Enums\PaymentPurpose;
 use App\Enums\PaymentStatus;
 use App\Models\Folio;
+use App\Models\FolioLine;
 use App\Models\Payment;
 use App\Models\ReservationUnit;
 use App\Services\Folio\FolioBalance;
+use App\Services\Folio\IncomingScheduledCharges;
+use App\Services\Folio\LineSourceUnits;
 use Brick\Math\BigDecimal;
 use Illuminate\Support\Collection;
 
 /**
- * What stands between a unit and check-out: the balance of its own folio and the security deposit it holds. It
- * reads only. A held deposit is a credit, so the folio reaches 0 only after the deposit is refunded or used against
- * charges. See docs/18-front-desk/01-check-in-and-check-out.md#check-out.
+ * What stands between a unit and check-out: the balance of its own folio, the security deposit it holds, and another
+ * room that still charges its scheduled nights to that folio. It reads only. A held deposit is a credit, so the folio
+ * reaches 0 only after the deposit is refunded or used against charges. When the folio also holds another room's
+ * charges, the balance is split by room. See docs/18-front-desk/01-check-in-and-check-out.md#check-out.
  */
 class CheckOutSettlement
 {
-    public function __construct(private FolioBalance $folioBalance) {}
+    public function __construct(
+        private FolioBalance $folioBalance,
+        private LineSourceUnits $lineSourceUnits,
+        private IncomingScheduledCharges $incomingScheduledCharges,
+    ) {}
 
-    public function for(ReservationUnit $unit, bool $canRefund, bool $canCollect = false): UnitCheckOutPreviewData
+    public function for(ReservationUnit $unit, bool $canRefund, bool $canCollect = false, bool $canMoveCharges = false): UnitCheckOutPreviewData
     {
         $folios = $this->folios($unit);
         $balance = $folios->reduce(fn (BigDecimal $sum, Folio $folio): BigDecimal => $sum->plus($this->folioBalance->forFolio($folio)), BigDecimal::zero());
         $deposits = $this->heldDeposits($folios);
         $held = $deposits->reduce(fn (BigDecimal $sum, Payment $payment): BigDecimal => $sum->plus($this->refundable($payment)), BigDecimal::zero());
         $credit = $balance->isNegative() ? $balance->negated() : BigDecimal::zero();
+        $incoming = $this->incomingScheduled($unit, $folios);
+        $split = $this->roomShares($unit, $folios);
+        $others = array_diff_key($split['shares'], [$unit->id => true]);
+        $names = $others === [] ? [] : $this->incomingScheduledCharges->unitNames(array_keys($split['shares']));
 
         return new UnitCheckOutPreviewData(
             balance: (string) $balance->toScale(2),
@@ -39,9 +52,95 @@ class CheckOutSettlement
             depositMethod: $deposits->first()?->paymentMethod->name,
             canRefund: $canRefund,
             folioKey: $folios->first() === null ? null : (string) $folios->first()->id,
-            error: null,
+            error: $incoming === [] ? null : IncomingScheduledCharges::message($incoming),
             canCollect: $canCollect,
+            rooms: $others === [] ? [] : array_map(
+                fn (int $unitId): CheckOutRoomShareData => new CheckOutRoomShareData($names[$unitId] ?? '—', (string) $split['shares'][$unitId]->toScale(2), $unitId === $unit->id),
+                array_keys($split['shares']),
+            ),
+            otherLineIds: $split['otherLineIds'],
+            receivesScheduled: $incoming !== [],
+            canMoveCharges: $canMoveCharges,
         );
+    }
+
+    /**
+     * The other live units that still charge unposted Scheduled rows to one of the unit's Open folios, as names and
+     * dates (`folio_receives_scheduled_charges`). The unit itself is left out: check-out ends its stay.
+     *
+     * @param  Collection<int, Folio>  $folios
+     * @return list<string>
+     */
+    public function incomingScheduled(ReservationUnit $unit, Collection $folios): array
+    {
+        return $folios
+            ->where('status', FolioStatus::Open)
+            ->flatMap(fn (Folio $folio): array => $this->incomingScheduledCharges->for($folio, $unit->id))
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    /**
+     * What the unit's folios hold for other rooms, for the `balance_not_settled` message: "MYR 540.00 for Room 102".
+     * Only rooms with an amount above 0 are named.
+     *
+     * @param  Collection<int, Folio>  $folios
+     * @return list<string>
+     */
+    public function heldForOtherRooms(ReservationUnit $unit, Collection $folios): array
+    {
+        $others = array_filter(
+            array_diff_key($this->roomShares($unit, $folios)['shares'], [$unit->id => true]),
+            fn (BigDecimal $amount): bool => $amount->isPositive(),
+        );
+
+        if ($others === []) {
+            return [];
+        }
+
+        $currency = (string) $unit->property()->with('settings')->first()?->settings?->currency->value;
+        $names = $this->incomingScheduledCharges->unitNames(array_keys($others));
+
+        return array_map(
+            fn (int $unitId): string => __(':amount for :room', ['amount' => trim($currency.' '.number_format($others[$unitId]->toFloat(), 2)), 'room' => $names[$unitId] ?? '—']),
+            array_keys($others),
+        );
+    }
+
+    /**
+     * Each room's part of the folios' balance, by unit id with the unit first, from the line source: a tax or discount
+     * child takes its parent's room, and a line with no unit source (a payment) is the unit's own. Rooms at 0 other than
+     * the unit are left out. `otherLineIds` are the other rooms' charges on Open folios that could move: top-level, not a
+     * reversal and not reversed.
+     *
+     * @param  Collection<int, Folio>  $folios
+     * @return array{shares: array<int, BigDecimal>, otherLineIds: list<int>}
+     */
+    public function roomShares(ReservationUnit $unit, Collection $folios): array
+    {
+        $lines = FolioLine::query()->whereIn('folio_id', $folios->modelKeys())->orderBy('id')->get();
+        $sources = $this->lineSourceUnits->for($lines);
+        $byId = $lines->keyBy('id');
+        $reversed = $lines->pluck('reversal_of_id')->filter()->flip();
+        $open = $folios->where('status', FolioStatus::Open)->pluck('id')->flip();
+        $shares = [$unit->id => BigDecimal::zero()];
+        $otherLineIds = [];
+
+        foreach ($lines as $line) {
+            $top = $line->parent_line_id === null ? $line : ($byId->get($line->parent_line_id) ?? $line);
+            $unitId = $sources[$top->source_type.':'.$top->source_id] ?? $unit->id;
+            $shares[$unitId] = ($shares[$unitId] ?? BigDecimal::zero())->plus((string) $line->amount);
+
+            if ($unitId !== $unit->id && $line->parent_line_id === null && $line->reversal_of_id === null && ! $reversed->has($line->id) && $open->has($line->folio_id)) {
+                $otherLineIds[] = $line->id;
+            }
+        }
+
+        return [
+            'shares' => array_filter($shares, fn (BigDecimal $amount, int $unitId): bool => $unitId === $unit->id || ! $amount->isZero(), ARRAY_FILTER_USE_BOTH),
+            'otherLineIds' => $otherLineIds,
+        ];
     }
 
     /**

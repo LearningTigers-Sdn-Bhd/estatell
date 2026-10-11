@@ -1516,6 +1516,11 @@ amount: string,
 reference: string | null,
 idempotencyKey: string,
 };
+export type CheckOutRoomShareData = {
+name: string,
+amount: string,
+own: boolean,
+};
 export type CollectNowData = {
 taxes: boolean,
 deposit: boolean,
@@ -1788,6 +1793,10 @@ folioKey: string | null,
 error: string | null,
 canCollect: boolean,
 early: App.Data.Reservations.UnitEarlyDepartureData | null,
+rooms: App.Data.Reservations.CheckOutRoomShareData[],
+otherLineIds: number[],
+receivesScheduled: boolean,
+canMoveCharges: boolean,
 };
 export type UnitDatesPreviewData = {
 previousTotal: string | null,

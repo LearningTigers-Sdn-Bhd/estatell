@@ -148,7 +148,7 @@ class ReservationUnitStayController extends Controller
     {
         $result = $checkOutAndRefund($request->user(), $unit, $request->refundAmount(), $request->collectBalance(), $request->string('idempotency_key')->toString());
 
-        return $this->respond($property, $reservation, $result->refusal, $refusals, __('Unit checked out.'));
+        return $this->respond($property, $reservation, $result->refusal, $refusals, __('Unit checked out.'), rooms: $result->rooms);
     }
 
     /**
@@ -159,7 +159,7 @@ class ReservationUnitStayController extends Controller
     {
         $result = $earlyCheckOut($request->user(), $unit, $request->doNotCharge(), $request->reason(), $request->expectedFee(), $request->refundAmount(), $request->collectBalance(), $request->string('idempotency_key')->toString());
 
-        return $this->respond($property, $reservation, $result->refusal, $refusals, __('Unit checked out early.'));
+        return $this->respond($property, $reservation, $result->refusal, $refusals, __('Unit checked out early.'), rooms: $result->rooms);
     }
 
     /**
@@ -247,12 +247,15 @@ class ReservationUnitStayController extends Controller
         return back(fallback: $page);
     }
 
-    private function respond(Property $property, Reservation $reservation, ?string $refusal, ReservationRefusals $refusals, string $message, ?string $note = null): RedirectResponse
+    /**
+     * @param  list<string>  $rooms  The rooms a refusal names (`UnitStayResult::$rooms`).
+     */
+    private function respond(Property $property, Reservation $reservation, ?string $refusal, ReservationRefusals $refusals, string $message, ?string $note = null, array $rooms = []): RedirectResponse
     {
         $page = route('reservations.show', ['property' => $property, 'reservation' => $reservation]);
 
         if ($refusal !== null) {
-            return back(fallback: $page)->withErrors($refusals->unitErrors($refusal, canOverrideRestrictions: request()->user()->can(PermissionEnum::RatesOverrideRestrictions->value)));
+            return back(fallback: $page)->withErrors($refusals->unitErrors($refusal, canOverrideRestrictions: request()->user()->can(PermissionEnum::RatesOverrideRestrictions->value), rooms: $rooms));
         }
 
         Inertia::flash('toast', ['type' => 'success', 'message' => $note === null ? $message : $message.' '.$note]);

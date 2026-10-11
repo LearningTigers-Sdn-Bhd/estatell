@@ -3,6 +3,7 @@
 namespace App\Services\CityLedger;
 
 use App\Actions\CityLedger\ArInvoiceResult;
+use App\Services\Folio\IncomingScheduledCharges;
 use App\Services\Folio\InHouseUnits;
 
 /**
@@ -14,7 +15,8 @@ class ArInvoiceRefusals
     public const string FORM = 'form';
 
     /**
-     * @param  list<string>  $rooms  The rooms still in-house, for `units_in_house`.
+     * @param  list<string>  $rooms  The rooms still in-house, for `units_in_house`, or the rooms and dates for
+     *                               `folio_receives_scheduled_charges`.
      * @return array<string, string>
      */
     public function errors(string $code, array $rooms = []): array
@@ -63,6 +65,7 @@ class ArInvoiceRefusals
         return match ($code) {
             ArInvoiceResult::REFUSAL_FOLIO_NOT_OPEN => [self::FORM, __('This folio is not open, so it cannot be settled.')],
             ArInvoiceResult::REFUSAL_UNITS_IN_HOUSE => [self::FORM, InHouseUnits::message($rooms)],
+            ArInvoiceResult::REFUSAL_RECEIVES_SCHEDULED_CHARGES => [self::FORM, IncomingScheduledCharges::message($rooms)],
             ArInvoiceResult::REFUSAL_NO_COMPANY_PAYER => [self::FORM, __('This folio is not paid by a company.')],
             ArInvoiceResult::REFUSAL_DIRECT_BILL_NOT_ALLOWED => [self::FORM, __('This company is suspended or cannot be direct billed.')],
             ArInvoiceResult::REFUSAL_NOTHING_TO_SETTLE => [self::FORM, __('There is no balance to move to the city ledger.')],

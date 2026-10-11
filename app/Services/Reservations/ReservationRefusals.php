@@ -9,6 +9,7 @@ use App\Actions\Reservations\AttachGuestResult;
 use App\Actions\Reservations\BookingResult;
 use App\Actions\Reservations\GroupUpdateResult;
 use App\Actions\Reservations\ReservationResult;
+use App\Services\Folio\IncomingScheduledCharges;
 use App\Services\Rates\RateQuote;
 use Carbon\CarbonInterface;
 
@@ -50,11 +51,13 @@ class ReservationRefusals
      * The errors to flash back to a unit action form (cancel, no-show, reinstate, change dates), keyed by field name.
      * A code the form does not know falls back to the shared list.
      *
+     * @param  list<string>  $rooms  `UnitStayResult::$rooms`: the rooms named by `balance_not_settled` and
+     *                               `folio_receives_scheduled_charges`.
      * @return array<string, string>
      */
-    public function unitErrors(string $code, ?CarbonInterface $date = null, bool $canOverrideRestrictions = false, bool $canOverrideCard = false): array
+    public function unitErrors(string $code, ?CarbonInterface $date = null, bool $canOverrideRestrictions = false, bool $canOverrideCard = false, array $rooms = []): array
     {
-        $entry = $this->unitEntry($code, $canOverrideRestrictions, $canOverrideCard) ?? $this->entry($code, $date, $canOverrideRestrictions);
+        $entry = $this->unitEntry($code, $canOverrideRestrictions, $canOverrideCard, $rooms) ?? $this->entry($code, $date, $canOverrideRestrictions);
 
         return [$entry[0] => $entry[1]];
     }
@@ -68,9 +71,10 @@ class ReservationRefusals
     }
 
     /**
+     * @param  list<string>  $rooms
      * @return array{0: string, 1: string}|null
      */
-    private function unitEntry(string $code, bool $canOverrideRestrictions, bool $canOverrideCard = false): ?array
+    private function unitEntry(string $code, bool $canOverrideRestrictions, bool $canOverrideCard = false, array $rooms = []): ?array
     {
         return match ($code) {
             UnitStayResult::REFUSAL_INVALID_STATUS => [self::FORM, __('This unit cannot do that in its current status.')],
@@ -84,7 +88,10 @@ class ReservationRefusals
             UnitStayResult::REFUSAL_NATIONALITY_REQUIRED => ['nationality_code', __('A tax depends on nationality. Choose the guest\'s nationality.')],
             UnitStayResult::REFUSAL_CREDIT_LIMIT_EXCEEDED => ['credit_override_reason', __('This company is over its credit limit.')],
             UnitStayResult::REFUSAL_BEFORE_DEPARTURE_DATE => [self::FORM, __('The guest cannot check out before the departure date. Change the dates first.')],
-            UnitStayResult::REFUSAL_BALANCE_NOT_SETTLED => [self::FORM, __('The unit folio is not settled. Collect the balance or refund the deposit first.')],
+            UnitStayResult::REFUSAL_BALANCE_NOT_SETTLED => [self::FORM, $rooms === []
+                ? __('The unit folio is not settled. Collect the balance or refund the deposit first.')
+                : __('The unit folio is not settled. It holds :amounts. Collect it, or move those charges first.', ['amounts' => implode(', ', $rooms)])],
+            UnitStayResult::REFUSAL_RECEIVES_SCHEDULED_CHARGES => [self::FORM, IncomingScheduledCharges::message($rooms)],
             UnitStayResult::REFUSAL_NOT_EARLY => [self::FORM, __('The departure date is today or past, so check out the normal way.')],
             UnitStayResult::REFUSAL_NOT_DEPARTURE_DATE => [self::FORM, __('A late check-out is only for the departure date.')],
             UnitStayResult::REFUSAL_TIME_NOT_LATER => ['new_time', __('Choose a time later than the current departure time.')],

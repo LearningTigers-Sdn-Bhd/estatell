@@ -3,6 +3,7 @@
 namespace App\Actions\FrontDesk;
 
 use App\Actions\Folio\CloseFolio;
+use App\Actions\Folio\FolioStatusResult;
 use App\Actions\Reservations\SyncReservationStatus;
 use App\Enums\FolioStatus;
 use App\Enums\FolioType;
@@ -14,6 +15,7 @@ use App\Models\ReservationUnit;
 use App\Models\RoomStatus;
 use App\Models\User;
 use App\Services\Folio\FolioBalance;
+use App\Services\FrontDesk\CheckOutSettlement;
 use App\Services\NightAudit\CurrentBusinessDate;
 use Illuminate\Support\Facades\DB;
 
@@ -24,11 +26,14 @@ class CheckOutUnit
         private FolioBalance $folioBalance,
         private SyncReservationStatus $syncReservationStatus,
         private CloseFolio $closeFolio,
+        private CheckOutSettlement $checkOutSettlement,
     ) {}
 
     /**
      * Check one unit out: set `checked_out_at` and `UnitStatus::CheckedOut`, mark its room Dirty and sync the
-     * reservation status. The unit's own folio must have a balance of 0. A balance that belongs on the Master folio
+     * reservation status. No other live unit may still charge unposted Scheduled rows to the unit's own folios
+     * (`folio_receives_scheduled_charges`, checked first so the message is the right one). The unit's own folio must
+     * have a balance of 0, whoever the charges belong to; `balance_not_settled` names the rooms whose charges it holds. A balance that belongs on the Master folio
      * is moved first with `TransferLines`, and a held security deposit is a credit that must be refunded or used
      * against charges first. After the status change it closes each Open Unit folio of the unit through `CloseFolio`
      * (at 0 by the check above), which issues the folio's invoice number once. A close that is refused (a posting raced
@@ -66,15 +71,17 @@ class CheckOutUnit
                 return UnitStayResult::refused(UnitStayResult::REFUSAL_BEFORE_DEPARTURE_DATE);
             }
 
-            $unsettled = Folio::query()
-                ->where('reservation_unit_id', $locked->id)
-                ->where('type', FolioType::Unit)
-                ->where('status', '!=', FolioStatus::Voided)
-                ->get()
-                ->contains(fn (Folio $folio): bool => bccomp($this->folioBalance->forFolio($folio), '0', 2) !== 0);
+            $folios = $this->checkOutSettlement->folios($locked);
+            $incoming = $this->checkOutSettlement->incomingScheduled($locked, $folios);
+
+            if ($incoming !== []) {
+                return UnitStayResult::refused(UnitStayResult::REFUSAL_RECEIVES_SCHEDULED_CHARGES, $incoming);
+            }
+
+            $unsettled = $folios->contains(fn (Folio $folio): bool => bccomp($this->folioBalance->forFolio($folio), '0', 2) !== 0);
 
             if ($unsettled) {
-                return UnitStayResult::refused(UnitStayResult::REFUSAL_BALANCE_NOT_SETTLED);
+                return UnitStayResult::refused(UnitStayResult::REFUSAL_BALANCE_NOT_SETTLED, $this->checkOutSettlement->heldForOtherRooms($locked, $folios));
             }
 
             $locked->status = UnitStatus::CheckedOut;
@@ -89,7 +96,13 @@ class CheckOutUnit
                 ->get();
 
             foreach ($openFolios as $folio) {
-                if (($this->closeFolio)($actor, $folio)->isRefused()) {
+                $closed = ($this->closeFolio)($actor, $folio);
+
+                if ($closed->refusal === FolioStatusResult::REFUSAL_RECEIVES_SCHEDULED_CHARGES) {
+                    throw new UnitStayRefused(UnitStayResult::refused(UnitStayResult::REFUSAL_RECEIVES_SCHEDULED_CHARGES, $closed->rooms));
+                }
+
+                if ($closed->isRefused()) {
                     throw new UnitStayRefused(UnitStayResult::refused(UnitStayResult::REFUSAL_BALANCE_NOT_SETTLED));
                 }
             }

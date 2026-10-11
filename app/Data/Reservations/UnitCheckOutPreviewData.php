@@ -9,7 +9,10 @@ use Spatie\LaravelData\Data;
  * and how much of it a refund would give back so the folio reaches 0. `balance` is the plain folio sum, so a held
  * deposit makes it negative. `owing` is what the guest still has to pay, `folioKey` opens the folio tab. `canCollect`
  * (`payment.record`) shows Collect balance, and `canRefund` (`payment.refund`) the deposit refund. `early` is
- * set when the unit leaves before its departure date, and the fee in it is not yet in `balance`.
+ * set when the unit leaves before its departure date, and the fee in it is not yet in `balance`. `rooms` splits the
+ * balance by room when the folio also holds another room's charges, and `otherLineIds` are those rooms' charges, ticked
+ * when **Move charges** opens. `receivesScheduled` is set when `error` says another room still charges its scheduled
+ * nights here. `canMoveCharges` (`folio.transfer`) shows the Move charges link.
  */
 class UnitCheckOutPreviewData extends Data
 {
@@ -24,6 +27,12 @@ class UnitCheckOutPreviewData extends Data
         public ?string $error,
         public bool $canCollect = false,
         public ?UnitEarlyDepartureData $early = null,
+        /** @var list<CheckOutRoomShareData> */
+        public array $rooms = [],
+        /** @var list<int> */
+        public array $otherLineIds = [],
+        public bool $receivesScheduled = false,
+        public bool $canMoveCharges = false,
     ) {}
 
     public static function refused(string $error): self

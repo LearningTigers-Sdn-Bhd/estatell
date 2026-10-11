@@ -28,14 +28,16 @@ use Inertia\Response;
 class ReservationFolioMoveController extends Controller
 {
     /**
-     * The page. `to` is the starting target and `line` a charge to tick; each must belong to the reservation (404
-     * otherwise). A reservation with no Open folio goes back to the folio tab with an error toast.
+     * The page. `to` is the starting target, and `line` and `lines` charges to tick; each must belong to the reservation
+     * (404 otherwise). A charge that cannot move is not ticked. A reservation with no Open folio goes back to the folio tab with an error toast.
      */
     public function show(MoveChargesPageRequest $request, Property $property, Reservation $reservation, MoveChargesPreview $preview): Response|RedirectResponse
     {
         $to = $request->filled('to') ? $reservation->folios()->findOrFail($request->integer('to')) : null;
-        $line = $request->filled('line') ? FolioLine::query()->whereIn('folio_id', $reservation->folios()->select('folios.id'))->findOrFail($request->integer('line')) : null;
-        $target = $preview->startTarget($reservation, $to, $line);
+        $ids = $request->lineIds();
+        $lines = FolioLine::query()->whereIn('folio_id', $reservation->folios()->select('folios.id'))->whereIn('id', $ids)->get();
+        abort_unless($lines->count() === count($ids), 404);
+        $target = $preview->startTarget($reservation, $to, $lines->firstWhere('id', $ids[0] ?? null));
 
         if ($target === null) {
             Inertia::flash('toast', ['type' => 'error', 'message' => __('There is no open folio to move charges to.')]);
@@ -44,7 +46,7 @@ class ReservationFolioMoveController extends Controller
         }
 
         return Inertia::render('reservations/move-charges', [
-            'move' => $preview->page($property, $reservation, $target, $line === null ? [] : [$line->id], $this->folioTab($property, $reservation, $target)),
+            'move' => $preview->page($property, $reservation, $target, $ids, $this->folioTab($property, $reservation, $target)),
         ]);
     }
 

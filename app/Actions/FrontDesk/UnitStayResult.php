@@ -32,6 +32,8 @@ class UnitStayResult
 
     public const REFUSAL_BALANCE_NOT_SETTLED = 'balance_not_settled';
 
+    public const REFUSAL_RECEIVES_SCHEDULED_CHARGES = 'folio_receives_scheduled_charges';
+
     public const REFUSAL_REASON_REQUIRED = 'reason_required';
 
     public const REFUSAL_FEE_CHANGED = 'fee_changed';
@@ -69,6 +71,8 @@ class UnitStayResult
     private function __construct(
         public readonly ?ReservationUnit $unit,
         public readonly ?string $refusal,
+        /** @var list<string> */
+        public readonly array $rooms = [],
     ) {}
 
     public static function done(ReservationUnit $unit): self
@@ -76,9 +80,13 @@ class UnitStayResult
         return new self($unit, null);
     }
 
-    public static function refused(string $refusal): self
+    /**
+     * @param  list<string>  $rooms  The rooms and dates for `folio_receives_scheduled_charges`, or the amounts held for
+     *                               other rooms ("MYR 540.00 for Room 102") for `balance_not_settled`.
+     */
+    public static function refused(string $refusal, array $rooms = []): self
     {
-        return new self(null, $refusal);
+        return new self(null, $refusal, $rooms);
     }
 
     public function isRefused(): bool

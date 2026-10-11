@@ -26,6 +26,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { folio } from '@/routes/reservations';
+import { move as moveCharges } from '@/routes/reservations/folio';
 import {
     checkOut,
     checkOutPreview,
@@ -162,6 +163,18 @@ function CheckOutForm({
                   { query: { folio: preview.folioKey } },
               )
             : null;
+    const others = preview?.rooms.filter((room) => !room.own) ?? [];
+    // Another room's scheduled nights block check-out: the room's scheduled choice is on the page, nothing is ticked.
+    const moveLink =
+        preview?.canMoveCharges === true &&
+        (preview.receivesScheduled || preview.otherLineIds.length > 0)
+            ? moveCharges.url(
+                  { reservation: reservationId },
+                  preview.receivesScheduled
+                      ? undefined
+                      : { query: { lines: preview.otherLineIds } },
+              )
+            : null;
 
     const submit = () => {
         form.transform((values) => ({
@@ -211,6 +224,17 @@ function CheckOutForm({
                     {preview.error !== null && (
                         <p className="text-sm text-destructive">
                             {preview.error}
+                            {preview.receivesScheduled && moveLink !== null && (
+                                <>
+                                    {' '}
+                                    <Link
+                                        href={moveLink}
+                                        className="underline underline-offset-4"
+                                    >
+                                        Move charges
+                                    </Link>
+                                </>
+                            )}
                         </p>
                     )}
                     {early !== null && (
@@ -323,6 +347,20 @@ function CheckOutForm({
                                 )}
                             </span>
                         </div>
+                        {preview.rooms.map((room) => (
+                            <div
+                                key={room.name}
+                                className="flex justify-between gap-4 pl-4"
+                            >
+                                <span className="text-muted-foreground">
+                                    {room.name}
+                                </span>
+                                <MoneyText
+                                    amount={room.amount}
+                                    currency={currency}
+                                />
+                            </div>
+                        ))}
                         {held > 0 && (
                             <div className="flex justify-between gap-4">
                                 <span className="text-muted-foreground">
@@ -335,6 +373,25 @@ function CheckOutForm({
                             </div>
                         )}
                     </div>
+                    {others.length > 0 && !preview.receivesScheduled && (
+                        <p className="text-sm text-muted-foreground">
+                            This folio pays for another room. Collect it all
+                            here, or move{' '}
+                            {others.map((room) => room.name).join(', ')}'s
+                            charges first.
+                            {moveLink !== null && (
+                                <>
+                                    {' '}
+                                    <Link
+                                        href={moveLink}
+                                        className="underline underline-offset-4"
+                                    >
+                                        Move charges
+                                    </Link>
+                                </>
+                            )}
+                        </p>
+                    )}
                     {owing > 0 && !canCollect && folioLink !== null && (
                         <p className="text-sm text-muted-foreground">
                             Collect the balance with Record payment on the{' '}
@@ -565,7 +622,8 @@ function CheckOutForm({
 }
 
 /**
- * Check out one unit. Shows the unit folio and the security deposit held. The deposit is a credit, so the form uses
+ * Check out one unit. Shows the unit folio, split by room when it also holds another room's charges, and the security
+ * deposit held. The deposit is a credit, so the form uses
  * it toward the bill, refunds it, or leaves it for a damage charge. For a user who may record payments, Collect
  * balance takes what is still owed, and the server records the payment, the refund and the check-out in one step.
  * Check-out opens once the folio will reach 0.

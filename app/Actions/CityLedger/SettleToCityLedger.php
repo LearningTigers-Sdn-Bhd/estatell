@@ -13,6 +13,7 @@ use App\Models\FolioLine;
 use App\Models\TransactionCode;
 use App\Models\User;
 use App\Services\Folio\FolioBalance;
+use App\Services\Folio\IncomingScheduledCharges;
 use App\Services\Folio\InHouseUnits;
 use App\Services\NightAudit\CurrentBusinessDate;
 use Illuminate\Support\Facades\DB;
@@ -26,13 +27,15 @@ class SettleToCityLedger
         private CloseFolio $closeFolio,
         private CreateArInvoiceFromFolio $createArInvoiceFromFolio,
         private InHouseUnits $inHouseUnits,
+        private IncomingScheduledCharges $incomingScheduledCharges,
     ) {}
 
     /**
      * Move the whole balance of an Open folio to the city ledger: post one negative `DIRECT_BILL` line on the business
      * date (key `city-ledger:{folio_id}:{n}`, n counting the folio's earlier City ledger lines, so a folio settled again after a void gets a new key), close the folio, and make the AR invoice, in one transaction. The folio
      * row is locked first and every check runs before the first write, so a refusal writes and logs nothing. A Master folio
-     * is refused while a unit is CheckedIn (`units_in_house`), so no line is posted and then rolled back. It does
+     * is refused while a unit is CheckedIn (`units_in_house`), and any folio while a live unit still routes unposted
+     * Scheduled rows to it (`folio_receives_scheduled_charges`), so no line is posted and then rolled back. It does
      * not use `RecordPayment`: there is no `payments` row and no receipt. It is never refused by the credit limit: settling
      * adds no debt, it moves an open folio balance into open AR, so the exposure is the same before and after. The folio
      * tab warns instead (`FolioData.settleCreditWarning`). Permissions are checked by the route. See docs/15-city-ledger/02-ar-invoices.md.
@@ -50,6 +53,12 @@ class SettleToCityLedger
 
             if ($rooms !== []) {
                 return ArInvoiceResult::refused(ArInvoiceResult::REFUSAL_UNITS_IN_HOUSE, $rooms);
+            }
+
+            $incoming = $this->incomingScheduledCharges->for($locked);
+
+            if ($incoming !== []) {
+                return ArInvoiceResult::refused(ArInvoiceResult::REFUSAL_RECEIVES_SCHEDULED_CHARGES, $incoming);
             }
 
             $company = $locked->payer_company_id === null

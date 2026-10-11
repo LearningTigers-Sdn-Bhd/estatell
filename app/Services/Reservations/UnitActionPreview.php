@@ -207,11 +207,12 @@ class UnitActionPreview
     }
 
     /**
-     * The unit folio balance, the security deposit held, and whether the user may collect and refund.
+     * The unit folio balance split by room, the security deposit held, another room's scheduled nights still charged
+     * here, and whether the user may collect, refund and move charges.
      */
     public function checkOut(ReservationUnit $unit, User $user): UnitCheckOutPreviewData
     {
-        $preview = $this->checkOutSettlement->for($unit, $user->can(PermissionEnum::PaymentRefund->value), $user->can(PermissionEnum::PaymentRecord->value));
+        $preview = $this->checkOutSettlement->for($unit, $user->can(PermissionEnum::PaymentRefund->value), $user->can(PermissionEnum::PaymentRecord->value), $user->can(PermissionEnum::FolioTransfer->value));
         $businessDate = $this->currentBusinessDate->date($unit->property()->firstOrFail());
 
         if ($unit->status !== UnitStatus::CheckedIn || $businessDate === null || $businessDate->toDateString() >= $unit->departure_date->toDateString()) {

@@ -6,7 +6,7 @@ use App\Models\Folio;
 
 /**
  * What `CloseFolio` and `ReopenFolio` return: the folio in its new status, or a refusal code. `units_in_house` also
- * names the rooms that are still in-house.
+ * names the rooms that are still in-house, and `folio_receives_scheduled_charges` the rooms with their dates.
  */
 class FolioStatusResult
 {
@@ -19,6 +19,8 @@ class FolioStatusResult
     public const REFUSAL_HAS_AR_INVOICE = 'folio_has_ar_invoice';
 
     public const REFUSAL_UNITS_IN_HOUSE = 'units_in_house';
+
+    public const REFUSAL_RECEIVES_SCHEDULED_CHARGES = 'folio_receives_scheduled_charges';
 
     private function __construct(
         public readonly ?Folio $folio,

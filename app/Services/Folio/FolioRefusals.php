@@ -19,7 +19,7 @@ class FolioRefusals
     /**
      * The errors to flash back to a form, keyed by field name.
      *
-     * @param  list<string>  $rooms  The rooms still in-house for `units_in_house`, or the rooms with nothing scheduled for `nothing_scheduled`.
+     * @param  list<string>  $rooms  The rooms still in-house for `units_in_house`, the rooms with nothing scheduled for `nothing_scheduled`, or the rooms and dates for `folio_receives_scheduled_charges`.
      * @return array<string, string>
      */
     public function errors(string $code, array $rooms = []): array
@@ -71,6 +71,7 @@ class FolioRefusals
             PostingResult::REFUSAL_NOT_A_DISCOUNT => [self::FORM, __('This line is not a discount.')],
             PostingResult::REFUSAL_PAYMENT_LINE => [self::FORM, __('A payment cannot be reversed or moved. Refund it instead.')],
             FolioStatusResult::REFUSAL_UNITS_IN_HOUSE => [self::FORM, InHouseUnits::message($rooms)],
+            FolioStatusResult::REFUSAL_RECEIVES_SCHEDULED_CHARGES => [self::FORM, IncomingScheduledCharges::message($rooms)],
             FolioStatusResult::REFUSAL_BALANCE_NOT_ZERO => [self::FORM, __('Only a folio with a balance of 0.00 can be closed. Settle it or move the charges first.')],
             FolioStatusResult::REFUSAL_HAS_AR_INVOICE => [self::FORM, __('This folio has a city ledger invoice. Issue a credit note instead of reopening it.')],
             FolioStatusResult::REFUSAL_NOT_CLOSED => [self::FORM, __('Only a closed folio can be reopened.')],

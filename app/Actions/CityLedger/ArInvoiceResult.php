@@ -13,6 +13,8 @@ class ArInvoiceResult
 
     public const REFUSAL_UNITS_IN_HOUSE = 'units_in_house';
 
+    public const REFUSAL_RECEIVES_SCHEDULED_CHARGES = 'folio_receives_scheduled_charges';
+
     public const REFUSAL_NO_COMPANY_PAYER = 'no_company_payer';
 
     public const REFUSAL_DIRECT_BILL_NOT_ALLOWED = 'direct_bill_not_allowed';
@@ -46,7 +48,8 @@ class ArInvoiceResult
     }
 
     /**
-     * @param  list<string>  $rooms  The rooms still in-house, for `units_in_house`.
+     * @param  list<string>  $rooms  The rooms still in-house, for `units_in_house`, or the rooms and dates for
+     *                               `folio_receives_scheduled_charges`.
      */
     public static function refused(string $refusal, array $rooms = []): self
     {
