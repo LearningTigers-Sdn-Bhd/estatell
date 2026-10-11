@@ -10,6 +10,7 @@ import {
     Landmark,
     Lock,
     LockOpen,
+    MoreHorizontal,
     PanelRightClose,
     PanelRightOpen,
     Plus,
@@ -48,7 +49,9 @@ import { Button, buttonVariants } from '@/components/ui/button';
 import {
     DropdownMenu,
     DropdownMenuContent,
+    DropdownMenuGroup,
     DropdownMenuItem,
+    DropdownMenuLabel,
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
@@ -161,25 +164,56 @@ export function FolioTab({
 
     const summaryLabel = summaryHidden ? 'Show summary' : 'Hide summary';
 
-    const routingButtons = canManageRouting && (
-        <DropdownMenu>
-            <DropdownMenuTrigger render={<Button variant="outline" />}>
-                <Split data-icon="inline-start" />
-                Routing
-                <ChevronDown data-icon="inline-end" />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start">
-                <DropdownMenuItem onClick={() => setRouting(true)}>
-                    <Split />
-                    Routing rules
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setCreatingThirdParty(true)}>
-                    <UserPlus />
-                    Third-party folio
-                </DropdownMenuItem>
-            </DropdownMenuContent>
-        </DropdownMenu>
-    );
+    const moreActions = (canMove: boolean) =>
+        (canMove || canManageRouting) && (
+            <DropdownMenu>
+                <DropdownMenuTrigger render={<Button variant="outline" />}>
+                    <MoreHorizontal data-icon="inline-start" />
+                    More actions
+                    <ChevronDown data-icon="inline-end" />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="min-w-48">
+                    {canMove && (
+                        <DropdownMenuGroup>
+                            <DropdownMenuLabel>Charges</DropdownMenuLabel>
+                            <DropdownMenuItem
+                                render={
+                                    <Link
+                                        href={moveCharges.url(
+                                            { reservation: reservationId },
+                                            {
+                                                query: {
+                                                    to: Number(folio?.key),
+                                                },
+                                            },
+                                        )}
+                                    />
+                                }
+                            >
+                                <ArrowRightLeft />
+                                Move charges
+                            </DropdownMenuItem>
+                        </DropdownMenuGroup>
+                    )}
+                    {canMove && canManageRouting && <DropdownMenuSeparator />}
+                    {canManageRouting && (
+                        <DropdownMenuGroup>
+                            <DropdownMenuLabel>Routing</DropdownMenuLabel>
+                            <DropdownMenuItem onClick={() => setRouting(true)}>
+                                <Split />
+                                Routing rules
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                                onClick={() => setCreatingThirdParty(true)}
+                            >
+                                <UserPlus />
+                                Third-party folio
+                            </DropdownMenuItem>
+                        </DropdownMenuGroup>
+                    )}
+                </DropdownMenuContent>
+            </DropdownMenu>
+        );
 
     const routingOverlays = canManageRouting && (
         <>
@@ -204,7 +238,7 @@ export function FolioTab({
     if (folio === null) {
         return (
             <div className="flex flex-col gap-4">
-                <div className="flex flex-wrap gap-2">{routingButtons}</div>
+                <div className="flex flex-wrap gap-2">{moreActions(false)}</div>
                 {routingOverlays}
                 <EmptyState
                     icon={CreditCard}
@@ -377,21 +411,7 @@ export function FolioTab({
                     </dl>
                     <div className="flex flex-wrap items-center justify-between gap-2">
                         <div className="flex flex-wrap items-center gap-2">
-                            {routingButtons}
-                            {folio.canMoveCharges && (
-                                <Link
-                                    href={moveCharges.url(
-                                        { reservation: reservationId },
-                                        { query: { to: Number(folio.key) } },
-                                    )}
-                                    className={buttonVariants({
-                                        variant: 'outline',
-                                    })}
-                                >
-                                    <ArrowRightLeft data-icon="inline-start" />
-                                    Move charges
-                                </Link>
-                            )}
+                            {moreActions(folio.canMoveCharges)}
                         </div>
                         <div className="flex flex-wrap items-center gap-2">
                             {folio.canApplyDiscount && (
