@@ -1,4 +1,4 @@
-import { Form } from '@inertiajs/react';
+import { Form, Link } from '@inertiajs/react';
 import {
     BadgePercent,
     Banknote,
@@ -52,6 +52,7 @@ import {
     TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { KEEP_OPTIONS } from '@/components/pms/use-form-options';
+import { show as showArInvoice } from '@/routes/finance/city-ledger/invoices';
 import { invoice, reopen } from '@/routes/reservations/folios';
 import { cn } from '@/lib/utils';
 
@@ -363,7 +364,10 @@ export function FolioTab({
                             <AlertDescription className="min-w-0 flex-1 basis-60">
                                 {folio.closedNotice}
                             </AlertDescription>
-                            {(folio.canPrintInvoice || folio.canReopen) && (
+                            {(folio.canPrintInvoice ||
+                                folio.canReopen ||
+                                folio.canOpenArInvoice ||
+                                folio.canCreditArInvoice) && (
                                 <AlertAction className="static flex flex-wrap items-center gap-2">
                                     {folio.canPrintInvoice && (
                                         <a
@@ -382,6 +386,38 @@ export function FolioTab({
                                             Print invoice
                                         </a>
                                     )}
+                                    {folio.canOpenArInvoice &&
+                                        folio.arInvoiceId !== null && (
+                                            <Link
+                                                href={showArInvoice.url({
+                                                    invoice: folio.arInvoiceId,
+                                                })}
+                                                className={buttonVariants({
+                                                    variant: 'outline',
+                                                    size: 'sm',
+                                                })}
+                                            >
+                                                Open invoice
+                                            </Link>
+                                        )}
+                                    {folio.canCreditArInvoice &&
+                                        folio.arInvoiceId !== null && (
+                                            <Link
+                                                href={showArInvoice.url(
+                                                    {
+                                                        invoice:
+                                                            folio.arInvoiceId,
+                                                    },
+                                                    { query: { credit: 1 } },
+                                                )}
+                                                className={buttonVariants({
+                                                    variant: 'outline',
+                                                    size: 'sm',
+                                                })}
+                                            >
+                                                Issue credit note
+                                            </Link>
+                                        )}
                                     {folio.canReopen && (
                                         <Form
                                             {...reopen.form({

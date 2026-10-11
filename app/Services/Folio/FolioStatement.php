@@ -217,7 +217,7 @@ class FolioStatement
             lineCount: $posted->count(),
             rows: [...$posted->all(), ...$scheduled->all()],
             canClose: $isOpen && ($can['close'] ?? false),
-            canReopen: $folio?->status === FolioStatus::Closed && $user !== null && $this->folioReopenRule->allows($user, $folio),
+            canReopen: $folio?->status === FolioStatus::Closed && $billedBy === null && $user !== null && $this->folioReopenRule->allows($user, $folio),
             canApplyDiscount: $isOpen && ($can['discount'] ?? false) && $discountable,
             canPostCharge: $postUnits !== [],
             postUnits: $postUnits,

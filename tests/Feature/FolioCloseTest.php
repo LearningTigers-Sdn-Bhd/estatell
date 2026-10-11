@@ -404,7 +404,8 @@ test('the closed notice links to the invoice and its credit note by permission',
     $this->actingAs($manager)->get($billed['url'])->assertInertia(fn ($page) => $page
         ->where('folio.arInvoiceId', $billed['invoice']->id)
         ->where('folio.canOpenArInvoice', true)
-        ->where('folio.canCreditArInvoice', true));
+        ->where('folio.canCreditArInvoice', true)
+        ->where('folio.canReopen', false));
 
     $this->actingAs($frontDesk)->get($billed['url'])->assertInertia(fn ($page) => $page
         ->where('folio.canOpenArInvoice', true)
