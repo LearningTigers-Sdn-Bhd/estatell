@@ -26,7 +26,7 @@ class RatesEndingCheck
         $lastDates = Rate::query()
             ->where('rate_plan_id', $ratePlan->id)
             ->whereIn('room_type_id', $roomTypeIds)
-            ->whereNotNull('amount')
+            ->priced()
             ->groupBy('room_type_id')
             ->selectRaw('room_type_id, max(date) as last_date')
             ->pluck('last_date', 'room_type_id');
@@ -47,7 +47,7 @@ class RatesEndingCheck
 
         Rate::query()
             ->whereIn('rate_plan_id', $ratePlanIds)
-            ->whereNotNull('amount')
+            ->priced()
             ->groupBy('rate_plan_id', 'room_type_id')
             ->selectRaw('rate_plan_id, room_type_id, max(date) as last_date')
             ->toBase()

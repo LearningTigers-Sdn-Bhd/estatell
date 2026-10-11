@@ -7,6 +7,7 @@ use App\Services\Rates\Pricing\PerBedPricing;
 use App\Services\Rates\Pricing\PerGuestPricing;
 use App\Services\Rates\Pricing\PerRoomPricing;
 use App\Services\Rates\Pricing\StayPricing;
+use LogicException;
 
 /**
  * How a rate plan prices a stay. It decides which room types the plan can sell.
@@ -17,6 +18,7 @@ enum PricingBasis: string
     case PerGuest = 'per_guest';
     case PerBed = 'per_bed';
     case Package = 'package';
+    case DayUse = 'day_use';
 
     public function label(): string
     {
@@ -25,6 +27,7 @@ enum PricingBasis: string
             self::PerGuest => __('Per guest'),
             self::PerBed => __('Per bed'),
             self::Package => __('Package'),
+            self::DayUse => __('Day use'),
         };
     }
 
@@ -34,7 +37,7 @@ enum PricingBasis: string
     public function family(): string
     {
         return match ($this) {
-            self::PerRoom, self::PerGuest => __('Room'),
+            self::PerRoom, self::PerGuest, self::DayUse => __('Room'),
             self::PerBed => __('Bed'),
             self::Package => __('Room or bed'),
         };
@@ -50,6 +53,7 @@ enum PricingBasis: string
             self::PerGuest => Tone::Success,
             self::PerBed => Tone::Warning,
             self::Package => Tone::Neutral,
+            self::DayUse => Tone::Info,
         };
     }
 
@@ -59,7 +63,7 @@ enum PricingBasis: string
     public function familyTone(): Tone
     {
         return match ($this) {
-            self::PerRoom, self::PerGuest => Tone::Info,
+            self::PerRoom, self::PerGuest, self::DayUse => Tone::Info,
             self::PerBed => Tone::Warning,
             self::Package => Tone::Neutral,
         };
@@ -72,7 +76,7 @@ enum PricingBasis: string
     public function fits(SellUnit $sellUnit): bool
     {
         return match ($this) {
-            self::PerRoom, self::PerGuest => $sellUnit === SellUnit::Room,
+            self::PerRoom, self::PerGuest, self::DayUse => $sellUnit === SellUnit::Room,
             self::PerBed => $sellUnit === SellUnit::Bed,
             self::Package => true,
         };
@@ -86,14 +90,16 @@ enum PricingBasis: string
         return match ($this) {
             self::PerGuest => true,
             self::Package => $packageUnit === PackageUnit::PerGuest,
-            self::PerRoom, self::PerBed => false,
+            self::PerRoom, self::PerBed, self::DayUse => false,
         };
     }
 
     /**
-     * The class that prices a stay for this basis.
+     * The class that prices a stay for this basis. A Day use plan has none: `DayUsePricing` prices a block, not nights.
      *
      * @return class-string<StayPricing>
+     *
+     * @throws LogicException for DayUse
      */
     public function strategy(): string
     {
@@ -102,7 +108,16 @@ enum PricingBasis: string
             self::PerGuest => PerGuestPricing::class,
             self::PerBed => PerBedPricing::class,
             self::Package => PackagePricing::class,
+            self::DayUse => throw new LogicException('A Day use plan is priced by DayUsePricing, not by a nightly strategy.'),
         };
+    }
+
+    /**
+     * Why a plan with this basis is never sent to a channel, or null when it can be.
+     */
+    public function channelRefusal(): ?string
+    {
+        return $this === self::DayUse ? __('Day use plans are sold at the front desk only.') : null;
     }
 
     /**

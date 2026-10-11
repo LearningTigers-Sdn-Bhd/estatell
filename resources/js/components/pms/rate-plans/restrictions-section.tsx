@@ -121,7 +121,10 @@ export function RestrictionsSection({
     choices,
     onChange,
     errors,
+    stopSellOnly = false,
 }: {
+    /** A Day use plan has no nights, so only Stop sell applies. */
+    stopSellOnly?: boolean;
     choices: RestrictionChoices;
     onChange: (choices: RestrictionChoices) => void;
     errors: Record<string, string | undefined>;
@@ -145,40 +148,50 @@ export function RestrictionsSection({
                     value={choices.stopSell}
                     onChange={(stopSell) => onChange({ ...choices, stopSell })}
                 />
-                <FlagField
-                    id="bulk-cta"
-                    label="Closed to arrival"
-                    description="No stay can start on these dates."
-                    value={choices.closedToArrival}
-                    onChange={(closedToArrival) =>
-                        onChange({ ...choices, closedToArrival })
-                    }
-                />
-                <FlagField
-                    id="bulk-ctd"
-                    label="Closed to departure"
-                    description="No stay can end on these dates."
-                    value={choices.closedToDeparture}
-                    onChange={(closedToDeparture) =>
-                        onChange({ ...choices, closedToDeparture })
-                    }
-                />
-                <LimitField
-                    id="bulk-min-stay"
-                    label="Min stay"
-                    value={choices.minStay}
-                    onChange={(minStay) => onChange({ ...choices, minStay })}
-                />
-                <LimitField
-                    id="bulk-max-stay"
-                    label="Max stay"
-                    value={choices.maxStay}
-                    onChange={(maxStay) => onChange({ ...choices, maxStay })}
-                />
+                {!stopSellOnly && (
+                    <>
+                        <FlagField
+                            id="bulk-cta"
+                            label="Closed to arrival"
+                            description="No stay can start on these dates."
+                            value={choices.closedToArrival}
+                            onChange={(closedToArrival) =>
+                                onChange({ ...choices, closedToArrival })
+                            }
+                        />
+                        <FlagField
+                            id="bulk-ctd"
+                            label="Closed to departure"
+                            description="No stay can end on these dates."
+                            value={choices.closedToDeparture}
+                            onChange={(closedToDeparture) =>
+                                onChange({ ...choices, closedToDeparture })
+                            }
+                        />
+                        <LimitField
+                            id="bulk-min-stay"
+                            label="Min stay"
+                            value={choices.minStay}
+                            onChange={(minStay) =>
+                                onChange({ ...choices, minStay })
+                            }
+                        />
+                        <LimitField
+                            id="bulk-max-stay"
+                            label="Max stay"
+                            value={choices.maxStay}
+                            onChange={(maxStay) =>
+                                onChange({ ...choices, maxStay })
+                            }
+                        />
+                    </>
+                )}
             </div>
-            <FieldDescription>
-                Min and max stay are checked from the arrival date.
-            </FieldDescription>
+            {!stopSellOnly && (
+                <FieldDescription>
+                    Min and max stay are checked from the arrival date.
+                </FieldDescription>
+            )}
             {(problem ?? serverError) && (
                 <FieldError>{problem ?? serverError}</FieldError>
             )}

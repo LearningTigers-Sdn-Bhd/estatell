@@ -15,8 +15,10 @@ export const WEEKDAYS = [
 export type PricingRow = {
     id: string;
     /** `amount` is the plan's main price. `occupancy` is an explicit price for `adults` adults. */
-    kind: 'amount' | 'occupancy';
+    kind: 'amount' | 'occupancy' | 'hours';
     adults: number | null;
+    /** Day use only: the number of hours this row prices. */
+    hours: number | null;
     label: string;
     values: string[];
 };
@@ -42,7 +44,21 @@ export type GuestAutoFillOptions = {
     unit: 'amount' | 'percent';
 };
 
+/** Day use Auto: the first block, then the change for each extra hour, and an optional cap. */
+export type DayUseAutoFillOptions = {
+    firstHours: number;
+    firstPrice: number;
+    direction: 'more' | 'less';
+    step: number;
+    unit: 'amount' | 'percent';
+    /** "Never more than". Null for no cap. */
+    cap: number | null;
+};
+
 const blank = () => Array<string>(7).fill('');
+
+export const hoursLabel = (hours: number) =>
+    `${hours} ${hours === 1 ? 'hour' : 'hours'}`;
 
 const adultsLabel = (adults: number) =>
     `${adults} ${adults === 1 ? 'adult' : 'adults'}`;
@@ -55,6 +71,7 @@ export function buildRows(
     roomType: RoomType,
     byAdults: boolean,
     previous: PricingRow[] = [],
+    hoursRange: { min: number; max: number } | null = null,
 ): PricingRow[] {
     const kept = new Map(previous.map((row) => [row.id, row.values]));
     const row = (
@@ -62,10 +79,12 @@ export function buildRows(
         kind: PricingRow['kind'],
         adults: number | null,
         label: string,
+        hours: number | null = null,
     ): PricingRow => ({
         id,
         kind,
         adults,
+        hours,
         label,
         values: kept.get(id) ?? blank(),
     });
@@ -76,6 +95,15 @@ export function buildRows(
         ).map((adults) =>
             row(`adults-${adults}`, 'occupancy', adults, adultsLabel(adults)),
         );
+
+    if (basis === 'day_use' && hoursRange) {
+        return Array.from(
+            { length: Math.max(0, hoursRange.max - hoursRange.min + 1) },
+            (_, index) => hoursRange.min + index,
+        ).map((hours) =>
+            row(`hours-${hours}`, 'hours', null, hoursLabel(hours), hours),
+        );
+    }
 
     if (basis === 'per_guest') {
         return [row('amount', 'amount', 1, adultsLabel(1)), ...occupancy(2)];
@@ -290,6 +318,49 @@ export function autoFillPerGuest(
     });
 }
 
+/**
+ * Day use Auto: the first block gets the first price. Each extra hour moves the price by the step (a percentage
+ * compounds from the hour before), and no hour goes above the cap. Every weekday column is filled. Hours below the
+ * first block are left as they are. Only the form is filled.
+ */
+export function autoFillDayUse(
+    rows: PricingRow[],
+    options: DayUseAutoFillOptions,
+): PricingRow[] {
+    const direction = options.direction === 'more' ? 1 : -1;
+    const prices = new Map<number, string>();
+    let value = options.firstPrice;
+
+    rows.filter((row) => row.kind === 'hours' && row.hours !== null)
+        .sort((a, b) => (a.hours ?? 0) - (b.hours ?? 0))
+        .forEach((row) => {
+            const hours = row.hours ?? 0;
+
+            if (hours < options.firstHours) {
+                return;
+            }
+
+            if (hours > options.firstHours) {
+                value =
+                    options.unit === 'percent'
+                        ? value * (1 + (direction * options.step) / 100)
+                        : value + direction * options.step;
+            }
+
+            if (options.cap !== null) {
+                value = Math.min(value, options.cap);
+            }
+
+            prices.set(hours, String(round(value)));
+        });
+
+    return rows.map((row) =>
+        row.hours !== null && prices.has(row.hours)
+            ? { ...row, values: Array<string>(7).fill(prices.get(row.hours)!) }
+            : row,
+    );
+}
+
 /** The share of one person in a PerGuest room total, for the hint under an adult-count price. Display only. */
 export function perPersonShare(value: string, adults: number): number | null {
     const total = parseFloat(value);
@@ -307,6 +378,23 @@ export function hasValues(grids: RoomTypeGrid[]): boolean {
 /** The request body: per room type, one entry for each weekday. Blank weekdays are ignored by the server. */
 export function toPayload(grids: RoomTypeGrid[]) {
     return grids.map((grid) => {
+        const hourRows = grid.rows.filter((row) => row.kind === 'hours');
+
+        if (hourRows.length > 0) {
+            return {
+                room_type_id: grid.roomTypeId,
+                days: WEEKDAYS.map((day, index) => ({
+                    weekday: day.iso,
+                    hours: hourRows
+                        .filter((row) => row.values[index] !== '')
+                        .map((row) => ({
+                            hours: row.hours,
+                            amount: row.values[index],
+                        })),
+                })),
+            };
+        }
+
         const amountRow = grid.rows.find((row) => row.kind === 'amount');
         const occupancyRows = grid.rows.filter(
             (row) => row.kind === 'occupancy',

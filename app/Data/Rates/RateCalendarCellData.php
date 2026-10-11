@@ -10,6 +10,7 @@ class RateCalendarCellData extends Data
 {
     /**
      * @param  list<RateCalendarOccupancyData>  $occupancy  Explicit prices by adult count, by adults. Empty for a derived plan.
+     * @param  list<RateCalendarHourData>  $hours  Day use prices by number of hours. Empty for every other plan.
      * @param  bool  $arrivalNotAllowed  A package date whose weekday the package cannot start on. The price is still shown.
      */
     public function __construct(
@@ -22,6 +23,7 @@ class RateCalendarCellData extends Data
         public bool $stopSell,
         public array $occupancy = [],
         public bool $arrivalNotAllowed = false,
+        public array $hours = [],
     ) {}
 
     /**
@@ -40,6 +42,26 @@ class RateCalendarCellData extends Data
             closedToDeparture: $rate->closed_to_departure,
             stopSell: $rate->stop_sell,
             occupancy: $rate->occupancyPrices->sortBy('adults')->map(RateCalendarOccupancyData::fromModel(...))->values()->all(),
+        );
+    }
+
+    /**
+     * A Day use date: the lowest hour price is the amount shown, and every hour price is listed. Load the rate's `hourPrices` first.
+     */
+    public static function forDayUse(Rate $rate): self
+    {
+        $hours = $rate->hourPrices->sortBy('hours')->values();
+        $lowest = $hours->min(fn ($price): float => (float) $price->amount);
+
+        return new self(
+            date: $rate->date->toDateString(),
+            amount: $lowest === null ? null : $hours->first(fn ($price): bool => (float) $price->amount === $lowest)->amount,
+            minStay: null,
+            maxStay: null,
+            closedToArrival: false,
+            closedToDeparture: false,
+            stopSell: $rate->stop_sell,
+            hours: $hours->map(RateCalendarHourData::fromModel(...))->all(),
         );
     }
 

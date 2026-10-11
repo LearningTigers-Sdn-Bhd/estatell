@@ -19,6 +19,8 @@ class RateQuote
 
     public const REFUSAL_PLAN_ARCHIVED = 'plan_archived';
 
+    public const REFUSAL_PLAN_NOT_NIGHTLY = 'plan_not_nightly';
+
     public const REFUSAL_ROOM_TYPE_NOT_SOLD = 'room_type_not_sold';
 
     public const REFUSAL_PACKAGE_PRICE_MISSING = 'package_price_missing';

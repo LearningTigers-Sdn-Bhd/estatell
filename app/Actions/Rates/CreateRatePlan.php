@@ -2,6 +2,7 @@
 
 namespace App\Actions\Rates;
 
+use App\Actions\Catalogues\SeedDayUseTaxes;
 use App\Enums\AgeBandPricing;
 use App\Enums\PricingBasis;
 use App\Models\Property;
@@ -12,7 +13,7 @@ use Illuminate\Support\Facades\DB;
 
 class CreateRatePlan
 {
-    public function __construct(private RatePlanCoverage $coverage) {}
+    public function __construct(private RatePlanCoverage $coverage, private SeedDayUseTaxes $seedDayUseTaxes) {}
 
     /**
      * Add a rate plan at the end of the list, selling the given room types (none by default).
@@ -21,7 +22,7 @@ class CreateRatePlan
      *
      * Returns null, without writing, when a room type is not an active room type of the property that fits the pricing basis.
      *
-     * @param  array<string, mixed>  $attributes  Validated name, pricing_basis and optional description. A package also has fixed_nights and package_unit.
+     * @param  array<string, mixed>  $attributes  Validated name, pricing_basis and optional description. A package also has fixed_nights and package_unit. A Day use plan has day_use_min_hours and day_use_max_hours.
      * @param  list<int>  $roomTypeIds
      */
     public function __invoke(Property $property, User $actor, array $attributes, array $roomTypeIds = []): ?RatePlan
@@ -34,12 +35,18 @@ class CreateRatePlan
                 return null;
             }
 
+            $firstDayUse = $basis === PricingBasis::DayUse && ! $property->ratePlans()->dayUse()->exists();
+
             $ratePlan = new RatePlan($attributes);
             $ratePlan->property_id = $property->id;
             $ratePlan->position = ((int) $property->ratePlans()->max('position')) + 1;
             $ratePlan->save();
 
             $ratePlan->roomTypes()->attach($roomTypeIds);
+
+            if ($firstDayUse) {
+                ($this->seedDayUseTaxes)($property);
+            }
 
             if ($ratePlan->pricing_basis->usesChildPrices($ratePlan->package_unit)) {
                 foreach ($property->ageGroups()->ordered()->get() as $index => $ageGroup) {

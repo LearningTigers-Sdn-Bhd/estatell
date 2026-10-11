@@ -25,7 +25,7 @@ A rate plan mapping exists only for a plan and room type pair linked in `rate_pl
 
 ## Service
 
-`ChannelCapability`: returns Full, Flattened or Unsupported with a reason for each room type and rate plan pair. The mapping screen shows it.
+`ChannelCapability`: returns Full, Flattened or Unsupported with a reason for each room type and rate plan pair. The mapping screen shows it. For a Day use plan it returns `PricingBasis::channelRefusal()` (built with day use plans).
 
 ## Actions
 

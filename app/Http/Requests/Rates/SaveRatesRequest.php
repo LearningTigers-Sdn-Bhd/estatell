@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Rates;
 
+use App\Enums\PricingBasis;
 use App\Models\RatePlan;
 use App\Models\RoomType;
 use Closure;
@@ -34,6 +35,8 @@ class SaveRatesRequest extends FormRequest
         $linkedIds = $ratePlan->roomTypes()->whereNull('room_types.archived_at')->pluck('room_types.id')->all();
         $maxAdults = RoomType::query()->whereIn('id', $linkedIds)->pluck('max_adults', 'id');
 
+        $isDayUse = $ratePlan->pricing_basis === PricingBasis::DayUse;
+
         return [
             'from' => ['required', 'date_format:Y-m-d'],
             'to' => [
@@ -60,8 +63,14 @@ class SaveRatesRequest extends FormRequest
                 'required', 'integer', 'between:1,7',
                 fn (string $attribute, mixed $value, Closure $fail) => $this->failWhenRepeated($attribute, $value, 'weekday', $fail, __('Each weekday can be sent once.')),
             ],
-            'room_types.*.days.*.amount' => ['nullable', 'numeric', 'decimal:0,2', 'min:0', 'max:9999999999.99'],
-            'room_types.*.days.*.occupancy' => ['nullable', 'array'],
+            'room_types.*.days.*.amount' => [$isDayUse ? 'prohibited' : 'nullable', 'numeric', 'decimal:0,2', 'min:0', 'max:9999999999.99'],
+            'room_types.*.days.*.hours' => [$isDayUse ? 'nullable' : 'prohibited', 'array'],
+            'room_types.*.days.*.hours.*.hours' => [
+                'required', 'integer', 'between:'.($ratePlan->day_use_min_hours ?? 1).','.($ratePlan->day_use_max_hours ?? 24),
+                fn (string $attribute, mixed $value, Closure $fail) => $this->failWhenRepeated($attribute, $value, 'hours', $fail, __('Each hour count can be set once.')),
+            ],
+            'room_types.*.days.*.hours.*.amount' => ['required', 'numeric', 'decimal:0,2', 'min:0', 'max:9999999999.99'],
+            'room_types.*.days.*.occupancy' => [$isDayUse ? 'prohibited' : 'nullable', 'array'],
             'room_types.*.days.*.occupancy.*.adults' => [
                 'required', 'integer', 'min:1',
                 function (string $attribute, mixed $value, Closure $fail) use ($maxAdults): void {
@@ -76,9 +85,9 @@ class SaveRatesRequest extends FormRequest
             ],
             'room_types.*.days.*.occupancy.*.amount' => ['required', 'numeric', 'decimal:0,2', 'min:0', 'max:9999999999.99'],
             'restrictions' => ['nullable', 'array'],
-            'restrictions.min_stay' => ['nullable', 'integer', 'min:1', 'max:365'],
+            'restrictions.min_stay' => [$isDayUse ? 'prohibited' : 'nullable', 'integer', 'min:1', 'max:365'],
             'restrictions.max_stay' => [
-                'nullable', 'integer', 'min:1', 'max:365',
+                $isDayUse ? 'prohibited' : 'nullable', 'integer', 'min:1', 'max:365',
                 function (string $attribute, mixed $value, Closure $fail): void {
                     $min = $this->input('restrictions.min_stay');
 
@@ -87,8 +96,8 @@ class SaveRatesRequest extends FormRequest
                     }
                 },
             ],
-            'restrictions.closed_to_arrival' => ['boolean'],
-            'restrictions.closed_to_departure' => ['boolean'],
+            'restrictions.closed_to_arrival' => [$isDayUse ? 'prohibited' : 'boolean'],
+            'restrictions.closed_to_departure' => [$isDayUse ? 'prohibited' : 'boolean'],
             'restrictions.stop_sell' => ['boolean'],
         ];
     }
@@ -104,6 +113,8 @@ class SaveRatesRequest extends FormRequest
             'room_types.*.room_type_id' => __('room type'),
             'room_types.*.days.*.weekday' => __('weekday'),
             'room_types.*.days.*.amount' => __('price'),
+            'room_types.*.days.*.hours.*.hours' => __('hour count'),
+            'room_types.*.days.*.hours.*.amount' => __('price for hours'),
             'room_types.*.days.*.occupancy.*.adults' => __('adult count'),
             'room_types.*.days.*.occupancy.*.amount' => __('price for adults'),
             'restrictions.min_stay' => __('min stay'),
@@ -127,7 +138,7 @@ class SaveRatesRequest extends FormRequest
     /**
      * The room types with their days keyed by ISO weekday. A blank amount means "leave that weekday's price alone".
      *
-     * @return list<array{room_type_id: int, days: array<int, array{amount: string|null, occupancy: list<array{adults: int, amount: string}>}>}>
+     * @return list<array{room_type_id: int, days: array<int, array{amount: string|null, hours: list<array{hours: int, amount: string}>, occupancy: list<array{adults: int, amount: string}>}>}>
      */
     public function roomTypes(): array
     {
@@ -135,12 +146,24 @@ class SaveRatesRequest extends FormRequest
             $days = [];
 
             foreach ($roomType['days'] ?? [] as $day) {
+                $hours = array_map(
+                    fn (array $price): array => ['hours' => (int) $price['hours'], 'amount' => (string) $price['amount']],
+                    array_values($day['hours'] ?? []),
+                );
+
+                if ($hours !== []) {
+                    $days[(int) $day['weekday']] = ['amount' => null, 'occupancy' => [], 'hours' => $hours];
+
+                    continue;
+                }
+
                 if (! isset($day['amount']) || $day['amount'] === '') {
                     continue;
                 }
 
                 $days[(int) $day['weekday']] = [
                     'amount' => (string) $day['amount'],
+                    'hours' => [],
                     'occupancy' => array_map(
                         fn (array $price): array => ['adults' => (int) $price['adults'], 'amount' => (string) $price['amount']],
                         array_values($day['occupancy'] ?? []),

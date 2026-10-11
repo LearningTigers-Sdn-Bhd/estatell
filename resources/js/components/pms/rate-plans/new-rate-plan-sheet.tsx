@@ -39,6 +39,8 @@ const basisDescriptions: Record<string, string> = {
     per_bed: 'Sells dorm beds. One price for each bed.',
     package:
         'Sells rooms or beds. One price for the whole stay, set by arrival date.',
+    day_use:
+        'Sells rooms by the hour on one day, at the front desk only. One price for each number of hours.',
 };
 
 /**
@@ -60,12 +62,16 @@ export function NewRatePlanSheet({
         pricing_basis: string;
         fixed_nights: string;
         package_unit: string;
+        day_use_min_hours: string;
+        day_use_max_hours: string;
         room_type_ids: number[];
     }>({
         name: '',
         pricing_basis: 'per_room',
         fixed_nights: '2',
         package_unit: 'per_guest',
+        day_use_min_hours: '2',
+        day_use_max_hours: '6',
         room_type_ids: [],
     });
     const basis = form.data.pricing_basis as App.Enums.PricingBasis;
@@ -245,6 +251,83 @@ export function NewRatePlanSheet({
                                         </FieldError>
                                     </Field>
                                 </>
+                            )}
+                            {basis === 'day_use' && (
+                                <FieldSet>
+                                    <FieldLegend variant="label">
+                                        Hours sold
+                                    </FieldLegend>
+                                    <div className="grid gap-3 sm:grid-cols-2">
+                                        <Field
+                                            data-invalid={
+                                                !!form.errors.day_use_min_hours
+                                            }
+                                        >
+                                            <FieldLabel htmlFor="rate-plan-min-hours">
+                                                From
+                                            </FieldLabel>
+                                            <Input
+                                                id="rate-plan-min-hours"
+                                                type="number"
+                                                min="1"
+                                                max="24"
+                                                inputMode="numeric"
+                                                value={
+                                                    form.data.day_use_min_hours
+                                                }
+                                                onChange={(event) =>
+                                                    form.setData(
+                                                        'day_use_min_hours',
+                                                        event.target.value,
+                                                    )
+                                                }
+                                                aria-invalid={
+                                                    !!form.errors
+                                                        .day_use_min_hours
+                                                }
+                                            />
+                                            <FieldError>
+                                                {form.errors.day_use_min_hours}
+                                            </FieldError>
+                                        </Field>
+                                        <Field
+                                            data-invalid={
+                                                !!form.errors.day_use_max_hours
+                                            }
+                                        >
+                                            <FieldLabel htmlFor="rate-plan-max-hours">
+                                                To
+                                            </FieldLabel>
+                                            <Input
+                                                id="rate-plan-max-hours"
+                                                type="number"
+                                                min="1"
+                                                max="24"
+                                                inputMode="numeric"
+                                                value={
+                                                    form.data.day_use_max_hours
+                                                }
+                                                onChange={(event) =>
+                                                    form.setData(
+                                                        'day_use_max_hours',
+                                                        event.target.value,
+                                                    )
+                                                }
+                                                aria-invalid={
+                                                    !!form.errors
+                                                        .day_use_max_hours
+                                                }
+                                            />
+                                            <FieldError>
+                                                {form.errors.day_use_max_hours}
+                                            </FieldError>
+                                        </Field>
+                                    </div>
+                                    <FieldDescription>
+                                        Whole hours. Each hour count from the
+                                        first to the last has its own price.
+                                    </FieldDescription>
+                                </FieldSet>
                             )}
                             {roomTypes.length > 0 && (
                                 <Field

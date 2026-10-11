@@ -33,7 +33,7 @@ class ReservationFormOptions
         return new AddUnitOptionsData(
             roomTypes: RoomType::query()->where('property_id', $property->id)->active()->ordered()->get()
                 ->map(RoomTypeOptionData::fromModel(...))->all(),
-            ratePlans: RatePlan::query()->where('property_id', $property->id)->active()->ordered()->with('roomTypes:id', 'companies:id')->get()
+            ratePlans: RatePlan::query()->where('property_id', $property->id)->active()->nightly()->ordered()->with('roomTypes:id', 'companies:id')->get()
                 ->map(RatePlanOptionData::fromModel(...))->all(),
         );
     }

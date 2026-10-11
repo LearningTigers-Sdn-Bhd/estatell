@@ -37,7 +37,7 @@ rate_plan_stay_discounts
 
 Staff with `settings.manage` use Settings, Rates, Rate plans (`settings.rate-plans.*`, `RatePlanController`). Every write is an Action in `app/Actions/Rates/`.
 
-- **Tables built:** `rate_plans`, `rate_plan_room_types`, `rate_plan_child_prices`, `rate_plan_stay_discounts`, `rate_plan_inclusions`. `rate_plans` has `parent_rate_plan_id`, `derivation` and `derivation_value` (see [Derived rate plans](04-derived-rate-plans.md)). It has `fixed_nights` and `package_unit` (see [Package prices](../09-packages/02-package-prices.md)). It has no `portal_access` yet, which arrives with the company portal.
+- **Tables built:** `rate_hour_prices` (see [Day use prices](02-daily-rates-and-restrictions.md#day-use-prices)), `rate_plans`, `rate_plan_room_types`, `rate_plan_child_prices`, `rate_plan_stay_discounts`, `rate_plan_inclusions`. `rate_plans` has `parent_rate_plan_id`, `derivation` and `derivation_value` (see [Derived rate plans](04-derived-rate-plans.md)). It has `fixed_nights` and `package_unit` (see [Package prices](../09-packages/02-package-prices.md)). It has no `portal_access` yet, which arrives with the company portal.
 - **Extra column:** `needs_child_price_review` (boolean) stores the "Check child prices" flag. [Age groups](../02-property/04-age-groups.md) sets it when a group is added. Saving the Children tab clears it.
 - **Enums built:** `PricingBasis`, `EarlyDeparturePolicy`, `AgeBandPricing`, `StayDiscountType`, `RateDerivation`, `PackageUnit`. `PricingBasis::fits(SellUnit)` holds the sell unit table below.
 - **Package plans** are created like any plan. The Package case fits both families. A database CHECK keeps `fixed_nights` (1 to 30) and `package_unit` set on a package and empty on every other plan. There is no `is_package` column, `pricing_basis = Package` says it.
@@ -56,13 +56,14 @@ Staff with `settings.manage` use Settings, Rates, Rate plans (`settings.rate-pla
 
 A plan with `pricing_basis = DayUse` sells a room for a number of hours on one day (see [Day use](../12-reservations/10-day-use.md)).
 
-- **Columns.** `day_use_min_hours` and `day_use_max_hours` (1 to 24, min ≤ max) say which whole hours are sold: each hour from the minimum to the maximum has its own price. `day_use_from` and `day_use_until` are the optional **Sold between** window: a block must start at or after `from` and end at or before `until`. A CHECK keeps the hours set on a Day use plan and empty on every other plan, and the two times both set or both empty, with `from` before `until`.
+- **Columns.** `day_use_min_hours` and `day_use_max_hours` (1 to 24, min ≤ max) say which whole hours are sold: each hour from the minimum to the maximum has its own price. `day_use_from` and `day_use_until` are the optional **Sold between** window: a block must start at or after `from` and end at or before `until`. A CHECK keeps the hours set on a Day use plan and empty on every other plan, the two times both set or both empty, `from` before `until`, and no parent. The Form Request also needs the window to be at least the minimum hours long (no CHECK for that).
 - **New plan Sheet.** "How is it priced?" adds **Day use**, which asks **Hours sold** (from, to). Room types sold per room only; a Bed room type is disabled with the reason.
 - **Tabs.** Details adds **Hours sold** and **Sold between**. Room types as above. Pricing shows one row per hour count (see [Day use prices](02-daily-rates-and-restrictions.md#day-use-prices)). Inclusions is open (for example lunch). Children and Discounts are a 404, like a Package plan for Discounts. Portal is hidden: day use is front desk only.
 - **Changing the hours** later only affects new bookings. Prices for hours outside the new range stay stored but are not offered.
 - **Not derived.** A Day use plan cannot be a parent or follow a parent.
 - **Never mapped** to a channel.
-- Badge: "Day use" with a clock icon, from `PricingBasis::tone()`.
+- Badge: "Day use" with a clock icon. `PricingBasis::tone()` and `familyTone()` are both Info.
+- **Built:** `PricingBasis::DayUse` (sells Room types only). `strategy()` throws `LogicException`. `channelRefusal()` returns the front desk only reason, which `ChannelCapability` will read. `RatePlan::scopeNightly()` leaves Day use plans out of the add unit plan list, out of the room type cover rule (`RatePlanCoverage`, `ReconcileRoomTypeRatePlans`), and a nightly quote refuses one with `plan_not_nightly`. The Portal tab does not exist yet, so nothing is hidden for now. Creating a Day use plan or a derived plan from one is refused.
 
 ## Enums
 

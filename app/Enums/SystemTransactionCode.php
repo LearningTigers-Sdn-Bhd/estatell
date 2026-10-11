@@ -9,6 +9,7 @@ enum SystemTransactionCode: string
     case CancellationRevenue = 'cancellation_revenue';
     case LateCheckoutRevenue = 'late_checkout_revenue';
     case EarlyDepartureRevenue = 'early_departure_revenue';
+    case DayUseRevenue = 'day_use_revenue';
     case FoodAndBeverageRevenue = 'food_and_beverage_revenue';
     case LaundryRevenue = 'laundry_revenue';
     case MinibarRevenue = 'minibar_revenue';
@@ -34,6 +35,7 @@ enum SystemTransactionCode: string
             self::CancellationRevenue => 'CANCEL',
             self::LateCheckoutRevenue => 'LATE_CHECKOUT',
             self::EarlyDepartureRevenue => 'EARLY_DEPARTURE',
+            self::DayUseRevenue => 'DAY_USE',
             self::FoodAndBeverageRevenue => 'FNB',
             self::LaundryRevenue => 'LAUNDRY',
             self::MinibarRevenue => 'MINIBAR',
@@ -61,6 +63,7 @@ enum SystemTransactionCode: string
             self::CancellationRevenue => __('Cancellation revenue'),
             self::LateCheckoutRevenue => __('Late checkout revenue'),
             self::EarlyDepartureRevenue => __('Early departure revenue'),
+            self::DayUseRevenue => __('Day use'),
             self::FoodAndBeverageRevenue => __('Food and beverage'),
             self::LaundryRevenue => __('Laundry'),
             self::MinibarRevenue => __('Minibar'),
@@ -88,6 +91,7 @@ enum SystemTransactionCode: string
             self::CancellationRevenue,
             self::LateCheckoutRevenue,
             self::EarlyDepartureRevenue,
+            self::DayUseRevenue,
             self::FoodAndBeverageRevenue,
             self::LaundryRevenue,
             self::MinibarRevenue,
@@ -112,7 +116,8 @@ enum SystemTransactionCode: string
             self::NoShowRevenue,
             self::CancellationRevenue,
             self::LateCheckoutRevenue,
-            self::EarlyDepartureRevenue => TransactionCategory::Room,
+            self::EarlyDepartureRevenue,
+            self::DayUseRevenue => TransactionCategory::Room,
             self::FoodAndBeverageRevenue => TransactionCategory::FoodAndBeverage,
             self::LaundryRevenue => TransactionCategory::Laundry,
             self::MinibarRevenue => TransactionCategory::Minibar,

@@ -3,7 +3,9 @@
 namespace App\Actions\Rates;
 
 use App\Models\Rate;
+use App\Models\RateHourPrice;
 use App\Models\RateOccupancyPrice;
+use Illuminate\Support\Collection;
 
 class UpsertRates
 {
@@ -16,8 +18,9 @@ class UpsertRates
      *
      * @param  list<array{room_type_id: int, date: string, amount: string|null, min_stay: int|null, max_stay: int|null, closed_to_arrival: bool, closed_to_departure: bool, stop_sell: bool}>  $rows
      * @param  array<string, list<array{adults: int, amount: string}>>  $occupancy
+     * @param  array<string, list<array{hours: int, amount: string}>>  $hours  Day use hour prices, keyed like `$occupancy`. A key replaces the stored hours from `$minHours` to `$maxHours` and keeps the others.
      */
-    public function __invoke(int $ratePlanId, array $rows, array $occupancy = []): int
+    public function __invoke(int $ratePlanId, array $rows, array $occupancy = [], array $hours = [], ?int $minHours = null, ?int $maxHours = null): int
     {
         if ($rows === []) {
             return 0;
@@ -41,7 +44,64 @@ class UpsertRates
             $this->replaceOccupancyPrices($ratePlanId, $rows, $occupancy, $now);
         }
 
+        if ($hours !== []) {
+            $this->replaceHourPrices($ratePlanId, $rows, $hours, $minHours ?? 1, $maxHours ?? 24, $now);
+        }
+
         return count($rows);
+    }
+
+    /**
+     * @param  list<array{room_type_id: int, date: string}>  $rows
+     * @param  array<string, list<array{hours: int, amount: string}>>  $hours
+     */
+    private function replaceHourPrices(int $ratePlanId, array $rows, array $hours, int $minHours, int $maxHours, mixed $now): void
+    {
+        $rateIds = $this->rateIds($ratePlanId, $rows);
+        $replaced = [];
+        $inserts = [];
+
+        foreach ($hours as $key => $prices) {
+            $rateId = $rateIds->get($key);
+
+            if ($rateId === null) {
+                continue;
+            }
+
+            $replaced[] = $rateId;
+
+            foreach ($prices as $price) {
+                $inserts[] = [
+                    'rate_id' => $rateId,
+                    'hours' => $price['hours'],
+                    'amount' => $price['amount'],
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ];
+            }
+        }
+
+        foreach (array_chunk($replaced, 1000) as $chunk) {
+            RateHourPrice::query()->whereIn('rate_id', $chunk)->whereBetween('hours', [$minHours, $maxHours])->delete();
+        }
+
+        foreach (array_chunk($inserts, 1000) as $chunk) {
+            RateHourPrice::query()->upsert($chunk, ['rate_id', 'hours'], ['amount', 'updated_at']);
+        }
+    }
+
+    /**
+     * @param  list<array{room_type_id: int, date: string}>  $rows
+     * @return Collection<string, int>
+     */
+    private function rateIds(int $ratePlanId, array $rows): Collection
+    {
+        return Rate::query()
+            ->where('rate_plan_id', $ratePlanId)
+            ->whereIn('room_type_id', array_unique(array_column($rows, 'room_type_id')))
+            ->whereBetween('date', [min(array_column($rows, 'date')), max(array_column($rows, 'date'))])
+            ->get(['id', 'room_type_id', 'date'])
+            ->mapWithKeys(fn (Rate $rate): array => [$rate->room_type_id.'|'.$rate->date->toDateString() => $rate->id]);
     }
 
     /**
@@ -50,13 +110,7 @@ class UpsertRates
      */
     private function replaceOccupancyPrices(int $ratePlanId, array $rows, array $occupancy, mixed $now): void
     {
-        $rateIds = Rate::query()
-            ->where('rate_plan_id', $ratePlanId)
-            ->whereIn('room_type_id', array_unique(array_column($rows, 'room_type_id')))
-            ->whereBetween('date', [min(array_column($rows, 'date')), max(array_column($rows, 'date'))])
-            ->get(['id', 'room_type_id', 'date'])
-            ->mapWithKeys(fn (Rate $rate): array => [$rate->room_type_id.'|'.$rate->date->toDateString() => $rate->id]);
-
+        $rateIds = $this->rateIds($ratePlanId, $rows);
         $replaced = [];
         $inserts = [];
 

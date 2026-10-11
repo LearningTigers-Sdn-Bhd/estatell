@@ -492,7 +492,55 @@ class SandbaySeeder extends Seeder
             throw new RuntimeException('Could not save the Dive Package prices.');
         }
 
+        $this->seedDayUsePlan($property, $owner, $roomTypeIds, $today);
+
         return $plans;
+    }
+
+    /**
+     * A Day use plan: 2 to 6 hours, sold between 08:00 and 18:00, on every room type. Its hour prices are filled the way
+     * Auto would: the first block costs 30% of the room's nightly price and each extra hour adds 10% of it (Garden Room: 2h 60.00, +20.00 an hour).
+     * Creating the first Day use plan also gives the DAY_USE code the Taxes tab taxes except flat taxes.
+     *
+     * @param  list<int>  $roomTypeIds
+     */
+    private function seedDayUsePlan(Property $property, User $owner, array $roomTypeIds, CarbonImmutable $today): void
+    {
+        $dayUse = app(CreateRatePlan::class)($property, $owner, [
+            'name' => 'Day use',
+            'description' => 'A room for a few hours in the daytime, sold at the front desk.',
+            'pricing_basis' => PricingBasis::DayUse->value,
+            'day_use_min_hours' => 2,
+            'day_use_max_hours' => 6,
+        ], $roomTypeIds);
+
+        if ($dayUse === null || ! app(UpdateRatePlan::class)($owner, $dayUse, ['name' => 'Day use', 'day_use_from' => '08:00', 'day_use_until' => '18:00'])) {
+            throw new RuntimeException('Could not create the Day use plan.');
+        }
+
+        $roomTypes = [];
+
+        foreach (self::ROOM_TYPES as $definition) {
+            $roomType = RoomType::query()->where('property_id', $property->id)->where('name', $definition['name'])->firstOrFail();
+            $days = [];
+
+            foreach (range(1, 7) as $weekday) {
+                $nightly = in_array($weekday, [5, 6], true) ? $definition['weekend'] : $definition['weekday'];
+                $hours = [];
+
+                foreach (range(2, 6) as $count) {
+                    $hours[] = ['hours' => $count, 'amount' => bcmul($nightly, (string) (0.3 + ($count - 2) * 0.1), 2)];
+                }
+
+                $days[$weekday] = ['amount' => null, 'occupancy' => [], 'hours' => $hours];
+            }
+
+            $roomTypes[] = ['room_type_id' => $roomType->id, 'days' => $days];
+        }
+
+        if (app(SaveRates::class)($owner, $dayUse, $today->toDateString(), $today->addDays(200)->toDateString(), $roomTypes) === false) {
+            throw new RuntimeException('Could not save the Day use prices.');
+        }
     }
 
     /**

@@ -41,10 +41,13 @@ export function cellTitle(
     derived: boolean,
     stayNights: number | null = null,
 ): string {
+    const hours = cell.hours ?? [];
     const parts = [
-        cell.amount === null
-            ? null
-            : `${formatAmount(cell.amount)}${derived ? ' (follows parent)' : ''}${stayNights === null ? '' : ` for ${nightsLabel(stayNights)}`}`,
+        hours.length > 0
+            ? `from ${formatAmount(cell.amount)} (${hours.map((price) => `${price.hours}h ${formatAmount(price.amount)}`).join(', ')})`
+            : cell.amount === null
+              ? null
+              : `${formatAmount(cell.amount)}${derived ? ' (follows parent)' : ''}${stayNights === null ? '' : ` for ${nightsLabel(stayNights)}`}`,
         cell.arrivalNotAllowed ? 'No arrival on this day' : null,
         ...cellFlags(cell).map((flag) => FLAG_LABELS[flag]),
         stayLimit(cell),
@@ -93,6 +96,11 @@ function RateCell({
                     )}
                 >
                     {derived && <Link2 className="size-3 text-info" />}
+                    {(cell.hours ?? []).length > 0 && (
+                        <span className="text-xs font-normal text-grid-muted-foreground">
+                            from
+                        </span>
+                    )}
                     {formatAmount(cell.amount)}
                     {stayNights !== null && (
                         <span className="text-xs font-normal text-grid-muted-foreground">

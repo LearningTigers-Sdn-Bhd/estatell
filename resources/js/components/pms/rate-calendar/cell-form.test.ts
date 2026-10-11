@@ -21,6 +21,7 @@ const cell = (overrides: Partial<Cell> = {}): Cell => ({
     stopSell: false,
     occupancy: [],
     arrivalNotAllowed: false,
+    hours: [],
     ...overrides,
 });
 

@@ -36,10 +36,10 @@ export type CellSaveRequest = {
     }[];
     restrictions: {
         stop_sell: boolean;
-        closed_to_arrival: boolean;
-        closed_to_departure: boolean;
-        min_stay: number | null;
-        max_stay: number | null;
+        closed_to_arrival?: boolean;
+        closed_to_departure?: boolean;
+        min_stay?: number | null;
+        max_stay?: number | null;
     };
 };
 
@@ -168,6 +168,7 @@ export function buildCellPayload(
     initial: CellFormValues,
     current: CellFormValues,
     ownPrice: boolean,
+    dayUse = false,
 ): CellSaveRequest {
     const sendPrice =
         ownPrice &&
@@ -196,12 +197,14 @@ export function buildCellPayload(
                     : [],
             },
         ],
-        restrictions: {
-            stop_sell: current.stopSell,
-            closed_to_arrival: current.closedToArrival,
-            closed_to_departure: current.closedToDeparture,
-            min_stay: toStay(current.minStay),
-            max_stay: toStay(current.maxStay),
-        },
+        restrictions: dayUse
+            ? { stop_sell: current.stopSell }
+            : {
+                  stop_sell: current.stopSell,
+                  closed_to_arrival: current.closedToArrival,
+                  closed_to_departure: current.closedToDeparture,
+                  min_stay: toStay(current.minStay),
+                  max_stay: toStay(current.maxStay),
+              },
     };
 }

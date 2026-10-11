@@ -29,11 +29,11 @@ class ReconcileRoomTypeRatePlans
                 $roomType->ratePlans()->detach($unfitting);
             }
 
-            if ($roomType->archived_at !== null || $roomType->ratePlans()->active()->exists()) {
+            if ($roomType->archived_at !== null || $roomType->ratePlans()->active()->nightly()->exists()) {
                 return;
             }
 
-            $firstFitting = RatePlan::query()->where('property_id', $roomType->property_id)->active()->ordered()->get()
+            $firstFitting = RatePlan::query()->where('property_id', $roomType->property_id)->active()->nightly()->ordered()->get()
                 ->first(fn (RatePlan $ratePlan): bool => $ratePlan->pricing_basis->fits($roomType->sell_unit));
 
             if ($firstFitting !== null) {

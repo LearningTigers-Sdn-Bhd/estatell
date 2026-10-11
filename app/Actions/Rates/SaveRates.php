@@ -18,13 +18,15 @@ class SaveRates
      *
      * `$days` of a room type are keyed by ISO weekday (1 = Monday). A weekday with no amount leaves its price alone.
      * A weekday with an amount sets the price and replaces the occupancy prices of every date it covers.
+     * On a Day use plan a weekday carries hour prices instead of an amount: it replaces the hour prices inside the
+     * plan's current hours range for every date it covers, and keeps hour prices outside the range.
      * `$restrictions` holds only the restriction columns to change. They apply to every date of the range,
      * and dates with no rate row yet get one.
      *
      * Returns the number of dates written, or false for an archived plan, a room type the plan does not sell,
-     * an amount on a package plan or a derived plan, or a range or restriction set that would leave a min stay above a max stay.
+     * an amount on a package plan or a derived plan, hour prices on any other plan, an amount on a Day use plan, or a range or restriction set that would leave a min stay above a max stay.
      *
-     * @param  list<array{room_type_id: int, days: array<int, array{amount: string|null, occupancy: list<array{adults: int, amount: string}>}>}>  $roomTypes
+     * @param  list<array{room_type_id: int, days: array<int, array{amount: string|null, hours?: list<array{hours: int, amount: string}>, occupancy: list<array{adults: int, amount: string}>}>}>  $roomTypes
      * @param  array{min_stay?: int|null, max_stay?: int|null, closed_to_arrival?: bool, closed_to_departure?: bool, stop_sell?: bool}  $restrictions
      */
     public function __invoke(User $actor, RatePlan $ratePlan, string $from, string $to, array $roomTypes, array $restrictions = []): int|false
@@ -54,13 +56,20 @@ class SaveRates
 
             $rows = [];
             $occupancy = [];
+            $hours = [];
+            $isDayUse = $ratePlan->pricing_basis === PricingBasis::DayUse;
 
             foreach ($roomTypes as $roomType) {
                 for ($date = $first; $date->lte($last); $date = $date->addDay()) {
                     $day = $roomType['days'][$date->dayOfWeekIso] ?? null;
                     $amount = $day['amount'] ?? null;
+                    $dayHours = $day['hours'] ?? [];
 
-                    if ($amount === null && $restrictions === []) {
+                    if ($isDayUse ? $amount !== null : $dayHours !== []) {
+                        return false;
+                    }
+
+                    if ($amount === null && $dayHours === [] && $restrictions === []) {
                         continue;
                     }
 
@@ -89,6 +98,16 @@ class SaveRates
 
                     $rows[] = $row;
 
+                    if ($dayHours !== []) {
+                        $hours[$key] = array_map(
+                            fn (array $price): array => [
+                                'hours' => $price['hours'],
+                                'amount' => number_format((float) $price['amount'], 2, '.', ''),
+                            ],
+                            $dayHours,
+                        );
+                    }
+
                     if ($amount !== null) {
                         $occupancy[$key] = array_map(
                             fn (array $price): array => [
@@ -101,7 +120,7 @@ class SaveRates
                 }
             }
 
-            $written = ($this->upsertRates)($ratePlan->id, $rows, $occupancy);
+            $written = ($this->upsertRates)($ratePlan->id, $rows, $occupancy, $hours, $ratePlan->day_use_min_hours, $ratePlan->day_use_max_hours);
 
             if ($written > 0) {
                 activity()

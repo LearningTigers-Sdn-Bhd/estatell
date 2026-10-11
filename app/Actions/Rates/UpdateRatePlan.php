@@ -27,6 +27,12 @@ class UpdateRatePlan
                 return false;
             }
 
+            foreach (['day_use_from', 'day_use_until'] as $time) {
+                if (is_string($attributes[$time] ?? null) && strlen($attributes[$time]) === 5) {
+                    $attributes[$time] .= ':00';
+                }
+            }
+
             $ratePlan->fill($attributes);
             $changes = $ratePlan->getDirty();
 

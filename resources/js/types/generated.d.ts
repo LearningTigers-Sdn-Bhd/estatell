@@ -933,6 +933,7 @@ closedToDeparture: boolean,
 stopSell: boolean,
 occupancy: App.Data.Rates.RateCalendarOccupancyData[],
 arrivalNotAllowed: boolean,
+hours: App.Data.Rates.RateCalendarHourData[],
 };
 export type RateCalendarData = {
 from: string,
@@ -945,6 +946,10 @@ export type RateCalendarEndingData = {
 ratePlanId: number,
 ratePlanName: string,
 roomTypeNames: string[],
+};
+export type RateCalendarHourData = {
+hours: number,
+amount: string,
 };
 export type RateCalendarInclusionData = {
 name: string,
@@ -989,6 +994,10 @@ description: string | null,
 pricingBasis: App.Enums.PricingBasis,
 fixedNights: number | null,
 packageUnit: App.Enums.PackageUnit | null,
+dayUseMinHours: number | null,
+dayUseMaxHours: number | null,
+dayUseFrom: string | null,
+dayUseUntil: string | null,
 usesChildPrices: boolean,
 family: string,
 pricingLabel: string,
@@ -2133,7 +2142,7 @@ export type PolicyChargeMode = 'free' | 'fixed_amount' | 'percentage';
 export type PolicyRateBasis = 'booked_rate' | 'current_rate';
 export type PolicyScope = 'first_night' | 'whole_stay' | 'unused_nights' | 'one_charge';
 export type PolicyTab = 'no-show' | 'cancellation' | 'early-departure' | 'late-checkout';
-export type PricingBasis = 'per_room' | 'per_guest' | 'per_bed' | 'package';
+export type PricingBasis = 'per_room' | 'per_guest' | 'per_bed' | 'package' | 'day_use';
 export type PropertyStatus = 'onboarding' | 'pending_approval' | 'live' | 'suspended';
 export type PropertyType = 'hotel' | 'hostel' | 'resort' | 'serviced_apartment' | 'homestay';
 export type RateDerivation = 'percent' | 'amount';
@@ -2155,7 +2164,7 @@ export type SellUnit = 'room' | 'bed';
 export type SpreadsheetFormat = 'csv' | 'xlsx';
 export type StayDiscountType = 'percent' | 'amount';
 export type SurchargeType = 'none' | 'fixed' | 'percent';
-export type SystemTransactionCode = 'room_revenue' | 'no_show_revenue' | 'cancellation_revenue' | 'late_checkout_revenue' | 'early_departure_revenue' | 'food_and_beverage_revenue' | 'laundry_revenue' | 'minibar_revenue' | 'fee_revenue' | 'sst_tax' | 'tourism_tax' | 'cash_payment' | 'card_payment' | 'bank_transfer_payment' | 'ewallet_payment' | 'ota_collected_payment' | 'direct_bill_payment' | 'security_deposit' | 'refund' | 'adjustment' | 'discount';
+export type SystemTransactionCode = 'room_revenue' | 'no_show_revenue' | 'cancellation_revenue' | 'late_checkout_revenue' | 'early_departure_revenue' | 'day_use_revenue' | 'food_and_beverage_revenue' | 'laundry_revenue' | 'minibar_revenue' | 'fee_revenue' | 'sst_tax' | 'tourism_tax' | 'cash_payment' | 'card_payment' | 'bank_transfer_payment' | 'ewallet_payment' | 'ota_collected_payment' | 'direct_bill_payment' | 'security_deposit' | 'refund' | 'adjustment' | 'discount';
 export type TaxRateType = 'percent' | 'flat';
 export type TemporaryPasswordExportFormat = 'message' | 'csv' | 'xlsx' | 'pdf';
 export type TermsPlaceholder = 'property_name' | 'check_in_time' | 'check_out_time' | 'security_deposit' | 'tourism_tax_rate';

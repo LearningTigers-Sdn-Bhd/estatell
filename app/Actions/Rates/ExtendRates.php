@@ -17,7 +17,7 @@ class ExtendRates
     /**
      * Copy the last 7 priced days of every linked room type forward by 12 months.
      *
-     * Each weekday takes the amount, occupancy prices, min stay and max stay of its latest source date.
+     * Each weekday takes the amount, occupancy prices, hour prices, min stay and max stay of its latest source date.
      * Stop sell and closed-to-arrival/departure are date-specific and are not copied. Existing ones on
      * the new dates stay. A room type with no price yet is skipped.
      *
@@ -35,13 +35,14 @@ class ExtendRates
             $lastDates = Rate::query()
                 ->where('rate_plan_id', $ratePlan->id)
                 ->whereIn('room_type_id', $ratePlan->roomTypes()->whereNull('room_types.archived_at')->pluck('room_types.id'))
-                ->whereNotNull('amount')
+                ->priced()
                 ->groupBy('room_type_id')
                 ->selectRaw('room_type_id, max(date) as last_date')
                 ->pluck('last_date', 'room_type_id');
 
             $rows = [];
             $occupancy = [];
+            $hours = [];
 
             foreach ($lastDates as $roomTypeId => $lastDate) {
                 $last = Date::parse($lastDate)->startOfDay();
@@ -49,7 +50,7 @@ class ExtendRates
                 $end = $start->addMonthsNoOverflow(12)->subDay();
 
                 $sources = Rate::query()
-                    ->with('occupancyPrices')
+                    ->with('occupancyPrices', 'hourPrices')
                     ->where('rate_plan_id', $ratePlan->id)
                     ->where('room_type_id', $roomTypeId)
                     ->whereBetween('date', [$last->subDays(6)->toDateString(), $last->toDateString()])
@@ -85,10 +86,16 @@ class ExtendRates
                     $occupancy[$roomTypeId.'|'.$date->toDateString()] = $source->occupancyPrices
                         ->map(fn ($price): array => ['adults' => $price->adults, 'amount' => $price->amount])
                         ->all();
+
+                    if ($source->hourPrices->isNotEmpty()) {
+                        $hours[$roomTypeId.'|'.$date->toDateString()] = $source->hourPrices
+                            ->map(fn ($price): array => ['hours' => $price->hours, 'amount' => $price->amount])
+                            ->all();
+                    }
                 }
             }
 
-            $written = ($this->upsertRates)($ratePlan->id, $rows, $occupancy);
+            $written = ($this->upsertRates)($ratePlan->id, $rows, $occupancy, $hours, $ratePlan->day_use_min_hours, $ratePlan->day_use_max_hours);
 
             if ($written > 0) {
                 activity()

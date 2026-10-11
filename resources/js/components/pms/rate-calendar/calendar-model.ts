@@ -158,6 +158,7 @@ export function planNote(plan: Plan): string | null {
         plan.pricingBasis === 'package' && plan.fixedNights !== null
             ? `Package, ${nightsLabel(plan.fixedNights)}, ${plan.packageUnit === 'per_room' ? 'per room' : 'per adult'}`
             : null,
+        plan.pricingBasis === 'day_use' ? 'Day use, priced by the hour' : null,
     ].filter((part): part is string => part !== null);
 
     return parts.length > 0 ? parts.join('. ') : null;

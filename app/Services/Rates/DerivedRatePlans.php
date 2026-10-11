@@ -22,7 +22,7 @@ class DerivedRatePlans
      */
     public function eligibleParents(RatePlan $plan): Collection
     {
-        if ($this->followers($plan)->isNotEmpty()) {
+        if ($plan->pricing_basis === PricingBasis::DayUse || $this->followers($plan)->isNotEmpty()) {
             return new Collection;
         }
 
@@ -49,6 +49,10 @@ class DerivedRatePlans
      */
     public function cannotFollowReason(RatePlan $plan): ?string
     {
+        if ($plan->pricing_basis === PricingBasis::DayUse) {
+            return __('Day use plans set their own prices.');
+        }
+
         $followers = $this->followers($plan)->pluck('name')->all();
 
         if ($followers !== []) {

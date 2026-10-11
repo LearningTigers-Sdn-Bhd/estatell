@@ -47,6 +47,7 @@ class RoomRevenuePolicyController extends Controller
             'rateBases' => PolicyRateBasis::options(),
             'scopes' => $tab->scopeOptions(),
             'locales' => Locale::options(),
+            'hasDayUse' => $property->ratePlans()->dayUse()->exists(),
         ]);
     }
 

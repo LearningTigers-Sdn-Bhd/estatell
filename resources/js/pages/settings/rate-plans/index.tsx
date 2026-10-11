@@ -9,6 +9,7 @@ import {
     Ellipsis,
     GitBranch,
     GitBranchPlus,
+    Clock,
     Package,
     Pencil,
     Tag,
@@ -73,6 +74,7 @@ const pricingIcons: Record<string, LucideIcon> = {
     per_guest: Users,
     per_bed: BedSingle,
     package: Package,
+    day_use: Clock,
 };
 
 function ArchiveRatePlan({
@@ -138,7 +140,11 @@ function ArchiveRatePlan({
 
 /** An active plan that does not follow another plan can be a parent. A package can have package followers. */
 function canBeParent(ratePlan: RatePlan): boolean {
-    return !ratePlan.archived && !ratePlan.isDerived;
+    return (
+        !ratePlan.archived &&
+        !ratePlan.isDerived &&
+        ratePlan.pricingBasis !== 'day_use'
+    );
 }
 
 function RatePlanActions({

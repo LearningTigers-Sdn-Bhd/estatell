@@ -26,6 +26,8 @@ class RatePlanRequest extends FormRequest
         $this->merge([
             'name' => trim((string) $this->input('name')),
             'description' => filled($this->input('description')) ? trim((string) $this->input('description')) : null,
+            'day_use_from' => filled($this->input('day_use_from')) ? $this->input('day_use_from') : null,
+            'day_use_until' => filled($this->input('day_use_until')) ? $this->input('day_use_until') : null,
         ]);
     }
 
@@ -65,6 +67,7 @@ class RatePlanRequest extends FormRequest
                 PricingBasis::PerRoom => ['extra_adult_amount' => $amount, 'extra_child_amount' => $amount],
                 PricingBasis::PerGuest => ['single_supplement' => $amount],
                 PricingBasis::PerBed => [],
+                PricingBasis::DayUse => $this->dayUseRules(),
                 PricingBasis::Package => [
                     'fixed_nights' => [
                         'required', 'integer', 'between:1,30',
@@ -79,6 +82,36 @@ class RatePlanRequest extends FormRequest
                     ...($current->package_unit === PackageUnit::PerRoom ? ['extra_adult_amount' => $amount, 'extra_child_amount' => $amount] : []),
                 ],
             },
+        ];
+    }
+
+    /**
+     * Hours sold (whole hours, 1 to 24) and the optional Sold between window. The window needs both times, from before until,
+     * and room for at least the minimum hours.
+     *
+     * @return array<string, array<mixed>>
+     */
+    private function dayUseRules(): array
+    {
+        $time = fn (string $other): array => ['nullable', 'date_format:H:i', 'required_with:'.$other];
+
+        return [
+            'day_use_min_hours' => ['required', 'integer', 'between:1,24'],
+            'day_use_max_hours' => ['required', 'integer', 'between:1,24', 'gte:day_use_min_hours'],
+            'day_use_from' => $time('day_use_until'),
+            'day_use_until' => [
+                ...$time('day_use_from'),
+                'after:day_use_from',
+                function (string $attribute, mixed $value, Closure $fail): void {
+                    $from = $this->input('day_use_from');
+                    $min = (int) $this->input('day_use_min_hours');
+
+                    if (is_string($from) && is_string($value) && $from !== '' && $value !== '' && $min > 0
+                        && (strtotime('1970-01-01 '.$value) - strtotime('1970-01-01 '.$from)) < $min * 3600) {
+                        $fail(__('The window must be at least :hours hours long, the minimum hours sold.', ['hours' => $min]));
+                    }
+                },
+            ],
         ];
     }
 }

@@ -1,6 +1,7 @@
 import {
     CalendarX,
     Clock,
+    Hourglass,
     Landmark,
     LogOut,
     UserX,
@@ -9,6 +10,7 @@ import {
 import type { ReactNode } from 'react';
 import { TabLinks } from '@/components/pms/tab-links';
 import { index } from '@/routes/settings/room-revenue';
+import { show as showDayUse } from '@/routes/settings/room-revenue/day-use';
 import { show } from '@/routes/settings/room-revenue/policies';
 
 export type RoomRevenueTab =
@@ -16,7 +18,8 @@ export type RoomRevenueTab =
     | 'no-show'
     | 'cancellation'
     | 'early-departure'
-    | 'late-checkout';
+    | 'late-checkout'
+    | 'day-use';
 
 const policyTabs: { value: RoomRevenueTab; label: string; icon: LucideIcon }[] =
     [
@@ -27,13 +30,16 @@ const policyTabs: { value: RoomRevenueTab; label: string; icon: LucideIcon }[] =
     ];
 
 /**
- * The five Room revenue tabs. Each is a link to its own URL, so the server sends only the open tab's data.
+ * The Room revenue tabs: five, and a sixth Day use tab when the property has a Day use plan. Each is a link to its own URL, so the server sends only the open tab's data.
  */
 export function RoomRevenueTabs({
     activeTab,
+    hasDayUse,
     children,
 }: {
     activeTab: RoomRevenueTab;
+    /** Whether the property has a Day use plan, which adds the Day use tab. */
+    hasDayUse: boolean;
     children: ReactNode;
 }) {
     return (
@@ -52,6 +58,16 @@ export function RoomRevenueTabs({
                     ...tab,
                     href: show({ tab: tab.value }),
                 })),
+                ...(hasDayUse
+                    ? [
+                          {
+                              value: 'day-use',
+                              label: 'Day use',
+                              icon: Hourglass,
+                              href: showDayUse(),
+                          },
+                      ]
+                    : []),
             ]}
         >
             {children}

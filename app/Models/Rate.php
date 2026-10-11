@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Database\Factories\RateFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -73,5 +74,25 @@ class Rate extends Model
     public function occupancyPrices(): HasMany
     {
         return $this->hasMany(RateOccupancyPrice::class);
+    }
+
+    /**
+     * @return HasMany<RateHourPrice, $this>
+     */
+    public function hourPrices(): HasMany
+    {
+        return $this->hasMany(RateHourPrice::class);
+    }
+
+    /**
+     * Rates that carry a price: a nightly amount, or hour prices on a Day use plan.
+     *
+     * @param  Builder<Rate>  $query
+     */
+    public function scopePriced(Builder $query): void
+    {
+        $query->where(fn (Builder $rates) => $rates
+            ->whereNotNull('rates.amount')
+            ->orWhereExists(fn ($hours) => $hours->selectRaw('1')->from('rate_hour_prices')->whereColumn('rate_hour_prices.rate_id', 'rates.id')));
     }
 }

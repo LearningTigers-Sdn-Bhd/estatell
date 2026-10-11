@@ -24,7 +24,7 @@ test('the Sandbay seeder builds a live resort with rooms, plans, guests and rese
         ->and($property->businessDates()->count())->toBe(1)
         ->and(Room::query()->where('property_id', $property->id)->count())->toBe(30)
         ->and(RatePlan::query()->where('property_id', $property->id)->pluck('name')->all())
-        ->toBe(['Room Only', 'Bed & Breakfast', 'Half Board', 'Dive Package'])
+        ->toBe(['Room Only', 'Bed & Breakfast', 'Half Board', 'Dive Package', 'Day use'])
         ->and(Guest::query()->where('property_id', $property->id)->count())->toBe(25)
         ->and(User::query()->where('property_id', $property->id)->count())->toBe(4)
         ->and(Reservation::query()->where('property_id', $property->id)->count())->toBe(21)
@@ -51,4 +51,24 @@ test('running the Sandbay seeder twice does not add a second property', function
 
     expect(Property::query()->where('name', 'Sandbay Resort')->count())->toBe(1)
         ->and(Reservation::query()->count())->toBe(21);
+});
+
+test('the Sandbay seeder adds a Day use plan with hour prices and day use taxes without the flat tax', function () {
+    $this->seed(SandbaySeeder::class);
+
+    $property = Property::query()->where('name', 'Sandbay Resort')->sole();
+    $plan = RatePlan::query()->where('property_id', $property->id)->where('name', 'Day use')->sole();
+    $garden = $property->roomTypes()->where('name', 'Garden Room')->sole();
+    $monday = $plan->rates()->where('room_type_id', $garden->id)->whereRaw('extract(isodow from date) = 1')->orderBy('date')->firstOrFail();
+    $dayUseTaxes = $property->transactionCodes()->where('system_key', 'day_use_revenue')->sole()->applicableTaxes;
+
+    expect($plan->roomTypes()->count())->toBe(4)
+        ->and(substr($plan->day_use_from, 0, 5))->toBe('08:00')
+        ->and($plan->day_use_max_hours)->toBe(6)
+        ->and($monday->amount)->toBeNull()
+        ->and($monday->hourPrices()->orderBy('hours')->pluck('amount', 'hours')->all())
+        ->toBe([2 => '60.00', 3 => '80.00', 4 => '100.00', 5 => '120.00', 6 => '140.00'])
+        ->and($dayUseTaxes->pluck('code')->all())->not->toContain('TTX')
+        ->and($dayUseTaxes->count())->toBeGreaterThan(0)
+        ->and($dayUseTaxes->count())->toBe($property->taxes()->where('rate_type', '!=', 'flat')->whereHas('applicableTransactionCodes', fn ($q) => $q->where('system_key', 'room_revenue'))->count());
 });

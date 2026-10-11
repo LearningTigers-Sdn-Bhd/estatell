@@ -54,6 +54,8 @@ class CreateRatePlanRequest extends FormRequest
             'pricing_basis' => ['required', Rule::enum(PricingBasis::class)],
             'fixed_nights' => ['exclude_unless:pricing_basis,package', 'required', 'integer', 'between:1,30'],
             'package_unit' => ['exclude_unless:pricing_basis,package', 'required', Rule::enum(PackageUnit::class)],
+            'day_use_min_hours' => ['exclude_unless:pricing_basis,day_use', 'required', 'integer', 'between:1,24'],
+            'day_use_max_hours' => ['exclude_unless:pricing_basis,day_use', 'required', 'integer', 'between:1,24', 'gte:day_use_min_hours'],
             'room_type_ids' => ['nullable', 'array'],
             'room_type_ids.*' => ['integer', 'distinct'],
         ];
@@ -82,11 +84,11 @@ class CreateRatePlanRequest extends FormRequest
     }
 
     /**
-     * @return array{name: string, pricing_basis: string, fixed_nights?: int, package_unit?: string}
+     * @return array{name: string, pricing_basis: string, fixed_nights?: int, package_unit?: string, day_use_min_hours?: int, day_use_max_hours?: int}
      */
     public function ratePlanAttributes(): array
     {
-        return $this->safe()->only(['name', 'pricing_basis', 'fixed_nights', 'package_unit']);
+        return $this->safe()->only(['name', 'pricing_basis', 'fixed_nights', 'package_unit', 'day_use_min_hours', 'day_use_max_hours']);
     }
 
     /**

@@ -250,7 +250,7 @@ class RatePlanController extends Controller
      */
     public function editDiscounts(Property $property, RatePlan $ratePlan, StayDiscountPreview $stayDiscountPreview): Response
     {
-        abort_if($ratePlan->pricing_basis === PricingBasis::Package, 404);
+        abort_if(in_array($ratePlan->pricing_basis, [PricingBasis::Package, PricingBasis::DayUse], true), 404);
 
         $today = now($property->settings->time_zone)->startOfDay();
         $discounts = $ratePlan->stayDiscounts()->orderBy('min_nights')->get();
@@ -285,7 +285,7 @@ class RatePlanController extends Controller
      */
     public function previewDiscounts(RatePlanDiscountsPreviewRequest $request, Property $property, RatePlan $ratePlan, StayDiscountPreview $stayDiscountPreview): JsonResponse
     {
-        abort_if($ratePlan->pricing_basis === PricingBasis::Package, 404);
+        abort_if(in_array($ratePlan->pricing_basis, [PricingBasis::Package, PricingBasis::DayUse], true), 404);
 
         $rules = $request->validRules();
         $nights = $request->nights() ?? $stayDiscountPreview->defaultNights($rules);
@@ -377,7 +377,7 @@ class RatePlanController extends Controller
 
     public function updateDiscounts(RatePlanStayDiscountsRequest $request, Property $property, RatePlan $ratePlan, SaveRatePlanStayDiscounts $saveRatePlanStayDiscounts): RedirectResponse
     {
-        abort_if($ratePlan->pricing_basis === PricingBasis::Package, 404);
+        abort_if(in_array($ratePlan->pricing_basis, [PricingBasis::Package, PricingBasis::DayUse], true), 404);
 
         Inertia::flash('toast', $saveRatePlanStayDiscounts($request->user(), $ratePlan, $request->discounts())
             ? ['type' => 'success', 'message' => __('Discounts saved.')]

@@ -91,7 +91,8 @@ export function RatePlanShell({
             icon: PackagePlus,
             href: editInclusions.url({ ratePlan: ratePlan.id }),
         },
-        ...(ratePlan.pricingBasis !== 'package'
+        ...(ratePlan.pricingBasis !== 'package' &&
+        ratePlan.pricingBasis !== 'day_use'
             ? [
                   {
                       value: 'discounts',
@@ -109,9 +110,11 @@ export function RatePlanShell({
                 title={ratePlan.name}
                 back={{ href: index.url(), label: 'Rate plans' }}
                 description={
-                    ratePlan.pricingBasis === 'package'
-                        ? `Sells ${ratePlan.family.toLowerCase()} types. Package of ${ratePlan.fixedNights} ${ratePlan.fixedNights === 1 ? 'night' : 'nights'}, charged ${ratePlan.packageUnit?.replace('_', ' ')}.`
-                        : `Sells ${ratePlan.family.toLowerCase()} types. Priced ${ratePlan.pricingBasis.replace('_', ' ')}.`
+                    ratePlan.pricingBasis === 'day_use'
+                        ? `Sells ${ratePlan.family.toLowerCase()} types by the hour, ${ratePlan.dayUseMinHours} to ${ratePlan.dayUseMaxHours} hours. Front desk only.`
+                        : ratePlan.pricingBasis === 'package'
+                          ? `Sells ${ratePlan.family.toLowerCase()} types. Package of ${ratePlan.fixedNights} ${ratePlan.fixedNights === 1 ? 'night' : 'nights'}, charged ${ratePlan.packageUnit?.replace('_', ' ')}.`
+                          : `Sells ${ratePlan.family.toLowerCase()} types. Priced ${ratePlan.pricingBasis.replace('_', ' ')}.`
                 }
                 badge={
                     ratePlan.archived ? (

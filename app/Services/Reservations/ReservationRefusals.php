@@ -167,6 +167,7 @@ class ReservationRefusals
             ReservationResult::REFUSAL_NOT_AVAILABLE => ['room_type_id', $day === '' ? __('No unit is available for these dates.') : __('No unit is available on :date.', ['date' => $day])],
             ReservationResult::REFUSAL_OVERRIDE_REASON_REQUIRED => ['override_reason', __('Enter a reason for the price override.')],
             ReservationResult::REFUSAL_OVERRIDE_INVALID => ['override_total', __('Enter an amount such as 840.00.')],
+            RateQuote::REFUSAL_PLAN_NOT_NIGHTLY => ['rate_plan_id', __('This is a day use plan. It cannot be booked for nights.')],
             RateQuote::REFUSAL_PLAN_ARCHIVED => ['rate_plan_id', __('This rate plan is archived.')],
             RateQuote::REFUSAL_ROOM_TYPE_NOT_SOLD => ['room_type_id', __('This room type is not sold on this rate plan.')],
             RateQuote::REFUSAL_STAY_LENGTH_MISMATCH => ['departure_date', __('This package sells a fixed number of nights.')],

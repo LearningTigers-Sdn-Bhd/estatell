@@ -58,6 +58,7 @@ import {
 import { RestrictionsSection } from './restrictions-section';
 import {
     autoFill,
+    autoFillDayUse,
     autoFillPerGuest,
     buildRows,
     fitsSimple,
@@ -72,6 +73,7 @@ import {
 } from './pricing-state';
 import type {
     AutoFillOptions,
+    DayUseAutoFillOptions,
     GuestAutoFillOptions,
     PricingRow,
     RoomTypeGrid,
@@ -127,11 +129,17 @@ export function PricingForm({
     submitLabel?: string;
 }) {
     const basis = ratePlan.pricingBasis;
+    const hoursRange =
+        basis === 'day_use' &&
+        ratePlan.dayUseMinHours !== null &&
+        ratePlan.dayUseMaxHours !== null
+            ? { min: ratePlan.dayUseMinHours, max: ratePlan.dayUseMaxHours }
+            : null;
     const emptyGrids = () =>
         roomTypes.map((roomType): RoomTypeGrid => ({
             roomTypeId: roomType.id,
             byAdults: false,
-            rows: buildRows(basis, roomType, false),
+            rows: buildRows(basis, roomType, false, [], hoursRange),
         }));
     const form = useForm<{ from: string; to: string }>({
         from: initialRange?.from ?? '',
@@ -266,7 +274,13 @@ export function PricingForm({
                     ? {
                           ...grid,
                           byAdults,
-                          rows: buildRows(basis, roomType, byAdults, grid.rows),
+                          rows: buildRows(
+                              basis,
+                              roomType,
+                              byAdults,
+                              grid.rows,
+                              hoursRange,
+                          ),
                       }
                     : grid,
             ),
@@ -450,7 +464,9 @@ export function PricingForm({
                                                         {grid.rows.some(
                                                             (row) =>
                                                                 row.kind ===
-                                                                'occupancy',
+                                                                    'occupancy' ||
+                                                                row.kind ===
+                                                                    'hours',
                                                         ) && (
                                                             <AutoFill
                                                                 roomType={
@@ -569,6 +585,8 @@ export function PricingForm({
                                         <p className="text-sm font-normal whitespace-normal text-muted-foreground">
                                             Leave a price blank to keep what is
                                             saved for that day.
+                                            {basis === 'day_use' &&
+                                                ' Each hour count has its own price for the room. A saved date replaces the prices of the hours shown here.'}
                                             {basis === 'per_guest' &&
                                                 ' The 1 adult price is per adult. Prices for more adults are optional totals for that many adults.'}
                                         </p>
@@ -594,6 +612,7 @@ export function PricingForm({
             {restrictions && (
                 <>
                     <RestrictionsSection
+                        stopSellOnly={basis === 'day_use'}
                         choices={choices}
                         onChange={setChoices}
                         errors={errors}
@@ -641,6 +660,17 @@ function AutoFill({
     currency: App.Enums.Currency;
     onApply: (fill: (rows: PricingRow[]) => PricingRow[]) => void;
 }) {
+    if (basis === 'day_use') {
+        return (
+            <DayUseAutoFill
+                roomType={roomType}
+                rows={rows}
+                currency={currency}
+                onApply={onApply}
+            />
+        );
+    }
+
     if (basis === 'per_guest') {
         return (
             <GuestAutoFill
@@ -995,6 +1025,182 @@ function GuestAutoFill({
                         type="button"
                         onClick={apply}
                         disabled={!seeded}
+                        focusableWhenDisabled
+                    >
+                        Fill prices
+                    </Button>
+                </div>
+            </PopoverContent>
+        </Popover>
+    );
+}
+
+/**
+ * Day use Auto: the first block (hours and price), the change for each extra hour, and an optional cap. It fills the
+ * hour rows for every weekday column. It only fills the fields.
+ */
+function DayUseAutoFill({
+    roomType,
+    rows,
+    currency,
+    onApply,
+}: {
+    roomType: RoomType;
+    rows: PricingRow[];
+    currency: App.Enums.Currency;
+    onApply: (fill: (rows: PricingRow[]) => PricingRow[]) => void;
+}) {
+    const hourRows = rows.filter((row) => row.hours !== null);
+    const [open, setOpen] = useState(false);
+    const [firstHours, setFirstHours] = useState(
+        String(hourRows[0]?.hours ?? 1),
+    );
+    const [firstPrice, setFirstPrice] = useState('');
+    const [direction, setDirection] =
+        useState<DayUseAutoFillOptions['direction']>('more');
+    const [step, setStep] = useState('');
+    const [unit, setUnit] = useState<DayUseAutoFillOptions['unit']>('amount');
+    const [cap, setCap] = useState('');
+    const valid = firstPrice !== '' && Number(firstPrice) >= 0;
+
+    const apply = () => {
+        const options: DayUseAutoFillOptions = {
+            firstHours: Number(firstHours),
+            firstPrice: Number(firstPrice),
+            direction,
+            step: Number(step) || 0,
+            unit,
+            cap: cap === '' ? null : Number(cap),
+        };
+
+        onApply((current) => autoFillDayUse(current, options));
+        setOpen(false);
+    };
+
+    const moneyField = (
+        id: string,
+        label: string,
+        value: string,
+        onChange: (value: string) => void,
+        addon: 'currency' | 'unit',
+    ) => (
+        <Field>
+            <FieldLabel htmlFor={id}>{label}</FieldLabel>
+            <InputGroup>
+                {(addon === 'currency' || unit === 'amount') && (
+                    <InputGroupAddon>{currency}</InputGroupAddon>
+                )}
+                <InputGroupInput
+                    id={id}
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    inputMode="decimal"
+                    placeholder={
+                        addon === 'unit' && unit === 'percent' ? '0' : '0.00'
+                    }
+                    value={value}
+                    onChange={(event) => onChange(event.target.value)}
+                />
+                {addon === 'unit' && unit === 'percent' && (
+                    <InputGroupAddon align="inline-end">%</InputGroupAddon>
+                )}
+            </InputGroup>
+        </Field>
+    );
+
+    return (
+        <Popover open={open} onOpenChange={setOpen}>
+            <PopoverTrigger
+                render={<Button type="button" variant="outline" size="sm" />}
+            >
+                <WandSparkles data-icon="inline-start" />
+                Auto
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-80">
+                <PopoverHeader>
+                    <PopoverTitle>Auto fill prices by hours</PopoverTitle>
+                    <PopoverDescription>
+                        Sets the first block, then changes the price for each
+                        extra hour. Every weekday column is filled.
+                    </PopoverDescription>
+                </PopoverHeader>
+                <div className="flex flex-col gap-3">
+                    <div className="grid grid-cols-2 gap-3">
+                        <Field>
+                            <FieldLabel>First block</FieldLabel>
+                            <EnumSelect
+                                aria-label="First block hours"
+                                options={hourRows.map((row) => ({
+                                    value: String(row.hours),
+                                    label: row.label,
+                                }))}
+                                value={firstHours}
+                                onValueChange={setFirstHours}
+                            />
+                        </Field>
+                        {moneyField(
+                            `day-use-first-${roomType.id}`,
+                            'Price',
+                            firstPrice,
+                            setFirstPrice,
+                            'currency',
+                        )}
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                        <Field>
+                            <FieldLabel>Each extra hour</FieldLabel>
+                            <EnumSelect
+                                aria-label="Change direction"
+                                options={[
+                                    { value: 'more', label: 'Adds' },
+                                    { value: 'less', label: 'Takes off' },
+                                ]}
+                                value={direction}
+                                onValueChange={(value) =>
+                                    setDirection(
+                                        value as DayUseAutoFillOptions['direction'],
+                                    )
+                                }
+                            />
+                        </Field>
+                        <Field>
+                            <FieldLabel>Change is</FieldLabel>
+                            <EnumSelect
+                                aria-label="Change unit"
+                                options={[
+                                    { value: 'amount', label: 'An amount' },
+                                    { value: 'percent', label: 'A percentage' },
+                                ]}
+                                value={unit}
+                                onValueChange={(value) =>
+                                    setUnit(
+                                        value as DayUseAutoFillOptions['unit'],
+                                    )
+                                }
+                            />
+                        </Field>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                        {moneyField(
+                            `day-use-step-${roomType.id}`,
+                            'Step',
+                            step,
+                            setStep,
+                            'unit',
+                        )}
+                        {moneyField(
+                            `day-use-cap-${roomType.id}`,
+                            'Never more than',
+                            cap,
+                            setCap,
+                            'currency',
+                        )}
+                    </div>
+                    <Button
+                        type="button"
+                        onClick={apply}
+                        disabled={!valid}
                         focusableWhenDisabled
                     >
                         Fill prices

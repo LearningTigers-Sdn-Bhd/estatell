@@ -32,6 +32,10 @@ use Illuminate\Support\Carbon;
  * @property int|null $parent_rate_plan_id
  * @property RateDerivation|null $derivation
  * @property string|null $derivation_value
+ * @property int|null $day_use_min_hours
+ * @property int|null $day_use_max_hours
+ * @property string|null $day_use_from
+ * @property string|null $day_use_until
  * @property EarlyDeparturePolicy $early_departure_policy
  * @property bool $needs_child_price_review
  * @property int $position
@@ -40,7 +44,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $updated_at
  */
 #[Fillable([
-    'name', 'description', 'pricing_basis', 'fixed_nights', 'package_unit', 'extra_adult_amount', 'extra_child_amount', 'single_supplement',
+    'name', 'description', 'pricing_basis', 'fixed_nights', 'package_unit', 'day_use_min_hours', 'day_use_max_hours', 'day_use_from', 'day_use_until', 'extra_adult_amount', 'extra_child_amount', 'single_supplement',
     'parent_rate_plan_id', 'derivation', 'derivation_value', 'early_departure_policy', 'needs_child_price_review', 'position', 'archived_at',
 ])]
 class RatePlan extends Model
@@ -57,6 +61,8 @@ class RatePlan extends Model
             'pricing_basis' => PricingBasis::class,
             'fixed_nights' => 'integer',
             'package_unit' => PackageUnit::class,
+            'day_use_min_hours' => 'integer',
+            'day_use_max_hours' => 'integer',
             'derivation' => RateDerivation::class,
             'derivation_value' => 'decimal:2',
             'early_departure_policy' => EarlyDeparturePolicy::class,
@@ -178,6 +184,24 @@ class RatePlan extends Model
             ->orWhere(fn (Builder $packages) => $packages
                 ->where('pricing_basis', PricingBasis::Package)
                 ->where('package_unit', PackageUnit::PerGuest)));
+    }
+
+    /**
+     * Plans that sell nights. A Day use plan sells hours and is left out.
+     *
+     * @param  Builder<RatePlan>  $query
+     */
+    public function scopeNightly(Builder $query): void
+    {
+        $query->where('pricing_basis', '<>', PricingBasis::DayUse);
+    }
+
+    /**
+     * @param  Builder<RatePlan>  $query
+     */
+    public function scopeDayUse(Builder $query): void
+    {
+        $query->where('pricing_basis', PricingBasis::DayUse);
     }
 
     /**

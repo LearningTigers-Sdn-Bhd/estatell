@@ -45,6 +45,7 @@ class CreateDerivedRatePlan
             $parentRoomTypeIds = $parent->roomTypes->whereNull('archived_at')->pluck('id')->all();
 
             $refused = $parent->archived_at !== null
+                || $parent->pricing_basis === PricingBasis::DayUse
                 || $parent->parent_rate_plan_id !== null
                 || ($parent->pricing_basis === PricingBasis::Package && $derivation !== RateDerivation::Percent)
                 || $roomTypeIds === []

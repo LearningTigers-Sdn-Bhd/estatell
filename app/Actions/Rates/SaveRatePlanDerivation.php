@@ -39,6 +39,10 @@ class SaveRatePlanDerivation
                 return $this->stopFollowing($actor, $ratePlan);
             }
 
+            if ($ratePlan->pricing_basis === PricingBasis::DayUse) {
+                return false;
+            }
+
             if ($derivation === null || $value === null || ($derivation === RateDerivation::Percent && (float) $value <= -100) || ($ratePlan->pricing_basis === PricingBasis::Package && $derivation !== RateDerivation::Percent)) {
                 return false;
             }

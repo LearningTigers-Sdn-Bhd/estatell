@@ -38,12 +38,16 @@ class RatePlanCoverage
      */
     public function stranded(RatePlan $plan, ?array $keepRoomTypeIds = null): Collection
     {
+        if ($plan->pricing_basis === PricingBasis::DayUse) {
+            return new Collection;
+        }
+
         return RoomType::query()
             ->where('property_id', $plan->property_id)
             ->active()
             ->whereHas('ratePlans', fn ($query) => $query->whereKey($plan->id))
             ->when($keepRoomTypeIds !== null, fn ($query) => $query->whereNotIn('id', $keepRoomTypeIds))
-            ->whereDoesntHave('ratePlans', fn ($query) => $query->active()->whereKeyNot($plan->id))
+            ->whereDoesntHave('ratePlans', fn ($query) => $query->active()->nightly()->whereKeyNot($plan->id))
             ->ordered()
             ->get();
     }

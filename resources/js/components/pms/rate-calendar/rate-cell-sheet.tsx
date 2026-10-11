@@ -142,7 +142,9 @@ function CellForm({
     onDone: () => void;
 }) {
     const { roomType, plan, cell, target } = editing;
-    const ownPrice = !plan.derived && plan.pricingBasis !== 'package';
+    const isDayUse = plan.pricingBasis === 'day_use';
+    const ownPrice =
+        !plan.derived && plan.pricingBasis !== 'package' && !isDayUse;
     const initial = cellFormValues(cell, ownPrice);
     const form = useForm<CellFormValues>(initial);
     const price = PRICE_LABELS[plan.pricingBasis];
@@ -159,7 +161,7 @@ function CellForm({
         }
 
         form.transform(() =>
-            buildCellPayload(target, initial, form.data, ownPrice),
+            buildCellPayload(target, initial, form.data, ownPrice, isDayUse),
         );
         form.put(update.url({ ratePlan: plan.id }), {
             preserveScroll: true,
@@ -276,6 +278,40 @@ function CellForm({
                             )}
                         {problem && <FieldError>{problem}</FieldError>}
                     </FieldSet>
+                ) : isDayUse ? (
+                    <FieldSet>
+                        <FieldLegend>Price</FieldLegend>
+                        {cell && cell.hours.length > 0 ? (
+                            <ul className="flex flex-col gap-1 text-sm tabular-nums">
+                                {cell.hours.map((price) => (
+                                    <li
+                                        key={price.hours}
+                                        className="flex justify-between gap-4"
+                                    >
+                                        <span>
+                                            {price.hours}{' '}
+                                            {price.hours === 1
+                                                ? 'hour'
+                                                : 'hours'}
+                                        </span>
+                                        <span>
+                                            {formatAmount(price.amount)}{' '}
+                                            {currency}
+                                        </span>
+                                    </li>
+                                ))}
+                            </ul>
+                        ) : (
+                            <p className="text-sm">
+                                No hour prices on this date.
+                            </p>
+                        )}
+                        <FieldDescription>
+                            Day use prices are set on the plan's Pricing tab in
+                            Settings, or in Bulk edit. You can still stop
+                            selling this date.
+                        </FieldDescription>
+                    </FieldSet>
                 ) : (
                     <FieldSet>
                         <FieldLegend>Price</FieldLegend>
@@ -304,92 +340,104 @@ function CellForm({
                             form.setData('stopSell', checked)
                         }
                     />
-                    <SwitchField
-                        id="cell-cta"
-                        label="Closed to arrival"
-                        description="No stay can start on this date."
-                        checked={form.data.closedToArrival}
-                        onChange={(checked) =>
-                            form.setData('closedToArrival', checked)
-                        }
-                    />
-                    <SwitchField
-                        id="cell-ctd"
-                        label="Closed to departure"
-                        description="No stay can end on this date."
-                        checked={form.data.closedToDeparture}
-                        onChange={(checked) =>
-                            form.setData('closedToDeparture', checked)
-                        }
-                    />
-                    <div className="grid gap-3 sm:grid-cols-2">
-                        <Field data-invalid={!!error('restrictions.min_stay')}>
-                            <FieldLabel htmlFor="cell-min-stay">
-                                Min stay
-                            </FieldLabel>
-                            <InputGroup>
-                                <InputGroupInput
-                                    id="cell-min-stay"
-                                    type="number"
-                                    min="1"
-                                    max="365"
-                                    step="1"
-                                    inputMode="numeric"
-                                    aria-invalid={
+                    {!isDayUse && (
+                        <>
+                            <SwitchField
+                                id="cell-cta"
+                                label="Closed to arrival"
+                                description="No stay can start on this date."
+                                checked={form.data.closedToArrival}
+                                onChange={(checked) =>
+                                    form.setData('closedToArrival', checked)
+                                }
+                            />
+                            <SwitchField
+                                id="cell-ctd"
+                                label="Closed to departure"
+                                description="No stay can end on this date."
+                                checked={form.data.closedToDeparture}
+                                onChange={(checked) =>
+                                    form.setData('closedToDeparture', checked)
+                                }
+                            />
+                            <div className="grid gap-3 sm:grid-cols-2">
+                                <Field
+                                    data-invalid={
                                         !!error('restrictions.min_stay')
                                     }
-                                    value={form.data.minStay}
-                                    onChange={(event) =>
-                                        form.setData(
-                                            'minStay',
-                                            event.target.value,
-                                        )
-                                    }
-                                />
-                                <InputGroupAddon align="inline-end">
-                                    nights
-                                </InputGroupAddon>
-                            </InputGroup>
-                            <FieldError>
-                                {error('restrictions.min_stay')}
-                            </FieldError>
-                        </Field>
-                        <Field data-invalid={!!error('restrictions.max_stay')}>
-                            <FieldLabel htmlFor="cell-max-stay">
-                                Max stay
-                            </FieldLabel>
-                            <InputGroup>
-                                <InputGroupInput
-                                    id="cell-max-stay"
-                                    type="number"
-                                    min="1"
-                                    max="365"
-                                    step="1"
-                                    inputMode="numeric"
-                                    aria-invalid={
+                                >
+                                    <FieldLabel htmlFor="cell-min-stay">
+                                        Min stay
+                                    </FieldLabel>
+                                    <InputGroup>
+                                        <InputGroupInput
+                                            id="cell-min-stay"
+                                            type="number"
+                                            min="1"
+                                            max="365"
+                                            step="1"
+                                            inputMode="numeric"
+                                            aria-invalid={
+                                                !!error('restrictions.min_stay')
+                                            }
+                                            value={form.data.minStay}
+                                            onChange={(event) =>
+                                                form.setData(
+                                                    'minStay',
+                                                    event.target.value,
+                                                )
+                                            }
+                                        />
+                                        <InputGroupAddon align="inline-end">
+                                            nights
+                                        </InputGroupAddon>
+                                    </InputGroup>
+                                    <FieldError>
+                                        {error('restrictions.min_stay')}
+                                    </FieldError>
+                                </Field>
+                                <Field
+                                    data-invalid={
                                         !!error('restrictions.max_stay')
                                     }
-                                    value={form.data.maxStay}
-                                    onChange={(event) =>
-                                        form.setData(
-                                            'maxStay',
-                                            event.target.value,
-                                        )
-                                    }
-                                />
-                                <InputGroupAddon align="inline-end">
-                                    nights
-                                </InputGroupAddon>
-                            </InputGroup>
-                            <FieldError>
-                                {error('restrictions.max_stay')}
-                            </FieldError>
-                        </Field>
-                    </div>
-                    <FieldDescription>
-                        Leave a stay limit blank for no limit. Min and max stay
-                        are checked from the arrival date.
-                    </FieldDescription>
+                                >
+                                    <FieldLabel htmlFor="cell-max-stay">
+                                        Max stay
+                                    </FieldLabel>
+                                    <InputGroup>
+                                        <InputGroupInput
+                                            id="cell-max-stay"
+                                            type="number"
+                                            min="1"
+                                            max="365"
+                                            step="1"
+                                            inputMode="numeric"
+                                            aria-invalid={
+                                                !!error('restrictions.max_stay')
+                                            }
+                                            value={form.data.maxStay}
+                                            onChange={(event) =>
+                                                form.setData(
+                                                    'maxStay',
+                                                    event.target.value,
+                                                )
+                                            }
+                                        />
+                                        <InputGroupAddon align="inline-end">
+                                            nights
+                                        </InputGroupAddon>
+                                    </InputGroup>
+                                    <FieldError>
+                                        {error('restrictions.max_stay')}
+                                    </FieldError>
+                                </Field>
+                            </div>
+                            <FieldDescription>
+                                Leave a stay limit blank for no limit. Min and
+                                max stay are checked from the arrival date.
+                            </FieldDescription>
+                        </>
+                    )}
                 </FieldSet>
             </FieldGroup>
             <SheetFooter>

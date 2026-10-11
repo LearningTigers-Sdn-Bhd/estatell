@@ -82,10 +82,15 @@ export function DetailsForm({
         extra_child_amount: ratePlan.extraChildAmount,
         single_supplement: ratePlan.singleSupplement,
         fixed_nights: String(ratePlan.fixedNights ?? ''),
+        day_use_min_hours: String(ratePlan.dayUseMinHours ?? ''),
+        day_use_max_hours: String(ratePlan.dayUseMaxHours ?? ''),
+        day_use_from: ratePlan.dayUseFrom ?? '',
+        day_use_until: ratePlan.dayUseUntil ?? '',
     });
     const guard = useUnsavedChanges(form.isDirty);
     const basis = ratePlan.pricingBasis;
     const isPackage = basis === 'package';
+    const isDayUse = basis === 'day_use';
     const extraGuests =
         basis === 'per_room' ||
         (isPackage && ratePlan.packageUnit === 'per_room');
@@ -164,6 +169,118 @@ export function DetailsForm({
                         </FieldDescription>
                         <FieldError>{form.errors.fixed_nights}</FieldError>
                     </Field>
+                )}
+                {isDayUse && (
+                    <>
+                        <div className="grid gap-4 sm:max-w-md sm:grid-cols-2">
+                            <Field
+                                data-invalid={!!form.errors.day_use_min_hours}
+                            >
+                                <FieldLabel htmlFor="day_use_min_hours">
+                                    Hours sold, from
+                                </FieldLabel>
+                                <Input
+                                    id="day_use_min_hours"
+                                    type="number"
+                                    min="1"
+                                    max="24"
+                                    inputMode="numeric"
+                                    value={form.data.day_use_min_hours}
+                                    onChange={(event) =>
+                                        form.setData(
+                                            'day_use_min_hours',
+                                            event.target.value,
+                                        )
+                                    }
+                                    aria-invalid={
+                                        !!form.errors.day_use_min_hours
+                                    }
+                                />
+                                <FieldError>
+                                    {form.errors.day_use_min_hours}
+                                </FieldError>
+                            </Field>
+                            <Field
+                                data-invalid={!!form.errors.day_use_max_hours}
+                            >
+                                <FieldLabel htmlFor="day_use_max_hours">
+                                    Hours sold, to
+                                </FieldLabel>
+                                <Input
+                                    id="day_use_max_hours"
+                                    type="number"
+                                    min="1"
+                                    max="24"
+                                    inputMode="numeric"
+                                    value={form.data.day_use_max_hours}
+                                    onChange={(event) =>
+                                        form.setData(
+                                            'day_use_max_hours',
+                                            event.target.value,
+                                        )
+                                    }
+                                    aria-invalid={
+                                        !!form.errors.day_use_max_hours
+                                    }
+                                />
+                                <FieldError>
+                                    {form.errors.day_use_max_hours}
+                                </FieldError>
+                            </Field>
+                            <FieldDescription className="sm:col-span-2">
+                                Whole hours. Changing them only affects new
+                                bookings. Prices for hours outside the range
+                                stay saved but are not offered.
+                            </FieldDescription>
+                        </div>
+                        <div className="grid gap-4 sm:max-w-md sm:grid-cols-2">
+                            <Field data-invalid={!!form.errors.day_use_from}>
+                                <FieldLabel htmlFor="day_use_from">
+                                    Sold between, from
+                                </FieldLabel>
+                                <Input
+                                    id="day_use_from"
+                                    type="time"
+                                    value={form.data.day_use_from}
+                                    onChange={(event) =>
+                                        form.setData(
+                                            'day_use_from',
+                                            event.target.value,
+                                        )
+                                    }
+                                    aria-invalid={!!form.errors.day_use_from}
+                                />
+                                <FieldError>
+                                    {form.errors.day_use_from}
+                                </FieldError>
+                            </Field>
+                            <Field data-invalid={!!form.errors.day_use_until}>
+                                <FieldLabel htmlFor="day_use_until">
+                                    Sold between, until
+                                </FieldLabel>
+                                <Input
+                                    id="day_use_until"
+                                    type="time"
+                                    value={form.data.day_use_until}
+                                    onChange={(event) =>
+                                        form.setData(
+                                            'day_use_until',
+                                            event.target.value,
+                                        )
+                                    }
+                                    aria-invalid={!!form.errors.day_use_until}
+                                />
+                                <FieldError>
+                                    {form.errors.day_use_until}
+                                </FieldError>
+                            </Field>
+                            <FieldDescription className="sm:col-span-2">
+                                Optional. A block must start at or after the
+                                first time and end at or before the second.
+                                Leave both empty to sell all day.
+                            </FieldDescription>
+                        </div>
+                    </>
                 )}
                 {extraGuests && (
                     <>

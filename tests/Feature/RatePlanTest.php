@@ -81,7 +81,7 @@ test('the list shows active plans in order with their room types, then archived 
             ->where('ratePlans.0.pricingTone', 'info')
             ->where('ratePlans.1.pricingTone', 'success')
             ->where('statuses', fn ($statuses) => collect($statuses)->pluck('value')->all() === ['active', 'archived'])
-            ->where('pricingBases', fn ($bases) => collect($bases)->pluck('value')->all() === ['per_room', 'per_guest', 'per_bed', 'package']));
+            ->where('pricingBases', fn ($bases) => collect($bases)->pluck('value')->all() === ['per_room', 'per_guest', 'per_bed', 'package', 'day_use']));
 });
 
 test('owners create a plan at the end of the list and land on its room types tab', function () {
@@ -113,7 +113,7 @@ test('the list page sends active room types with the pricing bases that can sell
         ->assertInertia(fn (Assert $page) => $page
             ->has('roomTypes', 2)
             ->where('roomTypes.0.name', 'Deluxe')
-            ->where('roomTypes.0.fitsBases', ['per_room', 'per_guest', 'package'])
+            ->where('roomTypes.0.fitsBases', ['per_room', 'per_guest', 'package', 'day_use'])
             ->where('roomTypes.1.fitsBases', ['per_bed', 'package']));
 });
 

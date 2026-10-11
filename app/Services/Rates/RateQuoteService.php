@@ -2,6 +2,7 @@
 
 namespace App\Services\Rates;
 
+use App\Enums\PricingBasis;
 use App\Models\PropertyAgeGroup;
 use App\Services\Rates\Pricing\PricedNights;
 use App\Services\Rates\Pricing\QuoteRefused;
@@ -52,6 +53,10 @@ class RateQuoteService
 
         if ($request->beds < 1) {
             throw new QuoteRefused(RateQuote::REFUSAL_BEDS_REQUIRED);
+        }
+
+        if ($plan->pricing_basis === PricingBasis::DayUse) {
+            throw new QuoteRefused(RateQuote::REFUSAL_PLAN_NOT_NIGHTLY);
         }
 
         if ($plan->archived_at !== null) {

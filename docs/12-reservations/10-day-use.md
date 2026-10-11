@@ -129,6 +129,8 @@ A Day use plan is never mapped. The mapping capability refuses it with "Day use 
 | 3   | `feat(front-desk): check day use in and out` | Check-in posting the block, check-out, cancel and no-show with the policy rule, reinstate, `MoveUnit`, `AutoAssignRooms` skipping overlapping rooms, the audit detail                                                                                             |
 | 4   | `feat(reports): show day use apart`          | `day_use_sold` and `day_use_revenue` in the snapshot, the Occupancy columns, the stay column in Arrivals, Departures and In-house                                                                                                                                 |
 
+**Sample data.** `SandbaySeeder` adds a "Day use" plan: 2 to 6 hours, sold between 08:00 and 18:00, on every room type. The first block costs 30% of the room's nightly price and each extra hour adds 10% (Garden Room: 2h 60.00, +20.00 an hour). It goes through `CreateRatePlan`, so DAY_USE gets the Taxes tab taxes except the Tourism tax.
+
 ## Later
 
 - **Change the hours or the start** of a booked day use, re-priced from the hour prices (a guest staying 4h who wants 5h pays the 5-hour price minus the 4-hour price).

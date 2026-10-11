@@ -46,7 +46,7 @@ class RateCalendarService
             ->whereIn('rate_plan_id', $plans->modelKeys())
             ->whereIn('room_type_id', $roomTypes->modelKeys())
             ->whereBetween('date', [$start->toDateString(), $end->toDateString()])
-            ->with('occupancyPrices')
+            ->with('occupancyPrices', 'hourPrices')
             ->orderBy('date')
             ->get()
             ->groupBy(fn (Rate $rate): string => $rate->rate_plan_id.'-'.$rate->room_type_id);
@@ -102,6 +102,10 @@ class RateCalendarService
     private function cells(RatePlan $plan, RoomType $roomType, Collection $rates, Collection $packagePrices, CarbonInterface $start, CarbonInterface $end, string $currency): array
     {
         $own = $rates->get($plan->id.'-'.$roomType->id, new Collection);
+
+        if ($plan->pricing_basis === PricingBasis::DayUse) {
+            return $own->map(fn (Rate $rate): RateCalendarCellData => RateCalendarCellData::forDayUse($rate))->values()->all();
+        }
 
         if ($plan->pricing_basis === PricingBasis::Package) {
             return $this->packageCells($plan, $own, $packagePrices->get(($plan->parent_rate_plan_id ?? $plan->id).'-'.$roomType->id, new Collection), $start, $end, $currency);

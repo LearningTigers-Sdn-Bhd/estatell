@@ -41,6 +41,17 @@ class RatePlanFactory extends Factory
         ]);
     }
 
+    public function dayUse(int $minHours = 2, int $maxHours = 6, ?string $from = null, ?string $until = null): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'pricing_basis' => PricingBasis::DayUse,
+            'day_use_min_hours' => $minHours,
+            'day_use_max_hours' => $maxHours,
+            'day_use_from' => $from,
+            'day_use_until' => $until,
+        ]);
+    }
+
     public function perBed(): static
     {
         return $this->state(fn (array $attributes) => ['pricing_basis' => PricingBasis::PerBed]);

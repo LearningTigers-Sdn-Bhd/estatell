@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { EmptyState } from '@/components/pms/empty-state';
 import { MultiCombobox } from '@/components/pms/multi-combobox';
 import { PageHeader } from '@/components/pms/page-header';
+import { PostingPreview } from '@/components/pms/room-revenue/posting-preview';
 import { UnsavedChangesDialog } from '@/components/pms/unsaved-changes-dialog';
 import { RoomRevenueTabs } from '@/components/pms/room-revenue/room-revenue-tabs';
 import { taxOptions } from '@/components/pms/room-revenue/tax-options';
@@ -15,15 +16,6 @@ import {
     FieldSet,
 } from '@/components/ui/field';
 import { Spinner } from '@/components/ui/spinner';
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableFooter,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from '@/components/ui/table';
 import { useUnsavedChanges } from '@/hooks/use-unsaved-changes';
 import {
     index,
@@ -36,132 +28,18 @@ type Tax = App.Data.Catalogues.ChargeItemTaxData;
 type Preview = App.Data.Catalogues.RoomRevenuePreviewData;
 type Selection = { tax_ids: number[] };
 
-function PostingPreview({
-    preview,
-    offTaxes,
-    money,
-    loading,
-}: {
-    preview: Preview;
-    offTaxes: Tax[];
-    money: Intl.NumberFormat;
-    loading: boolean;
-}) {
-    const amount = (value: string | null) =>
-        value === null ? '—' : money.format(Number(value));
-
-    return (
-        <section
-            aria-labelledby="room-revenue-preview"
-            aria-busy={loading}
-            className="flex w-full min-w-0 flex-col gap-3"
-        >
-            <div className="flex items-center justify-between gap-2">
-                <div className="flex flex-col gap-1">
-                    <h2
-                        id="room-revenue-preview"
-                        className="text-sm font-medium"
-                    >
-                        Posting preview
-                    </h2>
-                    <p className="text-sm text-muted-foreground">
-                        A room night of{' '}
-                        {money.format(Number(preview.sampleAmount))} with the
-                        selected taxes.
-                    </p>
-                </div>
-                {loading && <Spinner />}
-            </div>
-            {preview.refusal ? (
-                <p className="text-sm text-destructive">{preview.refusal}</p>
-            ) : (
-                <div className="overflow-auto rounded-lg border">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Line</TableHead>
-                                <TableHead className="text-right">
-                                    Malaysian guest
-                                </TableHead>
-                                <TableHead className="text-right">
-                                    Foreign guest
-                                </TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            <TableRow>
-                                <TableCell>Room revenue</TableCell>
-                                <TableCell className="text-right tabular-nums">
-                                    {amount(preview.localNet)}
-                                </TableCell>
-                                <TableCell className="text-right tabular-nums">
-                                    {amount(preview.foreignNet)}
-                                </TableCell>
-                            </TableRow>
-                            {preview.lines.map((line) => (
-                                <TableRow key={line.taxId}>
-                                    <TableCell>
-                                        {line.name}
-                                        {line.inclusive && (
-                                            <span className="text-xs text-muted-foreground">
-                                                {' '}
-                                                · included in the price
-                                            </span>
-                                        )}
-                                    </TableCell>
-                                    <TableCell className="text-right tabular-nums">
-                                        {amount(line.localAmount)}
-                                    </TableCell>
-                                    <TableCell className="text-right tabular-nums">
-                                        {amount(line.foreignAmount)}
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                            {offTaxes.map((tax) => (
-                                <TableRow
-                                    key={tax.id}
-                                    className="text-muted-foreground"
-                                >
-                                    <TableCell>{tax.name}</TableCell>
-                                    <TableCell className="text-right">
-                                        Off
-                                    </TableCell>
-                                    <TableCell className="text-right">
-                                        Off
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                        <TableFooter>
-                            <TableRow>
-                                <TableCell className="font-medium">
-                                    Guest pays
-                                </TableCell>
-                                <TableCell className="text-right font-medium tabular-nums">
-                                    {amount(preview.localTotal)}
-                                </TableCell>
-                                <TableCell className="text-right font-medium tabular-nums">
-                                    {amount(preview.foreignTotal)}
-                                </TableCell>
-                            </TableRow>
-                        </TableFooter>
-                    </Table>
-                </div>
-            )}
-        </section>
-    );
-}
-
 export default function RoomRevenue({
     taxes,
     taxIds,
     preview: savedPreview,
     currency,
+    hasDayUse,
 }: {
     taxes: Tax[];
     taxIds: number[];
     preview: Preview;
     currency: App.Enums.Currency;
+    hasDayUse: boolean;
 }) {
     const http = useHttp<Selection, Preview>({ tax_ids: taxIds });
     const guard = useUnsavedChanges(http.isDirty);
@@ -229,7 +107,7 @@ export default function RoomRevenue({
                     description="How room nights and stay changes are taxed and charged."
                 />
 
-                <RoomRevenueTabs activeTab="taxes">
+                <RoomRevenueTabs activeTab="taxes" hasDayUse={hasDayUse}>
                     {taxes.length === 0 ? (
                         <EmptyState
                             icon={Landmark}
@@ -277,6 +155,9 @@ export default function RoomRevenue({
                                 </FieldSet>
 
                                 <PostingPreview
+                                    title="Posting preview"
+                                    sample="A room night"
+                                    revenueLabel="Room revenue"
                                     preview={preview}
                                     offTaxes={offTaxes}
                                     money={money}

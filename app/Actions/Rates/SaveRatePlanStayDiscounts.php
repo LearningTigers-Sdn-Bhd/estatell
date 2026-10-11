@@ -22,7 +22,7 @@ class SaveRatePlanStayDiscounts
         return DB::transaction(function () use ($actor, $ratePlan, $discounts): bool {
             $ratePlan = RatePlan::query()->lockForUpdate()->findOrFail($ratePlan->id);
 
-            if ($ratePlan->archived_at !== null || $ratePlan->pricing_basis === PricingBasis::Package) {
+            if ($ratePlan->archived_at !== null || in_array($ratePlan->pricing_basis, [PricingBasis::Package, PricingBasis::DayUse], true)) {
                 return false;
             }
 

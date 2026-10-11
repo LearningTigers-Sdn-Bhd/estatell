@@ -231,6 +231,7 @@ export default function RoomRevenuePolicy({
     locales,
     taxes,
     roomTaxIds,
+    hasDayUse,
 }: {
     tab: Exclude<RoomRevenueTab, 'taxes'>;
     policy: Policy;
@@ -242,6 +243,7 @@ export default function RoomRevenuePolicy({
     locales: EnumOption[];
     taxes: App.Data.Catalogues.ChargeItemTaxData[];
     roomTaxIds: number[];
+    hasDayUse: boolean;
 }) {
     const http = useHttp<PolicyForm, Preview>(formFrom(policy));
     const guard = useUnsavedChanges(http.isDirty);
@@ -320,7 +322,7 @@ export default function RoomRevenuePolicy({
                     description="How room nights and stay changes are taxed and charged."
                 />
 
-                <RoomRevenueTabs activeTab={tab}>
+                <RoomRevenueTabs activeTab={tab} hasDayUse={hasDayUse}>
                     <form onSubmit={submit} className="flex flex-col gap-10">
                         <div className="flex flex-col gap-10 lg:flex-row lg:items-start">
                             <Section

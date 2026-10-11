@@ -5,6 +5,7 @@ use App\Http\Controllers\Catalogues\ChargeItemController;
 use App\Http\Controllers\Catalogues\DiscountController;
 use App\Http\Controllers\Catalogues\PaymentMethodController;
 use App\Http\Controllers\Catalogues\RoomRevenueController;
+use App\Http\Controllers\Catalogues\RoomRevenueDayUseController;
 use App\Http\Controllers\Catalogues\RoomRevenuePolicyController;
 use App\Http\Controllers\Catalogues\TaxController;
 use App\Http\Controllers\Meals\MealPeriodController;
@@ -130,6 +131,9 @@ Route::prefix('settings')->name('settings.')->group(function () {
         Route::get('/', [RoomRevenueController::class, 'index'])->name('index');
         Route::put('/', [RoomRevenueController::class, 'update'])->name('update');
         Route::post('preview', [RoomRevenueController::class, 'preview'])->name('preview');
+        Route::get('day-use', [RoomRevenueDayUseController::class, 'show'])->name('day-use.show');
+        Route::put('day-use', [RoomRevenueDayUseController::class, 'update'])->name('day-use.update');
+        Route::post('day-use/preview', [RoomRevenueDayUseController::class, 'preview'])->name('day-use.preview');
         Route::get('{tab}', [RoomRevenuePolicyController::class, 'show'])->name('policies.show');
         Route::put('{tab}', [RoomRevenuePolicyController::class, 'update'])->name('policies.update');
         Route::post('{tab}/preview', [RoomRevenuePolicyController::class, 'preview'])->name('policies.preview');

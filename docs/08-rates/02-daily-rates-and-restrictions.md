@@ -109,10 +109,12 @@ rate_hour_prices    id, rate_id, hours, amount
 
 - It mirrors `rate_occupancy_prices`: one price per hour count for a room type, plan and date, on the `rates` row. The `rates.amount` of a Day use plan stays null.
 - A date sells an hour count only when its price exists. The booking form leaves out an hour count with no price, and the quote refuses it with `no_hour_price`.
-- Restrictions: only Stop sell applies. Min stay, max stay, closed to arrival and closed to departure are hidden for a Day use plan.
+- Restrictions: only Stop sell applies. Min stay, max stay, closed to arrival and closed to departure are hidden for a Day use plan, and `SaveRatesRequest` refuses them.
+- **Saving.** A saved date replaces its hour prices inside the plan's current min to max hours and keeps hour prices outside that range. A blank hour inside the range is cleared when the date is saved with other hours. `ExtendRates` copies hour prices too. A Day use rate counts as priced when it has an hour price (`Rate::scopePriced()`), so "priced until" and the rates ending warning follow hour prices.
 - **Pricing form.** Each room type group has one row per hour count from the plan's minimum to its maximum, with Weekdays and Weekend (Simple) or Mon to Sun (By day). `SaveRates` writes the `rates` rows and their `rate_hour_prices`.
 - **Auto** asks for the first block (hours and price), the change for each extra hour (an amount or %, up or down) and an optional cap ("Never more than"). Example: first 1 hour 40.00, each extra hour +20.00, cap 180.00 gives 1h 40, 2h 60, 3h 80 … 12h 180. Like the adults Auto, it only fills the fields and its inputs are not stored.
-- **Rate calendar.** A Day use row shows the lowest hour price of each date ("from 40.00"), and a tooltip lists the hour prices. Open and sold counts stay overnight only.
+- **Rate calendar.** A Day use row shows the lowest hour price of each date ("from 40.00"), and a tooltip lists the hour prices. Open and sold counts stay overnight only. The date editor lists the hour prices read-only with a pointer to the Pricing tab and Bulk edit, and keeps Stop sell editable. Bulk edit shows the hour rows and Stop sell only.
+- **Auto fill.** It fills every weekday column. A percentage step compounds from the hour before. Hours below the first block stay as they are.
 
 ## UI
 
