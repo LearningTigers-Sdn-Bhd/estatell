@@ -24,6 +24,12 @@ type Props = {
     onReverse: (allocation: App.Data.CityLedger.ArAllocationRowData) => void;
 };
 
+function joinNumbers(numbers: string[]): string {
+    return numbers.length < 2
+        ? numbers.join('')
+        : `${numbers.slice(0, -1).join(', ')} and ${numbers[numbers.length - 1]}`;
+}
+
 function BlockedRows({
     invoice,
     currency,
@@ -100,6 +106,9 @@ function CreditNoteForm({
 
     const hasBalance = Number(invoice.row.balance ?? 0) > 0;
     const blocked = invoice.creditBlockedBy;
+    const credited = invoice.creditNotes
+        .filter((note) => note.status.value !== 'void')
+        .map((note) => note.number);
 
     if (!hasBalance) {
         return (
@@ -125,6 +134,11 @@ function CreditNoteForm({
                         currency={currency}
                         onReverse={onReverse}
                     />
+                ) : credited.length > 0 ? (
+                    <p className="text-sm">
+                        Credited in full by {joinNumbers(credited)}. Nothing is
+                        left to credit.
+                    </p>
                 ) : (
                     <p className="text-sm">
                         This invoice has no balance left, so there is nothing to

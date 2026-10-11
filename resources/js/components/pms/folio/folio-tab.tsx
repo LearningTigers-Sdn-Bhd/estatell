@@ -435,7 +435,10 @@ export function FolioTab({
                                                 Invoice
                                                 <ChevronDown data-icon="inline-end" />
                                             </DropdownMenuTrigger>
-                                            <DropdownMenuContent align="end">
+                                            <DropdownMenuContent
+                                                align="end"
+                                                className="min-w-56"
+                                            >
                                                 {folio.canPrintInvoice && (
                                                     <DropdownMenuItem
                                                         render={

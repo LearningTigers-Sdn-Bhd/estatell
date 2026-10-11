@@ -519,3 +519,19 @@ test('void and reopen needs both city-ledger.invoice and folio.reopen', function
 
     expect($billed['invoice']->fresh()->status)->toBe(ArInvoiceStatus::Open);
 });
+
+test('a fully credited invoice names the credit note, and a settled invoice with nothing to explain it is not open', function () {
+    $billed = fcBilledFolio();
+    $property = $billed['setup']['property'];
+    $manager = User::factory()->withRole(DefaultRoleEnum::Manager)->create(['property_id' => $property->id]);
+
+    $billed['invoice']->update(['status' => ArInvoiceStatus::Settled]);
+
+    $this->actingAs($manager)->get($billed['url'])->assertInertia(fn ($page) => $page
+        ->where('folio.voidInvoiceBlockedBy', 'This invoice is not open.'));
+
+    ArInvoice::factory()->create(['property_id' => $property->id, 'company_id' => $billed['invoice']->company_id, 'type' => ArInvoiceType::CreditNote, 'credit_for_invoice_id' => $billed['invoice']->id, 'folio_id' => null, 'due_on' => null, 'amount' => '-'.$billed['invoice']->amount, 'number' => 'CN-0009', 'status' => ArInvoiceStatus::Settled]);
+
+    $this->get($billed['url'])->assertInertia(fn ($page) => $page
+        ->where('folio.voidInvoiceBlockedBy', 'Void credit note CN-0009 first.'));
+});

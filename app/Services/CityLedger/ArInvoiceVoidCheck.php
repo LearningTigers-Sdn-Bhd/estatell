@@ -15,10 +15,6 @@ class ArInvoiceVoidCheck
 
     public function blockedBy(ArInvoice $invoice): ?string
     {
-        if ($invoice->status !== ArInvoiceStatus::Open) {
-            return __('This invoice is not open.');
-        }
-
         $notes = $invoice->creditNotes()->where('status', '<>', ArInvoiceStatus::Void)->orderBy('id')->pluck('number')->all();
         $receipts = $this->arInvoiceBalance->activeReceiptNumbers($invoice);
         $reasons = [];
@@ -31,6 +27,10 @@ class ArInvoiceVoidCheck
             $reasons[] = trans_choice('{1} Reverse payment :receipts first.|[2,*] Reverse payments :receipts first.', count($receipts), ['receipts' => ArInvoiceRefusals::listed($receipts)]);
         }
 
-        return $reasons === [] ? null : implode(' ', $reasons);
+        if ($reasons === []) {
+            return $invoice->status === ArInvoiceStatus::Open ? null : __('This invoice is not open.');
+        }
+
+        return implode(' ', $reasons);
     }
 }

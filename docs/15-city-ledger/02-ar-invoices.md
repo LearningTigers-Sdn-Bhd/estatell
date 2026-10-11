@@ -105,7 +105,7 @@ Finance › City ledger › Invoices
 
 - **Reverse** closes the credit note Dialog and opens the existing Reverse allocation Dialog. After a reversal the page reloads, the balance goes up and the credit note Dialog opens again by itself, now with the amount field. Cancelling the reversal also returns to the credit note Dialog. Dialogs are never stacked.
 - `?credit=1` on the invoice page opens the credit note Dialog on load when `canCreditNote`; otherwise it is ignored. It stays as a deep link. The settled folio's closed notice opens the same Dialog on the folio page instead ([Folios and lines](../13-folio/01-folios-and-lines.md#close-and-reopen)).
-- Balance 0 and no active allocations: "This invoice has no balance left, so there is nothing to credit." with only **Close**.
+- Balance 0 and no active allocations: when the invoice has credit notes that are not Void, "Credited in full by KHS-26800001. Nothing is left to credit." (several: "Credited in full by A and B."); otherwise "This invoice has no balance left, so there is nothing to credit." Only **Close**.
 - A user who may issue credit notes but not reverse payments sees the payments without **Reverse** (each allocation's `canReverse`), and "Ask a user who can reverse payments."
 - `credit_exceeds_balance` gets the balance and the receipt numbers from the controller, which reads them after the refusal (like the reservation group refusals). `IssueCreditNote` and its rule do not change.
 - A one-step "credit a paid invoice" (reverse, credit and re-allocate in one transaction) is not built. It is decided with e-invoicing corrections (see the [checklist](../checklist.md#e-invoicing)).
