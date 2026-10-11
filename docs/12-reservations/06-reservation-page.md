@@ -233,7 +233,7 @@ The page shows no dash for an empty value: a missing room is `Not assigned` (an 
 
 ### Guests tab
 
-**Status: built (table, rows and footer).** The All / Grouped toggle, the unit rail and the summary icon are planned (the next checklist item).
+**Status: built.** The table, rows and footer came first; the All / Grouped toggle, the unit rail and the summary icon came after.
 
 The tab is one table of guests, edited in place. It reuses the booking form's Guests table: collapsible rows, `GuestAutocompleteField`, `DuplicateWarning` and `GuestDetailsFields`. The panel has no title row. Like the folio panel, it opens with one thin toolbar and then the table.
 
@@ -328,6 +328,8 @@ The desk often learns who else stayed only at or after departure. A CheckedOut u
 Built: `AttachGuest`, `AttachGuestResult` and the form, a Dialog on `FormOverlay` (2 fields). Its unit select lists Confirmed, CheckedIn and CheckedOut units (a CheckedOut one ends with "Checked out" and shows the muted note), and a blacklisted guest shows a warning. The tax warning is built in `AttachGuest`, and `ReservationUnitController::storeGuest` flashes it as a warning toast.
 
 Built (guest table): `AddGuestToUnit` (`CreateGuest` or `UpdateGuest`, then `AttachGuest`, one transaction), `AttachGuestRequest` (the profile fields, `update_profile`, and the `guests.manage` checks on the keys `full_name` and `update_profile`), `UpdateUnitGuestRequest` and `reservations.units.guests.update`. `ReservationGuestData.guest` carries the guest with its profile (null without `guests.view`). The Guests tab sends `canManageGuests`, `countries`, `genders` and `locales`. The page is `GuestsTab` with `SavedGuestRow` and `DraftGuestRow` (`guest-table-row.tsx`) and the pure helpers in `guest-rows.ts`; `GuestAutocompleteField` gained `lockLink`, which hides Change guest on a saved row. Leaving the page with a draft or an edited row asks first. The Attach guest Dialog (`attach-guest-dialog.tsx`) is removed.
+
+Built (grouped view): `useGuestsView` (`reservations.guests-view`), `GuestsRail` (a rail from `lg`, a select below it) with `guestGroups()` in `guest-rows.ts`, and the toolbar of `GuestsTab`: the All / Grouped `ToggleGroup` (hidden with one unit) and the summary icon button, which shares `useSummaryHidden` with the Folio tab (`reservations.summary-hidden`; the old `reservations.folio-summary-hidden` is read once as a fallback). The page holds the view and the picked unit and passes the rail as the `list` panel. In Grouped view the rows drop Stays in, a draft row keeps only the open unit, and the footer count reads "N guests in this unit"; Add guest is hidden under Not staying and on a unit that is not open.
 
 ### Add-ons tab
 

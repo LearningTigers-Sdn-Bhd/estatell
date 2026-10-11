@@ -102,3 +102,49 @@ export function unitsWithoutGuest(rows: Row[], drafts: BookingGuest[]): number {
             !picked.has(row.unitId),
     ).length;
 }
+
+/** One entry of the Grouped view rail: a unit, or "Not staying" for a booker who is not on a unit. */
+export type GuestGroup = {
+    key: string;
+    unitId: number | null;
+    label: string;
+    status: Unit['status'] | null;
+    /** Guests saved on the unit. */
+    count: number;
+};
+
+export const NOT_STAYING_KEY = 'none';
+
+/** The key of the group a saved row belongs to. */
+export function groupKey(row: Row): string {
+    return row.unitId === null ? NOT_STAYING_KEY : String(row.unitId);
+}
+
+/** The rail entries: "Not staying" first when the booker does not stay, then every unit in unit order. */
+export function guestGroups(rows: Row[], units: Unit[]): GuestGroup[] {
+    const groups: GuestGroup[] = [];
+
+    if (rows.some((row) => row.unitId === null && row.name !== null)) {
+        groups.push({
+            key: NOT_STAYING_KEY,
+            unitId: null,
+            label: 'Not staying',
+            status: null,
+            count: 1,
+        });
+    }
+
+    units.forEach((unit) => {
+        groups.push({
+            key: String(unit.id),
+            unitId: unit.id,
+            label: unit.label,
+            status: unit.status,
+            count: rows.filter(
+                (row) => row.unitId === unit.id && row.name !== null,
+            ).length,
+        });
+    });
+
+    return groups;
+}

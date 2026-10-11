@@ -11,7 +11,10 @@ import { ReservationActions } from '@/components/pms/reservations/reservation-ac
 import { ActivityTab } from '@/components/pms/reservations/activity-tab';
 import { ChangeNightPriceDialog } from '@/components/pms/reservations/change-night-price-dialog';
 import { AddOnsTab } from '@/components/pms/reservations/add-ons-tab';
+import { GuestsRail } from '@/components/pms/reservations/guests-rail';
 import { GuestsTab } from '@/components/pms/reservations/guests-tab';
+import { guestGroups } from '@/components/pms/reservations/guest-rows';
+import { useGuestsView } from '@/components/pms/reservations/use-guests-view';
 import { ReservationSummary } from '@/components/pms/reservations/reservation-summary';
 import { StatusByUnitPopover } from '@/components/pms/reservations/status-by-unit-popover';
 import { ReservationWorkspace } from '@/components/pms/reservations/reservation-workspace';
@@ -140,6 +143,15 @@ export default function ReservationShow({
     ];
 
     const [summaryHidden, toggleSummary] = useSummaryHidden();
+    const [guestsView, setGuestsView] = useGuestsView();
+    const [pickedGroup, setPickedGroup] = useState<string | null>(null);
+    const groups = guestGroups(guests, units);
+    const grouped =
+        tab === 'guests' && guestsView === 'grouped' && units.length > 1;
+    const activeGroup =
+        groups.find((group) => group.key === pickedGroup)?.key ??
+        groups[0]?.key ??
+        'none';
     const [correcting, setCorrecting] = useState<{
         unitId: number;
         nightId: number;
@@ -161,6 +173,12 @@ export default function ReservationShow({
                 items={folios}
                 activeKey={folio.key}
                 currency={currency}
+            />
+        ) : grouped && groups.length > 1 ? (
+            <GuestsRail
+                groups={groups}
+                activeKey={activeGroup}
+                onSelect={setPickedGroup}
             />
         ) : tab === 'units' && unit !== null && units.length > 1 ? (
             <UnitsList
@@ -232,7 +250,10 @@ export default function ReservationShow({
                 >
                     <ReservationWorkspace
                         list={list}
-                        hideAside={tab === 'folio' && summaryHidden}
+                        hideAside={
+                            (tab === 'folio' || tab === 'guests') &&
+                            summaryHidden
+                        }
                         aside={
                             <ReservationSummary
                                 reservation={reservation}
@@ -251,6 +272,11 @@ export default function ReservationShow({
                                 countries={countries}
                                 genders={genders}
                                 locales={locales}
+                                view={guestsView}
+                                onViewChange={setGuestsView}
+                                activeGroup={activeGroup}
+                                summaryHidden={summaryHidden}
+                                onToggleSummary={toggleSummary}
                             />
                         ) : tab === 'add-ons' ? (
                             <AddOnsTab

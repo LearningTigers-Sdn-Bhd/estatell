@@ -3,6 +3,8 @@ import { emptyGuest, linkGuest } from './booking-guests';
 import type { GuestLink } from './booking-guests';
 import {
     draftHasContent,
+    groupKey,
+    guestGroups,
     profileChanged,
     takenBedUnits,
     unitsWithoutGuest,
@@ -109,4 +111,28 @@ test('the footer counts open units with no guest and no draft picking them', () 
 
     expect(unitsWithoutGuest(rows, [])).toBe(2);
     expect(unitsWithoutGuest(rows, [emptyGuest('1')])).toBe(1);
+});
+
+test('the rail lists Not staying first, then every unit with its guest count', () => {
+    const units = [unit(1), unit(2)];
+    const rows = [
+        row(null, 'Chloe'),
+        row(1, 'Ahmad'),
+        row(1, 'Siti'),
+        row(2, null),
+    ];
+    const groups = guestGroups(rows, units);
+
+    expect(groups.map((group) => [group.key, group.count])).toEqual([
+        ['none', 1],
+        ['1', 2],
+        ['2', 0],
+    ]);
+    expect(rows.map(groupKey)).toEqual(['none', '1', '1', '2']);
+});
+
+test('there is no Not staying entry when the booker stays', () => {
+    const groups = guestGroups([row(1, 'Chloe')], [unit(1)]);
+
+    expect(groups.map((group) => group.key)).toEqual(['1']);
 });

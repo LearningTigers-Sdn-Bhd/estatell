@@ -66,18 +66,26 @@ type Errors = Record<string, string | undefined>;
 const COLUMNS =
     'lg:grid-cols-[2rem_minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1.2fr)_minmax(0,1fr)_2rem]';
 
+/** The same without Stays in, for the Grouped view where the rail names the unit. */
+const COLUMNS_NO_UNIT =
+    'lg:grid-cols-[2rem_minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)_2rem]';
+
+function columns(showUnit: boolean): string {
+    return showUnit ? COLUMNS : COLUMNS_NO_UNIT;
+}
+
 /** The fields of a draft row that sit in the main row. An error elsewhere opens the row. */
 const MAIN_ROW_FIELDS = ['full_name', 'phone', 'stays_in', 'form', 'guest_id'];
 
-export function GuestsHeader() {
+export function GuestsHeader({ showUnit = true }: { showUnit?: boolean }) {
     return (
         <div
-            className={`hidden gap-3 rounded-t-lg border-b bg-muted px-3 py-2 text-xs font-medium text-muted-foreground lg:grid ${COLUMNS}`}
+            className={`hidden gap-3 rounded-t-lg border-b bg-muted px-3 py-2 text-xs font-medium text-muted-foreground lg:grid ${columns(showUnit)}`}
         >
             <span />
             <span>Guest</span>
             <span>Phone</span>
-            <span>Stays in</span>
+            {showUnit && <span>Stays in</span>}
             <span>Role</span>
             <span />
         </div>
@@ -183,6 +191,7 @@ export function SavedGuestRow({
     rowId,
     reservationId,
     row,
+    showUnit = true,
     canAdd,
     canEdit,
     countries,
@@ -195,6 +204,8 @@ export function SavedGuestRow({
     rowId: string;
     reservationId: number;
     row: Row;
+    /** False in the Grouped view, where the rail names the unit. */
+    showUnit?: boolean;
     canAdd: boolean;
     canEdit: boolean;
     countries: EnumOption[];
@@ -235,14 +246,16 @@ export function SavedGuestRow({
 
         return (
             <div
-                className={`grid items-center gap-3 p-3 text-muted-foreground ${COLUMNS}`}
+                className={`grid items-center gap-3 p-3 text-muted-foreground ${columns(showUnit)}`}
             >
                 <span />
                 <span>No guest yet</span>
                 <span />
-                <span className="text-foreground">
-                    <StaysIn row={row} />
-                </span>
+                {showUnit && (
+                    <span className="text-foreground">
+                        <StaysIn row={row} />
+                    </span>
+                )}
                 <span />
                 <span className="flex justify-end">
                     {canAddHere && row.unitId !== null && (
@@ -269,7 +282,7 @@ export function SavedGuestRow({
     // Read only: no guests.manage, no guest data, or the booker who does not stay.
     if (!canEdit || values === null || base === null) {
         return (
-            <div className={`grid items-start gap-3 p-3 ${COLUMNS}`}>
+            <div className={`grid items-start gap-3 p-3 ${columns(showUnit)}`}>
                 <span />
                 <span>
                     {row.guestId !== null ? (
@@ -285,7 +298,7 @@ export function SavedGuestRow({
                     {billing}
                 </span>
                 <span className="tabular-nums">{row.phone ?? ''}</span>
-                <StaysIn row={row} />
+                {showUnit && <StaysIn row={row} />}
                 <Roles roles={row.roles} />
                 <RowMenu row={row} onBill={onBill} />
             </div>
@@ -363,7 +376,9 @@ export function SavedGuestRow({
                     onOpenChange={setOpen}
                     className="flex flex-col"
                 >
-                    <div className={`grid items-start gap-3 p-3 ${COLUMNS}`}>
+                    <div
+                        className={`grid items-start gap-3 p-3 ${columns(showUnit)}`}
+                    >
                         <CollapsibleTrigger
                             render={
                                 <Button
@@ -382,9 +397,11 @@ export function SavedGuestRow({
                             {billing}
                         </div>
                         {parts.phone}
-                        <span className="lg:pt-1.5">
-                            <StaysIn row={row} />
-                        </span>
+                        {showUnit && (
+                            <span className="lg:pt-1.5">
+                                <StaysIn row={row} />
+                            </span>
+                        )}
                         <span className="lg:pt-1">
                             <Roles roles={row.roles} />
                         </span>
@@ -396,7 +413,7 @@ export function SavedGuestRow({
                             {parts.linked}
                             {parts.email}
                             <GuestDetailsFields
-                                columns={3}
+                                columns={2}
                                 idPrefix={`${idPrefix}-`}
                                 values={values}
                                 errors={errors}
@@ -452,6 +469,7 @@ export function DraftGuestRow({
     draft,
     units,
     taken,
+    showUnit = true,
     canManageGuests,
     countries,
     genders,
@@ -463,6 +481,8 @@ export function DraftGuestRow({
     draft: BookingGuest;
     units: Unit[];
     taken: Set<number>;
+    /** False in the Grouped view: the unit is the open one and Stays in is not shown. */
+    showUnit?: boolean;
     canManageGuests: boolean;
     countries: EnumOption[];
     genders: EnumOption[];
@@ -565,7 +585,9 @@ export function DraftGuestRow({
                     onOpenChange={setOpen}
                     className="flex flex-col bg-muted/20"
                 >
-                    <div className={`grid items-start gap-3 p-3 ${COLUMNS}`}>
+                    <div
+                        className={`grid items-start gap-3 p-3 ${columns(showUnit)}`}
+                    >
                         <CollapsibleTrigger
                             render={
                                 <Button
@@ -581,44 +603,49 @@ export function DraftGuestRow({
                         </CollapsibleTrigger>
                         {parts.name}
                         {parts.phone}
-                        <Field
-                            data-invalid={!!(errors.stays_in || errors.form)}
-                        >
-                            <FieldLabel
-                                htmlFor={`draft-${draft.key}-stays_in`}
-                                className="lg:sr-only"
-                            >
-                                Stays in
-                            </FieldLabel>
-                            <EnumSelect
-                                id={`draft-${draft.key}-stays_in`}
-                                placeholder="Select a unit"
-                                options={units.map((unit) => ({
-                                    value: String(unit.id),
-                                    label:
-                                        unit.status.value === 'checked_out'
-                                            ? `${unit.label} · Checked out`
-                                            : unit.label,
-                                    disabled: unit.isBed && taken.has(unit.id),
-                                }))}
-                                value={draft.stays_in}
-                                onValueChange={(value) =>
-                                    onChange({ stays_in: value })
-                                }
-                                aria-invalid={
+                        {showUnit && (
+                            <Field
+                                data-invalid={
                                     !!(errors.stays_in || errors.form)
                                 }
-                            />
-                            <FieldError>
-                                {errors.stays_in ?? errors.form}
-                            </FieldError>
-                            {picked?.status.value === 'checked_out' && (
-                                <FieldDescription>
-                                    This stay has ended. Adding a guest changes
-                                    no charges.
-                                </FieldDescription>
-                            )}
-                        </Field>
+                            >
+                                <FieldLabel
+                                    htmlFor={`draft-${draft.key}-stays_in`}
+                                    className="lg:sr-only"
+                                >
+                                    Stays in
+                                </FieldLabel>
+                                <EnumSelect
+                                    id={`draft-${draft.key}-stays_in`}
+                                    placeholder="Select a unit"
+                                    options={units.map((unit) => ({
+                                        value: String(unit.id),
+                                        label:
+                                            unit.status.value === 'checked_out'
+                                                ? `${unit.label} · Checked out`
+                                                : unit.label,
+                                        disabled:
+                                            unit.isBed && taken.has(unit.id),
+                                    }))}
+                                    value={draft.stays_in}
+                                    onValueChange={(value) =>
+                                        onChange({ stays_in: value })
+                                    }
+                                    aria-invalid={
+                                        !!(errors.stays_in || errors.form)
+                                    }
+                                />
+                                <FieldError>
+                                    {errors.stays_in ?? errors.form}
+                                </FieldError>
+                                {picked?.status.value === 'checked_out' && (
+                                    <FieldDescription>
+                                        This stay has ended. Adding a guest
+                                        changes no charges.
+                                    </FieldDescription>
+                                )}
+                            </Field>
+                        )}
                         <span />
                         <div className="flex items-start justify-end">
                             <Button
@@ -635,6 +662,18 @@ export function DraftGuestRow({
 
                     <CollapsibleContent>
                         <div className="flex flex-col gap-4 px-3 pb-3 lg:px-14">
+                            {!showUnit && (errors.stays_in || errors.form) && (
+                                <FieldError>
+                                    {errors.stays_in ?? errors.form}
+                                </FieldError>
+                            )}
+                            {!showUnit &&
+                                picked?.status.value === 'checked_out' && (
+                                    <FieldDescription>
+                                        This stay has ended. Adding a guest
+                                        changes no charges.
+                                    </FieldDescription>
+                                )}
                             {parts.linked}
                             {parts.notes}
 

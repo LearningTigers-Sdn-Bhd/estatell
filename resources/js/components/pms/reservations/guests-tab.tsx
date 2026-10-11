@@ -1,16 +1,19 @@
 import { router } from '@inertiajs/react';
-import { Plus } from 'lucide-react';
+import { PanelRightClose, PanelRightOpen, Plus } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import type { EnumOption } from '@/components/pms/enum-select';
 import { emptyGuest } from '@/components/pms/reservations/booking-guests';
 import type { BookingGuest } from '@/components/pms/reservations/booking-guests';
 import {
+    ATTACHABLE_STATUSES,
     draftHasContent,
+    groupKey,
     MAX_DRAFTS,
+    NOT_STAYING_KEY,
     takenBedUnits,
     unitsWithoutGuest,
-    ATTACHABLE_STATUSES,
 } from '@/components/pms/reservations/guest-rows';
+import type { GuestsView } from '@/components/pms/reservations/use-guests-view';
 import {
     DraftGuestRow,
     GuestsHeader,
@@ -28,6 +31,12 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { FieldDescription } from '@/components/ui/field';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { useUnsavedChanges } from '@/hooks/use-unsaved-changes';
 import { billToGuest } from '@/routes/reservations/units';
 
@@ -54,6 +63,11 @@ export function GuestsTab({
     countries,
     genders,
     locales,
+    view,
+    onViewChange,
+    activeGroup,
+    summaryHidden,
+    onToggleSummary,
 }: {
     reservationId: number;
     guests: Row[];
@@ -63,16 +77,42 @@ export function GuestsTab({
     countries: EnumOption[];
     genders: EnumOption[];
     locales: EnumOption[];
+    /** All, or Grouped with the unit rail. Grouped needs 2 or more units. */
+    view: GuestsView;
+    onViewChange: (view: GuestsView) => void;
+    /** The unit picked in the rail (`none` for Not staying). */
+    activeGroup: string;
+    summaryHidden: boolean;
+    onToggleSummary: () => void;
 }) {
     const [drafts, setDrafts] = useState<BookingGuest[]>([]);
     const [dirtySaved, setDirtySaved] = useState<Set<string>>(new Set());
     const openUnits = units.filter((unit) =>
         ATTACHABLE_STATUSES.includes(unit.status.value),
     );
-    const canAdd = canManage && openUnits.length > 0;
+    const grouped = view === 'grouped' && units.length > 1;
+    const inNotStaying = grouped && activeGroup === NOT_STAYING_KEY;
+    const activeUnit = grouped
+        ? units.find((unit) => String(unit.id) === activeGroup)
+        : undefined;
+    const canAdd =
+        canManage &&
+        openUnits.length > 0 &&
+        !inNotStaying &&
+        (!grouped ||
+            (activeUnit !== undefined &&
+                ATTACHABLE_STATUSES.includes(activeUnit.status.value)));
     const dirty = drafts.some(draftHasContent) || dirtySaved.size > 0;
     const guard = useUnsavedChanges(dirty);
+    const shownRows = grouped
+        ? guests.filter((row) => groupKey(row) === activeGroup)
+        : guests;
+    const shownDrafts = grouped
+        ? drafts.filter((draft) => draft.stays_in === activeGroup)
+        : drafts;
     const empty = unitsWithoutGuest(guests, drafts);
+    const inUnit = shownRows.filter((row) => row.name !== null).length;
+    const summaryLabel = summaryHidden ? 'Show summary' : 'Hide summary';
 
     useEffect(() => {
         setDirtySaved(new Set());
@@ -133,10 +173,59 @@ export function GuestsTab({
 
     return (
         <div className="flex flex-col gap-4">
+            <div className="flex items-center justify-between gap-3">
+                {units.length > 1 ? (
+                    <ToggleGroup
+                        variant="outline"
+                        spacing={0}
+                        aria-label="View"
+                        value={[view]}
+                        onValueChange={(values) => {
+                            const next = values[0];
+
+                            if (next === 'all' || next === 'grouped') {
+                                onViewChange(next);
+                            }
+                        }}
+                    >
+                        <ToggleGroupItem value="all" aria-label="All guests">
+                            All
+                        </ToggleGroupItem>
+                        <ToggleGroupItem
+                            value="grouped"
+                            aria-label="Grouped by unit"
+                        >
+                            Grouped
+                        </ToggleGroupItem>
+                    </ToggleGroup>
+                ) : (
+                    <span />
+                )}
+                <Tooltip>
+                    <TooltipTrigger
+                        render={
+                            <Button
+                                variant="outline"
+                                size="icon"
+                                aria-label={summaryLabel}
+                                aria-pressed={summaryHidden}
+                                onClick={onToggleSummary}
+                            />
+                        }
+                    >
+                        {summaryHidden ? (
+                            <PanelRightOpen />
+                        ) : (
+                            <PanelRightClose />
+                        )}
+                    </TooltipTrigger>
+                    <TooltipContent>{summaryLabel}</TooltipContent>
+                </Tooltip>
+            </div>
             <div className="rounded-lg border">
-                <GuestsHeader />
+                <GuestsHeader showUnit={!grouped} />
                 <div className="divide-y">
-                    {guests.map((row, index) => {
+                    {shownRows.map((row, index) => {
                         const key = rowKey(row, index);
 
                         return (
@@ -145,6 +234,7 @@ export function GuestsTab({
                                 rowId={key}
                                 reservationId={reservationId}
                                 row={row}
+                                showUnit={!grouped}
                                 canAdd={canAdd}
                                 canEdit={
                                     canManage &&
@@ -162,11 +252,12 @@ export function GuestsTab({
                             />
                         );
                     })}
-                    {drafts.map((draft) => (
+                    {shownDrafts.map((draft) => (
                         <DraftGuestRow
                             key={draft.key}
                             reservationId={reservationId}
                             draft={draft}
+                            showUnit={!grouped}
                             units={openUnits}
                             taken={takenBedUnits(
                                 guests,
@@ -185,9 +276,13 @@ export function GuestsTab({
                 </div>
                 <div className="flex items-center justify-between gap-3 rounded-b-lg border-t bg-muted/50 px-3 py-2">
                     <FieldDescription>
-                        {empty === 0
-                            ? 'Every unit has a guest.'
-                            : `${empty} ${empty === 1 ? 'unit' : 'units'} without a guest`}
+                        {inNotStaying
+                            ? 'The booker does not stay.'
+                            : grouped
+                              ? `${inUnit} ${inUnit === 1 ? 'guest' : 'guests'} in this unit`
+                              : empty === 0
+                                ? 'Every unit has a guest.'
+                                : `${empty} ${empty === 1 ? 'unit' : 'units'} without a guest`}
                     </FieldDescription>
                     {canAdd && (
                         <Button
