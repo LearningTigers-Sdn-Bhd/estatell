@@ -140,7 +140,7 @@ Typing in Name opens the match list under the Name cell. The list floats over th
 | Stays in       | Lists every unit on the form (Deluxe King #1, Dorm Bed 1). The first guest in a unit becomes `is_primary`. A bed unit takes one guest only.                                                                                                       |
 | Narrow screens | Below `lg` each row is a stacked card with the same collapsible part.                                                                                                                                                                             |
 
-Units without a guest are allowed. The footer counts them, and they show "Attach guest" on the reservation page.
+Units without a guest are allowed. The footer counts them, and they show "No guest yet" with an **Add** button on the [Guests tab](06-reservation-page.md#guests-tab) of the reservation page.
 
 ### Autocomplete
 

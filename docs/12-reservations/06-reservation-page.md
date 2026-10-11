@@ -178,13 +178,14 @@ Built: `reservations.index` with the status tabs, search, source and stay filter
 
 A fixed-height workspace (see [Detail workspace](../design-system/04-page-archetypes.md)), not `DetailLayout`. The page fills the shell height and never scrolls as a whole. Row 1 is the header, row 2 the link tabs, row 3 up to three panels. Each panel is a rounded, bordered card with small padding and its own scroll.
 
-| Tab                       | Panel 1 (14rem)        | Panel 2 (rest)                | Panel 3 (20rem) |
-| ------------------------- | ---------------------- | ----------------------------- | --------------- |
-| Units                     | Choose unit list       | Open unit and night table     | Summary card    |
-| Folio                     | Folio rail             | Folio table and actions       | Summary card    |
-| Guests, Add-ons, Activity | – (two panels instead) | Tab content, full panel width | Summary card    |
+| Tab               | Panel 1 (14rem)               | Panel 2 (rest)                | Panel 3 (20rem) |
+| ----------------- | ----------------------------- | ----------------------------- | --------------- |
+| Units             | Choose unit list              | Open unit and night table     | Summary card    |
+| Folio             | Folio rail                    | Folio table and actions       | Summary card    |
+| Guests            | Unit rail (Grouped, 2+ units) | Guest table                   | Summary card    |
+| Add-ons, Activity | – (two panels instead)        | Tab content, full panel width | Summary card    |
 
-The Units list is hidden for one unit, and the Folio rail for one folio, so those tabs also show two panels. On the Folio tab an icon button after Close folio hides the summary card, and the folio panel takes its width (see [Folio page](../13-folio/05-folio-page.md#layout)). Below `lg` the panels stack in one scrolling column, with the summary card first, and the unit list becomes a select.
+The Units list is hidden for one unit, and the Folio rail for one folio, so those tabs also show two panels. On the Folio and Guests tabs an icon button hides the summary card, and the panel takes its width (see [Folio page](../13-folio/05-folio-page.md#layout) and [Guests tab](#guests-tab)). The Units, Add-ons and Activity tabs always show the summary. Below `lg` the panels stack in one scrolling column, with the summary card first, and the unit list becomes a select.
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────────────────────┐
@@ -231,26 +232,65 @@ The page shows no dash for an empty value: a missing room is `Not assigned` (an 
 
 ### Guests tab
 
+**Status: planned.** Until it is built, the tab is a read-only table with an Attach guest Dialog (see [Current build](#current-build-to-be-replaced)). This section is the target.
+
+The tab is one table of guests, edited in place. It reuses the booking form's Guests table: collapsible rows, `GuestAutocompleteField`, `DuplicateWarning` and `GuestDetailsFields`. The panel has no title row. Like the folio panel, it opens with one thin toolbar and then the table.
+
 ```
- Guests                                                 [+ Attach guest]
-┌──────────────────────────────────────────────────────────────┐
-│ Guest            Phone             Role                      │
-├──────────────────────────────────────────────────────────────┤
-│ DELUXE KING · 101                                            │  unit row group
-│ Tan Wei Ming     +60 12-345 6789   (Booker) (Primary)        │
-│ Aina Tan         +60 12-345 1111   (Guest)                   │
-│ DORM BED · D1-2                                              │
-│ Ahmad Faiz       +60 13-888 2211   (Primary)                 │
-│ DORM BED · Not assigned                                      │
-│ No guest yet                       [Attach guest]            │
-└──────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────┬──────────────┐
+│ [ All | Grouped ]                                  [⇥]  │ Summary card │
+│ ┌─────────────────────────────────────────────────────┐ │              │
+│ │    GUEST          PHONE        STAYS IN     ROLE    │ │              │
+│ ├─────────────────────────────────────────────────────┤ │              │
+│ │ ›  Chloe Turner   +6013520…    Std Dbl 101  Booker  │ │              │
+│ │                                            Primary⋯ │ │              │
+│ │ ›  Nattaya S.     +6013520…    Std Dbl 103  Primary⋯│ │              │
+│ │    Unit folio billed to Chloe Turner                │ │              │
+│ │ ›  Arif Danial    +6013520…    Std Dbl 103  Guest  ⋯│ │              │
+│ │    Std Dbl 104    No guest yet               [ Add ]│ │              │
+│ ├─────────────────────────────────────────────────────┤ │              │
+│ │ 1 unit without a guest             [ + Add guest ]  │ │              │
+│ └─────────────────────────────────────────────────────┘ │              │
+└─────────────────────────────────────────────────────────┴──────────────┘
 ```
 
-A title row with the Attach guest button sits above a rounded, bordered table. Rows are grouped by unit, with one group row per unit (a booker who does not stay goes under "Not staying"), so the Unit column is gone. The Role column shows badges: Booker, Primary, and a plain Guest badge for anyone else, so no cell shows a dash.
+| Part           | Rule                                                                                                                                                                                                                                                                                                       |
+| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Toolbar        | Left: the **All / Grouped** toggle. Right: the summary icon button with a tooltip ("Hide summary" or "Show summary"). With one unit the toggle is hidden and only the icon shows.                                                                                                                          |
+| Summary icon   | The same state as on the Folio tab (`useSummaryHidden`, one remembered choice for both tabs, key `reservations.summary-hidden`). It applies on the Folio and Guests tabs. The other tabs always show the summary.                                                                                          |
+| All            | One flat table in unit order. Columns: chevron, Guest, Phone, Stays in, Role and the **⋯** menu. A booker who does not stay is the first row, with "Not staying" in Stays in.                                                                                                                              |
+| Grouped        | A left rail (14rem) lists the units like the Units tab: unit label, status when not open, guest count. "Not staying" is the first entry when the booker does not stay. The table shows the picked unit only, with no Stays in column. The rail shows for 2 or more units, and becomes a select below `lg`. |
+| View choice    | All is the default. The choice is kept in the browser (`reservations.guests-view`). Switching makes no request: the server sends all rows and the browser groups them.                                                                                                                                     |
+| Row            | Main row: Name (autocomplete), Phone (autocomplete), Stays in (select, read only on a saved row), Role badges (Booker, Primary, Guest) and **⋯**. The expanded part has Email, the guest card, **Update guest profile**, `DuplicateWarning` and the guest details.                                         |
+| Unit, no guest | In All view a muted row "No guest yet" with a small **Add** button. It adds a draft row with that unit picked. In Grouped view the draft row uses the open unit.                                                                                                                                           |
+| Footer         | Left: "N units without a guest" (All) or "N guests in this unit" (Grouped). Right: **+ Add guest**, outline, like the booking form. It adds a draft row at the end and focuses its Name.                                                                                                                   |
+| Draft row      | Opens expanded. Buttons: **Discard** and **Save**. Leaving the page with a draft row asks first (`useUnsavedChanges`).                                                                                                                                                                                     |
+| Saved row      | **Save** and **Cancel** appear only after an edit in the expanded part. Name and Phone of a linked guest are the CRM profile, so a change needs **Update guest profile** on (off by default), as in the booking form.                                                                                      |
 
-Attach guest opens a Dialog (2 fields, see [form containers](../design-system/05-form-containers.md)) with `GuestPicker` (existing guests only, through `guests.search`) and "Stays in". Creating a guest here is not supported; the booking form adds the autocomplete field that can.
+### Save rules
 
-`AttachGuest(User $actor, ReservationUnit $unit, Guest $guest): AttachGuestResult` locks the unit, writes a `unit_guests` row (the unit's first guest becomes `is_primary`) and logs `reservation.guest_attached` with ids only. A blacklisted guest is allowed, with a warning in the Dialog.
+There is no per-stay snapshot. `unit_guests` is a link to a CRM guest (`reservation_unit_id`, `guest_id`, `is_primary`), and a row is either a link to an existing guest or a new guest.
+
+| Row                             | Save does                                                                                                                             |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| Draft, an existing guest picked | `AttachGuest` for the picked guest. With **Update guest profile** on, `UpdateGuest` runs first with the typed changes.                |
+| Draft, no guest picked          | `CreateGuest` with the typed profile, then `AttachGuest`. The `DuplicateWarning` (Use existing, Create new anyway) shows before save. |
+| Saved row, profile edited       | `UpdateGuest` only. The unit link does not change. Needs **Update guest profile** on.                                                 |
+
+- One route saves a draft row: `reservations.units.guests.store`, the existing route (`ReservationUnitController::storeGuest`) widened. It runs `CreateGuest` or `UpdateGuest` and `AttachGuest` in one transaction and rolls back on a refusal, like `CreateBooking`. There is no new god object. A saved row's profile edit uses the existing `guests.update` route (to verify at build: it must go back to the reservation page, not to the guest page).
+- Refusals are the `AttachGuest` codes in the table below. They show inline on the row: `already_attached` and `bed_unit_full` on Stays in, `guest_not_found` on Name, `unit_not_open` as a row error.
+- Permissions: `reservations.manage` to attach. `guests.manage` to create a guest or update a profile. Without `guests.manage`, a draft row accepts an existing guest only, and **Update guest profile** is hidden (same rule as the booking form).
+- Stays in lists Confirmed, CheckedIn and CheckedOut units. A CheckedOut unit ends with "Checked out" and shows the muted note below. A Bed unit that has a guest is disabled.
+- A blacklisted guest is allowed, with the reason as a warning on the row.
+- The tax warning toast for a new primary on a CheckedOut unit stays (see [Adding a guest after check-out](#adding-a-guest-after-check-out)).
+
+### Out of scope for the first build
+
+Moving a guest to another unit, removing a guest from a unit and changing the primary guest have no Action yet. Stays in is read only on a saved row. They come later with `DetachGuest` and the primary change.
+
+### Attach rules
+
+`AttachGuest(User $actor, ReservationUnit $unit, Guest $guest): AttachGuestResult` locks the unit, writes a `unit_guests` row (the unit's first guest becomes `is_primary`) and logs `reservation.guest_attached` with ids only.
 
 | Check, in order                                                   | Refusal            |
 | ----------------------------------------------------------------- | ------------------ |
@@ -259,9 +299,13 @@ Attach guest opens a Dialog (2 fields, see [form containers](../design-system/05
 | The guest is not already on this unit                             | `already_attached` |
 | A Bed room type unit has no guest yet                             | `bed_unit_full`    |
 
-Room units have no guest limit. Detaching a guest and changing the primary guest come later.
+Room units have no guest limit.
 
-**Bill to this guest** is an item in a guest row's **⋯** menu, for users with `folio.transfer`, on a Confirmed, CheckedIn or CheckedOut unit. It runs `BillToGuest` (see [Routing](../13-folio/03-routing.md#bill-to-guest)). A small grey line under the name shows the result: "Pays unit folio", "Own folio", or on the primary guest "Unit folio billed to {name}" when the payer is someone else. The item is hidden for a guest who already pays. The action has no dialog; a toast names the folio.
+**Bill to this guest** is an item in a guest row's **⋯** menu, for users with `folio.transfer`, on a Confirmed, CheckedIn or CheckedOut unit. It runs `BillToGuest` (see [Routing](../13-folio/03-routing.md#bill-to-guest)). A small grey line under the name shows the result: "Pays unit folio", "Own folio", or on the primary guest "Unit folio billed to {name}" when the payer is someone else. The item is hidden for a guest who already pays. The action has no dialog; a toast names the folio. The **Registration card** item stays in the same menu.
+
+#### Current build (to be replaced)
+
+A title row with the **Attach guest** button sits above a rounded, bordered table, grouped by unit with one shaded group row per unit ("Not staying" for a booker who does not stay), with the columns Guest, Phone and Role. Attach guest opens a Dialog (2 fields) with `GuestPicker` (existing guests only, through `guests.search`) and "Stays in". Creating a guest here is not supported. A unit with no guest shows an **Attach guest** button in its row.
 
 ### Adding a guest after check-out
 
@@ -280,7 +324,7 @@ The desk often learns who else stayed only at or after departure. A CheckedOut u
 - **Dialog.** "Stays in" lists CheckedOut units too, with "Checked out" after the room. With one picked, a muted note under the field says "This stay has ended. Adding a guest changes no charges."
 - **Reports change for past dates.** The police and non-national guests reports read the unit's guests, so a reprint after the guest is added lists them. A copy printed earlier does not match. This is the correction staff want.
 
-Built: `AttachGuest`, `AttachGuestResult` and the form, a Dialog on `FormOverlay` (2 fields). Its unit select lists Confirmed, CheckedIn and CheckedOut units (a CheckedOut one ends with "Checked out" and shows the muted note), and a blacklisted guest shows a warning. The tax warning is built in `AttachGuest`, and `ReservationUnitController::storeGuest` flashes it as a warning toast. The header button and the **Attach guest** button on a unit without a guest both open it.
+Built: `AttachGuest`, `AttachGuestResult` and the form, a Dialog on `FormOverlay` (2 fields). Its unit select lists Confirmed, CheckedIn and CheckedOut units (a CheckedOut one ends with "Checked out" and shows the muted note), and a blacklisted guest shows a warning. The tax warning is built in `AttachGuest`, and `ReservationUnitController::storeGuest` flashes it as a warning toast. The header button and the **Attach guest** button on a unit without a guest both open it. The Guests tab redesign above replaces this Dialog.
 
 ### Add-ons tab
 
