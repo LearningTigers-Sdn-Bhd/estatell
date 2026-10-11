@@ -56,9 +56,21 @@ On a narrow screen each room is a card with its settle choice, and the summary a
 - A unit folio that is **Closed but holds money** (it cannot take a payment) shows "Folio closed: reopen it to settle" and **Open folio**. Front desk can reopen a unit folio closed today; after that a manager can (`FolioReopenRule`).
 - A choice the user may not make is not offered: Collect needs `payment.record`, Refund `payment.refund`, Add to Master `folio.transfer`.
 
+## A folio that holds payments
+
+`TransferLines` moves whole charges, and payments never move. A folio with payments (a security deposit, tourism tax collected at check-in) would keep a credit after its charges move, and could not close. Example: room 103 has 95.00 in charges and a 50.00 deposit, so its balance is 45.00. Moving the 95.00 leaves −50.00.
+
+So **Add to Master** and **One payment for all** move every open charge of the row and, in the same save, refund the payments the folio holds, through `RefundPayment` (oldest first, as the check-out Dialog does). The row says it: "Moves 95.00 · refunds 50.00 deposit".
+
+| Case                                                                                              | Behaviour                                                                      |
+| ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| The folio holds no payments                                                                       | The move only                                                                  |
+| The folio holds payments, the user has `payment.refund` and every payment can be refunded         | The move and the refund                                                        |
+| The user lacks `payment.refund`, or a payment cannot be refunded (for example a City ledger line) | Add to Master and One payment for all are not offered on the row: Collect only |
+
 ## One payment for all
 
-The group leader often pays everyone's extras. With **One payment for all** ticked, the page asks for the room that pays. The Collect amounts of the ticked rows (CheckedOut rows included) move to that room's folio, and one payment is recorded there: one receipt instead of six. Rows set to Add to Master or Refund are not part of it.
+The group leader often pays everyone's extras. With **One payment for all** ticked, the page asks for the room that pays. The Collect amounts of the ticked rows (CheckedOut rows included) move to that room's folio, and one payment is recorded there: one receipt instead of six. Rows set to Add to Master or Refund are not part of it. A row whose folio holds payments refunds them, as in [A folio that holds payments](#a-folio-that-holds-payments).
 
 ## The Master folio
 
@@ -70,11 +82,11 @@ The group leader often pays everyone's extras. With **One payment for all** tick
 
 `(User $actor, Reservation $reservation, list<GroupCheckOutRow> $rows, ?OnePayment $onePayment, bool $settleMaster): CheckOutGroupResult` in `app/Actions/FrontDesk/`.
 
-1. The moves: Add to Master rows and One payment for all, through `TransferLines`.
+1. The moves: Add to Master rows and One payment for all, through `TransferLines`, each with the refund of the payments its folio holds.
 2. Each row: `CheckOutAndRefund` with its collect and refund data for a CheckedIn unit, or only the payment, refund or move for a CheckedOut, Cancelled or NoShow unit (never `CheckOutUnit` again).
 3. With `$settleMaster`, `SettleToCityLedger` on the Master.
 
-- **One transaction, all or nothing.** Money is involved, and a half-done save (some receipts issued, some rooms still in) is hard to undo. A refusal saves nothing and shows on its row: "Room 108: the card payment needs a reference."
+- **One transaction, all or nothing.** `CheckOutAndRefund` opens its own transaction, which becomes a savepoint here and rolls back only itself on a refusal, so `CheckOutGroup` checks every step's result and rolls back the whole save on the first refusal. Money is involved, and a half-done save (some receipts issued, some rooms still in) is hard to undo. A refusal saves nothing and shows on its row: "Room 108: the card payment needs a reference."
 - Each payment and refund uses `{uuid}:{unit}:collect` and `{uuid}:{payment id}` keys, as the check-out Dialog does, so a double click records once.
 - Every unit keeps its own log entries, room Dirty, folio close and status sync, as today. One `reservation.group_checked_out` entry holds the totals.
 - A CheckedOut unit's folio left at 0 closes itself (`CloseSettledUnitFolio`).
@@ -93,7 +105,7 @@ The group leader often pays everyone's extras. With **One payment for all** tick
 | --------------------------------------------------------------------------------------------- | ---------------------------------------- |
 | Reservation page **⋯ More › Check out all** (2 or more units, one CheckedIn or holding money) | The page                                 |
 | Night audit **Not checked out** group row                                                     | The page (a link; the sheet closes)      |
-| Dashboard To do group departure row                                                           | The page                                 |
+| Dashboard To do group departure row (added with the dashboard item)                           | The page                                 |
 | One room                                                                                      | Unchanged: the unit **Check out** Dialog |
 
 ## Edge cases
@@ -108,9 +120,9 @@ The group leader often pays everyone's extras. With **One payment for all** tick
 
 ## Tests
 
-- Ready rooms check out; Collect, Refund and Add to Master post as the single Dialog would; One payment for all moves the balances and records one payment.
+- Ready rooms check out; Collect, Refund and Add to Master post as the single Dialog would; One payment for all moves the balances and records one payment. A row whose folio holds a deposit refunds it with the move; without `payment.refund` the move is not offered.
 - A CheckedOut room with a late charge is settled without a second check-out and its folio closes.
-- One refused row saves nothing. A double click records each payment once.
+- One refused row saves nothing, also when the refusal comes from inside `CheckOutAndRefund`. A double click records each payment once.
 - Settle Master runs only after every room is out; it is refused while a live unit routes Scheduled charges to the Master.
 - Disabled rows (departs later, charged by another room, not arrived) are never touched.
 - Permissions per choice; 404 across properties.
