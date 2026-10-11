@@ -4,45 +4,67 @@
 
 Check out every room of a group and settle its money on one page: collect what each room owes, refund deposits, move charges to the Master folio, take one payment for everyone, and settle the Master to the city ledger. Today a group is checked out one Dialog per room, and the Master folio is found later by the night audit.
 
-It is a full page, not a Dialog: each room needs a few fields, so ten rooms do not fit an overlay, and stacking a room's check-out Dialog over a group Dialog breaks the one-overlay-level rule ([Form containers](../design-system/05-form-containers.md#hard-rules)). A single room keeps the unit **Check out** Dialog.
+It is a full page, not a Dialog: each room needs a few fields, so ten rooms do not fit an overlay, and stacking a room's check-out Dialog over a group Dialog breaks the one-overlay-level rule ([Form containers](../design-system/05-form-containers.md#hard-rules)). A single room keeps the unit **Check out** Dialog. Because this is a page, it can open that Dialog for one room (one overlay level): see [Check out early from the page](#check-out-early-from-the-page).
 
 ## Page
 
+A real table (`components/ui/table`) in sections, each with a heading and a count. A section with no rows is not shown.
+
 ```
-Check out · WA1-0142 · Acme Sdn Bhd                      [Cancel] [Check out 6 rooms and settle 1]
-┌──────────────────────────────────────────────────────────────────────────────────────────┐
-│ Room        Guest           Balance   Settle                                              │
-│ ☑ 101       Tan Wei Ming      0.00    Nothing to settle                                   │
-│ ☑ 103       Ahmad Faiz       45.00    (•) Collect  [Cash ▾] [ 45.00 ]                     │
-│                                       ( ) Add to Master · Acme Sdn Bhd                    │
-│ ☑ 104       Siti Aminah    −200.00    Refund deposit [ 200.00 ] to Card ··4411            │
-│ ☑ 106       Raj Kumar        80.00    ( ) Collect  (•) Add to Master · Acme Sdn Bhd       │
-│ ☐ 105       Wong Kar Wai               Departs 15 Oct: use Check out for an early check-out │
-│ ☐ 107       Priya Nair                 Room 106 pays for it: still charged tonight [Move charges ↗] │
-│ ─ Already checked out ─────────────────────────────────────────────────────────────────── │
-│   109       Nur Aisyah        0.00    Checked out 11 Oct (early) · folio closed           │
-│ ☑ 110       Daniel Lim       30.00    Checked out 11 Oct                                  │
-│                                       (•) Collect [Cash ▾] [ 30.00 ]  ( ) Add to Master   │
-│                                                                                           │
-│ ☐ One payment for all: collect MYR 75.00 in one go from [ Room 103 · Ahmad Faiz ▾ ]        │
-│ Master · Acme Sdn Bhd   8,100.00 + 80.00 moved = 8,180.00                                 │
-│ ☐ Settle Master to City ledger after check-out                                            │
-│ Collect 75.00 · Refund 200.00 · Move 80.00 to Master · 4 rooms out · 1 settled            │
-└──────────────────────────────────────────────────────────────────────────────────────────┘
+Check out · WA1-0142 · Acme Sdn Bhd                                 [Cancel] [Check out 3 rooms and settle 1]
+
+Ready to check out (3)
+┌───┬──────┬──────────────┬──────────┬──────────────────────────────────────────────────────┐
+│ ☑ │ Room │ Guest        │  Balance │ Settle                                               │
+├───┼──────┼──────────────┼──────────┼──────────────────────────────────────────────────────┤
+│ ☑ │ 101  │ Tan Wei Ming │     0.00 │ Nothing to settle                                    │
+│ ☑ │ 103  │ Ahmad Faiz   │    45.00 │ (•) Collect [Cash ▾] [ 45.00 ]  ( ) Add to group bill │
+│ ☑ │ 104  │ Siti Aminah  │  −200.00 │ Refund deposit [ 200.00 ] to Card ··4411             │
+└───┴──────┴──────────────┴──────────┴──────────────────────────────────────────────────────┘
+
+Money to settle (1)
+┌───┬──────┬──────────────┬──────────┬──────────────────────────────────────────────────────┐
+│ ☑ │ 110  │ Daniel Lim   │    30.00 │ Checked out 11 Oct · (•) Collect [Cash ▾] [ 30.00 ]   │
+└───┴──────┴──────────────┴──────────┴──────────────────────────────────────────────────────┘
+
+Departing later (1)
+  105 · Wong Kar Wai     Departs 15 Oct                                  [Check out early…]
+
+Can't check out yet (2)
+  107 · Priya Nair       Room 106 pays for it: still charged tonight     [Move charges ↗]
+  108 · Lim Mei Ling     Not checked in: Cancel or mark no-show.
+
+1 room already checked out with nothing to settle (109).
+
+☐ One payment for all: collect MYR 75.00 in one go from [ Room 103 · Ahmad Faiz ▾ ]
+
+┌ Group bill (Master folio) · Acme Sdn Bhd ─────────────────────────────────────────────────┐
+│ Charges the group pays, not the guests.                                                   │
+│ Balance now 8,100.00 · Added from rooms +80.00 · After check-out 8,180.00                 │
+│ ☐ Send to City ledger after check-out                                                     │
+└───────────────────────────────────────────────────────────────────────────────────────────┘
+
+3 rooms check out · 1 settled · Collect 75.00 · Refund 200.00 · Add 80.00 to group bill
 ```
 
-On a narrow screen each room is a card with its settle choice, and the summary and the button stay in a sticky footer.
+- **Ready to check out**: the header checkbox ticks or unticks every row in the section.
+- **Money to settle**: CheckedOut, Cancelled and NoShow rooms whose folios still hold money. Each has a checkbox and no check-out step.
+- **Departing later** and **Can't check out yet**: muted rows with no checkbox, after the tables.
+- A room that is out (or cancelled) with nothing to settle is not a row: one muted line names the rooms.
+- The summary leaves out every part that is 0. With no money at all it reads "2 rooms check out. Nothing to settle."
+- On a narrow screen each row is a card with its settle choice, and the summary and the button stay in a sticky footer.
+- UI words: **group bill** for the Master folio ("Add to group bill", "Group bill (Master folio)"). Code keeps the Master names.
 
 ## Rows
 
-| Unit                                                                                                      | Group               | Ticked          | Settle choices                                                                                                        |
-| --------------------------------------------------------------------------------------------------------- | ------------------- | --------------- | --------------------------------------------------------------------------------------------------------------------- |
-| CheckedIn, departing on or before the business date                                                       | (main)              | Yes             | By balance, below. It is checked out                                                                                  |
-| CheckedIn, departing later                                                                                | (main)              | Disabled        | "Departs 15 Oct: use Check out for an early check-out."                                                               |
-| CheckedIn, its folio still receives another room's Scheduled charges (`folio_receives_scheduled_charges`) | (main)              | Disabled        | "Room 106 pays for it: still charged tonight", with **Move charges** ([Move charges](../13-folio/07-move-charges.md)) |
-| CheckedOut                                                                                                | Already checked out | Only with money | Its folio at 0 and Closed: a muted line, nothing to do. With money: the choices by balance, and **no check-out step** |
-| Confirmed                                                                                                 | Not arrived         | Not ticked      | Muted: "Not checked in: Cancel or mark no-show."                                                                      |
-| Cancelled, NoShow                                                                                         | Cancelled           | Only with money | Listed only when its folio holds money (a deposit to refund, a fee owed)                                              |
+| Unit                                                                                                      | Group               | Ticked          | Settle choices                                                                                                                                   |
+| --------------------------------------------------------------------------------------------------------- | ------------------- | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| CheckedIn, departing on or before the business date                                                       | Ready to check out  | Yes             | By balance, below. It is checked out                                                                                                             |
+| CheckedIn, departing later                                                                                | Departing later     | No checkbox     | "Departs 15 Oct" with **Check out early…** ([below](#check-out-early-from-the-page))                                                             |
+| CheckedIn, its folio still receives another room's Scheduled charges (`folio_receives_scheduled_charges`) | Can't check out yet | No checkbox     | "Room 106 pays for it: still charged tonight", with **Move charges** ([Move charges](../13-folio/07-move-charges.md)) only with `folio.transfer` |
+| CheckedOut                                                                                                | Money to settle     | Only with money | With money: the choices by balance, and **no check-out step**. At 0: not a row, named in the "already checked out" line                          |
+| Confirmed                                                                                                 | Can't check out yet | No checkbox     | Muted: "Not checked in: Cancel or mark no-show."                                                                                                 |
+| Cancelled, NoShow                                                                                         | Money to settle     | Only with money | Listed only when its folio holds money (a deposit to refund, a fee owed)                                                                         |
 
 **Choices by balance**, each prefilled:
 
@@ -55,6 +77,14 @@ On a narrow screen each room is a card with its settle choice, and the summary a
 
 - A unit folio that is **Closed but holds money** (it cannot take a payment) shows "Folio closed: reopen it to settle" and **Open folio**. Front desk can reopen a unit folio closed today; after that a manager can (`FolioReopenRule`).
 - A choice the user may not make is not offered: Collect needs `payment.record`, Refund `payment.refund`, Add to Master `folio.transfer`.
+
+## Check out early from the page
+
+A room departing after the business date has **Check out early…** (with `front-desk.check-out`). It opens the room's existing **Check out** Dialog (`CheckOutDialog`), which shows the early departure fee, the nights removed and **Do not charge** (`front-desk.waive-fees`), and runs `EarlyCheckOut`.
+
+- It is its **own save**, not part of the group save: the fee is confirmed or waived per room, and one refused fee must not undo the group.
+- The page sends the unit data and payment options the Dialog needs for these rows, as the reservation page does.
+- After it saves, the page asks for the preview again. The room moves to **Money to settle** when its folio still holds money (for example the fee), else into the "already checked out" line. The rows the user already ticked and filled stay as they were.
 
 ## A folio that holds payments
 
@@ -74,8 +104,9 @@ The group leader often pays everyone's extras. With **One payment for all** tick
 
 ## The Master folio
 
-- A line shows the Master's balance and what this check-out moves to it.
-- **Settle Master to City ledger after check-out** (default off) shows for a company payer with direct bill and `city-ledger.invoice`. It runs `SettleToCityLedger` after every room is out, in the same save. Without the box, the success page offers **Settle to City ledger** or **Open folio**.
+- The **Group bill (Master folio)** box shows the payer's name (else the reservation's group name), the line "Charges the group pays, not the guests.", the balance now, what this check-out adds and the balance after.
+- The box shows only when the Master has a balance, a row is set to Add to group bill, or the City ledger option applies.
+- **Send to City ledger after check-out** (settles the Master, default off) shows for a company payer with direct bill and `city-ledger.invoice`. It runs `SettleToCityLedger` after every room is out, in the same save. Without the box, the success page offers **Settle to City ledger** or **Open folio**.
 - Settle keeps its own rules: refused while a unit is still in house (`units_in_house`) or while a live unit still routes Scheduled charges to it.
 
 ## `CheckOutGroup`
@@ -113,13 +144,13 @@ The group leader often pays everyone's extras. With **One payment for all** tick
 
 ## Edge cases
 
-| Case                                                                  | Behaviour                                                                                                        |
-| --------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| A room left early and a late charge was posted after (reopened folio) | Under Already checked out with its balance: Collect, Add to Master or One payment for all; the folio closes at 0 |
-| A charge reversed after check-out leaves a credit                     | A Refund row                                                                                                     |
-| A cancelled room holds a deposit                                      | Under Cancelled: Refund. This also clears the audit's **Money held on a closed booking** warning                 |
-| The hotel writes off a late charge                                    | Not a settle choice: reverse the line on the folio tab                                                           |
-| One row is refused                                                    | Nothing is saved; the row shows why                                                                              |
+| Case                                                                  | Behaviour                                                                                                    |
+| --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| A room left early and a late charge was posted after (reopened folio) | Under Money to settle with its balance: Collect, Add to Master or One payment for all; the folio closes at 0 |
+| A charge reversed after check-out leaves a credit                     | A Refund row                                                                                                 |
+| A cancelled room holds a deposit                                      | Under Money to settle: Refund. This also clears the audit's **Money held on a closed booking** warning       |
+| The hotel writes off a late charge                                    | Not a settle choice: reverse the line on the folio tab                                                       |
+| One row is refused                                                    | Nothing is saved; the row shows why                                                                          |
 
 ## Tests
 
