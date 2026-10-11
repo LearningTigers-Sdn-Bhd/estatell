@@ -103,7 +103,9 @@ Finance › City ledger › Invoices
 | Balance 0, with allocations | No amount field. "This invoice is paid. A credit note can only reduce what is still owed (MYR 0.00). To credit it, reverse a payment first:" then one row per allocation with **Reverse**, which opens the Reverse allocation Dialog. "The money stays with {company} as credit. Allocate it again after the credit note." Only **Close** |
 | Amount over the balance     | `credit_exceeds_balance` names the balance and the payments: "The credit cannot be more than the invoice balance (MYR 200.00). Reverse payment RC-0045 first." Without allocations it ends after the balance.                                                                                                                             |
 
-- After a reversal the page reloads, the balance goes up and the Dialog offers the amount field. `IssueCreditNote` and its rule do not change.
+- **Reverse** closes the credit note Dialog and opens the existing Reverse allocation Dialog. After a reversal the page reloads, the balance goes up and the credit note Dialog opens again by itself, now with the amount field. Cancelling the reversal also returns to the credit note Dialog. Dialogs are never stacked.
+- A user who may issue credit notes but not reverse payments sees the payments without **Reverse** (each allocation's `canReverse`), and "Ask a user who can reverse payments."
+- `credit_exceeds_balance` gets the balance and the receipt numbers from the controller, which reads them after the refusal (like the reservation group refusals). `IssueCreditNote` and its rule do not change.
 - A one-step "credit a paid invoice" (reverse, credit and re-allocate in one transaction) is not built. It is decided with e-invoicing corrections (see the [checklist](../checklist.md#e-invoicing)).
 - **Settle to City ledger** is a button in the folio header, after Record payment, on an Open folio with a company payer and a balance above 0. It asks for a confirmation that names the company and the amount.
 - The sidebar shows **City ledger › Invoices** after Companies, for users with `company.view`.
