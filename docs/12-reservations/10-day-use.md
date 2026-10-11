@@ -55,6 +55,12 @@ Room        [ 101 ▾ ]   (rooms free from 10:00 to 14:00)
 - **Room** is required for day use: the room is the inventory. It lists the rooms of the type that are free for those hours (see [Availability](#availability)).
 - The rest of the form (booker, guests, company, add-ons, notes) is the same as an overnight booking. `CreateReservation` and `AddUnit` take `stay_type`, `start_time`, `hours` and `room_id` for a day use line.
 
+- The block ends on the same date. A walk-in day use takes the business date and starts at the next half hour.
+- **Hours** come from `reservations.day-use-offers` (`DayUseOffers`), which lists the priced hours inside the window with their end times.
+- No override total and no discount on a day use line.
+- Add-ons: one-off items use the date as the service date. Nightly items are refused (`nightly_item_for_day_use`). A plan's inclusions are allocated as for one night.
+- **Assign room** is refused on a day use unit: the room is chosen at booking. Until check in and out are built, a day use unit has no actions in the unit menu.
+
 ## Availability
 
 `DayUseAvailability` (service, `app/Services/Availability/`) lists the rooms of a room type that are free on a date between two times. A room is free when it is active, not in an open room block on that date, and none of these overlaps the hours:
@@ -66,7 +72,7 @@ Room        [ 101 ▾ ]   (rooms free from 10:00 to 14:00)
 | Another live day use has the room                       | Its `starts_at` to `ends_at`                                      |
 
 - Overnight availability (`AvailabilityService`) does not change: a day use has no nights.
-- An overnight unit with no room yet does not hold a specific room. `AutoAssignRooms` and `MoveUnit` skip a room with a live day use that overlaps the unit's arrival or departure time on that date.
+- An overnight unit with no room yet does not hold a specific room. `AutoAssignRooms`, `MoveUnit`, manual `AssignRoom` and the overnight room picks at booking skip a room with a live day use that overlaps the unit's arrival or departure time on that date.
 - `AddUnit` locks the room row and checks again in the transaction. The exclusion constraint is the last guard.
 
 ## Pricing
@@ -122,12 +128,13 @@ A Day use plan is never mapped. The mapping capability refuses it with "Day use 
 
 ## Build order
 
-| #   | Commit                                       | Contains                                                                                                                                                                                                                                                          |
-| --- | -------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1   | `feat(rates): add day use rate plans`        | `PricingBasis::DayUse`, the plan columns and CHECKs, `rate_hour_prices`, the Details fields, the Pricing tab hour rows and Auto, the calendar cell, DAY_USE seeded and back-filled with the Room revenue Day use tab and `UpdateDayUseTaxes`, the channel refusal |
-| 2   | `feat(reservations): book day use`           | `StayType`, `unit_day_uses` with the exclusion constraint, `DayUsePricing` and `quoteDayUse`, `DayUseAvailability`, the day use path in `CreateReservation` and `AddUnit`, the booking form, the "Day use · 4h" labels, the Scheduled folio row                   |
-| 3   | `feat(front-desk): check day use in and out` | Check-in posting the block, check-out, cancel and no-show with the policy rule, reinstate, `MoveUnit`, `AutoAssignRooms` skipping overlapping rooms, the audit detail                                                                                             |
-| 4   | `feat(reports): show day use apart`          | `day_use_sold` and `day_use_revenue` in the snapshot, the Occupancy columns, the stay column in Arrivals, Departures and In-house                                                                                                                                 |
+| #   | Commit                                                | Contains                                                                                                                                                                                                                                                                             |
+| --- | ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1   | `feat(rates): add day use rate plans`                 | `PricingBasis::DayUse`, the plan columns and CHECKs, `rate_hour_prices`, the Details fields, the Pricing tab hour rows and Auto, the calendar cell, DAY_USE seeded and back-filled with the Room revenue Day use tab and `UpdateDayUseTaxes`, the channel refusal                    |
+| 2a  | `feat(reservations): book day use rooms and prices`   | Backend: `StayType`, `unit_day_uses` with the exclusion constraint, `DayUsePricing` and `quoteDayUse`, `DayUseOffers`, `DayUseAvailability`, `AddDayUseUnit` and the day use path in `CreateReservation` and `AddUnit`, totals and the "Day use · 4h" label, the Scheduled folio row |
+| 2b  | `feat(reservations): add day use to the booking form` | The Stay type switch, Hours select, Room picker, Add unit Sheet and the labels in the UI                                                                                                                                                                                             |
+| 3   | `feat(front-desk): check day use in and out`          | Check-in posting the block, check-out, cancel and no-show with the policy rule, reinstate, `MoveUnit`, `AutoAssignRooms`, `AssignRoom` and overnight picks skipping overlapping rooms, the audit detail                                                                              |
+| 4   | `feat(reports): show day use apart`                   | `day_use_sold` and `day_use_revenue` in the snapshot, the Occupancy columns, the stay column in Arrivals, Departures and In-house                                                                                                                                                    |
 
 **Sample data.** `SandbaySeeder` adds a "Day use" plan: 2 to 6 hours, sold between 08:00 and 18:00, on every room type. The first block costs 30% of the room's nightly price and each extra hour adds 10% (Garden Room: 2h 60.00, +20.00 an hour). It goes through `CreateRatePlan`, so DAY_USE gets the Taxes tab taxes except the Tourism tax.
 
