@@ -190,6 +190,16 @@ export function UnitsTab({
                 </h2>
                 <div className="flex items-center gap-2">
                     <StatusBadge status={unit.status} />
+                    {unit.canChangePrice && (
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setChangingPrice(true)}
+                        >
+                            <Tag data-icon="inline-start" />
+                            Change price
+                        </Button>
+                    )}
                     <UnitActionsMenu
                         reservationId={reservationId}
                         unit={unit}
@@ -236,18 +246,6 @@ export function UnitsTab({
                     )}
                 </Detail>
             </div>
-            {unit.canChangePrice && (
-                <div className="flex items-center justify-end gap-2">
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setChangingPrice(true)}
-                    >
-                        <Tag data-icon="inline-start" />
-                        Change price
-                    </Button>
-                </div>
-            )}
             <div className="overflow-hidden rounded-xl border">
                 <Table>
                     <TableHeader>
