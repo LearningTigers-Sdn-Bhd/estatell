@@ -159,6 +159,7 @@ allocations: App.Data.CityLedger.ArAllocationRowData[],
 creditBlockedBy: App.Data.CityLedger.ArAllocationRowData[],
 canVoid: boolean,
 canCreditNote: boolean,
+canVoidCreditNotes: boolean,
 };
 export type ArInvoiceLineData = {
 postingDate: string,

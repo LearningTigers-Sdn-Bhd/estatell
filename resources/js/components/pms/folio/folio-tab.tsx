@@ -117,8 +117,8 @@ export function FolioTab({
     onToggleSummary: () => void;
     currency: App.Enums.Currency | null;
 }) {
-    const [voidingInvoice, setVoidingInvoice] = useState(false);
     const [loadingCredit, setLoadingCredit] = useState(false);
+    const [loadingVoid, setLoadingVoid] = useState(false);
     const creditFlow = useCreditNoteFlow(false, (done) =>
         router.reload({ only: ['creditInvoice'], onFinish: done }),
     );
@@ -129,6 +129,16 @@ export function FolioTab({
             onFinish: () => {
                 setLoadingCredit(false);
                 creditFlow.setCrediting(true);
+            },
+        });
+    };
+    const startVoid = () => {
+        setLoadingVoid(true);
+        router.reload({
+            only: ['creditInvoice'],
+            onFinish: () => {
+                setLoadingVoid(false);
+                creditFlow.setVoiding(true);
             },
         });
     };
@@ -214,27 +224,28 @@ export function FolioTab({
                     reservationId={reservationId}
                     folioId={Number(folio.key)}
                     invoiceNumber={folio.arInvoiceNumber}
-                    open={voidingInvoice}
-                    onOpenChange={setVoidingInvoice}
+                    invoice={creditInvoice}
+                    currency={currency}
+                    open={creditFlow.voiding}
+                    onOpenChange={creditFlow.setVoiding}
+                    onReverse={creditFlow.reverseFromVoid}
                 />
             )}
-            {folio.canCreditArInvoice && (
-                <>
-                    {creditInvoice && (
-                        <IssueCreditNoteDialog
-                            open={creditFlow.crediting}
-                            onOpenChange={creditFlow.setCrediting}
-                            invoice={creditInvoice}
-                            currency={currency}
-                            onReverse={creditFlow.reverseFromCredit}
-                        />
-                    )}
-                    <ReverseAllocationDialog
-                        allocation={creditFlow.reversing}
-                        onClose={creditFlow.closeReverse}
-                        currency={currency}
-                    />
-                </>
+            {folio.canCreditArInvoice && creditInvoice && (
+                <IssueCreditNoteDialog
+                    open={creditFlow.crediting}
+                    onOpenChange={creditFlow.setCrediting}
+                    invoice={creditInvoice}
+                    currency={currency}
+                    onReverse={creditFlow.reverseFromCredit}
+                />
+            )}
+            {(folio.canCreditArInvoice || folio.canVoidAndReopen) && (
+                <ReverseAllocationDialog
+                    allocation={creditFlow.reversing}
+                    onClose={creditFlow.closeReverse}
+                    currency={currency}
+                />
             )}
             <div className="flex flex-col gap-4">
                 <div className="flex flex-col gap-4">
@@ -496,16 +507,15 @@ export function FolioTab({
                                                         <DropdownMenuSeparator />
                                                         <DropdownMenuItem
                                                             disabled={
-                                                                folio.voidInvoiceBlockedBy !==
-                                                                null
+                                                                loadingVoid
                                                             }
-                                                            onClick={() =>
-                                                                setVoidingInvoice(
-                                                                    true,
-                                                                )
-                                                            }
+                                                            onClick={startVoid}
                                                         >
-                                                            <LockOpen />
+                                                            {loadingVoid ? (
+                                                                <Spinner />
+                                                            ) : (
+                                                                <LockOpen />
+                                                            )}
                                                             <span className="flex flex-col">
                                                                 Void invoice and
                                                                 reopen

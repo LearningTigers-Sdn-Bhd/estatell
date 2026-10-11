@@ -7,6 +7,7 @@ use Spatie\LaravelData\Data;
 /**
  * The invoice page: the row, where it came from, its credit notes and the folio lines it was made from. `canVoid`
  * and `canCreditNote` already include the permission and the state, so the page never works them out.
+ * `canVoidCreditNotes` lets the folio's void Dialog void this invoice's credit notes (`city-ledger.credit-note`).
  */
 class ArInvoiceData extends Data
 {
@@ -31,5 +32,6 @@ class ArInvoiceData extends Data
         public array $creditBlockedBy,
         public bool $canVoid,
         public bool $canCreditNote,
+        public bool $canVoidCreditNotes,
     ) {}
 }

@@ -136,7 +136,7 @@ class ReservationController extends Controller
 
     /**
      * Reservation page, Folio tab. `?folio=` picks the folio (an id, or `u{unit id}` for a unit with no folio yet).
-     * `routingRules` is an optional prop for the Routing rules Sheet, sent only to a user with `folio.transfer`. `creditInvoice` is an optional prop with the AR invoice page data of a settled folio, read when its credit note Dialog opens and null without the credit note permission.
+     * `routingRules` is an optional prop for the Routing rules Sheet, sent only to a user with `folio.transfer`. `creditInvoice` is an optional prop with the AR invoice page data of a settled folio, read when its credit note Dialog or void Dialog opens and null without the credit note permission or the void and reopen permissions.
      */
     public function folio(Request $request, Property $property, Reservation $reservation, FolioStatement $statement, RoutingRuleList $routingRuleList, ArInvoiceDetail $invoiceDetail): Response
     {
@@ -165,7 +165,7 @@ class ReservationController extends Controller
                 'routingRules' => Inertia::optional(fn (): ?RoutingRulesData => $canManageRouting ? $routingRuleList->build($reservation, $units) : null),
                 'creditInvoice' => Inertia::optional(function () use ($request, $property, $folioProps, $invoiceDetail): ?ArInvoiceData {
                     $folio = $folioProps['folio'] ?? null;
-                    $invoice = $folio?->canCreditArInvoice ? ArInvoice::query()->where('property_id', $property->id)->find($folio->arInvoiceId) : null;
+                    $invoice = $folio?->canCreditArInvoice || $folio?->canVoidAndReopen ? ArInvoice::query()->where('property_id', $property->id)->find($folio->arInvoiceId) : null;
 
                     return $invoice === null ? null : $invoiceDetail->build($invoice, $request->user());
                 }),

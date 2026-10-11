@@ -52,6 +52,7 @@ class ArInvoiceDetail
                 ? $invoice->status === ArInvoiceStatus::Open && $notes->where('status', '<>', ArInvoiceStatus::Void)->isEmpty() && $user->can(PermissionEnum::CityLedgerInvoice->value)
                 : $invoice->status === ArInvoiceStatus::Settled && $user->can(PermissionEnum::CityLedgerCreditNote->value),
             canCreditNote: $isInvoice && $invoice->status !== ArInvoiceStatus::Void && $user->can(PermissionEnum::CityLedgerCreditNote->value),
+            canVoidCreditNotes: $isInvoice && $user->can(PermissionEnum::CityLedgerCreditNote->value),
         );
     }
 

@@ -537,3 +537,23 @@ test('a fully credited invoice names the credit note, and a settled invoice with
     $this->get($billed['url'])->assertInertia(fn ($page) => $page
         ->where('folio.voidInvoiceBlockedBy', 'Void credit note CN-0009 first.'));
 });
+
+test('the void Dialog loads the invoice without the credit note permission and says who may void its credit notes', function () {
+    $billed = fcBilledFolio();
+    $property = $billed['setup']['property'];
+    $manager = User::factory()->withRole(DefaultRoleEnum::Manager)->create(['property_id' => $property->id]);
+
+    $this->actingAs($manager)->get($billed['url'])->assertInertia(fn ($page) => $page->reloadOnly('creditInvoice', fn ($reloaded) => $reloaded
+        ->where('creditInvoice.canVoidCreditNotes', true)));
+
+    setPermissionsTeamId($property->id);
+    Role::query()->where('property_id', $property->id)->where('default_role', DefaultRoleEnum::Finance)->firstOrFail()->revokePermissionTo(PermissionEnum::CityLedgerCreditNote->value);
+    $finance = User::factory()->withRole(DefaultRoleEnum::Finance)->create(['property_id' => $property->id]);
+
+    $this->actingAs($finance)->get($billed['url'])->assertInertia(fn ($page) => $page
+        ->where('folio.canCreditArInvoice', false)
+        ->where('folio.canVoidAndReopen', true)
+        ->reloadOnly('creditInvoice', fn ($reloaded) => $reloaded
+            ->where('creditInvoice.row.id', $billed['invoice']->id)
+            ->where('creditInvoice.canVoidCreditNotes', false)));
+});
