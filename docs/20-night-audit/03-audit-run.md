@@ -31,6 +31,8 @@ A business date has at most one audit. A Failed audit is resumed on the same row
 
 A `RoomCharge` exception can be retried from the readiness panel ([Retry a room charge](02-readiness-panel.md#retry-a-room-charge)), which sets `resolved_at` and `resolved_by` once the night is posted. The exception `message` is the refusal code of the Action that refused the unit (for example `folio_not_open`), the code of the audit's own refusal (below), or the error text for `UnexpectedError`. The readiness panel turns a code into a sentence.
 
+A **stale** exception is a missed arrival whose unit is no longer Confirmed, or an overdue departure whose unit is no longer CheckedIn (it was checked in, checked out, cancelled or marked no-show since). The readiness panel does not list it, and the start of the next run resolves it (`resolved_at` set, `resolved_by` null) so the history counts agree.
+
 ## Principles
 
 1. Resolve by policy instead of blocking.

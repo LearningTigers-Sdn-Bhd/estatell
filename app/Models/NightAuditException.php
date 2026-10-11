@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\AuditExceptionType;
 use App\Enums\AuditStep;
+use App\Enums\UnitStatus;
 use Database\Factories\NightAuditExceptionFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
@@ -51,6 +52,29 @@ class NightAuditException extends Model
     public function scopeOpen(Builder $query): void
     {
         $query->whereNull('resolved_at');
+    }
+
+    /**
+     * A missed arrival whose unit is no longer Confirmed, or an overdue departure whose unit is no longer CheckedIn:
+     * the unit was checked in, checked out, cancelled or marked no-show since, so the exception has nothing left to say.
+     *
+     * @param  Builder<NightAuditException>  $query
+     */
+    public function scopeStale(Builder $query): void
+    {
+        $query->where(fn (Builder $either) => $either
+            ->where(fn (Builder $missed) => $missed->where('type', AuditExceptionType::MissedArrival->value)
+                ->whereHas('reservationUnit', fn (Builder $units) => $units->where('status', '!=', UnitStatus::Confirmed->value)))
+            ->orWhere(fn (Builder $overdue) => $overdue->where('type', AuditExceptionType::OverdueDeparture->value)
+                ->whereHas('reservationUnit', fn (Builder $units) => $units->where('status', '!=', UnitStatus::CheckedIn->value))));
+    }
+
+    /**
+     * @param  Builder<NightAuditException>  $query
+     */
+    public function scopeNotStale(Builder $query): void
+    {
+        $query->whereNot(fn (Builder $stale) => $stale->stale());
     }
 
     /**

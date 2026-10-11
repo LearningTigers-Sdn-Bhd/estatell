@@ -261,6 +261,7 @@ class AuditReadiness
         return NightAuditException::query()
             ->where('property_id', $property->id)
             ->open()
+            ->notStale()
             ->whereNotNull('reservation_unit_id')
             ->with(['reservationUnit.reservation.booker', 'reservationUnit.guests.guest'])
             ->orderBy('id')

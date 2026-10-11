@@ -3,7 +3,9 @@
 use App\Actions\NightAudit\NightAuditResult;
 use App\Actions\NightAudit\RunNightAudit;
 use App\Enums\AuditCheck;
+use App\Enums\AuditExceptionType;
 use App\Enums\AuditStatus;
+use App\Enums\AuditStep;
 use App\Enums\BusinessDateStatus;
 use App\Enums\FolioStatus;
 use App\Enums\FolioType;
@@ -307,4 +309,22 @@ test('only a unit that departs on the business date can be extended', function (
 
     expect($items->firstWhere('reservationUnitId', $today->id)->canExtend)->toBeTrue()
         ->and($items->firstWhere('reservationUnitId', $earlier->id)->canExtend)->toBeFalse();
+});
+
+test('an overdue departure exception leaves the sheet once its unit is no longer checked in', function () {
+    $property = readinessProperty();
+    $room = Room::factory()->for($property)->create()->id;
+    $still = readinessUnit($property, 'checkedIn', '2026-10-09', '2026-10-11');
+    $still->nights()->update(['room_id' => $room]);
+    $gone = readinessUnit($property, 'checkedOut', '2026-10-09', '2026-10-11');
+    $previous = BusinessDate::factory()->closed()->create(['property_id' => $property->id, 'date' => '2026-10-11']);
+    $audit = NightAudit::factory()->completed()->create(['business_date_id' => $previous->id]);
+
+    foreach ([$still, $gone] as $unit) {
+        NightAuditException::factory()->create(['night_audit_id' => $audit->id, 'reservation_unit_id' => $unit->id, 'step' => AuditStep::ResolveOverdueDepartures, 'type' => AuditExceptionType::OverdueDeparture, 'message' => 'overdue_departure_blocked']);
+    }
+
+    $carried = collect(app(AuditReadiness::class)->items($property))->where('check', AuditCheck::CarriedException);
+
+    expect($carried->pluck('reservationUnitId')->all())->toBe([$still->id]);
 });

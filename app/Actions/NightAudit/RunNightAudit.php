@@ -8,6 +8,7 @@ use App\Enums\AuditStepStatus;
 use App\Enums\AuditTrigger;
 use App\Jobs\NotifyNightAuditResultJob;
 use App\Models\NightAudit;
+use App\Models\NightAuditException;
 use App\Models\NightAuditStep;
 use App\Models\Property;
 use App\Models\User;
@@ -32,7 +33,8 @@ class RunNightAudit
      * blocker is open), unless it is forced. A run that resumes a Failed audit is never blocked, because
      * its steps are already under way. A forced run needs a reason. The route checks `night-audit.run` and
      * `night-audit.force`, and the readiness panel's blockers come with that panel. A null actor is the scheduler.
-     * When the audit ends, completed or failed, `NotifyNightAuditResultJob` is queued, so a message that cannot be
+     * An open missed arrival or overdue departure exception whose unit has moved on (checked in, checked out, cancelled) is
+     * resolved first, so it leaves the sheet and the history counts. When the audit ends, completed or failed, `NotifyNightAuditResultJob` is queued, so a message that cannot be
      * sent never changes the audit.
      * See docs/20-night-audit/03-audit-run.md.
      */
@@ -58,6 +60,9 @@ class RunNightAudit
 
         $audit = $claim->audit;
         $audit->load('businessDate');
+
+        NightAuditException::query()->where('property_id', $property->id)->open()->stale()->update(['resolved_at' => now()]);
+
         $date = CarbonImmutable::parse($audit->businessDate->date->toDateString());
         $completed = $audit->steps()->where('status', AuditStepStatus::Completed->value)->pluck('step')->all();
 

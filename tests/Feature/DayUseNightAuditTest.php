@@ -11,7 +11,9 @@ use App\Actions\Reservations\AddUnitAddOn;
 use App\Data\NightAudit\ReadinessGroupData;
 use App\Data\Reservations\NewAddOnData;
 use App\Enums\AuditCheck;
+use App\Enums\AuditExceptionType;
 use App\Enums\AuditFix;
+use App\Enums\AuditStep;
 use App\Enums\AuditTrigger;
 use App\Enums\OverdueDeparturePolicy;
 use App\Enums\TransactionKind;
@@ -19,6 +21,8 @@ use App\Enums\UnitStatus;
 use App\Models\BusinessDate;
 use App\Models\ChargeItem;
 use App\Models\FolioLine;
+use App\Models\NightAudit;
+use App\Models\NightAuditException;
 use App\Models\UnitAddOn;
 use App\Services\NightAudit\AuditReadiness;
 use App\Services\NightAudit\ReadinessAdvice;
@@ -158,4 +162,16 @@ test('the sheet offers Extend 1 night only on a row with a unit that can be exte
     expect($labels(true))->toContain('Extend 1 night')
         ->and($labels(false))->not->toContain('Extend 1 night')
         ->and($labels(false))->toContain('Check out');
+});
+
+test('a run resolves an exception whose unit has been checked out since', function () {
+    $setup = dayUseAuditDesk();
+    $unit = $setup['unit'];
+    $unit->forceFill(['status' => UnitStatus::CheckedOut, 'checked_in_at' => now()->subHours(3), 'checked_out_at' => now()])->save();
+    $earlier = NightAudit::factory()->completed()->create(['property_id' => $setup['property']->id]);
+    $exception = NightAuditException::factory()->create(['night_audit_id' => $earlier->id, 'reservation_unit_id' => $unit->id, 'step' => AuditStep::ResolveOverdueDepartures, 'type' => AuditExceptionType::OverdueDeparture, 'message' => 'overdue_departure_blocked']);
+
+    dayUseAuditRun($setup);
+
+    expect($exception->fresh()->resolved_at)->not->toBeNull();
 });
