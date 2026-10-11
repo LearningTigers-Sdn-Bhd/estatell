@@ -55,6 +55,27 @@ class DayUseAvailability
     }
 
     /**
+     * Whether a live day use block in the room overlaps the hours on the date, for the late check-out of an overnight
+     * guest in that room.
+     *
+     * @param  string  $from  `H:i` or `H:i:s`
+     * @param  string  $until  `H:i` or `H:i:s`
+     */
+    public function hasLiveBlockBetween(int $propertyId, int $roomId, CarbonInterface $date, string $from, string $until): bool
+    {
+        return UnitDayUse::query()
+            ->join('reservation_units', 'reservation_units.id', '=', 'unit_day_uses.reservation_unit_id')
+            ->where('reservation_units.property_id', $propertyId)
+            ->whereIn('reservation_units.status', array_map(fn (UnitStatus $status): string => $status->value, UnitStatus::holdingInventory()))
+            ->where('unit_day_uses.room_id', $roomId)
+            ->whereNull('unit_day_uses.released_at')
+            ->whereDate('unit_day_uses.date', $date->toDateString())
+            ->where('unit_day_uses.starts_at', '<', $this->normalize($until))
+            ->where('unit_day_uses.ends_at', '>', $this->normalize($from))
+            ->exists();
+    }
+
+    /**
      * @return Collection<int, Room>
      */
     private function activeRooms(RoomType $roomType): Collection

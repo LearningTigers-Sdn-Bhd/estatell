@@ -8,6 +8,7 @@ use App\Enums\UnitStatus;
 use App\Models\ReservationUnit;
 use App\Models\RoomRevenuePolicy;
 use App\Models\User;
+use App\Services\Availability\DayUseAvailability;
 use App\Services\Catalogues\PolicyChargeCalculator;
 use App\Services\NightAudit\CurrentBusinessDate;
 use Illuminate\Support\Facades\DB;
@@ -17,6 +18,7 @@ class ExtendDepartureTime
     public function __construct(
         private CurrentBusinessDate $currentBusinessDate,
         private PolicyChargeCalculator $policyChargeCalculator,
+        private DayUseAvailability $dayUseAvailability,
         private PostUnitPolicyFee $postUnitPolicyFee,
         private SyncReservationStatus $syncReservationStatus,
     ) {}
@@ -27,7 +29,8 @@ class ExtendDepartureTime
      * `H:i` cannot pass midnight. The unit row is locked first. Every check runs before the first write, so a
      * refusal writes and logs nothing. The fee, `$doNotCharge`, `$reason` and `$expectedFee` work as in `CancelUnit`.
      * A second extension on the same day posts the fee again, and staff can choose Do not charge. The date and the
-     * night audit do not change. Permissions are checked by the route (`front-desk.check-out`, and
+     * night audit do not change. A live day use block in the unit's room (the room of its last night) that overlaps
+     * the hours between the current and the new time refuses the extension as `room_not_free`. Permissions are checked by the route (`front-desk.check-out`, and
      * `front-desk.waive-fees` for Do not charge). See docs/18-front-desk/01-check-in-and-check-out.md.
      */
     public function __invoke(User $actor, ReservationUnit $unit, string $newTime, bool $doNotCharge = false, ?string $reason = null, ?string $expectedFee = null): UnitStayResult
@@ -53,6 +56,12 @@ class ExtendDepartureTime
 
             if (preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', $newTime) !== 1 || $newTime <= $previousTime) {
                 return UnitStayResult::refused(UnitStayResult::REFUSAL_TIME_NOT_LATER);
+            }
+
+            $roomId = $locked->nights()->whereNotNull('room_id')->orderByDesc('date')->value('room_id');
+
+            if ($roomId !== null && $this->dayUseAvailability->hasLiveBlockBetween($locked->property_id, $roomId, $locked->departure_date, $previousTime, $newTime)) {
+                return UnitStayResult::refused(UnitStayResult::REFUSAL_ROOM_NOT_FREE);
             }
 
             $reason = filled($reason) ? trim((string) $reason) : null;

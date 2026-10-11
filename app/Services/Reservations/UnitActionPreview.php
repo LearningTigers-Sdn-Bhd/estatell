@@ -16,6 +16,7 @@ use App\Data\Reservations\UnitReinstatePreviewData;
 use App\Enums\CheckInRoomState;
 use App\Enums\PermissionEnum;
 use App\Enums\SellUnit;
+use App\Enums\StayType;
 use App\Enums\SystemTransactionCode;
 use App\Enums\UnitStatus;
 use App\Models\Reservation;
@@ -201,7 +202,7 @@ class UnitActionPreview
             roomTypeId: $chosen?->id,
             sellsBeds: $own->sell_unit === SellUnit::Bed,
             reasonRequired: $night === null || $night->room_id !== null || $night->bed_id !== null,
-            units: $chosen === null ? [] : $this->freeUnits->forStay(RoomType::query()->findOrFail($chosen->id), $from, $unit->departure_date, $unit->id),
+            units: $chosen === null ? [] : $this->freeUnits->forStay(RoomType::query()->findOrFail($chosen->id), $from, $unit->departure_date, $unit->id, $unit->arrival_time, $unit->departure_time),
             error: null,
         );
     }
@@ -308,6 +309,11 @@ class UnitActionPreview
     public function reinstate(ReservationUnit $unit): UnitReinstatePreviewData
     {
         $currency = $this->currency($unit);
+
+        if ($unit->stay_type === StayType::DayUse) {
+            return $this->reinstateDayUse($unit);
+        }
+
         $nights = $unit->nights()->orderBy('date')->get();
         $quote = $this->rateQuoteService->quote(new RateQuoteRequest(
             $unit->ratePlan()->firstOrFail(),
@@ -334,6 +340,25 @@ class UnitActionPreview
         return new UnitReinstatePreviewData(
             previousTotal: (string) $this->total($nights, $currency)->getAmount(),
             newTotal: (string) $new->getAmount(),
+            error: null,
+        );
+    }
+
+    /**
+     * The block price as booked and as `ReinstateUnit` will price it again for a day use unit.
+     */
+    private function reinstateDayUse(ReservationUnit $unit): UnitReinstatePreviewData
+    {
+        $dayUse = $unit->dayUse()->firstOrFail();
+        $quote = $this->rateQuoteService->quoteDayUse($unit->roomType()->firstOrFail(), $unit->ratePlan()->firstOrFail(), $dayUse->date, $dayUse->hours);
+
+        if ($quote->isRefused()) {
+            return UnitReinstatePreviewData::refused($this->refusals->message((string) $quote->refusal, $quote->refusalDate));
+        }
+
+        return new UnitReinstatePreviewData(
+            previousTotal: $dayUse->amount,
+            newTotal: (string) $quote->amount->getAmount(),
             error: null,
         );
     }

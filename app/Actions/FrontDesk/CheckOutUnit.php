@@ -8,6 +8,7 @@ use App\Actions\Reservations\SyncReservationStatus;
 use App\Enums\FolioStatus;
 use App\Enums\FolioType;
 use App\Enums\HousekeepingStatus;
+use App\Enums\StayType;
 use App\Enums\UnitStatus;
 use App\Models\Bed;
 use App\Models\Folio;
@@ -136,10 +137,14 @@ class CheckOutUnit
     }
 
     /**
-     * The room of the unit's last night up to the business date. A bed gives its room.
+     * The room of the unit's last night up to the business date, or of its day use block. A bed gives its room.
      */
     private function roomOf(ReservationUnit $unit, string $today): ?int
     {
+        if ($unit->stay_type === StayType::DayUse) {
+            return $unit->dayUse()->value('room_id');
+        }
+
         $night = $unit->nights()->whereDate('date', '<=', $today)->where(fn ($query) => $query->whereNotNull('room_id')->orWhereNotNull('bed_id'))->orderByDesc('date')->first();
 
         if ($night === null) {

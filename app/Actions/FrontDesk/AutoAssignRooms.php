@@ -33,7 +33,7 @@ class AutoAssignRooms
     {
         $roomType = RoomType::query()->findOrFail($unit->room_type_id);
         $isBed = $roomType->sell_unit === SellUnit::Bed;
-        $free = array_map(fn ($item): int => $item->id, $this->freeUnits->forStay($roomType, $unit->arrival_date, $unit->departure_date, $unit->id));
+        $free = array_map(fn ($item): int => $item->id, $this->freeUnits->forStay($roomType, $unit->arrival_date, $unit->departure_date, $unit->id, $unit->arrival_time, $unit->departure_time));
         $result = AssignmentResult::refused(AssignmentResult::REFUSAL_NO_FREE_UNIT);
 
         foreach ($this->inOrder($free, $isBed) as $id) {

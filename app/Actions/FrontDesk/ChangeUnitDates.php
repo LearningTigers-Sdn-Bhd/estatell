@@ -270,7 +270,7 @@ class ChangeUnitDates
             $neighbour = $this->neighbour($kept, $run[0]);
             $carried = $neighbour === null ? null : ($roomType->sell_unit === SellUnit::Room ? $neighbour->room_id : $neighbour->bed_id);
             $free = $carried !== null
-                && $this->freeUnits->firstTakenNight($roomType, $carried, $run[0], $run[array_key_last($run)]->addDay(), $unit->id) === null;
+                && $this->freeUnits->firstTakenNight($roomType, $carried, $run[0], $run[array_key_last($run)]->addDay(), $unit->id, $unit->arrival_time, $unit->departure_time) === null;
 
             foreach ($run as $date) {
                 $price = $prices[$date->toDateString()];

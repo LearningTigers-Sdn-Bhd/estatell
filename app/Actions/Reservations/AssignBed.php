@@ -39,7 +39,7 @@ class AssignBed
                 return AssignmentResult::refused(AssignmentResult::REFUSAL_BED_NOT_FOUND);
             }
 
-            $taken = $this->freeUnits->firstTakenNight($roomType, $bed->id, $locked->arrival_date, $locked->departure_date, $locked->id);
+            $taken = $this->freeUnits->firstTakenNight($roomType, $bed->id, $locked->arrival_date, $locked->departure_date, $locked->id, $locked->arrival_time, $locked->departure_time);
 
             if ($taken !== null) {
                 return AssignmentResult::refused(AssignmentResult::REFUSAL_BED_NOT_FREE, $taken);

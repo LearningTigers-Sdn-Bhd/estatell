@@ -8,6 +8,7 @@ use App\Enums\AuditExceptionType;
 use App\Enums\BusinessDateStatus;
 use App\Enums\FolioStatus;
 use App\Enums\FolioType;
+use App\Enums\StayType;
 use App\Enums\UnitStatus;
 use App\Models\Folio;
 use App\Models\NightAuditException;
@@ -130,7 +131,7 @@ class AuditReadiness
         return $this->units($property, UnitStatus::CheckedIn)
             ->whereDate('departure_date', '<=', $date->toDateString())
             ->get()
-            ->map(fn (ReservationUnit $unit): ReadinessItem => $this->item(AuditCheck::DepartureNotCheckedOut, $unit))
+            ->map(fn (ReservationUnit $unit): ReadinessItem => $this->item(AuditCheck::DepartureNotCheckedOut, $unit, $this->endedDayUseDetail($unit)))
             ->all();
     }
 
@@ -284,6 +285,20 @@ class AuditReadiness
             ->where('status', $status->value)
             ->with(['reservation.booker', 'guests.guest'])
             ->orderBy('id');
+    }
+
+    /**
+     * "Day use · ended 14:00" for a day use unit, otherwise null (the item then shows its dates).
+     */
+    private function endedDayUseDetail(ReservationUnit $unit): ?string
+    {
+        if ($unit->stay_type !== StayType::DayUse) {
+            return null;
+        }
+
+        $endsAt = $unit->dayUse()->value('ends_at');
+
+        return $endsAt === null ? null : __('Day use · ended :time', ['time' => substr($endsAt, 0, 5)]);
     }
 
     private function item(AuditCheck $check, ReservationUnit $unit, ?string $detail = null, ?string $message = null, ?int $retryExceptionId = null): ReadinessItem

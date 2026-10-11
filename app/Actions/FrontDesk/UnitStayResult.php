@@ -68,6 +68,8 @@ class UnitStayResult
 
     public const REFUSAL_TIME_NOT_LATER = 'time_not_later';
 
+    public const REFUSAL_ROOM_NOT_FREE = 'room_not_free';
+
     private function __construct(
         public readonly ?ReservationUnit $unit,
         public readonly ?string $refusal,

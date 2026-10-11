@@ -12,6 +12,7 @@ use App\Actions\FrontDesk\ExtendDepartureTime;
 use App\Actions\FrontDesk\MarkNoShow;
 use App\Actions\FrontDesk\MoveUnit;
 use App\Actions\FrontDesk\ReinstateUnit;
+use App\Actions\FrontDesk\UnitStayResult;
 use App\Actions\Reservations\AssignmentResult;
 use App\Enums\PermissionEnum;
 use App\Enums\SystemTransactionCode;
@@ -168,6 +169,11 @@ class ReservationUnitStayController extends Controller
     public function lateCheckOut(LateCheckOutRequest $request, Property $property, Reservation $reservation, ReservationUnit $unit, ExtendDepartureTime $extendDepartureTime, ReservationRefusals $refusals): RedirectResponse
     {
         $result = $extendDepartureTime($request->user(), $unit, $request->string('new_time')->toString(), $request->doNotCharge(), $request->reason(), $request->expectedFee());
+
+        if ($result->refusal === UnitStayResult::REFUSAL_ROOM_NOT_FREE) {
+            return back(fallback: route('reservations.show', ['property' => $property, 'reservation' => $reservation]))
+                ->withErrors(['new_time' => __('A day use starts in this room before that time. Choose an earlier time.')]);
+        }
 
         return $this->respond($property, $reservation, $result->refusal, $refusals, __('Departure time extended.'));
     }

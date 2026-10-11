@@ -6,8 +6,10 @@ use App\Data\Reservations\FreeUnitData;
 use App\Enums\SellUnit;
 use App\Enums\UnitStatus;
 use App\Models\Bed;
+use App\Models\PropertySetting;
 use App\Models\Room;
 use App\Models\RoomType;
+use App\Models\UnitDayUse;
 use App\Models\UnitNight;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
@@ -18,7 +20,12 @@ use Spatie\Period\Precision;
 /**
  * The rooms or beds of a room type that are free on every night of a stay, for the Room / Bed picker and for the
  * check inside `AssignRoom` and `AssignBed`. A unit is not free on a night when a room block covers it, or when a
- * unit that holds inventory already has it. It reads only and stores nothing.
+ * unit that holds inventory already has it. A live day use also takes its room (see `takenNights()`). It reads only and
+ * stores nothing.
+ *
+ * `$arrivalTime` and `$departureTime` (`H:i` or `H:i:s`) are the unit's own times, which decide whether a day use on
+ * the arrival or departure date overlaps the stay. Without them the property check-in and check-out times count, as
+ * for a new booking or a unit with no times yet. See docs/12-reservations/10-day-use.md.
  */
 class FreeUnits
 {
@@ -30,7 +37,7 @@ class FreeUnits
      * @param  int|null  $exceptUnitId  A reservation unit whose own assignment does not count, so it can keep or change its pick.
      * @return list<FreeUnitData>
      */
-    public function forStay(RoomType $roomType, CarbonInterface $arrival, CarbonInterface $departure, ?int $exceptUnitId = null): array
+    public function forStay(RoomType $roomType, CarbonInterface $arrival, CarbonInterface $departure, ?int $exceptUnitId = null, ?string $arrivalTime = null, ?string $departureTime = null): array
     {
         $stay = $this->stay($arrival, $departure);
 
@@ -39,7 +46,7 @@ class FreeUnits
         }
 
         $unitsByRoom = $this->availability->unitsByRoom($roomType);
-        $taken = $this->takenNights($roomType, $unitsByRoom, $stay, $exceptUnitId);
+        $taken = $this->takenNights($roomType, $unitsByRoom, $stay, $exceptUnitId, $arrivalTime, $departureTime);
         $isBed = $roomType->sell_unit === SellUnit::Bed;
         $rooms = Room::query()->whereIn('id', array_keys($unitsByRoom))->orderBy('position')->orderBy('id')->get();
         $beds = $isBed ? Bed::query()->whereIn('room_id', array_keys($unitsByRoom))->get()->keyBy('id') : collect();
@@ -67,7 +74,7 @@ class FreeUnits
     /**
      * The first night of the stay on which the room or bed is not free, or null when it is free on every night.
      */
-    public function firstTakenNight(RoomType $roomType, int $unitId, CarbonInterface $arrival, CarbonInterface $departure, ?int $exceptUnitId = null): ?CarbonImmutable
+    public function firstTakenNight(RoomType $roomType, int $unitId, CarbonInterface $arrival, CarbonInterface $departure, ?int $exceptUnitId = null, ?string $arrivalTime = null, ?string $departureTime = null): ?CarbonImmutable
     {
         $stay = $this->stay($arrival, $departure);
 
@@ -75,7 +82,7 @@ class FreeUnits
             return null;
         }
 
-        $dates = $this->takenNights($roomType, $this->availability->unitsByRoom($roomType), $stay, $exceptUnitId)[$unitId] ?? [];
+        $dates = $this->takenNights($roomType, $this->availability->unitsByRoom($roomType), $stay, $exceptUnitId, $arrivalTime, $departureTime)[$unitId] ?? [];
 
         return $dates === [] ? null : CarbonImmutable::parse(min($dates));
     }
@@ -89,12 +96,15 @@ class FreeUnits
     }
 
     /**
-     * The nights of the stay on which each room or bed is blocked or already assigned, by unit id.
+     * The nights of the stay on which each room or bed is blocked or already assigned, by unit id. A live day use (not
+     * released, on a unit that holds inventory) takes its room: on the arrival date when it ends after the arrival time,
+     * on the departure date when it starts before the departure time (counted on the last night), and on any date in
+     * between. Beds are never taken by a day use.
      *
      * @param  array<int, list<int>>  $unitsByRoom
      * @return array<int, list<string>>
      */
-    private function takenNights(RoomType $roomType, array $unitsByRoom, Period $stay, ?int $exceptUnitId): array
+    private function takenNights(RoomType $roomType, array $unitsByRoom, Period $stay, ?int $exceptUnitId, ?string $arrivalTime, ?string $departureTime): array
     {
         $taken = [];
 
@@ -118,6 +128,64 @@ class FreeUnits
             $taken[$night->bed_id ?? $night->room_id][] = $night->date->toDateString();
         }
 
+        foreach ($this->takenByDayUse($roomType, $unitsByRoom, $stay, $exceptUnitId, $arrivalTime, $departureTime) as $roomId => $dates) {
+            $taken[$roomId] = [...($taken[$roomId] ?? []), ...$dates];
+        }
+
         return $taken;
+    }
+
+    /**
+     * @param  array<int, list<int>>  $unitsByRoom
+     * @return array<int, list<string>> The nights taken by live day use blocks, by room id.
+     */
+    private function takenByDayUse(RoomType $roomType, array $unitsByRoom, Period $stay, ?int $exceptUnitId, ?string $arrivalTime, ?string $departureTime): array
+    {
+        if ($roomType->sell_unit !== SellUnit::Room || $unitsByRoom === []) {
+            return [];
+        }
+
+        $first = $stay->includedStart()->format('Y-m-d');
+        $last = $stay->includedEnd()->format('Y-m-d');
+        $departureDate = CarbonImmutable::parse($last)->addDay()->toDateString();
+        $settings = PropertySetting::query()->where('property_id', $roomType->property_id)->first();
+        $arrives = $this->normalize($arrivalTime ?? $settings?->check_in_time ?? '15:00');
+        $departs = $this->normalize($departureTime ?? $settings?->check_out_time ?? '11:00');
+        $blocks = UnitDayUse::query()
+            ->join('reservation_units', 'reservation_units.id', '=', 'unit_day_uses.reservation_unit_id')
+            ->where('reservation_units.property_id', $roomType->property_id)
+            ->whereIn('reservation_units.status', array_map(fn (UnitStatus $status): string => $status->value, UnitStatus::holdingInventory()))
+            ->whereIn('unit_day_uses.room_id', array_keys($unitsByRoom))
+            ->whereNull('unit_day_uses.released_at')
+            ->whereBetween('unit_day_uses.date', [$first, $departureDate])
+            ->when($exceptUnitId !== null, fn ($query) => $query->where('reservation_units.id', '!=', $exceptUnitId))
+            ->get(['unit_day_uses.room_id', 'unit_day_uses.date', 'unit_day_uses.starts_at', 'unit_day_uses.ends_at']);
+        $taken = [];
+
+        foreach ($blocks as $block) {
+            $date = $block->date->toDateString();
+
+            if ($date === $first) {
+                $overlaps = $block->ends_at > $arrives;
+                $night = $date;
+            } elseif ($date === $departureDate) {
+                $overlaps = $block->starts_at < $departs;
+                $night = $last;
+            } else {
+                $overlaps = true;
+                $night = $date;
+            }
+
+            if ($overlaps) {
+                $taken[$block->room_id][] = $night;
+            }
+        }
+
+        return $taken;
+    }
+
+    private function normalize(string $time): string
+    {
+        return strlen($time) === 5 ? $time.':00' : $time;
     }
 }

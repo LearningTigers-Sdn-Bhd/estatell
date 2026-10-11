@@ -4,16 +4,20 @@ namespace App\Actions\FrontDesk;
 
 use App\Actions\CityLedger\RecordCreditOverride;
 use App\Actions\Folio\PostCharge;
+use App\Actions\Folio\PostDayUseBlock;
 use App\Actions\Reservations\SyncReservationStatus;
 use App\Data\Folio\NewChargeData;
+use App\Enums\StayType;
 use App\Enums\UnitStatus;
 use App\Models\ReservationUnit;
 use App\Models\Tax;
+use App\Models\UnitAddOn;
 use App\Models\User;
 use App\Services\CityLedger\CreditCheck;
 use App\Services\NightAudit\CurrentBusinessDate;
 use App\Services\Registration\RegistrationCardRequirement;
 use App\Services\Reservations\UnitNationality;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 
 class CheckInUnit
@@ -25,6 +29,7 @@ class CheckInUnit
         private CreditCheck $creditCheck,
         private RecordCreditOverride $recordCreditOverride,
         private PostCharge $postCharge,
+        private PostDayUseBlock $postDayUseBlock,
         private AutoAssignRooms $autoAssignRooms,
         private SyncReservationStatus $syncReservationStatus,
     ) {}
@@ -38,6 +43,11 @@ class CheckInUnit
      * `$withoutCard` skips the registration card rule, and `$creditOverrideReason` passes a company over its credit
      * limit. The route passes each only to a user with `front-desk.check-in-without-card` or `company.credit-override`.
      * A unit with no room tonight gets one from `AutoAssignRooms` when the property has `auto_assign_rooms` on.
+     *
+     * A day use unit checks in only on its date (`arrival_not_reached` before it, `stay_ended` after it) and takes its
+     * room from `unit_day_uses` (`no_room_assigned` without one). Its block is posted at check-in, because the guest
+     * leaves before the night audit: first every unposted add-on of the unit, dated or not, then the block through
+     * `PostDayUseBlock`. A posting refusal rolls the whole check-in back.
      * Permissions are checked by the route. See docs/18-front-desk/01-check-in-and-check-out.md.
      */
     public function __invoke(User $actor, ReservationUnit $unit, bool $withoutCard = false, ?string $creditOverrideReason = null): UnitStayResult
@@ -63,19 +73,33 @@ class CheckInUnit
                     return UnitStayResult::refused(UnitStayResult::REFUSAL_ARRIVAL_NOT_REACHED);
                 }
 
-                if ($today >= $locked->departure_date->toDateString()) {
+                $isDayUse = $locked->stay_type === StayType::DayUse;
+
+                if ($isDayUse ? $today > $locked->arrival_date->toDateString() : $today >= $locked->departure_date->toDateString()) {
                     return UnitStayResult::refused(UnitStayResult::REFUSAL_STAY_ENDED);
                 }
 
-                $tonight = $locked->nights()->whereDate('date', $today)->first();
+                if ($isDayUse) {
+                    $roomId = $locked->dayUse()->value('room_id');
+                    $bedId = null;
 
-                if ($tonight !== null && $tonight->room_id === null && $tonight->bed_id === null && $property->settings?->auto_assign_rooms) {
-                    ($this->autoAssignRooms)($actor, $locked);
+                    if ($roomId === null) {
+                        return UnitStayResult::refused(UnitStayResult::REFUSAL_NO_ROOM_ASSIGNED);
+                    }
+                } else {
                     $tonight = $locked->nights()->whereDate('date', $today)->first();
-                }
 
-                if ($tonight === null || ($tonight->room_id === null && $tonight->bed_id === null)) {
-                    return UnitStayResult::refused(UnitStayResult::REFUSAL_NO_ROOM_ASSIGNED);
+                    if ($tonight !== null && $tonight->room_id === null && $tonight->bed_id === null && $property->settings?->auto_assign_rooms) {
+                        ($this->autoAssignRooms)($actor, $locked);
+                        $tonight = $locked->nights()->whereDate('date', $today)->first();
+                    }
+
+                    if ($tonight === null || ($tonight->room_id === null && $tonight->bed_id === null)) {
+                        return UnitStayResult::refused(UnitStayResult::REFUSAL_NO_ROOM_ASSIGNED);
+                    }
+
+                    $roomId = $tonight->room_id;
+                    $bedId = $tonight->bed_id;
                 }
 
                 if (! $withoutCard
@@ -101,7 +125,12 @@ class CheckInUnit
                 $locked->checked_in_at = now();
                 $locked->save();
 
-                $this->postUndatedAddOns($actor, $locked);
+                if ($isDayUse) {
+                    $this->postAddOns($actor, $locked, $locked->addOns()->whereNull('folio_line_id')->orderBy('id')->get());
+                    $this->postBlock($actor, $locked, $today);
+                } else {
+                    $this->postAddOns($actor, $locked, $locked->addOns()->whereNull('service_date')->whereNull('folio_line_id')->orderBy('id')->get());
+                }
 
                 if ($overridden) {
                     ($this->recordCreditOverride)($actor, $company, $check, (string) $creditOverrideReason, 'check_in');
@@ -114,8 +143,8 @@ class CheckInUnit
                     ->withProperties([
                         'property_id' => $locked->property_id,
                         'reservation_unit_id' => $locked->id,
-                        'room_id' => $tonight->room_id,
-                        'bed_id' => $tonight->bed_id,
+                        'room_id' => $roomId,
+                        'bed_id' => $bedId,
                         'without_card' => $withoutCard,
                         'business_date' => $today,
                     ])
@@ -131,12 +160,12 @@ class CheckInUnit
     }
 
     /**
+     * @param  Collection<int, UnitAddOn>  $addOns
+     *
      * @throws UnitStayRefused when an add-on is refused by `PostCharge`
      */
-    private function postUndatedAddOns(User $actor, ReservationUnit $unit): void
+    private function postAddOns(User $actor, ReservationUnit $unit, Collection $addOns): void
     {
-        $addOns = $unit->addOns()->whereNull('service_date')->whereNull('folio_line_id')->orderBy('id')->get();
-
         foreach ($addOns as $addOn) {
             $result = ($this->postCharge)($actor, $unit, new NewChargeData(
                 chargeItemId: $addOn->charge_item_id,
@@ -150,6 +179,18 @@ class CheckInUnit
             if ($result->isRefused()) {
                 throw new UnitStayRefused(UnitStayResult::refused((string) $result->refusal));
             }
+        }
+    }
+
+    /**
+     * @throws UnitStayRefused when the block is refused by `PostDayUseBlock`
+     */
+    private function postBlock(User $actor, ReservationUnit $unit, string $today): void
+    {
+        $result = ($this->postDayUseBlock)($actor, $unit, $today);
+
+        if ($result->isRefused()) {
+            throw new UnitStayRefused(UnitStayResult::refused((string) $result->refusal));
         }
     }
 }

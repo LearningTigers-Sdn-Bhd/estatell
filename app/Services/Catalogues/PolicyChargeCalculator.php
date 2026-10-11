@@ -5,6 +5,7 @@ namespace App\Services\Catalogues;
 use App\Enums\PolicyChargeMode;
 use App\Enums\PolicyRateBasis;
 use App\Enums\PolicyScope;
+use App\Enums\StayType;
 use App\Enums\SystemTransactionCode;
 use App\Models\ReservationUnit;
 use App\Models\RoomRevenuePolicy;
@@ -21,7 +22,10 @@ use InvalidArgumentException;
 /**
  * Works out what a no-show, cancellation, early departure or late check-out policy charges for a unit, before tax.
  * It reads only. The front desk Actions post the amount through `PostFolioCharge`. The policy applies as it is now,
- * because a booking keeps no copy of it.
+ * because a booking keeps no copy of it. A day use unit has no nights: its block counts as one night priced at
+ * `unit_day_uses.amount`, so First night, Whole stay and One charge all give the block price and Unused nights gives
+ * nothing. Current rate prices the block again with `RateQuoteService::quoteDayUse()` and keeps the booked amount when
+ * that is refused.
  */
 class PolicyChargeCalculator
 {
@@ -46,6 +50,10 @@ class PolicyChargeCalculator
             return new PolicyCharge($zero);
         }
 
+        if ($unit->stay_type === StayType::DayUse) {
+            return $this->dayUseCharge($policy, $unit, $zero);
+        }
+
         $nights = $this->chargedNights($policy, $unit, $newDeparture);
 
         if ($nights->isEmpty() && $policy->applies_to === PolicyScope::UnusedNights) {
@@ -53,6 +61,24 @@ class PolicyChargeCalculator
         }
 
         return new PolicyCharge($this->amount($policy, $this->baseAmount($policy, $unit, $nights, $zero)));
+    }
+
+    private function dayUseCharge(RoomRevenuePolicy $policy, ReservationUnit $unit, Money $zero): PolicyCharge
+    {
+        $dayUse = $unit->dayUse()->first();
+
+        if ($dayUse === null || $policy->applies_to === PolicyScope::UnusedNights) {
+            return new PolicyCharge($zero);
+        }
+
+        $base = Money::of($dayUse->amount, $zero->getCurrency());
+
+        if ($policy->percent_basis === PolicyRateBasis::CurrentRate) {
+            $quote = $this->rateQuoteService->quoteDayUse($unit->roomType()->firstOrFail(), $unit->ratePlan()->firstOrFail(), $dayUse->date, $dayUse->hours);
+            $base = $quote->isRefused() ? $base : $quote->amount;
+        }
+
+        return new PolicyCharge($this->amount($policy, $base));
     }
 
     /**

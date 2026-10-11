@@ -4,6 +4,7 @@ namespace App\Actions\FrontDesk;
 
 use App\Actions\Reservations\AssignmentResult;
 use App\Enums\SellUnit;
+use App\Enums\StayType;
 use App\Enums\UnitStatus;
 use App\Models\Bed;
 use App\Models\ReservationUnit;
@@ -11,6 +12,7 @@ use App\Models\Room;
 use App\Models\RoomType;
 use App\Models\UnitNight;
 use App\Models\User;
+use App\Services\Availability\DayUseAvailability;
 use App\Services\Availability\FreeUnits;
 use App\Services\NightAudit\CurrentBusinessDate;
 use Carbon\CarbonImmutable;
@@ -21,6 +23,7 @@ class MoveUnit
 {
     public function __construct(
         private FreeUnits $freeUnits,
+        private DayUseAvailability $dayUseAvailability,
         private CurrentBusinessDate $currentBusinessDate,
     ) {}
 
@@ -34,6 +37,11 @@ class MoveUnit
      * room type is allowed only when that type has the same sell unit and is linked to the unit's rate plan
      * (`room_type_not_allowed`), and only for the whole stay (`whole_stay_required`), because a unit has one room
      * type. The nights keep their booked prices. Permissions are checked by the route.
+     *
+     * A day use unit moves its block to another Room of the same room type for the same hours (`moveDayUse()`): a Bed or
+     * another room type is refused as `room_not_found` or `room_type_not_allowed`, `$fromNight` is ignored (the block
+     * is on one date), the date must not be past (`night_in_past`), a reason is always required, the same room is
+     * `unchanged`, and a room with a live block or an overnight guest in those hours is `room_not_free`. The amount stays.
      * See docs/18-front-desk/02-room-and-bed-assignment.md.
      */
     public function __invoke(User $actor, ReservationUnit $unit, Room|Bed $target, CarbonInterface $fromNight, string $reason): AssignmentResult
@@ -47,6 +55,10 @@ class MoveUnit
 
             if (! in_array($locked->status, [UnitStatus::Confirmed, UnitStatus::CheckedIn], true)) {
                 return AssignmentResult::refused(AssignmentResult::REFUSAL_UNIT_NOT_OPEN);
+            }
+
+            if ($locked->stay_type === StayType::DayUse) {
+                return $this->moveDayUse($actor, $locked, $target, $reason);
             }
 
             $from = CarbonImmutable::instance($fromNight)->startOfDay();
@@ -92,7 +104,7 @@ class MoveUnit
                 return AssignmentResult::refused(AssignmentResult::REFUSAL_UNCHANGED);
             }
 
-            $taken = $this->freeUnits->firstTakenNight($targetType, $target->id, $from, $locked->departure_date, $locked->id);
+            $taken = $this->freeUnits->firstTakenNight($targetType, $target->id, $from, $locked->departure_date, $locked->id, $locked->arrival_time, $locked->departure_time);
 
             if ($taken !== null) {
                 return AssignmentResult::refused($isBed ? AssignmentResult::REFUSAL_BED_NOT_FREE : AssignmentResult::REFUSAL_ROOM_NOT_FREE, $taken);
@@ -131,5 +143,65 @@ class MoveUnit
 
             return AssignmentResult::assigned();
         });
+    }
+
+    private function moveDayUse(User $actor, ReservationUnit $locked, Room|Bed $target, string $reason): AssignmentResult
+    {
+        $reason = trim($reason);
+
+        if ($reason === '') {
+            return AssignmentResult::refused(AssignmentResult::REFUSAL_REASON_REQUIRED);
+        }
+
+        $dayUse = $locked->dayUse()->lockForUpdate()->firstOrFail();
+        $businessDate = $this->currentBusinessDate->date($locked->property);
+
+        if ($businessDate !== null && $businessDate->toDateString() > $dayUse->date->toDateString()) {
+            return AssignmentResult::refused(AssignmentResult::REFUSAL_NIGHT_IN_PAST);
+        }
+
+        if (! $target instanceof Room || ! $this->freeUnits->isSellable($target->roomType()->firstOrFail(), $target->id)) {
+            return AssignmentResult::refused(AssignmentResult::REFUSAL_ROOM_NOT_FOUND);
+        }
+
+        if ($target->room_type_id !== $locked->room_type_id) {
+            return AssignmentResult::refused(AssignmentResult::REFUSAL_ROOM_TYPE_NOT_ALLOWED);
+        }
+
+        if ($dayUse->room_id === $target->id) {
+            return AssignmentResult::refused(AssignmentResult::REFUSAL_UNCHANGED);
+        }
+
+        Room::query()->lockForUpdate()->findOrFail($target->id);
+        $roomType = RoomType::query()->findOrFail($locked->room_type_id);
+
+        if (! $this->dayUseAvailability->isFree($roomType, $target->id, $dayUse->date, $dayUse->starts_at, $dayUse->ends_at, $locked->id)) {
+            return AssignmentResult::refused(AssignmentResult::REFUSAL_ROOM_NOT_FREE, $dayUse->date);
+        }
+
+        $previousRoomId = $dayUse->room_id;
+        $dayUse->room_id = $target->id;
+        $dayUse->save();
+
+        activity()
+            ->performedOn($locked->reservation)
+            ->causedBy($actor)
+            ->event('reservation.unit_moved')
+            ->withProperties([
+                'property_id' => $locked->property_id,
+                'reservation_unit_id' => $locked->id,
+                'stay_type' => StayType::DayUse->value,
+                'from_night' => $dayUse->date->toDateString(),
+                'starts_at' => substr($dayUse->starts_at, 0, 5),
+                'ends_at' => substr($dayUse->ends_at, 0, 5),
+                'room_id' => $target->id,
+                'bed_id' => null,
+                'room_type_id' => $locked->room_type_id,
+                'previous' => ['room_ids' => $previousRoomId === null ? [] : [$previousRoomId], 'bed_ids' => []],
+                'reason' => $reason,
+            ])
+            ->log('Unit moved');
+
+        return AssignmentResult::assigned();
     }
 }

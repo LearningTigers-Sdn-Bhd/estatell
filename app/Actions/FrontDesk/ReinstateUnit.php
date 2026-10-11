@@ -3,12 +3,15 @@
 namespace App\Actions\FrontDesk;
 
 use App\Actions\Reservations\SyncReservationStatus;
+use App\Enums\StayType;
 use App\Enums\UnitStatus;
 use App\Models\ReservationUnit;
+use App\Models\Room;
 use App\Models\RoomType;
 use App\Models\UnitNight;
 use App\Models\User;
 use App\Services\Availability\AvailabilityService;
+use App\Services\Availability\DayUseAvailability;
 use App\Services\Availability\NightAvailability;
 use App\Services\NightAudit\CurrentBusinessDate;
 use App\Services\Rates\RateQuoteRequest;
@@ -21,6 +24,7 @@ class ReinstateUnit
     public function __construct(
         private CurrentBusinessDate $currentBusinessDate,
         private AvailabilityService $availability,
+        private DayUseAvailability $dayUseAvailability,
         private RateQuoteService $rateQuoteService,
         private SyncReservationStatus $syncReservationStatus,
     ) {}
@@ -35,7 +39,13 @@ class ReinstateUnit
      * `reservation_unit_children`. A stay override stays: a night with an `override_amount` keeps it as its amount.
      * The room or bed of every night is cleared again, as a safeguard (cancel and no-show already released them).
      * Staff assign with `AssignRoom` or `AssignBed`. A fee already posted stays on the folio, and the
-     * correction is `ReverseLine`. Permissions are checked by the route.
+     * correction is `ReverseLine`.
+     *
+     * A day use unit (`reinstateDayUse()`) may come back until its date (`stay_ended` only after it). It locks its room
+     * row, checks the room again for the same hours with `DayUseAvailability::isFree` (`not_available` when another
+     * block or guest has taken it), prices the block again with `RateQuoteService::quoteDayUse()` for the same plan,
+     * date and hours, stores the new `unit_day_uses.amount` and clears `released_at`; the room stays. Permissions
+     * are checked by the route.
      * See docs/18-front-desk/01-check-in-and-check-out.md.
      */
     public function __invoke(User $actor, ReservationUnit $unit, string $reason): UnitStayResult
@@ -57,6 +67,10 @@ class ReinstateUnit
 
             if ($businessDate === null) {
                 return UnitStayResult::refused(UnitStayResult::REFUSAL_NO_BUSINESS_DATE);
+            }
+
+            if ($locked->stay_type === StayType::DayUse) {
+                return $this->reinstateDayUse($actor, $locked, $reason, $businessDate->toDateString());
             }
 
             if ($businessDate->toDateString() >= $locked->departure_date->toDateString()) {
@@ -129,5 +143,57 @@ class ReinstateUnit
 
             return UnitStayResult::done($locked);
         });
+    }
+
+    private function reinstateDayUse(User $actor, ReservationUnit $locked, string $reason, string $today): UnitStayResult
+    {
+        $dayUse = $locked->dayUse()->lockForUpdate()->firstOrFail();
+
+        if ($today > $dayUse->date->toDateString()) {
+            return UnitStayResult::refused(UnitStayResult::REFUSAL_STAY_ENDED);
+        }
+
+        $roomType = RoomType::query()->lockForUpdate()->findOrFail($locked->room_type_id);
+
+        if ($dayUse->room_id !== null) {
+            Room::query()->lockForUpdate()->findOrFail($dayUse->room_id);
+        }
+
+        if ($dayUse->room_id === null || ! $this->dayUseAvailability->isFree($roomType, $dayUse->room_id, $dayUse->date, $dayUse->starts_at, $dayUse->ends_at, $locked->id)) {
+            return UnitStayResult::refused(UnitStayResult::REFUSAL_NOT_AVAILABLE);
+        }
+
+        $quote = $this->rateQuoteService->quoteDayUse($roomType, $locked->ratePlan()->firstOrFail(), $dayUse->date, $dayUse->hours);
+
+        if ($quote->isRefused()) {
+            return UnitStayResult::refused((string) $quote->refusal);
+        }
+
+        $previousTotal = $dayUse->amount;
+        $dayUse->forceFill(['amount' => (string) $quote->amount->getAmount(), 'released_at' => null])->save();
+
+        $previousStatus = $locked->status;
+        $locked->status = UnitStatus::Confirmed;
+        $locked->save();
+
+        activity()
+            ->performedOn($locked->reservation)
+            ->causedBy($actor)
+            ->event('reservation.unit_reinstated')
+            ->withProperties([
+                'property_id' => $locked->property_id,
+                'reservation_unit_id' => $locked->id,
+                'stay_type' => StayType::DayUse->value,
+                'from_status' => $previousStatus->value,
+                'reason' => $reason,
+                'previous_total' => $previousTotal,
+                'total' => $dayUse->amount,
+                'business_date' => $today,
+            ])
+            ->log('Unit reinstated');
+
+        ($this->syncReservationStatus)($locked->reservation);
+
+        return UnitStayResult::done($locked);
     }
 }
