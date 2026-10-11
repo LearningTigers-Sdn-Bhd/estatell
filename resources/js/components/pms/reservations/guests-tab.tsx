@@ -125,8 +125,14 @@ export function GuestsTab({
             return;
         }
 
+        const inGroup =
+            grouped && activeGroup !== NOT_STAYING_KEY
+                ? Number(activeGroup)
+                : null;
         const preset =
-            unitId ?? (openUnits.length === 1 ? openUnits[0].id : null);
+            unitId ??
+            inGroup ??
+            (openUnits.length === 1 ? openUnits[0].id : null);
 
         setDrafts((current) => [
             ...current,
