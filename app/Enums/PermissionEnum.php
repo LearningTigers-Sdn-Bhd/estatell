@@ -27,6 +27,7 @@ enum PermissionEnum: string
     case GuestsAnonymize = 'guests.anonymize';
     case ReservationsView = 'reservations.view';
     case ReservationsManage = 'reservations.manage';
+    case ReservationsChangePrice = 'reservations.change-price';
     case FolioPostCharge = 'folio.post-charge';
     case FolioReverse = 'folio.reverse';
     case FolioTransfer = 'folio.transfer';
@@ -79,6 +80,7 @@ enum PermissionEnum: string
             self::GuestsAnonymize => __('Anonymize guests'),
             self::ReservationsView => __('View reservations'),
             self::ReservationsManage => __('Manage reservations'),
+            self::ReservationsChangePrice => __('Change the price of booked nights'),
             self::FolioPostCharge => __('Post charges to folios'),
             self::FolioReverse => __('Reverse folio lines'),
             self::FolioTransfer => __('Transfer folio lines and manage routing'),
@@ -123,7 +125,7 @@ enum PermissionEnum: string
             self::NotificationManage => __('System'),
             self::RatesView, self::RatesManage, self::RatesOverrideRestrictions => __('Rates'),
             self::GuestsView, self::GuestsManage, self::GuestsBlacklist, self::GuestsViewDocuments, self::GuestsMerge, self::GuestsAnonymize => __('Guests'),
-            self::ReservationsView, self::ReservationsManage => __('Reservations'),
+            self::ReservationsView, self::ReservationsManage, self::ReservationsChangePrice => __('Reservations'),
             self::FolioPostCharge, self::FolioReverse, self::FolioTransfer, self::FolioDiscount, self::FolioDiscountOpen, self::FolioClose, self::FolioReopen, self::FolioPrintVoucher => __('Folio'),
             self::PaymentRecord, self::PaymentRefund => __('Payments'),
             self::CompanyView, self::CompanyManage, self::CompanyCreditOverride, self::CityLedgerInvoice, self::CityLedgerCreditNote, self::CityLedgerPayment, self::CityLedgerAllocate => __('City ledger'),

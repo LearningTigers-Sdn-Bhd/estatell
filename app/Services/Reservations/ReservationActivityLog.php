@@ -46,8 +46,8 @@ class ReservationActivityLog
     }
 
     /**
-     * The price override of a unit as it was logged when the unit was added: its reason and who set it. Null when the
-     * unit has none.
+     * The latest price override of a unit: the one logged when the unit was added, or a later Change price. Its reason
+     * and who set it. Null when the unit has none.
      *
      * @return array{reason: string, by: ?string}|null
      */
@@ -56,12 +56,14 @@ class ReservationActivityLog
         $activity = Activity::query()
             ->where('subject_type', $reservation->getMorphClass())
             ->where('subject_id', $reservation->id)
-            ->where('event', 'reservation.unit_added')
+            ->where(fn ($query) => $query
+                ->where(fn ($added) => $added->where('event', 'reservation.unit_added')->whereNotNull('properties->override_reason'))
+                ->orWhere('event', 'reservation.night_price_changed'))
             ->where('properties->reservation_unit_id', $unitId)
             ->with('causer')
             ->latest('id')
             ->first();
-        $reason = $activity?->properties->get('override_reason');
+        $reason = $activity?->properties->get($activity->event === 'reservation.unit_added' ? 'override_reason' : 'reason');
 
         return $reason === null ? null : ['reason' => (string) $reason, 'by' => $activity->causer?->name];
     }
@@ -94,11 +96,18 @@ class ReservationActivityLog
             ]),
             'reservation.group_updated' => $this->groupText($properties->get('old', []), $properties->get('new', [])),
             'reservation.guest_attached' => __(':guest added to a unit', ['guest' => $name('guest_id')]),
+            'reservation.night_price_changed' => trans_choice('Price of :count night changed to :amount|Price of :count nights changed to :amount', count($properties->get('nights', [])), [
+                'amount' => data_get($properties->get('nights', []), '0.new_amount'),
+            ]),
             default => (string) $activity->description,
         };
 
         if ($activity->event === 'reservation.unit_added') {
             $reason = $this->overrideReason($properties);
+        }
+
+        if ($activity->event === 'reservation.night_price_changed') {
+            $reason = (string) $properties->get('reason');
         }
 
         return new ReservationActivityData(

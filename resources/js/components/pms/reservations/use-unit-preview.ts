@@ -9,10 +9,10 @@ import { useEffect, useState } from 'react';
 export function useUnitPreview<T>(
     url: string,
     active: boolean,
-    body: Record<string, string> = {},
+    body: Record<string, string | number[]> = {},
     delay = 0,
 ): { preview: T | null; reload: () => void } {
-    const http = useHttp<Record<string, string>, T>('post', url, {});
+    const http = useHttp<Record<string, string | number[]>, T>('post', url, {});
     const [preview, setPreview] = useState<T | null>(null);
     const [attempt, setAttempt] = useState(0);
     const key = JSON.stringify(body);

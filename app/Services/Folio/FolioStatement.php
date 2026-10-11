@@ -24,6 +24,7 @@ use App\Models\Folio;
 use App\Models\FolioLine;
 use App\Models\Property;
 use App\Models\Reservation;
+use App\Models\UnitNight;
 use App\Models\User;
 use App\Services\CityLedger\ArInvoiceVoidCheck;
 use App\Services\CityLedger\CreditCheck;
@@ -52,11 +53,11 @@ class FolioStatement
      * Expects the property's `settings` and the reservation's `booker` to be loaded. An unknown `$selected` falls back to the Master folio, or
      * the first entry.
      *
-     * `$can` says what the user may do: post a charge, reverse a line, move charges, apply or remove a discount, close the folio, record or refund a payment. Rows and options carry only
+     * `$can` says what the user may do: post a charge, reverse a line, move charges, apply or remove a discount, close the folio, record or refund a payment, correct the price of a night. Rows and options carry only
      * what is allowed now, so the page never works it out.
      *
      * @param  list<ReservationUnitOptionData>  $units
-     * @param  array{postCharge?: bool, reverse?: bool, transfer?: bool, discount?: bool, close?: bool, recordPayment?: bool, refund?: bool, printVoucher?: bool, settleCityLedger?: bool}  $can
+     * @param  array{postCharge?: bool, reverse?: bool, transfer?: bool, discount?: bool, close?: bool, recordPayment?: bool, refund?: bool, printVoucher?: bool, settleCityLedger?: bool, changePrice?: bool}  $can
      * @return array{folios: list<FolioRailItemData>, folio: FolioData|null}
      */
     public function build(Property $property, Reservation $reservation, array $units, string $selected = '', array $can = [], ?User $user = null): array
@@ -207,7 +208,12 @@ class FolioStatement
             $scheduled->each(fn (FolioRowData $row) => $row->printable = true);
         }
 
-        [$posted, $discountable] = $folio === null ? [collect(), false] : $this->postedRows($folio, $allowed, $isOpen && ($can['discount'] ?? false), $isOpen && ($can['refund'] ?? false), $can['recordPayment'] ?? false, $can['printVoucher'] ?? false, $labels);
+        $priceUnitIds = $isOpen && ($can['changePrice'] ?? false) ? collect($units)
+            ->filter(fn (ReservationUnitOptionData $unit): bool => in_array($unit->status->value, [UnitStatus::Confirmed->value, UnitStatus::CheckedIn->value, UnitStatus::CheckedOut->value], true))
+            ->map(fn (ReservationUnitOptionData $unit): int => $unit->id)
+            ->values()
+            ->all() : [];
+        [$posted, $discountable] = $folio === null ? [collect(), false] : $this->postedRows($folio, $allowed, $isOpen && ($can['discount'] ?? false), $isOpen && ($can['refund'] ?? false), $can['recordPayment'] ?? false, $can['printVoucher'] ?? false, $labels, $priceUnitIds);
         $balance = $folio === null ? null : ($balances[$folio->id] ?? '0.00');
         $purposes = ($can['recordPayment'] ?? false) && ($folio === null || $isOpen)
             ? $this->paymentPurposeChoices->for($reservation, $folio, $entry['unit'])
@@ -289,14 +295,17 @@ class FolioStatement
      * A charge that is not a child, a reversal or already reversed takes the allowed actions. A discount line that
      * is not reversed offers Remove discount. A payment row carries its reference and the amount left to refund, and
      * offers Refund when something is left, and a receipt to a user with `payment.record`. A refund row is tagged Refund. The second value says whether any charge
-     * can still take a discount (a live charge with no live discount line).
+     * can still take a discount (a live charge with no live discount line). A live room line of a night of a unit in
+     * `$priceUnitIds` offers Correct price.
      *
      * @param  list<string>  $allowed
      * @param  array<int, string>  $labels  Unit label by unit id
+     * @param  list<int>  $priceUnitIds
      * @return array{0: Collection<int, FolioRowData>, 1: bool}
      */
-    private function postedRows(Folio $folio, array $allowed, bool $canRemoveDiscount, bool $canRefund, bool $canDownloadReceipt, bool $canPrintVoucher, array $labels): array
+    private function postedRows(Folio $folio, array $allowed, bool $canRemoveDiscount, bool $canRefund, bool $canDownloadReceipt, bool $canPrintVoucher, array $labels, array $priceUnitIds = []): array
     {
+        $nightMorph = (new UnitNight)->getMorphClass();
         $lines = $folio->lines()->orderBy('posting_date')->orderBy('id')->get();
         $payments = $folio->payments()->withSum('refunds', 'amount')->get()->keyBy('folio_line_id');
         $reversed = $lines->pluck('reversal_of_id')->filter()->flip();
@@ -304,7 +313,7 @@ class FolioStatement
         $rows = collect();
         $sourceUnits = $this->lineSourceUnits->for($lines);
 
-        $walk = function (FolioLine $line, int $level, ?int $parentUnitId) use (&$walk, $sourceUnits, $labels, $children, $reversed, $rows, $allowed, $canRemoveDiscount, $payments, $canRefund, $canDownloadReceipt, $canPrintVoucher): void {
+        $walk = function (FolioLine $line, int $level, ?int $parentUnitId) use (&$walk, $sourceUnits, $labels, $children, $reversed, $rows, $allowed, $canRemoveDiscount, $payments, $canRefund, $canDownloadReceipt, $canPrintVoucher, $nightMorph, $priceUnitIds): void {
             $tags = [];
             $unitId = $line->source_id === null ? $parentUnitId : ($sourceUnits[$line->source_type.':'.$line->source_id] ?? $parentUnitId);
 
@@ -322,6 +331,13 @@ class FolioStatement
                 $level === 1 && $live && $line->kind === TransactionKind::Adjustment && $canRemoveDiscount => ['remove_discount'],
                 default => [],
             };
+            $correctsNight = $level === 0 && $live && $line->kind === TransactionKind::Charge && $line->source_type === $nightMorph
+                && ! str_contains((string) $line->idempotency_key, ':incl:') && in_array($unitId, $priceUnitIds, true);
+
+            if ($correctsNight) {
+                $actions = [...$actions, 'correct_price'];
+            }
+
             $payment = $payments->get($line->id);
             $refundable = null;
 
@@ -332,7 +348,7 @@ class FolioStatement
                 $actions = $canRefund && $payment->status === PaymentStatus::Completed && BigDecimal::of($refundable)->isPositive() ? ['refund'] : [];
             }
 
-            $rows->push(new FolioRowData('line:'.$line->id, 'posted', $line->posting_date->toDateString(), $line->description, min($level, 2), $unitId === null ? null : ($labels[$unitId] ?? null), (string) $line->amount, array_map(BadgeData::fromFolioRowTag(...), $tags), $line->id, $actions, $payment?->reference, $payment?->id, $refundable, $canDownloadReceipt && $payment !== null && $payment->refund_of_id === null, $line->kind, $canPrintVoucher && FolioVoucher::isPrintable($line, $reversed->has($line->id))));
+            $rows->push(new FolioRowData('line:'.$line->id, 'posted', $line->posting_date->toDateString(), $line->description, min($level, 2), $unitId === null ? null : ($labels[$unitId] ?? null), (string) $line->amount, array_map(BadgeData::fromFolioRowTag(...), $tags), $line->id, $actions, $payment?->reference, $payment?->id, $refundable, $canDownloadReceipt && $payment !== null && $payment->refund_of_id === null, $line->kind, $canPrintVoucher && FolioVoucher::isPrintable($line, $reversed->has($line->id)), $correctsNight ? $unitId : null, $correctsNight ? $line->source_id : null));
 
             foreach ($children->get($line->id, []) as $child) {
                 $walk($child, $level + 1, $unitId);

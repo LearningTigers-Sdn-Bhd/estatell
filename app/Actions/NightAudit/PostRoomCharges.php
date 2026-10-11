@@ -2,9 +2,8 @@
 
 namespace App\Actions\NightAudit;
 
-use App\Actions\Folio\CreateFolio;
-use App\Actions\Folio\PostFolioCharge;
 use App\Actions\Folio\PostingResult;
+use App\Actions\Folio\PostNightLines;
 use App\Enums\FolioStatus;
 use App\Enums\SystemTransactionCode;
 use App\Enums\UnitStatus;
@@ -28,8 +27,7 @@ class PostRoomCharges
         private NightChargeQuote $nightChargeQuote,
         private FolioRouter $folioRouter,
         private FolioPostability $folioPostability,
-        private CreateFolio $createFolio,
-        private PostFolioCharge $postFolioCharge,
+        private PostNightLines $postNightLines,
         private UnitNationality $unitNationality,
     ) {}
 
@@ -37,7 +35,7 @@ class PostRoomCharges
      * Post one night of one CheckedIn unit on the current business date: the room line (key `night:{unit_night_id}`,
      * the unit night as its source), its stay and booking discounts, each inclusion, and the tax of every charge. The
      * lines come from `NightChargeQuote`, the same quote the folio page shows as Scheduled rows, and each charge goes
-     * to the folio `FolioRouter` chooses for its code. A null actor is the night audit. The unit row is locked first, so
+     * to the folio `FolioRouter` chooses for its code, written by `PostNightLines`. A null actor is the night audit. The unit row is locked first, so
      * two runs never race. Every check runs before the first write, so a refusal writes nothing. A night whose room line
      * already exists returns it as replayed and writes nothing. Automatic postings log no activity: the lines are the
      * record. `$date` is the night: the business date for the audit, or an earlier night for `RetryRoomCharge`. The
@@ -110,33 +108,16 @@ class PostRoomCharges
                 $targets[$charge->key] = $folio;
             }
 
-            $unitFolio = null;
-            $result = [];
-
-            foreach ($quote->charges as $charge) {
-                $folio = $targets[$charge->key] ?? $unitFolio ??= ($this->createFolio)($locked->reservation, $locked);
-                $discounts = array_map(
-                    fn (QuotedDiscount $discount): QuotedDiscount => new QuotedDiscount($discount->key, $discount->description, $discount->amount, $discount->transactionCodeId ?? $stayDiscountCode?->id),
-                    $charge->discounts,
-                );
-                $lines = ($this->postFolioCharge)(
-                    $actor,
-                    $folio,
-                    $charge->code,
-                    $earlierNight && $charge->key === 'night:'.$night->id
-                        ? __(':description · night of :date', ['description' => $charge->description, 'date' => $date->translatedFormat('j M')])
-                        : $charge->description,
-                    1,
-                    $charge->unitAmount,
-                    $charge->tax,
-                    $charge->key,
-                    $businessDate->toDateString(),
-                    $night,
-                    $charge->lineAmount,
-                    $discounts,
-                );
-                array_push($result, ...$lines);
-            }
+            $result = ($this->postNightLines)(
+                $actor,
+                $locked,
+                $night,
+                $quote,
+                $targets,
+                $businessDate->toDateString(),
+                $stayDiscountCode?->id,
+                $earlierNight ? __(':description · night of :date', ['description' => $quote->charges[0]->description, 'date' => $date->translatedFormat('j M')]) : null,
+            );
 
             return PostingResult::posted($result);
         });

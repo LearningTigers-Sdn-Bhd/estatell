@@ -10,6 +10,7 @@ use App\Http\Controllers\Reservations\ReservationFolioController;
 use App\Http\Controllers\Reservations\ReservationFolioMoveController;
 use App\Http\Controllers\Reservations\ReservationGroupCheckOutController;
 use App\Http\Controllers\Reservations\ReservationGroupController;
+use App\Http\Controllers\Reservations\ReservationNightPriceController;
 use App\Http\Controllers\Reservations\ReservationPaymentController;
 use App\Http\Controllers\Reservations\ReservationRoutingController;
 use App\Http\Controllers\Reservations\ReservationUnitAddOnController;
@@ -92,6 +93,11 @@ Route::prefix('reservations')->name('reservations.')->scopeBindings()->group(fun
                     Route::post('check-out', [ReservationUnitStayController::class, 'checkOut'])->name('check-out');
                     Route::post('late-check-out/preview', [ReservationUnitStayController::class, 'lateCheckOutPreview'])->name('late-check-out-preview');
                     Route::post('late-check-out', [ReservationUnitStayController::class, 'lateCheckOut'])->name('late-check-out');
+                });
+
+                Route::middleware('can:'.PermissionEnum::ReservationsChangePrice->value)->group(function () {
+                    Route::post('night-price/preview', [ReservationNightPriceController::class, 'preview'])->name('night-price.preview');
+                    Route::post('night-price', [ReservationNightPriceController::class, 'store'])->name('night-price');
                 });
             });
 

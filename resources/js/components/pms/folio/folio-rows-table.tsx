@@ -8,6 +8,7 @@ import {
     MoreHorizontal,
     PencilLine,
     RotateCcw,
+    Tag,
     Undo2,
     X,
 } from 'lucide-react';
@@ -129,7 +130,12 @@ export function FolioRowsTable({
     onPrintVoucher: (row: Row) => void;
     onAction: (
         row: Row,
-        action: 'reverse' | 'move' | 'remove_discount' | 'refund',
+        action:
+            | 'reverse'
+            | 'move'
+            | 'remove_discount'
+            | 'refund'
+            | 'correct_price',
     ) => void;
 }) {
     const [scheduledOpen, setScheduledOpen] = useState(true);
@@ -323,6 +329,21 @@ export function FolioRowsTable({
                                                             >
                                                                 <RotateCcw />
                                                                 Refund
+                                                            </DropdownMenuItem>
+                                                        )}
+                                                        {row.actions.includes(
+                                                            'correct_price',
+                                                        ) && (
+                                                            <DropdownMenuItem
+                                                                onClick={() =>
+                                                                    onAction(
+                                                                        row,
+                                                                        'correct_price',
+                                                                    )
+                                                                }
+                                                            >
+                                                                <Tag />
+                                                                Correct price…
                                                             </DropdownMenuItem>
                                                         )}
                                                         {row.actions.includes(

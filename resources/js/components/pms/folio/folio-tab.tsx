@@ -102,6 +102,7 @@ export function FolioTab({
     voucher,
     summaryHidden,
     onToggleSummary,
+    onCorrectPrice,
     currency,
 }: {
     reservationId: number;
@@ -119,6 +120,8 @@ export function FolioTab({
     voucher: VoucherOptions;
     summaryHidden: boolean;
     onToggleSummary: () => void;
+    /** Opens Change price for the night of a posted room line. The page holds the Dialog. */
+    onCorrectPrice?: (row: App.Data.Folio.FolioRowData) => void;
     currency: App.Enums.Currency | null;
 }) {
     const [loadingCredit, setLoadingCredit] = useState(false);
@@ -664,6 +667,8 @@ export function FolioTab({
                                             { query: { line: row.lineId } },
                                         ),
                                     );
+                                } else if (action === 'correct_price') {
+                                    onCorrectPrice?.(row);
                                 } else if (action === 'refund') {
                                     setRefunding(row);
                                 } else {

@@ -13,6 +13,7 @@ use Spatie\LaravelData\Data;
  * The unit panel of the Units tab. Expects `roomType`, `ratePlan`, `childAges`, `guests.guest` and `nights` with their
  * `room`, `bed` and `ratePlan` to be loaded. `assigned` lists the distinct rooms or beds of the nights, and
  * `allNightsAssigned` says whether every night has one. `actions` is the unit ⋯ menu the user may use.
+ * `canChangePrice` shows Change price on the night table, and `chargedNightIds` marks the nights already charged.
  */
 class ReservationUnitData extends Data
 {
@@ -44,9 +45,14 @@ class ReservationUnitData extends Data
         public ?string $priceOverrideReason,
         public ?string $priceOverrideBy,
         public array $actions,
+        public bool $canChangePrice,
     ) {}
 
-    public static function fromModel(ReservationUnit $unit, bool $canViewGuest, ?string $overrideReason, ?string $overrideBy, array $actions = []): self
+    /**
+     * @param  list<UnitActionData>  $actions
+     * @param  list<int>  $chargedNightIds
+     */
+    public static function fromModel(ReservationUnit $unit, bool $canViewGuest, ?string $overrideReason, ?string $overrideBy, array $actions = [], bool $canChangePrice = false, array $chargedNightIds = []): self
     {
         $nights = $unit->nights->sortBy('date')->values();
         $assigned = $nights->map(fn (UnitNight $night): ?string => $night->room?->number ?? $night->bed?->label);
@@ -70,10 +76,11 @@ class ReservationUnitData extends Data
             primaryGuest: $primary?->full_name,
             primaryGuestId: $canViewGuest ? $primary?->id : null,
             total: $nights->reduce(fn (BigDecimal $sum, UnitNight $night): BigDecimal => $sum->plus($night->amount), BigDecimal::zero())->toScale(2)->__toString(),
-            nights: $nights->map(fn (UnitNight $night): ReservationNightData => ReservationNightData::fromModel($night))->all(),
+            nights: $nights->map(fn (UnitNight $night): ReservationNightData => ReservationNightData::fromModel($night, in_array($night->id, $chargedNightIds, true)))->all(),
             priceOverrideReason: $overrideReason,
             priceOverrideBy: $overrideBy,
             actions: $actions,
+            canChangePrice: $canChangePrice,
         );
     }
 }

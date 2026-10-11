@@ -45,9 +45,12 @@ class NightChargeQuote
     }
 
     /**
+     * `$key` is the key of the room line, and the other keys follow it. It is `night:{id}`, or `night:{id}:fix:{n}` for
+     * a night corrected with Change price.
+     *
      * @param  Collection<int, Tax>  $propertyTaxes  From `propertyTaxes()`.
      */
-    public function quote(Property $property, Collection $propertyTaxes, ReservationUnit $unit, UnitNight $night, bool $firstNight, TransactionCode $roomCode, ?string $nationality): NightQuote
+    public function quote(Property $property, Collection $propertyTaxes, ReservationUnit $unit, UnitNight $night, bool $firstNight, TransactionCode $roomCode, ?string $nationality, ?string $key = null): NightQuote
     {
         $currency = $property->settings->currency->value;
         $overridden = $night->override_amount !== null;
@@ -75,7 +78,7 @@ class NightChargeQuote
         }
 
         $bookingDiscount = ($overridden || $unit->discount === null) ? Money::zero($currency) : $this->bookingDiscount($unit->discount, $net, $firstNight, $currency);
-        $key = 'night:'.$night->id;
+        $key ??= 'night:'.$night->id;
         $discounts = [];
 
         if ($stayDiscount->isPositive()) {

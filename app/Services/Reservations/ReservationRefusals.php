@@ -2,14 +2,17 @@
 
 namespace App\Services\Reservations;
 
+use App\Actions\Folio\PostingResult;
 use App\Actions\FrontDesk\UnitStayResult;
 use App\Actions\Reservations\AddOnResult;
 use App\Actions\Reservations\AssignmentResult;
 use App\Actions\Reservations\AttachGuestResult;
 use App\Actions\Reservations\BookingResult;
 use App\Actions\Reservations\GroupUpdateResult;
+use App\Actions\Reservations\NightPriceResult;
 use App\Actions\Reservations\ReservationResult;
 use App\Services\Folio\IncomingScheduledCharges;
+use App\Services\Packages\InclusionSplit;
 use App\Services\Rates\RateQuote;
 use Carbon\CarbonInterface;
 
@@ -63,6 +66,19 @@ class ReservationRefusals
     }
 
     /**
+     * The errors of the Change price Dialog: a refusal of a field it does not have shows at the top of the form.
+     *
+     * @return array<string, string>
+     */
+    public function nightPriceErrors(string $code): array
+    {
+        $errors = $this->unitErrors($code);
+        $field = (string) array_key_first($errors);
+
+        return in_array($field, ['night_ids', 'price', 'reason'], true) ? $errors : [self::FORM => $errors[$field]];
+    }
+
+    /**
      * The message alone, for a toast or a preview.
      */
     public function message(string $code, ?CarbonInterface $date = null): string
@@ -99,6 +115,10 @@ class ReservationRefusals
             'method_not_available' => ['payment_method_id', __('This payment method is not available.')],
             'reference_required' => ['reference', __('This payment method needs a reference.')],
             'folio_not_open' => [self::FORM, __('The unit folio is closed, so it cannot change.')],
+            PostingResult::REFUSAL_FOLIO_SETTLED => [self::FORM, __('A folio of these nights is settled to the city ledger, so it cannot change. Issue a credit note on its AR invoice instead.')],
+            NightPriceResult::REFUSAL_NIGHTS_INVALID => ['night_ids', __('Tick at least one night of this unit.')],
+            NightPriceResult::REFUSAL_PRICE_INVALID => ['price', __('Enter a price of 0 or more, with up to two decimals.')],
+            InclusionSplit::REFUSAL_EXCEEDS_NIGHT_AMOUNT => ['price', __('The price is less than the inclusions of the night.')],
             UnitStayResult::REFUSAL_REASON_REQUIRED => ['reason', __('Enter a reason.')],
             UnitStayResult::REFUSAL_FEE_CHANGED => ['expected_fee', __('The fee changed while this form was open. Check the new amount and confirm again.')],
             UnitStayResult::REFUSAL_POLICY_NOT_FOUND => [self::FORM, __('The policy for this fee is missing. Check Room revenue in settings.')],

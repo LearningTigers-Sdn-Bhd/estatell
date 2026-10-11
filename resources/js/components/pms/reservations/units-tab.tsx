@@ -1,13 +1,17 @@
 import { Link, router } from '@inertiajs/react';
 import { BedDouble, CalendarDays, Info, User, Users } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { DateText } from '@/components/pms/date-text';
 import { EnumSelect } from '@/components/pms/enum-select';
 import { Badge } from '@/components/ui/badge';
 import { MoneyText } from '@/components/pms/money-text';
+import { ChangeNightPriceDialog } from '@/components/pms/reservations/change-night-price-dialog';
 import { UnitActionsMenu } from '@/components/pms/reservations/unit-actions-menu';
 import { StatusBadge } from '@/components/pms/status-badge';
+import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
     Table,
     TableBody,
@@ -166,9 +170,17 @@ export function UnitsTab({
     paymentOptions?: App.Data.Payments.PaymentFormOptionsData;
     currency: App.Enums.Currency | null;
 }) {
+    const [ticked, setTicked] = useState<number[]>([]);
+    const [changingPrice, setChangingPrice] = useState(false);
+
     if (unit === null) {
         return <p className="text-sm text-muted-foreground">No units.</p>;
     }
+
+    const nightIds = unit.nights.map((night) => night.id);
+    const tickedNow = ticked.filter((id) => nightIds.includes(id));
+    const allTicked =
+        nightIds.length > 0 && tickedNow.length === nightIds.length;
 
     return (
         <div className="flex flex-col gap-4">
@@ -224,10 +236,33 @@ export function UnitsTab({
                     )}
                 </Detail>
             </div>
+            {unit.canChangePrice && (
+                <div className="flex items-center justify-end gap-2">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={tickedNow.length === 0}
+                        onClick={() => setChangingPrice(true)}
+                    >
+                        Change price
+                    </Button>
+                </div>
+            )}
             <div className="overflow-hidden rounded-xl border">
                 <Table>
                     <TableHeader>
                         <TableRow>
+                            {unit.canChangePrice && (
+                                <TableHead className="w-10">
+                                    <Checkbox
+                                        aria-label="Tick every night"
+                                        checked={allTicked}
+                                        onCheckedChange={(checked) =>
+                                            setTicked(checked ? nightIds : [])
+                                        }
+                                    />
+                                </TableHead>
+                            )}
                             <TableHead>Night</TableHead>
                             <TableHead>Room</TableHead>
                             <TableHead>Rate</TableHead>
@@ -236,9 +271,38 @@ export function UnitsTab({
                     </TableHeader>
                     <TableBody>
                         {unit.nights.map((night) => (
-                            <TableRow key={night.date}>
+                            <TableRow key={night.id}>
+                                {unit.canChangePrice && (
+                                    <TableCell>
+                                        <Checkbox
+                                            aria-label={`Tick ${night.date}`}
+                                            checked={tickedNow.includes(
+                                                night.id,
+                                            )}
+                                            onCheckedChange={(checked) =>
+                                                setTicked(
+                                                    checked
+                                                        ? [
+                                                              ...tickedNow,
+                                                              night.id,
+                                                          ]
+                                                        : tickedNow.filter(
+                                                              (id) =>
+                                                                  id !==
+                                                                  night.id,
+                                                          ),
+                                                )
+                                            }
+                                        />
+                                    </TableCell>
+                                )}
                                 <TableCell>
                                     <DateText date={night.date} />
+                                    {night.isCharged && (
+                                        <span className="ms-2 text-xs text-muted-foreground">
+                                            Charged
+                                        </span>
+                                    )}
                                 </TableCell>
                                 <TableCell>
                                     {night.assigned ?? (
@@ -259,7 +323,9 @@ export function UnitsTab({
                     </TableBody>
                     <TableFooter>
                         <TableRow>
-                            <TableCell colSpan={3}>Total</TableCell>
+                            <TableCell colSpan={unit.canChangePrice ? 4 : 3}>
+                                Total
+                            </TableCell>
                             <TableCell className="text-right">
                                 <MoneyText
                                     amount={unit.total}
@@ -281,6 +347,24 @@ export function UnitsTab({
                         : “{unit.priceOverrideReason}”
                     </span>
                 </p>
+            )}
+            {unit.canChangePrice && (
+                <ChangeNightPriceDialog
+                    open={changingPrice}
+                    onOpenChange={(open) => {
+                        setChangingPrice(open);
+
+                        if (!open) {
+                            setTicked([]);
+                        }
+                    }}
+                    reservationId={reservationId}
+                    unitId={unit.id}
+                    title={unit.roomType}
+                    description={unit.primaryGuest}
+                    initialNightIds={tickedNow}
+                    currency={currency}
+                />
             )}
         </div>
     );

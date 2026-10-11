@@ -15,12 +15,15 @@ use App\Enums\PermissionEnum;
 use App\Enums\ReservationSource;
 use App\Enums\ReservationStatus;
 use App\Enums\TransactionKind;
+use App\Enums\UnitStatus;
 use App\Http\Controllers\Controller;
 use App\Models\ArInvoice;
+use App\Models\FolioLine;
 use App\Models\Property;
 use App\Models\Reservation;
 use App\Models\ReservationUnit;
 use App\Models\UnitAddOn;
+use App\Models\UnitNight;
 use App\Models\User;
 use App\Services\CityLedger\ArInvoiceDetail;
 use App\Services\CityLedger\CompanyOptions;
@@ -98,7 +101,15 @@ class ReservationController extends Controller
             $selected->load(['ratePlan', 'childAges', 'guests.guest', 'nights' => fn ($nights) => $nights->orderBy('date'), 'nights.room', 'nights.bed', 'nights.ratePlan']);
             $override = $activityLog->priceOverride($reservation, $selected->id);
 
-            return ['unit' => ReservationUnitData::fromModel($selected, $request->user()->can(PermissionEnum::GuestsView->value), $override['reason'] ?? null, $override['by'] ?? null, $actionMenu->for($request->user(), $selected))];
+            $canChangePrice = $request->user()->can(PermissionEnum::ReservationsChangePrice->value)
+                && in_array($selected->status, [UnitStatus::Confirmed, UnitStatus::CheckedIn, UnitStatus::CheckedOut], true);
+            $charged = FolioLine::query()
+                ->whereIn('idempotency_key', $selected->nights->map(fn (UnitNight $night): string => 'night:'.$night->id)->all())
+                ->pluck('source_id')
+                ->map(intval(...))
+                ->all();
+
+            return ['unit' => ReservationUnitData::fromModel($selected, $request->user()->can(PermissionEnum::GuestsView->value), $override['reason'] ?? null, $override['by'] ?? null, $actionMenu->for($request->user(), $selected), $canChangePrice, $charged)];
         });
     }
 
@@ -155,6 +166,7 @@ class ReservationController extends Controller
                 'refund' => $request->user()->can(PermissionEnum::PaymentRefund->value),
                 'printVoucher' => $request->user()->can(PermissionEnum::FolioPrintVoucher->value),
                 'settleCityLedger' => $request->user()->can(PermissionEnum::CityLedgerInvoice->value),
+                'changePrice' => $request->user()->can(PermissionEnum::ReservationsChangePrice->value),
             ], $request->user());
 
             return [

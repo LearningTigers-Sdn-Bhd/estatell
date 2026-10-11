@@ -1,4 +1,5 @@
 import { Head } from '@inertiajs/react';
+import { useState } from 'react';
 import { BedDouble, CreditCard, History, Receipt, Users } from 'lucide-react';
 import type { EnumOption } from '@/components/pms/enum-select';
 import { DateText } from '@/components/pms/date-text';
@@ -8,6 +9,7 @@ import { PageHeader } from '@/components/pms/page-header';
 import { TabLinks } from '@/components/pms/tab-links';
 import { ReservationActions } from '@/components/pms/reservations/reservation-actions';
 import { ActivityTab } from '@/components/pms/reservations/activity-tab';
+import { ChangeNightPriceDialog } from '@/components/pms/reservations/change-night-price-dialog';
 import { AddOnsTab } from '@/components/pms/reservations/add-ons-tab';
 import { GuestsTab } from '@/components/pms/reservations/guests-tab';
 import { ReservationSummary } from '@/components/pms/reservations/reservation-summary';
@@ -130,6 +132,19 @@ export default function ReservationShow({
     ];
 
     const [summaryHidden, toggleSummary] = useSummaryHidden();
+    const [correcting, setCorrecting] = useState<{
+        unitId: number;
+        nightId: number;
+    } | null>(null);
+    const [correctingOpen, setCorrectingOpen] = useState(false);
+    const correctPrice = (row: App.Data.Folio.FolioRowData) => {
+        if (row.unitId === null || row.unitNightId === null) {
+            return;
+        }
+
+        setCorrecting({ unitId: row.unitId, nightId: row.unitNightId });
+        setCorrectingOpen(true);
+    };
 
     const list =
         tab === 'folio' && folio !== null && folios.length > 1 ? (
@@ -251,6 +266,7 @@ export default function ReservationShow({
                                 voucher={voucher}
                                 summaryHidden={summaryHidden}
                                 onToggleSummary={toggleSummary}
+                                onCorrectPrice={correctPrice}
                                 currency={currency}
                             />
                         ) : tab === 'activity' && activity ? (
@@ -270,6 +286,21 @@ export default function ReservationShow({
                         )}
                     </ReservationWorkspace>
                 </TabLinks>
+                {correcting !== null && (
+                    <ChangeNightPriceDialog
+                        open={correctingOpen}
+                        onOpenChange={setCorrectingOpen}
+                        reservationId={reservation.id}
+                        unitId={correcting.unitId}
+                        title={
+                            units.find(
+                                (option) => option.id === correcting.unitId,
+                            )?.label ?? ''
+                        }
+                        initialNightIds={[correcting.nightId]}
+                        currency={currency}
+                    />
+                )}
             </div>
         </>
     );

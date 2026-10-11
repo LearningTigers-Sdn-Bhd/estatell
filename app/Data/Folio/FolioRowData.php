@@ -15,6 +15,8 @@ use Spatie\LaravelData\Data;
  * any folio status, so it is not a row action). A row has its `kind`, and `printable` says it can go on a voucher
  * (a Scheduled row, or a posted line that is not a payment, a reversal or a reversed line) for a user who holds
  * `folio.print-voucher`.
+ * A live room line of a night carries `correct_price` with its `unitId` and `unitNightId` for a user with
+ * `reservations.change-price`.
  */
 class FolioRowData extends Data
 {
@@ -39,5 +41,7 @@ class FolioRowData extends Data
         public bool $hasReceipt = false,
         public ?TransactionKind $kind = null,
         public bool $printable = false,
+        public ?int $unitId = null,
+        public ?int $unitNightId = null,
     ) {}
 }
