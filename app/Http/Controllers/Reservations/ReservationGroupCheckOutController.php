@@ -34,9 +34,19 @@ class ReservationGroupCheckOutController extends Controller
     /**
      * The page: the rooms, the Master line and the summary of the prefilled choices. `canPrintReceipts` shows Print receipts on the
      * success state. `paymentOptions` and `canWaiveFees` are for the **Check out** Dialog that **Check out early…** opens, as on the reservation page.
+     * With no room left to check out the page redirects to the reservation with a toast, unless it is the success state of a save.
      */
-    public function show(Request $request, Property $property, Reservation $reservation, GroupCheckOutPreview $preview, ReservationFormOptions $options): Response
+    public function show(Request $request, Property $property, Reservation $reservation, GroupCheckOutPreview $preview, ReservationFormOptions $options): Response|RedirectResponse
     {
+        $rooms = $preview->forReservation($reservation, $request->user());
+        $justSaved = array_key_exists('groupCheckOut', Inertia::getFlashed($request));
+
+        if ($rooms->rows === [] && $rooms->error === null && ! $justSaved) {
+            Inertia::flash('toast', ['type' => 'info', 'message' => __('No rooms are left to check out.')]);
+
+            return redirect()->route('reservations.show', ['property' => $property, 'reservation' => $reservation]);
+        }
+
         $reservation->loadMissing(['booker', 'company']);
         $payer = $reservation->company?->name ?? $reservation->group_name ?? $reservation->booker->full_name;
 
@@ -46,7 +56,7 @@ class ReservationGroupCheckOutController extends Controller
                 $reservation->reference,
                 __('Check out · :reference · :name', ['reference' => $reservation->reference, 'name' => $payer]),
                 $property->settings?->currency,
-                $preview->forReservation($reservation, $request->user()),
+                $rooms,
                 route('reservations.show', ['property' => $property, 'reservation' => $reservation]),
             ),
             'canWaiveFees' => $request->user()->can(PermissionEnum::FrontDeskWaiveFees->value),

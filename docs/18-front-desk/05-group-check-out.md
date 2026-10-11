@@ -125,6 +125,7 @@ The group leader often pays everyone's extras. With **One payment for all** tick
 - Every unit keeps its own log entries, room Dirty, folio close and status sync, as today. One `reservation.group_checked_out` entry holds the totals.
 - A CheckedOut unit's folio left at 0 closes itself (`CloseSettledUnitFolio`).
 - Permission: `front-desk.check-out` for the page, plus the money permissions above.
+- **No room to check out**: when the preview has no row (every room is out or cancelled with nothing to settle), the page redirects to the reservation page with an info toast, "No rooms are left to check out." The page after a save is the exception: it keeps the success state.
 - **After saving**: the store redirects to the same page with Inertia flash data `groupCheckOut` (`GroupCheckOutDoneData`: rooms checked out and settled, collected, refunded, moved, the invoice number, the payment ids of the save and the Master link). The page shows a success state with the totals, **Print receipts** (opens one PDF with every receipt of this save in a new tab, built from the payment ids by `reservations.check-out.receipts`; shown only with payment.record and at least one payment) and the Master next step: **Settle to City ledger** while the Master is Open and the user may settle it, else **Open folio** (both open the Master folio tab).
 
 ## Routes and entry

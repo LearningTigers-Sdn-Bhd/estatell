@@ -614,3 +614,22 @@ test('a room that is out shows the day it checked out, and a cancelled room none
         ->and($rows[$cancelled->id]['checkedOutOn'])->toBeNull()
         ->and($rows[$s['units'][0]->id]['checkedOutOn'])->toBeNull();
 });
+
+test('the page redirects to the reservation with a toast when no room is left to check out', function () {
+    $s = gcSetup(2);
+    collect($s['units'])->each(fn ($unit) => $unit->forceFill(['status' => UnitStatus::CheckedOut, 'checked_out_at' => now()])->save());
+    $url = route('reservations.check-out', ['property' => $s['property']->code, 'reservation' => $s['reservation']->id]);
+
+    $this->actingAs($s['user'])->get($url)
+        ->assertRedirect(route('reservations.show', ['property' => $s['property']->code, 'reservation' => $s['reservation']->id]))
+        ->assertInertiaFlash('toast.type', 'info');
+});
+
+test('the page still opens right after a save that checked the last room out', function () {
+    $s = gcSetup(1);
+    $url = route('reservations.check-out', ['property' => $s['property']->code, 'reservation' => $s['reservation']->id]);
+
+    $this->followingRedirects();
+    gcSave($this, $s, [['unit_id' => $s['units'][0]->id]])
+        ->assertInertia(fn (Assert $page) => $page->component('reservations/check-out'));
+});
