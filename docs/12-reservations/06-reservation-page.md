@@ -6,23 +6,25 @@ Find a reservation and see everything about it on one page, with the same flow s
 
 ## Routes
 
-| URL                                                    | Name                                  | Page                                                      |
-| ------------------------------------------------------ | ------------------------------------- | --------------------------------------------------------- |
-| `GET /p/{code}/reservations`                           | `reservations.index`                  | `pages/reservations/index.tsx`                            |
-| `GET /p/{code}/reservations/{reservation}`             | `reservations.show`                   | `pages/reservations/show.tsx`                             |
-| `GET /p/{code}/reservations/{reservation}/guests`      | `reservations.guests`                 | `pages/reservations/show.tsx`                             |
-| `GET /p/{code}/reservations/{reservation}/add-ons`     | `reservations.add-ons`                | `pages/reservations/show.tsx`                             |
-| `GET /p/{code}/reservations/{reservation}/folio`       | `reservations.folio`                  | `pages/reservations/show.tsx`                             |
-| `…/{reservation}/folios/{folio}/…` (six action routes) | `reservations.folios.*`               | – (see [Folio page](../13-folio/05-folio-page.md#routes)) |
-| `GET /p/{code}/reservations/{reservation}/activity`    | `reservations.activity`               | `pages/reservations/show.tsx`                             |
-| `PUT /p/{code}/reservations/{reservation}/group`       | `reservations.group.update`           | – (`UpdateReservationGroup`)                              |
-| `PUT …/{reservation}/company`                          | `reservations.company.update`         | – (`UpdateReservationCompany`; also needs `company.view`) |
-| `POST …/{reservation}/units`                           | `reservations.units.store`            | – (`AddUnit`)                                             |
-| `POST …/{reservation}/units/{unit}/guests`             | `reservations.units.guests.store`     | – (`AddGuestToUnit`, then `AttachGuest`)                  |
-| `PUT …/{reservation}/units/{unit}/guests/{guestId}`    | `reservations.units.guests.update`    | `guests.manage` (`UpdateGuest`)                           |
-| `POST …/{reservation}/units/{unit}/add-ons`            | `reservations.units.add-ons.store`    | – (`AddUnitAddOn`)                                        |
-| `DELETE …/{reservation}/units/{unit}/add-ons/{addOn}`  | `reservations.units.add-ons.destroy`  | – (`RemoveUnitAddOn`)                                     |
-| `GET /p/{code}/guests/search`                          | `guests.search` (JSON, `guests.view`) | –                                                         |
+| URL                                                          | Name                                  | Page                                                      |
+| ------------------------------------------------------------ | ------------------------------------- | --------------------------------------------------------- |
+| `GET /p/{code}/reservations`                                 | `reservations.index`                  | `pages/reservations/index.tsx`                            |
+| `GET /p/{code}/reservations/{reservation}`                   | `reservations.show`                   | `pages/reservations/show.tsx`                             |
+| `GET /p/{code}/reservations/{reservation}/guests`            | `reservations.guests`                 | `pages/reservations/show.tsx`                             |
+| `GET /p/{code}/reservations/{reservation}/add-ons`           | `reservations.add-ons`                | `pages/reservations/show.tsx`                             |
+| `GET /p/{code}/reservations/{reservation}/folio`             | `reservations.folio`                  | `pages/reservations/show.tsx`                             |
+| `…/{reservation}/folios/{folio}/…` (six action routes)       | `reservations.folios.*`               | – (see [Folio page](../13-folio/05-folio-page.md#routes)) |
+| `GET /p/{code}/reservations/{reservation}/activity`          | `reservations.activity`               | `pages/reservations/show.tsx`                             |
+| `PUT /p/{code}/reservations/{reservation}/group`             | `reservations.group.update`           | – (`UpdateReservationGroup`)                              |
+| `PUT …/{reservation}/company`                                | `reservations.company.update`         | – (`UpdateReservationCompany`; also needs `company.view`) |
+| `POST …/{reservation}/units`                                 | `reservations.units.store`            | – (`AddUnit`)                                             |
+| `POST …/{reservation}/units/{unit}/guests`                   | `reservations.units.guests.store`     | – (`AddGuestToUnit`, then `AttachGuest`)                  |
+| `PUT …/{reservation}/units/{unit}/guests/{guestId}`          | `reservations.units.guests.update`    | `guests.manage` (`UpdateGuest`)                           |
+| `POST …/{reservation}/units/{unit}/guests/{guestId}/replace` | `reservations.units.guests.replace`   | – (`ReplaceUnitGuest`)                                    |
+| `DELETE …/{reservation}/units/{unit}/guests/{guestId}`       | `reservations.units.guests.destroy`   | – (`DetachGuest`)                                         |
+| `POST …/{reservation}/units/{unit}/add-ons`                  | `reservations.units.add-ons.store`    | – (`AddUnitAddOn`)                                        |
+| `DELETE …/{reservation}/units/{unit}/add-ons/{addOn}`        | `reservations.units.add-ons.destroy`  | – (`RemoveUnitAddOn`)                                     |
+| `GET /p/{code}/guests/search`                                | `guests.search` (JSON, `guests.view`) | –                                                         |
 
 Routes live in `routes/reservations.php` with `scopeBindings()`, so another property's reservation, unit or add-on returns 404. Pages are guarded with `can:` middleware, like the guests routes (no Policy classes). The tabs share one controller with a private `renderTab()`, like `GuestController`. The server sends only the open tab's data. The selected unit is `?unit={id}`, so a refresh keeps it.
 
@@ -264,7 +266,8 @@ The tab is one table of guests, edited in place. It reuses the booking form's Gu
 | View choice    | All is the default. The choice is kept in the browser (`reservations.guests-view`). Switching makes no request: the server sends all rows and the browser groups them.                                                                                                                                     |
 | Row            | Main row: Name (autocomplete), Phone (autocomplete), Stays in (select, read only on a saved row), Role badges (Booker, Primary, Guest) and **⋯**. The expanded part has Email, the guest card, **Update guest profile**, `DuplicateWarning` and the guest details.                                         |
 | Unit, no guest | In All view a muted row "No guest yet" with a small **Add** button. It adds a draft row with that unit picked. In Grouped view the draft row uses the open unit.                                                                                                                                           |
-| Footer         | Left: "N units without a guest" (All) or "N guests in this unit" (Grouped). Right: **+ Add guest**, outline, like the booking form. It adds a draft row at the end and focuses its Name.                                                                                                                   |
+| Footer         | Left: "N units without a guest" (All), "N guests in this unit" (Grouped) or "The booker does not stay." (Not staying). Right: **+ Add guest**, outline, like the booking form. It adds a draft row at the end and focuses its Name.                                                                        |
+| Not staying    | **+ Add guest** shows here too, with the Stays in select (the rail names no unit). The draft row stays in this entry until it is saved; Save puts the guest on the picked unit.                                                                                                                            |
 | Draft row      | Opens expanded. Buttons: **Discard** and **Save**. Leaving the page with a draft row asks first (`useUnsavedChanges`).                                                                                                                                                                                     |
 | Saved row      | **Save** and **Cancel** appear only after an edit in the expanded part. Name, Phone, Email and the details are the CRM profile of the guest, so Save always updates it and there is no **Update guest profile** switch. The unit link does not change.                                                     |
 
@@ -285,9 +288,32 @@ There is no per-stay snapshot. `unit_guests` is a link to a CRM guest (`reservat
 - A blacklisted guest is allowed, with the reason as a warning on the row.
 - The tax warning toast for a new primary on a CheckedOut unit stays (see [Adding a guest after check-out](#adding-a-guest-after-check-out)).
 
-### Out of scope for the first build
+### Replace and remove a guest
 
-Moving a guest to another unit, removing a guest from a unit and changing the primary guest have no Action yet. Stays in is read only on a saved row. They come later with `DetachGuest` and the primary change.
+Both items are in the **⋯** menu of a saved guest, on a Confirmed, CheckedIn or CheckedOut unit, for `reservations.manage`. Neither changes a charge, a price or the folio payer: a folio points at the guest, not at the unit row.
+
+| Item                 | Does                                                                                                                                                                                                           |
+| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Replace guest**    | The row becomes a draft row with Name and Phone autocompletes (and the details) in place of the saved guest. **Save** puts the new person on the unit with the same Primary role. **Cancel** restores the row. |
+| **Remove from unit** | AlertDialog "Remove {name} from {unit}?": "No charges change." The unit stays without that guest.                                                                                                              |
+
+`ReplaceUnitGuest(User $actor, Property $property, ReservationUnit $unit, UnitGuest $occupant, ?int $guestId, array $profile, bool $updateProfile): AttachGuestResult` locks the unit, resolves the new guest the same way `AddGuestToUnit` does (new guest, or a picked one with the optional profile update), changes `guest_id` on the `unit_guests` row (so `is_primary` stays) and logs `reservation.guest_replaced` with `reservation_unit_id`, `previous_guest_id`, `guest_id` and `is_primary`. `DetachGuest(User $actor, ReservationUnit $unit, UnitGuest $occupant): ?string` deletes the row, makes the oldest other guest of the unit primary when the removed guest was, and logs `reservation.guest_detached` with `guest_id`, `was_primary` and `promoted_guest_id`. It returns the refusal code, or null.
+
+| Check, in order                                                            | Refusal                 | Applies to      |
+| -------------------------------------------------------------------------- | ----------------------- | --------------- |
+| The unit is Confirmed, CheckedIn or CheckedOut                             | `unit_not_open`         | Replace, remove |
+| The new guest belongs to the property and is not merged or anonymized      | `guest_not_found`       | Replace         |
+| The new guest is not already on this unit (the same guest counts as on it) | `already_attached`      | Replace         |
+| The guest has no signed or void registration card on this unit             | `has_registration_card` | Replace, remove |
+
+- A guest who is not on the unit is a 404 (the guest is read through the unit's guests).
+- **Registration cards.** `registration_cards.unit_guest_id` is `restrictOnDelete`, and a signed or void card keeps the old guest's snapshot. So a signed or void card refuses the change: "{name} has a registration card on this unit, so they cannot be changed." A Draft card holds nothing signed and is deleted with the change; the log names its id.
+- **Why no payer check.** `folios.payer_guest_id` is a guest id, so replacing or removing the occupant never leaves a folio without a payer. The "Pays unit folio" and "Own folio" lines follow the guest.
+- **Permissions.** `reservations.manage`. A new guest or a profile update also needs `guests.manage` (the same keys and messages as adding a guest).
+- **Primary tax warning.** Replacing the primary guest on a CheckedOut unit runs the same foreign-only tax warning as `AttachGuest` (`AttachGuest::taxWarning()` is now public).
+- **Last guest.** Removing the only guest leaves the unit as "No guest yet". The booker of the reservation is not a unit guest when not staying, so Remove never changes the booking's booker.
+- **Errors.** A refusal of Replace shows inline on the row (`guest_id` and `full_name` on Name, the rest at the top of the row). A refusal of Remove shows as an error toast and nothing is written.
+- Moving a guest to another unit and changing the primary guest by hand still have no Action.
 
 ### Attach rules
 
