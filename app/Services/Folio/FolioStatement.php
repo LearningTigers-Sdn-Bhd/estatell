@@ -6,6 +6,7 @@ use App\Data\Folio\FolioData;
 use App\Data\Folio\FolioOptionData;
 use App\Data\Folio\FolioRailItemData;
 use App\Data\Folio\FolioRowData;
+use App\Data\Folio\PostFolioOptionData;
 use App\Data\Reservations\ReservationUnitOptionData;
 use App\Data\Shared\BadgeData;
 use App\Enums\FolioRowTag;
@@ -186,6 +187,16 @@ class FolioStatement
             ->map(fn (ReservationUnitOptionData $unit): FolioOptionData => new FolioOptionData($unit->id, $unit->label))
             ->values()
             ->all() : [];
+        $postRooms = $postUnits === [] ? [] : collect($units)
+            ->filter(fn (ReservationUnitOptionData $unit): bool => in_array($unit->status->value, [UnitStatus::CheckedIn->value, UnitStatus::CheckedOut->value], true))
+            ->map(fn (ReservationUnitOptionData $unit): FolioOptionData => new FolioOptionData($unit->id, $unit->label))
+            ->values()
+            ->all();
+        $postFolios = $postUnits === [] ? [] : $entries
+            ->filter(fn (array $other): bool => $other['folio'] !== null && $other['folio']->status === FolioStatus::Open)
+            ->map(fn (array $other): PostFolioOptionData => new PostFolioOptionData($other['folio']->id, trim($other['item']->name.' · '.$other['item']->subtitle, ' ·'), $other['folio']->type === FolioType::Unit ? $other['folio']->reservation_unit_id : null))
+            ->values()
+            ->all();
         $allowed = $isOpen ? array_values(array_filter([
             ($can['reverse'] ?? false) ? 'reverse' : null,
             ($can['transfer'] ?? false) && $targets !== [] ? 'transfer' : null,
@@ -224,6 +235,8 @@ class FolioStatement
             canApplyDiscount: $isOpen && ($can['discount'] ?? false) && $discountable,
             canPostCharge: $postUnits !== [],
             postUnits: $postUnits,
+            postFolios: $postFolios,
+            postRooms: $postRooms,
             transferTargets: $targets,
             canRecordPayment: $purposes !== [],
             canPrintVoucher: $posted->contains(fn (FolioRowData $row): bool => $row->printable) || $scheduled->contains(fn (FolioRowData $row): bool => $row->printable),

@@ -47,6 +47,7 @@ class FolioRefusals
         return match ($code) {
             PostingResult::REFUSAL_NO_BUSINESS_DATE => [self::FORM, __('The property has no open business date, so nothing can be posted.')],
             PostingResult::REFUSAL_UNIT_NOT_POSTABLE => ['unit_id', __('Charges can be posted to units that are checked in or checked out.')],
+            PostingResult::REFUSAL_UNIT_NOT_ON_FOLIO => ['unit_id', __('This room does not belong to the chosen folio. Pick its own folio or a Master folio.')],
             PostingResult::REFUSAL_CHARGE_NOT_FOUND => ['charge_item_id', __('This charge is not available.')],
             PostingResult::REFUSAL_QUANTITY_INVALID => ['quantity', __('Quantity must be from 1 to 999.')],
             PostingResult::REFUSAL_AMOUNT_INVALID => ['unit_amount', __('Enter an amount greater than 0.')],

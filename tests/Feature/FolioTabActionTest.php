@@ -62,6 +62,7 @@ function faUrl(array $setup, string $route, Folio $folio, array $extra = []): st
 function faCharge(array $setup, array $overrides = []): array
 {
     return [
+        'folio_id' => $setup['folio']->id,
         'charge_item_id' => $setup['item']->id,
         'quantity' => 1,
         'unit_amount' => '40.00',
@@ -121,17 +122,17 @@ test('the same idempotency key posts once', function () {
     expect($setup['folio']->lines()->count())->toBe(1);
 });
 
-test('a master folio needs the unit to post for and routing picks the folio', function () {
+test('a master folio needs the unit to post for and the charge lands on the chosen folio', function () {
     $setup = faSetup();
     $master = Folio::factory()->master()->create(['property_id' => $setup['property']->id, 'reservation_id' => $setup['reservation']->id]);
     $url = faUrl($setup, 'reservations.folios.charges.store', $master);
 
-    $this->actingAs($setup['user'])->post($url, faCharge($setup))->assertSessionHasErrors('unit_id');
+    $this->actingAs($setup['user'])->post($url, faCharge($setup, ['folio_id' => $master->id]))->assertSessionHasErrors('unit_id');
 
-    $this->actingAs($setup['user'])->post($url, faCharge($setup, ['unit_id' => $setup['unit']->id]))->assertSessionHasNoErrors();
+    $this->actingAs($setup['user'])->post($url, faCharge($setup, ['folio_id' => $master->id, 'unit_id' => $setup['unit']->id]))->assertSessionHasNoErrors();
 
-    expect($setup['folio']->lines()->count())->toBe(1)
-        ->and($master->lines()->count())->toBe(0);
+    expect($master->lines()->count())->toBe(1)
+        ->and($setup['folio']->lines()->count())->toBe(0);
 });
 
 test('a charge refusal comes back as an error on its field and writes nothing', function (array $payload, string $field) {
@@ -248,6 +249,8 @@ test('rows carry only the actions the user may take on them', function () {
         ->where('folio.canPostCharge', true)
         ->where('folio.postUnits.0.id', $setup['unit']->id)
         ->where('folio.transferTargets.0.id', $master->id)
+        ->where('folio.postFolios', fn ($folios) => collect($folios)->pluck('id')->sort()->values()->all() === collect([$setup['folio']->id, $master->id])->sort()->values()->all())
+        ->where('folio.postRooms.0.id', $setup['unit']->id)
         ->where('folio.rows', fn ($rows) => collect($rows)->map(fn ($row) => [$row['lineId'] === $charge->id, $row['actions']])->take(2)->all() === [
             [true, ['reverse', 'transfer']],
             [false, []],

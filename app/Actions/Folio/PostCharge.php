@@ -4,9 +4,11 @@ namespace App\Actions\Folio;
 
 use App\Data\Folio\NewChargeData;
 use App\Enums\FolioStatus;
+use App\Enums\FolioType;
 use App\Enums\TransactionKind;
 use App\Enums\UnitStatus;
 use App\Models\ChargeItem;
+use App\Models\Folio;
 use App\Models\FolioLine;
 use App\Models\ReservationUnit;
 use App\Models\TransactionCode;
@@ -38,7 +40,7 @@ class PostCharge
     /**
      * Post one charge on a unit's folio, then one Tax child line for each tax component. The unit row is locked first,
      * so two postings of one unit never race. Every check runs before the first write, so a refusal writes and logs
-     * nothing. The folio comes from `FolioRouter` (a routing rule or the unit's own folio), and a closed one refuses the posting with
+     * nothing. The folio is the given `folio_id` (it must belong to the reservation, and a Unit folio must be the unit's own: `unit_not_on_folio`) or, without one, comes from `FolioRouter` (a routing rule or the unit's own folio), and a closed one refuses the posting with
      * no fallback (`folio_settled_to_city_ledger` when it is settled to the city ledger). `PostFolioCharge` writes the lines, and tax lines go on the folio of their charge. A key that already exists returns the existing lines and writes nothing, but only when the line's folio belongs to the unit's reservation (otherwise `charge_not_found`). The charge line holds the net
      * amount (the entered amount without inclusive tax), so the folio total is the gross amount.
      * The last step closes the folio when it is an Open Unit folio of a CheckedOut unit at 0 (`CloseSettledUnitFolio`).
@@ -104,7 +106,19 @@ class PostCharge
                 }
             }
 
-            $folio = $this->folioRouter->targetFor($locked, $code);
+            if ($data->folioId !== null) {
+                $folio = Folio::query()->find($data->folioId);
+
+                if ($folio === null || $folio->reservation_id !== $locked->reservation_id) {
+                    return PostingResult::refused(PostingResult::REFUSAL_CHARGE_NOT_FOUND);
+                }
+
+                if ($folio->type === FolioType::Unit && $folio->reservation_unit_id !== $locked->id) {
+                    return PostingResult::refused(PostingResult::REFUSAL_UNIT_NOT_ON_FOLIO);
+                }
+            } else {
+                $folio = $this->folioRouter->targetFor($locked, $code);
+            }
 
             if ($folio !== null && $folio->status !== FolioStatus::Open) {
                 return PostingResult::refused((string) $this->folioPostability->refusalFor($folio));

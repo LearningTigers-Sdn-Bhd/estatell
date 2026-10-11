@@ -9,6 +9,7 @@ use App\Data\Folio\NewChargeData;
 use App\Enums\FolioStatus;
 use App\Enums\FolioType;
 use App\Enums\TransactionKind;
+use App\Enums\UnitStatus;
 use App\Models\BusinessDate;
 use App\Models\ChargeItem;
 use App\Models\Folio;
@@ -425,4 +426,32 @@ test('a manual charge names its unit as the source, and a reversal and a transfe
 
     expect($reversed->source_id)->toBe($setup['unit']->id)
         ->and(FolioLine::query()->where('parent_line_id', $second->id)->doesntExist())->toBeFalse();
+});
+
+test('a charge with a folio id lands on that Open Master folio even when the unit folio is closed and no routing rule exists', function () {
+    $setup = postingSetup();
+    $reservation = $setup['unit']->reservation;
+    $setup['unit']->update(['status' => UnitStatus::CheckedOut]);
+    Folio::factory()->closed()->create(['property_id' => $setup['property']->id, 'reservation_id' => $reservation->id, 'type' => FolioType::Unit, 'reservation_unit_id' => $setup['unit']->id]);
+    $master = Folio::factory()->master()->create(['property_id' => $setup['property']->id, 'reservation_id' => $reservation->id]);
+
+    $result = app(PostCharge::class)($setup['actor'], $setup['unit'], chargeData($setup['item'], ['folioId' => $master->id]));
+
+    expect($result->isRefused())->toBeFalse()
+        ->and($result->line()->folio_id)->toBe($master->id);
+});
+
+test('a charge with a folio id is refused for another unit\'s folio, a closed folio and a folio of another reservation', function () {
+    $setup = postingSetup();
+    $reservation = $setup['unit']->reservation;
+    $other = ReservationUnit::factory()->checkedIn()->create(['reservation_id' => $reservation->id]);
+    $otherFolio = Folio::factory()->create(['property_id' => $setup['property']->id, 'reservation_id' => $reservation->id, 'type' => FolioType::Unit, 'reservation_unit_id' => $other->id]);
+    $closedMaster = Folio::factory()->master()->closed()->create(['property_id' => $setup['property']->id, 'reservation_id' => $reservation->id]);
+    $foreign = Folio::factory()->master()->create(['property_id' => $setup['property']->id, 'reservation_id' => Reservation::factory()->create(['property_id' => $setup['property']->id])->id]);
+
+    $refusals = collect([$otherFolio, $closedMaster, $foreign])->map(fn (Folio $folio): ?string => app(PostCharge::class)($setup['actor'], $setup['unit'], chargeData($setup['item'], ['folioId' => $folio->id]))->refusal)->all();
+
+    expect($refusals)->toBe([PostingResult::REFUSAL_UNIT_NOT_ON_FOLIO, PostingResult::REFUSAL_FOLIO_NOT_OPEN, PostingResult::REFUSAL_CHARGE_NOT_FOUND])
+        ->and(FolioLine::query()->count())->toBe(0)
+        ->and(Activity::query()->count())->toBe(0);
 });

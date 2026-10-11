@@ -310,6 +310,8 @@ canReopen: boolean,
 canApplyDiscount: boolean,
 canPostCharge: boolean,
 postUnits: App.Data.Folio.FolioOptionData[],
+postFolios: App.Data.Folio.PostFolioOptionData[],
+postRooms: App.Data.Folio.FolioOptionData[],
 transferTargets: App.Data.Folio.FolioOptionData[],
 canRecordPayment: boolean,
 paymentUnitId: number | null,
@@ -382,6 +384,12 @@ quantity: number,
 unitAmount: string,
 idempotencyKey: string | null,
 unitAddOnId: number | null,
+folioId: number | null,
+};
+export type PostFolioOptionData = {
+id: number,
+label: string,
+unitId: number | null,
 };
 export type RoutingRuleRowData = {
 id: number,

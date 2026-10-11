@@ -23,6 +23,8 @@ class PostingResult
 
     public const REFUSAL_AMOUNT_OVERRIDE_NOT_ALLOWED = 'amount_override_not_allowed';
 
+    public const REFUSAL_UNIT_NOT_ON_FOLIO = 'unit_not_on_folio';
+
     public const REFUSAL_FOLIO_NOT_OPEN = 'folio_not_open';
 
     public const REFUSAL_FOLIO_SETTLED = 'folio_settled_to_city_ledger';

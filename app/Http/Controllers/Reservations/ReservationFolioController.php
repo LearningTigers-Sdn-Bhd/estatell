@@ -43,13 +43,14 @@ use Inertia\Inertia;
 class ReservationFolioController extends Controller
 {
     /**
-     * Post a charge for a unit. A Unit folio uses its own unit, and a Master or Third party folio posts for the unit
-     * the form names. `FolioRouter` picks the folio, so the toast names the folio that received the charge. A refusal
+     * Post a charge on the folio the form names (`folio_id`; the route folio is only the page to return to). A Unit
+     * folio uses its own unit, and a Master or Third party folio posts for the unit the form names. Routing does not apply. A refusal
      * goes back to the Dialog as an error on the matching field.
      */
     public function storeCharge(StoreFolioChargeRequest $request, Property $property, Reservation $reservation, Folio $folio, PostCharge $postCharge, FolioRefusals $refusals): RedirectResponse
     {
-        $unit = $reservation->units()->findOrFail($folio->reservation_unit_id ?? $request->integer('unit_id'));
+        $target = Folio::query()->where('reservation_id', $reservation->id)->find($request->integer('folio_id'));
+        $unit = $reservation->units()->findOrFail($target?->reservation_unit_id ?? $request->integer('unit_id'));
         $result = $postCharge($request->user(), $unit, $request->toChargeData());
 
         if ($result->isRefused()) {

@@ -42,6 +42,7 @@ function PostChargeForm({
 
     const [key] = useState(() => `manual:${crypto.randomUUID()}`);
     const form = useForm({
+        folio_id: folio.key,
         unit_id: String(folio.postUnits[0]?.id ?? ''),
         charge_item_id: '',
         description: '',
@@ -49,6 +50,11 @@ function PostChargeForm({
         unit_amount: '',
     });
     const { data, errors } = form;
+    const target = folio.postFolios.find(
+        (one) => String(one.id) === data.folio_id,
+    );
+    const fixedUnit = target?.unitId ?? null;
+    const roomValue = fixedUnit === null ? data.unit_id : String(fixedUnit);
     const item = chargeItems.find(
         (one) => String(one.id) === data.charge_item_id,
     );
@@ -59,7 +65,8 @@ function PostChargeForm({
 
     const submit = () => {
         form.transform((values) => ({
-            unit_id: folio.postUnits.length > 1 ? values.unit_id : '',
+            folio_id: values.folio_id,
+            unit_id: roomValue,
             charge_item_id: values.charge_item_id,
             description: values.description,
             quantity: values.quantity,
@@ -95,27 +102,35 @@ function PostChargeForm({
             submitDisabled={!picked}
             loading={loading}
         >
-            {folio.postUnits.length > 1 && (
-                <Field data-invalid={!!errors.unit_id}>
-                    <FieldLabel htmlFor="charge-unit_id">Unit</FieldLabel>
-                    <EnumSelect
-                        id="charge-unit_id"
-                        options={folio.postUnits.map((one) => ({
-                            value: String(one.id),
-                            label: one.label,
-                        }))}
-                        value={data.unit_id}
-                        onValueChange={(value) =>
-                            form.setData('unit_id', value)
-                        }
-                        aria-invalid={!!errors.unit_id}
-                    />
-                    <FieldDescription>
-                        Routing rules decide which folio receives the charge.
-                    </FieldDescription>
-                    <FieldError>{errors.unit_id}</FieldError>
-                </Field>
-            )}
+            <Field data-invalid={!!errors.folio_id}>
+                <FieldLabel htmlFor="charge-folio_id">Folio</FieldLabel>
+                <EnumSelect
+                    id="charge-folio_id"
+                    options={folio.postFolios.map((one) => ({
+                        value: String(one.id),
+                        label: one.label,
+                    }))}
+                    value={data.folio_id}
+                    onValueChange={(value) => form.setData('folio_id', value)}
+                    aria-invalid={!!errors.folio_id}
+                />
+                <FieldError>{errors.folio_id}</FieldError>
+            </Field>
+            <Field data-invalid={!!errors.unit_id}>
+                <FieldLabel htmlFor="charge-unit_id">Room</FieldLabel>
+                <EnumSelect
+                    id="charge-unit_id"
+                    options={folio.postRooms.map((one) => ({
+                        value: String(one.id),
+                        label: one.label,
+                    }))}
+                    value={roomValue}
+                    onValueChange={(value) => form.setData('unit_id', value)}
+                    disabled={fixedUnit !== null}
+                    aria-invalid={!!errors.unit_id}
+                />
+                <FieldError>{errors.unit_id}</FieldError>
+            </Field>
             <Field data-invalid={!!errors.charge_item_id}>
                 <FieldLabel htmlFor="charge-choice">Charge</FieldLabel>
                 <EnumSelect
@@ -209,8 +224,8 @@ function PostChargeForm({
 }
 
 /**
- * Posts a charge to a folio. A Unit folio uses its own unit. A Master or Third party folio picks the unit, and routing
- * rules decide the folio. A refusal shows in the Dialog.
+ * Posts a charge to the folio staff choose. A Unit folio fixes the room; a Master or Third party folio lets staff pick
+ * it. Routing rules do not apply. A refusal shows in the Dialog.
  */
 export function PostChargeDialog(props: Props) {
     return (

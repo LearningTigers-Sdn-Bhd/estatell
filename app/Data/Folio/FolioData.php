@@ -24,6 +24,8 @@ class FolioData extends Data
     /**
      * @param  list<FolioRowData>  $rows
      * @param  list<FolioOptionData>  $postUnits
+     * @param  list<PostFolioOptionData>  $postFolios  The Open folios the Post charge Dialog can pick.
+     * @param  list<FolioOptionData>  $postRooms  Every unit a charge can be posted for.
      * @param  list<FolioOptionData>  $transferTargets
      * @param  list<array{value: string, label: string}>  $paymentPurposes
      */
@@ -43,6 +45,8 @@ class FolioData extends Data
         public bool $canApplyDiscount = false,
         public bool $canPostCharge = false,
         public array $postUnits = [],
+        public array $postFolios = [],
+        public array $postRooms = [],
         public array $transferTargets = [],
         public bool $canRecordPayment = false,
         public ?int $paymentUnitId = null,
