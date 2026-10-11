@@ -39,6 +39,7 @@ import { RemoveDiscountDialog } from '@/components/pms/folio/remove-discount-dia
 import { ReverseLineDialog } from '@/components/pms/folio/reverse-line-dialog';
 import { RoutingRulesSheet } from '@/components/pms/folio/routing-rules-sheet';
 import { ThirdPartyFolioDialog } from '@/components/pms/folio/third-party-folio-dialog';
+import { VoidInvoiceAndReopenDialog } from '@/components/pms/folio/void-invoice-and-reopen-dialog';
 import { TransferLineDialog } from '@/components/pms/folio/transfer-line-dialog';
 import { MoneyText } from '@/components/pms/money-text';
 import { StatusBadge } from '@/components/pms/status-badge';
@@ -48,6 +49,7 @@ import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
+    DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Spinner } from '@/components/ui/spinner';
@@ -115,6 +117,7 @@ export function FolioTab({
     onToggleSummary: () => void;
     currency: App.Enums.Currency | null;
 }) {
+    const [voidingInvoice, setVoidingInvoice] = useState(false);
     const [loadingCredit, setLoadingCredit] = useState(false);
     const creditFlow = useCreditNoteFlow(false, (done) =>
         router.reload({ only: ['creditInvoice'], onFinish: done }),
@@ -206,6 +209,15 @@ export function FolioTab({
     return (
         <div className="flex flex-col gap-4">
             {routingOverlays}
+            {folio.canVoidAndReopen && folio.arInvoiceNumber && (
+                <VoidInvoiceAndReopenDialog
+                    reservationId={reservationId}
+                    folioId={Number(folio.key)}
+                    invoiceNumber={folio.arInvoiceNumber}
+                    open={voidingInvoice}
+                    onOpenChange={setVoidingInvoice}
+                />
+            )}
             {folio.canCreditArInvoice && (
                 <>
                     {creditInvoice && (
@@ -406,56 +418,130 @@ export function FolioTab({
                             {(folio.canPrintInvoice ||
                                 folio.canReopen ||
                                 folio.canOpenArInvoice ||
-                                folio.canCreditArInvoice) && (
+                                folio.canCreditArInvoice ||
+                                folio.canVoidAndReopen) && (
                                 <AlertAction className="static flex flex-wrap items-center gap-2">
-                                    {folio.canPrintInvoice && (
-                                        <a
-                                            href={invoice.url({
-                                                reservation: reservationId,
-                                                folio: Number(folio.key),
-                                            })}
-                                            target="_blank"
-                                            rel="noreferrer"
-                                            className={buttonVariants({
-                                                variant: 'outline',
-                                                size: 'sm',
-                                            })}
-                                        >
-                                            <Printer data-icon="inline-start" />
-                                            Print invoice
-                                        </a>
-                                    )}
-                                    {folio.canOpenArInvoice &&
-                                        folio.arInvoiceId !== null && (
-                                            <Link
-                                                href={showArInvoice.url({
-                                                    invoice: folio.arInvoiceId,
-                                                })}
-                                                className={buttonVariants({
-                                                    variant: 'outline',
-                                                    size: 'sm',
-                                                })}
+                                    {folio.arInvoiceId !== null ? (
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger
+                                                render={
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                    />
+                                                }
                                             >
-                                                <ExternalLink data-icon="inline-start" />
-                                                Open invoice
-                                            </Link>
-                                        )}
-                                    {folio.canCreditArInvoice && (
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            size="sm"
-                                            disabled={loadingCredit}
-                                            focusableWhenDisabled
-                                            onClick={startCredit}
-                                        >
-                                            {loadingCredit ? (
-                                                <Spinner data-icon="inline-start" />
-                                            ) : (
-                                                <ReceiptText data-icon="inline-start" />
+                                                <FileText data-icon="inline-start" />
+                                                Invoice
+                                                <ChevronDown data-icon="inline-end" />
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="end">
+                                                {folio.canPrintInvoice && (
+                                                    <DropdownMenuItem
+                                                        render={
+                                                            <a
+                                                                href={invoice.url(
+                                                                    {
+                                                                        reservation:
+                                                                            reservationId,
+                                                                        folio: Number(
+                                                                            folio.key,
+                                                                        ),
+                                                                    },
+                                                                )}
+                                                                target="_blank"
+                                                                rel="noreferrer"
+                                                            />
+                                                        }
+                                                    >
+                                                        <Printer />
+                                                        Print invoice
+                                                    </DropdownMenuItem>
+                                                )}
+                                                {folio.canOpenArInvoice && (
+                                                    <DropdownMenuItem
+                                                        render={
+                                                            <Link
+                                                                href={showArInvoice.url(
+                                                                    {
+                                                                        invoice:
+                                                                            folio.arInvoiceId,
+                                                                    },
+                                                                )}
+                                                            />
+                                                        }
+                                                    >
+                                                        <ExternalLink />
+                                                        Open invoice
+                                                    </DropdownMenuItem>
+                                                )}
+                                                {folio.canCreditArInvoice && (
+                                                    <DropdownMenuItem
+                                                        disabled={loadingCredit}
+                                                        onClick={startCredit}
+                                                    >
+                                                        {loadingCredit ? (
+                                                            <Spinner />
+                                                        ) : (
+                                                            <ReceiptText />
+                                                        )}
+                                                        Issue credit note
+                                                    </DropdownMenuItem>
+                                                )}
+                                                {folio.canVoidAndReopen && (
+                                                    <>
+                                                        <DropdownMenuSeparator />
+                                                        <DropdownMenuItem
+                                                            disabled={
+                                                                folio.voidInvoiceBlockedBy !==
+                                                                null
+                                                            }
+                                                            onClick={() =>
+                                                                setVoidingInvoice(
+                                                                    true,
+                                                                )
+                                                            }
+                                                        >
+                                                            <LockOpen />
+                                                            <span className="flex flex-col">
+                                                                Void invoice and
+                                                                reopen
+                                                                {folio.voidInvoiceBlockedBy && (
+                                                                    <span className="text-xs text-muted-foreground">
+                                                                        {
+                                                                            folio.voidInvoiceBlockedBy
+                                                                        }
+                                                                    </span>
+                                                                )}
+                                                            </span>
+                                                        </DropdownMenuItem>
+                                                    </>
+                                                )}
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
+                                    ) : (
+                                        <>
+                                            {folio.canPrintInvoice && (
+                                                <a
+                                                    href={invoice.url({
+                                                        reservation:
+                                                            reservationId,
+                                                        folio: Number(
+                                                            folio.key,
+                                                        ),
+                                                    })}
+                                                    target="_blank"
+                                                    rel="noreferrer"
+                                                    className={buttonVariants({
+                                                        variant: 'outline',
+                                                        size: 'sm',
+                                                    })}
+                                                >
+                                                    <Printer data-icon="inline-start" />
+                                                    Print invoice
+                                                </a>
                                             )}
-                                            Issue credit note
-                                        </Button>
+                                        </>
                                     )}
                                     {folio.canReopen && (
                                         <Form

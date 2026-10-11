@@ -22,6 +22,7 @@ use App\Models\FolioLine;
 use App\Models\Property;
 use App\Models\Reservation;
 use App\Models\User;
+use App\Services\CityLedger\ArInvoiceVoidCheck;
 use App\Services\CityLedger\CreditCheck;
 use App\Services\Payments\PaymentPurposeChoices;
 use Brick\Math\BigDecimal;
@@ -41,6 +42,7 @@ class FolioStatement
         private FolioReopenRule $folioReopenRule,
         private CreditCheck $creditCheck,
         private LineSourceUnits $lineSourceUnits,
+        private ArInvoiceVoidCheck $arInvoiceVoidCheck,
     ) {}
 
     /**
@@ -203,6 +205,7 @@ class FolioStatement
             : [];
         $canSettle = ($can['settleCityLedger'] ?? false) && $isOpen && $folio?->payer_company_id !== null && $balance !== null && bccomp($balance, '0', 2) > 0;
         $billedBy = $folio !== null && $user !== null ? $this->folioReopenRule->billingInvoice($folio) : null;
+        $canVoidAndReopen = $billedBy !== null && $user->can(PermissionEnum::CityLedgerInvoice->value) && $user->can(PermissionEnum::FolioReopen->value);
         $projected = $scheduled->reduce(fn (BigDecimal $sum, FolioRowData $row): BigDecimal => $sum->plus($row->amount), BigDecimal::of($balance ?? '0'));
 
         return new FolioData(
@@ -234,6 +237,9 @@ class FolioStatement
             arInvoiceId: $billedBy?->id,
             canOpenArInvoice: $billedBy !== null && $user->can(PermissionEnum::CompanyView->value),
             canCreditArInvoice: $billedBy !== null && $user->can(PermissionEnum::CityLedgerCreditNote->value),
+            arInvoiceNumber: $billedBy?->number,
+            canVoidAndReopen: $canVoidAndReopen,
+            voidInvoiceBlockedBy: $canVoidAndReopen ? $this->arInvoiceVoidCheck->blockedBy($billedBy) : null,
             closedNotice: $folio !== null && $user !== null ? $this->folioReopenRule->notice($user, $folio) : null,
         );
     }

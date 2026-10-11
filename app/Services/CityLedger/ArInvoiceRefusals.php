@@ -40,7 +40,7 @@ class ArInvoiceRefusals
         $message = __('The credit cannot be more than the invoice balance (:balance).', ['balance' => $balanceLabel]);
 
         if ($receipts !== []) {
-            $message .= ' '.trans_choice('{1} Reverse payment :receipts first.|[2,*] Reverse payments :receipts first.', count($receipts), ['receipts' => $this->listed($receipts)]);
+            $message .= ' '.trans_choice('{1} Reverse payment :receipts first.|[2,*] Reverse payments :receipts first.', count($receipts), ['receipts' => self::listed($receipts)]);
         }
 
         return ['amount' => $message];
@@ -80,7 +80,7 @@ class ArInvoiceRefusals
     /**
      * @param  list<string>  $receipts
      */
-    private function listed(array $receipts): string
+    public static function listed(array $receipts): string
     {
         $last = array_pop($receipts);
 

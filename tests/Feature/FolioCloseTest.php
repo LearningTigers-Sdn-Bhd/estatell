@@ -7,12 +7,16 @@ use App\Actions\Folio\ReopenFolio;
 use App\Actions\Folio\ReverseLine;
 use App\Actions\Folio\TransferLines;
 use App\Data\Folio\NewChargeData;
+use App\Enums\ArInvoiceStatus;
+use App\Enums\ArInvoiceType;
 use App\Enums\DefaultRoleEnum;
 use App\Enums\FolioStatus;
 use App\Enums\PermissionEnum;
 use App\Enums\SystemTransactionCode;
 use App\Enums\UnitStatus;
+use App\Models\ArAllocation;
 use App\Models\ArInvoice;
+use App\Models\ArPayment;
 use App\Models\BusinessDate;
 use App\Models\Company;
 use App\Models\Folio;
@@ -452,4 +456,66 @@ test('a credit note issued with the folio page as referer returns to the folio',
     $this->actingAs($manager)->from($billed['url'])->post($url, ['amount' => '10.00', 'reason' => 'Wrong rate'])->assertRedirect($billed['url']);
 
     expect(ArInvoice::query()->where('credit_for_invoice_id', $billed['invoice']->id)->count())->toBe(1);
+});
+
+test('void and reopen voids the invoice, reopens the folio and keeps the City ledger line', function () {
+    $billed = fcBilledFolio();
+    $manager = User::factory()->withRole(DefaultRoleEnum::Manager)->create(['property_id' => $billed['setup']['property']->id]);
+    $folio = $billed['invoice']->folio;
+    $line = FolioLine::factory()->create(['folio_id' => $folio->id, 'idempotency_key' => 'city-ledger:'.$folio->id]);
+    $url = route('reservations.folios.void-invoice-and-reopen', ['property' => $billed['setup']['property']->code, 'reservation' => $folio->reservation_id, 'folio' => $folio->id]);
+
+    $this->actingAs($manager)->get($billed['url'])->assertInertia(fn ($page) => $page
+        ->where('folio.canVoidAndReopen', true)
+        ->where('folio.voidInvoiceBlockedBy', null)
+        ->where('folio.arInvoiceNumber', 'F-0031'));
+
+    $this->post($url)->assertRedirect();
+
+    expect($billed['invoice']->fresh()->status)->toBe(ArInvoiceStatus::Void)
+        ->and($folio->fresh()->status)->toBe(FolioStatus::Open)
+        ->and(FolioLine::query()->whereKey($line->id)->exists())->toBeTrue();
+});
+
+test('void and reopen is refused, and rolls back, while a credit note or an allocation stands', function (string $blocker) {
+    $billed = fcBilledFolio();
+    $property = $billed['setup']['property'];
+    $manager = User::factory()->withRole(DefaultRoleEnum::Manager)->create(['property_id' => $property->id]);
+    $folio = $billed['invoice']->folio;
+    $url = route('reservations.folios.void-invoice-and-reopen', ['property' => $property->code, 'reservation' => $folio->reservation_id, 'folio' => $folio->id]);
+
+    if ($blocker === 'credit note') {
+        ArInvoice::factory()->create(['property_id' => $property->id, 'company_id' => $billed['invoice']->company_id, 'type' => ArInvoiceType::CreditNote, 'credit_for_invoice_id' => $billed['invoice']->id, 'folio_id' => null, 'due_on' => null, 'amount' => '-50.00', 'number' => 'CN-0003', 'status' => ArInvoiceStatus::Settled]);
+    } else {
+        $payment = ArPayment::factory()->create(['property_id' => $property->id, 'company_id' => $billed['invoice']->company_id, 'receipt_number' => 'RC-0045']);
+        ArAllocation::factory()->create(['ar_payment_id' => $payment->id, 'ar_invoice_id' => $billed['invoice']->id, 'amount' => '100.00']);
+    }
+
+    $this->actingAs($manager)->get($billed['url'])->assertInertia(fn ($page) => $page
+        ->where('folio.voidInvoiceBlockedBy', $blocker === 'credit note' ? 'Void credit note CN-0003 first.' : 'Reverse payment RC-0045 first.'));
+
+    $this->post($url)->assertRedirect();
+
+    expect($billed['invoice']->fresh()->status)->toBe(ArInvoiceStatus::Open)
+        ->and($folio->fresh()->status)->toBe(FolioStatus::Closed);
+})->with(['credit note', 'allocation']);
+
+test('void and reopen needs both city-ledger.invoice and folio.reopen', function () {
+    $billed = fcBilledFolio();
+    $property = $billed['setup']['property'];
+    $folio = $billed['invoice']->folio;
+    $url = route('reservations.folios.void-invoice-and-reopen', ['property' => $property->code, 'reservation' => $folio->reservation_id, 'folio' => $folio->id]);
+
+    foreach ([DefaultRoleEnum::FrontDesk, DefaultRoleEnum::Housekeeping] as $role) {
+        $user = User::factory()->withRole($role)->create(['property_id' => $property->id]);
+        $this->actingAs($user)->post($url)->assertForbidden();
+    }
+
+    setPermissionsTeamId($property->id);
+    Role::query()->where('property_id', $property->id)->where('default_role', DefaultRoleEnum::Finance)->firstOrFail()->revokePermissionTo(PermissionEnum::FolioReopen->value);
+    $finance = User::factory()->withRole(DefaultRoleEnum::Finance)->create(['property_id' => $property->id]);
+
+    $this->actingAs($finance)->post($url)->assertForbidden();
+
+    expect($billed['invoice']->fresh()->status)->toBe(ArInvoiceStatus::Open);
 });

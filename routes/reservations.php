@@ -44,6 +44,7 @@ Route::prefix('reservations')->name('reservations.')->scopeBindings()->group(fun
                 Route::post('city-ledger', [ReservationCityLedgerController::class, 'settle'])->middleware('can:'.PermissionEnum::CityLedgerInvoice->value)->name('city-ledger');
                 Route::post('close', [ReservationFolioController::class, 'close'])->middleware('can:'.PermissionEnum::FolioClose->value)->name('close');
                 Route::post('reopen', [ReservationFolioController::class, 'reopen'])->name('reopen');
+                Route::post('void-invoice-and-reopen', [ReservationFolioController::class, 'voidInvoiceAndReopen'])->middleware(['can:'.PermissionEnum::CityLedgerInvoice->value, 'can:'.PermissionEnum::FolioReopen->value])->name('void-invoice-and-reopen');
                 Route::post('transfers', [ReservationFolioController::class, 'transfer'])->middleware('can:'.PermissionEnum::FolioTransfer->value)->name('transfers.store');
                 Route::post('payments', [ReservationPaymentController::class, 'storeForFolio'])->middleware('can:'.PermissionEnum::PaymentRecord->value)->name('payments.store');
                 Route::post('payments/{payment}/refunds', [ReservationPaymentController::class, 'refund'])->middleware('can:'.PermissionEnum::PaymentRefund->value)->name('payments.refunds.store');

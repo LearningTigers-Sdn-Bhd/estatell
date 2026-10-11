@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Reservations;
 
+use App\Actions\CityLedger\ArInvoiceResult;
 use App\Actions\Folio\ApplyDiscount;
 use App\Actions\Folio\CloseFolio;
 use App\Actions\Folio\PostCharge;
@@ -10,6 +11,7 @@ use App\Actions\Folio\RemoveDiscount;
 use App\Actions\Folio\ReopenFolio;
 use App\Actions\Folio\ReverseLine;
 use App\Actions\Folio\TransferLines;
+use App\Actions\Folio\VoidInvoiceAndReopen;
 use App\Data\Folio\FolioDiscountQuoteResponseData;
 use App\Enums\FolioStatus;
 use App\Http\Controllers\Controller;
@@ -24,6 +26,7 @@ use App\Models\FolioLine;
 use App\Models\Property;
 use App\Models\Reservation;
 use App\Models\ReservationUnit;
+use App\Services\CityLedger\ArInvoiceRefusals;
 use App\Services\Folio\DiscountQuote;
 use App\Services\Folio\FolioInvoice;
 use App\Services\Folio\FolioRefusals;
@@ -171,6 +174,22 @@ class ReservationFolioController extends Controller
         Inertia::flash('toast', $result->isRefused()
             ? ['type' => 'error', 'message' => $refusals->message((string) $result->refusal)]
             : ['type' => 'success', 'message' => __('Folio :number reopened.', ['number' => $folio->number])]);
+
+        return back(fallback: $this->page($property, $reservation, $folio));
+    }
+
+    /**
+     * Void the folio's AR invoice and reopen the folio in one step (`city-ledger.invoice` and `folio.reopen`, checked by
+     * the route). A refusal rolls both back and is an error toast.
+     */
+    public function voidInvoiceAndReopen(Request $request, Property $property, Reservation $reservation, Folio $folio, VoidInvoiceAndReopen $voidInvoiceAndReopen, FolioRefusals $refusals, ArInvoiceRefusals $invoiceRefusals, FolioReopenRule $reopenRule): RedirectResponse
+    {
+        $invoiceNumber = $reopenRule->billingInvoice($folio)?->number;
+        $result = $voidInvoiceAndReopen($request->user(), $folio);
+
+        Inertia::flash('toast', $result->isRefused()
+            ? ['type' => 'error', 'message' => in_array($result->refusal, [ArInvoiceResult::REFUSAL_NOT_VOIDABLE, ArInvoiceResult::REFUSAL_ALREADY_VOID], true) ? $invoiceRefusals->message((string) $result->refusal) : $refusals->message((string) $result->refusal)]
+            : ['type' => 'success', 'message' => __('Invoice :number voided. The folio is open again.', ['number' => $invoiceNumber])]);
 
         return back(fallback: $this->page($property, $reservation, $folio));
     }
