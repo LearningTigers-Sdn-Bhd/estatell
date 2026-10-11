@@ -111,6 +111,7 @@ The critical path: the front desk actions on the reservation, then the night aud
 
 Needed for go-live, but nothing in Now waits for them.
 
+- [ ] `feat(reservations): print every receipt of a reservation` — **⋯ More › Print receipts** on the reservation page: one PDF from `reservations.check-out.receipts` with every payment of the reservation that is not a refund, in id order, shown with `payment.record` when at least one payment exists (also on closed reservations). No new PDF code. Docs: [Reservations list and reservation page](12-reservations/06-reservation-page.md#header), [Group check-out](18-front-desk/05-group-check-out.md).
 - [ ] `feat(housekeeping): add the room status board` — Docs: [Room status board](19-housekeeping/01-room-status-board.md).
 - [x] `feat(catalogues): add the collect at check-in switch to taxes` — `taxes.collect_at_check_in` (default false, on for the Tourism tax preset) and the switch on the tax form. Item 10 needs it for Collect now. Docs: [Taxes](06-catalogues/03-taxes.md).
 - [ ] `feat(front-desk): add the dashboard` — replaces the starter kit placeholder: the night audit alert, quick actions (New booking, Walk-in, Find reservation, Run night audit), four link tiles (Arrivals left, Departures left, Tonight with 7 nights and a room type popover, the month's Posted and Booked) and the To do list (overdue, arrivals, departures with a group row that opens the group check-out page, folio warnings) with Check in, Check out and Open folio through `AuditDialogHost`. `DashboardController`, `DashboardAlert`, `DashboardTiles`, `DashboardTodo`, deferred props with skeletons, the Dashboard archetype. Docs: [Dashboard](18-front-desk/04-dashboard.md).
@@ -359,6 +360,7 @@ Topics on hold. Each one needs a planning session and its docs before it gets co
 | `afe6704` | feat(front-desk): check out a group on one page                          |
 | `60fa865` | docs(front-desk): tidy the group check-out page design                   |
 | `30e2689` | fix(front-desk): tidy the group check-out page                           |
+| `65f40d2` | feat(front-desk): print the group check-out receipts                     |
 
 Smaller fixes and reverts are in `git log`.
 
