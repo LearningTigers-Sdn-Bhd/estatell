@@ -117,6 +117,8 @@ Route::prefix('reservations')->name('reservations.')->scopeBindings()->group(fun
             Route::prefix('{unit}')->group(function () {
                 Route::post('guests', [ReservationUnitController::class, 'storeGuest'])->name('guests.store');
                 Route::put('guests/{guestId}', [ReservationUnitController::class, 'updateGuest'])->whereNumber('guestId')->middleware('can:'.PermissionEnum::GuestsManage->value)->name('guests.update');
+                Route::post('guests/{guestId}/replace', [ReservationUnitController::class, 'replaceGuest'])->whereNumber('guestId')->name('guests.replace');
+                Route::delete('guests/{guestId}', [ReservationUnitController::class, 'destroyGuest'])->whereNumber('guestId')->name('guests.destroy');
                 Route::post('add-ons', [ReservationUnitAddOnController::class, 'store'])->name('add-ons.store');
                 Route::delete('add-ons/{addOn}', [ReservationUnitAddOnController::class, 'destroy'])->name('add-ons.destroy');
 

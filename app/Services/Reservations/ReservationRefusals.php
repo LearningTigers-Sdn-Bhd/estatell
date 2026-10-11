@@ -193,6 +193,7 @@ class ReservationRefusals
             AttachGuestResult::REFUSAL_GUEST_NOT_FOUND => ['guest_id', __('This guest cannot be found.')],
             AttachGuestResult::REFUSAL_ALREADY_ATTACHED => ['guest_id', __('This guest already stays in this unit.')],
             AttachGuestResult::REFUSAL_BED_UNIT_FULL => [self::FORM, __('A bed unit holds one guest.')],
+            AttachGuestResult::REFUSAL_HAS_REGISTRATION_CARD => [self::FORM, __('This guest has a registration card on this unit, so they cannot be changed.')],
             AddOnResult::REFUSAL_UNIT_NOT_OPEN => [self::FORM, __('This unit is closed, so it cannot change.')],
             AddOnResult::REFUSAL_CHARGE_ITEM_NOT_FOUND => ['charge_item_id', __('This charge item is not available.')],
             AddOnResult::REFUSAL_SERVICE_DATE_OUTSIDE_STAY => ['service_date', __('The service date must be within the stay.')],

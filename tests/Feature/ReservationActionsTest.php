@@ -4,6 +4,7 @@ use App\Actions\Folio\CreateFolio;
 use App\Enums\BillingMode;
 use App\Enums\DefaultRoleEnum;
 use App\Enums\PaymentPurpose;
+use App\Enums\RegistrationCardStatus;
 use App\Enums\UnitStatus;
 use App\Models\ChargeItem;
 use App\Models\Guest;
@@ -12,6 +13,8 @@ use App\Models\Property;
 use App\Models\PropertySetting;
 use App\Models\Rate;
 use App\Models\RatePlan;
+use App\Models\RegistrationCard;
+use App\Models\RegistrationCardTerms;
 use App\Models\Reservation;
 use App\Models\ReservationUnit;
 use App\Models\Role;
@@ -432,6 +435,200 @@ test('only a guest on the unit can be saved from it, and only with guests.manage
     $this->actingAs($viewer)->put($url, ['full_name' => 'Changed'])->assertForbidden();
 
     expect($stranger->refresh()->full_name)->not->toBe('Changed');
+});
+
+/**
+ * A guest on the unit of the setup.
+ *
+ * @param  array<string, mixed>  $overrides
+ */
+function actionsOccupant(array $setup, array $overrides = [], array $guestAttributes = []): UnitGuest
+{
+    $guest = Guest::factory()->create(['property_id' => $setup['property']->id, ...$guestAttributes]);
+
+    return UnitGuest::factory()->create(['reservation_unit_id' => $setup['unit']->id, 'guest_id' => $guest->id, ...$overrides]);
+}
+
+test('a guest is replaced in place and the primary role stays', function () {
+    $setup = actionsSetup();
+    $old = actionsOccupant($setup, ['is_primary' => true], ['full_name' => 'Wrong Person']);
+    $new = Guest::factory()->create(['property_id' => $setup['property']->id, 'full_name' => 'Right Person']);
+
+    $this->actingAs($setup['user'])
+        ->post(actionsRoute($setup, 'reservations.units.guests.replace', ['unit' => $setup['unit']->id, 'guestId' => $old->guest_id]), ['guest_id' => $new->id])
+        ->assertSessionHasNoErrors()
+        ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Right Person is now on the unit.']);
+
+    $row = UnitGuest::query()->sole();
+    $log = Activity::query()->where('event', 'reservation.guest_replaced')->sole();
+
+    expect($row->id)->toBe($old->id)
+        ->and($row->guest_id)->toBe($new->id)
+        ->and($row->is_primary)->toBeTrue()
+        ->and($log->properties['previous_guest_id'])->toBe($old->guest_id)
+        ->and($log->properties['guest_id'])->toBe($new->id);
+});
+
+test('a new person can replace a guest and is created with the change', function () {
+    $setup = actionsSetup();
+    $old = actionsOccupant($setup);
+
+    $this->actingAs($setup['user'])
+        ->post(actionsRoute($setup, 'reservations.units.guests.replace', ['unit' => $setup['unit']->id, 'guestId' => $old->guest_id]), ['full_name' => 'Siti Aminah', 'city' => 'Ipoh'])
+        ->assertSessionHasNoErrors();
+
+    $created = Guest::query()->where('full_name', 'Siti Aminah')->sole();
+
+    expect(UnitGuest::query()->sole()->guest_id)->toBe($created->id);
+});
+
+test('a replace is refused and writes nothing', function (string $case, string $key, string $message) {
+    $setup = actionsSetup();
+    $old = actionsOccupant($setup, ['is_primary' => true]);
+    $newId = Guest::factory()->create(['property_id' => $setup['property']->id])->id;
+    $body = ['guest_id' => $newId];
+
+    match ($case) {
+        'closed unit' => $setup['unit']->forceFill(['status' => UnitStatus::Cancelled])->save(),
+        'same guest' => $body = ['guest_id' => $old->guest_id],
+        'already on unit' => UnitGuest::factory()->create(['reservation_unit_id' => $setup['unit']->id, 'guest_id' => $newId]),
+        'merged guest' => Guest::query()->whereKey($newId)->update(['merged_into_id' => $old->guest_id]),
+        'signed card' => RegistrationCard::factory()->create([
+            'unit_guest_id' => $old->id,
+            'status' => RegistrationCardStatus::Signed,
+            'signed_at' => now(),
+            'terms_id' => RegistrationCardTerms::factory()->create()->id,
+            'snapshot' => ['guest' => 'signed'],
+            'number' => 'RC-1',
+        ]),
+        'void card' => RegistrationCard::factory()->create(['unit_guest_id' => $old->id, 'status' => RegistrationCardStatus::Void, 'void_reason' => 'Typo', 'voided_at' => now()]),
+    };
+
+    $this->actingAs($setup['user'])
+        ->post(actionsRoute($setup, 'reservations.units.guests.replace', ['unit' => $setup['unit']->id, 'guestId' => $old->guest_id]), $body)
+        ->assertSessionHasErrors([$key => $message]);
+
+    expect(UnitGuest::query()->where('guest_id', $old->guest_id)->exists())->toBeTrue()
+        ->and(Activity::query()->where('event', 'reservation.guest_replaced')->count())->toBe(0);
+})->with([
+    ['closed unit', 'form', 'This unit is closed, so it cannot change.'],
+    ['same guest', 'guest_id', 'This guest already stays in this unit.'],
+    ['already on unit', 'guest_id', 'This guest already stays in this unit.'],
+    ['merged guest', 'guest_id', 'This guest cannot be found.'],
+    ['signed card', 'form', 'This guest has a registration card on this unit, so they cannot be changed.'],
+    ['void card', 'form', 'This guest has a registration card on this unit, so they cannot be changed.'],
+]);
+
+test('a new guest is not left behind when the replace is refused', function () {
+    $setup = actionsSetup();
+    $old = actionsOccupant($setup);
+    RegistrationCard::factory()->create(['unit_guest_id' => $old->id, 'status' => RegistrationCardStatus::Void, 'void_reason' => 'Typo', 'voided_at' => now()]);
+
+    $this->actingAs($setup['user'])
+        ->post(actionsRoute($setup, 'reservations.units.guests.replace', ['unit' => $setup['unit']->id, 'guestId' => $old->guest_id]), ['full_name' => 'Siti Aminah'])
+        ->assertSessionHasErrors('form');
+
+    expect(Guest::query()->where('full_name', 'Siti Aminah')->exists())->toBeFalse();
+});
+
+test('a draft registration card is deleted with the replace or the remove', function (string $route, array $body, string $method) {
+    $setup = actionsSetup();
+    $old = actionsOccupant($setup, ['is_primary' => true]);
+    $card = RegistrationCard::factory()->create(['unit_guest_id' => $old->id]);
+
+    if (isset($body['replace'])) {
+        $body = ['guest_id' => Guest::factory()->create(['property_id' => $setup['property']->id])->id];
+    }
+
+    $this->actingAs($setup['user'])
+        ->{$method}(actionsRoute($setup, $route, ['unit' => $setup['unit']->id, 'guestId' => $old->guest_id]), $body)
+        ->assertSessionHasNoErrors();
+
+    expect(RegistrationCard::query()->whereKey($card->id)->exists())->toBeFalse();
+})->with([
+    'replace' => ['reservations.units.guests.replace', ['replace' => true], 'post'],
+    'remove' => ['reservations.units.guests.destroy', [], 'delete'],
+]);
+
+test('removing the primary guest makes the oldest other guest primary', function () {
+    $setup = actionsSetup();
+    $primary = actionsOccupant($setup, ['is_primary' => true]);
+    $second = actionsOccupant($setup);
+    $third = actionsOccupant($setup);
+
+    $this->actingAs($setup['user'])
+        ->delete(actionsRoute($setup, 'reservations.units.guests.destroy', ['unit' => $setup['unit']->id, 'guestId' => $primary->guest_id]))
+        ->assertInertiaFlash('toast', ['type' => 'success', 'message' => $primary->guest->full_name.' removed from the unit.']);
+
+    $log = Activity::query()->where('event', 'reservation.guest_detached')->sole();
+
+    expect(UnitGuest::query()->whereKey($primary->id)->exists())->toBeFalse()
+        ->and($second->refresh()->is_primary)->toBeTrue()
+        ->and($third->refresh()->is_primary)->toBeFalse()
+        ->and($log->properties['was_primary'])->toBeTrue()
+        ->and($log->properties['promoted_guest_id'])->toBe($second->guest_id);
+});
+
+test('removing a guest who is not primary changes no one else, and the last guest may go', function () {
+    $setup = actionsSetup();
+    $primary = actionsOccupant($setup, ['is_primary' => true]);
+    $second = actionsOccupant($setup);
+
+    $this->actingAs($setup['user'])->delete(actionsRoute($setup, 'reservations.units.guests.destroy', ['unit' => $setup['unit']->id, 'guestId' => $second->guest_id]));
+
+    expect($primary->refresh()->is_primary)->toBeTrue();
+
+    $this->actingAs($setup['user'])->delete(actionsRoute($setup, 'reservations.units.guests.destroy', ['unit' => $setup['unit']->id, 'guestId' => $primary->guest_id]));
+
+    expect(UnitGuest::query()->count())->toBe(0);
+});
+
+test('a remove is refused with an error toast and writes nothing', function (string $case, string $message) {
+    $setup = actionsSetup();
+    $old = actionsOccupant($setup, ['is_primary' => true]);
+
+    match ($case) {
+        'closed unit' => $setup['unit']->forceFill(['status' => UnitStatus::NoShow])->save(),
+        'void card' => RegistrationCard::factory()->create(['unit_guest_id' => $old->id, 'status' => RegistrationCardStatus::Void, 'void_reason' => 'Typo', 'voided_at' => now()]),
+    };
+
+    $this->actingAs($setup['user'])
+        ->delete(actionsRoute($setup, 'reservations.units.guests.destroy', ['unit' => $setup['unit']->id, 'guestId' => $old->guest_id]))
+        ->assertInertiaFlash('toast', ['type' => 'error', 'message' => $message]);
+
+    expect(UnitGuest::query()->count())->toBe(1)
+        ->and(Activity::query()->where('event', 'reservation.guest_detached')->count())->toBe(0);
+})->with([
+    ['closed unit', 'This unit is closed, so it cannot change.'],
+    ['void card', 'This guest has a registration card on this unit, so they cannot be changed.'],
+]);
+
+test('replace and remove need the guest on the unit and reservations.manage', function () {
+    $setup = actionsSetup();
+    $stranger = Guest::factory()->create(['property_id' => $setup['property']->id]);
+    $replace = actionsRoute($setup, 'reservations.units.guests.replace', ['unit' => $setup['unit']->id, 'guestId' => $stranger->id]);
+    $remove = actionsRoute($setup, 'reservations.units.guests.destroy', ['unit' => $setup['unit']->id, 'guestId' => $stranger->id]);
+
+    $this->actingAs($setup['user'])->post($replace, ['guest_id' => $stranger->id])->assertNotFound();
+    $this->actingAs($setup['user'])->delete($remove)->assertNotFound();
+
+    $finance = actionsSetup(DefaultRoleEnum::Finance);
+    $url = actionsRoute($finance, 'reservations.units.guests.destroy', ['unit' => $finance['unit']->id, 'guestId' => 1]);
+
+    $this->actingAs($finance['user'])->delete($url)->assertForbidden();
+});
+
+test('replacing the primary guest of a checked-out unit with a different foreign status warns about the tax', function () {
+    $setup = actionsSetup();
+    $setup['unit']->forceFill(['status' => UnitStatus::CheckedOut, 'checked_in_at' => now()->subDay(), 'checked_out_at' => now()])->save();
+    $setup['reservation']->booker->forceFill(['nationality_code' => 'MY'])->save();
+    Tax::factory()->create(['property_id' => $setup['property']->id, 'name' => 'Tourism tax', 'foreign_guests_only' => true]);
+    $old = actionsOccupant($setup, ['is_primary' => true], ['nationality_code' => 'MY']);
+    $new = Guest::factory()->create(['property_id' => $setup['property']->id, 'nationality_code' => 'SG']);
+
+    $this->actingAs($setup['user'])
+        ->post(actionsRoute($setup, 'reservations.units.guests.replace', ['unit' => $setup['unit']->id, 'guestId' => $old->guest_id]), ['guest_id' => $new->id])
+        ->assertInertiaFlash('toast', ['type' => 'warning', 'message' => "Guest added. Tourism tax was charged on the booker's nationality (Malaysia). If it is different for this guest, correct it on the folio."]);
 });
 
 test('a refused guest shows an inline error and writes nothing', function (string $case, string $field, string $message) {

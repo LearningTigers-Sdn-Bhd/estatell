@@ -74,7 +74,10 @@ class AttachGuest
         });
     }
 
-    private function taxWarning(ReservationUnit $unit, Guest $guest, bool $becamePrimary): ?string
+    /**
+     * The warning for a guest who becomes primary on a CheckedOut unit, or null.
+     */
+    public function taxWarning(ReservationUnit $unit, Guest $guest, bool $becamePrimary): ?string
     {
         if ($unit->status !== UnitStatus::CheckedOut || ! $becamePrimary) {
             return null;

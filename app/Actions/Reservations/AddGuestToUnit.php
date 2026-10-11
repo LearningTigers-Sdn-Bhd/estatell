@@ -2,9 +2,6 @@
 
 namespace App\Actions\Reservations;
 
-use App\Actions\Guests\CreateGuest;
-use App\Actions\Guests\UpdateGuest;
-use App\Models\Guest;
 use App\Models\Property;
 use App\Models\ReservationUnit;
 use App\Models\User;
@@ -14,8 +11,7 @@ use Throwable;
 class AddGuestToUnit
 {
     public function __construct(
-        private CreateGuest $createGuest,
-        private UpdateGuest $updateGuest,
+        private ResolveUnitGuest $resolveGuest,
         private AttachGuest $attachGuest,
     ) {}
 
@@ -32,7 +28,8 @@ class AddGuestToUnit
         DB::beginTransaction();
 
         try {
-            $result = $this->run($actor, $property, $unit, $guestId, $profile, $updateProfile);
+            $guest = ($this->resolveGuest)($actor, $property, $guestId, $profile, $updateProfile);
+            $result = $guest instanceof AttachGuestResult ? $guest : ($this->attachGuest)($actor, $unit, $guest);
         } catch (Throwable $exception) {
             DB::rollBack();
 
@@ -48,37 +45,5 @@ class AddGuestToUnit
         DB::commit();
 
         return $result;
-    }
-
-    /**
-     * @param  array<string, mixed>  $profile
-     */
-    private function run(User $actor, Property $property, ReservationUnit $unit, ?int $guestId, array $profile, bool $updateProfile): AttachGuestResult
-    {
-        if ($guestId === null) {
-            if (trim((string) ($profile['full_name'] ?? '')) === '') {
-                return AttachGuestResult::refused(BookingResult::REFUSAL_GUEST_NAME_REQUIRED);
-            }
-
-            $guest = ($this->createGuest)($actor, $property, $profile);
-        } else {
-            $guest = Guest::query()->where('property_id', $property->id)->find($guestId);
-
-            if ($guest === null) {
-                return AttachGuestResult::refused(AttachGuestResult::REFUSAL_GUEST_NOT_FOUND);
-            }
-
-            if ($updateProfile && $profile !== []) {
-                $tags = $guest->tags()->pluck('name')->all();
-
-                if (! ($this->updateGuest)($actor, $guest, $profile, $tags)) {
-                    return AttachGuestResult::refused(AttachGuestResult::REFUSAL_GUEST_NOT_FOUND);
-                }
-
-                $guest->refresh();
-            }
-        }
-
-        return ($this->attachGuest)($actor, $unit, $guest);
     }
 }

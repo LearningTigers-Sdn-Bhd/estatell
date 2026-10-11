@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Reservations;
 use App\Actions\Guests\UpdateGuest;
 use App\Actions\Reservations\AddGuestToUnit;
 use App\Actions\Reservations\AddUnit;
+use App\Actions\Reservations\DetachGuest;
+use App\Actions\Reservations\ReplaceUnitGuest;
 use App\Enums\PermissionEnum;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Reservations\AddUnitRequest;
@@ -16,6 +18,8 @@ use App\Models\ReservationUnit;
 use App\Services\Reservations\ReservationRefusals;
 use App\Services\Reservations\RoutingChangeNotice;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 use Inertia\Inertia;
 
 class ReservationUnitController extends Controller
@@ -71,6 +75,44 @@ class ReservationUnitController extends Controller
         Inertia::flash('toast', $saved
             ? ['type' => 'success', 'message' => __(':name saved.', ['name' => $request->input('full_name')])]
             : ['type' => 'error', 'message' => __(':name cannot be edited.', ['name' => $guest->full_name])]);
+
+        return back(fallback: $this->page($property, $reservation));
+    }
+
+    /**
+     * Put another person in place of a guest on the unit. A refusal goes back to the row as an inline error and writes
+     * nothing.
+     */
+    public function replaceGuest(AttachGuestRequest $request, Property $property, Reservation $reservation, ReservationUnit $unit, int $guestId, ReplaceUnitGuest $replaceGuest, ReservationRefusals $refusals): RedirectResponse
+    {
+        $occupant = $unit->guests()->where('guest_id', $guestId)->with('guest')->firstOrFail();
+        $result = $replaceGuest($request->user(), $property, $unit, $occupant, $request->filled('guest_id') ? $request->integer('guest_id') : null, $request->profile(), $request->boolean('update_profile'));
+
+        if ($result->isRefused()) {
+            return back(fallback: $this->page($property, $reservation))->withErrors($refusals->errors((string) $result->refusal));
+        }
+
+        $name = $result->unitGuest?->guest?->full_name;
+
+        Inertia::flash('toast', $result->taxWarning !== null
+            ? ['type' => 'warning', 'message' => $result->taxWarning]
+            : ['type' => 'success', 'message' => __(':name is now on the unit.', ['name' => $name])]);
+
+        return back(fallback: $this->page($property, $reservation));
+    }
+
+    /**
+     * Take a guest off the unit. A refusal is an error toast and nothing is written.
+     */
+    public function destroyGuest(Request $request, Property $property, Reservation $reservation, ReservationUnit $unit, int $guestId, DetachGuest $detachGuest, ReservationRefusals $refusals): RedirectResponse
+    {
+        $occupant = $unit->guests()->where('guest_id', $guestId)->with('guest')->firstOrFail();
+        $name = $occupant->guest->full_name;
+        $refusal = $detachGuest($request->user(), $unit, $occupant);
+
+        Inertia::flash('toast', $refusal === null
+            ? ['type' => 'success', 'message' => __(':name removed from the unit.', ['name' => $name])]
+            : ['type' => 'error', 'message' => (string) Arr::first($refusals->errors($refusal))]);
 
         return back(fallback: $this->page($property, $reservation));
     }
