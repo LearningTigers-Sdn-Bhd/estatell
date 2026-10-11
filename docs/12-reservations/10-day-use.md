@@ -119,11 +119,15 @@ No new tax column. A tax applies to the codes in its charge list (the `tax_trans
 
 ## Reports
 
-- **Occupancy, ADR and RevPAR stay overnight only.** Day use has no nights, so the existing figures are unchanged.
-- `daily_statistics` gains `day_use_sold` and `day_use_revenue`, snapshotted by `SnapshotStatistics`. The Occupancy report gains **Day use sold** and **Day use revenue** columns, and its totals sum them.
+- **Occupancy, ADR and RevPAR stay overnight only.** Day use has no nights and no `unit_nights`, and its revenue is on the DAY_USE code, not the ROOM code, so the existing figures are unchanged.
+- `daily_statistics` gains `day_use_sold` and `day_use_revenue`, snapshotted by `SnapshotStatistics` (see [Statistics](../20-night-audit/05-statistics.md#calculation)).
+    - `day_use_sold` counts units, not room-hours: the day use units of the property with `arrival_date` equal to the date, status CheckedIn or CheckedOut, and `released_at` null. A day use is usually Checked out by the audit, so CheckedIn alone would count nothing. Cancelled and no-show blocks are not counted.
+    - `day_use_revenue` is the DAY_USE code plus the discount lines under its charges, net of tax, the same rule as room revenue.
+    - A closed date from before the migration reads 0 in both. No back-fill: day use could not be sold before.
+- The Occupancy report gains **Day use sold** and **Day use revenue**, both visible by default, after `revenue`. The totals sum them.
 - The Revenue report shows DAY_USE as its own code with no change.
-- Arrivals, Departures and In-house list day use units with "Day use · 10:00–14:00" in the stay column.
-- The police and non-national guests reports include day use guests.
+- Arrivals, Departures and In-house list day use units with "Day use · 10:00–14:00" in the stay column. **In-house** lists a day use unit on its date: its arrival and departure date are the same day, so the overnight rule (departure after the date) would never match it. A Checked in or Checked out day use with `arrival_date` equal to the date is in-house.
+- The police and non-national guests reports include day use guests (to verify when building: they must not rely on `unit_nights`).
 
 ## Channels
 
@@ -138,7 +142,7 @@ A Day use plan is never mapped. The mapping capability refuses it with "Day use 
 | 2b  | `feat(reservations): add day use to the booking form` | The Stay type switch, Hours select, Room picker, Add unit Sheet and the labels in the UI                                                                                                                                                                                             |
 | 3a  | `feat(front-desk): check day use in and out`          | Backend: check-in posting the block, its inclusions and every add-on, check-out, cancel and no-show with the policy rule, reinstate, `MoveUnit`, `FreeUnits` skipping overlapping rooms, the late check-out refusal, the audit detail                                                |
 | 3b  | `feat(front-desk): add day use to the unit menu`      | `UnitActionMenu` for day use and the Move room dialog without the night picker                                                                                                                                                                                                       |
-| 4   | `feat(reports): show day use apart`                   | `day_use_sold` and `day_use_revenue` in the snapshot, the Occupancy columns, the stay column in Arrivals, Departures and In-house                                                                                                                                                    |
+| 4   | `feat(reports): show day use apart`                   | `day_use_sold` and `day_use_revenue` in the snapshot (default 0), the Occupancy columns, the stay column in Arrivals, Departures and In-house, and day use on its date in In-house                                                                                                   |
 
 **Built (commit 2a, backend).** `StayType`, `unit_day_uses` with the exclusion constraint, `DayUsePricing` and `RateQuoteService::quoteDayUse()` (new refusals `plan_not_day_use`, `no_hour_price`, `hours_not_sold`), `DayUseOffers`, `DayUseAvailability`, `AddDayUseUnit` (called by `AddUnit`) and the day use path in `CreateReservation`. New refusals: `stay_type_mismatch`, `stay_types_mixed`, `day_use_not_for_channel`, `outside_sold_between`, `start_time_invalid`, `room_required`, `override_not_allowed`, `nightly_item_for_day_use` (add-ons) and `day_use_unit` (assign room or bed). Request keys: `stay_type`, `start_time`, `hours` and `room_id` (the date is `arrival_date`; a day use needs no `departure_date`). On the booking form the start time is shared by every line and each line has its own `hours` and `room_id`. `reservations.day-use-offers`, `reservations.quote` and `reservations.free-units` take the day use keys, and the form props `hasDayUse` and `addUnitOptions.ratePlans[].isDayUse`, `dayUseMinHours`, `dayUseMaxHours`, `dayUseFrom` and `dayUseUntil`. `StayLabel` gives the "Day use · 4h" label (`stayType` and `stayLabel` on the reservation list row, the reservation page and the unit panel; null for overnight). `StayTotal`, the list and money strip totals and the room box include the block. `DayUseChargeQuote` works out the lines of the block (the price less the plan's inclusions, taxed with the DAY_USE taxes) for the Scheduled folio row `dayuse:{unit_id}` and for check in to post. A guest who stays through the date (a night before and the night of the date in the same room) blocks the room all day, which the table above leaves implicit.
 
