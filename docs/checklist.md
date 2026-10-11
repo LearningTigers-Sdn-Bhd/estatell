@@ -365,6 +365,8 @@ Topics on hold. Each one needs a planning session and its docs before it gets co
 | `f03d769` | feat(reservations): print every receipt of a reservation                 |
 | `9f07db0` | docs(reservations): settle the change night price build decisions        |
 | `1e374b2` | feat(reservations): change the price of booked nights                    |
+| `2b32138` | docs(reservations): settle the day use build decisions                   |
+| `d9c193e` | feat(rates): add day use rate plans                                      |
 
 Smaller fixes and reverts are in `git log`.
 
