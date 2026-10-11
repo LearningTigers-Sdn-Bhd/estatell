@@ -9,9 +9,11 @@ use App\Data\CityLedger\ArInvoiceRowData;
 use App\Enums\ArInvoiceStatus;
 use App\Enums\ArInvoiceType;
 use App\Enums\PermissionEnum;
+use App\Enums\SystemTransactionCode;
 use App\Models\ArAllocation;
 use App\Models\ArInvoice;
 use App\Models\FolioLine;
+use App\Models\TransactionCode;
 use App\Models\User;
 
 /**
@@ -84,7 +86,7 @@ class ArInvoiceDetail
 
         return FolioLine::query()
             ->where('folio_id', $invoice->folio_id)
-            ->where('idempotency_key', '<>', 'city-ledger:'.$invoice->folio_id)
+            ->whereNotIn('transaction_code_id', TransactionCode::query()->where('system_key', SystemTransactionCode::DirectBillPayment->value)->select('id'))
             ->orderBy('id')
             ->get(['posting_date', 'description', 'amount'])
             ->map(fn (FolioLine $line): ArInvoiceLineData => new ArInvoiceLineData($line->posting_date->toDateString(), $line->description, (string) $line->amount))

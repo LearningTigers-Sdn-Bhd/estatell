@@ -4,6 +4,7 @@ use App\Actions\CityLedger\ArInvoiceResult;
 use App\Actions\CityLedger\SettleToCityLedger;
 use App\Actions\Folio\FolioStatusResult;
 use App\Actions\Folio\ReopenFolio;
+use App\Actions\Folio\VoidInvoiceAndReopen;
 use App\Enums\ArInvoiceStatus;
 use App\Enums\ArInvoiceType;
 use App\Enums\DefaultRoleEnum;
@@ -20,7 +21,10 @@ use App\Models\PropertySetting;
 use App\Models\ReservationUnit;
 use App\Models\TransactionCode;
 use App\Models\User;
+use App\Services\CityLedger\ArInvoiceDetail;
+use App\Services\CityLedger\ArInvoicePrinter;
 use App\Services\CityLedger\ArInvoiceRefusals;
+use App\Services\Folio\FolioBalance;
 use App\Services\Folio\InHouseUnits;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
@@ -56,7 +60,7 @@ test('it posts the City ledger line, closes the folio and makes the invoice', fu
     $result = settle($setup);
 
     $folio = $setup['folio']->fresh();
-    $line = FolioLine::query()->where('idempotency_key', 'city-ledger:'.$folio->id)->sole();
+    $line = FolioLine::query()->where('idempotency_key', 'city-ledger:'.$folio->id.':1')->sole();
     $invoice = $result->invoice;
 
     expect($result->isRefused())->toBeFalse()
@@ -227,3 +231,51 @@ test('the City ledger permissions go to Owner, Manager and Finance only', functi
     [DefaultRoleEnum::FrontDesk, false],
     [DefaultRoleEnum::Housekeeping, false],
 ]);
+
+test('void and reopen leaves the balance owed, and the folio settles again with the same invoice number', function () {
+    $setup = cityLedgerSetup();
+    $first = settle($setup)->invoice;
+    $folio = $setup['folio']->fresh();
+
+    $result = app(VoidInvoiceAndReopen::class)($setup['actor'], $folio);
+    $cityLine = FolioLine::query()->where('idempotency_key', 'city-ledger:'.$folio->id.':1')->sole();
+
+    expect($result->isRefused())->toBeFalse()
+        ->and(FolioLine::query()->where('reversal_of_id', $cityLine->id)->sole()->amount)->toBe('100.00')
+        ->and(app(FolioBalance::class)->forFolio($folio->fresh()))->toBe('100.00');
+
+    FolioLine::factory()->create(['folio_id' => $folio->id, 'amount' => '20.00', 'unit_amount' => '20.00', 'posting_date' => today()->toDateString()]);
+
+    $second = settle($setup)->invoice;
+
+    expect($second->number)->toBe($first->number)
+        ->and($second->amount)->toBe('120.00')
+        ->and($first->fresh()->status)->toBe(ArInvoiceStatus::Void)
+        ->and(ArInvoice::query()->where('folio_id', $folio->id)->where('status', '<>', ArInvoiceStatus::Void)->count())->toBe(1)
+        ->and(FolioLine::query()->where('idempotency_key', 'city-ledger:'.$folio->id.':2')->exists())->toBeTrue();
+
+    $lines = collect(app(ArInvoiceDetail::class)->lines($second))->pluck('amount')->all();
+    $document = app(ArInvoicePrinter::class)->forInvoice($second);
+
+    expect($lines)->toBe(['100.00', '20.00'])
+        ->and($document->payments)->toBe([])
+        ->and($document->paid)->toBe('0.00');
+});
+
+test('the folio says its invoice is void until it settles again', function () {
+    $setup = cityLedgerSetup();
+    $user = User::factory()->withRole(DefaultRoleEnum::Owner)->create(['property_id' => $setup['property']->id]);
+    settle($setup);
+    $folio = $setup['folio']->fresh();
+    $url = route('reservations.folio', ['property' => $setup['property']->code, 'reservation' => $folio->reservation_id, 'folio' => $folio->id]);
+
+    $this->actingAs($user)->get($url)->assertInertia(fn ($page) => $page->where('folio.invoiceVoided', false));
+
+    app(VoidInvoiceAndReopen::class)($setup['actor'], $folio);
+
+    $this->get($url)->assertInertia(fn ($page) => $page->where('folio.invoiceVoided', true));
+
+    settle($setup);
+
+    $this->get($url)->assertInertia(fn ($page) => $page->where('folio.invoiceVoided', false));
+});

@@ -13,6 +13,7 @@ use App\Enums\DefaultRoleEnum;
 use App\Enums\FolioStatus;
 use App\Enums\PermissionEnum;
 use App\Enums\SystemTransactionCode;
+use App\Enums\TransactionKind;
 use App\Enums\UnitStatus;
 use App\Models\ArAllocation;
 use App\Models\ArInvoice;
@@ -458,11 +459,12 @@ test('a credit note issued with the folio page as referer returns to the folio',
     expect(ArInvoice::query()->where('credit_for_invoice_id', $billed['invoice']->id)->count())->toBe(1);
 });
 
-test('void and reopen voids the invoice, reopens the folio and keeps the City ledger line', function () {
+test('void and reopen voids the invoice, reopens the folio and reverses the City ledger line', function () {
     $billed = fcBilledFolio();
     $manager = User::factory()->withRole(DefaultRoleEnum::Manager)->create(['property_id' => $billed['setup']['property']->id]);
     $folio = $billed['invoice']->folio;
-    $line = FolioLine::factory()->create(['folio_id' => $folio->id, 'idempotency_key' => 'city-ledger:'.$folio->id]);
+    $code = TransactionCode::factory()->system(SystemTransactionCode::DirectBillPayment)->create(['property_id' => $billed['setup']['property']->id]);
+    $line = FolioLine::factory()->create(['folio_id' => $folio->id, 'transaction_code_id' => $code->id, 'kind' => TransactionKind::Payment, 'amount' => '-100.00', 'unit_amount' => '-100.00', 'idempotency_key' => 'city-ledger:'.$folio->id]);
     $url = route('reservations.folios.void-invoice-and-reopen', ['property' => $billed['setup']['property']->code, 'reservation' => $folio->reservation_id, 'folio' => $folio->id]);
 
     $this->actingAs($manager)->get($billed['url'])->assertInertia(fn ($page) => $page
@@ -474,7 +476,7 @@ test('void and reopen voids the invoice, reopens the folio and keeps the City le
 
     expect($billed['invoice']->fresh()->status)->toBe(ArInvoiceStatus::Void)
         ->and($folio->fresh()->status)->toBe(FolioStatus::Open)
-        ->and(FolioLine::query()->whereKey($line->id)->exists())->toBeTrue();
+        ->and(FolioLine::query()->where('reversal_of_id', $line->id)->sole()->amount)->toBe('100.00');
 });
 
 test('void and reopen is refused, and rolls back, while a credit note or an allocation stands', function (string $blocker) {

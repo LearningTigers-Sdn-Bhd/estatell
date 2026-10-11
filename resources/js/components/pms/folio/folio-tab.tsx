@@ -252,7 +252,7 @@ export function FolioTab({
                                 <p className="text-sm text-muted-foreground">
                                     Folio {folio.number}
                                     {folio.invoiceNumber &&
-                                        ` · Invoice ${folio.invoiceNumber}`}
+                                        ` · Invoice ${folio.invoiceNumber}${folio.invoiceVoided ? ' (void)' : ''}`}
                                 </p>
                             )}
                         </div>

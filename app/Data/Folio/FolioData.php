@@ -17,7 +17,7 @@ use Spatie\LaravelData\Data;
  * the company for the confirmation. `settleCreditWarning` is set only then, when the company is over its credit limit; it
  * warns and never stops the Settle. `paymentPurposes` are the purposes the Record payment Dialog offers for this folio's
  * stage, the default first, and `defaultPaymentPurpose` is that first one. With none, `canRecordPayment` is false.
- * `arInvoiceId` is the AR invoice that bills a Closed folio. `canOpenArInvoice` needs `company.view` and `canCreditArInvoice` needs the credit note permission, and the invoice must not be Void (it never is here). `canVoidAndReopen` needs `city-ledger.invoice` and `folio.reopen`; `voidInvoiceBlockedBy` is then the reason the invoice cannot be voided yet, or null. `canPrintInvoice` is true for a Closed folio when the user holds `folio.print-voucher`.
+ * `arInvoiceId` is the AR invoice that bills a Closed folio. `canOpenArInvoice` needs `company.view` and `canCreditArInvoice` needs the credit note permission, and the invoice must not be Void (it never is here). `canVoidAndReopen` needs `city-ledger.invoice` and `folio.reopen`; `voidInvoiceBlockedBy` is then the reason the invoice cannot be voided yet, or null. `invoiceVoided` is true when the folio's invoice number belongs only to Void AR invoices. `canPrintInvoice` is true for a Closed folio when the user holds `folio.print-voucher`.
  */
 class FolioData extends Data
 {
@@ -63,6 +63,7 @@ class FolioData extends Data
         public bool $canCreditArInvoice = false,
         public ?string $arInvoiceNumber = null,
         public bool $canVoidAndReopen = false,
+        public bool $invoiceVoided = false,
         public ?string $voidInvoiceBlockedBy = null,
     ) {}
 }

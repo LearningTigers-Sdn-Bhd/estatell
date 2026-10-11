@@ -9,6 +9,7 @@ use App\Data\Folio\FolioRowData;
 use App\Data\Folio\PostFolioOptionData;
 use App\Data\Reservations\ReservationUnitOptionData;
 use App\Data\Shared\BadgeData;
+use App\Enums\ArInvoiceStatus;
 use App\Enums\FolioRowTag;
 use App\Enums\FolioStatus;
 use App\Enums\FolioType;
@@ -17,6 +18,7 @@ use App\Enums\PaymentStatus;
 use App\Enums\PermissionEnum;
 use App\Enums\TransactionKind;
 use App\Enums\UnitStatus;
+use App\Models\ArInvoice;
 use App\Models\Company;
 use App\Models\Folio;
 use App\Models\FolioLine;
@@ -216,6 +218,7 @@ class FolioStatement
             : [];
         $canSettle = ($can['settleCityLedger'] ?? false) && $isOpen && $folio?->payer_company_id !== null && $balance !== null && bccomp($balance, '0', 2) > 0;
         $billedBy = $folio !== null && $user !== null ? $this->folioReopenRule->billingInvoice($folio) : null;
+        $invoiceVoided = $folio?->invoice_number !== null && $billedBy === null && ArInvoice::query()->where('folio_id', $folio->id)->where('status', ArInvoiceStatus::Void)->exists();
         $canVoidAndReopen = $billedBy !== null && $user->can(PermissionEnum::CityLedgerInvoice->value) && $user->can(PermissionEnum::FolioReopen->value);
         $projected = $scheduled->reduce(fn (BigDecimal $sum, FolioRowData $row): BigDecimal => $sum->plus($row->amount), BigDecimal::of($balance ?? '0'));
 
@@ -226,6 +229,7 @@ class FolioStatement
             status: $entry['item']->status,
             number: $folio?->number,
             invoiceNumber: $folio?->invoice_number,
+            invoiceVoided: $invoiceVoided,
             balance: $balance,
             projectedTotal: (string) $projected->toScale(2),
             lineCount: $posted->count(),

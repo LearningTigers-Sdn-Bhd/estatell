@@ -30,7 +30,7 @@ class SettleToCityLedger
 
     /**
      * Move the whole balance of an Open folio to the city ledger: post one negative `DIRECT_BILL` line on the business
-     * date (key `city-ledger:{folio_id}`), close the folio, and make the AR invoice, in one transaction. The folio
+     * date (key `city-ledger:{folio_id}:{n}`, n counting the folio's earlier City ledger lines, so a folio settled again after a void gets a new key), close the folio, and make the AR invoice, in one transaction. The folio
      * row is locked first and every check runs before the first write, so a refusal writes and logs nothing. A Master folio
      * is refused while a unit is CheckedIn (`units_in_house`), so no line is posted and then rolled back. It does
      * not use `RecordPayment`: there is no `payments` row and no receipt. It is never refused by the credit limit: settling
@@ -81,6 +81,12 @@ class SettleToCityLedger
                 ->where('system_key', SystemTransactionCode::DirectBillPayment->value)
                 ->firstOrFail();
 
+            $attempt = 1 + FolioLine::query()
+                ->where('folio_id', $locked->id)
+                ->where('transaction_code_id', $code->id)
+                ->whereNull('reversal_of_id')
+                ->count();
+
             $line = new FolioLine([
                 'transaction_code_id' => $code->id,
                 'kind' => TransactionKind::Payment,
@@ -91,7 +97,7 @@ class SettleToCityLedger
             ]);
             $line->folio_id = $locked->id;
             $line->posting_date = $businessDate->toDateString();
-            $line->idempotency_key = 'city-ledger:'.$locked->id;
+            $line->idempotency_key = 'city-ledger:'.$locked->id.':'.$attempt;
             $line->user_id = $actor->id;
             $line->save();
 

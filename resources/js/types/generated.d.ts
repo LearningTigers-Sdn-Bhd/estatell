@@ -331,6 +331,7 @@ canOpenArInvoice: boolean,
 canCreditArInvoice: boolean,
 arInvoiceNumber: string | null,
 canVoidAndReopen: boolean,
+invoiceVoided: boolean,
 voidInvoiceBlockedBy: string | null,
 };
 export type FolioDiscountOptionData = {
