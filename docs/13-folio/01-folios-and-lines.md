@@ -82,7 +82,7 @@ erDiagram
 
 A Closed folio without an AR invoice keeps **Print invoice** and **Reopen folio** as outline buttons; the dropdown is only for a folio with an AR invoice.
 
-- **A credit note does not reopen the folio.** It reduces what the company owes; the folio stays closed. To redo the folio, void the AR invoice and reopen it. That needs an Open invoice with no credit notes and no active allocations. Staff clear both in the void Dialog, without leaving the folio.
+- **A credit note does not reopen the folio.** It reduces what the company owes; the folio stays closed. To redo the folio, void the AR invoice and reopen it. That needs an Open invoice with no credit notes and no active allocations. Staff clear both in the void Dialog, without leaving the folio. Which one to use: [Credit note or void and reopen](../15-city-ledger/02-ar-invoices.md#credit-note-or-void-and-reopen).
 - **The void Dialog.** **Void invoice and reopen** loads the `creditInvoice` optional prop (like **Issue credit note**) and opens one Dialog. With nothing blocking, it is the confirmation and **Void and reopen**. Otherwise it lists each block with its action, and the confirm button is hidden:
 
 ```

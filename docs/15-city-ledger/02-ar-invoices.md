@@ -57,6 +57,21 @@ The settle action does not go through `RecordPayment`: a City ledger line has no
 - Refusal codes: `not_an_open_invoice`, `amount_invalid`, `reason_required`, `credit_exceeds_balance`, `no_business_date` (credit note); `invoice_not_voidable`, `already_void` (void). `ArInvoiceBalance` (`app/Services/CityLedger/`) calculates the balance.
 - Every action logs on the company: `ar_invoice.created`, `ar_invoice.credit_note_issued`, `ar_invoice.voided`.
 
+## Credit note or void and reopen
+
+Both correct a settled folio, but they do different jobs. Staff guides use this section.
+
+|                          | Issue credit note                                                   | Void invoice and reopen                                                           |
+| ------------------------ | ------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| Use it for               | A partial correction: a goodwill discount, a rate that was too high | Redoing the folio: a forgotten charge (minibar), a line on the wrong folio        |
+| Invoice                  | Stays. The credit note is linked to it                              | Void. Settling again issues a new invoice with the same number                    |
+| Folio                    | Stays closed                                                        | Reopens, so staff post, reverse or move lines                                     |
+| Payment already received | Reverse the payment, issue the credit note, allocate again          | Reverse the payment (in the void Dialog), void and reopen, settle, allocate again |
+
+- **Prefer a credit note once the company has the invoice.** Its books keep the same invoice plus a credit note. Void and reopen suits a mistake found before the invoice is sent.
+- **Do not issue a credit note to reopen a folio.** A credit note blocks the void until it is voided again. Reversing the payment is enough.
+- **E-invoicing:** after an invoice is submitted to MyInvois, the correction is expected to be a credit note, not a void (to verify with the [e-invoicing](../checklist.md#e-invoicing) work).
+
 ## Actions
 
 | Action                     | Does                                                                                       |
