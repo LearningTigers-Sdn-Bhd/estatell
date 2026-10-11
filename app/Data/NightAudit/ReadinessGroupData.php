@@ -91,11 +91,11 @@ class ReadinessGroupData extends Data
         $checkIn = match (true) {
             ! $canCheckIn => $isGroup ? ReadinessActionData::link(__('Check in'), $reservationUrl, 'log-in') : null,
             $isGroup && $many => ReadinessActionData::dialog('check-in-all', __('Check in all'), $property, $reservationId),
-            default => ReadinessActionData::dialog('check-in', __('Check in'), $property, $reservationId, $unitId ?? $unitIds[0]),
+            default => ReadinessActionData::dialog('check-in', __('Check in'), $property, $reservationId, $unitId ?? $unitIds[0] ?? null),
         };
         $checkOut = match (true) {
             ! $canCheckOut => $isGroup ? ReadinessActionData::link(__('Check out'), $reservationUrl, 'log-out') : null,
-            default => ReadinessActionData::dialog('check-out', __('Check out'), $property, $reservationId, $unitId ?? $unitIds[0]),
+            default => ReadinessActionData::dialog('check-out', __('Check out'), $property, $reservationId, $unitId ?? $unitIds[0] ?? null),
         };
 
         return match ($check) {

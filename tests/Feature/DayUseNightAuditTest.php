@@ -22,6 +22,7 @@ use App\Models\FolioLine;
 use App\Models\UnitAddOn;
 use App\Services\NightAudit\AuditReadiness;
 use App\Services\NightAudit\ReadinessAdvice;
+use App\Services\NightAudit\ReadinessItem;
 
 /**
  * A live property trading on the day use date with one Confirmed day use unit (10:00 for 4 hours) and a 25.00 item.
@@ -137,4 +138,14 @@ test('the dates of a day use cannot change', function () {
 
     expect($result->refusal)->toBe('day_use_unit')
         ->and($setup['unit']->fresh()->departure_date->toDateString())->toBe($setup['date']->toDateString());
+});
+
+test('a folio item with no unit builds its sheet row for a user who may check in and out', function () {
+    $setup = dayUseAuditDesk();
+    $item = new ReadinessItem(AuditCheck::MasterNotBilled, $setup['reservation']->id, null, $setup['reservation']->reference, null, 'M-1 · MYR 10.00 owed', folioId: 1);
+
+    $group = ReadinessGroupData::fromItems([$item], $setup['property'], app(ReadinessAdvice::class), true, true);
+
+    expect($group->check)->toBe(AuditCheck::MasterNotBilled)
+        ->and(collect($group->actions)->pluck('label')->all())->toBe(['Open folio']);
 });
