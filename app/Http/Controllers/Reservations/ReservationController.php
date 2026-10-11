@@ -28,6 +28,7 @@ use App\Services\Folio\AddOnBilling;
 use App\Services\Folio\FolioStatement;
 use App\Services\Folio\FolioVoucher;
 use App\Services\Folio\RoutingRuleList;
+use App\Services\FrontDesk\GroupCheckOutPreview;
 use App\Services\Reservations\ReservationActivityLog;
 use App\Services\Reservations\ReservationDirectory;
 use App\Services\Reservations\ReservationFormOptions;
@@ -207,6 +208,7 @@ class ReservationController extends Controller
             'canViewGuest' => $canViewGuest,
             'canManage' => $user->can(PermissionEnum::ReservationsManage->value),
             'canCheckIn' => $user->can(PermissionEnum::FrontDeskCheckIn->value),
+            'canCheckOutAll' => $user->can(PermissionEnum::FrontDeskCheckOut->value) && app(GroupCheckOutPreview::class)->isOffered($overview['models']),
             'canWaiveFees' => $user->can(PermissionEnum::FrontDeskWaiveFees->value),
             'canOverrideRestrictions' => $user->can(PermissionEnum::RatesOverrideRestrictions->value),
             'billingModes' => BillingMode::options(),

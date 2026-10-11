@@ -411,7 +411,8 @@ test('check-in and check-out open Dialogs over the sheet for staff who may use t
         ->and($group['units'][0]['actions'][0])->toMatchArray(['kind' => 'dialog', 'dialog' => 'check-in'])
         ->and($one['actions'][0])->toMatchArray(['kind' => 'dialog', 'dialog' => 'check-in', 'unitId' => $single->id])
         ->and($departures['openUnits'])->toBeTrue()
-        ->and(collect($departures['actions'])->pluck('label')->all())->toBe(['Extend 1 night'])
+        ->and(collect($departures['actions'])->pluck('label')->all())->toBe(['Check out all', 'Extend 1 night'])
+        ->and($departures['actions'][0])->toMatchArray(['kind' => 'link', 'url' => route('reservations.check-out', [$property->code, $out[0]->reservation_id], absolute: false)])
         ->and($departures['units'][0]['actions'][0])->toMatchArray(['kind' => 'dialog', 'dialog' => 'check-out'])
         ->and($group['actions'][0]['url'])->toBe(route('night-audit.reservation', [$property->code, $reservation->id], absolute: false));
 

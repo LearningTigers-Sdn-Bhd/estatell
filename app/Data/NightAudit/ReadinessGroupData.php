@@ -108,6 +108,7 @@ class ReadinessGroupData extends Data
             ],
             AuditCheck::DepartureNotCheckedOut => [
                 ...($checkOut === null || ($isGroup && $many) ? [] : [$checkOut]),
+                ...($isGroup && $many && $canCheckOut ? [ReadinessActionData::link(__('Check out all'), route('reservations.check-out', $parameters, absolute: false), 'log-out')] : []),
                 ReadinessActionData::fix(AuditFix::ExtendOneNight, __('Extend 1 night'), $property, $reservationId, $unitId, __('Move the departure one day later? One more night is charged.')),
             ],
             AuditCheck::FolioOpenAfterCheckOut => $isGroup ? [ReadinessActionData::link(__('Open folio'), route('reservations.folio', $parameters, absolute: false), 'receipt')] : [],

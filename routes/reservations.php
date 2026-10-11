@@ -69,6 +69,7 @@ Route::prefix('reservations')->name('reservations.')->scopeBindings()->group(fun
             });
 
             Route::middleware('can:'.PermissionEnum::FrontDeskCheckOut->value)->group(function () {
+                Route::get('check-out', [ReservationGroupCheckOutController::class, 'show'])->name('check-out');
                 Route::post('check-out/preview', [ReservationGroupCheckOutController::class, 'preview'])->name('check-out.preview');
                 Route::post('check-out', [ReservationGroupCheckOutController::class, 'store'])->name('check-out.store');
             });

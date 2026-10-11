@@ -35,6 +35,7 @@ type Props = {
     currency: App.Enums.Currency | null;
     canManage: boolean;
     canCheckIn: boolean;
+    canCheckOutAll: boolean;
     canWaiveFees: boolean;
     canOverrideRestrictions: boolean;
     billingModes: EnumOption[];
@@ -69,6 +70,7 @@ export default function ReservationShow({
     currency,
     canManage,
     canCheckIn,
+    canCheckOutAll,
     canWaiveFees,
     canOverrideRestrictions,
     billingModes,
@@ -187,6 +189,7 @@ export default function ReservationShow({
                             addUnitOptions={addUnitOptions}
                             canViewCompany={canViewCompany}
                             canCheckIn={canCheckIn}
+                            canCheckOutAll={canCheckOutAll}
                             canOverrideCredit={canOverrideCredit}
                             companies={companies}
                             currency={currency}

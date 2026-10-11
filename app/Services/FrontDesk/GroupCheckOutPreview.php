@@ -17,6 +17,7 @@ use App\Enums\PermissionEnum;
 use App\Enums\UnitStatus;
 use App\Models\Company;
 use App\Models\Folio;
+use App\Models\FolioLine;
 use App\Models\Payment;
 use App\Models\PaymentMethod;
 use App\Models\Reservation;
@@ -29,6 +30,7 @@ use App\Services\Folio\MoveChargesPreview;
 use App\Services\NightAudit\CurrentBusinessDate;
 use Brick\Math\BigDecimal;
 use Carbon\CarbonImmutable;
+use Illuminate\Support\Collection;
 
 /**
  * Reads the group check-out page of a reservation and writes nothing: each room classified as the Rows table of the
@@ -96,8 +98,7 @@ class GroupCheckOutPreview
             return new GroupCheckOutPreviewData([], null, $summary, $methods['data'], __('This property has no open business date yet.'));
         }
 
-        $master = Folio::query()->where('property_id', $reservation->property_id)->where('reservation_id', $reservation->id)
-            ->where('type', FolioType::Master)->where('status', FolioStatus::Open)->oldest('id')->first();
+        $master = $this->openMaster($reservation);
         $units = $reservation->units()->with(['guests.guest', 'roomType'])->orderBy('id')->get();
         $names = $this->incomingScheduledCharges->unitNames($units->modelKeys());
         $rows = [];
@@ -121,6 +122,46 @@ class GroupCheckOutPreview
             $methods['data'],
             null,
         );
+    }
+
+    /**
+     * The Master line of the reservation as it stands now, or null without an Open Master folio. The success state uses
+     * it to offer **Settle to City ledger** only while the Master can still be settled.
+     */
+    public function masterLine(Reservation $reservation, User $user): ?GroupCheckOutMasterData
+    {
+        $master = $this->openMaster($reservation);
+
+        return $master === null ? null : $this->master($master, $user);
+    }
+
+    /**
+     * Whether **Check out all** is offered: 2 or more units, and one is CheckedIn or holds money on a unit folio.
+     *
+     * @param  Collection<int, ReservationUnit>  $units
+     */
+    public function isOffered(Collection $units): bool
+    {
+        if ($units->count() < 2) {
+            return false;
+        }
+
+        if ($units->contains(fn (ReservationUnit $unit): bool => $unit->status === UnitStatus::CheckedIn)) {
+            return true;
+        }
+
+        return Folio::query()
+            ->whereIn('reservation_unit_id', $units->modelKeys())
+            ->where('type', FolioType::Unit)
+            ->where('status', '!=', FolioStatus::Voided)
+            ->whereIn('id', FolioLine::query()->select('folio_id')->groupBy('folio_id')->havingRaw('SUM(amount) <> 0'))
+            ->exists();
+    }
+
+    private function openMaster(Reservation $reservation): ?Folio
+    {
+        return Folio::query()->where('property_id', $reservation->property_id)->where('reservation_id', $reservation->id)
+            ->where('type', FolioType::Master)->where('status', FolioStatus::Open)->oldest('id')->first();
     }
 
     private function order(string $group): int

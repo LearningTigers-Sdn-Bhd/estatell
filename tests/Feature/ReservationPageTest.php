@@ -531,3 +531,22 @@ test('the add-ons tab reads in the same number of queries for any number of add-
 
     expect($many)->toBe($few);
 });
+
+test('Check out all is offered for two or more units when one is checked in or holds money', function () {
+    [$user, $property] = pageOwner();
+    $single = pageReservation($property);
+    ReservationUnit::factory()->for($single)->withNights()->checkedIn()->create(['arrival_date' => '2026-10-09', 'departure_date' => '2026-10-12']);
+    $quiet = pageReservation($property);
+    pageUnit($quiet);
+    pageUnit($quiet);
+    $group = pageReservation($property);
+    ReservationUnit::factory()->for($group)->withNights()->checkedIn()->create(['arrival_date' => '2026-10-09', 'departure_date' => '2026-10-12']);
+    pageUnit($group);
+
+    foreach ([[$single, false], [$quiet, false], [$group, true]] as [$reservation, $expected]) {
+        $this->actingAs($user)->get(pageUrl($property, $reservation))->assertInertia(fn (Assert $page) => $page->where('canCheckOutAll', $expected));
+    }
+
+    [$staff] = pageStaffWith(['reservations.view']);
+    $this->actingAs($staff)->get(pageUrl($staff->property, pageReservation($staff->property)))->assertInertia(fn (Assert $page) => $page->where('canCheckOutAll', false));
+});

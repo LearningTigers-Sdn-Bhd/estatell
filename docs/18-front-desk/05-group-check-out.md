@@ -94,7 +94,7 @@ The group leader often pays everyone's extras. With **One payment for all** tick
 - Every unit keeps its own log entries, room Dirty, folio close and status sync, as today. One `reservation.group_checked_out` entry holds the totals.
 - A CheckedOut unit's folio left at 0 closes itself (`CloseSettledUnitFolio`).
 - Permission: `front-desk.check-out` for the page, plus the money permissions above.
-- **After saving**: a success state with the totals, **Print receipts** (one PDF with every receipt of this save) and the Master next step.
+- **After saving**: the store redirects to the same page with Inertia flash data `groupCheckOut` (`GroupCheckOutDoneData`: rooms checked out and settled, collected, refunded, moved, the invoice number, the payment ids of the save and the Master link). The page shows a success state with the totals, **Print receipts** (one PDF with every receipt of this save, built from the payment ids; added in the next commit) and the Master next step: **Settle to City ledger** while the Master is Open and the user may settle it, else **Open folio** (both open the Master folio tab).
 
 ## Routes and entry
 
@@ -104,12 +104,12 @@ The group leader often pays everyone's extras. With **One payment for all** tick
 | `POST …/check-out/preview` (JSON)                    | `reservations.check-out.preview` | Rows, balances and the summary, writes nothing |
 | `POST …/check-out`                                   | `reservations.check-out.store`   | `CheckOutGroup`                                |
 
-| Entry                                                                                         | Goes to                                  |
-| --------------------------------------------------------------------------------------------- | ---------------------------------------- |
-| Reservation page **⋯ More › Check out all** (2 or more units, one CheckedIn or holding money) | The page                                 |
-| Night audit **Not checked out** group row                                                     | The page (a link; the sheet closes)      |
-| Dashboard To do group departure row (added with the dashboard item)                           | The page                                 |
-| One room                                                                                      | Unchanged: the unit **Check out** Dialog |
+| Entry                                                                                                                            | Goes to                                  |
+| -------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------- |
+| Reservation page **⋯ More › Check out all** (2 or more units, one CheckedIn or holding money; the server sends `canCheckOutAll`) | The page                                 |
+| Night audit **Not checked out** group row (a **Check out all** link next to **Extend 1 night**)                                  | The page (a link; the sheet closes)      |
+| Dashboard To do group departure row (added with the dashboard item)                                                              | The page                                 |
+| One room                                                                                                                         | Unchanged: the unit **Check out** Dialog |
 
 ## Edge cases
 

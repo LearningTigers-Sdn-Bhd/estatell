@@ -1536,12 +1536,32 @@ export type FreeUnitData = {
 id: number,
 label: string,
 };
+export type GroupCheckOutDoneData = {
+checkedOut: number,
+settled: number,
+collected: string,
+refunded: string,
+movedToMaster: string,
+invoiceNumber: string | null,
+invoiceId: number | null,
+paymentIds: number[],
+masterUrl: string | null,
+canSettleMaster: boolean,
+};
 export type GroupCheckOutMasterData = {
 folioId: number,
 label: string,
 balance: string,
 payerCompany: string | null,
 canSettle: boolean,
+};
+export type GroupCheckOutPageData = {
+reservationId: number,
+reference: string,
+title: string,
+currency: App.Enums.Currency | null,
+preview: App.Data.Reservations.GroupCheckOutPreviewData,
+cancelUrl: string,
 };
 export type GroupCheckOutPreviewData = {
 rows: App.Data.Reservations.GroupCheckOutRowData[],

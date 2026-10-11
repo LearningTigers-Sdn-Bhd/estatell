@@ -28,6 +28,7 @@ use App\Models\RoomType;
 use App\Models\TransactionCode;
 use App\Models\UnitNight;
 use App\Models\User;
+use Inertia\Testing\AssertableInertia as Assert;
 use Spatie\Activitylog\Models\Activity;
 
 beforeEach(function () {
@@ -396,4 +397,64 @@ test('the preview groups the rooms, prefills the choices and writes nothing', fu
         ->and($response->json('summary.roomsOut'))->toBe(3)
         ->and(Activity::query()->count())->toBe($before)
         ->and($s['units'][1]->fresh()->status)->toBe(UnitStatus::CheckedIn);
+});
+
+test('the page renders the prefilled preview and the cancel link', function () {
+    $s = gcSetup(2);
+    gcCharge($s, $s['folios'][1], '45.00');
+    $url = route('reservations.check-out', ['property' => $s['property']->code, 'reservation' => $s['reservation']->id]);
+
+    $this->actingAs($s['user'])->get($url)->assertInertia(fn (Assert $page) => $page
+        ->component('reservations/check-out')
+        ->where('checkOut.reservationId', $s['reservation']->id)
+        ->where('checkOut.reference', $s['reservation']->reference)
+        ->where('checkOut.cancelUrl', route('reservations.show', ['property' => $s['property']->code, 'reservation' => $s['reservation']->id]))
+        ->has('checkOut.preview.rows', 2)
+        ->where('checkOut.preview.summary.collect', '45.00')
+        ->where('checkOut.preview.master.folioId', $s['master']->id)
+        ->where('checkOut.preview.methods.0.id', $s['cash']->id));
+});
+
+test('the page needs front-desk.check-out and another property or reservation is a 404', function () {
+    $s = gcSetup(1);
+    $viewer = gcStaff($s['property'], ['reservations.view']);
+    $url = route('reservations.check-out', ['property' => $s['property']->code, 'reservation' => $s['reservation']->id]);
+
+    $this->actingAs($viewer)->get($url)->assertForbidden();
+
+    $other = gcSetup(1);
+    $this->actingAs($other['user'])->get($url)->assertNotFound();
+    $this->actingAs($s['user'])->get(route('reservations.check-out', ['property' => $s['property']->code, 'reservation' => $other['reservation']->id]))->assertNotFound();
+});
+
+test('a saved check-out flashes the totals for the success state', function () {
+    $s = gcSetup(2);
+    gcCharge($s, $s['folios'][1], '45.00');
+
+    gcSave($this, $s, [
+        ['unit_id' => $s['units'][0]->id],
+        ['unit_id' => $s['units'][1]->id, 'choice' => 'collect', 'payment_method_id' => $s['cash']->id, 'amount' => '45.00'],
+    ])->assertRedirect(route('reservations.check-out', ['property' => $s['property']->code, 'reservation' => $s['reservation']->id]))
+        ->assertInertiaFlash('groupCheckOut.checkedOut', 2)
+        ->assertInertiaFlash('groupCheckOut.collected', '45.00')
+        ->assertInertiaFlash('groupCheckOut.paymentIds', [Payment::query()->sole()->id])
+        ->assertInertiaFlash('groupCheckOut.canSettleMaster', false)
+        ->assertInertiaFlash('groupCheckOut.masterUrl', route('reservations.folio', ['property' => $s['property']->code, 'reservation' => $s['reservation']->id, 'folio' => $s['master']->id]));
+});
+
+test('the success state offers the city ledger settle while the Master is open, and the invoice when it was settled', function () {
+    $s = gcSetup(2);
+    gcCompany($s);
+
+    gcSave($this, $s, [['unit_id' => $s['units'][0]->id], ['unit_id' => $s['units'][1]->id]])
+        ->assertInertiaFlash('groupCheckOut.canSettleMaster', true)
+        ->assertInertiaFlash('groupCheckOut.invoiceNumber', null);
+
+    $t = gcSetup(2);
+    gcCompany($t);
+
+    gcSave($this, $t, [['unit_id' => $t['units'][0]->id], ['unit_id' => $t['units'][1]->id]], ['settle_master' => true])
+        ->assertInertiaFlash('groupCheckOut.canSettleMaster', false)
+        ->assertInertiaFlash('groupCheckOut.invoiceNumber', ArInvoice::query()->sole()->number)
+        ->assertInertiaFlash('groupCheckOut.masterUrl', null);
 });

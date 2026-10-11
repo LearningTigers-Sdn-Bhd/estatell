@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Reservations;
 
 use App\Actions\FrontDesk\CheckOutGroup;
+use App\Data\Reservations\GroupCheckOutDoneData;
+use App\Data\Reservations\GroupCheckOutPageData;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Reservations\CheckOutGroupPreviewRequest;
 use App\Http\Requests\Reservations\CheckOutGroupRequest;
@@ -12,7 +14,9 @@ use App\Services\FrontDesk\GroupCheckOutPreview;
 use App\Services\FrontDesk\GroupCheckOutRefusals;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Inertia\Response;
 
 /**
  * Group check-out: the read-only preview of the rooms and choices, and the save through `CheckOutGroup`. A unit of
@@ -20,6 +24,26 @@ use Inertia\Inertia;
  */
 class ReservationGroupCheckOutController extends Controller
 {
+    /**
+     * The page: the rooms, the Master line and the summary of the prefilled choices.
+     */
+    public function show(Request $request, Property $property, Reservation $reservation, GroupCheckOutPreview $preview): Response
+    {
+        $reservation->loadMissing(['booker', 'company']);
+        $payer = $reservation->company?->name ?? $reservation->group_name ?? $reservation->booker->full_name;
+
+        return Inertia::render('reservations/check-out', [
+            'checkOut' => new GroupCheckOutPageData(
+                $reservation->id,
+                $reservation->reference,
+                __('Check out · :reference · :name', ['reference' => $reservation->reference, 'name' => $payer]),
+                $property->settings?->currency,
+                $preview->forReservation($reservation, $request->user()),
+                route('reservations.show', ['property' => $property, 'reservation' => $reservation]),
+            ),
+        ]);
+    }
+
     /**
      * The rooms, the Master line and the summary. It writes nothing.
      */
@@ -40,11 +64,11 @@ class ReservationGroupCheckOutController extends Controller
      * Check out the chosen rooms and settle their money in one save. A refusal saves nothing and goes back as an error
      * on its room (`units.{id}`) or on the form.
      */
-    public function store(CheckOutGroupRequest $request, Property $property, Reservation $reservation, CheckOutGroup $checkOutGroup, GroupCheckOutRefusals $refusals): RedirectResponse
+    public function store(CheckOutGroupRequest $request, Property $property, Reservation $reservation, CheckOutGroup $checkOutGroup, GroupCheckOutRefusals $refusals, GroupCheckOutPreview $preview): RedirectResponse
     {
         $this->units($request, $reservation);
         $result = $checkOutGroup($request->user(), $reservation, $request->groupRows(), $request->onePayment(), $request->settleMaster());
-        $page = route('reservations.show', ['property' => $property, 'reservation' => $reservation]);
+        $page = route('reservations.check-out', ['property' => $property, 'reservation' => $reservation]);
 
         if ($result->isRefused()) {
             Inertia::flash('toast', ['type' => 'error', 'message' => __('Nothing was saved. Check the rooms marked with an error.')]);
@@ -52,9 +76,13 @@ class ReservationGroupCheckOutController extends Controller
             return back(fallback: $page)->withErrors($refusals->errors($result));
         }
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => trans_choice(':count room checked out.|:count rooms checked out.', count($result->checkedOutUnitIds))]);
+        $master = $preview->masterLine($reservation, $request->user());
+        $masterUrl = $master === null ? null : route('reservations.folio', ['property' => $property, 'reservation' => $reservation, 'folio' => $master->folioId]);
 
-        return back(fallback: $page);
+        Inertia::flash('toast', ['type' => 'success', 'message' => trans_choice(':count room checked out.|:count rooms checked out.', count($result->checkedOutUnitIds))]);
+        Inertia::flash('groupCheckOut', GroupCheckOutDoneData::fromResult($result, $master, $masterUrl)->toArray());
+
+        return redirect($page);
     }
 
     private function units(CheckOutGroupRequest $request, Reservation $reservation): void
