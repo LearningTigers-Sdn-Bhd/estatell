@@ -5,11 +5,13 @@ namespace App\Data\Reservations;
 use Spatie\LaravelData\Data;
 
 /**
- * One room of the group check-out page. `group` is `main`, `out` (already checked out), `cancelled` or `not_arrived`.
- * A row that is not `selectable` is never touched and `note` says why. `choices` are the settle choices the user may
+ * One room of the group check-out page. `group` is the section: `ready` (Ready to check out), `money` (Money to settle),
+ * `later` (Departing later) or `blocked` (Can't check out yet). A row that is not `selectable` is never touched and `note` says why. `choices` are the settle choices the user may
  * make (`collect`, `refund`, `move`) and `defaultChoice` the one prefilled by balance. `moveAmount` is what Add to Master
  * moves and `refundOnMove` what it refunds from the payments the folio holds. `incoming` names the rooms that still
- * charge their Scheduled nights to this room's folio.
+ * charge their Scheduled nights to this room's folio, and `canMoveCharges` says the user may send them elsewhere
+ * (`folio.transfer`). `unit` is the room as the reservation page sends it, only for a room that departs later, for the
+ * **Check out** Dialog opened by **Check out early…**.
  */
 class GroupCheckOutRowData extends Data
 {
@@ -40,5 +42,7 @@ class GroupCheckOutRowData extends Data
         public bool $folioClosed,
         public ?int $folioId,
         public bool $canReopen,
+        public bool $canMoveCharges,
+        public ?ReservationUnitData $unit,
     ) {}
 }

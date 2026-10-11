@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Reservations;
 use App\Actions\FrontDesk\CheckOutGroup;
 use App\Data\Reservations\GroupCheckOutDoneData;
 use App\Data\Reservations\GroupCheckOutPageData;
+use App\Enums\PermissionEnum;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Reservations\CheckOutGroupPreviewRequest;
 use App\Http\Requests\Reservations\CheckOutGroupRequest;
@@ -12,6 +13,7 @@ use App\Models\Property;
 use App\Models\Reservation;
 use App\Services\FrontDesk\GroupCheckOutPreview;
 use App\Services\FrontDesk\GroupCheckOutRefusals;
+use App\Services\Reservations\ReservationFormOptions;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -25,9 +27,10 @@ use Inertia\Response;
 class ReservationGroupCheckOutController extends Controller
 {
     /**
-     * The page: the rooms, the Master line and the summary of the prefilled choices.
+     * The page: the rooms, the Master line and the summary of the prefilled choices. `paymentOptions` and `canWaiveFees`
+     * are for the **Check out** Dialog that **Check out early…** opens, as on the reservation page.
      */
-    public function show(Request $request, Property $property, Reservation $reservation, GroupCheckOutPreview $preview): Response
+    public function show(Request $request, Property $property, Reservation $reservation, GroupCheckOutPreview $preview, ReservationFormOptions $options): Response
     {
         $reservation->loadMissing(['booker', 'company']);
         $payer = $reservation->company?->name ?? $reservation->group_name ?? $reservation->booker->full_name;
@@ -41,6 +44,8 @@ class ReservationGroupCheckOutController extends Controller
                 $preview->forReservation($reservation, $request->user()),
                 route('reservations.show', ['property' => $property, 'reservation' => $reservation]),
             ),
+            'canWaiveFees' => $request->user()->can(PermissionEnum::FrontDeskWaiveFees->value),
+            'paymentOptions' => Inertia::optional(fn () => $options->payments($property)),
         ]);
     }
 

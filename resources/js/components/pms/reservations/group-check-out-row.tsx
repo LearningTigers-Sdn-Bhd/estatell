@@ -11,9 +11,15 @@ import {
 } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { cn } from '@/lib/utils';
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from '@/components/ui/table';
 import { folio as folioTab } from '@/routes/reservations';
-import { move as moveCharges } from '@/routes/reservations/folio';
 
 type Row = App.Data.Reservations.GroupCheckOutRowData;
 type Method = App.Data.Payments.PaymentMethodOptionData;
@@ -37,28 +43,116 @@ export const initialRowState = (row: Row): RowState => ({
     refundAmount: row.refundAmount,
 });
 
-const headings: Record<string, string> = {
-    out: 'Already checked out',
-    not_arrived: 'Not arrived',
+const statusText: Record<string, string> = {
+    checked_out: 'Checked out',
     cancelled: 'Cancelled',
+    no_show: 'No-show',
 };
 
-/** The heading above the first room of a group other than the main one. */
-export function groupHeading(group: string): string | null {
-    return headings[group] ?? null;
+/**
+ * One section of the group check-out page as a real table: a heading with the count, a header checkbox that ticks or
+ * unticks every room of the section, and one row per room. On a narrow screen each row is a card.
+ */
+export function GroupCheckOutTable({
+    heading,
+    rows,
+    states,
+    onChange,
+    onTickAll,
+    methods,
+    currency,
+    reservationId,
+    onePaymentOn,
+    errors,
+}: {
+    heading: string;
+    rows: Row[];
+    states: Record<number, RowState>;
+    onChange: (unitId: number, patch: Partial<RowState>) => void;
+    onTickAll: (unitIds: number[], ticked: boolean) => void;
+    methods: Method[];
+    currency: App.Enums.Currency | null;
+    reservationId: number;
+    onePaymentOn: boolean;
+    errors: Record<string, string | undefined>;
+}) {
+    const tickable = rows.filter((row) => !row.folioClosed);
+    const ticked = tickable.filter((row) => states[row.unitId].ticked);
+    const all = tickable.length > 0 && ticked.length === tickable.length;
+
+    return (
+        <section className="flex flex-col gap-2">
+            <h2 className="text-sm font-medium">
+                {heading} ({rows.length})
+            </h2>
+            <div className="overflow-auto lg:rounded-lg lg:border">
+                <Table className="max-lg:block">
+                    <TableHeader className="max-lg:block">
+                        <TableRow className="max-lg:flex max-lg:items-center max-lg:gap-2">
+                            <TableHead className="w-8">
+                                <Checkbox
+                                    checked={all}
+                                    indeterminate={ticked.length > 0 && !all}
+                                    disabled={tickable.length === 0}
+                                    onCheckedChange={(checked) =>
+                                        onTickAll(
+                                            tickable.map((row) => row.unitId),
+                                            checked === true,
+                                        )
+                                    }
+                                    aria-label={`Select all in ${heading}`}
+                                />
+                            </TableHead>
+                            <TableHead className="w-24 max-lg:hidden">
+                                Room
+                            </TableHead>
+                            <TableHead className="w-48 max-lg:hidden">
+                                Guest
+                            </TableHead>
+                            <TableHead className="w-28 text-right max-lg:hidden">
+                                Balance
+                            </TableHead>
+                            <TableHead className="max-lg:hidden">
+                                Settle
+                            </TableHead>
+                            <TableHead className="font-normal text-muted-foreground lg:hidden">
+                                Select all
+                            </TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody className="max-lg:block">
+                        {rows.map((row) => (
+                            <GroupCheckOutRow
+                                key={row.unitId}
+                                row={row}
+                                state={states[row.unitId]}
+                                onChange={(patch) =>
+                                    onChange(row.unitId, patch)
+                                }
+                                methods={methods}
+                                currency={currency}
+                                reservationId={reservationId}
+                                onePaymentOn={onePaymentOn}
+                                error={errors[`units.${row.unitId}`]}
+                            />
+                        ))}
+                    </TableBody>
+                </Table>
+            </div>
+        </section>
+    );
 }
 
 /**
- * One room of the group check-out page: a row on a wide screen, a card on a narrow one. A room that cannot be touched
- * shows why; the others show the settle choices the server offered, prefilled by balance.
+ * One room of a table section: a row on a wide screen, a card on a narrow one. It shows the settle choices the server
+ * offered, prefilled by balance.
  */
-export function GroupCheckOutRow({
+function GroupCheckOutRow({
     row,
     state,
     onChange,
     methods,
     currency,
-    masterName,
     reservationId,
     onePaymentOn,
     error,
@@ -68,7 +162,6 @@ export function GroupCheckOutRow({
     onChange: (patch: Partial<RowState>) => void;
     methods: Method[];
     currency: App.Enums.Currency | null;
-    masterName: string | null;
     reservationId: number;
     onePaymentOn: boolean;
     error?: string;
@@ -77,10 +170,6 @@ export function GroupCheckOutRow({
     const method = methods.find((one) => String(one.id) === state.methodId);
     const canTick = row.selectable && !row.folioClosed;
     const choice = state.ticked ? state.choice : null;
-    const moveLink =
-        row.incoming.length > 0
-            ? moveCharges.url({ reservation: reservationId })
-            : null;
     const folioLink =
         row.folioId === null
             ? null
@@ -90,13 +179,8 @@ export function GroupCheckOutRow({
               );
 
     return (
-        <div
-            className={cn(
-                'flex flex-col gap-3 py-3 max-lg:rounded-lg max-lg:border max-lg:p-3 lg:grid lg:grid-cols-[minmax(0,14rem)_7rem_minmax(0,1fr)] lg:items-start lg:gap-4 lg:border-b',
-                !row.selectable && 'text-muted-foreground',
-            )}
-        >
-            <div className="flex items-start gap-3">
+        <TableRow className="align-top max-lg:mb-3 max-lg:flex max-lg:flex-wrap max-lg:items-center max-lg:gap-x-3 max-lg:rounded-lg max-lg:border">
+            <TableCell className="w-8 align-top">
                 <Checkbox
                     id={id}
                     checked={state.ticked}
@@ -107,219 +191,216 @@ export function GroupCheckOutRow({
                     aria-label={`Include ${row.label}`}
                     className="mt-0.5"
                 />
-                <div className="flex min-w-0 flex-col">
-                    <label htmlFor={id} className="font-medium">
-                        {row.label}
-                    </label>
-                    <span className="truncate text-sm text-muted-foreground">
-                        {row.guest ?? 'No primary guest'}
-                    </span>
-                </div>
-            </div>
+            </TableCell>
+            <TableCell className="w-24 align-top font-medium">
+                <label htmlFor={id}>{row.label}</label>
+            </TableCell>
+            <TableCell className="w-48 align-top text-muted-foreground max-lg:flex-1">
+                {row.guest ?? 'No primary guest'}
+            </TableCell>
+            <TableCell className="w-28 text-right align-top font-medium tabular-nums">
+                <MoneyText amount={row.balance} currency={null} plain />
+            </TableCell>
+            <TableCell className="align-top text-sm whitespace-normal max-lg:basis-full lg:min-w-72">
+                <div className="flex min-w-0 flex-col gap-2">
+                    {statusText[row.status] && (
+                        <p className="text-muted-foreground">
+                            {statusText[row.status]}
+                        </p>
+                    )}
+                    {row.note !== null && (
+                        <p>
+                            {row.note}
+                            {row.folioClosed && folioLink !== null && (
+                                <>
+                                    {' '}
+                                    {row.canReopen ? (
+                                        <Link
+                                            href={folioLink}
+                                            className="underline underline-offset-4"
+                                        >
+                                            Open folio
+                                        </Link>
+                                    ) : (
+                                        <span>A manager can reopen it.</span>
+                                    )}
+                                </>
+                            )}
+                        </p>
+                    )}
 
-            <div className="flex items-baseline justify-between gap-2 lg:block lg:text-right">
-                <span className="text-sm text-muted-foreground lg:hidden">
-                    Balance
-                </span>
-                {row.selectable && (
-                    <span className="font-medium">
-                        <MoneyText amount={row.balance} currency={null} plain />
-                    </span>
-                )}
-            </div>
-
-            <div className="flex min-w-0 flex-col gap-2 text-sm">
-                {row.note !== null && (
-                    <p>
-                        {row.note}{' '}
-                        {moveLink !== null && (
-                            <Link
-                                href={moveLink}
-                                className="underline underline-offset-4"
-                            >
-                                Move charges
-                            </Link>
-                        )}
-                        {row.folioClosed && folioLink !== null && (
-                            <>
-                                {' '}
-                                {row.canReopen ? (
-                                    <Link
-                                        href={folioLink}
-                                        className="underline underline-offset-4"
-                                    >
-                                        Open folio
-                                    </Link>
-                                ) : (
-                                    <span>A manager can reopen it.</span>
-                                )}
-                            </>
-                        )}
-                    </p>
-                )}
-
-                {row.selectable && !row.folioClosed && (
-                    <>
-                        {row.choices.length === 0 && (
-                            <p className="text-muted-foreground">
-                                {Number(row.balance) === 0
-                                    ? row.status === 'checked_in'
-                                        ? 'Nothing to settle'
-                                        : 'Checked out · nothing to settle'
-                                    : 'You may not settle this balance here.'}
-                            </p>
-                        )}
-                        {row.choices.length > 0 && (
-                            <RadioGroup
-                                value={state.choice ?? ''}
-                                onValueChange={(value) =>
-                                    onChange({ choice: value })
-                                }
-                                disabled={!state.ticked}
-                            >
-                                {row.choices.includes('collect') && (
-                                    <Field orientation="horizontal">
-                                        <RadioGroupItem
-                                            id={`${id}-collect`}
-                                            value="collect"
-                                        />
-                                        <FieldContent>
-                                            <FieldLabel
-                                                htmlFor={`${id}-collect`}
-                                            >
-                                                Collect
-                                                {onePaymentOn &&
-                                                    ' · in the one payment'}
-                                            </FieldLabel>
-                                            {choice === 'collect' &&
-                                                !onePaymentOn && (
-                                                    <div className="flex flex-wrap gap-2">
-                                                        <div className="w-40">
-                                                            <EnumSelect
-                                                                options={methods.map(
-                                                                    (one) => ({
-                                                                        value: String(
-                                                                            one.id,
-                                                                        ),
-                                                                        label: one.name,
-                                                                    }),
-                                                                )}
-                                                                value={
-                                                                    state.methodId
-                                                                }
-                                                                onValueChange={(
-                                                                    value,
-                                                                ) =>
-                                                                    onChange({
-                                                                        methodId:
-                                                                            value,
-                                                                    })
-                                                                }
-                                                                aria-label={`Method for ${row.label}`}
-                                                            />
+                    {row.selectable && !row.folioClosed && (
+                        <>
+                            {row.choices.length === 0 && (
+                                <p className="text-muted-foreground">
+                                    {Number(row.balance) === 0
+                                        ? row.status === 'checked_in'
+                                            ? 'Nothing to settle'
+                                            : 'Checked out · nothing to settle'
+                                        : 'You may not settle this balance here.'}
+                                </p>
+                            )}
+                            {row.choices.length > 0 && (
+                                <RadioGroup
+                                    value={state.choice ?? ''}
+                                    onValueChange={(value) =>
+                                        onChange({ choice: value })
+                                    }
+                                    disabled={!state.ticked}
+                                >
+                                    {row.choices.includes('collect') && (
+                                        <Field orientation="horizontal">
+                                            <RadioGroupItem
+                                                id={`${id}-collect`}
+                                                value="collect"
+                                            />
+                                            <FieldContent>
+                                                <FieldLabel
+                                                    htmlFor={`${id}-collect`}
+                                                >
+                                                    Collect
+                                                    {onePaymentOn &&
+                                                        ' · in the one payment'}
+                                                </FieldLabel>
+                                                {choice === 'collect' &&
+                                                    !onePaymentOn && (
+                                                        <div className="flex flex-wrap gap-2">
+                                                            <div className="w-40">
+                                                                <EnumSelect
+                                                                    options={methods.map(
+                                                                        (
+                                                                            one,
+                                                                        ) => ({
+                                                                            value: String(
+                                                                                one.id,
+                                                                            ),
+                                                                            label: one.name,
+                                                                        }),
+                                                                    )}
+                                                                    value={
+                                                                        state.methodId
+                                                                    }
+                                                                    onValueChange={(
+                                                                        value,
+                                                                    ) =>
+                                                                        onChange(
+                                                                            {
+                                                                                methodId:
+                                                                                    value,
+                                                                            },
+                                                                        )
+                                                                    }
+                                                                    aria-label={`Method for ${row.label}`}
+                                                                />
+                                                            </div>
+                                                            <div className="w-40">
+                                                                <MoneyInput
+                                                                    value={
+                                                                        state.amount
+                                                                    }
+                                                                    onChange={(
+                                                                        value,
+                                                                    ) =>
+                                                                        onChange(
+                                                                            {
+                                                                                amount: value,
+                                                                            },
+                                                                        )
+                                                                    }
+                                                                    currency={
+                                                                        currency
+                                                                    }
+                                                                />
+                                                            </div>
+                                                            {method?.requiresReference && (
+                                                                <Input
+                                                                    className="w-40"
+                                                                    value={
+                                                                        state.reference
+                                                                    }
+                                                                    onChange={(
+                                                                        event,
+                                                                    ) =>
+                                                                        onChange(
+                                                                            {
+                                                                                reference:
+                                                                                    event
+                                                                                        .target
+                                                                                        .value,
+                                                                            },
+                                                                        )
+                                                                    }
+                                                                    maxLength={
+                                                                        100
+                                                                    }
+                                                                    autoComplete="off"
+                                                                    placeholder="Reference"
+                                                                    aria-label={`Reference for ${row.label}`}
+                                                                />
+                                                            )}
                                                         </div>
-                                                        <div className="w-40">
-                                                            <MoneyInput
-                                                                value={
-                                                                    state.amount
-                                                                }
-                                                                onChange={(
-                                                                    value,
-                                                                ) =>
-                                                                    onChange({
-                                                                        amount: value,
-                                                                    })
-                                                                }
-                                                                currency={
-                                                                    currency
-                                                                }
-                                                            />
-                                                        </div>
-                                                        {method?.requiresReference && (
-                                                            <Input
-                                                                className="w-40"
-                                                                value={
-                                                                    state.reference
-                                                                }
-                                                                onChange={(
-                                                                    event,
-                                                                ) =>
-                                                                    onChange({
-                                                                        reference:
-                                                                            event
-                                                                                .target
-                                                                                .value,
-                                                                    })
-                                                                }
-                                                                maxLength={100}
-                                                                autoComplete="off"
-                                                                placeholder="Reference"
-                                                                aria-label={`Reference for ${row.label}`}
-                                                            />
-                                                        )}
+                                                    )}
+                                            </FieldContent>
+                                        </Field>
+                                    )}
+                                    {row.choices.includes('move') && (
+                                        <Field orientation="horizontal">
+                                            <RadioGroupItem
+                                                id={`${id}-move`}
+                                                value="move"
+                                            />
+                                            <FieldContent>
+                                                <FieldLabel
+                                                    htmlFor={`${id}-move`}
+                                                >
+                                                    Add to group bill
+                                                </FieldLabel>
+                                                {row.moveNote && (
+                                                    <span className="text-muted-foreground">
+                                                        {row.moveNote}
+                                                    </span>
+                                                )}
+                                            </FieldContent>
+                                        </Field>
+                                    )}
+                                    {row.choices.includes('refund') && (
+                                        <Field orientation="horizontal">
+                                            <RadioGroupItem
+                                                id={`${id}-refund`}
+                                                value="refund"
+                                            />
+                                            <FieldContent>
+                                                <FieldLabel
+                                                    htmlFor={`${id}-refund`}
+                                                >
+                                                    Refund deposit
+                                                </FieldLabel>
+                                                {choice === 'refund' && (
+                                                    <div className="w-40">
+                                                        <MoneyInput
+                                                            value={
+                                                                state.refundAmount
+                                                            }
+                                                            onChange={(value) =>
+                                                                onChange({
+                                                                    refundAmount:
+                                                                        value,
+                                                                })
+                                                            }
+                                                            currency={currency}
+                                                        />
                                                     </div>
                                                 )}
-                                        </FieldContent>
-                                    </Field>
-                                )}
-                                {row.choices.includes('move') && (
-                                    <Field orientation="horizontal">
-                                        <RadioGroupItem
-                                            id={`${id}-move`}
-                                            value="move"
-                                        />
-                                        <FieldContent>
-                                            <FieldLabel htmlFor={`${id}-move`}>
-                                                Add to Master
-                                                {masterName
-                                                    ? ` · ${masterName}`
-                                                    : ''}
-                                            </FieldLabel>
-                                            {row.moveNote && (
-                                                <span className="text-muted-foreground">
-                                                    {row.moveNote}
-                                                </span>
-                                            )}
-                                        </FieldContent>
-                                    </Field>
-                                )}
-                                {row.choices.includes('refund') && (
-                                    <Field orientation="horizontal">
-                                        <RadioGroupItem
-                                            id={`${id}-refund`}
-                                            value="refund"
-                                        />
-                                        <FieldContent>
-                                            <FieldLabel
-                                                htmlFor={`${id}-refund`}
-                                            >
-                                                Refund deposit
-                                            </FieldLabel>
-                                            {choice === 'refund' && (
-                                                <div className="w-40">
-                                                    <MoneyInput
-                                                        value={
-                                                            state.refundAmount
-                                                        }
-                                                        onChange={(value) =>
-                                                            onChange({
-                                                                refundAmount:
-                                                                    value,
-                                                            })
-                                                        }
-                                                        currency={currency}
-                                                    />
-                                                </div>
-                                            )}
-                                        </FieldContent>
-                                    </Field>
-                                )}
-                            </RadioGroup>
-                        )}
-                    </>
-                )}
-                {error && <FieldError>{error}</FieldError>}
-            </div>
-        </div>
+                                            </FieldContent>
+                                        </Field>
+                                    )}
+                                </RadioGroup>
+                            )}
+                        </>
+                    )}
+                    {error && <FieldError>{error}</FieldError>}
+                </div>
+            </TableCell>
+        </TableRow>
     );
 }

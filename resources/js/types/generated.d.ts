@@ -1552,6 +1552,7 @@ export type GroupCheckOutMasterData = {
 folioId: number,
 label: string,
 balance: string,
+name: string,
 payerCompany: string | null,
 canSettle: boolean,
 };
@@ -1565,6 +1566,8 @@ cancelUrl: string,
 };
 export type GroupCheckOutPreviewData = {
 rows: App.Data.Reservations.GroupCheckOutRowData[],
+checkedOutNothing: string[],
+cancelledNothing: string[],
 master: App.Data.Reservations.GroupCheckOutMasterData | null,
 summary: App.Data.Reservations.GroupCheckOutSummaryData,
 methods: App.Data.Payments.PaymentMethodOptionData[],
@@ -1593,6 +1596,8 @@ incoming: string[],
 folioClosed: boolean,
 folioId: number | null,
 canReopen: boolean,
+canMoveCharges: boolean,
+unit: App.Data.Reservations.ReservationUnitData | null,
 };
 export type GroupCheckOutSummaryData = {
 collect: string,

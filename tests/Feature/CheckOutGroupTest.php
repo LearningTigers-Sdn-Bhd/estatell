@@ -458,3 +458,88 @@ test('the success state offers the city ledger settle while the Master is open, 
         ->assertInertiaFlash('groupCheckOut.invoiceNumber', ArInvoice::query()->sole()->number)
         ->assertInertiaFlash('groupCheckOut.masterUrl', null);
 });
+
+test('the preview puts each room in its section and names the rooms with nothing to settle instead of listing them', function () {
+    $s = gcSetup(2);
+    gcCharge($s, $s['folios'][1], '45.00');
+    $outEmpty = ReservationUnit::factory()->for($s['reservation'])->checkedOut()->create(['room_type_id' => $s['units'][0]->room_type_id, 'arrival_date' => '2026-10-08', 'departure_date' => '2026-10-09']);
+    app(CreateFolio::class)($s['reservation'], $outEmpty);
+    $outOwing = ReservationUnit::factory()->for($s['reservation'])->checkedOut()->create(['room_type_id' => $s['units'][0]->room_type_id, 'arrival_date' => '2026-10-08', 'departure_date' => '2026-10-09']);
+    gcCharge($s, app(CreateFolio::class)($s['reservation'], $outOwing), '30.00');
+    $cancelled = ReservationUnit::factory()->for($s['reservation'])->create(['room_type_id' => $s['units'][0]->room_type_id, 'status' => UnitStatus::Cancelled]);
+    app(CreateFolio::class)($s['reservation'], $cancelled);
+    $later = ReservationUnit::factory()->for($s['reservation'])->checkedIn()->create(['room_type_id' => $s['units'][0]->room_type_id, 'arrival_date' => '2026-10-09', 'departure_date' => '2026-10-15']);
+    app(CreateFolio::class)($s['reservation'], $later);
+    $notArrived = ReservationUnit::factory()->for($s['reservation'])->create(['room_type_id' => $s['units'][0]->room_type_id]);
+
+    $response = $this->actingAs($s['user'])->postJson(gcUrl($s, 'preview'))->assertOk();
+    $rows = collect($response->json('rows'))->keyBy('unitId');
+
+    expect($rows->keys()->all())->toEqualCanonicalizing([$s['units'][0]->id, $s['units'][1]->id, $outOwing->id, $later->id, $notArrived->id])
+        ->and($rows[$s['units'][0]->id]['group'])->toBe('ready')
+        ->and($rows[$outOwing->id]['group'])->toBe('money')
+        ->and($rows[$outOwing->id]['ticked'])->toBeTrue()
+        ->and($rows[$later->id]['group'])->toBe('later')
+        ->and($rows[$later->id]['unit']['id'])->toBe($later->id)
+        ->and($rows[$later->id]['unit']['departure'])->toBe('2026-10-15')
+        ->and($rows[$notArrived->id]['group'])->toBe('blocked')
+        ->and($rows[$notArrived->id]['unit'])->toBeNull()
+        ->and($rows[$s['units'][0]->id]['unit'])->toBeNull()
+        ->and($response->json('checkedOutNothing'))->toHaveCount(1)
+        ->and($response->json('cancelledNothing'))->toHaveCount(1)
+        ->and($response->json('summary.roomsOut'))->toBe(2)
+        ->and($response->json('summary.roomsSettled'))->toBe(1);
+});
+
+test('Move charges is offered only to a user who has folio.transfer', function () {
+    $s = gcSetup(2);
+    $s['units'][1]->update(['departure_date' => '2026-10-12']);
+    $s['units'][1]->nights()->get()->each->delete();
+    UnitNight::factory()->create(['reservation_unit_id' => $s['units'][1]->id, 'rate_plan_id' => $s['units'][1]->rate_plan_id, 'date' => '2026-10-10']);
+    FolioRoutingRule::factory()->forUnit($s['units'][1])->forCategory(TransactionCategory::Room)->toFolio($s['folios'][0])->create(['reservation_id' => $s['reservation']->id]);
+    $clerk = gcStaff($s['property'], ['reservations.view', 'front-desk.check-out']);
+
+    $owner = collect($this->actingAs($s['user'])->postJson(gcUrl($s, 'preview'))->json('rows'))->keyBy('unitId');
+    $limited = collect($this->actingAs($clerk)->postJson(gcUrl($s, 'preview'))->json('rows'))->keyBy('unitId');
+
+    expect($owner[$s['units'][0]->id]['group'])->toBe('blocked')
+        ->and($owner[$s['units'][0]->id]['incoming'])->not->toBeEmpty()
+        ->and($owner[$s['units'][0]->id]['canMoveCharges'])->toBeTrue()
+        ->and($limited[$s['units'][0]->id]['canMoveCharges'])->toBeFalse()
+        ->and($owner[$s['units'][1]->id]['group'])->toBe('later')
+        ->and($owner[$s['units'][1]->id]['canMoveCharges'])->toBeFalse();
+});
+
+test('the group bill is named after the payer company, else the group name, and the page sends what Check out early needs', function () {
+    $s = gcSetup(2);
+    $s['reservation']->update(['group_name' => 'Acme Annual Retreat']);
+    $url = route('reservations.check-out', ['property' => $s['property']->code, 'reservation' => $s['reservation']->id]);
+
+    $this->actingAs($s['user'])->get($url)->assertInertia(fn (Assert $page) => $page
+        ->where('checkOut.preview.master.name', 'Acme Annual Retreat')
+        ->where('canWaiveFees', true)
+        ->missing('paymentOptions'));
+
+    gcCompany($s);
+    $company = Company::query()->where('property_id', $s['property']->id)->sole();
+
+    $this->actingAs($s['user'])->get($url)->assertInertia(fn (Assert $page) => $page
+        ->where('checkOut.preview.master.name', $company->name)
+        ->where('checkOut.preview.master.canSettle', true));
+
+    $clerk = gcStaff($s['property'], ['reservations.view', 'front-desk.check-out']);
+
+    $this->actingAs($clerk)->get($url)->assertInertia(fn (Assert $page) => $page->where('canWaiveFees', false));
+});
+
+test('a Check out early save, done or refused, goes back to the group page', function () {
+    $s = gcSetup(2);
+    $s['units'][1]->update(['departure_date' => '2026-10-12']);
+    $page = route('reservations.check-out', ['property' => $s['property']->code, 'reservation' => $s['reservation']->id]);
+
+    // The property has no fee policy here, so the save is refused: it still returns to the page it came from.
+    $this->actingAs($s['user'])->from($page)->post(route('reservations.units.early-check-out', ['property' => $s['property']->code, 'reservation' => $s['reservation']->id, 'unit' => $s['units'][1]->id]), [
+        'idempotency_key' => fake()->uuid(),
+        'expected_fee' => '0.00',
+    ])->assertRedirect($page);
+});

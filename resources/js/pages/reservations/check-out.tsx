@@ -1,15 +1,17 @@
 import { Head, Link, useForm } from '@inertiajs/react';
 import { LogOut, X } from 'lucide-react';
-import { Fragment, useEffect, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 import { EnumSelect } from '@/components/pms/enum-select';
 import { FormActions } from '@/components/pms/form-actions';
 import { FormError } from '@/components/pms/form-error';
 import { MoneyText } from '@/components/pms/money-text';
 import { PageHeader } from '@/components/pms/page-header';
+import { CheckOutDialog } from '@/components/pms/reservations/check-out-dialog';
 import { GroupCheckOutDone } from '@/components/pms/reservations/group-check-out-done';
+import { GroupCheckOutMutedList } from '@/components/pms/reservations/group-check-out-muted';
 import {
-    GroupCheckOutRow,
-    groupHeading,
+    GroupCheckOutTable,
     initialRowState,
     type RowState,
 } from '@/components/pms/reservations/group-check-out-row';
@@ -28,7 +30,11 @@ import { store } from '@/routes/reservations/check-out';
 
 type Props = {
     checkOut: App.Data.Reservations.GroupCheckOutPageData;
+    canWaiveFees: boolean;
+    paymentOptions?: App.Data.Payments.PaymentFormOptionsData;
 };
+
+type Row = App.Data.Reservations.GroupCheckOutRowData;
 
 const plural = (count: number, one: string, many: string) =>
     `${count} ${count === 1 ? one : many}`;
@@ -38,7 +44,11 @@ const plural = (count: number, one: string, many: string) =>
  * only the ticks and typed fields; the server works out every figure in a preview 300 ms after a change and checks
  * them again on save.
  */
-export default function CheckOut({ checkOut: page }: Props) {
+export default function CheckOut({
+    checkOut: page,
+    canWaiveFees,
+    paymentOptions,
+}: Props) {
     const currency = page.currency;
     const [idempotencyKey] = useState(() => crypto.randomUUID());
     const [refreshToken, setRefreshToken] = useState(0);
@@ -54,6 +64,10 @@ export default function CheckOut({ checkOut: page }: Props) {
     const [payerMethod, setPayerMethod] = useState('');
     const [payerReference, setPayerReference] = useState('');
     const [settleMaster, setSettleMaster] = useState(false);
+    const [early, setEarly] = useState<{
+        unit: App.Data.Reservations.ReservationUnitData;
+        open: boolean;
+    } | null>(null);
 
     // Rows come back from the server after a refusal or a reload; a new room gets its prefilled state.
     const rows = page.preview.rows;
@@ -79,7 +93,7 @@ export default function CheckOut({ checkOut: page }: Props) {
             row.selectable &&
             !row.folioClosed &&
             row.folioId !== null &&
-            (row.group === 'main' || row.group === 'out') &&
+            (row.group === 'ready' || row.group === 'money') &&
             (state.choice === 'collect' || state.choice === null)
         );
     });
@@ -147,6 +161,16 @@ export default function CheckOut({ checkOut: page }: Props) {
     const summary = preview.summary;
     const onePaymentAmount = summary.onePayment ?? '0.00';
 
+    // Check out early… saves on its own and the page comes back with new rows: ask the server for the totals again. The
+    // ticks and typed fields stay in `rowStates`.
+    const firstRows = useRef(rows);
+    useEffect(() => {
+        if (firstRows.current !== rows) {
+            firstRows.current = rows;
+            setRefreshToken((token) => token + 1);
+        }
+    }, [rows]);
+
     const form = useForm({});
     const errors = form.errors as Record<string, string | undefined>;
 
@@ -183,6 +207,16 @@ export default function CheckOut({ checkOut: page }: Props) {
         (collecting ||
             !chosen.some((row) => states[row.unitId].choice === 'collect'));
 
+    const tickAll = (unitIds: number[], ticked: boolean) =>
+        setRowStates((current) => ({
+            ...current,
+            ...Object.fromEntries(
+                unitIds.map((unitId) => [
+                    unitId,
+                    { ...states[unitId], ticked },
+                ]),
+            ),
+        }));
     const changeRow = (unitId: number, patch: Partial<RowState>) =>
         setRowStates((current) => ({
             ...current,
@@ -232,22 +266,90 @@ export default function CheckOut({ checkOut: page }: Props) {
             {label}
         </Button>
     );
+    const positive = (amount: string) => Number(amount) > 0;
+    const hasMoney =
+        positive(summary.collect) ||
+        positive(summary.refund) ||
+        positive(summary.moveToMaster);
+    const parts: ReactNode[] = [];
+
+    if (summary.roomsOut > 0) {
+        parts.push(
+            `${plural(summary.roomsOut, 'room', 'rooms')} ${summary.roomsOut === 1 ? 'checks' : 'check'} out`,
+        );
+    }
+
+    if (summary.roomsSettled > 0) {
+        parts.push(`${summary.roomsSettled} settled`);
+    }
+
+    if (positive(summary.collect)) {
+        parts.push(
+            <>
+                Collect{' '}
+                <MoneyText amount={summary.collect} currency={currency} plain />
+            </>,
+        );
+    }
+
+    if (positive(summary.refund)) {
+        parts.push(
+            <>
+                Refund{' '}
+                <MoneyText amount={summary.refund} currency={currency} plain />
+            </>,
+        );
+    }
+
+    if (positive(summary.moveToMaster)) {
+        parts.push(
+            <>
+                Add{' '}
+                <MoneyText
+                    amount={summary.moveToMaster}
+                    currency={currency}
+                    plain
+                />{' '}
+                to group bill
+            </>,
+        );
+    }
+
     const summaryLine = (
         <p className="text-sm text-muted-foreground">
-            Collect{' '}
-            <MoneyText amount={summary.collect} currency={currency} plain /> ·
-            Refund{' '}
-            <MoneyText amount={summary.refund} currency={currency} plain /> ·
-            Move{' '}
-            <MoneyText
-                amount={summary.moveToMaster}
-                currency={currency}
-                plain
-            />{' '}
-            to Master · {plural(summary.roomsOut, 'room', 'rooms')} out ·{' '}
-            {summary.roomsSettled} settled
+            {parts.length === 0 && 'No rooms selected.'}
+            {parts.map((part, position) => (
+                <Fragment key={position}>
+                    {position > 0 && ' · '}
+                    {part}
+                </Fragment>
+            ))}
+            {parts.length > 0 && !hasMoney && '. Nothing to settle.'}
         </p>
     );
+    const inGroup = (...groups: string[]) =>
+        rows.filter((row) => groups.includes(row.group));
+    const tableProps = {
+        states,
+        onChange: changeRow,
+        onTickAll: tickAll,
+        methods,
+        currency,
+        reservationId: page.reservationId,
+        onePaymentOn: onePaymentActive,
+        errors,
+    };
+    const checkOutEarly = (row: Row) =>
+        row.unit !== null && setEarly({ unit: row.unit, open: true });
+    const nothing = (names: string[], what: string) =>
+        names.length === 0
+            ? null
+            : `${plural(names.length, 'room', 'rooms')} ${what} with nothing to settle (${names.join(', ')}).`;
+    const showMaster =
+        master !== null &&
+        (Number(master.balance) !== 0 ||
+            positive(summary.moveToMaster) ||
+            master.canSettle);
 
     if (done !== null) {
         return (
@@ -324,50 +426,53 @@ export default function CheckOut({ checkOut: page }: Props) {
                         </Alert>
                     )}
 
-                    <div className="flex flex-col">
-                        <div className="hidden grid-cols-[minmax(0,14rem)_7rem_minmax(0,1fr)] gap-4 border-b pb-2 text-sm text-muted-foreground lg:grid">
-                            <span>Room</span>
-                            <span className="text-right">Balance</span>
-                            <span>Settle</span>
-                        </div>
-                        <div className="flex flex-col gap-3 lg:gap-0">
-                            {rows.map((row, position) => {
-                                const heading =
-                                    row.group !== rows[position - 1]?.group
-                                        ? groupHeading(row.group)
-                                        : null;
-
-                                return (
-                                    <Fragment key={row.unitId}>
-                                        {heading && (
-                                            <p className="pt-3 text-xs font-medium tracking-wide text-muted-foreground uppercase">
-                                                {heading}
-                                            </p>
-                                        )}
-                                        <GroupCheckOutRow
-                                            row={row}
-                                            state={states[row.unitId]}
-                                            onChange={(patch) =>
-                                                changeRow(row.unitId, patch)
-                                            }
-                                            methods={methods}
-                                            currency={currency}
-                                            masterName={
-                                                master?.payerCompany ??
-                                                master?.label ??
-                                                null
-                                            }
-                                            reservationId={page.reservationId}
-                                            onePaymentOn={onePaymentActive}
-                                            error={
-                                                errors[`units.${row.unitId}`]
-                                            }
-                                        />
-                                    </Fragment>
-                                );
-                            })}
-                        </div>
-                    </div>
+                    {inGroup('ready').length > 0 && (
+                        <GroupCheckOutTable
+                            heading="Ready to check out"
+                            rows={inGroup('ready')}
+                            {...tableProps}
+                        />
+                    )}
+                    {inGroup('money').length > 0 && (
+                        <GroupCheckOutTable
+                            heading="Money to settle"
+                            rows={inGroup('money')}
+                            {...tableProps}
+                        />
+                    )}
+                    {inGroup('later').length > 0 && (
+                        <GroupCheckOutMutedList
+                            heading="Departing later"
+                            rows={inGroup('later')}
+                            reservationId={page.reservationId}
+                            onCheckOutEarly={checkOutEarly}
+                        />
+                    )}
+                    {inGroup('blocked').length > 0 && (
+                        <GroupCheckOutMutedList
+                            heading="Can't check out yet"
+                            rows={inGroup('blocked')}
+                            reservationId={page.reservationId}
+                            onCheckOutEarly={checkOutEarly}
+                        />
+                    )}
+                    {[
+                        nothing(
+                            preview.checkedOutNothing,
+                            'already checked out',
+                        ),
+                        nothing(preview.cancelledNothing, 'cancelled'),
+                    ].map(
+                        (line) =>
+                            line !== null && (
+                                <p
+                                    key={line}
+                                    className="text-sm text-muted-foreground"
+                                >
+                                    {line}
+                                </p>
+                            ),
+                    )}
 
                     {payers.length > 0 && methods.length > 0 && (
                         <div className="flex flex-col gap-3 rounded-lg border p-3">
@@ -438,32 +543,39 @@ export default function CheckOut({ checkOut: page }: Props) {
                         </div>
                     )}
 
-                    {master !== null && (
+                    {master !== null && showMaster && (
                         <div className="flex flex-col gap-3 rounded-lg border p-3">
-                            <p className="text-sm">
-                                <span className="font-medium">
-                                    Master · {master.label}
-                                </span>{' '}
-                                <MoneyText
-                                    amount={master.balance}
-                                    currency={currency}
-                                    plain
-                                />{' '}
-                                +{' '}
-                                <MoneyText
-                                    amount={summary.moveToMaster}
-                                    currency={currency}
-                                    plain
-                                />{' '}
-                                moved ={' '}
-                                <MoneyText
-                                    amount={
-                                        summary.masterAfter ?? master.balance
-                                    }
-                                    currency={currency}
-                                    plain
-                                />
-                            </p>
+                            <div className="flex flex-col gap-1">
+                                <p className="text-sm font-medium">
+                                    Group bill (Master folio) · {master.name}
+                                </p>
+                                <p className="text-sm text-muted-foreground">
+                                    Charges the group pays, not the guests.
+                                </p>
+                                <p className="text-sm">
+                                    Balance now{' '}
+                                    <MoneyText
+                                        amount={master.balance}
+                                        currency={currency}
+                                        plain
+                                    />
+                                    {' · Added from rooms +'}
+                                    <MoneyText
+                                        amount={summary.moveToMaster}
+                                        currency={currency}
+                                        plain
+                                    />
+                                    {' · After check-out '}
+                                    <MoneyText
+                                        amount={
+                                            summary.masterAfter ??
+                                            master.balance
+                                        }
+                                        currency={currency}
+                                        plain
+                                    />
+                                </p>
+                            </div>
                             {master.canSettle && (
                                 <Field orientation="horizontal">
                                     <Checkbox
@@ -474,8 +586,7 @@ export default function CheckOut({ checkOut: page }: Props) {
                                         }
                                     />
                                     <FieldLabel htmlFor="settle-master">
-                                        Settle Master to City ledger after
-                                        check-out
+                                        Send to City ledger after check-out
                                     </FieldLabel>
                                 </Field>
                             )}
@@ -499,6 +610,22 @@ export default function CheckOut({ checkOut: page }: Props) {
                     </FormActions>
                 </div>
             </form>
+
+            {early !== null && (
+                <CheckOutDialog
+                    open={early.open}
+                    onOpenChange={(open) =>
+                        setEarly((current) =>
+                            current === null ? null : { ...current, open },
+                        )
+                    }
+                    reservationId={page.reservationId}
+                    unit={early.unit}
+                    paymentOptions={paymentOptions}
+                    canWaiveFees={canWaiveFees}
+                    currency={currency}
+                />
+            )}
         </>
     );
 }

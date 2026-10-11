@@ -66,7 +66,7 @@ export function GroupCheckOutDone({
                     currency={currency}
                 />
                 <Figure
-                    label="Moved to Master"
+                    label="Moved to group bill"
                     amount={done.movedToMaster}
                     currency={currency}
                 />

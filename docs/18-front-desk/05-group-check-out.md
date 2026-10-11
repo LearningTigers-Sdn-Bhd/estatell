@@ -50,7 +50,7 @@ Can't check out yet (2)
 - **Ready to check out**: the header checkbox ticks or unticks every row in the section.
 - **Money to settle**: CheckedOut, Cancelled and NoShow rooms whose folios still hold money. Each has a checkbox and no check-out step.
 - **Departing later** and **Can't check out yet**: muted rows with no checkbox, after the tables.
-- A room that is out (or cancelled) with nothing to settle is not a row: one muted line names the rooms.
+- A room that is out (or cancelled) with nothing to settle is not a row: one muted line names the rooms. Cancelled and no-show rooms get their own line ("1 room cancelled with nothing to settle (111)."). Money to settle shows "Checked out", "Cancelled" or "No-show" without a date.
 - The summary leaves out every part that is 0. With no money at all it reads "2 rooms check out. Nothing to settle."
 - On a narrow screen each row is a card with its settle choice, and the summary and the button stay in a sticky footer.
 - UI words: **group bill** for the Master folio ("Add to group bill", "Group bill (Master folio)"). Code keeps the Master names.

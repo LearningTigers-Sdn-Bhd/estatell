@@ -9,6 +9,7 @@ use App\Data\Reservations\GroupCheckOutMasterData;
 use App\Data\Reservations\GroupCheckOutPreviewData;
 use App\Data\Reservations\GroupCheckOutRowData;
 use App\Data\Reservations\GroupCheckOutSummaryData;
+use App\Data\Reservations\ReservationUnitData;
 use App\Enums\FolioStatus;
 use App\Enums\FolioType;
 use App\Enums\PaymentMethodType;
@@ -95,16 +96,17 @@ class GroupCheckOutPreview
         $summary = new GroupCheckOutSummaryData('0.00', '0.00', '0.00', 0, 0, false, null, null);
 
         if ($businessDate === null) {
-            return new GroupCheckOutPreviewData([], null, $summary, $methods['data'], __('This property has no open business date yet.'));
+            return new GroupCheckOutPreviewData([], [], [], null, $summary, $methods['data'], __('This property has no open business date yet.'));
         }
 
         $master = $this->openMaster($reservation);
         $units = $reservation->units()->with(['guests.guest', 'roomType'])->orderBy('id')->get();
         $names = $this->incomingScheduledCharges->unitNames($units->modelKeys());
         $rows = [];
+        $nothing = ['out' => [], 'cancelled' => []];
 
         foreach ($units as $unit) {
-            $row = $this->row($unit, $user, $businessDate, $master, $names, $methods);
+            $row = $this->row($unit, $user, $businessDate, $master, $names, $methods, $nothing);
 
             if ($row !== null) {
                 $rows[] = $row;
@@ -113,10 +115,12 @@ class GroupCheckOutPreview
 
         usort($rows, fn (GroupCheckOutRowData $a, GroupCheckOutRowData $b): int => [$this->order($a->group), $a->unitId] <=> [$this->order($b->group), $b->unitId]);
 
-        $masterData = $master === null ? null : $this->master($master, $user);
+        $masterData = $master === null ? null : $this->master($master, $reservation, $user);
 
         return new GroupCheckOutPreviewData(
             $rows,
+            $nothing['out'],
+            $nothing['cancelled'],
             $masterData,
             $this->summary($rows, $choices, $onePayment, $settleMaster, $masterData),
             $methods['data'],
@@ -132,7 +136,7 @@ class GroupCheckOutPreview
     {
         $master = $this->openMaster($reservation);
 
-        return $master === null ? null : $this->master($master, $user);
+        return $master === null ? null : $this->master($master, $reservation, $user);
     }
 
     /**
@@ -167,9 +171,9 @@ class GroupCheckOutPreview
     private function order(string $group): int
     {
         return match ($group) {
-            'main' => 0,
-            'out' => 1,
-            'not_arrived' => 2,
+            'ready' => 0,
+            'money' => 1,
+            'later' => 2,
             default => 3,
         };
     }
@@ -177,15 +181,18 @@ class GroupCheckOutPreview
     /**
      * @param  array<int, string>  $names
      * @param  array{data: list<PaymentMethodOptionData>, first: int|null}  $methods
+     * @param  array{out: list<string>, cancelled: list<string>}  $nothing  Gets the name of a room that is out or cancelled with nothing to settle, which is not a row.
      */
-    private function row(ReservationUnit $unit, User $user, CarbonImmutable $businessDate, ?Folio $master, array $names, array $methods): ?GroupCheckOutRowData
+    private function row(ReservationUnit $unit, User $user, CarbonImmutable $businessDate, ?Folio $master, array $names, array $methods, array &$nothing): ?GroupCheckOutRowData
     {
         $kind = $this->kind($unit, $businessDate);
         $folios = $this->checkOutSettlement->folios($unit);
         $balance = $folios->reduce(fn (BigDecimal $sum, Folio $folio): BigDecimal => $sum->plus($this->folioBalance->forFolio($folio)), BigDecimal::zero());
         $hasMoney = ! $balance->isZero();
 
-        if ($kind === self::KIND_CANCELLED && ! $hasMoney) {
+        if (! $hasMoney && ($kind === self::KIND_OUT || $kind === self::KIND_CANCELLED)) {
+            $nothing[$kind === self::KIND_OUT ? 'out' : 'cancelled'][] = $names[$unit->id] ?? $unit->roomType->name;
+
             return null;
         }
 
@@ -212,10 +219,10 @@ class GroupCheckOutPreview
             $actionable && $balance->isNegative() && $refundPool->isPositive() && $user->can(PermissionEnum::PaymentRefund->value) ? 'refund' : null,
         ]));
         $group = match ($kind) {
-            self::KIND_OUT => 'out',
-            self::KIND_CANCELLED => 'cancelled',
-            self::KIND_NOT_ARRIVED => 'not_arrived',
-            default => 'main',
+            self::KIND_READY => 'ready',
+            self::KIND_OUT, self::KIND_CANCELLED => 'money',
+            self::KIND_DEPARTS_LATER => 'later',
+            default => 'blocked',
         };
         $guest = $unit->guests->firstWhere('is_primary', true)?->guest->full_name;
         $lastMethod = Payment::query()->whereIn('folio_id', $folios->modelKeys())->whereNull('refund_of_id')->latest('id')->value('payment_method_id');
@@ -235,7 +242,7 @@ class GroupCheckOutPreview
             $selectable && ($kind === self::KIND_READY || ($hasMoney && $openFolio !== null)),
             $selectable,
             match ($kind) {
-                self::KIND_DEPARTS_LATER => __('Departs :date: use Check out for an early check-out.', ['date' => $unit->departure_date->format('j M')]),
+                self::KIND_DEPARTS_LATER => __('Departs :date', ['date' => $unit->departure_date->format('j M')]),
                 self::KIND_CHARGED_ELSEWHERE => IncomingScheduledCharges::message($incoming),
                 self::KIND_NOT_ARRIVED => __('Not checked in: Cancel or mark no-show.'),
                 default => $folioClosed ? __('Folio closed: reopen it to settle.') : null,
@@ -254,10 +261,22 @@ class GroupCheckOutPreview
             $folioClosed,
             $folioClosed ? $closedFolio?->id : null,
             $folioClosed && $closedFolio !== null && $this->folioReopenRule->allows($user, $closedFolio),
+            $kind === self::KIND_CHARGED_ELSEWHERE && $user->can(PermissionEnum::FolioTransfer->value),
+            $kind === self::KIND_DEPARTS_LATER ? $this->unitData($unit, $user) : null,
         );
     }
 
-    private function master(Folio $master, User $user): GroupCheckOutMasterData
+    /**
+     * The unit as the reservation page sends it, for the **Check out** Dialog opened by **Check out early…**.
+     */
+    private function unitData(ReservationUnit $unit, User $user): ReservationUnitData
+    {
+        $unit->load(['ratePlan', 'childAges', 'nights' => fn ($nights) => $nights->orderBy('date'), 'nights.room', 'nights.bed', 'nights.ratePlan']);
+
+        return ReservationUnitData::fromModel($unit, $user->can(PermissionEnum::GuestsView->value), null, null);
+    }
+
+    private function master(Folio $master, Reservation $reservation, User $user): GroupCheckOutMasterData
     {
         $company = $master->payer_company_id === null ? null : Company::query()->where('property_id', $master->property_id)->find($master->payer_company_id);
 
@@ -265,6 +284,7 @@ class GroupCheckOutPreview
             $master->id,
             $this->moveChargesPreview->folioLabel($master),
             $this->folioBalance->forFolio($master),
+            $company?->name ?? $reservation->group_name ?? $this->moveChargesPreview->folioLabel($master),
             $company?->name,
             $company !== null && $company->direct_bill_enabled && $user->can(PermissionEnum::CityLedgerInvoice->value),
         );
