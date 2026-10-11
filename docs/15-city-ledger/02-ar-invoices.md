@@ -25,7 +25,7 @@ ar_invoices    id, property_id, company_id, folio_id (nullable), credit_for_invo
 
 1. Staff press **Settle to City ledger** on an Open folio whose payer is a company (permission `city-ledger.invoice`).
 2. `SettleToCityLedger` checks the folio and the company, then does three things in one transaction:
-    - posts one negative `DIRECT_BILL` line for the whole balance on the business date, key `city-ledger:{folio_id}`;
+    - posts one negative `DIRECT_BILL` line for the whole balance on the business date, key `city-ledger:{folio_id}:{n}`, where n is 1 plus the folio's earlier City ledger lines that are not reversals, so a settle after a void and reopen gets a new key and a double click still posts once;
     - closes the folio with `CloseFolio`, which issues the folio's `invoice_number` if it has none;
     - runs `CreateArInvoiceFromFolio`.
 3. The invoice has the folio's `invoice_number`, `issued_on` = the business date and `due_on` = `issued_on` + the company's payment terms (`issued_on` when the terms are empty).
@@ -53,7 +53,7 @@ The settle action does not go through `RecordPayment`: a City ledger line has no
 - Void:
     - an invoice can be voided only while Open with no non-void credit notes and no active allocations (`invoice_not_voidable`);
     - a credit note can be voided, which puts its invoice back to its calculated status;
-    - voiding does not touch the folio. Staff can reopen it (now allowed), reverse the City ledger line and settle again, which makes a new invoice with the same number. The settled folio's **Invoice** dropdown offers **Void invoice and reopen** to do the first two steps at once ([Folios and lines](../13-folio/01-folios-and-lines.md#close-and-reopen)).
+    - voiding does not touch the folio. Staff can reopen it (now allowed), reverse the City ledger line and settle again, which makes a new invoice with the same number. The settled folio's **Invoice** dropdown offers **Void invoice and reopen**, which voids, reopens and reverses the City ledger line at once ([Folios and lines](../13-folio/01-folios-and-lines.md#close-and-reopen)).
 - Refusal codes: `not_an_open_invoice`, `amount_invalid`, `reason_required`, `credit_exceeds_balance`, `no_business_date` (credit note); `invoice_not_voidable`, `already_void` (void). `ArInvoiceBalance` (`app/Services/CityLedger/`) calculates the balance.
 - Every action logs on the company: `ar_invoice.created`, `ar_invoice.credit_note_issued`, `ar_invoice.voided`.
 
@@ -118,6 +118,7 @@ Rendered on demand with dompdf, not stored, with the shared letterhead from [Pri
 
 The folio lines follow the [Documents tab](../02-property/05-printing-settings.md#documents-tab) switches, with the same line rules as the [folio invoice](../13-folio/06-folio-invoice.md#content): grouped under the room and the staying guest ("Room 103 · Tan Wei Ming", from the line source), collapsed room nights, the tax summary per tax, and the amount in words. A line and its reversal are both left out. With **Room and guest on lines** off, the [Rooms block](../02-property/05-printing-settings.md#rooms-block) names the staying guests: an AR invoice always names them. The **Payment details** text prints under the total. The info strip leaves out empty cells (2 to 4 cells: Bill to, Issued, Due, Reservation, the reservation `reference`). A credit note does not read the switches and keeps its layout.
 
+- **City ledger lines** are found by their transaction code (`DirectBillPayment`), never by the idempotency key: the invoice page, the PDF and the payment rows leave out every City ledger line and its reversal.
 - **Rows**: the folio's posted lines through the shared `FolioDocumentRows` and the [line grouper](../02-property/05-printing-settings.md#line-grouper), with the tax registration numbers. The city ledger line itself is left out. `ArInvoiceDetail::lines()` keeps serving the read-only invoice page.
 - **Paid at the hotel**: the invoice amount is the folio balance sent to the company, so a guest payment before settlement must show. After the charges Total, the folio's payments print under "Paid at the hotel" (date, receipt number, method, in brackets), through the shared `FolioPaymentRows`. Then **Amount due** = `ar_invoices.amount`. With no payments the section is left out, and Amount due still prints under Total with the same figure, so it is always the last line.
 - **Amount in words** spells the Amount due, the number the company pays.
