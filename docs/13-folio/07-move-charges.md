@@ -107,7 +107,7 @@ Words the page does not use: "Upcoming" (the folio tab says Scheduled), "post" (
 - One transaction. It locks the target and every source folio in id order, runs every check before the first write, so one bad line refuses the whole move and writes nothing.
 - The posted charges go through `TransferLines`, which accepts lines from **several source folios** of one reservation (it accepted one). All copies share one `transfer_group_id`.
 - The rules go through `CreateRoutingRule::__invoke` (which writes no log), after deleting a same-selector Manual rule.
-- **One activity entry** on the reservation, `folio.charges_moved`, with the count, the amount, the target, the source folios and the rules created or replaced. The inner calls write no log of their own (how `TransferLines` skips its `folio.lines_transferred` entry here is decided at build time).
+- **One activity entry** on the reservation, `folio.charges_moved`, with the count, the amount, the target, the source folios and the rules created or replaced. The inner calls write no log of their own: `TransferLines` no longer writes `folio.lines_transferred` (once the Transfer Dialog is gone, every caller writes its own entry), and `CreateRoutingRule::__invoke` never logs.
 - Last, `CloseSettledUnitFolio` on each source, so a CheckedOut unit's folio left at 0 closes itself.
 - **Replays.** A second submit finds the lines already reversed and is refused (`line_not_transferable`), so a double click moves once. A rule that already exists with the same target is not an error.
 

@@ -113,7 +113,7 @@ Decisions made at build time:
 - Tax child keys are `{charge key}:tax:{tax_id}`. A reversal posts under `reverse:{line_id}`, also inside a transfer. A repeated `ReverseLine` is refused (`already_reversed`), not replayed.
 - `TaxCalculator` refusals (`nationality_required`, `inclusive_tax_exceeds_amount`) pass through as refusal codes. The nationality for foreign-only taxes is the unit's primary guest, or the booker when the unit has no primary guest (see [Check-in and check-out](../18-front-desk/01-check-in-and-check-out.md#taxes-and-deposit)).
 - Default roles: Manager gets all three permissions, Front desk `folio.post-charge`, Finance all three.
-- Logged on the reservation: `folio.charge_posted`, `folio.line_reversed`, `folio.lines_transferred`.
+- Logged on the reservation: `folio.charge_posted`, `folio.line_reversed`. `TransferLines` writes no log entry: its caller does (`folio.charges_moved` from [Move charges](07-move-charges.md#movecharges)). Older entries keep the event `folio.lines_transferred`.
 
 ## Room charge pipeline (per unit night)
 
