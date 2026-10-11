@@ -8,16 +8,16 @@ Day use is sold at the front desk only. It is never on the public site, the comp
 
 ## Decisions
 
-| Decision    | Rule                                                                                                                                                                                   |
-| ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Set up      | A rate plan with the pricing basis **Day use** (see [Rate plans](../08-rates/01-rate-plans.md#day-use-plans)). Having an active Day use plan turns day use on in the booking form.     |
-| Price       | One price per number of hours, per room type and date, in `rate_hour_prices` (see [Daily rates](../08-rates/02-daily-rates-and-restrictions.md#day-use-prices)).                       |
-| Hours       | Whole hours from the plan's minimum to its maximum. Half hours are out.                                                                                                                |
-| Room types  | Room types sold per room. Dorm beds are out.                                                                                                                                           |
-| Adults      | No price by adults. A Day use price is for the room.                                                                                                                                   |
-| Night model | Unchanged. A day use unit has **no `unit_nights`**, so it never takes night inventory and never touches the one-room-per-night rule.                                                   |
-| Tourism tax | Not charged by default: the day use code has its own taxes, seeded without the Tourism tax (see [Taxes](#taxes)). To verify against the official tourism tax guidance before building. |
-| Extending   | Changing the hours after booking is a later item. The hour prices already support it.                                                                                                  |
+| Decision    | Rule                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Set up      | A rate plan with the pricing basis **Day use** (see [Rate plans](../08-rates/01-rate-plans.md#day-use-plans)). Having an active Day use plan turns day use on in the booking form.                                                                                                                                                                                                                                                      |
+| Price       | One price per number of hours, per room type and date, in `rate_hour_prices` (see [Daily rates](../08-rates/02-daily-rates-and-restrictions.md#day-use-prices)).                                                                                                                                                                                                                                                                        |
+| Hours       | Whole hours from the plan's minimum to its maximum. Half hours are out.                                                                                                                                                                                                                                                                                                                                                                 |
+| Room types  | Room types sold per room. Dorm beds are out.                                                                                                                                                                                                                                                                                                                                                                                            |
+| Adults      | No price by adults. A Day use price is for the room.                                                                                                                                                                                                                                                                                                                                                                                    |
+| Night model | Unchanged. A day use unit has **no `unit_nights`**, so it never takes night inventory and never touches the one-room-per-night rule.                                                                                                                                                                                                                                                                                                    |
+| Tourism tax | Not charged by default: the day use code has its own taxes, seeded without the Tourism tax (see [Taxes](#taxes)). Customs agrees: day use is not subject to tourism tax unless the guest is charged the per-night room rate ([General Guide on Tourism Tax](https://www.myttx.customs.gov.my/wp-content/uploads/2022/05/APPENDIX-A-General-Guide.pdf), paragraph 13 and Example 12). Staff can add it on the Day use tab for that case. |
+| Extending   | Changing the hours after booking is a later item. The hour prices already support it.                                                                                                                                                                                                                                                                                                                                                   |
 
 ## Data model
 
@@ -36,7 +36,7 @@ unit_day_uses       id, reservation_unit_id (unique FK), date, room_id (nullable
 
 - `StayType`: Overnight, DayUse, with `label()`. A DayUse unit's length label is "Day use · 4h", never "0 nights", everywhere a stay length shows (reservation list and card, unit panel, reports, `StayTotal`).
 - `unit_day_uses` holds the room, the hours and the price of the block. It is the day use counterpart of `unit_nights`. `amount` is the quoted price; `override_amount` is not offered for day use at first.
-- `released_at` is set when the unit is Cancelled or NoShow and cleared on reinstate, so the exclusion constraint only covers live blocks. The constraint needs the `btree_gist` Postgres extension (a migration enables it; to verify it is available on the target databases, as on Postgres 18.1 locally).
+- `released_at` is set when the unit is Cancelled or NoShow and cleared on reinstate, so the exclusion constraint only covers live blocks. The constraint needs the `btree_gist` Postgres extension. The migration enables it with `Schema::ensureExtensionExists('btree_gist')`. It ships with standard PostgreSQL and is a trusted extension, so a user with CREATE on the database can install it.
 - `arrival_time` and `departure_time` on the unit equal `starts_at` and `ends_at`, so the arrivals, departures and late check-out code read one place.
 
 ## Booking form
@@ -71,9 +71,9 @@ Room        [ 101 ▾ ]   (rooms free from 10:00 to 14:00)
 
 ## Pricing
 
-`DayUsePricing` (strategy, `app/Services/Rates/`) prices one block: the `rate_hour_prices` row for the room type, the plan, the date and the hours. No row refuses with `no_hour_price`. Stop sell on the `rates` row refuses with `restricted` (the front desk override applies as for nights). Min stay, max stay and closed to departure do not apply.
+`DayUsePricing` (`app/Services/Rates/Pricing/`) prices one block: the `rate_hour_prices` row for the room type, the plan, the date and the hours. No row refuses with `no_hour_price`. Stop sell on the `rates` row refuses with `restricted` (the front desk override applies as for nights). Min stay, max stay and closed to departure do not apply.
 
-`PricingBasis::DayUse->strategy()` returns it. `RateQuoteService` gets a `quoteDayUse(roomType, plan, date, hours)` path; the nightly path never sees a Day use plan.
+It does not implement `StayPricing`, because that interface prices nights. `RateQuoteService::quoteDayUse(roomType, plan, date, hours)` calls it directly. `PricingBasis::DayUse->strategy()` throws a `LogicException`, so the nightly path never prices a Day use plan.
 
 ## Charging
 
