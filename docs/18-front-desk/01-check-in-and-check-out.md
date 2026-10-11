@@ -199,6 +199,7 @@ One Dialog cancels several units, so a group is not cancelled one Dialog at a ti
 | `ExtendDepartureTime`   | The unit is CheckedIn                                                                    | `invalid_status`                                     |
 |                         | A business date exists and it is the departure date                                      | `no_business_date`, `not_departure_date`             |
 |                         | The new time (`H:i`) is later than the current `departure_time`                          | `time_not_later`                                     |
+|                         | No live day use in the unit's room on that date starts before the new time               | `room_not_free`                                      |
 |                         | Do not charge comes with a reason, the policy row exists, the fee matches, the fee posts | `reason_required`, `policy_not_found`, `fee_changed` |
 
 - `ChangeUnitDates` and `ProcessEarlyDeparture` return a `StayDatesResult` (the unit, the fee, whether it was charged, the unit total before and after, and `unassignedNights`). `ExtendDepartureTime` returns a `UnitStayResult`.
