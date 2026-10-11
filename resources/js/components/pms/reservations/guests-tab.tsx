@@ -45,9 +45,18 @@ import {
 } from '@/components/ui/tooltip';
 import { useUnsavedChanges } from '@/hooks/use-unsaved-changes';
 import { billToGuest } from '@/routes/reservations/units';
+import { destroy as removeGuest } from '@/routes/reservations/units/guests';
 
 type Row = App.Data.Reservations.ReservationGuestData;
 type Unit = App.Data.Reservations.ReservationUnitOptionData;
+
+type Replacement = {
+    rowKey: string;
+    unitId: number;
+    guestId: number;
+    name: string;
+    unitLabel: string;
+};
 
 /** A saved row is keyed by its unit and guest. The booker who does not stay has no unit. */
 function rowKey(row: Row, index: number): string {
@@ -92,6 +101,13 @@ export function GuestsTab({
     onToggleSummary: () => void;
 }) {
     const [drafts, setDrafts] = useState<BookingGuest[]>([]);
+    /** The rail entry each draft was added in, so it stays there while it is typed. */
+    const [homes, setHomes] = useState<Record<string, string>>({});
+    /** Drafts that replace a saved guest, by draft key. The saved row is shown as that draft. */
+    const [replacements, setReplacements] = useState<
+        Record<string, Replacement>
+    >({});
+    const [removing, setRemoving] = useState<Row | null>(null);
     const [dirtySaved, setDirtySaved] = useState<Set<string>>(new Set());
     const openUnits = units.filter((unit) =>
         ATTACHABLE_STATUSES.includes(unit.status.value),
@@ -104,18 +120,22 @@ export function GuestsTab({
     const canAdd =
         canManage &&
         openUnits.length > 0 &&
-        !inNotStaying &&
         (!grouped ||
+            inNotStaying ||
             (activeUnit !== undefined &&
                 ATTACHABLE_STATUSES.includes(activeUnit.status.value)));
+    const showUnit = !grouped || inNotStaying;
     const dirty = drafts.some(draftHasContent) || dirtySaved.size > 0;
     const guard = useUnsavedChanges(dirty);
     const shownRows = grouped
         ? guests.filter((row) => groupKey(row) === activeGroup)
         : guests;
+    const adding = drafts.filter((draft) => !(draft.key in replacements));
     const shownDrafts = grouped
-        ? drafts.filter((draft) => draft.stays_in === activeGroup)
-        : drafts;
+        ? adding.filter(
+              (draft) => (homes[draft.key] ?? draft.stays_in) === activeGroup,
+          )
+        : adding;
     const empty = unitsWithoutGuest(guests, drafts);
     const inUnit = shownRows.filter((row) => row.name !== null).length;
     const summaryLabel = summaryHidden ? 'Show summary' : 'Hide summary';
@@ -134,10 +154,32 @@ export function GuestsTab({
             inGroup ??
             (openUnits.length === 1 ? openUnits[0].id : null);
 
-        setDrafts((current) => [
+        const draft = emptyGuest(preset === null ? '' : String(preset));
+
+        setDrafts((current) => [...current, draft]);
+        if (grouped) {
+            setHomes((current) => ({ ...current, [draft.key]: activeGroup }));
+        }
+    };
+
+    const startReplace = (row: Row, rowKeyValue: string) => {
+        if (row.unitId === null || row.guestId === null || row.name === null) {
+            return;
+        }
+
+        const draft = emptyGuest(String(row.unitId));
+
+        setDrafts((current) => [...current, draft]);
+        setReplacements((current) => ({
             ...current,
-            emptyGuest(preset === null ? '' : String(preset)),
-        ]);
+            [draft.key]: {
+                rowKey: rowKeyValue,
+                unitId: row.unitId as number,
+                guestId: row.guestId as number,
+                name: row.name as string,
+                unitLabel: row.unitLabel ?? '',
+            },
+        }));
     };
 
     const patchDraft = (key: string, patch: Partial<BookingGuest>) =>
@@ -147,8 +189,36 @@ export function GuestsTab({
             ),
         );
 
-    const removeDraft = (key: string) =>
+    const removeDraft = (key: string) => {
         setDrafts((current) => current.filter((draft) => draft.key !== key));
+        setReplacements((current) => {
+            const { [key]: _gone, ...rest } = current;
+
+            return rest;
+        });
+    };
+
+    const confirmRemove = () => {
+        if (
+            removing === null ||
+            removing.unitId === null ||
+            removing.guestId === null
+        ) {
+            return;
+        }
+
+        router.delete(
+            removeGuest.url({
+                reservation: reservationId,
+                unit: removing.unitId,
+                guestId: removing.guestId,
+            }),
+            {
+                preserveScroll: true,
+                onFinish: () => setRemoving(null),
+            },
+        );
+    };
 
     const markDirty = useCallback((key: string, isDirty: boolean) => {
         setDirtySaved((current) => {
@@ -237,10 +307,35 @@ export function GuestsTab({
                 </Tooltip>
             </div>
             <div className="rounded-lg border">
-                <GuestsHeader showUnit={!grouped} />
+                <GuestsHeader showUnit={showUnit} />
                 <div className="divide-y">
                     {shownRows.map((row, index) => {
                         const key = rowKey(row, index);
+                        const replacing = drafts.find(
+                            (draft) => replacements[draft.key]?.rowKey === key,
+                        );
+
+                        if (replacing !== undefined) {
+                            return (
+                                <DraftGuestRow
+                                    key={replacing.key}
+                                    reservationId={reservationId}
+                                    draft={replacing}
+                                    units={openUnits}
+                                    taken={new Set()}
+                                    showUnit={false}
+                                    replacing={replacements[replacing.key]}
+                                    canManageGuests={canManageGuests}
+                                    countries={countries}
+                                    genders={genders}
+                                    locales={locales}
+                                    onChange={(patch) =>
+                                        patchDraft(replacing.key, patch)
+                                    }
+                                    onRemove={() => removeDraft(replacing.key)}
+                                />
+                            );
+                        }
 
                         return (
                             <SavedGuestRow
@@ -248,7 +343,7 @@ export function GuestsTab({
                                 rowId={key}
                                 reservationId={reservationId}
                                 row={row}
-                                showUnit={!grouped}
+                                showUnit={showUnit}
                                 canAdd={canAdd}
                                 canEdit={
                                     canManage &&
@@ -257,11 +352,22 @@ export function GuestsTab({
                                     row.unitId !== null &&
                                     row.guestId !== null
                                 }
+                                canChange={
+                                    canManage &&
+                                    row.guestId !== null &&
+                                    row.unitId !== null &&
+                                    row.unitStatus !== null &&
+                                    ATTACHABLE_STATUSES.includes(
+                                        row.unitStatus.value,
+                                    )
+                                }
                                 countries={countries}
                                 genders={genders}
                                 locales={locales}
                                 onAdd={addDraft}
                                 onBill={bill}
+                                onReplace={(one) => startReplace(one, key)}
+                                onRemove={setRemoving}
                                 onDirtyChange={markDirty}
                             />
                         );
@@ -271,7 +377,7 @@ export function GuestsTab({
                             key={draft.key}
                             reservationId={reservationId}
                             draft={draft}
-                            showUnit={!grouped}
+                            showUnit={showUnit}
                             units={openUnits}
                             taken={takenBedUnits(
                                 guests,
@@ -311,6 +417,32 @@ export function GuestsTab({
                     )}
                 </div>
             </div>
+
+            <AlertDialog
+                open={removing !== null}
+                onOpenChange={(open) => !open && setRemoving(null)}
+            >
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>
+                            Remove {removing?.name} from {removing?.unitLabel}?
+                        </AlertDialogTitle>
+                        <AlertDialogDescription>
+                            No charges change. If this is the only guest, the
+                            unit will have no guest.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Keep guest</AlertDialogCancel>
+                        <AlertDialogAction
+                            variant="destructive"
+                            onClick={confirmRemove}
+                        >
+                            Remove from unit
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
 
             <AlertDialog
                 open={guard.target !== null}

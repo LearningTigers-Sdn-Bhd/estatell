@@ -5,7 +5,9 @@ import {
     IdCard,
     MoreHorizontal,
     Receipt,
+    Replace,
     TriangleAlert,
+    UserMinus,
     X,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -40,6 +42,7 @@ import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
+    DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
@@ -54,6 +57,7 @@ import type { GuestMatchCriteria } from '@/hooks/use-guest-matches';
 import { show as showGuest } from '@/routes/guests';
 import { show as showCard } from '@/routes/registration';
 import {
+    replace as replaceGuest,
     store as storeGuest,
     update as updateGuest,
 } from '@/routes/reservations/units/guests';
@@ -134,13 +138,26 @@ function StaysIn({ row }: { row: Row }) {
     );
 }
 
-function RowMenu({ row, onBill }: { row: Row; onBill: (row: Row) => void }) {
+function RowMenu({
+    row,
+    canChange,
+    onBill,
+    onReplace,
+    onRemove,
+}: {
+    row: Row;
+    /** Replace and Remove: an open unit, a saved guest and `reservations.manage`. */
+    canChange: boolean;
+    onBill: (row: Row) => void;
+    onReplace: (row: Row) => void;
+    onRemove: (row: Row) => void;
+}) {
     const open =
         row.unitStatus !== null && OPEN_STATUSES.includes(row.unitStatus.value);
     const hasCard = row.cardUnitGuestId !== null && open;
     const hasBill = row.canBill && row.guestId !== null;
 
-    if (!hasCard && !hasBill) {
+    if (!hasCard && !hasBill && !canChange) {
         return <span />;
     }
 
@@ -178,6 +195,22 @@ function RowMenu({ row, onBill }: { row: Row; onBill: (row: Row) => void }) {
                         Bill to this guest
                     </DropdownMenuItem>
                 )}
+                {canChange && (hasCard || hasBill) && <DropdownMenuSeparator />}
+                {canChange && (
+                    <DropdownMenuItem onClick={() => onReplace(row)}>
+                        <Replace />
+                        Replace guest
+                    </DropdownMenuItem>
+                )}
+                {canChange && (
+                    <DropdownMenuItem
+                        variant="destructive"
+                        onClick={() => onRemove(row)}
+                    >
+                        <UserMinus />
+                        Remove from unit
+                    </DropdownMenuItem>
+                )}
             </DropdownMenuContent>
         </DropdownMenu>
     );
@@ -194,11 +227,14 @@ export function SavedGuestRow({
     showUnit = true,
     canAdd,
     canEdit,
+    canChange,
     countries,
     genders,
     locales,
     onAdd,
     onBill,
+    onReplace,
+    onRemove,
     onDirtyChange,
 }: {
     rowId: string;
@@ -208,11 +244,15 @@ export function SavedGuestRow({
     showUnit?: boolean;
     canAdd: boolean;
     canEdit: boolean;
+    /** Replace and Remove in the menu: an open unit, a saved guest and `reservations.manage`. */
+    canChange: boolean;
     countries: EnumOption[];
     genders: EnumOption[];
     locales: EnumOption[];
     onAdd: (unitId: number) => void;
     onBill: (row: Row) => void;
+    onReplace: (row: Row) => void;
+    onRemove: (row: Row) => void;
     onDirtyChange: (key: string, dirty: boolean) => void;
 }) {
     const [base, setBase] = useState<BookingGuest | null>(() =>
@@ -300,7 +340,13 @@ export function SavedGuestRow({
                 <span className="tabular-nums">{row.phone ?? ''}</span>
                 {showUnit && <StaysIn row={row} />}
                 <Roles roles={row.roles} />
-                <RowMenu row={row} onBill={onBill} />
+                <RowMenu
+                    row={row}
+                    canChange={canChange}
+                    onBill={onBill}
+                    onReplace={onReplace}
+                    onRemove={onRemove}
+                />
             </div>
         );
     }
@@ -405,7 +451,13 @@ export function SavedGuestRow({
                         <span className="lg:pt-1">
                             <Roles roles={row.roles} />
                         </span>
-                        <RowMenu row={row} onBill={onBill} />
+                        <RowMenu
+                            row={row}
+                            canChange={canChange}
+                            onBill={onBill}
+                            onReplace={onReplace}
+                            onRemove={onRemove}
+                        />
                     </div>
 
                     <CollapsibleContent>
@@ -470,6 +522,7 @@ export function DraftGuestRow({
     units,
     taken,
     showUnit = true,
+    replacing,
     canManageGuests,
     countries,
     genders,
@@ -483,6 +536,13 @@ export function DraftGuestRow({
     taken: Set<number>;
     /** False in the Grouped view: the unit is the open one and Stays in is not shown. */
     showUnit?: boolean;
+    /** Set when the row replaces a saved guest: Save runs the replace route and the guest keeps the unit. */
+    replacing?: {
+        unitId: number;
+        guestId: number;
+        name: string;
+        unitLabel: string;
+    };
     canManageGuests: boolean;
     countries: EnumOption[];
     genders: EnumOption[];
@@ -514,7 +574,7 @@ export function DraftGuestRow({
     };
 
     const save = () => {
-        if (draft.stays_in === '') {
+        if (replacing === undefined && draft.stays_in === '') {
             setErrors({ stays_in: 'Choose the unit this guest stays in.' });
 
             return;
@@ -527,10 +587,16 @@ export function DraftGuestRow({
         } = guestsPayload([draft])[0] as Record<string, unknown>;
 
         router.post(
-            storeGuest.url({
-                reservation: reservationId,
-                unit: Number(draft.stays_in),
-            }),
+            replacing === undefined
+                ? storeGuest.url({
+                      reservation: reservationId,
+                      unit: Number(draft.stays_in),
+                  })
+                : replaceGuest.url({
+                      reservation: reservationId,
+                      unit: replacing.unitId,
+                      guestId: replacing.guestId,
+                  }),
             { ...body, guest_id: draft.guest?.id ?? null },
             {
                 preserveScroll: true,
@@ -662,6 +728,13 @@ export function DraftGuestRow({
 
                     <CollapsibleContent>
                         <div className="flex flex-col gap-4 px-3 pb-3 lg:px-14">
+                            {replacing !== undefined && (
+                                <FieldDescription>
+                                    Replacing {replacing.name} on{' '}
+                                    {replacing.unitLabel}. The unit and the
+                                    Primary role stay.
+                                </FieldDescription>
+                            )}
                             {!showUnit && (errors.stays_in || errors.form) && (
                                 <FieldError>
                                     {errors.stays_in ?? errors.form}
@@ -736,7 +809,9 @@ export function DraftGuestRow({
                                     onClick={onRemove}
                                     disabled={processing}
                                 >
-                                    Discard
+                                    {replacing === undefined
+                                        ? 'Discard'
+                                        : 'Cancel'}
                                 </Button>
                                 <Button
                                     type="button"
