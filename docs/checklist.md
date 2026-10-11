@@ -317,6 +317,8 @@ Topics on hold. Each one needs a planning session and its docs before it gets co
 | `e77527d` | fix(reservations): show no-shows on the booking summary                  |
 | `e9bffe7` | docs(folio): plan the folio invoice rows, tax numbers and rooms          |
 | `cf28d4b` | feat(folio): print a folio invoice                                       |
+| `53b4cb8` | docs(city-ledger): plan the AR invoice lines and amount due              |
+| `f05023a` | feat(city-ledger): apply document switches to the AR invoice             |
 
 Smaller fixes and reverts are in `git log`.
 
