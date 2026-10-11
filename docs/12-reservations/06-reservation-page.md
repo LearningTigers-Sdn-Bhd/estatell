@@ -261,6 +261,8 @@ Attach guest opens a Dialog (2 fields, see [form containers](../design-system/05
 
 Room units have no guest limit. Detaching a guest and changing the primary guest come later.
 
+**Bill to this guest** is an item in a guest row's **⋯** menu, for users with `folio.transfer`, on a Confirmed, CheckedIn or CheckedOut unit. It runs `BillToGuest` (see [Routing](../13-folio/03-routing.md#bill-to-guest)). A small grey line under the name shows the result: "Pays unit folio", "Own folio", or on the primary guest "Unit folio billed to {name}" when the payer is someone else. The item is hidden for a guest who already pays. The action has no dialog; a toast names the folio.
+
 ### Adding a guest after check-out
 
 The desk often learns who else stayed only at or after departure. A CheckedOut unit takes guests, so the police report, the non-national guests report, meal counts and the guest's stay history are complete. Cancelled and NoShow units stay refused (`unit_not_open`): nobody stayed.

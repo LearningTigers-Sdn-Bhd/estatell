@@ -29,6 +29,17 @@ type Props = {
     currency: App.Enums.Currency | null;
 };
 
+const NEW_FOLIO = 'new:';
+
+type FolioOption = App.Data.Folio.PostFolioOptionData;
+
+/** A unit with no folio yet has no id; its value names the unit, and posting creates its own folio. */
+function optionValue(option: FolioOption): string {
+    return option.id === null
+        ? `${NEW_FOLIO}${option.unitId}`
+        : String(option.id);
+}
+
 function PostChargeForm({
     open,
     onOpenChange,
@@ -43,7 +54,12 @@ function PostChargeForm({
     const [key] = useState(() => `manual:${crypto.randomUUID()}`);
     const form = useForm({
         folio_id: folio.key,
-        unit_id: String(folio.postUnits[0]?.id ?? ''),
+        unit_id: String(
+            folio.postFolios.find((one) => optionValue(one) === folio.key)
+                ?.defaultUnitId ??
+                folio.postUnits[0]?.id ??
+                '',
+        ),
         charge_item_id: '',
         description: '',
         quantity: '1',
@@ -51,7 +67,7 @@ function PostChargeForm({
     });
     const { data, errors } = form;
     const target = folio.postFolios.find(
-        (one) => String(one.id) === data.folio_id,
+        (one) => optionValue(one) === data.folio_id,
     );
     const fixedUnit = target?.unitId ?? null;
     const roomValue = fixedUnit === null ? data.unit_id : String(fixedUnit);
@@ -65,7 +81,9 @@ function PostChargeForm({
 
     const submit = () => {
         form.transform((values) => ({
-            folio_id: values.folio_id,
+            folio_id: values.folio_id.startsWith(NEW_FOLIO)
+                ? ''
+                : values.folio_id,
             unit_id: roomValue,
             charge_item_id: values.charge_item_id,
             description: values.description,
@@ -107,11 +125,24 @@ function PostChargeForm({
                 <EnumSelect
                     id="charge-folio_id"
                     options={folio.postFolios.map((one) => ({
-                        value: String(one.id),
+                        value: optionValue(one),
                         label: one.label,
                     }))}
                     value={data.folio_id}
-                    onValueChange={(value) => form.setData('folio_id', value)}
+                    onValueChange={(value) => {
+                        const next = folio.postFolios.find(
+                            (one) => optionValue(one) === value,
+                        );
+
+                        form.setData((current) => ({
+                            ...current,
+                            folio_id: value,
+                            unit_id:
+                                next?.defaultUnitId == null
+                                    ? current.unit_id
+                                    : String(next.defaultUnitId),
+                        }));
+                    }}
                     aria-invalid={!!errors.folio_id}
                 />
                 <FieldError>{errors.folio_id}</FieldError>
@@ -225,7 +256,7 @@ function PostChargeForm({
 
 /**
  * Posts a charge to the folio staff choose. A Unit folio fixes the room; a Master or Third party folio lets staff pick
- * it. Routing rules do not apply. A refusal shows in the Dialog.
+ * it. A unit with no folio yet is listed as "new folio" and gets its own folio on posting. Routing rules do not apply. A refusal shows in the Dialog.
  */
 export function PostChargeDialog(props: Props) {
     return (

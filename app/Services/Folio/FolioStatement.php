@@ -24,6 +24,7 @@ use App\Models\Folio;
 use App\Models\FolioLine;
 use App\Models\Property;
 use App\Models\Reservation;
+use App\Models\UnitGuest;
 use App\Models\UnitNight;
 use App\Models\User;
 use App\Services\CityLedger\ArInvoiceVoidCheck;
@@ -129,6 +130,37 @@ class FolioStatement
     }
 
     /**
+     * The room a third-party folio of a guest defaults to in Post charge: the one postable unit the guest is on. A
+     * guest on several of them, or none, has no default.
+     *
+     * @param  Collection<int, array{key: string, folio: Folio|null, unit: int|null, item: FolioRailItemData}>  $entries
+     * @param  list<int>  $unitIds  The units a charge can be posted for.
+     * @return array<int, int> Unit id by payer guest id
+     */
+    private function payerUnits(Collection $entries, array $unitIds): array
+    {
+        $guestIds = $entries
+            ->map(fn (array $entry): ?int => $entry['folio']?->type === FolioType::ThirdParty ? $entry['folio']->payer_guest_id : null)
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+
+        if ($guestIds === []) {
+            return [];
+        }
+
+        return UnitGuest::query()
+            ->whereIn('guest_id', $guestIds)
+            ->whereIn('reservation_unit_id', $unitIds)
+            ->get(['guest_id', 'reservation_unit_id'])
+            ->groupBy('guest_id')
+            ->filter(fn (Collection $rows): bool => $rows->count() === 1)
+            ->map(fn (Collection $rows): int => $rows->first()->reservation_unit_id)
+            ->all();
+    }
+
+    /**
      * @param  Collection<int, Folio>  $folios
      * @return array<int, string> Balance by folio id
      */
@@ -191,11 +223,24 @@ class FolioStatement
             ->map(fn (ReservationUnitOptionData $unit): FolioOptionData => new FolioOptionData($unit->id, $unit->label))
             ->values()
             ->all();
+        $payerUnits = $postUnits === [] ? [] : $this->payerUnits($entries, array_map(fn (FolioOptionData $room): int => $room->id, $postRooms));
         $postFolios = $postUnits === [] ? [] : $entries
             ->filter(fn (array $other): bool => $other['folio'] !== null && $other['folio']->status === FolioStatus::Open)
-            ->map(fn (array $other): PostFolioOptionData => new PostFolioOptionData($other['folio']->id, trim($other['item']->name.' · '.$other['item']->subtitle, ' ·'), $other['folio']->type === FolioType::Unit ? $other['folio']->reservation_unit_id : null))
+            ->map(fn (array $other): PostFolioOptionData => new PostFolioOptionData(
+                $other['folio']->id,
+                trim($other['item']->name.' · '.$other['item']->subtitle, ' ·'),
+                $other['folio']->type === FolioType::Unit ? $other['folio']->reservation_unit_id : null,
+                $other['folio']->type === FolioType::ThirdParty ? ($payerUnits[$other['folio']->payer_guest_id] ?? null) : null,
+            ))
             ->values()
             ->all();
+        $withFolio = $entries->map(fn (array $other): ?int => $other['folio']?->reservation_unit_id)->filter()->all();
+        $newFolios = $postUnits === [] ? [] : collect($postRooms)
+            ->reject(fn (FolioOptionData $room): bool => in_array($room->id, $withFolio, true))
+            ->map(fn (FolioOptionData $room): PostFolioOptionData => new PostFolioOptionData(null, __('Unit :unit · new folio', ['unit' => $room->label]), $room->id))
+            ->values()
+            ->all();
+        $postFolios = [...$postFolios, ...$newFolios];
         $allowed = $isOpen ? array_values(array_filter([
             ($can['reverse'] ?? false) ? 'reverse' : null,
             $canMoveCharges ? 'move' : null,

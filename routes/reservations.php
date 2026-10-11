@@ -58,6 +58,7 @@ Route::prefix('reservations')->name('reservations.')->scopeBindings()->group(fun
 
             Route::middleware('can:'.PermissionEnum::FolioTransfer->value)->group(function () {
                 Route::post('folios/third-party', [ReservationRoutingController::class, 'storeThirdPartyFolio'])->name('folios.third-party.store');
+                Route::post('units/{unit}/bill-to-guest', [ReservationRoutingController::class, 'billToGuest'])->name('units.bill-to-guest');
                 Route::post('routing-rules', [ReservationRoutingController::class, 'storeRule'])->name('routing-rules.store');
                 Route::delete('routing-rules/{routingRule}', [ReservationRoutingController::class, 'destroyRule'])->name('routing-rules.destroy');
                 Route::get('folio/move', [ReservationFolioMoveController::class, 'show'])->name('folio.move');

@@ -12,6 +12,7 @@ use App\Models\BusinessDate;
 use App\Models\ChargeItem;
 use App\Models\Folio;
 use App\Models\FolioLine;
+use App\Models\Guest;
 use App\Models\Property;
 use App\Models\PropertySetting;
 use App\Models\Reservation;
@@ -99,6 +100,50 @@ test('posting a charge on a unit folio posts for its unit and names the folio in
 
     expect($setup['folio']->lines()->sum('amount'))->toEqual(40)
         ->and(Activity::query()->where('event', 'folio.charge_posted')->count())->toBe(1);
+});
+
+test('a unit with no folio is offered as a new folio and posting creates its own folio', function () {
+    $setup = faSetup();
+    $master = Folio::factory()->master()->create(['property_id' => $setup['property']->id, 'reservation_id' => $setup['reservation']->id]);
+    $second = ReservationUnit::factory()->checkedIn()->create(['reservation_id' => $setup['reservation']->id]);
+
+    $this->actingAs($setup['user'])
+        ->get(route('reservations.folio', ['property' => $setup['property']->code, 'reservation' => $setup['reservation']->id, 'folio' => $master->id]))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('folio.postFolios', fn ($folios) => collect($folios)->contains(fn ($option) => $option['id'] === null && $option['unitId'] === $second->id)
+                && collect($folios)->where('id', null)->count() === 1));
+
+    $this->actingAs($setup['user'])
+        ->post(faUrl($setup, 'reservations.folios.charges.store', $master), faCharge($setup, ['folio_id' => null, 'unit_id' => $second->id]))
+        ->assertSessionHasNoErrors();
+
+    $own = Folio::query()->where('reservation_unit_id', $second->id)->first();
+
+    expect($own)->not->toBeNull()
+        ->and($own->lines()->sum('amount'))->toEqual(40)
+        ->and($master->lines()->count())->toBe(0);
+});
+
+test('a third-party folio of a guest defaults the room to the one unit the guest is on', function () {
+    $setup = faSetup();
+    $second = ReservationUnit::factory()->checkedIn()->create(['reservation_id' => $setup['reservation']->id]);
+    $guest = Guest::factory()->create(['property_id' => $setup['property']->id]);
+    $third = app(CreateFolio::class)->thirdParty($setup['reservation'], $guest);
+    $url = route('reservations.folio', ['property' => $setup['property']->code, 'reservation' => $setup['reservation']->id, 'folio' => $setup['folio']->id]);
+    $optionFor = fn ($folios) => collect($folios)->firstWhere('id', $third->id)['defaultUnitId'];
+
+    $this->actingAs($setup['user'])->get($url)->assertInertia(fn (Assert $page) => $page
+        ->where('folio.postFolios', fn ($folios) => $optionFor($folios) === null));
+
+    $second->guests()->create(['guest_id' => $guest->id, 'is_primary' => true]);
+
+    $this->actingAs($setup['user'])->get($url)->assertInertia(fn (Assert $page) => $page
+        ->where('folio.postFolios', fn ($folios) => $optionFor($folios) === $second->id));
+
+    $setup['unit']->guests()->create(['guest_id' => $guest->id, 'is_primary' => false]);
+
+    $this->actingAs($setup['user'])->get($url)->assertInertia(fn (Assert $page) => $page
+        ->where('folio.postFolios', fn ($folios) => $optionFor($folios) === null));
 });
 
 test('a description replaces the item name on the line', function () {

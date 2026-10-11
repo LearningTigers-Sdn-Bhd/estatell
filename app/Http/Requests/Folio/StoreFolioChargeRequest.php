@@ -20,7 +20,7 @@ class StoreFolioChargeRequest extends FormRequest
 
     /**
      * Only the shape is checked here. `PostCharge` checks the unit, the charge, the price and the folio, and refuses
-     * with a code. `folio_id` is the folio the charge lands on. A Unit folio uses its own unit. A Master or Third party folio needs the unit to post for.
+     * with a code. `folio_id` is the folio the charge lands on. A Unit folio uses its own unit. A Master or Third party folio needs the unit to post for. Without `folio_id` the charge lands on the unit's own folio, which `PostCharge` makes when it is missing.
      *
      * @return array<string, ValidationRule|array<mixed>|string>
      */
@@ -29,7 +29,7 @@ class StoreFolioChargeRequest extends FormRequest
         $target = $this->integer('folio_id') > 0 ? Folio::query()->find($this->integer('folio_id')) : null;
 
         return [
-            'folio_id' => ['required', 'integer'],
+            'folio_id' => ['nullable', 'integer'],
             'unit_id' => [Rule::requiredIf($target?->reservation_unit_id === null), 'nullable', 'integer'],
             'charge_item_id' => ['required', 'integer'],
             'description' => ['nullable', 'string', 'max:120'],
@@ -59,7 +59,8 @@ class StoreFolioChargeRequest extends FormRequest
             quantity: $this->integer('quantity'),
             unitAmount: $this->string('unit_amount')->toString(),
             idempotencyKey: $this->string('idempotency_key')->toString(),
-            folioId: $this->integer('folio_id'),
+            folioId: $this->integer('folio_id') > 0 ? $this->integer('folio_id') : null,
+            ownFolio: $this->integer('folio_id') <= 0,
         );
     }
 }

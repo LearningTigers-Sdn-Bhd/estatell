@@ -1,5 +1,11 @@
-import { Link } from '@inertiajs/react';
-import { BookUser, IdCard, MoreHorizontal, UserPlus } from 'lucide-react';
+import { Link, router } from '@inertiajs/react';
+import {
+    BookUser,
+    IdCard,
+    MoreHorizontal,
+    Receipt,
+    UserPlus,
+} from 'lucide-react';
 import { Fragment, useState } from 'react';
 import { AttachGuestDialog } from '@/components/pms/reservations/attach-guest-dialog';
 import { StatusBadge } from '@/components/pms/status-badge';
@@ -21,6 +27,7 @@ import {
 } from '@/components/ui/table';
 import { show as showGuest } from '@/routes/guests';
 import { show as showCard } from '@/routes/registration';
+import { billToGuest } from '@/routes/reservations/units';
 
 type Row = App.Data.Reservations.ReservationGuestData;
 type Unit = App.Data.Reservations.ReservationUnitOptionData;
@@ -69,6 +76,18 @@ export function GuestsTab({
     const attach = (forUnit: number | null) => {
         setUnitId(forUnit);
         setAttaching(true);
+    };
+
+    const bill = (row: Row) => {
+        if (row.unitId === null || row.guestId === null) {
+            return;
+        }
+
+        router.post(
+            billToGuest.url({ reservation: reservationId, unit: row.unitId }),
+            { guest_id: row.guestId },
+            { preserveScroll: true },
+        );
     };
 
     const groups = [...Map.groupBy(guests, (row) => row.unitId).values()];
@@ -142,6 +161,11 @@ export function GuestsTab({
                                                 ) : (
                                                     row.name
                                                 )}
+                                                {row.billing !== null && (
+                                                    <span className="block text-xs text-muted-foreground">
+                                                        {row.billing}
+                                                    </span>
+                                                )}
                                             </TableCell>
                                             <TableCell className="tabular-nums">
                                                 {row.phone ?? ''}
@@ -191,24 +215,30 @@ export function GuestsTab({
                                                 )}
                                             </TableCell>
                                             <TableCell className="text-right">
-                                                {row.cardUnitGuestId !== null &&
+                                                {((row.cardUnitGuestId !==
+                                                    null &&
                                                     row.unitStatus !== null &&
                                                     OPEN.includes(
                                                         row.unitStatus.value,
-                                                    ) && (
-                                                        <DropdownMenu>
-                                                            <DropdownMenuTrigger
-                                                                render={
-                                                                    <Button
-                                                                        variant="ghost"
-                                                                        size="icon"
-                                                                        aria-label={`Actions for ${row.name}`}
-                                                                    />
-                                                                }
-                                                            >
-                                                                <MoreHorizontal />
-                                                            </DropdownMenuTrigger>
-                                                            <DropdownMenuContent align="end">
+                                                    )) ||
+                                                    (row.canBill &&
+                                                        row.guestId !==
+                                                            null)) && (
+                                                    <DropdownMenu>
+                                                        <DropdownMenuTrigger
+                                                            render={
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="icon"
+                                                                    aria-label={`Actions for ${row.name}`}
+                                                                />
+                                                            }
+                                                        >
+                                                            <MoreHorizontal />
+                                                        </DropdownMenuTrigger>
+                                                        <DropdownMenuContent align="end">
+                                                            {row.cardUnitGuestId !==
+                                                                null && (
                                                                 <DropdownMenuItem
                                                                     render={
                                                                         <Link
@@ -225,9 +255,23 @@ export function GuestsTab({
                                                                     Registration
                                                                     card
                                                                 </DropdownMenuItem>
-                                                            </DropdownMenuContent>
-                                                        </DropdownMenu>
-                                                    )}
+                                                            )}
+                                                            {row.canBill && (
+                                                                <DropdownMenuItem
+                                                                    onClick={() =>
+                                                                        bill(
+                                                                            row,
+                                                                        )
+                                                                    }
+                                                                >
+                                                                    <Receipt />
+                                                                    Bill to this
+                                                                    guest
+                                                                </DropdownMenuItem>
+                                                            )}
+                                                        </DropdownMenuContent>
+                                                    </DropdownMenu>
+                                                )}
                                             </TableCell>
                                         </TableRow>
                                     ))}

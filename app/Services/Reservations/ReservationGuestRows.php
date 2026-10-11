@@ -4,6 +4,10 @@ namespace App\Services\Reservations;
 
 use App\Data\Reservations\ReservationGuestData;
 use App\Data\Reservations\ReservationUnitOptionData;
+use App\Enums\FolioStatus;
+use App\Enums\FolioType;
+use App\Enums\UnitStatus;
+use App\Models\Folio;
 use App\Models\Reservation;
 use App\Models\UnitGuest;
 use Illuminate\Support\Collection;
@@ -18,7 +22,7 @@ class ReservationGuestRows
      * @param  list<ReservationUnitOptionData>  $units
      * @return list<ReservationGuestData>
      */
-    public function rows(Reservation $reservation, array $units, bool $canViewGuest, bool $canOpenCard = false): array
+    public function rows(Reservation $reservation, array $units, bool $canViewGuest, bool $canOpenCard = false, bool $canBill = false): array
     {
         $options = collect($units)->keyBy('id');
         $occupants = UnitGuest::query()
@@ -31,6 +35,14 @@ class ReservationGuestRows
             ->groupBy('reservation_unit_id');
         $booker = $reservation->booker;
         $bookerStays = $occupants->flatten()->contains(fn (UnitGuest $unitGuest): bool => $unitGuest->guest_id === $booker->id);
+        $folios = Folio::query()
+            ->where('reservation_id', $reservation->id)
+            ->where('status', '!=', FolioStatus::Voided)
+            ->whereIn('type', [FolioType::Unit, FolioType::ThirdParty])
+            ->with('payerGuest:id,full_name', 'payerCompany:id,name')
+            ->get();
+        $unitFolios = $folios->where('type', FolioType::Unit)->sortBy('id')->unique('reservation_unit_id')->keyBy('reservation_unit_id');
+        $ownFolioGuestIds = $folios->where('type', FolioType::ThirdParty)->where('status', FolioStatus::Open)->pluck('payer_guest_id')->filter()->all();
         $rows = [];
 
         if (! $bookerStays) {
@@ -60,10 +72,44 @@ class ReservationGuestRows
                         $unitGuest->is_primary ? __('Primary') : null,
                     ])),
                     cardUnitGuestId: $canOpenCard ? $unitGuest->id : null,
+                    billing: $this->billing($unitGuest, $unitFolios->get($unitId), $ownFolioGuestIds),
+                    canBill: $canBill
+                        && in_array($unit->status->value, [UnitStatus::Confirmed->value, UnitStatus::CheckedIn->value, UnitStatus::CheckedOut->value], true)
+                        && $this->billable($unitGuest, $unitFolios->get($unitId), $ownFolioGuestIds),
                 );
             }
         }
 
         return $rows;
+    }
+
+    /**
+     * @param  list<int>  $ownFolioGuestIds  Guests that pay an Open third-party folio of the reservation.
+     */
+    private function billing(UnitGuest $unitGuest, ?Folio $unitFolio, array $ownFolioGuestIds): ?string
+    {
+        if ($unitGuest->is_primary && $unitFolio !== null && $unitFolio->payer_guest_id === $unitGuest->guest_id) {
+            return __('Pays unit folio');
+        }
+
+        if ($unitGuest->is_primary && $unitFolio !== null && $unitFolio->payer_guest_id !== $unitGuest->guest_id) {
+            $payer = $unitFolio->payerGuest?->full_name ?? $unitFolio->payerCompany?->name;
+
+            return $payer === null ? null : __('Unit folio billed to :name', ['name' => $payer]);
+        }
+
+        return ! $unitGuest->is_primary && in_array($unitGuest->guest_id, $ownFolioGuestIds, true) ? __('Own folio') : null;
+    }
+
+    /**
+     * @param  list<int>  $ownFolioGuestIds
+     */
+    private function billable(UnitGuest $unitGuest, ?Folio $unitFolio, array $ownFolioGuestIds): bool
+    {
+        if (! $unitGuest->is_primary) {
+            return ! in_array($unitGuest->guest_id, $ownFolioGuestIds, true);
+        }
+
+        return $unitFolio === null || ($unitFolio->status === FolioStatus::Open && $unitFolio->payer_guest_id !== $unitGuest->guest_id);
     }
 }

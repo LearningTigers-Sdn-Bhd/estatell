@@ -2,6 +2,7 @@
 
 namespace App\Services\Folio;
 
+use App\Actions\Folio\BillToGuestResult;
 use App\Actions\Folio\RoutingRuleResult;
 
 /**
@@ -46,6 +47,10 @@ class RoutingRuleRefusals
             RoutingRuleResult::REFUSAL_TARGET_FOLIO_NOT_OPEN => ['target_folio_id', __('Choose an open folio.')],
             RoutingRuleResult::REFUSAL_RULE_NOT_MANUAL => [self::FORM, __('This rule comes from the billing mode. Change the billing mode to change it.')],
             RoutingRuleResult::REFUSAL_RULE_NOT_FOUND => [self::FORM, __('This rule was already removed.')],
+            BillToGuestResult::REFUSAL_GUEST_NOT_ON_UNIT => [self::FORM, __('This guest is not on the unit.')],
+            BillToGuestResult::REFUSAL_UNIT_NOT_BILLABLE => [self::FORM, __('This unit is cancelled or a no-show, so it cannot be billed.')],
+            BillToGuestResult::REFUSAL_FOLIO_NOT_OPEN => [self::FORM, __('The unit folio is closed. Reopen it first, or use a third-party folio.')],
+            BillToGuestResult::REFUSAL_ALREADY_BILLED => [self::FORM, __('This guest already pays the unit folio.')],
             default => [self::FORM, __('This could not be done.')],
         };
     }

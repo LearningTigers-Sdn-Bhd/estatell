@@ -63,6 +63,26 @@ The router follows one rule and stops. A rule target is final, so there are no c
 - Changing the mode affects later postings only. When a unit already holds posted room lines, the answer says so, and the lines stay on its folio.
 - **What stays behind is reported, not blocked.** When the sync creates a BillingMode rule (`AddUnit` going from 1 to 2 units, a company set later, a billing mode change), the result names the units whose own folio keeps posted room lines (`unitsWithPostedRoomLines`) or Advance money (`unitAdvances`, from `UnitAdvancesHeld`: Completed Advance payments minus their refunds, by unit, above 0). A payment line never moves, so that Advance can no longer meet its room charges. Blocking would stop staff adding a room, so the change saves and the toast is a warning (`RoutingChangeNotice`, `app/Services/Reservations/`): "Unit added. Room charges now go to the Master folio, but a unit's own folio holds a MYR 200.00 advance. Transfer its room charges back to it, or refund the advance." Charges can move, so staff transfer that unit's room lines from the Master folio to its own folio. A sync that creates no rule reports nothing, so the warning shows once. Check-out still needs the unit folio at 0, so nothing is lost silently.
 
+## Bill to guest
+
+`BillToGuest(User $actor, ReservationUnit $unit, Guest $guest): BillToGuestResult` bills one guest of a unit on a folio of their own, from the Guests tab. It is not a routing rule: earlier lines stay where they are, and later charges are posted to the folio by staff (Post charge) or by a rule.
+
+| Guest         | Result                                                                                                                        |
+| ------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| Primary guest | The unit's Unit folio takes the guest as payer (`folio.payer_changed`). The folio is made when the unit has none.             |
+| Other guest   | A Third party folio with the guest as payer. An Open one that already has this guest is reused (`folio.third_party_created`). |
+
+| Refusal             | When                                                             |
+| ------------------- | ---------------------------------------------------------------- |
+| `guest_not_on_unit` | The guest is not on the unit, or the unit is of another property |
+| `unit_not_billable` | The unit is not Confirmed, CheckedIn or CheckedOut               |
+| `folio_not_open`    | The Unit folio is Closed. Reopen it or use a third-party folio   |
+| `already_billed`    | The guest already pays the Unit folio                            |
+
+- The payer does not follow the primary guest later. Changing the primary guest leaves the payer alone, and the Guests tab shows "Unit folio billed to {name}" when they differ.
+- The Master folio and its payer are never touched. Tax nationality still follows the primary guest.
+- The route is `reservations.units.bill-to-guest` with `can:folio.transfer`, the same permission as Third-party folio.
+
 ## Examples
 
 | Case                                         | Rules                         | Result                                     |

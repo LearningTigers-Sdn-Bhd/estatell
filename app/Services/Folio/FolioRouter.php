@@ -127,7 +127,10 @@ class FolioRouter
             ->first();
     }
 
-    private function unitFolio(ReservationUnit $unit): ?Folio
+    /**
+     * The unit's own Unit folio, or null before the unit has one.
+     */
+    public function unitFolio(ReservationUnit $unit): ?Folio
     {
         return Folio::query()
             ->where('property_id', $unit->property_id)

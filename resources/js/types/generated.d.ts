@@ -458,11 +458,13 @@ unitAmount: string,
 idempotencyKey: string | null,
 unitAddOnId: number | null,
 folioId: number | null,
+ownFolio: boolean,
 };
 export type PostFolioOptionData = {
-id: number,
+id: number | null,
 label: string,
 unitId: number | null,
+defaultUnitId: number | null,
 };
 export type RoutingRuleRowData = {
 id: number,
@@ -1786,6 +1788,8 @@ unitLabel: string | null,
 unitStatus: App.Data.Shared.BadgeData | null,
 roles: string[],
 cardUnitGuestId: number | null,
+billing: string | null,
+canBill: boolean,
 };
 export type ReservationListItemData = {
 id: number,
