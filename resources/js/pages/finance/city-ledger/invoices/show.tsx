@@ -2,6 +2,7 @@ import { Form, Head, Link, router } from '@inertiajs/react';
 import { FilePlus2, Printer } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { ReverseAllocationDialog } from '@/components/pms/city-ledger/reverse-allocation-dialog';
+import { useCreditNoteFlow } from '@/components/pms/city-ledger/use-credit-note-flow';
 import { IssueCreditNoteDialog } from '@/components/pms/city-ledger/issue-credit-note-dialog';
 import { DateText } from '@/components/pms/date-text';
 import { MoneyText } from '@/components/pms/money-text';
@@ -107,7 +108,14 @@ export default function InvoiceShow({
     currency: App.Enums.Currency | null;
     openCreditNote: boolean;
 }) {
-    const [crediting, setCrediting] = useState(openCreditNote);
+    const {
+        crediting,
+        setCrediting,
+        reversing,
+        reverse,
+        reverseFromCredit,
+        closeReverse,
+    } = useCreditNoteFlow(openCreditNote);
 
     // Drop ?credit=1 after the first open, so a reload of this visit does not reopen the Dialog.
     useEffect(() => {
@@ -119,9 +127,6 @@ export default function InvoiceShow({
             });
         }
     }, [openCreditNote, invoice.row.id]);
-    const [reversing, setReversing] =
-        useState<App.Data.CityLedger.ArAllocationRowData | null>(null);
-    const [returnToCredit, setReturnToCredit] = useState(false);
     const { row } = invoice;
     const isInvoice = row.type === 'invoice';
     const money = (amount: string) => (
@@ -334,9 +339,7 @@ export default function InvoiceShow({
                                                         variant="ghost"
                                                         size="sm"
                                                         onClick={() =>
-                                                            setReversing(
-                                                                allocation,
-                                                            )
+                                                            reverse(allocation)
                                                         }
                                                     >
                                                         Reverse
@@ -390,14 +393,7 @@ export default function InvoiceShow({
 
             <ReverseAllocationDialog
                 allocation={reversing}
-                onClose={() => {
-                    setReversing(null);
-
-                    if (returnToCredit) {
-                        setReturnToCredit(false);
-                        setCrediting(true);
-                    }
-                }}
+                onClose={closeReverse}
                 currency={currency}
             />
 
@@ -407,11 +403,7 @@ export default function InvoiceShow({
                     onOpenChange={setCrediting}
                     invoice={invoice}
                     currency={currency}
-                    onReverse={(allocation) => {
-                        setCrediting(false);
-                        setReturnToCredit(true);
-                        setReversing(allocation);
-                    }}
+                    onReverse={reverseFromCredit}
                 />
             )}
         </>

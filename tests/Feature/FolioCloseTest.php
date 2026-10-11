@@ -428,3 +428,28 @@ test('a Void invoice gives the closed folio no invoice links', function () {
         ->where('folio.canOpenArInvoice', false)
         ->where('folio.canCreditArInvoice', false));
 });
+
+test('the credit invoice prop loads only when asked and only with the credit note permission', function () {
+    $billed = fcBilledFolio();
+    $manager = User::factory()->withRole(DefaultRoleEnum::Manager)->create(['property_id' => $billed['setup']['property']->id]);
+    $frontDesk = User::factory()->withRole(DefaultRoleEnum::FrontDesk)->create(['property_id' => $billed['setup']['property']->id]);
+
+    $this->actingAs($manager)->get($billed['url'])->assertInertia(fn ($page) => $page->missing('creditInvoice'));
+
+    $this->get($billed['url'])->assertInertia(fn ($page) => $page->reloadOnly('creditInvoice', fn ($reloaded) => $reloaded
+        ->where('creditInvoice.row.id', $billed['invoice']->id)
+        ->where('creditInvoice.canCreditNote', true)));
+
+    $this->actingAs($frontDesk)->get($billed['url'])->assertInertia(fn ($page) => $page->reloadOnly('creditInvoice', fn ($reloaded) => $reloaded
+        ->where('creditInvoice', null)));
+});
+
+test('a credit note issued with the folio page as referer returns to the folio', function () {
+    $billed = fcBilledFolio();
+    $manager = User::factory()->withRole(DefaultRoleEnum::Manager)->create(['property_id' => $billed['setup']['property']->id]);
+    $url = "/p/{$billed['setup']['property']->code}/finance/city-ledger/invoices/{$billed['invoice']->id}/credit-notes";
+
+    $this->actingAs($manager)->from($billed['url'])->post($url, ['amount' => '10.00', 'reason' => 'Wrong rate'])->assertRedirect($billed['url']);
+
+    expect(ArInvoice::query()->where('credit_for_invoice_id', $billed['invoice']->id)->count())->toBe(1);
+});

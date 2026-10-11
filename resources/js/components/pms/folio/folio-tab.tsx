@@ -1,9 +1,10 @@
-import { Form, Link } from '@inertiajs/react';
+import { Form, Link, router } from '@inertiajs/react';
 import {
     BadgePercent,
     Banknote,
     ChevronDown,
     CreditCard,
+    ExternalLink,
     Info,
     Landmark,
     Lock,
@@ -12,12 +13,16 @@ import {
     PanelRightOpen,
     Plus,
     Printer,
+    ReceiptText,
     FileText,
     Split,
     Ticket,
     UserPlus,
 } from 'lucide-react';
 import { useState } from 'react';
+import { IssueCreditNoteDialog } from '@/components/pms/city-ledger/issue-credit-note-dialog';
+import { ReverseAllocationDialog } from '@/components/pms/city-ledger/reverse-allocation-dialog';
+import { useCreditNoteFlow } from '@/components/pms/city-ledger/use-credit-note-flow';
 import { EmptyState } from '@/components/pms/empty-state';
 import { ApplyDiscountDialog } from '@/components/pms/folio/apply-discount-dialog';
 import { CloseFolioDialog } from '@/components/pms/folio/close-folio-dialog';
@@ -87,6 +92,7 @@ export function FolioTab({
     companies,
     canManageRouting,
     routingRules,
+    creditInvoice,
     voucher,
     summaryHidden,
     onToggleSummary,
@@ -103,11 +109,26 @@ export function FolioTab({
     companies?: App.Data.CityLedger.CompanyOptionData[];
     canManageRouting: boolean;
     routingRules?: App.Data.Folio.RoutingRulesData | null;
+    creditInvoice?: App.Data.CityLedger.ArInvoiceData | null;
     voucher: VoucherOptions;
     summaryHidden: boolean;
     onToggleSummary: () => void;
     currency: App.Enums.Currency | null;
 }) {
+    const [loadingCredit, setLoadingCredit] = useState(false);
+    const creditFlow = useCreditNoteFlow(false, (done) =>
+        router.reload({ only: ['creditInvoice'], onFinish: done }),
+    );
+    const startCredit = () => {
+        setLoadingCredit(true);
+        router.reload({
+            only: ['creditInvoice'],
+            onFinish: () => {
+                setLoadingCredit(false);
+                creditFlow.setCrediting(true);
+            },
+        });
+    };
     const [creatingThirdParty, setCreatingThirdParty] = useState(false);
     const [routing, setRouting] = useState(false);
     const [posting, setPosting] = useState(false);
@@ -185,6 +206,24 @@ export function FolioTab({
     return (
         <div className="flex flex-col gap-4">
             {routingOverlays}
+            {folio.canCreditArInvoice && (
+                <>
+                    {creditInvoice && (
+                        <IssueCreditNoteDialog
+                            open={creditFlow.crediting}
+                            onOpenChange={creditFlow.setCrediting}
+                            invoice={creditInvoice}
+                            currency={currency}
+                            onReverse={creditFlow.reverseFromCredit}
+                        />
+                    )}
+                    <ReverseAllocationDialog
+                        allocation={creditFlow.reversing}
+                        onClose={creditFlow.closeReverse}
+                        currency={currency}
+                    />
+                </>
+            )}
             <div className="flex flex-col gap-4">
                 <div className="flex flex-col gap-4">
                     <div className="flex flex-wrap items-center justify-between gap-2 ps-3 pt-2">
@@ -397,27 +436,27 @@ export function FolioTab({
                                                     size: 'sm',
                                                 })}
                                             >
+                                                <ExternalLink data-icon="inline-start" />
                                                 Open invoice
                                             </Link>
                                         )}
-                                    {folio.canCreditArInvoice &&
-                                        folio.arInvoiceId !== null && (
-                                            <Link
-                                                href={showArInvoice.url(
-                                                    {
-                                                        invoice:
-                                                            folio.arInvoiceId,
-                                                    },
-                                                    { query: { credit: 1 } },
-                                                )}
-                                                className={buttonVariants({
-                                                    variant: 'outline',
-                                                    size: 'sm',
-                                                })}
-                                            >
-                                                Issue credit note
-                                            </Link>
-                                        )}
+                                    {folio.canCreditArInvoice && (
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            disabled={loadingCredit}
+                                            focusableWhenDisabled
+                                            onClick={startCredit}
+                                        >
+                                            {loadingCredit ? (
+                                                <Spinner data-icon="inline-start" />
+                                            ) : (
+                                                <ReceiptText data-icon="inline-start" />
+                                            )}
+                                            Issue credit note
+                                        </Button>
+                                    )}
                                     {folio.canReopen && (
                                         <Form
                                             {...reopen.form({

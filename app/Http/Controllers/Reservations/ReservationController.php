@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Reservations;
 
+use App\Data\CityLedger\ArInvoiceData;
 use App\Data\Folio\RoutingRulesData;
 use App\Data\Reservations\ReservationActivityData;
 use App\Data\Reservations\ReservationAddOnData;
@@ -15,11 +16,13 @@ use App\Enums\ReservationSource;
 use App\Enums\ReservationStatus;
 use App\Enums\TransactionKind;
 use App\Http\Controllers\Controller;
+use App\Models\ArInvoice;
 use App\Models\Property;
 use App\Models\Reservation;
 use App\Models\ReservationUnit;
 use App\Models\UnitAddOn;
 use App\Models\User;
+use App\Services\CityLedger\ArInvoiceDetail;
 use App\Services\CityLedger\CompanyOptions;
 use App\Services\Folio\AddOnBilling;
 use App\Services\Folio\FolioStatement;
@@ -133,14 +136,14 @@ class ReservationController extends Controller
 
     /**
      * Reservation page, Folio tab. `?folio=` picks the folio (an id, or `u{unit id}` for a unit with no folio yet).
-     * `routingRules` is an optional prop for the Routing rules Sheet, sent only to a user with `folio.transfer`.
+     * `routingRules` is an optional prop for the Routing rules Sheet, sent only to a user with `folio.transfer`. `creditInvoice` is an optional prop with the AR invoice page data of a settled folio, read when its credit note Dialog opens and null without the credit note permission.
      */
-    public function folio(Request $request, Property $property, Reservation $reservation, FolioStatement $statement, RoutingRuleList $routingRuleList): Response
+    public function folio(Request $request, Property $property, Reservation $reservation, FolioStatement $statement, RoutingRuleList $routingRuleList, ArInvoiceDetail $invoiceDetail): Response
     {
         $canManageRouting = $request->user()->can(PermissionEnum::FolioTransfer->value);
 
-        return $this->renderTab($request->user(), $property, $reservation, 'folio', fn (array $units): array => [
-            ...$statement->build($property, $reservation, $units, $request->string('folio')->toString(), [
+        return $this->renderTab($request->user(), $property, $reservation, 'folio', function (array $units) use ($request, $property, $reservation, $statement, $routingRuleList, $canManageRouting, $invoiceDetail): array {
+            $folioProps = $statement->build($property, $reservation, $units, $request->string('folio')->toString(), [
                 'postCharge' => $request->user()->can(PermissionEnum::FolioPostCharge->value),
                 'reverse' => $request->user()->can(PermissionEnum::FolioReverse->value),
                 'transfer' => $canManageRouting,
@@ -150,14 +153,24 @@ class ReservationController extends Controller
                 'refund' => $request->user()->can(PermissionEnum::PaymentRefund->value),
                 'printVoucher' => $request->user()->can(PermissionEnum::FolioPrintVoucher->value),
                 'settleCityLedger' => $request->user()->can(PermissionEnum::CityLedgerInvoice->value),
-            ], $request->user()),
-            'voucher' => [
-                'kinds' => array_values(array_filter(TransactionKind::options(), fn (array $kind): bool => $kind['value'] !== TransactionKind::Payment->value)),
-                'maxLines' => FolioVoucher::MAX_LINES,
-            ],
-            'canManageRouting' => $canManageRouting,
-            'routingRules' => Inertia::optional(fn (): ?RoutingRulesData => $canManageRouting ? $routingRuleList->build($reservation, $units) : null),
-        ]);
+            ], $request->user());
+
+            return [
+                ...$folioProps,
+                'voucher' => [
+                    'kinds' => array_values(array_filter(TransactionKind::options(), fn (array $kind): bool => $kind['value'] !== TransactionKind::Payment->value)),
+                    'maxLines' => FolioVoucher::MAX_LINES,
+                ],
+                'canManageRouting' => $canManageRouting,
+                'routingRules' => Inertia::optional(fn (): ?RoutingRulesData => $canManageRouting ? $routingRuleList->build($reservation, $units) : null),
+                'creditInvoice' => Inertia::optional(function () use ($request, $property, $folioProps, $invoiceDetail): ?ArInvoiceData {
+                    $folio = $folioProps['folio'] ?? null;
+                    $invoice = $folio?->canCreditArInvoice ? ArInvoice::query()->where('property_id', $property->id)->find($folio->arInvoiceId) : null;
+
+                    return $invoice === null ? null : $invoiceDetail->build($invoice, $request->user());
+                }),
+            ];
+        });
     }
 
     /**
