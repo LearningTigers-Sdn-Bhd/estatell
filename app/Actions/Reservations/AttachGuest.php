@@ -15,6 +15,8 @@ use Illuminate\Support\Facades\DB;
 
 class AttachGuest
 {
+    public function __construct(private CountryOptions $countries) {}
+
     /**
      * Add a guest as an occupant of a unit. The unit row is locked first, so two staff cannot fill a bed together.
      * The first guest of the unit becomes primary. A blacklisted guest is allowed. Every check runs before the first
@@ -23,8 +25,6 @@ class AttachGuest
      * the booker's, while the property has an enabled foreign-only tax, returns a tax warning.
      * See docs/12-reservations/06-reservation-page.md.
      */
-    public function __construct(private CountryOptions $countries) {}
-
     public function __invoke(User $actor, ReservationUnit $unit, Guest $guest): AttachGuestResult
     {
         return DB::transaction(function () use ($actor, $unit, $guest): AttachGuestResult {
