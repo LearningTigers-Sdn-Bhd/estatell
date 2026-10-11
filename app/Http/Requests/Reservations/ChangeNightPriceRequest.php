@@ -10,7 +10,7 @@ use Illuminate\Validation\Rule;
 
 /**
  * The Change price form and its preview: the ticked nights of the unit, one price per night and the reason. The
- * preview takes the same fields with the price and reason optional.
+ * preview takes the same fields with the nights, price and reason optional, so the Dialog opens with no night ticked.
  */
 class ChangeNightPriceRequest extends FormRequest
 {
@@ -30,7 +30,7 @@ class ChangeNightPriceRequest extends FormRequest
         $preview = $this->routeIs('reservations.units.night-price.preview');
 
         return [
-            'night_ids' => ['required', 'array', 'min:1', 'max:400'],
+            'night_ids' => $preview ? ['nullable', 'array', 'max:400'] : ['required', 'array', 'min:1', 'max:400'],
             'night_ids.*' => ['integer', 'distinct', Rule::exists('unit_nights', 'id')->where('reservation_unit_id', $this->unit()->id)],
             'price' => [$preview ? 'nullable' : 'required', 'regex:/^\d{1,10}(\.\d{1,2})?$/'],
             'reason' => [$preview ? 'nullable' : 'required', 'string', 'max:500'],

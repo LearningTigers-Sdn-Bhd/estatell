@@ -1,5 +1,5 @@
 import { Link, router } from '@inertiajs/react';
-import { BedDouble, CalendarDays, Info, User, Users } from 'lucide-react';
+import { BedDouble, CalendarDays, Info, Tag, User, Users } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useState } from 'react';
 import type { ReactNode } from 'react';
@@ -241,9 +241,9 @@ export function UnitsTab({
                     <Button
                         variant="outline"
                         size="sm"
-                        disabled={tickedNow.length === 0}
                         onClick={() => setChangingPrice(true)}
                     >
+                        <Tag data-icon="inline-start" />
                         Change price
                     </Button>
                 </div>

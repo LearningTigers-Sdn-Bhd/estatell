@@ -258,3 +258,13 @@ test('the folio tab offers Correct price on a posted room line', function () {
             ->where('folio.rows.0.unitNightId', $first->id)
             ->where('folio.rows.0.unitId', $setup['unit']->id));
 });
+
+test('the preview lists the nights when none is ticked yet', function () {
+    $setup = npSetup();
+
+    $this->actingAs($setup['user'])
+        ->postJson(npUrl($setup, 'night-price/preview'), ['night_ids' => [], 'price' => ''])
+        ->assertOk()
+        ->assertJsonCount(2, 'nights')
+        ->assertJson(['was' => null, 'difference' => null, 'error' => null]);
+});

@@ -364,6 +364,7 @@ Topics on hold. Each one needs a planning session and its docs before it gets co
 | `b9a4572` | docs(reservations): plan printing every receipt of a reservation         |
 | `f03d769` | feat(reservations): print every receipt of a reservation                 |
 | `9f07db0` | docs(reservations): settle the change night price build decisions        |
+| `1e374b2` | feat(reservations): change the price of booked nights                    |
 
 Smaller fixes and reverts are in `git log`.
 

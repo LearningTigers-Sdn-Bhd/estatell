@@ -58,7 +58,7 @@ function ChangeNightPriceForm({
     const { data, errors } = form;
     const { preview } = useUnitPreview<Preview>(
         nightPricePreview.url(key),
-        open && data.night_ids.length > 0,
+        open,
         { night_ids: data.night_ids, price: data.price },
         300,
     );
