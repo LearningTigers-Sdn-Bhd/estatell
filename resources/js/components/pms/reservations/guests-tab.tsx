@@ -1,5 +1,11 @@
 import { router } from '@inertiajs/react';
-import { PanelRightClose, PanelRightOpen, Plus } from 'lucide-react';
+import {
+    List,
+    ListTree,
+    PanelRightClose,
+    PanelRightOpen,
+    Plus,
+} from 'lucide-react';
 import { useEffect, useState } from 'react';
 import type { EnumOption } from '@/components/pms/enum-select';
 import { emptyGuest } from '@/components/pms/reservations/booking-guests';
@@ -188,14 +194,19 @@ export function GuestsTab({
                             }
                         }}
                     >
-                        <ToggleGroupItem value="all" aria-label="All guests">
-                            All
+                        <ToggleGroupItem
+                            value="all"
+                            aria-label="All guests"
+                            title="All guests"
+                        >
+                            <List />
                         </ToggleGroupItem>
                         <ToggleGroupItem
                             value="grouped"
                             aria-label="Grouped by unit"
+                            title="Grouped by unit"
                         >
-                            Grouped
+                            <ListTree />
                         </ToggleGroupItem>
                     </ToggleGroup>
                 ) : (
