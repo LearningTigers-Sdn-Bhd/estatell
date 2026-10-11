@@ -123,9 +123,14 @@ export function ReservationSummary({
                         {reservation.unitCount}
                     </span>
                 </Row>
-                <Row icon={Moon} label="Room nights">
+                <Row
+                    icon={Moon}
+                    label={
+                        reservation.stayLabel === null ? 'Room nights' : 'Stay'
+                    }
+                >
                     <span className="tabular-nums">
-                        {reservation.roomNights}
+                        {reservation.stayLabel ?? reservation.roomNights}
                     </span>
                 </Row>
                 <Row icon={Wallet} label="Stay total">

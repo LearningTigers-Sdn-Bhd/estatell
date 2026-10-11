@@ -24,9 +24,15 @@ export type BookingLine = {
     add_ons: BookingAddOn[];
     room_id: string;
     bed_ids: string[];
+    /** Day use only: the number of hours, as text. */
+    hours: string;
 };
 
 export type BookingForm = {
+    /** `overnight` or `day_use`: it applies to every line. */
+    stay_type: 'overnight' | 'day_use';
+    /** Day use only: the start of every block, `H:i`. */
+    start_time: string;
     source: string;
     external_reference: string;
     arrival_date: string;
@@ -63,6 +69,7 @@ export function emptyLine(): BookingLine {
         add_ons: [],
         room_id: '',
         bed_ids: [],
+        hours: '',
     };
 }
 
@@ -227,8 +234,33 @@ export function quotePayload(
 
 /** The request the form posts: the client-only key is dropped and a dorm line sends its beds, not adults and children. */
 export function bookingPayload(data: BookingForm, roomTypes: RoomTypeOption[]) {
+    if (data.stay_type === 'day_use') {
+        return {
+            ...data,
+            departure_date: data.arrival_date,
+            guests: guestsPayload(data.guests),
+            lines: data.lines.map((line) => {
+                const { key: _key, ...rest } = line;
+
+                return {
+                    ...rest,
+                    child_ages: line.child_ages.map(Number),
+                    beds: '1',
+                    bed_ids: [],
+                    discount_id: '',
+                    override_total: '',
+                    override_reason: '',
+                    add_ons: line.add_ons.filter(
+                        (addOn) => addOn.charge_item_id !== '',
+                    ),
+                };
+            }),
+        };
+    }
+
     return {
         ...data,
+        start_time: '',
         guests: guestsPayload(data.guests),
         lines: data.lines.map((line) => {
             const isBed = roomTypeOf(line, roomTypes)?.isBed === true;
@@ -241,6 +273,7 @@ export function bookingPayload(data: BookingForm, roomTypes: RoomTypeOption[]) {
                 beds: isBed ? line.beds : '1',
                 room_id: isBed ? '' : line.room_id,
                 bed_ids: isBed ? line.bed_ids : [],
+                hours: '',
                 add_ons: line.add_ons.filter(
                     (addOn) => addOn.charge_item_id !== '',
                 ),
@@ -278,15 +311,18 @@ export function moveAddOn(
 
 /**
  * The plans a line can pick: the ones sold for its room type, and a plan linked to companies only when the booking's
- * company is one of them. An empty `roomTypeId` keeps every room type.
+ * company is one of them. An empty `roomTypeId` keeps every room type. A day use booking offers only day use plans and an
+ * overnight booking only the others.
  */
 export function plansFor(
     plans: App.Data.Reservations.RatePlanOptionData[],
     roomTypeId: string,
     companyId: string,
+    dayUse = false,
 ): App.Data.Reservations.RatePlanOptionData[] {
     return plans.filter(
         (plan) =>
+            plan.isDayUse === dayUse &&
             (roomTypeId === '' ||
                 plan.roomTypeIds.includes(Number(roomTypeId))) &&
             (plan.companyIds.length === 0 ||

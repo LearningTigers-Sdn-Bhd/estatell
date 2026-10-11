@@ -48,6 +48,10 @@ The page header has a description in both modes: "Reserve rooms or beds for a gu
 
 `quote` and `free-units` also answer a day use line (`stay_type=day_use`, `start_time`, `hours`), and `day-use-offers` lists the hours a day use plan sells (see [Day use](10-day-use.md#booking-form)). `new` and `walk-in` render the same page (`pages/reservations/create.tsx`). All five sit before `{reservation}` in `routes/reservations.php`, so `new` is never read as a reservation id.
 
+## Day use
+
+When the property has an active Day use plan, the Stay section starts with a **Stay type** switch. Day use replaces Arrival and Departure with **Date and start** and the lines table with day use lines (see [Day use](10-day-use.md#booking-form)). The booking posts `stay_type`, `arrival_date`, `start_time`, and for each line `hours` and `room_id`. A refusal of the start comes back as `start_time` or `lines.N.start_time` and shows on the Date and start field. Hours and Room errors show on their line cells.
+
 ## Sections
 
 1. **Stay**: arrival, departure, nights (shown), source, external reference, group name. Arrival and departure apply to every line.

@@ -212,10 +212,19 @@ export function UnitsTab({
             </div>
             <div className="flex flex-col gap-2 ps-3 text-sm">
                 <Detail icon={CalendarDays} label="Stay">
-                    <DateText date={unit.arrival} /> {unit.arrivalTime} →{' '}
-                    <DateText date={unit.departure} /> {unit.departureTime} ·{' '}
-                    {unit.nightCount}{' '}
-                    {unit.nightCount === 1 ? 'night' : 'nights'}
+                    {unit.stayLabel === null ? (
+                        <>
+                            <DateText date={unit.arrival} /> {unit.arrivalTime}{' '}
+                            → <DateText date={unit.departure} />{' '}
+                            {unit.departureTime} · {unit.nightCount}{' '}
+                            {unit.nightCount === 1 ? 'night' : 'nights'}
+                        </>
+                    ) : (
+                        <>
+                            <DateText date={unit.arrival} /> {unit.arrivalTime}–
+                            {unit.departureTime} · {unit.stayLabel}
+                        </>
+                    )}
                 </Detail>
                 <div className="flex flex-wrap gap-x-6 gap-y-2">
                     <Detail icon={BedDouble} label="Room">
@@ -246,94 +255,111 @@ export function UnitsTab({
                     )}
                 </Detail>
             </div>
-            <div className="overflow-hidden rounded-xl border">
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            {unit.canChangePrice && (
-                                <TableHead className="w-10">
-                                    <Checkbox
-                                        aria-label="Tick every night"
-                                        checked={allTicked}
-                                        onCheckedChange={(checked) =>
-                                            setTicked(checked ? nightIds : [])
-                                        }
-                                    />
-                                </TableHead>
-                            )}
-                            <TableHead>Night</TableHead>
-                            <TableHead>Room</TableHead>
-                            <TableHead>Rate</TableHead>
-                            <TableHead className="text-right">Amount</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {unit.nights.map((night) => (
-                            <TableRow key={night.id}>
+            {unit.stayType === 'day_use' ? (
+                <div className="flex items-center justify-between gap-4 rounded-xl border px-4 py-3 text-sm">
+                    <span>
+                        {unit.stayLabel} · {unit.ratePlan}
+                    </span>
+                    <span className="font-medium">
+                        <MoneyText amount={unit.total} currency={currency} />
+                    </span>
+                </div>
+            ) : (
+                <div className="overflow-hidden rounded-xl border">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
                                 {unit.canChangePrice && (
-                                    <TableCell>
+                                    <TableHead className="w-10">
                                         <Checkbox
-                                            aria-label={`Tick ${night.date}`}
-                                            checked={tickedNow.includes(
-                                                night.id,
-                                            )}
+                                            aria-label="Tick every night"
+                                            checked={allTicked}
                                             onCheckedChange={(checked) =>
                                                 setTicked(
-                                                    checked
-                                                        ? [
-                                                              ...tickedNow,
-                                                              night.id,
-                                                          ]
-                                                        : tickedNow.filter(
-                                                              (id) =>
-                                                                  id !==
-                                                                  night.id,
-                                                          ),
+                                                    checked ? nightIds : [],
                                                 )
                                             }
                                         />
-                                    </TableCell>
+                                    </TableHead>
                                 )}
-                                <TableCell>
-                                    <DateText date={night.date} />
-                                    {night.isCharged && (
-                                        <span className="ms-2 text-xs text-muted-foreground">
-                                            Charged
-                                        </span>
+                                <TableHead>Night</TableHead>
+                                <TableHead>Room</TableHead>
+                                <TableHead>Rate</TableHead>
+                                <TableHead className="text-right">
+                                    Amount
+                                </TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {unit.nights.map((night) => (
+                                <TableRow key={night.id}>
+                                    {unit.canChangePrice && (
+                                        <TableCell>
+                                            <Checkbox
+                                                aria-label={`Tick ${night.date}`}
+                                                checked={tickedNow.includes(
+                                                    night.id,
+                                                )}
+                                                onCheckedChange={(checked) =>
+                                                    setTicked(
+                                                        checked
+                                                            ? [
+                                                                  ...tickedNow,
+                                                                  night.id,
+                                                              ]
+                                                            : tickedNow.filter(
+                                                                  (id) =>
+                                                                      id !==
+                                                                      night.id,
+                                                              ),
+                                                    )
+                                                }
+                                            />
+                                        </TableCell>
                                     )}
+                                    <TableCell>
+                                        <DateText date={night.date} />
+                                        {night.isCharged && (
+                                            <span className="ms-2 text-xs text-muted-foreground">
+                                                Charged
+                                            </span>
+                                        )}
+                                    </TableCell>
+                                    <TableCell>
+                                        {night.assigned ?? (
+                                            <Badge variant="outline">
+                                                Unassigned
+                                            </Badge>
+                                        )}
+                                    </TableCell>
+                                    <TableCell>{night.ratePlan}</TableCell>
+                                    <TableCell className="text-right">
+                                        <MoneyText
+                                            amount={night.amount}
+                                            currency={currency}
+                                        />
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                        <TableFooter>
+                            <TableRow>
+                                <TableCell
+                                    colSpan={unit.canChangePrice ? 4 : 3}
+                                >
+                                    Total
                                 </TableCell>
-                                <TableCell>
-                                    {night.assigned ?? (
-                                        <Badge variant="outline">
-                                            Unassigned
-                                        </Badge>
-                                    )}
-                                </TableCell>
-                                <TableCell>{night.ratePlan}</TableCell>
                                 <TableCell className="text-right">
                                     <MoneyText
-                                        amount={night.amount}
+                                        amount={unit.total}
                                         currency={currency}
                                     />
                                 </TableCell>
                             </TableRow>
-                        ))}
-                    </TableBody>
-                    <TableFooter>
-                        <TableRow>
-                            <TableCell colSpan={unit.canChangePrice ? 4 : 3}>
-                                Total
-                            </TableCell>
-                            <TableCell className="text-right">
-                                <MoneyText
-                                    amount={unit.total}
-                                    currency={currency}
-                                />
-                            </TableCell>
-                        </TableRow>
-                    </TableFooter>
-                </Table>
-            </div>
+                        </TableFooter>
+                    </Table>
+                </div>
+            )}
             {unit.priceOverrideReason !== null && (
                 <p className="flex items-start gap-2 text-sm text-muted-foreground">
                     <Info aria-hidden className="mt-0.5 size-4 shrink-0" />

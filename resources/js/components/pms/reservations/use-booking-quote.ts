@@ -2,14 +2,18 @@ import { useHttp } from '@inertiajs/react';
 import { useEffect, useRef, useState } from 'react';
 import { quotePayload } from '@/components/pms/reservations/booking-lines';
 import type { BookingLine } from '@/components/pms/reservations/booking-lines';
+import { dayUseQuotePayload } from '@/components/pms/reservations/day-use';
 import { quote as quoteRoute } from '@/routes/reservations';
 
 type Quote = App.Data.Reservations.BookingQuoteData;
-type Payload = ReturnType<typeof quotePayload>;
+type Payload =
+    | ReturnType<typeof quotePayload>
+    | ReturnType<typeof dayUseQuotePayload>;
 
 /**
  * Asks the server what a line costs. The request waits for a pause in typing, answers are cached by what was asked,
  * and a slow answer to an older request never replaces a newer one. A line that cannot be quoted yet has no quote.
+ * A day use line passes its start time and is quoted by hours.
  */
 export function useBookingQuote(
     line: BookingLine,
@@ -17,6 +21,7 @@ export function useBookingQuote(
     departure: string,
     isBed: boolean,
     quotable: boolean,
+    dayUseStart: string | null = null,
 ): { quote: Quote | null; loading: boolean } {
     const [quote, setQuote] = useState<Quote | null>(null);
     const [loading, setLoading] = useState(false);
@@ -32,7 +37,11 @@ export function useBookingQuote(
     const submit = http.submit;
     const { transform } = http;
     const key = quotable
-        ? JSON.stringify(quotePayload(line, arrival, departure, isBed))
+        ? JSON.stringify(
+              dayUseStart === null
+                  ? quotePayload(line, arrival, departure, isBed)
+                  : dayUseQuotePayload(line, arrival, dayUseStart),
+          )
         : '';
 
     useEffect(() => {

@@ -58,6 +58,7 @@ use App\Enums\PropertyStatus;
 use App\Enums\PropertyType;
 use App\Enums\ReservationSource;
 use App\Enums\SellUnit;
+use App\Enums\StayType;
 use App\Enums\TaxRateType;
 use App\Enums\TransactionCategory;
 use App\Enums\UnitStatus;
@@ -81,6 +82,7 @@ use App\Models\Tax;
 use App\Models\UnitAddOn;
 use App\Models\UnitNight;
 use App\Models\User;
+use App\Services\Availability\DayUseAvailability;
 use App\Services\Folio\FolioBalance;
 use App\Services\Property\PropertyToday;
 use Carbon\CarbonImmutable;
@@ -692,9 +694,43 @@ class SandbaySeeder extends Seeder
         $cancelled = $book('Sea View Room', 'Bed & Breakfast', 14, 3, 2, 8);
         $this->forEachUnit($cancelled, fn (ReservationUnit $unit): UnitStayResult => app(CancelUnit::class)($owner, $unit), 'The cancellation');
 
+        $this->bookDayUse($property, $owner, $roomTypes['Garden Room'], $guests[10], $today->addDays(3));
+
         $dive = $this->diveGroup($property, $owner, $roomTypes, $plans, $guests, $today, $nextRoom);
 
         return ['walkIn' => $walkIn, 'villa' => $villa, 'anniversary' => $anniversary, 'dive' => $dive];
+    }
+
+    /**
+     * One Confirmed day use: a Garden Room from 10:00 for 4 hours, in the last room that is free for those hours.
+     */
+    private function bookDayUse(Property $property, User $owner, RoomType $roomType, Guest $guest, CarbonImmutable $date): void
+    {
+        $plan = RatePlan::query()->where('property_id', $property->id)->where('name', 'Day use')->firstOrFail();
+        $room = collect(app(DayUseAvailability::class)->freeRooms($roomType, $date, '10:00', '14:00'))->last()
+            ?? throw new RuntimeException('No Garden Room is free for the sample day use.');
+
+        $result = app(CreateBooking::class)($owner, $property, new NewBookingData(
+            source: ReservationSource::Phone,
+            units: [new NewUnitData(
+                roomTypeId: $roomType->id,
+                ratePlanId: $plan->id,
+                arrivalDate: $date,
+                departureDate: $date,
+                adults: 2,
+                stayType: StayType::DayUse,
+                startTime: '10:00',
+                hours: 4,
+                roomId: $room->id,
+            )],
+            guests: [new NewBookingGuestData(guestId: $guest->id, unitIndex: 0)],
+            picks: [],
+            notes: 'Day use between flights.',
+        ));
+
+        if ($result->isRefused()) {
+            throw new RuntimeException("The sample day use was refused: {$result->refusal}.");
+        }
     }
 
     /**

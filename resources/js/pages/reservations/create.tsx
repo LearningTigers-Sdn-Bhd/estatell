@@ -2,6 +2,8 @@ import { Head, Link, useForm } from '@inertiajs/react';
 import {
     BedDouble,
     CalendarPlus,
+    Clock,
+    Moon,
     NotebookText,
     Package,
     Percent,
@@ -49,6 +51,11 @@ import {
 import type { BookingTab } from '@/components/pms/reservations/booking-tabs';
 import { FormError } from '@/components/pms/form-error';
 import { StayDateTime } from '@/components/pms/reservations/stay-date-time';
+import {
+    DayUseLineRow,
+    DayUseLinesHeader,
+} from '@/components/pms/reservations/day-use-line-row';
+import { nextHalfHour } from '@/components/pms/reservations/day-use';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button, buttonVariants } from '@/components/ui/button';
@@ -68,6 +75,7 @@ import {
 } from '@/components/ui/input-group';
 import { Spinner } from '@/components/ui/spinner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { useUnsavedChanges } from '@/hooks/use-unsaved-changes';
 import { cn } from '@/lib/utils';
 import { CreditOverrideField } from '@/components/pms/city-ledger/credit-override-field';
@@ -81,6 +89,9 @@ const LONGEST_STAY_DAYS = 365;
 
 /** The longest note the server takes. */
 const NOTES_LIMIT = 2000;
+
+/** Charging units that bill every night. A day use has no nights, so the server refuses them. */
+const NIGHTLY_UNITS = ['per_night', 'per_guest_night'];
 
 type Quote = App.Data.Reservations.BookingQuoteData;
 
@@ -104,6 +115,8 @@ type Props = {
     currency: App.Enums.Currency | null;
     canOverrideRestrictions: boolean;
     canManageGuests: boolean;
+    /** Whether the property has an active Day use plan: it turns the Stay type switch on. */
+    hasDayUse: boolean;
     countries: EnumOption[];
     genders: EnumOption[];
     locales: EnumOption[];
@@ -152,11 +165,14 @@ export default function ReservationCreate({
     currency,
     canOverrideRestrictions,
     canManageGuests,
+    hasDayUse,
     countries,
     genders,
     locales,
 }: Props) {
     const form = useForm<BookingForm>({
+        stay_type: 'overnight',
+        start_time: '',
         source: sources[0]?.value ?? 'direct',
         external_reference: '',
         arrival_date: today,
@@ -190,8 +206,35 @@ export default function ReservationCreate({
             source: isWalkIn ? 'walk_in' : (sources[0]?.value ?? 'direct'),
             arrival_date: isWalkIn ? today : current.arrival_date,
             arrival_time: isWalkIn ? nowTime : current.arrival_time,
+            start_time:
+                current.stay_type === 'day_use'
+                    ? defaultStart(isWalkIn)
+                    : current.start_time,
         }));
     }, [isWalkIn]);
+
+    /** A walk-in starts at the next half hour. A booking starts at 10:00 until staff pick another time. */
+    function defaultStart(walkIn: boolean): string {
+        return walkIn ? nextHalfHour(nowTime) : '10:00';
+    }
+
+    const switchStayType = (next: string) => {
+        if (next === data.stay_type) {
+            return;
+        }
+
+        // The plans and room types differ, so the lines start again. The Discounts tab does not exist for day use.
+        form.setData((current) => ({
+            ...current,
+            stay_type: next as BookingForm['stay_type'],
+            start_time: next === 'day_use' ? defaultStart(isWalkIn) : '',
+            lines: [emptyLine()],
+        }));
+
+        if (next === 'day_use' && tab === 'discounts') {
+            setTab('rooms');
+        }
+    };
 
     const switchMode = (next: string) => {
         if (next === mode) {
@@ -204,6 +247,13 @@ export default function ReservationCreate({
             only: ['isWalkIn', 'sources', 'nowTime'],
         });
     };
+    const isDayUse = data.stay_type === 'day_use';
+    // A refusal of the start of a block can come back on the form or on a line.
+    const startError =
+        errors.start_time ??
+        Object.entries(errors).find(([key]) =>
+            /^lines\.\d+\.start_time$/.test(key),
+        )?.[1];
     const roomTypes = addUnitOptions.roomTypes;
     const units = totalUnits(data.lines, roomTypes);
     const unitChoices = unitOptions(data.lines, roomTypes);
@@ -230,10 +280,11 @@ export default function ReservationCreate({
 
         return null;
     }, [data.lines, addUnitOptions.ratePlans]);
-    const departure =
-        lockedNights !== null && data.arrival_date
-            ? addDays(data.arrival_date, lockedNights)
-            : data.departure_date;
+    const departure = isDayUse
+        ? data.arrival_date
+        : lockedNights !== null && data.arrival_date
+          ? addDays(data.arrival_date, lockedNights)
+          : data.departure_date;
     const emptyPickLabel = isWalkIn
         ? 'Select'
         : autoAssignRooms
@@ -355,157 +406,257 @@ export default function ReservationCreate({
                                 description="The dates and expected times apply to every line."
                             >
                                 <FieldGroup>
-                                    <div className="grid items-start gap-4 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)_12rem]">
-                                        <Field
-                                            data-invalid={
-                                                !!errors.arrival_date ||
-                                                !!errors.arrival_time
-                                            }
-                                        >
-                                            <FieldLabel htmlFor="booking-arrival">
-                                                Arrival
-                                            </FieldLabel>
-                                            <StayDateTime
-                                                id="booking-arrival"
-                                                date={data.arrival_date}
-                                                time={data.arrival_time}
-                                                timeLabel="Arrival time"
-                                                dateLocked={isWalkIn}
-                                                min={today}
-                                                max={lastBookable}
-                                                onDateChange={(value) =>
-                                                    form.setData(
-                                                        'arrival_date',
-                                                        value,
-                                                    )
+                                    {hasDayUse && (
+                                        <Field>
+                                            <FieldLabel>Stay type</FieldLabel>
+                                            <ToggleGroup
+                                                variant="outline"
+                                                spacing={0}
+                                                value={[data.stay_type]}
+                                                onValueChange={(value) =>
+                                                    value[0] &&
+                                                    switchStayType(value[0])
                                                 }
-                                                onTimeChange={(value) =>
-                                                    form.setData(
-                                                        'arrival_time',
-                                                        value,
-                                                    )
+                                                aria-label="Stay type"
+                                            >
+                                                <ToggleGroupItem value="overnight">
+                                                    <Moon data-icon="inline-start" />
+                                                    Overnight
+                                                </ToggleGroupItem>
+                                                <ToggleGroupItem value="day_use">
+                                                    <Clock data-icon="inline-start" />
+                                                    Day use
+                                                </ToggleGroupItem>
+                                            </ToggleGroup>
+                                            <FieldDescription>
+                                                {isDayUse
+                                                    ? 'A room for a number of hours on one day. It applies to every line.'
+                                                    : 'Rooms or beds for one night or more.'}
+                                            </FieldDescription>
+                                        </Field>
+                                    )}
+                                    {isDayUse ? (
+                                        <div className="grid items-start gap-4 sm:grid-cols-[minmax(0,1fr)_12rem]">
+                                            <Field
+                                                data-invalid={
+                                                    !!errors.arrival_date ||
+                                                    !!startError
                                                 }
-                                                aria-invalid={
-                                                    !!errors.arrival_date
-                                                }
-                                                timeInvalid={
+                                            >
+                                                <FieldLabel htmlFor="booking-day-use-date">
+                                                    Date and start
+                                                </FieldLabel>
+                                                <StayDateTime
+                                                    id="booking-day-use-date"
+                                                    date={data.arrival_date}
+                                                    time={data.start_time}
+                                                    timeLabel="Start time"
+                                                    dateLocked={isWalkIn}
+                                                    min={today}
+                                                    max={lastBookable}
+                                                    step={1800}
+                                                    onDateChange={(value) =>
+                                                        form.setData(
+                                                            'arrival_date',
+                                                            value,
+                                                        )
+                                                    }
+                                                    onTimeChange={(value) =>
+                                                        form.setData(
+                                                            'start_time',
+                                                            value,
+                                                        )
+                                                    }
+                                                    aria-invalid={
+                                                        !!errors.arrival_date
+                                                    }
+                                                    timeInvalid={!!startError}
+                                                />
+                                                <FieldDescription>
+                                                    The block starts on the hour
+                                                    or the half hour and ends
+                                                    the same day.
+                                                </FieldDescription>
+                                                <FieldError>
+                                                    {errors.arrival_date ??
+                                                        startError}
+                                                </FieldError>
+                                            </Field>
+                                            <Field>
+                                                <FieldLabel htmlFor="booking-mode">
+                                                    Reservation mode
+                                                </FieldLabel>
+                                                <EnumSelect
+                                                    id="booking-mode"
+                                                    options={[
+                                                        {
+                                                            value: 'new',
+                                                            label: 'New booking',
+                                                        },
+                                                        {
+                                                            value: 'walk-in',
+                                                            label: 'Walk-in',
+                                                        },
+                                                    ]}
+                                                    value={mode}
+                                                    onValueChange={switchMode}
+                                                />
+                                            </Field>
+                                        </div>
+                                    ) : (
+                                        <div className="grid items-start gap-4 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)_12rem]">
+                                            <Field
+                                                data-invalid={
+                                                    !!errors.arrival_date ||
                                                     !!errors.arrival_time
                                                 }
-                                            />
-                                            <FieldError>
-                                                {errors.arrival_date ??
-                                                    errors.arrival_time}
-                                            </FieldError>
-                                        </Field>
-                                        <Field>
-                                            <FieldLabel
-                                                aria-hidden
-                                                className="invisible max-sm:hidden"
                                             >
-                                                Nights
-                                            </FieldLabel>
-                                            <div
-                                                className="flex h-8 min-w-16 flex-col items-center justify-center rounded-lg bg-muted px-3 text-xs leading-tight tabular-nums max-sm:justify-self-start"
-                                                aria-label="Nights"
-                                            >
-                                                <span className="font-medium">
-                                                    {lockedNights !== null
-                                                        ? lockedNights
-                                                        : nights}
-                                                </span>
-                                                <span className="text-muted-foreground">
-                                                    {(lockedNights ??
-                                                        nights) === 1
-                                                        ? 'Night'
-                                                        : 'Nights'}
-                                                </span>
-                                            </div>
-                                        </Field>
-                                        <Field
-                                            data-invalid={
-                                                !!errors.departure_date ||
-                                                !!errors.departure_time
-                                            }
-                                        >
-                                            <FieldLabel htmlFor="booking-departure">
-                                                Departure
-                                            </FieldLabel>
-                                            <StayDateTime
-                                                id="booking-departure"
-                                                date={
-                                                    lockedNights !== null
-                                                        ? data.arrival_date
-                                                            ? departure
-                                                            : ''
-                                                        : data.departure_date
-                                                }
-                                                time={data.departure_time}
-                                                timeLabel="Departure time"
-                                                dateLocked={
-                                                    lockedNights !== null
-                                                }
-                                                min={
-                                                    data.arrival_date
-                                                        ? addDays(
-                                                              data.arrival_date,
-                                                              1,
-                                                          )
-                                                        : addDays(today, 1)
-                                                }
-                                                max={addDays(
-                                                    data.arrival_date || today,
-                                                    LONGEST_STAY_DAYS,
-                                                )}
-                                                onDateChange={(value) =>
-                                                    form.setData(
-                                                        'departure_date',
-                                                        value,
-                                                    )
-                                                }
-                                                onTimeChange={(value) =>
-                                                    form.setData(
-                                                        'departure_time',
-                                                        value,
-                                                    )
-                                                }
-                                                aria-invalid={
-                                                    !!errors.departure_date
-                                                }
-                                                timeInvalid={
+                                                <FieldLabel htmlFor="booking-arrival">
+                                                    Arrival
+                                                </FieldLabel>
+                                                <StayDateTime
+                                                    id="booking-arrival"
+                                                    date={data.arrival_date}
+                                                    time={data.arrival_time}
+                                                    timeLabel="Arrival time"
+                                                    dateLocked={isWalkIn}
+                                                    min={today}
+                                                    max={lastBookable}
+                                                    onDateChange={(value) =>
+                                                        form.setData(
+                                                            'arrival_date',
+                                                            value,
+                                                        )
+                                                    }
+                                                    onTimeChange={(value) =>
+                                                        form.setData(
+                                                            'arrival_time',
+                                                            value,
+                                                        )
+                                                    }
+                                                    aria-invalid={
+                                                        !!errors.arrival_date
+                                                    }
+                                                    timeInvalid={
+                                                        !!errors.arrival_time
+                                                    }
+                                                />
+                                                <FieldError>
+                                                    {errors.arrival_date ??
+                                                        errors.arrival_time}
+                                                </FieldError>
+                                            </Field>
+                                            <Field>
+                                                <FieldLabel
+                                                    aria-hidden
+                                                    className="invisible max-sm:hidden"
+                                                >
+                                                    Nights
+                                                </FieldLabel>
+                                                <div
+                                                    className="flex h-8 min-w-16 flex-col items-center justify-center rounded-lg bg-muted px-3 text-xs leading-tight tabular-nums max-sm:justify-self-start"
+                                                    aria-label="Nights"
+                                                >
+                                                    <span className="font-medium">
+                                                        {lockedNights !== null
+                                                            ? lockedNights
+                                                            : nights}
+                                                    </span>
+                                                    <span className="text-muted-foreground">
+                                                        {(lockedNights ??
+                                                            nights) === 1
+                                                            ? 'Night'
+                                                            : 'Nights'}
+                                                    </span>
+                                                </div>
+                                            </Field>
+                                            <Field
+                                                data-invalid={
+                                                    !!errors.departure_date ||
                                                     !!errors.departure_time
                                                 }
-                                            />
-                                            {lockedNights !== null && (
-                                                <FieldDescription>
-                                                    Date set by the package.
-                                                </FieldDescription>
-                                            )}
-                                            <FieldError>
-                                                {errors.departure_date ??
-                                                    errors.departure_time}
-                                            </FieldError>
-                                        </Field>
-                                        <Field>
-                                            <FieldLabel htmlFor="booking-mode">
-                                                Reservation mode
-                                            </FieldLabel>
-                                            <EnumSelect
-                                                id="booking-mode"
-                                                options={[
-                                                    {
-                                                        value: 'new',
-                                                        label: 'New booking',
-                                                    },
-                                                    {
-                                                        value: 'walk-in',
-                                                        label: 'Walk-in',
-                                                    },
-                                                ]}
-                                                value={mode}
-                                                onValueChange={switchMode}
-                                            />
-                                        </Field>
-                                    </div>
+                                            >
+                                                <FieldLabel htmlFor="booking-departure">
+                                                    Departure
+                                                </FieldLabel>
+                                                <StayDateTime
+                                                    id="booking-departure"
+                                                    date={
+                                                        lockedNights !== null
+                                                            ? data.arrival_date
+                                                                ? departure
+                                                                : ''
+                                                            : data.departure_date
+                                                    }
+                                                    time={data.departure_time}
+                                                    timeLabel="Departure time"
+                                                    dateLocked={
+                                                        lockedNights !== null
+                                                    }
+                                                    min={
+                                                        data.arrival_date
+                                                            ? addDays(
+                                                                  data.arrival_date,
+                                                                  1,
+                                                              )
+                                                            : addDays(today, 1)
+                                                    }
+                                                    max={addDays(
+                                                        data.arrival_date ||
+                                                            today,
+                                                        LONGEST_STAY_DAYS,
+                                                    )}
+                                                    onDateChange={(value) =>
+                                                        form.setData(
+                                                            'departure_date',
+                                                            value,
+                                                        )
+                                                    }
+                                                    onTimeChange={(value) =>
+                                                        form.setData(
+                                                            'departure_time',
+                                                            value,
+                                                        )
+                                                    }
+                                                    aria-invalid={
+                                                        !!errors.departure_date
+                                                    }
+                                                    timeInvalid={
+                                                        !!errors.departure_time
+                                                    }
+                                                />
+                                                {lockedNights !== null && (
+                                                    <FieldDescription>
+                                                        Date set by the package.
+                                                    </FieldDescription>
+                                                )}
+                                                <FieldError>
+                                                    {errors.departure_date ??
+                                                        errors.departure_time}
+                                                </FieldError>
+                                            </Field>
+                                            <Field>
+                                                <FieldLabel htmlFor="booking-mode">
+                                                    Reservation mode
+                                                </FieldLabel>
+                                                <EnumSelect
+                                                    id="booking-mode"
+                                                    options={[
+                                                        {
+                                                            value: 'new',
+                                                            label: 'New booking',
+                                                        },
+                                                        {
+                                                            value: 'walk-in',
+                                                            label: 'Walk-in',
+                                                        },
+                                                    ]}
+                                                    value={mode}
+                                                    onValueChange={switchMode}
+                                                />
+                                            </Field>
+                                        </div>
+                                    )}
                                     <div
                                         className={cn(
                                             'grid gap-4 sm:grid-cols-2',
@@ -683,15 +834,17 @@ export default function ReservationCreate({
                                         <BedDouble data-icon="inline-start" />
                                         Rooms &amp; guests
                                     </TabsTrigger>
-                                    <TabsTrigger
-                                        value="discounts"
-                                        className={tabClass(
-                                            tabErrors.discounts,
-                                        )}
-                                    >
-                                        <Percent data-icon="inline-start" />
-                                        Discounts
-                                    </TabsTrigger>
+                                    {!isDayUse && (
+                                        <TabsTrigger
+                                            value="discounts"
+                                            className={tabClass(
+                                                tabErrors.discounts,
+                                            )}
+                                        >
+                                            <Percent data-icon="inline-start" />
+                                            Discounts
+                                        </TabsTrigger>
+                                    )}
                                     <TabsTrigger
                                         value="add-ons"
                                         className={tabClass(
@@ -721,74 +874,173 @@ export default function ReservationCreate({
                                     className="flex flex-col gap-8 pt-4"
                                 >
                                     <Section
-                                        title="Rooms and beds"
-                                        description="One line for each room type and rate plan. A dorm line sells beds."
+                                        title={
+                                            isDayUse
+                                                ? 'Rooms'
+                                                : 'Rooms and beds'
+                                        }
+                                        description={
+                                            isDayUse
+                                                ? 'One line for each room: the day use plan, the hours and the room. Every line starts at the time above.'
+                                                : 'One line for each room type and rate plan. A dorm line sells beds.'
+                                        }
                                     >
                                         <div className="flex flex-col gap-3">
                                             <div className="overflow-hidden rounded-lg border">
-                                                <BookingLinesHeader />
-                                                <div className="divide-y">
-                                                    {data.lines.map(
-                                                        (line, position) => (
-                                                            <BookingLineRow
-                                                                key={line.key}
-                                                                index={position}
-                                                                line={line}
-                                                                options={
-                                                                    addUnitOptions
-                                                                }
-                                                                companyId={
-                                                                    data.company_id
-                                                                }
-                                                                arrival={
-                                                                    data.arrival_date
-                                                                }
-                                                                departure={
-                                                                    departure
-                                                                }
-                                                                currency={
-                                                                    currency
-                                                                }
-                                                                errors={errors}
-                                                                emptyPickLabel={
-                                                                    emptyPickLabel
-                                                                }
-                                                                takenIds={takenBy(
+                                                {isDayUse ? (
+                                                    <>
+                                                        <DayUseLinesHeader />
+                                                        <div className="divide-y">
+                                                            {data.lines.map(
+                                                                (
+                                                                    line,
                                                                     position,
-                                                                )}
-                                                                canRemove={
-                                                                    data.lines
-                                                                        .length >
-                                                                    1
-                                                                }
-                                                                onChange={(
-                                                                    patch,
-                                                                ) =>
-                                                                    setLine(
-                                                                        position,
-                                                                        patch,
-                                                                    )
-                                                                }
-                                                                onRemove={() =>
-                                                                    form.setData(
-                                                                        'lines',
-                                                                        data.lines.filter(
-                                                                            (
-                                                                                _,
-                                                                                at,
-                                                                            ) =>
-                                                                                at !==
+                                                                ) => (
+                                                                    <DayUseLineRow
+                                                                        key={
+                                                                            line.key
+                                                                        }
+                                                                        index={
+                                                                            position
+                                                                        }
+                                                                        line={
+                                                                            line
+                                                                        }
+                                                                        options={
+                                                                            addUnitOptions
+                                                                        }
+                                                                        companyId={
+                                                                            data.company_id
+                                                                        }
+                                                                        date={
+                                                                            data.arrival_date
+                                                                        }
+                                                                        start={
+                                                                            data.start_time
+                                                                        }
+                                                                        currency={
+                                                                            currency
+                                                                        }
+                                                                        errors={
+                                                                            errors
+                                                                        }
+                                                                        takenIds={takenBy(
+                                                                            position,
+                                                                        )}
+                                                                        canRemove={
+                                                                            data
+                                                                                .lines
+                                                                                .length >
+                                                                            1
+                                                                        }
+                                                                        onChange={(
+                                                                            patch,
+                                                                        ) =>
+                                                                            setLine(
                                                                                 position,
-                                                                        ),
-                                                                    )
-                                                                }
-                                                                onQuote={
-                                                                    onQuote
-                                                                }
-                                                            />
-                                                        ),
-                                                    )}
-                                                </div>
+                                                                                patch,
+                                                                            )
+                                                                        }
+                                                                        onRemove={() =>
+                                                                            form.setData(
+                                                                                'lines',
+                                                                                data.lines.filter(
+                                                                                    (
+                                                                                        _,
+                                                                                        at,
+                                                                                    ) =>
+                                                                                        at !==
+                                                                                        position,
+                                                                                ),
+                                                                            )
+                                                                        }
+                                                                        onQuote={
+                                                                            onQuote
+                                                                        }
+                                                                    />
+                                                                ),
+                                                            )}
+                                                        </div>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <BookingLinesHeader />
+                                                        <div className="divide-y">
+                                                            {data.lines.map(
+                                                                (
+                                                                    line,
+                                                                    position,
+                                                                ) => (
+                                                                    <BookingLineRow
+                                                                        key={
+                                                                            line.key
+                                                                        }
+                                                                        index={
+                                                                            position
+                                                                        }
+                                                                        line={
+                                                                            line
+                                                                        }
+                                                                        options={
+                                                                            addUnitOptions
+                                                                        }
+                                                                        companyId={
+                                                                            data.company_id
+                                                                        }
+                                                                        arrival={
+                                                                            data.arrival_date
+                                                                        }
+                                                                        departure={
+                                                                            departure
+                                                                        }
+                                                                        currency={
+                                                                            currency
+                                                                        }
+                                                                        errors={
+                                                                            errors
+                                                                        }
+                                                                        emptyPickLabel={
+                                                                            emptyPickLabel
+                                                                        }
+                                                                        takenIds={takenBy(
+                                                                            position,
+                                                                        )}
+                                                                        canRemove={
+                                                                            data
+                                                                                .lines
+                                                                                .length >
+                                                                            1
+                                                                        }
+                                                                        onChange={(
+                                                                            patch,
+                                                                        ) =>
+                                                                            setLine(
+                                                                                position,
+                                                                                patch,
+                                                                            )
+                                                                        }
+                                                                        onRemove={() =>
+                                                                            form.setData(
+                                                                                'lines',
+                                                                                data.lines.filter(
+                                                                                    (
+                                                                                        _,
+                                                                                        at,
+                                                                                    ) =>
+                                                                                        at !==
+                                                                                        position,
+                                                                                ),
+                                                                            )
+                                                                        }
+                                                                        onQuote={
+                                                                            onQuote
+                                                                        }
+                                                                    />
+                                                                ),
+                                                            )}
+                                                        </div>
+                                                    </>
+                                                )}
                                                 <div className="flex justify-end border-t bg-muted/50 px-3 py-2">
                                                     <Button
                                                         type="button"
@@ -918,19 +1170,21 @@ export default function ReservationCreate({
                                     </Section>
                                 </TabsContent>
 
-                                <TabsContent
-                                    value="discounts"
-                                    keepMounted
-                                    className="pt-4"
-                                >
-                                    <BookingDiscountsSection
-                                        lines={data.lines}
-                                        options={addUnitOptions}
-                                        discounts={discounts}
-                                        errors={errors}
-                                        onChange={setLine}
-                                    />
-                                </TabsContent>
+                                {!isDayUse && (
+                                    <TabsContent
+                                        value="discounts"
+                                        keepMounted
+                                        className="pt-4"
+                                    >
+                                        <BookingDiscountsSection
+                                            lines={data.lines}
+                                            options={addUnitOptions}
+                                            discounts={discounts}
+                                            errors={errors}
+                                            onChange={setLine}
+                                        />
+                                    </TabsContent>
+                                )}
 
                                 <TabsContent
                                     value="add-ons"
@@ -940,7 +1194,16 @@ export default function ReservationCreate({
                                     <BookingAddOnsSection
                                         lines={data.lines}
                                         options={addUnitOptions}
-                                        chargeItems={chargeItems}
+                                        chargeItems={
+                                            isDayUse
+                                                ? chargeItems.filter(
+                                                      (item) =>
+                                                          !NIGHTLY_UNITS.includes(
+                                                              item.chargingUnit,
+                                                          ),
+                                                  )
+                                                : chargeItems
+                                        }
                                         arrival={data.arrival_date}
                                         departure={departure}
                                         currency={currency}

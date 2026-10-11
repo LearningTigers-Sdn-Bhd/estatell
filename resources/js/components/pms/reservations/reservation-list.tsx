@@ -76,10 +76,8 @@ export function ReservationList({
                             <DateText date={info.row.original.lastDeparture} />
                         </span>
                         <span className="text-xs text-muted-foreground tabular-nums">
-                            {info.row.original.nights}{' '}
-                            {info.row.original.nights === 1
-                                ? 'night'
-                                : 'nights'}
+                            {info.row.original.stayLabel ??
+                                `${info.row.original.nights} ${info.row.original.nights === 1 ? 'night' : 'nights'}`}
                         </span>
                     </span>
                 ),

@@ -40,6 +40,7 @@ export function BookingQuoteCell({
     onOverrideChange,
     errors,
     index,
+    canOverride = true,
 }: {
     quote: Quote | null;
     loading: boolean;
@@ -52,6 +53,8 @@ export function BookingQuoteCell({
     }) => void;
     errors: Record<string, string | undefined>;
     index: number;
+    /** A day use price cannot be overridden, so its line has no pencil. */
+    canOverride?: boolean;
 }) {
     const overrideInvalid =
         !!errors[`lines.${index}.override_total`] ||
@@ -118,92 +121,102 @@ export function BookingQuoteCell({
                     )}
                 </PopoverContent>
             </Popover>
-            <Popover>
-                <PopoverTrigger
-                    render={
-                        <Button
-                            type="button"
-                            variant={
-                                overrideTotal !== '' || overrideInvalid
-                                    ? 'secondary'
-                                    : 'ghost'
-                            }
-                            size="icon-sm"
-                            aria-label="Override the price"
-                        />
-                    }
-                >
-                    <Pencil />
-                </PopoverTrigger>
-                <PopoverContent className="w-80" align="end">
-                    <FieldGroup>
-                        <Field
-                            data-invalid={
-                                !!errors[`lines.${index}.override_total`]
-                            }
-                        >
-                            <FieldLabel htmlFor={`override-total-${index}`}>
-                                Stay total of one unit
-                            </FieldLabel>
-                            <MoneyInput
-                                id={`override-total-${index}`}
-                                value={overrideTotal}
-                                onChange={(value) =>
-                                    onOverrideChange({ override_total: value })
-                                }
-                                currency={currency}
-                                invalid={
-                                    !!errors[`lines.${index}.override_total`]
-                                }
-                            />
-                            <FieldError>
-                                {errors[`lines.${index}.override_total`]}
-                            </FieldError>
-                        </Field>
-                        <Field
-                            data-invalid={
-                                !!errors[`lines.${index}.override_reason`]
-                            }
-                        >
-                            <FieldLabel htmlFor={`override-reason-${index}`}>
-                                Reason
-                            </FieldLabel>
-                            <Input
-                                id={`override-reason-${index}`}
-                                value={overrideReason}
-                                onChange={(event) =>
-                                    onOverrideChange({
-                                        override_reason: event.target.value,
-                                    })
-                                }
-                                maxLength={500}
-                                placeholder="Corporate rate"
-                                aria-invalid={
-                                    !!errors[`lines.${index}.override_reason`]
-                                }
-                            />
-                            <FieldError>
-                                {errors[`lines.${index}.override_reason`]}
-                            </FieldError>
-                        </Field>
-                        {overrideTotal !== '' && (
+            {canOverride && (
+                <Popover>
+                    <PopoverTrigger
+                        render={
                             <Button
                                 type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={() =>
-                                    onOverrideChange({
-                                        override_total: '',
-                                        override_reason: '',
-                                    })
+                                variant={
+                                    overrideTotal !== '' || overrideInvalid
+                                        ? 'secondary'
+                                        : 'ghost'
+                                }
+                                size="icon-sm"
+                                aria-label="Override the price"
+                            />
+                        }
+                    >
+                        <Pencil />
+                    </PopoverTrigger>
+                    <PopoverContent className="w-80" align="end">
+                        <FieldGroup>
+                            <Field
+                                data-invalid={
+                                    !!errors[`lines.${index}.override_total`]
                                 }
                             >
-                                Use the rate
-                            </Button>
-                        )}
-                    </FieldGroup>
-                </PopoverContent>
-            </Popover>
+                                <FieldLabel htmlFor={`override-total-${index}`}>
+                                    Stay total of one unit
+                                </FieldLabel>
+                                <MoneyInput
+                                    id={`override-total-${index}`}
+                                    value={overrideTotal}
+                                    onChange={(value) =>
+                                        onOverrideChange({
+                                            override_total: value,
+                                        })
+                                    }
+                                    currency={currency}
+                                    invalid={
+                                        !!errors[
+                                            `lines.${index}.override_total`
+                                        ]
+                                    }
+                                />
+                                <FieldError>
+                                    {errors[`lines.${index}.override_total`]}
+                                </FieldError>
+                            </Field>
+                            <Field
+                                data-invalid={
+                                    !!errors[`lines.${index}.override_reason`]
+                                }
+                            >
+                                <FieldLabel
+                                    htmlFor={`override-reason-${index}`}
+                                >
+                                    Reason
+                                </FieldLabel>
+                                <Input
+                                    id={`override-reason-${index}`}
+                                    value={overrideReason}
+                                    onChange={(event) =>
+                                        onOverrideChange({
+                                            override_reason: event.target.value,
+                                        })
+                                    }
+                                    maxLength={500}
+                                    placeholder="Corporate rate"
+                                    aria-invalid={
+                                        !!errors[
+                                            `lines.${index}.override_reason`
+                                        ]
+                                    }
+                                />
+                                <FieldError>
+                                    {errors[`lines.${index}.override_reason`]}
+                                </FieldError>
+                            </Field>
+                            {overrideTotal !== '' && (
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() =>
+                                        onOverrideChange({
+                                            override_total: '',
+                                            override_reason: '',
+                                        })
+                                    }
+                                >
+                                    Use the rate
+                                </Button>
+                            )}
+                        </FieldGroup>
+                    </PopoverContent>
+                </Popover>
+            )}
         </div>
     );
 }

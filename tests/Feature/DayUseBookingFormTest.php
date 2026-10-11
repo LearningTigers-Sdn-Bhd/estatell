@@ -153,3 +153,59 @@ test('the day use endpoints need reservations.manage and stay inside the propert
     $this->actingAs($setup['user'])->getJson(route('reservations.day-use-offers', ['property' => $other['property']->code, ...$query]))->assertNotFound();
     $this->actingAs($other['user'])->getJson(route('reservations.day-use-offers', ['property' => $other['property']->code, ...$query]))->assertOk()->assertJsonPath('offers', []);
 });
+
+test('the payload the booking form posts for a day use line is accepted', function () {
+    $setup = dayUseHttpSetup();
+    $body = dayUseBody($setup, [
+        'external_reference' => '',
+        'arrival_time' => '15:00',
+        'departure_time' => '11:00',
+        'departure_date' => $setup['date']->toDateString(),
+        'group_name' => '',
+        'company_id' => '',
+        'credit_override_reason' => '',
+        'notes' => '',
+        'lines' => [[
+            'room_type_id' => (string) $setup['roomType']->id,
+            'rate_plan_id' => (string) $setup['plan']->id,
+            'adults' => '2',
+            'child_ages' => [],
+            'beds' => '1',
+            'discount_id' => '',
+            'override_total' => '',
+            'override_reason' => '',
+            'restriction_override_reason' => '',
+            'add_ons' => [],
+            'room_id' => (string) $setup['rooms'][0]->id,
+            'bed_ids' => [],
+            'hours' => '4',
+        ]],
+    ]);
+
+    $this->actingAs($setup['user'])->post(route('reservations.store', $setup['property']->code), $body)->assertSessionHasNoErrors();
+
+    expect(Reservation::query()->sole()->units()->sole()->dayUse->hours)->toBe(4);
+});
+
+test('the Add unit sheet posts a day use unit to an existing day use reservation', function () {
+    $setup = dayUseHttpSetup();
+    $reservation = createDayUseReservation($setup, [dayUseLine($setup)])->reservation;
+
+    $this->actingAs($setup['user'])->post(route('reservations.units.store', ['property' => $setup['property']->code, 'reservation' => $reservation->id]), [
+        'room_type_id' => (string) $setup['roomType']->id,
+        'rate_plan_id' => (string) $setup['plan']->id,
+        'arrival_date' => $setup['date']->toDateString(),
+        'departure_date' => $setup['date']->toDateString(),
+        'adults' => '2',
+        'child_ages' => [],
+        'override_total' => '',
+        'override_reason' => '',
+        'restriction_override_reason' => '',
+        'stay_type' => 'day_use',
+        'start_time' => '14:00',
+        'hours' => '2',
+        'room_id' => (string) $setup['rooms'][0]->id,
+    ])->assertSessionHasNoErrors();
+
+    expect($reservation->units()->count())->toBe(2);
+});

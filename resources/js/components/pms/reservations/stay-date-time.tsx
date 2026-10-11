@@ -20,6 +20,8 @@ type Props = {
     'aria-invalid'?: boolean;
     timeInvalid?: boolean;
     timeLabel: string;
+    /** Step of the time input in seconds. 1800 limits a start to the hour and the half hour. */
+    step?: number;
 };
 
 /**
@@ -37,6 +39,7 @@ export function StayDateTime({
     dateLocked = false,
     timeInvalid,
     timeLabel,
+    step,
     ...props
 }: Props) {
     return (
@@ -60,6 +63,7 @@ export function StayDateTime({
             )}
             <InputGroupInput
                 type="time"
+                step={step}
                 aria-label={timeLabel}
                 aria-invalid={timeInvalid}
                 value={time}

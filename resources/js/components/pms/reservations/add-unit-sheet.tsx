@@ -9,7 +9,15 @@ import {
     KEEP_OPTIONS,
     useFormOptions,
 } from '@/components/pms/use-form-options';
+import { BookingUnitPicker } from '@/components/pms/reservations/booking-unit-picker';
 import { plansFor } from '@/components/pms/reservations/booking-lines';
+import {
+    dayUseRoomTypes,
+    endsAt,
+    isHalfHour,
+    offerOptions,
+} from '@/components/pms/reservations/day-use';
+import { useDayUseOffers } from '@/components/pms/reservations/use-day-use-offers';
 import { useFreshOnOpen } from '@/components/pms/use-fresh-on-open';
 import { Button } from '@/components/ui/button';
 import {
@@ -36,6 +44,8 @@ type Props = {
     companyId: number | null;
     options?: Options;
     currency: App.Enums.Currency | null;
+    /** A reservation is all overnight or all day use: a day use reservation adds day use lines. */
+    stayType?: 'overnight' | 'day_use';
 };
 
 const EMPTY = {
@@ -48,6 +58,10 @@ const EMPTY = {
     override_total: '',
     override_reason: '',
     restriction_override_reason: '',
+    stay_type: 'overnight',
+    start_time: '10:00',
+    hours: '',
+    room_id: '',
 };
 
 /** "4, 9" becomes [4, 9]. A bad entry stays a string, so the server refuses it and the field shows the error. */
@@ -66,6 +80,7 @@ function AddUnitForm({
     companyId,
     options,
     currency,
+    stayType = 'overnight',
 }: Props) {
     useFormOptions(open, options !== undefined, 'addUnitOptions');
 
@@ -75,10 +90,24 @@ function AddUnitForm({
     const [restrictionAsked, setRestrictionAsked] = useState(false);
 
     const submit = () => {
-        form.transform((values) => ({
-            ...values,
-            child_ages: parseAges(values.child_ages),
-        }));
+        form.transform((values) =>
+            isDayUse
+                ? {
+                      ...values,
+                      stay_type: 'day_use',
+                      departure_date: values.arrival_date,
+                      child_ages: parseAges(values.child_ages),
+                      override_total: '',
+                      override_reason: '',
+                  }
+                : {
+                      ...values,
+                      child_ages: parseAges(values.child_ages),
+                      start_time: '',
+                      hours: '',
+                      room_id: '',
+                  },
+        );
         form.post(store.url({ reservation: reservationId }), {
             preserveScroll: true,
             except: KEEP_OPTIONS,
@@ -91,12 +120,28 @@ function AddUnitForm({
         });
     };
 
-    const roomTypes = options?.roomTypes ?? [];
+    const isDayUse = stayType === 'day_use';
+    const roomTypes = isDayUse
+        ? dayUseRoomTypes(options?.roomTypes ?? [], options?.ratePlans ?? [])
+        : (options?.roomTypes ?? []);
     const ratePlans = plansFor(
         options?.ratePlans ?? [],
         data.room_type_id,
         companyId === null ? '' : String(companyId),
+        isDayUse,
     );
+    const { offers, loaded } = useDayUseOffers(
+        isDayUse ? data.room_type_id : '',
+        data.rate_plan_id,
+        data.arrival_date,
+        isHalfHour(data.start_time) ? data.start_time : '',
+    );
+    const money = (amount: string) =>
+        new Intl.NumberFormat(undefined, {
+            style: 'currency',
+            currency: currency ?? 'MYR',
+        }).format(Number(amount));
+    const ends = endsAt(offers, data.hours);
     const roomType = roomTypes.find(
         (type) => String(type.id) === data.room_type_id,
     );
@@ -112,7 +157,11 @@ function AddUnitForm({
             open={open}
             onOpenChange={onOpenChange}
             title="Add unit"
-            description="One room, or one bed in a dorm. Add more units one at a time."
+            description={
+                isDayUse
+                    ? 'One room for a number of hours on one day. Add more units one at a time.'
+                    : 'One room, or one bed in a dorm. Add more units one at a time.'
+            }
             errors={errors}
             dirty={form.isDirty}
             discardTitle="Discard this unit?"
@@ -135,6 +184,8 @@ function AddUnitForm({
                             ...current,
                             room_type_id: value,
                             rate_plan_id: '',
+                            hours: '',
+                            room_id: '',
                         }));
                     }}
                     aria-invalid={!!errors.room_type_id}
@@ -151,42 +202,148 @@ function AddUnitForm({
                     }))}
                     value={data.rate_plan_id}
                     onValueChange={(value) =>
-                        form.setData('rate_plan_id', value)
+                        form.setData((current) => ({
+                            ...current,
+                            rate_plan_id: value,
+                            hours: '',
+                            room_id: '',
+                        }))
                     }
                     disabled={data.room_type_id === ''}
                     aria-invalid={!!errors.rate_plan_id}
                 />
                 <FieldError>{errors.rate_plan_id}</FieldError>
             </Field>
-            <div className="grid gap-4 sm:grid-cols-2">
-                <Field data-invalid={!!errors.arrival_date}>
-                    <FieldLabel htmlFor="unit-arrival_date">Arrival</FieldLabel>
-                    <DatePicker
-                        id="unit-arrival_date"
-                        value={data.arrival_date}
-                        onChange={(value) =>
-                            form.setData('arrival_date', value)
-                        }
-                        aria-invalid={!!errors.arrival_date}
-                    />
-                    <FieldError>{errors.arrival_date}</FieldError>
-                </Field>
-                <Field data-invalid={!!errors.departure_date}>
-                    <FieldLabel htmlFor="unit-departure_date">
-                        Departure
-                    </FieldLabel>
-                    <DatePicker
-                        id="unit-departure_date"
-                        value={data.departure_date}
-                        min={data.arrival_date || undefined}
-                        onChange={(value) =>
-                            form.setData('departure_date', value)
-                        }
-                        aria-invalid={!!errors.departure_date}
-                    />
-                    <FieldError>{errors.departure_date}</FieldError>
-                </Field>
-            </div>
+            {isDayUse ? (
+                <>
+                    <div className="grid gap-4 sm:grid-cols-2">
+                        <Field data-invalid={!!errors.arrival_date}>
+                            <FieldLabel htmlFor="unit-arrival_date">
+                                Date
+                            </FieldLabel>
+                            <DatePicker
+                                id="unit-arrival_date"
+                                value={data.arrival_date}
+                                onChange={(value) =>
+                                    form.setData((current) => ({
+                                        ...current,
+                                        arrival_date: value,
+                                        hours: '',
+                                        room_id: '',
+                                    }))
+                                }
+                                aria-invalid={!!errors.arrival_date}
+                            />
+                            <FieldError>{errors.arrival_date}</FieldError>
+                        </Field>
+                        <Field data-invalid={!!errors.start_time}>
+                            <FieldLabel htmlFor="unit-start_time">
+                                Start
+                            </FieldLabel>
+                            <Input
+                                id="unit-start_time"
+                                type="time"
+                                step={1800}
+                                value={data.start_time}
+                                onChange={(event) =>
+                                    form.setData((current) => ({
+                                        ...current,
+                                        start_time: event.target.value,
+                                        hours: '',
+                                        room_id: '',
+                                    }))
+                                }
+                                aria-invalid={!!errors.start_time}
+                            />
+                            <FieldDescription>
+                                On the hour or the half hour.
+                            </FieldDescription>
+                            <FieldError>{errors.start_time}</FieldError>
+                        </Field>
+                    </div>
+                    <Field data-invalid={!!errors.hours}>
+                        <FieldLabel htmlFor="unit-hours">Hours</FieldLabel>
+                        <EnumSelect
+                            id="unit-hours"
+                            placeholder={
+                                loaded && offers.length === 0
+                                    ? 'No hours sold'
+                                    : 'Select hours'
+                            }
+                            options={offerOptions(offers, money)}
+                            value={data.hours}
+                            onValueChange={(value) =>
+                                form.setData((current) => ({
+                                    ...current,
+                                    hours: value,
+                                    room_id: '',
+                                }))
+                            }
+                            disabled={offers.length === 0}
+                            aria-invalid={!!errors.hours}
+                        />
+                        {ends && (
+                            <FieldDescription>Ends {ends}.</FieldDescription>
+                        )}
+                        <FieldError>{errors.hours}</FieldError>
+                    </Field>
+                    <Field data-invalid={!!errors.room_id}>
+                        <FieldLabel htmlFor="unit-room_id">Room</FieldLabel>
+                        <BookingUnitPicker
+                            id="unit-room_id"
+                            label="Room"
+                            roomTypeId={data.room_type_id}
+                            arrival={data.arrival_date}
+                            departure={data.arrival_date}
+                            dayUse={{
+                                start: data.start_time,
+                                hours: data.hours,
+                            }}
+                            value={data.room_id}
+                            onChange={(value) => form.setData('room_id', value)}
+                            emptyLabel="Select room"
+                            takenIds={new Set()}
+                            invalid={!!errors.room_id}
+                        />
+                        <FieldDescription>
+                            Rooms free for those hours.
+                        </FieldDescription>
+                        <FieldError>{errors.room_id}</FieldError>
+                    </Field>
+                </>
+            ) : (
+                <div className="grid gap-4 sm:grid-cols-2">
+                    <Field data-invalid={!!errors.arrival_date}>
+                        <FieldLabel htmlFor="unit-arrival_date">
+                            Arrival
+                        </FieldLabel>
+                        <DatePicker
+                            id="unit-arrival_date"
+                            value={data.arrival_date}
+                            onChange={(value) =>
+                                form.setData('arrival_date', value)
+                            }
+                            aria-invalid={!!errors.arrival_date}
+                        />
+                        <FieldError>{errors.arrival_date}</FieldError>
+                    </Field>
+                    <Field data-invalid={!!errors.departure_date}>
+                        <FieldLabel htmlFor="unit-departure_date">
+                            Departure
+                        </FieldLabel>
+                        <DatePicker
+                            id="unit-departure_date"
+                            value={data.departure_date}
+                            min={data.arrival_date || undefined}
+                            onChange={(value) =>
+                                form.setData('departure_date', value)
+                            }
+                            aria-invalid={!!errors.departure_date}
+                        />
+                        <FieldError>{errors.departure_date}</FieldError>
+                    </Field>
+                </div>
+            )}
             <div className="grid gap-4 sm:grid-cols-2">
                 <Field data-invalid={!!errors.adults}>
                     <FieldLabel htmlFor="unit-adults">Adults</FieldLabel>
@@ -228,64 +385,66 @@ function AddUnitForm({
                     <FieldError>{childAgesError}</FieldError>
                 </Field>
             </div>
-            <Collapsible
-                open={overrideOpen || overrideInvalid}
-                onOpenChange={setOverrideOpen}
-                className="flex flex-col gap-4"
-            >
-                <CollapsibleTrigger
-                    render={
-                        <Button
-                            type="button"
-                            variant="ghost"
-                            className="justify-between"
-                        />
-                    }
+            {!isDayUse && (
+                <Collapsible
+                    open={overrideOpen || overrideInvalid}
+                    onOpenChange={setOverrideOpen}
+                    className="flex flex-col gap-4"
                 >
-                    Price override
-                    <ChevronDown data-icon="inline-end" />
-                </CollapsibleTrigger>
-                <CollapsibleContent className="flex flex-col gap-4">
-                    <Field data-invalid={!!errors.override_total}>
-                        <FieldLabel htmlFor="unit-override_total">
-                            Stay total
-                        </FieldLabel>
-                        <MoneyInput
-                            id="unit-override_total"
-                            value={data.override_total}
-                            onChange={(value) =>
-                                form.setData('override_total', value)
-                            }
-                            currency={currency}
-                            invalid={!!errors.override_total}
-                        />
-                        <FieldDescription>
-                            Replaces the quoted price for this unit. Leave empty
-                            to use the rate.
-                        </FieldDescription>
-                        <FieldError>{errors.override_total}</FieldError>
-                    </Field>
-                    <Field data-invalid={!!errors.override_reason}>
-                        <FieldLabel htmlFor="unit-override_reason">
-                            Reason
-                        </FieldLabel>
-                        <Input
-                            id="unit-override_reason"
-                            value={data.override_reason}
-                            onChange={(event) =>
-                                form.setData(
-                                    'override_reason',
-                                    event.target.value,
-                                )
-                            }
-                            maxLength={500}
-                            placeholder="Corporate rate"
-                            aria-invalid={!!errors.override_reason}
-                        />
-                        <FieldError>{errors.override_reason}</FieldError>
-                    </Field>
-                </CollapsibleContent>
-            </Collapsible>
+                    <CollapsibleTrigger
+                        render={
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                className="justify-between"
+                            />
+                        }
+                    >
+                        Price override
+                        <ChevronDown data-icon="inline-end" />
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="flex flex-col gap-4">
+                        <Field data-invalid={!!errors.override_total}>
+                            <FieldLabel htmlFor="unit-override_total">
+                                Stay total
+                            </FieldLabel>
+                            <MoneyInput
+                                id="unit-override_total"
+                                value={data.override_total}
+                                onChange={(value) =>
+                                    form.setData('override_total', value)
+                                }
+                                currency={currency}
+                                invalid={!!errors.override_total}
+                            />
+                            <FieldDescription>
+                                Replaces the quoted price for this unit. Leave
+                                empty to use the rate.
+                            </FieldDescription>
+                            <FieldError>{errors.override_total}</FieldError>
+                        </Field>
+                        <Field data-invalid={!!errors.override_reason}>
+                            <FieldLabel htmlFor="unit-override_reason">
+                                Reason
+                            </FieldLabel>
+                            <Input
+                                id="unit-override_reason"
+                                value={data.override_reason}
+                                onChange={(event) =>
+                                    form.setData(
+                                        'override_reason',
+                                        event.target.value,
+                                    )
+                                }
+                                maxLength={500}
+                                placeholder="Corporate rate"
+                                aria-invalid={!!errors.override_reason}
+                            />
+                            <FieldError>{errors.override_reason}</FieldError>
+                        </Field>
+                    </CollapsibleContent>
+                </Collapsible>
+            )}
             {restrictionAsked && (
                 <Field data-invalid={!!errors.restriction_override_reason}>
                     <FieldLabel htmlFor="unit-restriction_override_reason">

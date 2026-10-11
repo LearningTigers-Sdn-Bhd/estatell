@@ -144,8 +144,9 @@ function CheckInForm({
                 <>
                     {unit.primaryGuest ?? 'No primary guest'} ·{' '}
                     <DateText date={unit.arrival} /> →{' '}
-                    <DateText date={unit.departure} /> · {unit.nightCount}{' '}
-                    {unit.nightCount === 1 ? 'night' : 'nights'}
+                    <DateText date={unit.departure} /> ·{' '}
+                    {unit.stayLabel ??
+                        `${unit.nightCount} ${unit.nightCount === 1 ? 'night' : 'nights'}`}
                 </>
             }
             errors={errors}

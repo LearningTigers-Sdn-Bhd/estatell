@@ -19,6 +19,7 @@ export function BookingUnitPicker({
     takenIds,
     invalid,
     label,
+    dayUse = null,
 }: {
     id: string;
     roomTypeId: string;
@@ -32,9 +33,19 @@ export function BookingUnitPicker({
     takenIds: Set<string>;
     invalid?: boolean;
     label: string;
+    /** A day use block: the start time and hours. The rooms listed are free for those hours on the arrival date. */
+    dayUse?: { start: string; hours: string } | null;
 }) {
-    const ready = roomTypeId !== '' && arrival !== '' && departure > arrival;
-    const key = `${roomTypeId}|${arrival}|${departure}`;
+    const ready =
+        roomTypeId !== '' &&
+        arrival !== '' &&
+        (dayUse === null
+            ? departure > arrival
+            : dayUse.start !== '' && dayUse.hours !== '');
+    const key =
+        dayUse === null
+            ? `${roomTypeId}|${arrival}|${departure}`
+            : `${roomTypeId}|${arrival}|${dayUse.start}|${dayUse.hours}`;
     const [loaded, setLoaded] = useState<{
         key: string;
         units: FreeUnit[];
@@ -46,11 +57,20 @@ export function BookingUnitPicker({
                 freeUnits.url(
                     {},
                     {
-                        query: {
-                            room_type_id: roomTypeId,
-                            arrival_date: arrival,
-                            departure_date: departure,
-                        },
+                        query:
+                            dayUse === null
+                                ? {
+                                      room_type_id: roomTypeId,
+                                      arrival_date: arrival,
+                                      departure_date: departure,
+                                  }
+                                : {
+                                      room_type_id: roomTypeId,
+                                      stay_type: 'day_use',
+                                      arrival_date: arrival,
+                                      start_time: dayUse.start,
+                                      hours: dayUse.hours,
+                                  },
                     },
                 ),
                 {
@@ -64,7 +84,7 @@ export function BookingUnitPicker({
         } catch {
             setLoaded(null);
         }
-    }, [roomTypeId, arrival, departure, key]);
+    }, [roomTypeId, arrival, departure, dayUse?.start, dayUse?.hours, key]);
 
     useEffect(() => {
         if (ready && value !== '' && loaded?.key !== key) {

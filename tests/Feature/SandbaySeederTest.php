@@ -11,6 +11,7 @@ use App\Models\Payment;
 use App\Models\Property;
 use App\Models\RatePlan;
 use App\Models\Reservation;
+use App\Models\ReservationUnit;
 use App\Models\Room;
 use App\Models\User;
 use Database\Seeders\SandbaySeeder;
@@ -27,7 +28,7 @@ test('the Sandbay seeder builds a live resort with rooms, plans, guests and rese
         ->toBe(['Room Only', 'Bed & Breakfast', 'Half Board', 'Dive Package', 'Day use'])
         ->and(Guest::query()->where('property_id', $property->id)->count())->toBe(25)
         ->and(User::query()->where('property_id', $property->id)->count())->toBe(4)
-        ->and(Reservation::query()->where('property_id', $property->id)->count())->toBe(21)
+        ->and(Reservation::query()->where('property_id', $property->id)->count())->toBe(22)
         ->and(Reservation::query()->where('status', ReservationStatus::Cancelled)->count())->toBe(1)
         ->and(Reservation::query()->whereNotNull('group_name')->count())->toBe(1);
 });
@@ -50,7 +51,7 @@ test('running the Sandbay seeder twice does not add a second property', function
     $this->seed(SandbaySeeder::class);
 
     expect(Property::query()->where('name', 'Sandbay Resort')->count())->toBe(1)
-        ->and(Reservation::query()->count())->toBe(21);
+        ->and(Reservation::query()->count())->toBe(22);
 });
 
 test('the Sandbay seeder adds a Day use plan with hour prices and day use taxes without the flat tax', function () {
@@ -71,4 +72,17 @@ test('the Sandbay seeder adds a Day use plan with hour prices and day use taxes 
         ->and($dayUseTaxes->pluck('code')->all())->not->toContain('TTX')
         ->and($dayUseTaxes->count())->toBeGreaterThan(0)
         ->and($dayUseTaxes->count())->toBe($property->taxes()->where('rate_type', '!=', 'flat')->whereHas('applicableTransactionCodes', fn ($q) => $q->where('system_key', 'room_revenue'))->count());
+});
+
+test('the Sandbay seeder books one Confirmed day use in a Garden Room', function () {
+    $this->seed(SandbaySeeder::class);
+
+    $unit = ReservationUnit::query()->where('stay_type', 'day_use')->sole();
+
+    expect($unit->status->value)->toBe('confirmed')
+        ->and($unit->roomType->name)->toBe('Garden Room')
+        ->and($unit->dayUse->hours)->toBe(4)
+        ->and(in_array($unit->dayUse->amount, ['100.00', '115.00'], true))->toBeTrue()
+        ->and($unit->dayUse->room_id)->not->toBeNull()
+        ->and(substr($unit->arrival_time, 0, 5))->toBe('10:00');
 });

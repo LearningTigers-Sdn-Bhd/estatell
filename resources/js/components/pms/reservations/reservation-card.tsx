@@ -111,8 +111,8 @@ export function ReservationCard({ reservation }: { reservation: Item }) {
                     <div className="text-center">
                         <dt className="text-xs text-muted-foreground">Stay</dt>
                         <dd className="tabular-nums">
-                            {reservation.nights}{' '}
-                            {reservation.nights === 1 ? 'night' : 'nights'}
+                            {reservation.stayLabel ??
+                                `${reservation.nights} ${reservation.nights === 1 ? 'night' : 'nights'}`}
                         </dd>
                     </div>
                     <div className="text-right">

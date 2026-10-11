@@ -6,6 +6,7 @@ import {
     isQuotable,
     moveAddOn,
     nightsBetween,
+    plansFor,
     resizeAges,
     resizeBeds,
     sumMoney,
@@ -88,6 +89,8 @@ test('the posted lines drop the client key and send dorm beds instead of adults 
         room_id: '8',
     };
     const data: BookingForm = {
+        stay_type: 'overnight',
+        start_time: '',
         source: 'phone',
         external_reference: '',
         arrival_date: '2026-10-20',
@@ -141,4 +144,93 @@ test('moving an add-on takes it from one line and puts it last on the other, and
     expect(lines[0].add_ons).toHaveLength(2);
     expect(moveAddOn(lines, 0, 0, 0)).toBe(lines);
     expect(moveAddOn(lines, 0, 5, 1)).toBe(lines);
+});
+
+test('a day use booking posts the date as departure and no overnight fields', () => {
+    const line = {
+        ...emptyLine(),
+        room_type_id: '1',
+        rate_plan_id: '4',
+        hours: '4',
+        room_id: '9',
+        child_ages: ['4'],
+        override_total: '50.00',
+        discount_id: '2',
+        beds: '3',
+    };
+    const data: BookingForm = {
+        stay_type: 'day_use',
+        start_time: '10:00',
+        source: 'phone',
+        external_reference: '',
+        arrival_date: '2026-10-20',
+        departure_date: '2026-10-22',
+        arrival_time: '15:00',
+        departure_time: '11:00',
+        group_name: '',
+        company_id: '',
+        credit_override_reason: '',
+        billing_mode: 'master_pays',
+        notes: '',
+        guests: [],
+        lines: [line],
+    };
+
+    const payload = bookingPayload(data, [roomType]);
+
+    expect(payload).toMatchObject({
+        stay_type: 'day_use',
+        start_time: '10:00',
+        departure_date: '2026-10-20',
+    });
+    expect(payload.lines[0]).toMatchObject({
+        hours: '4',
+        room_id: '9',
+        child_ages: [4],
+        beds: '1',
+        bed_ids: [],
+        discount_id: '',
+        override_total: '',
+    });
+});
+
+test('an overnight booking sends no start time and no hours', () => {
+    const data: BookingForm = {
+        stay_type: 'overnight',
+        start_time: '10:00',
+        source: 'phone',
+        external_reference: '',
+        arrival_date: '2026-10-20',
+        departure_date: '2026-10-22',
+        arrival_time: '15:00',
+        departure_time: '11:00',
+        group_name: '',
+        company_id: '',
+        credit_override_reason: '',
+        billing_mode: 'master_pays',
+        notes: '',
+        guests: [],
+        lines: [{ ...emptyLine(), room_type_id: '1', hours: '4' }],
+    };
+
+    const payload = bookingPayload(data, [roomType]);
+
+    expect(payload.start_time).toBe('');
+    expect(payload.lines[0]).toMatchObject({ hours: '' });
+});
+
+test('plans are split by stay type', () => {
+    const plan = (id: number, isDayUse: boolean) =>
+        ({
+            id,
+            name: `P${id}`,
+            roomTypeIds: [1],
+            fixedNights: null,
+            companyIds: [],
+            isDayUse,
+        }) as unknown as App.Data.Reservations.RatePlanOptionData;
+    const plans = [plan(1, false), plan(2, true)];
+
+    expect(plansFor(plans, '1', '').map((one) => one.id)).toEqual([1]);
+    expect(plansFor(plans, '1', '', true).map((one) => one.id)).toEqual([2]);
 });

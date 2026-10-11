@@ -179,6 +179,7 @@ export function ReservationActions({
                     companyId={reservation.companyId}
                     options={addUnitOptions}
                     currency={currency}
+                    stayType={reservation.stayType}
                 />
             )}
             {canCheckInAll && (
