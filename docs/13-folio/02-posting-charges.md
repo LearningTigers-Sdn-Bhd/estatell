@@ -75,7 +75,7 @@ All Actions return a result and write nothing on a refusal. Each one is one tran
 
 ### `TransferLines`
 
-`(User $actor, list<FolioLine> $lines, Folio $target): PostingResult`. It reverses each line on its folio and posts a copy on the target, with children. All lines of one transfer share one `transfer_group_id`.
+`(User $actor, list<FolioLine> $lines, Folio $target, bool $closeSettled = true): PostingResult`. It reverses each line on its folio and posts a copy on the target, with children. All lines of one transfer share one `transfer_group_id`.
 
 | Check                                              | Refusal                 |
 | -------------------------------------------------- | ----------------------- |
@@ -88,6 +88,7 @@ All Actions return a result and write nothing on a refusal. Each one is one tran
 
 - The lines may come from **several source folios** of the reservation (for [Move charges](07-move-charges.md)). Every folio is locked in id order before the checks.
 - A transfer moves whole charges. Their children move with them.
+- With `$closeSettled` (the default) the last step closes an Open Unit folio of a CheckedOut unit that is left at 0 (`CloseSettledUnitFolio`), on each source and on the target. `MoveCharges` passes false and closes the sources itself.
 - The copy keeps `description`, `kind`, `quantity` and `unit_amount`. Its key is `transfer:{group}:{line_id}`.
 - Source and target balances change by the same amount in opposite directions.
 

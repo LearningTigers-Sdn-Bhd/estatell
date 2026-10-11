@@ -7,6 +7,7 @@ use App\Http\Controllers\Reservations\ReservationCityLedgerController;
 use App\Http\Controllers\Reservations\ReservationCompanyController;
 use App\Http\Controllers\Reservations\ReservationController;
 use App\Http\Controllers\Reservations\ReservationFolioController;
+use App\Http\Controllers\Reservations\ReservationFolioMoveController;
 use App\Http\Controllers\Reservations\ReservationGroupController;
 use App\Http\Controllers\Reservations\ReservationPaymentController;
 use App\Http\Controllers\Reservations\ReservationRoutingController;
@@ -57,6 +58,8 @@ Route::prefix('reservations')->name('reservations.')->scopeBindings()->group(fun
                 Route::post('folios/third-party', [ReservationRoutingController::class, 'storeThirdPartyFolio'])->name('folios.third-party.store');
                 Route::post('routing-rules', [ReservationRoutingController::class, 'storeRule'])->name('routing-rules.store');
                 Route::delete('routing-rules/{routingRule}', [ReservationRoutingController::class, 'destroyRule'])->name('routing-rules.destroy');
+                Route::post('folio/move/preview', [ReservationFolioMoveController::class, 'preview'])->name('folio.move.preview');
+                Route::post('folio/move', [ReservationFolioMoveController::class, 'store'])->name('folio.move.store');
             });
 
             Route::middleware('can:'.PermissionEnum::PaymentRecord->value)->group(function () {

@@ -366,6 +366,27 @@ test('a transfer moves a charge and its children, and the balances change by the
         ->and(FolioLine::query()->whereNotNull('transfer_group_id')->pluck('transfer_group_id')->unique()->all())->toBe([$group]);
 });
 
+test('a transfer takes lines from several source folios in one group and logs nothing itself', function () {
+    $setup = postingSetup();
+    $first = postTaxedCharge($setup);
+    $second = postTaxedCharge($setup);
+    $otherSource = Folio::factory()->thirdParty()->create(['property_id' => $setup['property']->id, 'reservation_id' => $first->folio->reservation_id]);
+    $third = FolioLine::factory()->for($otherSource)->create(['transaction_code_id' => $first->transaction_code_id, 'posting_date' => today()->toDateString()]);
+    $target = Folio::factory()->create(['property_id' => $setup['property']->id, 'reservation_id' => $first->folio->reservation_id]);
+    $logged = Activity::query()->count();
+    $total = bcadd(balanceOf($first->folio), balanceOf($otherSource), 2);
+
+    $result = app(TransferLines::class)($setup['actor'], [$first, $third, $second], $target);
+
+    expect($result->isRefused())->toBeFalse()
+        ->and(FolioLine::query()->whereNotNull('transfer_group_id')->pluck('transfer_group_id')->unique())->toHaveCount(1)
+        ->and(FolioLine::query()->where('folio_id', $target->id)->whereNull('parent_line_id')->count())->toBe(3)
+        ->and(balanceOf($otherSource))->toBe('0.00')
+        ->and(balanceOf($first->folio))->toBe('0.00')
+        ->and(balanceOf($target))->toBe($total)
+        ->and(Activity::query()->count())->toBe($logged);
+});
+
 test('a transfer refusal writes and logs nothing', function (string $refusal, Closure $arrange) {
     $setup = postingSetup();
     $charge = postTaxedCharge($setup);
@@ -382,7 +403,8 @@ test('a transfer refusal writes and logs nothing', function (string $refusal, Cl
 })->with([
     'the target is the source folio' => [PostingResult::REFUSAL_TRANSFER_INVALID, fn (FolioLine $charge, Folio $target) => [[$charge], $charge->folio]],
     'no lines' => [PostingResult::REFUSAL_TRANSFER_INVALID, fn (FolioLine $charge, Folio $target) => [[], $target]],
-    'lines of two folios' => [PostingResult::REFUSAL_TRANSFER_INVALID, fn (FolioLine $charge, Folio $target) => [[$charge, FolioLine::factory()->for($target)->create()], $target]],
+    'a line already on the target' => [PostingResult::REFUSAL_TRANSFER_INVALID, fn (FolioLine $charge, Folio $target) => [[$charge, FolioLine::factory()->for($target)->create()], $target]],
+    'a line of a folio of another reservation' => [PostingResult::REFUSAL_DIFFERENT_RESERVATION, fn (FolioLine $charge, Folio $target, array $setup) => [[$charge, FolioLine::factory()->for(Folio::factory()->create(['property_id' => $setup['property']->id]))->create()], $target]],
     'another reservation' => [PostingResult::REFUSAL_DIFFERENT_RESERVATION, fn (FolioLine $charge, Folio $target, array $setup) => [[$charge], Folio::factory()->create(['property_id' => $setup['property']->id])]],
     'a closed target' => [PostingResult::REFUSAL_FOLIO_NOT_OPEN, fn (FolioLine $charge) => [[$charge], Folio::factory()->thirdParty()->closed()->create(['property_id' => $charge->folio->property_id, 'reservation_id' => $charge->folio->reservation_id])]],
     'a child line' => [PostingResult::REFUSAL_LINE_NOT_TRANSFERABLE, fn (FolioLine $charge, Folio $target) => [[$charge->children()->sole()], $target]],

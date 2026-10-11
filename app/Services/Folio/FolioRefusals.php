@@ -3,6 +3,7 @@
 namespace App\Services\Folio;
 
 use App\Actions\Folio\FolioStatusResult;
+use App\Actions\Folio\MoveChargesResult;
 use App\Actions\Folio\PostingResult;
 use App\Services\Catalogues\TaxCalculator;
 
@@ -18,7 +19,7 @@ class FolioRefusals
     /**
      * The errors to flash back to a form, keyed by field name.
      *
-     * @param  list<string>  $rooms  The rooms still in-house, for `units_in_house`.
+     * @param  list<string>  $rooms  The rooms still in-house for `units_in_house`, or the rooms with nothing scheduled for `nothing_scheduled`.
      * @return array<string, string>
      */
     public function errors(string $code, array $rooms = []): array
@@ -59,7 +60,10 @@ class FolioRefusals
             PostingResult::REFUSAL_LINE_IS_REVERSAL => [self::FORM, __('A reversal cannot be reversed.')],
             PostingResult::REFUSAL_TRANSFER_INVALID => ['target_folio_id', __('Choose a different folio of this reservation.')],
             PostingResult::REFUSAL_DIFFERENT_RESERVATION => ['target_folio_id', __('The folio must belong to the same reservation.')],
-            PostingResult::REFUSAL_LINE_NOT_TRANSFERABLE => [self::FORM, __('This line cannot be moved. It is a child, a reversal or already reversed.')],
+            PostingResult::REFUSAL_LINE_NOT_TRANSFERABLE => [self::FORM, __('A charge you ticked cannot be moved. It was already moved or reversed, or it belongs to another charge. Reload the page and try again.')],
+            MoveChargesResult::REFUSAL_NOTHING_TO_MOVE => [self::FORM, __('Tick a charge or choose a scheduled option to move.')],
+            MoveChargesResult::REFUSAL_TOO_MANY_CHARGES => [self::FORM, __('You can move up to 200 charges at once. Move them in two parts.')],
+            MoveChargesResult::REFUSAL_NOTHING_SCHEDULED => [self::FORM, __('No scheduled nights are left to move for :rooms.', ['rooms' => implode(', ', $rooms)])],
             PostingResult::REFUSAL_DISCOUNT_NOT_FOUND => ['discount_id', __('This discount is not available.')],
             PostingResult::REFUSAL_NOTHING_ELIGIBLE => ['discount_id', __('No charge on this folio can take this discount.')],
             PostingResult::REFUSAL_AMOUNT_REQUIRED => ['amount', __('Enter the discount amount.')],

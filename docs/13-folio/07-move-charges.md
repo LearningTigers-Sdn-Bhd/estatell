@@ -142,3 +142,18 @@ All need `folio.transfer`. A folio, line or unit of another reservation is a 404
 - A CheckedOut unit's folio at 0 closes after the move.
 - 200 charges pass, 201 are refused.
 - Permission 403 and other-reservation 404.
+
+## Build status
+
+Built (backend commit): `TransferLines` for several source folios (no log), `FolioRouter::resolverFor()` and `pickerFor()` with proposed rules, `MoveChargesPreview` (service) with the `Move*Data` classes, `MoveCharges` and `MoveChargesResult` (Actions), `ReservationFolioMoveController` (`preview`, `store`), `MoveChargesRequest`, the refusal messages in `FolioRefusals`, and the routes `reservations.folio.move.preview` and `reservations.folio.move.store`. The page route and the page come in the frontend commit.
+
+Decisions made at build time:
+
+- **Request body.** Preview and save send the same body: `target_folio_id`, `line_ids` (always present, may be empty) and `schedules` (a list of `{unit_id, scope}`, scope `room` or `all`). A save with a refusal goes back with an error on `form` (or `target_folio_id`). The preview of a target that is not Open is a 422.
+- **Check order in `MoveCharges`.** It locks the target and the sources, then checks, in this order: nothing to move, too many charges, different reservation, target Open, business date, `nothing_scheduled`, and last the `TransferLines` checks. All of them run before the first write. The table above lists the checks, not their order.
+- **Closing the sources.** `TransferLines` takes `bool $closeSettled = true`. `MoveCharges` passes false and closes each source itself after the rules are saved, so a later "folio receives scheduled charges" check sees the new rules. Other callers keep the default.
+- **Rollback.** A refusal of `CreateRoutingRule` after the posted move rolls the whole transaction back. `rule_exists` is not a refusal here.
+- **Rules kept.** A Manual rule with the same selectors and the same target is kept as it is and is not logged as created.
+- **Preview payload** (`MovePreviewData`): `balances` (posted before and after for every Open folio), `projectedBefore` and `projectedAfter` (the target), `schedules` (the choices per room, only rooms with Scheduled rows that do not already go to the target and a night after the business date), `incoming` (the Scheduled charges that land on the target), `notes`, `chargeCount`, `amount`, `scheduleCount` and `refusal`. The choice amounts come from routing the Scheduled rows again with each choice's rules, so a row kept by a more specific rule is not counted.
+- **Scheduled blocks** from `ScheduledFolioRows` now carry their transaction `code`.
+- Activity log text when only schedules move: "Scheduled room nights of 2 rooms now go to {to}." ("Scheduled charges" when any room chose Charge everything).

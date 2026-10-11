@@ -41,8 +41,10 @@ class ScheduledFolioRows
     ) {}
 
     /**
+     * Each block also carries its transaction `code`, so the Move charges preview can route it again with proposed rules.
+     *
      * @param  array<int, string>  $unitLabels  Short unit label (room, or room type) by unit id.
-     * @return list<array{target: int|null, unit: int, date: string, rows: list<FolioRowData>}>
+     * @return list<array{target: int|null, unit: int, date: string, code: TransactionCode, rows: list<FolioRowData>}>
      */
     public function forReservation(Property $property, Reservation $reservation, array $unitLabels): array
     {
@@ -93,6 +95,7 @@ class ScheduledFolioRows
                         'target' => $resolve($unit, $charge->code),
                         'unit' => $unit->id,
                         'date' => $night->date->toDateString(),
+                        'code' => $charge->code,
                         'rows' => $this->chargeRows($charge, $night, $label),
                     ];
                 }
@@ -106,6 +109,7 @@ class ScheduledFolioRows
                     'target' => $resolve($unit, $code),
                     'unit' => $unit->id,
                     'date' => $date,
+                    'code' => $code,
                     'rows' => $this->addOnRows($property, $addOn, $code, $date, $currency, $nationality, $label),
                 ];
             }

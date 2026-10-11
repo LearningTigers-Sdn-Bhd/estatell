@@ -3,6 +3,7 @@
 namespace App\Services\Folio;
 
 use App\Enums\FolioType;
+use App\Enums\RoutingRuleSource;
 use App\Enums\SystemTransactionCode;
 use App\Models\Folio;
 use App\Models\FolioRoutingRule;
@@ -53,13 +54,15 @@ class FolioRouter
     /**
      * The same choice as `targetFor()` for many postings of one reservation, with the rules and the unit folios read
      * once. The closure returns the id of the target folio, or null while the unit has no folio. It writes nothing.
-     * The folio page uses it to place Scheduled rows.
+     * The folio page uses it to place Scheduled rows. `$proposedRules` are unsaved rules added to the real ones for a
+     * preview (Move charges): a proposed rule replaces a saved Manual rule with the same selectors, as the Action will.
      *
+     * @param  list<FolioRoutingRule>  $proposedRules
      * @return Closure(ReservationUnit, TransactionCode): ?int
      */
-    public function resolverFor(Reservation $reservation): Closure
+    public function resolverFor(Reservation $reservation, array $proposedRules = []): Closure
     {
-        $rules = $reservation->routingRules()->get();
+        $rules = $this->rulesWith($reservation, $proposedRules);
         $unitFolioIds = Folio::query()
             ->where('property_id', $reservation->property_id)
             ->where('reservation_id', $reservation->id)
@@ -70,6 +73,45 @@ class FolioRouter
 
         return fn (ReservationUnit $unit, TransactionCode $code): ?int => $this->pick($rules, $unit, $code)?->target_folio_id
             ?? ($unitFolioIds[$unit->id] ?? null);
+    }
+
+    /**
+     * The rule that wins for a unit and a code, or null when none matches (the unit's own folio then applies). The
+     * Move charges preview names it in its notes. Same inputs as `resolverFor()`.
+     *
+     * @param  list<FolioRoutingRule>  $proposedRules
+     * @return Closure(ReservationUnit, TransactionCode): ?FolioRoutingRule
+     */
+    public function pickerFor(Reservation $reservation, array $proposedRules = []): Closure
+    {
+        $rules = $this->rulesWith($reservation, $proposedRules);
+
+        return fn (ReservationUnit $unit, TransactionCode $code): ?FolioRoutingRule => $this->pick($rules, $unit, $code);
+    }
+
+    /**
+     * The saved rules, minus the Manual rules that a proposed rule replaces, plus the proposed rules.
+     *
+     * @param  list<FolioRoutingRule>  $proposedRules
+     * @return Collection<int, FolioRoutingRule>
+     */
+    private function rulesWith(Reservation $reservation, array $proposedRules): Collection
+    {
+        $rules = $reservation->routingRules()->get();
+
+        if ($proposedRules === []) {
+            return $rules;
+        }
+
+        $same = fn (FolioRoutingRule $a, FolioRoutingRule $b): bool => $a->reservation_unit_id === $b->reservation_unit_id
+            && $a->category === $b->category
+            && $a->transaction_code_id === $b->transaction_code_id;
+
+        return $rules
+            ->reject(fn (FolioRoutingRule $rule): bool => $rule->source === RoutingRuleSource::Manual
+                && collect($proposedRules)->contains(fn (FolioRoutingRule $proposed): bool => $same($rule, $proposed)))
+            ->concat($proposedRules)
+            ->values();
     }
 
     /**

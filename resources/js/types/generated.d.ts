@@ -378,6 +378,73 @@ hasReceipt: boolean,
 kind: App.Enums.TransactionKind | null,
 printable: boolean,
 };
+export type MoveBalanceData = {
+folioId: number,
+before: string,
+after: string,
+};
+export type MoveChargeData = {
+lineId: number,
+date: string,
+description: string,
+unit: string | null,
+amount: string,
+total: string,
+isRoom: boolean,
+children: App.Data.Folio.MoveChildData[],
+};
+export type MoveChargesPageData = {
+title: string,
+currency: string,
+folios: App.Data.Folio.MoveFolioData[],
+targetId: number,
+lineIds: number[],
+maxCharges: number,
+preview: App.Data.Folio.MovePreviewData,
+cancelUrl: string,
+};
+export type MoveChildData = {
+description: string,
+amount: string,
+};
+export type MoveChoiceData = {
+scope: string,
+title: string,
+detail: string,
+amount: string,
+};
+export type MoveFolioData = {
+id: number,
+label: string,
+kind: string,
+balance: string,
+charges: App.Data.Folio.MoveChargeData[],
+};
+export type MoveIncomingScheduleData = {
+unitId: number,
+label: string,
+text: string,
+amount: string,
+};
+export type MovePreviewData = {
+targetId: number,
+balances: App.Data.Folio.MoveBalanceData[],
+projectedBefore: string,
+projectedAfter: string,
+schedules: App.Data.Folio.MoveScheduleData[],
+incoming: App.Data.Folio.MoveIncomingScheduleData[],
+notes: string[],
+chargeCount: number,
+amount: string,
+scheduleCount: number,
+refusal: string | null,
+};
+export type MoveScheduleData = {
+unitId: number,
+label: string,
+fromFolioId: number | null,
+choices: App.Data.Folio.MoveChoiceData[],
+};
 export type NewChargeData = {
 chargeItemId: number | null,
 transactionCodeId: number | null,

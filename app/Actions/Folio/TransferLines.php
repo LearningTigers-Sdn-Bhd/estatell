@@ -20,38 +20,41 @@ class TransferLines
 
     /**
      * Move whole charges to another folio of the same reservation: a reversal on the source (with all its descendants) and a
-     * copy on the target (with its descendants that were not reversed). All lines of one transfer share one `transfer_group_id`. Both folio rows
-     * are locked in id order, and every check runs before the first write, so a refusal writes and logs nothing.
-     * A line that a payment or refund owns is refused. The result lists the copies on the target. The last step closes either folio when it is an Open Unit folio of a CheckedOut
-     * unit at 0 (`CloseSettledUnitFolio`). See docs/13-folio/02-posting-charges.md.
+     * copy on the target (with its descendants that were not reversed). The lines may come from several source folios of
+     * one reservation. All lines of one transfer share one `transfer_group_id`. Every involved folio row is locked in id
+     * order, and every check runs before the first write, so a refusal writes nothing. It writes no activity entry: the
+     * caller logs what it did (`MoveCharges` writes `folio.charges_moved`).
+     * A line that a payment owns is refused. The result lists the copies on the target. With `$closeSettled` (the default) the last step closes each source
+     * and the target when it is an Open Unit folio of a CheckedOut unit at 0 (`CloseSettledUnitFolio`); `MoveCharges` passes
+     * false and closes the sources itself after it saved its routing rules. See docs/13-folio/02-posting-charges.md.
      *
      * @param  list<FolioLine>  $lines
      */
-    public function __invoke(User $actor, array $lines, Folio $target): PostingResult
+    public function __invoke(User $actor, array $lines, Folio $target, bool $closeSettled = true): PostingResult
     {
-        return DB::transaction(function () use ($actor, $lines, $target): PostingResult {
+        return DB::transaction(function () use ($actor, $lines, $target, $closeSettled): PostingResult {
             $ids = array_values(array_unique(array_map(fn (FolioLine $line): int => $line->id, $lines)));
             $sources = FolioLine::query()->whereIn('id', $ids)->orderBy('id')->get();
-            $sourceFolioIds = $sources->pluck('folio_id')->unique()->all();
+            $sourceFolioIds = $sources->pluck('folio_id')->unique()->values()->all();
 
-            if ($sources->count() !== count($ids) || $ids === [] || count($sourceFolioIds) !== 1 || $sourceFolioIds[0] === $target->id) {
+            if ($ids === [] || $sources->count() !== count($ids) || in_array($target->id, $sourceFolioIds, true)) {
                 return PostingResult::refused(PostingResult::REFUSAL_TRANSFER_INVALID);
             }
 
-            $folios = Folio::query()->whereIn('id', [$sourceFolioIds[0], $target->id])->orderBy('id')->lockForUpdate()->get()->keyBy('id');
-            $sourceFolio = $folios[$sourceFolioIds[0]];
+            $folios = Folio::query()->whereIn('id', [...$sourceFolioIds, $target->id])->orderBy('id')->lockForUpdate()->get()->keyBy('id');
             $targetFolio = $folios[$target->id];
-            $businessDate = $this->currentBusinessDate->date($sourceFolio->property);
+            $sourceFolios = $folios->except($target->id);
+            $businessDate = $this->currentBusinessDate->date($targetFolio->property);
 
             if ($businessDate === null) {
                 return PostingResult::refused(PostingResult::REFUSAL_NO_BUSINESS_DATE);
             }
 
-            if ($sourceFolio->reservation_id !== $targetFolio->reservation_id) {
+            if ($folios->contains(fn (Folio $folio): bool => $folio->reservation_id !== $targetFolio->reservation_id)) {
                 return PostingResult::refused(PostingResult::REFUSAL_DIFFERENT_RESERVATION);
             }
 
-            if ($sourceFolio->status !== FolioStatus::Open || $targetFolio->status !== FolioStatus::Open) {
+            if ($folios->contains(fn (Folio $folio): bool => $folio->status !== FolioStatus::Open)) {
                 return PostingResult::refused(PostingResult::REFUSAL_FOLIO_NOT_OPEN);
             }
 
@@ -77,22 +80,13 @@ class TransferLines
                 $this->reverseLine->post($actor, $source, $date, $group);
             }
 
-            activity()
-                ->performedOn($sourceFolio->reservation)
-                ->causedBy($actor)
-                ->event('folio.lines_transferred')
-                ->withProperties([
-                    'property_id' => $sourceFolio->property_id,
-                    'from_folio_id' => $sourceFolio->id,
-                    'to_folio_id' => $targetFolio->id,
-                    'transfer_group_id' => $group,
-                    'folio_line_ids' => $sources->pluck('id')->all(),
-                    'posting_date' => $date,
-                ])
-                ->log('Folio lines transferred');
+            if ($closeSettled) {
+                foreach ($sourceFolios as $sourceFolio) {
+                    ($this->closeSettledUnitFolio)($actor, $sourceFolio);
+                }
 
-            ($this->closeSettledUnitFolio)($actor, $sourceFolio);
-            ($this->closeSettledUnitFolio)($actor, $targetFolio);
+                ($this->closeSettledUnitFolio)($actor, $targetFolio);
+            }
 
             return PostingResult::posted($copies);
         });
