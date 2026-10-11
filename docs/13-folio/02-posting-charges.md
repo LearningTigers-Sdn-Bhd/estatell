@@ -129,6 +129,8 @@ Built with the night audit postings item.
 5. `FolioRouter` chooses the target folio for each charge code. `CreateFolio` runs when the unit has no folio yet.
 6. `PostFolioCharge` writes each charge with its tax children.
 
+Steps 5 and 6 are `PostNightLines` (`app/Actions/Folio/`). It takes a checked quote and the routed folios, runs no checks and logs nothing. `PostRoomCharges` and [Change price](../12-reservations/09-change-night-price.md) both call it inside their own transaction.
+
 | Line             | Key                                              | Parent     |
 | ---------------- | ------------------------------------------------ | ---------- |
 | Room             | `night:{unit_night_id}`                          |            |

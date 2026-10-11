@@ -67,7 +67,8 @@ Both show to users with `reservations.change-price`, for a unit that is Confirme
 
 - One transaction, with the unit row and every touched folio locked in id order. Every check runs before the first write, so a refusal writes nothing.
 - A price equal to the current `amount` on a night with no discount is skipped, not refused.
-- It reuses the posting step of `PostRoomCharges` (quote, route, `PostFolioCharge`) with the `:fix:` keys and the "corrected" description, so the pipeline is the same as the audit's.
+- It posts through `PostNightLines` (`app/Actions/Folio/`), the posting step `PostRoomCharges` also uses: route each charge of the quote, create the unit folio when missing, `PostFolioCharge`. Here it gets the `:fix:` keys and the "corrected" description, so the pipeline is the same as the audit's. `PostNightLines` runs no checks and logs nothing; each caller checks first, inside its own transaction.
+- The old lines are reversed with `ReverseLine::post()` on each top-level line of the night (the room line, each inclusion, an earlier correction). It reverses the children (discounts, taxes) with their parent. `ChangeNightPrice` has run the checks already, so it does not call `ReverseLine` itself, which would open its own transaction and log one entry per line. `TransferLines` reverses lines the same way.
 - Last, `CloseSettledUnitFolio` on each touched folio of a CheckedOut unit.
 - One activity entry on the reservation, `reservation.night_price_changed`: the unit, the nights with old and new price, which were charged, and the reason. The night table shows the reason as it shows a booking override.
 - **A settled folio** cannot take the correction. Use a credit note ([AR invoices](../15-city-ledger/02-ar-invoices.md)) or a second invoice through a third-party folio.
@@ -80,7 +81,7 @@ Both show to users with `reservations.change-price`, for a unit that is Confirme
 | `POST …/{reservation}/units/{unit}/night-price/preview` (JSON) | `reservations.units.night-price.preview` | `reservations.change-price` |
 | `POST …/{reservation}/units/{unit}/night-price`                | `reservations.units.night-price`         | `reservations.change-price` |
 
-`reservations.change-price` ("Change the price of booked nights"): Owner and Manager by default, Front desk optional. A booking-time override still needs no permission; changing a price later touches revenue, so it has its own.
+`reservations.change-price` ("Change the price of booked nights"): Owner, Manager and Finance by default. Front desk does not get it by default: it has no `folio.reverse`, and changing a charged price reverses lines. A property can still give it to Front desk in the roles grid. A booking-time override still needs no permission; changing a price later touches revenue, so it has its own.
 
 ## Tests
 
