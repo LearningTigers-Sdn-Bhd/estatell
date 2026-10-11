@@ -115,7 +115,9 @@ No new tax column. A tax applies to the codes in its charge list (the `tax_trans
 
 - The room charge step skips day use: there are no nights.
 - A day use still CheckedIn on the business date shows in the existing **Not checked out** warning (`DepartureNotCheckedOut`: departure on or before D), with "Day use · ended 14:00" in the detail.
-- A Confirmed day use not checked in shows in **Not checked in** and follows the missed arrivals step like any unit.
+- A day use is **never extended**, whatever `overdue_departure_policy` says. `ResolveOverdueDepartures` makes an exception row with `day_use_not_extended`, the **Extend 1 night** fix refuses it with the same code, and the sheet does not offer the button. The unit stays CheckedIn until staff check it out; the exception returns on each audit until then. `ChangeUnitDates` refuses a day use with `day_use_unit`.
+- An add-on added to a CheckedIn day use posts at once (see [Add-ons](04-add-ons.md)), so the audit has nothing left to post for it.
+- A Confirmed day use not checked in shows in **Not checked in** with "Day use · 10:00–14:00" in the detail, and follows the missed arrivals step like any unit.
 
 ## Reports
 

@@ -7,6 +7,7 @@ use App\Actions\FrontDesk\ExtendStay;
 use App\Actions\FrontDesk\MarkNoShow;
 use App\Actions\NightAudit\Steps\ResolveOverdueDepartures;
 use App\Enums\AuditFix;
+use App\Enums\StayType;
 use App\Models\Property;
 use App\Models\Reservation;
 use App\Models\ReservationUnit;
@@ -51,9 +52,11 @@ class RunAuditFix
             $refusal = match ($fix) {
                 AuditFix::Assign => ($this->autoAssignRooms)($actor, $unit)->refusal,
                 AuditFix::NoShow => ($this->markNoShow)($actor, $unit)->refusal,
-                AuditFix::ExtendOneNight => $unit->departure_date->toDateString() === $date->toDateString()
-                    ? ($this->extendStay)($actor, $unit, $date->addDay())->refusal
-                    : ResolveOverdueDepartures::MESSAGE_PAST_DEPARTURE,
+                AuditFix::ExtendOneNight => match (true) {
+                    $unit->stay_type === StayType::DayUse => ResolveOverdueDepartures::MESSAGE_DAY_USE,
+                    $unit->departure_date->toDateString() === $date->toDateString() => ($this->extendStay)($actor, $unit, $date->addDay())->refusal,
+                    default => ResolveOverdueDepartures::MESSAGE_PAST_DEPARTURE,
+                },
             };
 
             if ($refusal === null) {

@@ -4,6 +4,7 @@ namespace App\Actions\FrontDesk;
 
 use App\Actions\Reservations\SyncReservationStatus;
 use App\Enums\SellUnit;
+use App\Enums\StayType;
 use App\Enums\UnitStatus;
 use App\Models\ReservationUnit;
 use App\Models\RoomType;
@@ -51,7 +52,7 @@ class ChangeUnitDates
      * `$expectedFee` work as in `CancelUnit`) and the removal of the unused nights. A change that also moves the
      * arrival is a new booking of the unit, not an early departure, so it has no fee. New nights must pass `RestrictionCheck`: a restriction needs `$restrictionOverrideReason`,
      * which the route passes only to a user with `rates.override-restrictions`. A Package plan is refused
-     * (`package_plan`). Permissions are checked by the route. See docs/18-front-desk/01-check-in-and-check-out.md.
+     * (`package_plan`) and so is a day use unit (`day_use_unit`), which has no nights to change. Permissions are checked by the route. See docs/18-front-desk/01-check-in-and-check-out.md.
      */
     public function __invoke(
         ?User $actor,
@@ -68,6 +69,10 @@ class ChangeUnitDates
 
             if (! in_array($locked->status, [UnitStatus::Confirmed, UnitStatus::CheckedIn], true)) {
                 return StayDatesResult::refused(UnitStayResult::REFUSAL_INVALID_STATUS);
+            }
+
+            if ($locked->stay_type === StayType::DayUse) {
+                return StayDatesResult::refused(UnitStayResult::REFUSAL_DAY_USE_UNIT);
             }
 
             $businessDate = $this->currentBusinessDate->date($locked->property);

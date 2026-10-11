@@ -129,6 +129,7 @@ class ReservationRefusals
             UnitStayResult::REFUSAL_ARRIVAL_IN_PAST => ['arrival_date', __('Arrival cannot be before the business date.')],
             UnitStayResult::REFUSAL_DEPARTURE_IN_PAST => ['departure_date', __('Departure cannot be before the business date.')],
             UnitStayResult::REFUSAL_PACKAGE_PLAN => [self::FORM, __('A package plan sells a fixed number of nights, so its dates cannot change here.')],
+            UnitStayResult::REFUSAL_DAY_USE_UNIT => [self::FORM, __('A day use has one date and fixed hours, so its dates cannot change.')],
             UnitStayResult::REFUSAL_RESTRICTED => $canOverrideRestrictions
                 ? ['restriction_override_reason', __('The new nights break a rate restriction. Enter a reason to change the dates anyway.')]
                 : [self::FORM, __('The new nights break a rate restriction, for example a minimum stay. Ask someone who may book past restrictions.')],

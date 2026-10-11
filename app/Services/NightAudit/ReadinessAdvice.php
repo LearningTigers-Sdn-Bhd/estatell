@@ -26,7 +26,7 @@ class ReadinessAdvice
     /**
      * What the audit does with a row of this check when nobody fixes it, or null when it does nothing to it.
      */
-    public function consequence(AuditCheck $check, Property $property): ?string
+    public function consequence(AuditCheck $check, Property $property, bool $dayUse = false): ?string
     {
         $settings = $property->settings;
 
@@ -35,9 +35,11 @@ class ReadinessAdvice
             AuditCheck::ArrivalNotCheckedIn => $settings->missed_arrival_policy === MissedArrivalPolicy::MarkNoShow
                 ? __('If you leave it: marked no-show, and the no-show fee is charged.')
                 : __('If you leave it: kept as a late arrival. Nothing is charged.'),
-            AuditCheck::DepartureNotCheckedOut => $settings->overdue_departure_policy === OverdueDeparturePolicy::ExtendOneNight
+            AuditCheck::DepartureNotCheckedOut => $dayUse
+                ? __('If you leave it: nothing is charged and the unit stays checked in. A day use is never extended. Check the guest out.')
+                : ($settings->overdue_departure_policy === OverdueDeparturePolicy::ExtendOneNight
                 ? __('If you leave it: one more night is charged and the departure moves a day.')
-                : __('If you leave it: no new night is charged. You finish it later.'),
+                : __('If you leave it: no new night is charged. You finish it later.')),
             AuditCheck::FolioOpenAfterCheckOut => __('The audit does not touch it. Close it when the balance is settled.'),
             AuditCheck::MasterNotBilled => __('The audit does not touch it. Settle the folio to the city ledger, or collect the balance and close it.'),
             AuditCheck::MoneyHeldOnClosedBooking => __('The audit does not touch it. Refund the money, or post the charge it covers.'),
@@ -62,6 +64,7 @@ class ReadinessAdvice
             'unit_not_postable' => __('The unit was not in a state that could be charged.'),
             'exceeds_night_amount' => __('The night\'s price is less than its inclusions, so it could not be split.'),
             ResolveOverdueDepartures::MESSAGE_BLOCKED => __('The guest is past the departure date and your policy blocks extending.'),
+            ResolveOverdueDepartures::MESSAGE_DAY_USE => __('A day use is never extended. Check the guest out.'),
             ResolveOverdueDepartures::MESSAGE_PAST_DEPARTURE => __('The guest is more than a day past the departure date.'),
             default => __('The audit could not finish this unit (:code).', ['code' => $code]),
         };

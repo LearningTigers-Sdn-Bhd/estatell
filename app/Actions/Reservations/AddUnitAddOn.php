@@ -2,6 +2,8 @@
 
 namespace App\Actions\Reservations;
 
+use App\Actions\Folio\PostCharge;
+use App\Data\Folio\NewChargeData;
 use App\Data\Reservations\NewAddOnData;
 use App\Enums\ChargingUnit;
 use App\Enums\StayType;
@@ -23,13 +25,15 @@ class AddUnitAddOn
         private CurrentBusinessDate $currentBusinessDate,
         private PropertyToday $propertyToday,
         private ChargeQuantityResolver $quantityResolver,
+        private PostCharge $postCharge,
     ) {}
 
     /**
      * Add one charge item to a unit. The unit row is locked first, so a concurrent cancel cannot race. Every check
      * runs before the first write, so a refusal writes and logs nothing. Nightly items write one row per night on or
      * after the business date and ignore `serviceDate` and `quantity`. An undated add-on on a CheckedIn unit gets the
-     * business date. See docs/12-reservations/04-add-ons.md.
+     * business date. On a CheckedIn day use unit the add-on posts at once through `PostCharge`, because the guest leaves
+     * before the night audit, and a posting refusal removes the row and is returned. See docs/12-reservations/04-add-ons.md.
      */
     public function __invoke(User $actor, ReservationUnit $unit, NewAddOnData $data): AddOnResult
     {
@@ -107,6 +111,25 @@ class AddUnitAddOn
                 'unit_amount' => (string) $amount->getAmount(),
                 'service_date' => $row['service_date']?->toDateString(),
             ]), $rows);
+
+            if ($locked->stay_type === StayType::DayUse && $locked->status === UnitStatus::CheckedIn) {
+                foreach ($addOns as $addOn) {
+                    $posted = ($this->postCharge)($actor, $locked, new NewChargeData(
+                        chargeItemId: $addOn->charge_item_id,
+                        transactionCodeId: null,
+                        description: null,
+                        quantity: $addOn->quantity,
+                        unitAmount: $addOn->unit_amount,
+                        unitAddOnId: $addOn->id,
+                    ));
+
+                    if ($posted->isRefused()) {
+                        $locked->addOns()->whereKey(array_map(fn (UnitAddOn $row): int => $row->id, $addOns))->delete();
+
+                        return AddOnResult::refused((string) $posted->refusal);
+                    }
+                }
+            }
 
             activity()
                 ->performedOn($locked->reservation)

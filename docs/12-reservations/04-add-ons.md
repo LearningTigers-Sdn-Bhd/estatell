@@ -60,7 +60,7 @@ No UI in this item. The Add-ons tab on the [reservation page](06-reservation-pag
 
 - Nightly items (PerNight, PerGuestNight) ignore a given `service_date` and `quantity`: their rows always follow the stay nights, and only nights on or after the business date are written.
 - An amount equal to the default (`50` and `50.00`) is not an override.
-- An undated non-nightly add-on on a CheckedIn unit gets the business date as `service_date`, so it posts in that night's audit (check-in has already happened).
+- An undated non-nightly add-on on a CheckedIn unit gets the business date as `service_date`, so it posts in that night's audit (check-in has already happened). On a CheckedIn **day use** unit the add-on posts at once through `PostCharge` (key `addon:{id}`, `folio_line_id` set), because the guest checks out before the audit and an unposted add-on would never post. A posting refusal removes the row and returns that code.
 - The same item can be added twice to one unit. There is no unique index.
 - It writes the rows and one activity entry (`reservation.add_on_added`, on the reservation), in one transaction. A refusal writes and logs nothing. `AddOnResult` holds the created add-ons or the refusal code.
 

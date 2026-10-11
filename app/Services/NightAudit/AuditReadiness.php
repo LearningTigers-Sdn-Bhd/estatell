@@ -119,7 +119,7 @@ class AuditReadiness
             ->whereDate('arrival_date', '<=', $date->toDateString())
             ->where('late_arrival_expected', false)
             ->get()
-            ->map(fn (ReservationUnit $unit): ReadinessItem => $this->item(AuditCheck::ArrivalNotCheckedIn, $unit))
+            ->map(fn (ReservationUnit $unit): ReadinessItem => $this->item(AuditCheck::ArrivalNotCheckedIn, $unit, $this->dayUseHours($unit)))
             ->all();
     }
 
@@ -283,7 +283,7 @@ class AuditReadiness
         return ReservationUnit::query()
             ->where('property_id', $property->id)
             ->where('status', $status->value)
-            ->with(['reservation.booker', 'guests.guest'])
+            ->with(['reservation.booker', 'guests.guest', 'dayUse'])
             ->orderBy('id');
     }
 
@@ -296,9 +296,19 @@ class AuditReadiness
             return null;
         }
 
-        $endsAt = $unit->dayUse()->value('ends_at');
+        $endsAt = $unit->dayUse?->ends_at;
 
         return $endsAt === null ? null : __('Day use · ended :time', ['time' => substr($endsAt, 0, 5)]);
+    }
+
+    /**
+     * "Day use · 10:00–14:00" for a day use unit, otherwise null (the item then shows its dates).
+     */
+    private function dayUseHours(ReservationUnit $unit): ?string
+    {
+        $block = $unit->stay_type === StayType::DayUse ? $unit->dayUse : null;
+
+        return $block === null ? null : __('Day use · :start–:end', ['start' => substr($block->starts_at, 0, 5), 'end' => substr($block->ends_at, 0, 5)]);
     }
 
     private function item(AuditCheck $check, ReservationUnit $unit, ?string $detail = null, ?string $message = null, ?int $retryExceptionId = null): ReadinessItem
@@ -312,6 +322,7 @@ class AuditReadiness
             detail: $detail ?? $unit->arrival_date->format('j M').' → '.$unit->departure_date->format('j M'),
             message: $message,
             retryExceptionId: $retryExceptionId,
+            dayUse: $unit->stay_type === StayType::DayUse,
         );
     }
 }

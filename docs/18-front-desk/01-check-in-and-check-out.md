@@ -186,6 +186,7 @@ One Dialog cancels several units, so a group is not cancelled one Dialog at a ti
 |                         | An in-house unit keeps its arrival and does not depart before the business date          | `arrival_locked`, `departure_in_past`                |
 |                         | A Confirmed unit's new arrival is not before the business date                           | `arrival_in_past`                                    |
 |                         | The plan is not a Package plan                                                           | `package_plan`                                       |
+|                         | The unit is not a day use (its date and hours do not change)                             | `day_use_unit`                                       |
 |                         | New nights pass `RestrictionCheck` (an override reason lets them through)                | `restricted`                                         |
 |                         | Every new night has a free unit on the room type (the room type row is locked first)     | `not_available`                                      |
 |                         | `RateQuoteService` can price the new nights                                              | the quote refusal (for example `rate_missing`)       |

@@ -56,6 +56,8 @@ class UnitStayResult
 
     public const REFUSAL_PACKAGE_PLAN = 'package_plan';
 
+    public const REFUSAL_DAY_USE_UNIT = 'day_use_unit';
+
     public const REFUSAL_RESTRICTED = 'restricted';
 
     public const REFUSAL_NOT_AN_EXTENSION = 'not_an_extension';
