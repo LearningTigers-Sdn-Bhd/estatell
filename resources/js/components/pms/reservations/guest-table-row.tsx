@@ -174,7 +174,7 @@ function RowMenu({
             >
                 <MoreHorizontal />
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
+            <DropdownMenuContent align="end" className="w-52">
                 {hasCard && row.cardUnitGuestId !== null && (
                     <DropdownMenuItem
                         render={
