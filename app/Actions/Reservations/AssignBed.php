@@ -3,6 +3,7 @@
 namespace App\Actions\Reservations;
 
 use App\Enums\SellUnit;
+use App\Enums\StayType;
 use App\Enums\UnitStatus;
 use App\Models\Bed;
 use App\Models\ReservationUnit;
@@ -28,6 +29,10 @@ class AssignBed
 
             if (! in_array($locked->status, [UnitStatus::Confirmed, UnitStatus::CheckedIn], true)) {
                 return AssignmentResult::refused(AssignmentResult::REFUSAL_UNIT_NOT_OPEN);
+            }
+
+            if ($locked->stay_type === StayType::DayUse) {
+                return AssignmentResult::refused(AssignmentResult::REFUSAL_DAY_USE_UNIT);
             }
 
             if ($roomType->sell_unit !== SellUnit::Bed || ! $this->freeUnits->isSellable($roomType, $bed->id)) {

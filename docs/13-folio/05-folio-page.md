@@ -14,6 +14,7 @@ The server builds one list. The browser only draws it.
 | Scheduled | `unit_nights` and `unit_add_ons` with no posted line yet | No             |
 
 - There is no forecast table. A night is Scheduled until its `night:{unit_night_id}` line exists. A nightly add-on is Scheduled until its row has a `folio_line_id`.
+- A Confirmed day use unit shows its block as a Scheduled DAY_USE row with key `dayuse:{unit_id}` and the description "Day use · 10:00–14:00", with the plan's inclusions split from the price and the DAY_USE taxes (`DayUseChargeQuote`). It stays Scheduled until a line with that key exists (check in posts it, see [Day use](../12-reservations/10-day-use.md#charging)).
 - When the night audit posts a night, the same key matches, so the row moves from Scheduled to Posted. It cannot show twice.
 - Scheduled rows are muted and carry the Scheduled marker (see [Row markers](#row-markers)). Tax on them is calculated live with `TaxCalculator`. Nothing is stored.
 - With `MasterPays`, the unit folio shows no Scheduled room rows. The master folio shows them (needs [Routing](03-routing.md)).

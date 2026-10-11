@@ -15,7 +15,7 @@ use App\Actions\Reservations\ReservationResult;
 class BookingErrorKeys
 {
     /** The fields that belong to a line, and are keyed by it. */
-    private const array LINE_FIELDS = ['room_type_id', 'rate_plan_id', 'adults', 'child_ages', 'discount_id', 'override_total', 'override_reason', 'restriction_override_reason'];
+    private const array LINE_FIELDS = ['room_type_id', 'rate_plan_id', 'adults', 'child_ages', 'discount_id', 'override_total', 'override_reason', 'restriction_override_reason', 'start_time', 'hours', 'room_id'];
 
     /** The add-on fields: a refusal inside a line does not say which add-on, so they key the line's add-ons. */
     private const array ADD_ON_FIELDS = ['charge_item_id', 'quantity', 'unit_amount', 'service_date'];

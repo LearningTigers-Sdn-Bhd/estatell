@@ -125,7 +125,7 @@ class ReservationDirectory
             ->defaultSort($this->sort('arrival'))
             ->orderBy('reservations.id')
             ->with('booker')
-            ->with(['units' => fn ($units) => $units->orderBy('id'), 'units.roomType'])
+            ->with(['units' => fn ($units) => $units->orderBy('id'), 'units.roomType', 'units.dayUse'])
             ->paginate(self::PER_PAGE)
             ->withQueryString();
     }
@@ -199,12 +199,21 @@ class ReservationDirectory
                 coalesce(sum(adults) filter (where status in ({$holding})), 0) as adults,
                 coalesce(sum(children) filter (where status in ({$holding})), 0) as children");
 
-        $totals = DB::table('unit_nights')
+        $holding = array_map(fn (UnitStatus $status): string => $status->value, UnitStatus::holdingInventory());
+        $nightAmounts = DB::table('unit_nights')
             ->join('reservation_units', 'reservation_units.id', '=', 'unit_nights.reservation_unit_id')
             ->where('reservation_units.property_id', $property->id)
-            ->whereIn('reservation_units.status', array_map(fn (UnitStatus $status): string => $status->value, UnitStatus::holdingInventory()))
-            ->groupBy('reservation_units.reservation_id')
-            ->selectRaw('reservation_units.reservation_id, sum(unit_nights.amount) as total');
+            ->whereIn('reservation_units.status', $holding)
+            ->select('reservation_units.reservation_id', 'unit_nights.amount');
+        $dayUseAmounts = DB::table('unit_day_uses')
+            ->join('reservation_units', 'reservation_units.id', '=', 'unit_day_uses.reservation_unit_id')
+            ->where('reservation_units.property_id', $property->id)
+            ->whereIn('reservation_units.status', $holding)
+            ->select('reservation_units.reservation_id', 'unit_day_uses.amount');
+        $totals = DB::query()
+            ->fromSub($nightAmounts->unionAll($dayUseAmounts), 'amounts')
+            ->groupBy('amounts.reservation_id')
+            ->selectRaw('amounts.reservation_id, sum(amounts.amount) as total');
 
         $ledger = DB::table('folios')
             ->leftJoin('folio_lines', 'folio_lines.folio_id', '=', 'folios.id')

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\StayType;
 use App\Enums\UnitStatus;
 use Database\Factories\ReservationUnitFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -9,6 +10,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Carbon;
 
 /**
@@ -27,6 +29,7 @@ use Illuminate\Support\Carbon;
  * @property int $adults
  * @property int $children
  * @property UnitStatus $status
+ * @property StayType $stay_type
  * @property int|null $discount_id
  * @property bool $late_arrival_expected
  * @property Carbon|null $checked_in_at
@@ -52,6 +55,7 @@ class ReservationUnit extends Model
             'arrival_date' => 'date',
             'departure_date' => 'date',
             'status' => UnitStatus::class,
+            'stay_type' => StayType::class,
             'late_arrival_expected' => 'boolean',
             'checked_in_at' => 'datetime',
             'checked_out_at' => 'datetime',
@@ -104,6 +108,16 @@ class ReservationUnit extends Model
     public function nights(): HasMany
     {
         return $this->hasMany(UnitNight::class);
+    }
+
+    /**
+     * The room, hours and price of a day use unit. An overnight unit has none.
+     *
+     * @return HasOne<UnitDayUse, $this>
+     */
+    public function dayUse(): HasOne
+    {
+        return $this->hasOne(UnitDayUse::class);
     }
 
     /**

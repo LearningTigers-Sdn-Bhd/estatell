@@ -4,9 +4,13 @@ namespace App\Services\Rates;
 
 use App\Enums\PricingBasis;
 use App\Models\PropertyAgeGroup;
+use App\Models\RatePlan;
+use App\Models\RoomType;
+use App\Services\Rates\Pricing\DayUsePricing;
 use App\Services\Rates\Pricing\PricedNights;
 use App\Services\Rates\Pricing\QuoteRefused;
 use App\Services\Rates\Pricing\StayContext;
+use Carbon\CarbonInterface;
 use InvalidArgumentException;
 
 /**
@@ -16,7 +20,7 @@ use InvalidArgumentException;
  */
 class RateQuoteService
 {
-    public function __construct(private StayDiscount $stayDiscount, private DerivedRateResolver $derivedRateResolver) {}
+    public function __construct(private StayDiscount $stayDiscount, private DerivedRateResolver $derivedRateResolver, private DayUsePricing $dayUsePricing) {}
 
     public function quote(RateQuoteRequest $request): RateQuote
     {
@@ -29,6 +33,22 @@ class RateQuoteService
         $request->ratePlan->loadMissing('stayDiscounts');
 
         return RateQuote::quoted($this->stayDiscount->apply($request->ratePlan->stayDiscounts, $priced->nights, $priced->discountUnits));
+    }
+
+    /**
+     * Prices one day use block with `DayUsePricing`. Days and hours only: no nights, no long-stay discount and no
+     * derived plan. `$ignoreStopSell` is for a caller that has accepted a restriction override.
+     */
+    public function quoteDayUse(RoomType $roomType, RatePlan $plan, CarbonInterface $date, int $hours, bool $ignoreStopSell = false): DayUseQuote
+    {
+        $currency = $plan->property->settings?->currency->value
+            ?? throw new InvalidArgumentException('The property needs settings with a currency to quote a day use.');
+
+        try {
+            return DayUseQuote::quoted($this->dayUsePricing->price($plan, $roomType, $date, $hours, $currency, $ignoreStopSell));
+        } catch (QuoteRefused $refused) {
+            return DayUseQuote::refused($refused->reason, $refused->date);
+        }
     }
 
     /**

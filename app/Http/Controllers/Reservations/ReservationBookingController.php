@@ -9,16 +9,20 @@ use App\Enums\Locale;
 use App\Enums\PermissionEnum;
 use App\Enums\ReservationSource;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Reservations\DayUseOffersRequest;
 use App\Http\Requests\Reservations\FreeUnitsRequest;
 use App\Http\Requests\Reservations\QuoteBookingLineRequest;
 use App\Http\Requests\Reservations\StoreBookingRequest;
 use App\Models\Property;
+use App\Models\RatePlan;
 use App\Models\RoomType;
+use App\Services\Availability\DayUseAvailability;
 use App\Services\Availability\FreeUnits;
 use App\Services\CityLedger\CompanyOptions;
 use App\Services\Guests\CountryOptions;
 use App\Services\NightAudit\CurrentBusinessDate;
 use App\Services\Property\PropertyToday;
+use App\Services\Rates\DayUseOffers;
 use App\Services\Reservations\BookingErrorKeys;
 use App\Services\Reservations\BookingQuote;
 use App\Services\Reservations\ReservationFormOptions;
@@ -70,6 +74,20 @@ class ReservationBookingController extends Controller
      */
     public function quote(QuoteBookingLineRequest $request, Property $property, BookingQuote $bookingQuote): JsonResponse
     {
+        if ($request->isDayUse()) {
+            return response()->json($bookingQuote->dayUseLine(
+                $property,
+                $request->integer('room_type_id'),
+                $request->integer('rate_plan_id'),
+                $request->date('arrival_date', 'Y-m-d')->toImmutable(),
+                $request->string('start_time')->toString(),
+                $request->integer('hours'),
+                $request->integer('adults'),
+                array_map(intval(...), $request->validated('child_ages') ?? []),
+                $request->addOns(),
+            ));
+        }
+
         return response()->json($bookingQuote->line(
             $property,
             $request->integer('room_type_id'),
@@ -87,14 +105,43 @@ class ReservationBookingController extends Controller
     /**
      * The rooms or beds of a room type that are free on every night of a stay. An unknown room type has none.
      */
-    public function freeUnits(FreeUnitsRequest $request, Property $property, FreeUnits $freeUnits): JsonResponse
+    public function freeUnits(FreeUnitsRequest $request, Property $property, FreeUnits $freeUnits, DayUseAvailability $dayUseAvailability): JsonResponse
     {
         $roomType = RoomType::query()->where('property_id', $property->id)->active()->find($request->integer('room_type_id'));
+
+        if ($request->isDayUse()) {
+            $startsAt = DayUseOffers::time(DayUseOffers::minutes($request->string('start_time')->toString()));
+            $endsAt = DayUseOffers::endsAt($startsAt, $request->integer('hours'));
+
+            return response()->json(['units' => $roomType === null || $endsAt === null ? [] : $dayUseAvailability->freeRooms(
+                $roomType,
+                $request->date('arrival_date', 'Y-m-d'),
+                $startsAt,
+                $endsAt,
+            )]);
+        }
 
         return response()->json(['units' => $roomType === null ? [] : $freeUnits->forStay(
             $roomType,
             $request->date('arrival_date', 'Y-m-d'),
             $request->date('departure_date', 'Y-m-d'),
+        )]);
+    }
+
+    /**
+     * The hours a day use plan sells on a date from a start time, with their prices and end times, for the Hours select.
+     * A plan, room type or time that does not fit gives an empty list.
+     */
+    public function dayUseOffers(DayUseOffersRequest $request, Property $property, DayUseOffers $dayUseOffers): JsonResponse
+    {
+        $roomType = RoomType::query()->where('property_id', $property->id)->active()->find($request->integer('room_type_id'));
+        $ratePlan = RatePlan::query()->where('property_id', $property->id)->active()->find($request->integer('rate_plan_id'));
+
+        return response()->json(['offers' => $roomType === null || $ratePlan === null ? [] : $dayUseOffers->forStart(
+            $ratePlan,
+            $roomType,
+            $request->date('date', 'Y-m-d'),
+            $request->string('start_time')->toString(),
         )]);
     }
 
@@ -116,6 +163,7 @@ class ReservationBookingController extends Controller
             'billingModes' => BillingMode::options(),
             'canOverrideCredit' => $request->user()->can(PermissionEnum::CompanyCreditOverride->value),
             'companies' => $request->user()->can(PermissionEnum::CompanyView->value) ? app(CompanyOptions::class)->active($property) : [],
+            'hasDayUse' => $property->ratePlans()->active()->dayUse()->exists(),
             'autoAssignRooms' => (bool) $property->settings?->auto_assign_rooms,
             'currency' => $property->settings?->currency,
             'canOverrideRestrictions' => $request->user()->can(PermissionEnum::RatesOverrideRestrictions->value),

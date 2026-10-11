@@ -4,6 +4,7 @@ namespace App\Actions\Reservations;
 
 use App\Data\Reservations\NewAddOnData;
 use App\Enums\ChargingUnit;
+use App\Enums\StayType;
 use App\Enums\UnitStatus;
 use App\Models\ChargeItem;
 use App\Models\ReservationUnit;
@@ -44,9 +45,15 @@ class AddUnitAddOn
                 return AddOnResult::refused(AddOnResult::REFUSAL_UNIT_NOT_OPEN);
             }
 
+            $isNightlyItem = in_array($item->charging_unit, [ChargingUnit::PerNight, ChargingUnit::PerGuestNight], true);
+
+            if ($isNightlyItem && $locked->stay_type === StayType::DayUse) {
+                return AddOnResult::refused(AddOnResult::REFUSAL_NIGHTLY_ITEM_FOR_DAY_USE);
+            }
+
             $property = $locked->property;
             $businessDate = $this->currentBusinessDate->date($property) ?? $this->propertyToday->date($property);
-            $isNightly = in_array($item->charging_unit, [ChargingUnit::PerNight, ChargingUnit::PerGuestNight], true);
+            $isNightly = $isNightlyItem;
             $serviceDate = $isNightly ? null : $data->serviceDate?->startOfDay();
 
             if ($serviceDate !== null) {

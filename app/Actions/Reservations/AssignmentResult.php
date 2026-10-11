@@ -33,6 +33,8 @@ class AssignmentResult
 
     public const REFUSAL_NO_FREE_UNIT = 'no_free_unit';
 
+    public const REFUSAL_DAY_USE_UNIT = 'day_use_unit';
+
     private function __construct(
         public readonly ?string $refusal,
         public readonly ?CarbonInterface $date,

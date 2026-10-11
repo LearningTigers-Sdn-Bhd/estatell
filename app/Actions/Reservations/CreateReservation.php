@@ -10,6 +10,7 @@ use App\Enums\CompanyStatus;
 use App\Enums\DocumentType;
 use App\Enums\ReservationStatus;
 use App\Enums\SellUnit;
+use App\Enums\StayType;
 use App\Models\Company;
 use App\Models\Guest;
 use App\Models\Property;
@@ -35,7 +36,7 @@ class CreateReservation
     /**
      * Create a reservation and its units in one transaction.
      *
-     * A Bed room type line adds one unit for each bed. When any line is refused, nothing is saved, the reference
+     * A Bed room type line adds one unit for each bed. A reservation is all overnight or all day use (`stay_types_mixed`), and day use never comes from a channel. When any line is refused, nothing is saved, the reference
      * number is not used up, nothing is logged, and the result names the line. `$fromChannel` is passed to `AddUnit`. `SyncRoutingRules` runs when the units are in, so a company or a group reservation gets its Master folio and rules. See docs/12-reservations/02-group-bookings.md.
      */
     public function __invoke(User $actor, Property $property, NewReservationData $data, bool $fromChannel = false): ReservationResult
@@ -50,6 +51,16 @@ class CreateReservation
 
         if ($data->companyId !== null && ! Company::query()->where('property_id', $property->id)->where('status', CompanyStatus::Active)->whereKey($data->companyId)->exists()) {
             return ReservationResult::refused(ReservationResult::REFUSAL_COMPANY_NOT_AVAILABLE);
+        }
+
+        $stayTypes = array_unique(array_map(fn (NewUnitData $line): string => $line->stayType->value, $data->units));
+
+        if (count($stayTypes) > 1) {
+            return ReservationResult::refused(ReservationResult::REFUSAL_STAY_TYPES_MIXED);
+        }
+
+        if ($fromChannel && $stayTypes === [StayType::DayUse->value]) {
+            return ReservationResult::refused(ReservationResult::REFUSAL_DAY_USE_NOT_FOR_CHANNEL);
         }
 
         try {
@@ -150,6 +161,10 @@ class CreateReservation
     private function unitCount(?RoomType $roomType, NewUnitData $line, int $index): int
     {
         if ($roomType === null) {
+            return 1;
+        }
+
+        if ($line->stayType === StayType::DayUse) {
             return 1;
         }
 

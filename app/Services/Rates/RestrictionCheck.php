@@ -15,6 +15,23 @@ use Illuminate\Support\Facades\Date;
 class RestrictionCheck
 {
     /**
+     * The reasons a day use breaks the restrictions of a room type and plan. Only Stop sell applies to day use.
+     *
+     * @return list<string>
+     */
+    public function dayUseViolations(int $ratePlanId, int $roomTypeId, CarbonInterface $date): array
+    {
+        $stopped = Rate::query()
+            ->where('rate_plan_id', $ratePlanId)
+            ->where('room_type_id', $roomTypeId)
+            ->whereDate('date', $date->toDateString())
+            ->where('stop_sell', true)
+            ->exists();
+
+        return $stopped ? [__('Not for sale on :date.', ['date' => $date->format('d M Y')])] : [];
+    }
+
+    /**
      * The reasons a stay breaks the restrictions of a room type and plan. An empty list means it can be sold.
      * A date with no rate row has no restrictions.
      *

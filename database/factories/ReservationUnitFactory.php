@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Enums\StayType;
 use App\Enums\UnitStatus;
 use App\Models\RatePlan;
 use App\Models\Reservation;
@@ -34,7 +35,34 @@ class ReservationUnitFactory extends Factory
             'adults' => 1,
             'children' => 0,
             'status' => UnitStatus::Confirmed,
+            'stay_type' => StayType::Overnight,
         ];
+    }
+
+    /**
+     * A day use unit on `$date` from `$startsAt` for `$hours`, with its `unit_day_uses` row priced at 95.00 and no room.
+     */
+    public function dayUse(string $date = '2026-11-02', string $startsAt = '10:00', int $hours = 4, ?int $roomId = null, string $amount = '95.00'): static
+    {
+        $endsAt = sprintf('%02d:%s', (int) substr($startsAt, 0, 2) + $hours, substr($startsAt, 3, 2));
+
+        return $this->state(fn (array $attributes) => [
+            'stay_type' => StayType::DayUse,
+            'arrival_date' => $date,
+            'departure_date' => $date,
+            'arrival_time' => $startsAt,
+            'departure_time' => $endsAt,
+        ])->afterCreating(function (ReservationUnit $unit) use ($date, $startsAt, $endsAt, $hours, $roomId, $amount): void {
+            UnitDayUseFactory::new()->create([
+                'reservation_unit_id' => $unit->id,
+                'date' => $date,
+                'room_id' => $roomId,
+                'starts_at' => $startsAt,
+                'ends_at' => $endsAt,
+                'hours' => $hours,
+                'amount' => $amount,
+            ]);
+        });
     }
 
     public function checkedIn(): static

@@ -1539,6 +1539,11 @@ paymentMethodId: number,
 reference: string | null,
 idempotencyKey: string,
 };
+export type DayUseOfferData = {
+hours: number,
+amount: string,
+endsAt: string,
+};
 export type DiscountOptionData = {
 id: number,
 name: string,
@@ -1674,6 +1679,10 @@ restrictionOverrideReason: string | null,
 addOns: App.Data.Reservations.NewAddOnData[],
 arrivalTime: string | null,
 departureTime: string | null,
+stayType: App.Enums.StayType,
+startTime: string | null,
+hours: number | null,
+roomId: number | null,
 };
 export type NightPriceChangePreviewData = {
 nights: App.Data.Reservations.NightPriceNightData[],
@@ -1697,6 +1706,11 @@ name: string,
 roomTypeIds: number[],
 fixedNights: number | null,
 companyIds: number[],
+isDayUse: boolean,
+dayUseMinHours: number | null,
+dayUseMaxHours: number | null,
+dayUseFrom: string | null,
+dayUseUntil: string | null,
 };
 export type ReservationActivityData = {
 id: number,
@@ -1741,6 +1755,8 @@ firstArrival: string | null,
 lastDeparture: string | null,
 unitCount: number,
 roomNights: number,
+stayType: App.Enums.StayType,
+stayLabel: string | null,
 stayTotal: string,
 balance: string | null,
 billingMode: string,
@@ -1788,6 +1804,8 @@ children: number,
 firstArrival: string | null,
 lastDeparture: string | null,
 nights: number,
+stayType: App.Enums.StayType,
+stayLabel: string | null,
 roomTypes: string[],
 bookedOn: string,
 total: string,
@@ -1834,6 +1852,8 @@ arrival: string,
 departure: string,
 arrivalTime: string,
 departureTime: string,
+stayType: App.Enums.StayType,
+stayLabel: string | null,
 nightCount: number,
 adults: number,
 children: number,
@@ -2163,6 +2183,7 @@ export type RoutingRuleSource = 'billing_mode' | 'manual';
 export type SellUnit = 'room' | 'bed';
 export type SpreadsheetFormat = 'csv' | 'xlsx';
 export type StayDiscountType = 'percent' | 'amount';
+export type StayType = 'overnight' | 'day_use';
 export type SurchargeType = 'none' | 'fixed' | 'percent';
 export type SystemTransactionCode = 'room_revenue' | 'no_show_revenue' | 'cancellation_revenue' | 'late_checkout_revenue' | 'early_departure_revenue' | 'day_use_revenue' | 'food_and_beverage_revenue' | 'laundry_revenue' | 'minibar_revenue' | 'fee_revenue' | 'sst_tax' | 'tourism_tax' | 'cash_payment' | 'card_payment' | 'bank_transfer_payment' | 'ewallet_payment' | 'ota_collected_payment' | 'direct_bill_payment' | 'security_deposit' | 'refund' | 'adjustment' | 'discount';
 export type TaxRateType = 'percent' | 'flat';

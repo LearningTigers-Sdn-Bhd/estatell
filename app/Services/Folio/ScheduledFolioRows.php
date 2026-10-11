@@ -5,6 +5,7 @@ namespace App\Services\Folio;
 use App\Data\Folio\FolioRowData;
 use App\Data\Shared\BadgeData;
 use App\Enums\FolioRowTag;
+use App\Enums\StayType;
 use App\Enums\SystemTransactionCode;
 use App\Enums\TransactionKind;
 use App\Enums\UnitStatus;
@@ -38,6 +39,7 @@ class ScheduledFolioRows
         private FolioRouter $folioRouter,
         private TaxCalculator $taxCalculator,
         private NightChargeQuote $nightChargeQuote,
+        private DayUseChargeQuote $dayUseChargeQuote,
     ) {}
 
     /**
@@ -49,12 +51,15 @@ class ScheduledFolioRows
     public function forReservation(Property $property, Reservation $reservation, array $unitLabels): array
     {
         $currency = $property->settings?->currency->value;
-        $roomCode = TransactionCode::query()
+        $codes = TransactionCode::query()
             ->where('property_id', $property->id)
-            ->where('system_key', SystemTransactionCode::RoomRevenue->value)
-            ->first();
+            ->whereIn('system_key', [SystemTransactionCode::RoomRevenue->value, SystemTransactionCode::DayUseRevenue->value])
+            ->get()
+            ->keyBy('system_key');
+        $roomCode = $codes->get(SystemTransactionCode::RoomRevenue->value);
+        $dayUseCode = $codes->get(SystemTransactionCode::DayUseRevenue->value);
 
-        if ($currency === null || $roomCode === null) {
+        if ($currency === null || ($roomCode === null && $dayUseCode === null)) {
             return [];
         }
 
@@ -64,8 +69,12 @@ class ScheduledFolioRows
             ->with(['discount', 'nights' => fn ($nights) => $nights->orderBy('date'), 'nights.ratePlan.inclusions.chargeItem.transactionCode', 'addOns' => fn ($addOns) => $addOns->whereNull('folio_line_id'), 'addOns.chargeItem.transactionCode'])
             ->orderBy('id')
             ->get();
+        $dayUseUnits = $units->filter(fn (ReservationUnit $unit): bool => $unit->stay_type === StayType::DayUse)->load('dayUse', 'ratePlan.inclusions.chargeItem.transactionCode');
         $posted = FolioLine::query()
-            ->whereIn('idempotency_key', $units->flatMap(fn (ReservationUnit $unit): Collection => $unit->nights->map(fn (UnitNight $night): string => 'night:'.$night->id))->all())
+            ->whereIn('idempotency_key', [
+                ...$units->flatMap(fn (ReservationUnit $unit): Collection => $unit->nights->map(fn (UnitNight $night): string => 'night:'.$night->id))->all(),
+                ...$dayUseUnits->map(fn (ReservationUnit $unit): string => 'dayuse:'.$unit->id)->all(),
+            ])
             ->pluck('idempotency_key')
             ->flip();
         $resolve = $this->folioRouter->resolverFor($reservation);
@@ -76,7 +85,21 @@ class ScheduledFolioRows
             $label = $unitLabels[$unit->id] ?? null;
             $first = true;
 
-            foreach ($unit->nights as $night) {
+            if ($unit->stay_type === StayType::DayUse && $unit->dayUse !== null && $dayUseCode !== null && ! $posted->has('dayuse:'.$unit->id)) {
+                $quote = $this->dayUseChargeQuote->quote($property, $this->propertyTaxes ??= $this->nightChargeQuote->propertyTaxes($property), $unit, $unit->dayUse, $dayUseCode, $nationality);
+
+                foreach ($quote->isRefused() ? [] : $quote->charges as $charge) {
+                    $blocks[] = [
+                        'target' => $resolve($unit, $charge->code),
+                        'unit' => $unit->id,
+                        'date' => $unit->dayUse->date->toDateString(),
+                        'code' => $charge->code,
+                        'rows' => $this->chargeRows($charge, $unit->dayUse->date->toDateString(), false, $label),
+                    ];
+                }
+            }
+
+            foreach ($roomCode === null ? [] : $unit->nights as $night) {
                 $isFirst = $first;
                 $first = false;
 
@@ -96,7 +119,7 @@ class ScheduledFolioRows
                         'unit' => $unit->id,
                         'date' => $night->date->toDateString(),
                         'code' => $charge->code,
-                        'rows' => $this->chargeRows($charge, $night, $label),
+                        'rows' => $this->chargeRows($charge, $night->date->toDateString(), $charge->key === 'night:'.$night->id && $night->override_amount !== null, $label),
                     ];
                 }
             }
@@ -125,10 +148,8 @@ class ScheduledFolioRows
      *
      * @return list<FolioRowData>
      */
-    private function chargeRows(QuotedCharge $charge, UnitNight $night, ?string $label): array
+    private function chargeRows(QuotedCharge $charge, string $date, bool $overridden, ?string $label): array
     {
-        $date = $night->date->toDateString();
-        $overridden = $charge->key === 'night:'.$night->id && $night->override_amount !== null;
         $rows = [$this->row($charge->key, $date, $charge->description, 0, $label, $charge->lineAmount, $overridden ? [FolioRowTag::Scheduled, FolioRowTag::Overridden] : [FolioRowTag::Scheduled])];
 
         foreach ($charge->discounts as $discount) {

@@ -6,16 +6,21 @@ use App\Actions\Reservations\ReservationResult;
 use App\Data\Reservations\BookingQuoteData;
 use App\Data\Reservations\BookingQuoteNightData;
 use App\Data\Reservations\NewAddOnData;
+use App\Enums\PricingBasis;
+use App\Enums\SellUnit;
 use App\Models\ChargeItem;
 use App\Models\Property;
 use App\Models\RatePlan;
 use App\Models\ReservationUnit;
 use App\Models\RoomType;
 use App\Services\Availability\AvailabilityService;
+use App\Services\Availability\DayUseAvailability;
 use App\Services\Catalogues\ChargeQuantityResolver;
 use App\Services\NightAudit\CurrentBusinessDate;
 use App\Services\Property\PropertyToday;
+use App\Services\Rates\DayUseOffers;
 use App\Services\Rates\Pricing\NightPrice;
+use App\Services\Rates\RateQuote;
 use App\Services\Rates\RateQuoteRequest;
 use App\Services\Rates\RateQuoteService;
 use App\Services\Rates\RestrictionCheck;
@@ -39,6 +44,8 @@ class BookingQuote
         private ChargeQuantityResolver $quantityResolver,
         private CurrentBusinessDate $currentBusinessDate,
         private PropertyToday $propertyToday,
+        private DayUseAvailability $dayUseAvailability,
+        private DayUseOffers $dayUseOffers,
     ) {}
 
     /**
@@ -90,6 +97,60 @@ class BookingQuote
             beds: $beds,
             violations: $this->restrictionCheck->violations($ratePlan->id, $roomType->id, $arrival, $departure),
             available: $this->availability->availableForStay($roomType, $arrival, $departure),
+            errors: [],
+        );
+    }
+
+    /**
+     * Price one day use line: the hour price of the date, the stop sell warning and how many rooms are free for the hours.
+     * `nights` is empty and `lineTotal` equals `unitTotal`. A price override is not offered for day use.
+     *
+     * @param  list<int>  $childAges
+     * @param  list<NewAddOnData>  $addOns
+     */
+    public function dayUseLine(Property $property, int $roomTypeId, int $ratePlanId, CarbonImmutable $date, string $startTime, int $hours, int $adults, array $childAges, array $addOns = []): BookingQuoteData
+    {
+        $roomType = RoomType::query()->where('property_id', $property->id)->active()->find($roomTypeId);
+        $ratePlan = RatePlan::query()->where('property_id', $property->id)->find($ratePlanId);
+
+        if ($roomType === null || $ratePlan === null || $roomType->sell_unit !== SellUnit::Room) {
+            return BookingQuoteData::refused($this->refusals->errors(ReservationResult::REFUSAL_ROOM_TYPE_NOT_FOUND));
+        }
+
+        if (! $ratePlan->roomTypes()->whereKey($roomType->id)->exists()) {
+            return BookingQuoteData::refused($this->refusals->errors(ReservationResult::REFUSAL_RATE_PLAN_NOT_LINKED));
+        }
+
+        if ($ratePlan->pricing_basis !== PricingBasis::DayUse) {
+            return BookingQuoteData::refused($this->refusals->errors(RateQuote::REFUSAL_PLAN_NOT_DAY_USE));
+        }
+
+        $blockRefusal = $this->dayUseOffers->refusal($ratePlan, $startTime, $hours);
+
+        if ($blockRefusal !== null) {
+            return BookingQuoteData::refused($this->refusals->errors($blockRefusal));
+        }
+
+        $date = $date->startOfDay();
+        $quote = $this->rateQuoteService->quoteDayUse($roomType, $ratePlan, $date, $hours, ignoreStopSell: true);
+
+        if ($quote->isRefused()) {
+            return BookingQuoteData::refused($this->refusals->errors((string) $quote->refusal, $quote->refusalDate));
+        }
+
+        $startsAt = DayUseOffers::time(DayUseOffers::minutes($startTime));
+        $endsAt = (string) DayUseOffers::endsAt($startsAt, $hours);
+        $total = (string) $quote->amount->getAmount();
+
+        return new BookingQuoteData(
+            nights: [],
+            unitTotal: $total,
+            lineTotal: $total,
+            addOnsTotal: (string) $this->addOnsTotal($property, $addOns, $date, $date, $adults, count($childAges), $quote->amount->getCurrency())->getAmount(),
+            isOverridden: false,
+            beds: 1,
+            violations: $this->restrictionCheck->dayUseViolations($ratePlan->id, $roomType->id, $date),
+            available: count($this->dayUseAvailability->freeRooms($roomType, $date, $startsAt, $endsAt)),
             errors: [],
         );
     }

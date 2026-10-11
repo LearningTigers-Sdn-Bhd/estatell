@@ -155,15 +155,16 @@ class ReservationRoomBox
      */
     public function assignmentsForUnitsOn(array $unitIds, string $date): array
     {
-        return $this->assignments($unitIds, fn (Builder $query) => $query->where('unit_nights.date', $date));
+        return $this->assignments($unitIds, fn (Builder $query) => $query->where('unit_nights.date', $date), $date);
     }
 
     /**
      * @param  list<int>  $unitIds
      * @param  callable(Builder): mixed  $night  Narrows the query to one night per unit.
+     * @param  string|null  $date  A day use unit shows its room only when its date matches. Null shows it always.
      * @return array<int, string> By unit id
      */
-    private function assignments(array $unitIds, callable $night): array
+    private function assignments(array $unitIds, callable $night, ?string $date = null): array
     {
         if ($unitIds === []) {
             return [];
@@ -175,8 +176,15 @@ class ReservationRoomBox
             ->whereIn('unit_nights.reservation_unit_id', $unitIds);
         $night($query);
 
+        $dayUse = DB::table('unit_day_uses')
+            ->join('rooms', 'rooms.id', '=', 'unit_day_uses.room_id')
+            ->whereIn('unit_day_uses.reservation_unit_id', $unitIds)
+            ->when($date !== null, fn ($rows) => $rows->where('unit_day_uses.date', $date))
+            ->select('unit_day_uses.reservation_unit_id', DB::raw('rooms.number as assigned'));
+
         return $query
             ->select('unit_nights.reservation_unit_id', DB::raw('coalesce(rooms.number, beds.label) as assigned'))
+            ->unionAll($dayUse)
             ->get()
             ->filter(fn (object $row): bool => $row->assigned !== null)
             ->mapWithKeys(fn (object $row): array => [(int) $row->reservation_unit_id => (string) $row->assigned])

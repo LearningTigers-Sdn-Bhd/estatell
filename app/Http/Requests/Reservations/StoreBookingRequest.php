@@ -11,6 +11,7 @@ use App\Enums\BillingMode;
 use App\Enums\PermissionEnum;
 use App\Enums\ReservationSource;
 use App\Enums\SellUnit;
+use App\Enums\StayType;
 use App\Http\Requests\Guests\GuestProfileRules;
 use App\Models\Property;
 use App\Models\RoomType;
@@ -42,7 +43,9 @@ class StoreBookingRequest extends FormRequest
             'source' => ['required', Rule::in([ReservationSource::Direct->value, ReservationSource::Phone->value, ReservationSource::WalkIn->value])],
             'external_reference' => ['nullable', 'string', 'max:100'],
             'arrival_date' => ['required', 'date_format:Y-m-d'],
-            'departure_date' => ['required', 'date_format:Y-m-d'],
+            'stay_type' => ['nullable', Rule::enum(StayType::class)],
+            'departure_date' => ['required_unless:stay_type,day_use', 'nullable', 'date_format:Y-m-d'],
+            'start_time' => ['required_if:stay_type,day_use', 'nullable', 'date_format:H:i'],
             'arrival_time' => ['nullable', 'date_format:H:i'],
             'departure_time' => ['nullable', 'date_format:H:i'],
             'group_name' => ['nullable', 'string', 'max:150'],
@@ -62,6 +65,7 @@ class StoreBookingRequest extends FormRequest
             'lines.*.child_ages' => ['nullable', 'array', 'max:20'],
             'lines.*.child_ages.*' => ['required', 'integer', 'between:0,17'],
             'lines.*.beds' => ['nullable', 'integer', 'min:1', 'max:99'],
+            'lines.*.hours' => ['nullable', 'integer', 'between:1,24'],
             'lines.*.discount_id' => ['nullable', 'integer'],
             'lines.*.override_total' => ['nullable', 'string', 'regex:/^\d+(\.\d{1,2})?$/'],
             'lines.*.override_reason' => ['nullable', 'string', 'max:500'],
@@ -120,7 +124,9 @@ class StoreBookingRequest extends FormRequest
     public function toBookingData(): NewBookingData
     {
         $arrival = CarbonImmutable::parse($this->validated('arrival_date'));
-        $departure = CarbonImmutable::parse($this->validated('departure_date'));
+        $stayType = StayType::tryFrom((string) $this->validated('stay_type')) ?? StayType::Overnight;
+        $isDayUse = $stayType === StayType::DayUse;
+        $departure = $isDayUse ? $arrival : CarbonImmutable::parse($this->validated('departure_date'));
         $units = [];
         $picks = [];
         $unitIndex = 0;
@@ -136,6 +142,10 @@ class StoreBookingRequest extends FormRequest
                 departureDate: $departure,
                 arrivalTime: $this->validated('arrival_time'),
                 departureTime: $this->validated('departure_time'),
+                stayType: $stayType,
+                startTime: $isDayUse ? $this->validated('start_time') : null,
+                hours: $isDayUse && isset($line['hours']) ? (int) $line['hours'] : null,
+                roomId: $isDayUse && isset($line['room_id']) ? (int) $line['room_id'] : null,
                 adults: (int) $line['adults'],
                 childAges: array_map(intval(...), $line['child_ages'] ?? []),
                 beds: $beds,
@@ -152,9 +162,12 @@ class StoreBookingRequest extends FormRequest
             );
 
             foreach (range(0, $beds - 1) as $bed) {
-                $picks[] = $isBed
-                    ? new UnitPickData($unitIndex, bedId: isset($line['bed_ids'][$bed]) ? (int) $line['bed_ids'][$bed] : null)
-                    : new UnitPickData($unitIndex, roomId: isset($line['room_id']) ? (int) $line['room_id'] : null);
+                if (! $isDayUse) {
+                    $picks[] = $isBed
+                        ? new UnitPickData($unitIndex, bedId: isset($line['bed_ids'][$bed]) ? (int) $line['bed_ids'][$bed] : null)
+                        : new UnitPickData($unitIndex, roomId: isset($line['room_id']) ? (int) $line['room_id'] : null);
+                }
+
                 $unitIndex++;
             }
         }

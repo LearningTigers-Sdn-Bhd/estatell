@@ -102,18 +102,18 @@ Status tabs, filters, and two views of the same page of results: **Cards** (defa
 └─────────────────────────────────────────────┘
 ```
 
-| Part        | Shows                                                                                                                                       |
-| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| Room box    | See [Room box](#room-box)                                                                                                                   |
-| Title       | `group_name`, or the booker's name. For a channel booking without a group name: the booker.                                                 |
-| Markers     | ★ VIP (`is_vip`), ⛔ blacklisted, ↻ repeat guest (the booker has another Completed reservation with a lower id), 👥 group (2 or more units) |
-| Subtitle    | Booker (groups only), reference. Channel bookings add `channel_name` and `external_reference`.                                              |
-| Menu `[⋯]`  | Open reservation, Open guest. Unit actions come with front desk.                                                                            |
-| Stay strip  | Earliest arrival, nights, latest departure of units that hold inventory. When none does (a cancelled reservation), of all units.            |
-| Badges      | `StatusBadge`, source icon (label on hover), unit count (groups only), adults and children of units that hold inventory                     |
-| Details     | Room types grouped as `N× name`, booked date                                                                                                |
-| Money strip | Three columns: Total, Paid and Balance. See [Money strip](#money-strip).                                                                    |
-| Card tone   | Cancelled: muted. Blacklisted booker: destructive border and muted background.                                                              |
+| Part        | Shows                                                                                                                                                                                            |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Room box    | See [Room box](#room-box)                                                                                                                                                                        |
+| Title       | `group_name`, or the booker's name. For a channel booking without a group name: the booker.                                                                                                      |
+| Markers     | ★ VIP (`is_vip`), ⛔ blacklisted, ↻ repeat guest (the booker has another Completed reservation with a lower id), 👥 group (2 or more units)                                                      |
+| Subtitle    | Booker (groups only), reference. Channel bookings add `channel_name` and `external_reference`.                                                                                                   |
+| Menu `[⋯]`  | Open reservation, Open guest. Unit actions come with front desk.                                                                                                                                 |
+| Stay strip  | Earliest arrival, nights, latest departure of units that hold inventory. When none does (a cancelled reservation), of all units. A day use reads "Day use · 4h" (`stayLabel`), never "0 nights". |
+| Badges      | `StatusBadge`, source icon (label on hover), unit count (groups only), adults and children of units that hold inventory                                                                          |
+| Details     | Room types grouped as `N× name`, booked date                                                                                                                                                     |
+| Money strip | Three columns: Total, Paid and Balance. See [Money strip](#money-strip).                                                                                                                         |
+| Card tone   | Cancelled: muted. Blacklisted booker: destructive border and muted background.                                                                                                                   |
 
 ### Money strip
 
@@ -121,7 +121,7 @@ Three columns in the muted strip, each with a small muted label above the amount
 
 | Figure            | Source                                                                                                                                                        | Notes                                                                                                                                                          |
 | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Room total        | Sum of `unit_nights.amount` of units that hold inventory                                                                                                      | Labelled "Room total" with the tooltip. Sortable (`total`). No tax, no add-ons.                                                                                |
+| Room total        | Sum of `unit_nights.amount` and `unit_day_uses.amount` of units that hold inventory                                                                           | Labelled "Room total" with the tooltip. Sortable (`total`). No tax, no add-ons.                                                                                |
 | Paid              | `-SUM(folio_lines.amount)` of Payment lines of the folios that are not Voided, except DIRECT_BILL lines (transaction code `system_key` `direct_bill_payment`) | Net of refunds. 0.00 while the reservation has no folio. Real money only                                                                                       |
 | Billed to company | `-SUM(folio_lines.amount)` of the DIRECT_BILL lines (Settle to City ledger)                                                                                   | A muted sub-line under Paid, "+ MYR 1,700.00 billed to company", only above 0. A reversed DIRECT_BILL line nets out. `ReservationListItemData.billedToCompany` |
 | Balance           | `SUM(folio_lines.amount)` of the folios that are not Voided: the posted balance, as on the folio tab                                                          | Danger tone above 0. Below 0, a **Deposit held** badge (`BadgeData`, info tone) under the amount. 0.00 with no folio. Sortable (`balance`).                    |

@@ -146,7 +146,7 @@ test('the enum throws for a nightly strategy and refuses channels with a reason'
         ->and(PricingBasis::DayUse->fits(SellUnit::Bed))->toBeFalse();
 });
 
-test('the nightly quote refuses a day use plan and the add unit options leave it out', function () {
+test('the nightly quote refuses a day use plan and the add unit options flag it', function () {
     [, $property] = dayUseOwner();
     $roomType = RoomType::factory()->for($property)->create();
     $dayUse = RatePlan::factory()->for($property)->dayUse()->create();
@@ -157,7 +157,7 @@ test('the nightly quote refuses a day use plan and the add unit options leave it
 
     expect($quote->isRefused())->toBeTrue()
         ->and($quote->refusal)->toBe(RateQuote::REFUSAL_PLAN_NOT_NIGHTLY)
-        ->and(collect(app(ReservationFormOptions::class)->addUnit($property)->ratePlans)->pluck('id')->all())->toBe([$basic->id]);
+        ->and(collect(app(ReservationFormOptions::class)->addUnit($property)->ratePlans)->mapWithKeys(fn ($option) => [$option->id => $option->isDayUse])->all())->toBe([$dayUse->id => true, $basic->id => false]);
 });
 
 test('database checks keep day use hours on day use plans only', function () {

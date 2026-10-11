@@ -5,8 +5,10 @@ namespace App\Data\Reservations;
 use App\Data\Shared\BadgeData;
 use App\Enums\ReservationSource;
 use App\Enums\ReservationStatus;
+use App\Enums\StayType;
 use App\Models\Reservation;
 use App\Models\ReservationUnit;
+use App\Services\Reservations\StayLabel;
 use Brick\Math\BigDecimal;
 use Carbon\CarbonImmutable;
 use Spatie\LaravelData\Data;
@@ -44,6 +46,8 @@ class ReservationListItemData extends Data
         public ?string $firstArrival,
         public ?string $lastDeparture,
         public int $nights,
+        public StayType $stayType,
+        public ?string $stayLabel,
         public array $roomTypes,
         public string $bookedOn,
         public string $total,
@@ -87,6 +91,8 @@ class ReservationListItemData extends Data
             firstArrival: $firstArrival,
             lastDeparture: $lastDeparture,
             nights: $firstArrival === null ? 0 : (int) CarbonImmutable::parse($firstArrival)->diffInDays(CarbonImmutable::parse($lastDeparture)),
+            stayType: $counted->first()?->stay_type ?? StayType::Overnight,
+            stayLabel: app(StayLabel::class)->forUnits($counted),
             roomTypes: $counted->countBy(fn (ReservationUnit $unit): string => $unit->roomType->name)
                 ->map(fn (int $count, string $name): string => __(':count× :name', ['count' => $count, 'name' => $name]))
                 ->values()

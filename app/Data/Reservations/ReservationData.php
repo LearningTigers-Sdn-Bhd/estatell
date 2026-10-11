@@ -4,6 +4,7 @@ namespace App\Data\Reservations;
 
 use App\Data\Shared\BadgeData;
 use App\Enums\ReservationStatus;
+use App\Enums\StayType;
 use App\Models\Reservation;
 use Spatie\LaravelData\Data;
 
@@ -25,6 +26,8 @@ class ReservationData extends Data
         public ?string $lastDeparture,
         public int $unitCount,
         public int $roomNights,
+        public StayType $stayType,
+        public ?string $stayLabel,
         public string $stayTotal,
         public ?string $balance,
         public string $billingMode,
@@ -47,6 +50,8 @@ class ReservationData extends Data
         ?string $firstArrival,
         ?string $lastDeparture,
         int $roomNights,
+        StayType $stayType,
+        ?string $stayLabel,
         string $stayTotal,
         ?string $balance,
         bool $canViewGuest,
@@ -63,6 +68,8 @@ class ReservationData extends Data
             lastDeparture: $lastDeparture,
             unitCount: $unitCount,
             roomNights: $roomNights,
+            stayType: $stayType,
+            stayLabel: $stayLabel,
             stayTotal: $stayTotal,
             balance: $balance,
             billingMode: $reservation->billing_mode->value,

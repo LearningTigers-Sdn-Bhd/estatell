@@ -3,9 +3,11 @@
 namespace App\Http\Requests\Reservations;
 
 use App\Data\Reservations\NewAddOnData;
+use App\Enums\StayType;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class QuoteBookingLineRequest extends FormRequest
 {
@@ -26,7 +28,10 @@ class QuoteBookingLineRequest extends FormRequest
             'room_type_id' => ['required', 'integer'],
             'rate_plan_id' => ['required', 'integer'],
             'arrival_date' => ['required', 'date_format:Y-m-d'],
-            'departure_date' => ['required', 'date_format:Y-m-d'],
+            'stay_type' => ['nullable', Rule::enum(StayType::class)],
+            'departure_date' => ['required_unless:stay_type,day_use', 'nullable', 'date_format:Y-m-d'],
+            'start_time' => ['required_if:stay_type,day_use', 'nullable', 'date_format:H:i'],
+            'hours' => ['required_if:stay_type,day_use', 'nullable', 'integer', 'between:1,24'],
             'adults' => ['required', 'integer', 'min:1', 'max:99'],
             'child_ages' => ['nullable', 'array', 'max:20'],
             'child_ages.*' => ['integer', 'between:0,17'],
@@ -38,6 +43,11 @@ class QuoteBookingLineRequest extends FormRequest
             'add_ons.*.unit_amount' => ['nullable', 'string', 'regex:/^\d+(\.\d{1,2})?$/'],
             'add_ons.*.service_date' => ['nullable', 'date_format:Y-m-d'],
         ];
+    }
+
+    public function isDayUse(): bool
+    {
+        return $this->input('stay_type') === StayType::DayUse->value;
     }
 
     /**

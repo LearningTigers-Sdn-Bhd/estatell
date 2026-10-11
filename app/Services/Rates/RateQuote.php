@@ -21,6 +21,14 @@ class RateQuote
 
     public const REFUSAL_PLAN_NOT_NIGHTLY = 'plan_not_nightly';
 
+    public const REFUSAL_PLAN_NOT_DAY_USE = 'plan_not_day_use';
+
+    public const REFUSAL_NO_HOUR_PRICE = 'no_hour_price';
+
+    public const REFUSAL_HOURS_NOT_SOLD = 'hours_not_sold';
+
+    public const REFUSAL_RESTRICTED = 'restricted';
+
     public const REFUSAL_ROOM_TYPE_NOT_SOLD = 'room_type_not_sold';
 
     public const REFUSAL_PACKAGE_PRICE_MISSING = 'package_price_missing';

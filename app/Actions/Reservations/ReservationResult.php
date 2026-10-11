@@ -56,6 +56,20 @@ class ReservationResult
 
     public const REFUSAL_MASTER_HAS_AR_INVOICE = 'master_has_ar_invoice';
 
+    public const REFUSAL_OVERRIDE_NOT_ALLOWED = 'override_not_allowed';
+
+    public const REFUSAL_STAY_TYPE_MISMATCH = 'stay_type_mismatch';
+
+    public const REFUSAL_STAY_TYPES_MIXED = 'stay_types_mixed';
+
+    public const REFUSAL_DAY_USE_NOT_FOR_CHANNEL = 'day_use_not_for_channel';
+
+    public const REFUSAL_OUTSIDE_SOLD_BETWEEN = 'outside_sold_between';
+
+    public const REFUSAL_START_TIME_INVALID = 'start_time_invalid';
+
+    public const REFUSAL_ROOM_REQUIRED = 'room_required';
+
     private function __construct(
         public readonly ?Reservation $reservation,
         public readonly ?string $refusal,

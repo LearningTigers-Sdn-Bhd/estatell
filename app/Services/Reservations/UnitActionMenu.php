@@ -4,6 +4,7 @@ namespace App\Services\Reservations;
 
 use App\Data\Reservations\UnitActionData;
 use App\Enums\PermissionEnum;
+use App\Enums\StayType;
 use App\Enums\UnitAction;
 use App\Enums\UnitStatus;
 use App\Models\ReservationUnit;
@@ -11,7 +12,7 @@ use App\Models\User;
 use App\Services\NightAudit\CurrentBusinessDate;
 
 /**
- * The actions the unit ⋯ menu lists: those the unit's status allows and the user's permissions cover. It reads only.
+ * The actions the unit ⋯ menu lists (none for a day use unit until check in and out are built): those the unit's status allows and the user's permissions cover. It reads only.
  */
 class UnitActionMenu
 {
@@ -22,6 +23,10 @@ class UnitActionMenu
      */
     public function for(User $user, ReservationUnit $unit): array
     {
+        if ($unit->stay_type === StayType::DayUse) {
+            return [];
+        }
+
         $businessDate = $this->currentBusinessDate->date($unit->property()->firstOrFail());
 
         return collect(UnitAction::cases())

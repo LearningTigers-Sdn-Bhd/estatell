@@ -41,6 +41,7 @@ class BookingSummary
         private FolioDocumentRows $documentRows,
         private FolioPaymentRows $paymentRows,
         private AmountInWords $amountInWords,
+        private StayLabel $stayLabel,
     ) {}
 
     /**
@@ -54,7 +55,7 @@ class BookingSummary
         $timeZone = $property->settings->time_zone;
         $showPrices = $withPrices || $reservation->company_id === null;
 
-        $units = $reservation->units()->with(['roomType', 'ratePlan', 'guests.guest'])->orderBy('id')->get();
+        $units = $reservation->units()->with(['roomType', 'ratePlan', 'guests.guest', 'dayUse'])->orderBy('id')->get();
         $places = $this->documentRows->places($property, $units);
         $live = $units->filter(fn (ReservationUnit $unit): bool => $unit->status->holdsInventory());
         $dated = $live->isEmpty() ? $units : $live;
@@ -81,7 +82,7 @@ class BookingSummary
             currency: $property->settings->currency,
             stamp: $this->stamp($reservation, $units),
             showPrices: $showPrices,
-            strip: $this->strip($reservation, $from, $to, $timeZone),
+            strip: $this->strip($reservation, $from, $to, $timeZone, $this->stayLabel->forUnits($dated)),
             rooms: $units->map(fn (ReservationUnit $unit): string => $this->roomLine($unit, $places[$unit->id]['place'], $from, $to, $showPrices))->values()->all(),
             lines: $lines,
             payments: $payments,
@@ -172,11 +173,11 @@ class BookingSummary
     /**
      * @return list<array{label: string, value: string}>
      */
-    private function strip(Reservation $reservation, ?CarbonImmutable $from, ?CarbonImmutable $to, string $timeZone): array
+    private function strip(Reservation $reservation, ?CarbonImmutable $from, ?CarbonImmutable $to, string $timeZone, ?string $dayUseLabel): array
     {
         $cells = [
             [__('Bill to'), $reservation->company?->name ?? $reservation->booker->full_name],
-            [__('Stay'), $from === null || $to === null ? '' : DateRange::long($from, $to).' · '.trans_choice(':count night|:count nights', (int) $from->diffInDays($to))],
+            [__('Stay'), $from === null || $to === null ? '' : ($dayUseLabel !== null ? $from->format('d M Y').' · '.$dayUseLabel : DateRange::long($from, $to).' · '.trans_choice(':count night|:count nights', (int) $from->diffInDays($to)))],
             [__('Booked on'), $reservation->created_at->setTimezone($timeZone)->format('d M Y')],
             [__('Your ref'), trim((string) $reservation->external_reference)],
         ];

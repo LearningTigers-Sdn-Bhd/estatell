@@ -6,7 +6,9 @@ use App\Actions\Folio\SyncRoutingRules;
 use App\Data\Reservations\NewUnitData;
 use App\Enums\DiscountScope;
 use App\Enums\PermissionEnum;
+use App\Enums\PricingBasis;
 use App\Enums\ReservationStatus;
+use App\Enums\StayType;
 use App\Enums\UnitStatus;
 use App\Models\Discount;
 use App\Models\RatePlan;
@@ -19,6 +21,7 @@ use App\Services\Availability\NightAvailability;
 use App\Services\NightAudit\CurrentBusinessDate;
 use App\Services\Property\PropertyToday;
 use App\Services\Rates\Pricing\NightPrice;
+use App\Services\Rates\RateQuote;
 use App\Services\Rates\RateQuoteRequest;
 use App\Services\Rates\RateQuoteService;
 use App\Services\Rates\RestrictionCheck;
@@ -37,6 +40,7 @@ class AddUnit
         private PropertyToday $propertyToday,
         private AddUnitAddOn $addUnitAddOn,
         private SyncRoutingRules $syncRoutingRules,
+        private AddDayUseUnit $addDayUseUnit,
     ) {}
 
     /**
@@ -44,7 +48,7 @@ class AddUnit
      *
      * The room type row is locked before the availability check, so two staff cannot sell the last unit together.
      * Every check runs before the first write, so a refusal writes and logs nothing. `$lineIndex` is the index of
-     * the line in the request, and comes back on a refusal. A Cancelled or Completed reservation is refused first. Only
+     * the line in the request, and comes back on a refusal. A Cancelled or Completed reservation is refused first. A day use line (`$data->stayType`) goes to `AddDayUseUnit`; a reservation is all overnight or all day use. Only
      * `$fromChannel` (booking ingestion) skips the arrival date, restriction and availability checks. An add-on refusal rolls back the unit and comes back with the line index. Last, `SyncRoutingRules` makes the billing mode rules match the new unit count, and the result names units whose posted room lines stay on their folio. See docs/12-reservations/02-group-bookings.md.
      */
     public function __invoke(User $actor, Reservation $reservation, NewUnitData $data, int $lineIndex = 0, bool $fromChannel = false): ReservationResult
@@ -69,6 +73,10 @@ class AddUnit
             return $refuse(ReservationResult::REFUSAL_RESERVATION_CLOSED);
         }
 
+        if ($reservation->units()->where('stay_type', '<>', $data->stayType->value)->exists()) {
+            return $refuse(ReservationResult::REFUSAL_STAY_TYPE_MISMATCH);
+        }
+
         $roomType = RoomType::query()
             ->where('property_id', $reservation->property_id)
             ->active()
@@ -82,6 +90,14 @@ class AddUnit
 
         if (! $ratePlan->roomTypes()->whereKey($roomType->id)->exists()) {
             return $refuse(ReservationResult::REFUSAL_RATE_PLAN_NOT_LINKED);
+        }
+
+        if ($data->stayType === StayType::DayUse) {
+            return ($this->addDayUseUnit)($actor, $reservation, $data, $roomType, $ratePlan, $lineIndex, $fromChannel, fn (): bool => $this->canOverrideRestrictions($actor, $reservation));
+        }
+
+        if ($ratePlan->pricing_basis === PricingBasis::DayUse) {
+            return $refuse(RateQuote::REFUSAL_PLAN_NOT_NIGHTLY);
         }
 
         if (! $fromChannel && $ratePlan->companies()->exists()) {

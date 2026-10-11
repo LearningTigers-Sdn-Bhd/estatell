@@ -24,6 +24,8 @@ class AddOnResult
 
     public const REFUSAL_AMOUNT_OVERRIDE_NOT_ALLOWED = 'amount_override_not_allowed';
 
+    public const REFUSAL_NIGHTLY_ITEM_FOR_DAY_USE = 'nightly_item_for_day_use';
+
     /**
      * @param  list<UnitAddOn>  $addOns
      */

@@ -25,6 +25,7 @@ Route::prefix('reservations')->name('reservations.')->scopeBindings()->group(fun
         Route::get('walk-in', [ReservationBookingController::class, 'walkIn'])->name('walk-in');
         Route::post('/', [ReservationBookingController::class, 'store'])->name('store');
         Route::get('free-units', [ReservationBookingController::class, 'freeUnits'])->name('free-units');
+        Route::get('day-use-offers', [ReservationBookingController::class, 'dayUseOffers'])->name('day-use-offers');
     });
 
     Route::middleware('can:'.PermissionEnum::ReservationsView->value)->group(function () {
