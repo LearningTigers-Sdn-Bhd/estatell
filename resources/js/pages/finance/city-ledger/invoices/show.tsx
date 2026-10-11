@@ -108,6 +108,7 @@ export default function InvoiceShow({
     const [crediting, setCrediting] = useState(false);
     const [reversing, setReversing] =
         useState<App.Data.CityLedger.ArAllocationRowData | null>(null);
+    const [returnToCredit, setReturnToCredit] = useState(false);
     const { row } = invoice;
     const isInvoice = row.type === 'invoice';
     const money = (amount: string) => (
@@ -376,7 +377,14 @@ export default function InvoiceShow({
 
             <ReverseAllocationDialog
                 allocation={reversing}
-                onClose={() => setReversing(null)}
+                onClose={() => {
+                    setReversing(null);
+
+                    if (returnToCredit) {
+                        setReturnToCredit(false);
+                        setCrediting(true);
+                    }
+                }}
                 currency={currency}
             />
 
@@ -385,6 +393,12 @@ export default function InvoiceShow({
                     open={crediting}
                     onOpenChange={setCrediting}
                     invoice={invoice}
+                    currency={currency}
+                    onReverse={(allocation) => {
+                        setCrediting(false);
+                        setReturnToCredit(true);
+                        setReversing(allocation);
+                    }}
                 />
             )}
         </>

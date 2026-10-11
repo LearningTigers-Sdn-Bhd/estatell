@@ -1,15 +1,22 @@
 <?php
 
+use App\Actions\CityLedger\AllocateArPayment;
+use App\Actions\CityLedger\RecordArPayment;
+use App\Actions\CityLedger\ReverseAllocation;
+use App\Data\CityLedger\NewArPaymentData;
 use App\Enums\ArInvoiceStatus;
 use App\Enums\ArInvoiceType;
 use App\Enums\DefaultRoleEnum;
 use App\Enums\FolioStatus;
+use App\Enums\PaymentMethodType;
 use App\Enums\SystemTransactionCode;
+use App\Models\ArAllocation;
 use App\Models\ArInvoice;
 use App\Models\BusinessDate;
 use App\Models\Company;
 use App\Models\Folio;
 use App\Models\FolioLine;
+use App\Models\PaymentMethod;
 use App\Models\Property;
 use App\Models\PropertySetting;
 use App\Models\TransactionCode;
@@ -233,4 +240,96 @@ test('the sidebar lists Invoices after Companies for users who can view companie
 
     $this->actingAs($setup['user'])->get(invoiceUrl($setup))->assertInertia(fn (Assert $page) => $page
         ->where('navigation.contexts.1.groups.0.items.1.title', 'Invoices'));
+});
+
+/**
+ * Pays an invoice with one AR payment per amount and allocates each in full.
+ *
+ * @param  list<string>  $amounts
+ * @return list<ArAllocation>
+ */
+function payInvoiceInParts(array $setup, ArInvoice $invoice, array $amounts): array
+{
+    $company = Company::query()->findOrFail($invoice->company_id);
+    $method = PaymentMethod::factory()->create(['property_id' => $setup['property']->id, 'type' => PaymentMethodType::BankTransfer, 'requires_reference' => false]);
+
+    return collect($amounts)->map(function (string $amount) use ($setup, $company, $method, $invoice) {
+        $payment = app(RecordArPayment::class)($setup['user'], $company, NewArPaymentData::from(['paymentMethodId' => $method->id, 'amount' => $amount, 'idempotencyKey' => fake()->uuid()]))->payment;
+
+        return app(AllocateArPayment::class)($setup['user'], $payment, [$invoice->id => $amount])->allocations[0];
+    })->all();
+}
+
+test('a paid invoice still offers a credit note and lists the active payments that block it', function () {
+    $setup = invoicePagesSetup();
+    $invoice = ArInvoice::factory()->create(['property_id' => $setup['property']->id, 'amount' => '300.00']);
+    [$first, $second] = payInvoiceInParts($setup, $invoice, ['100.00', '200.00']);
+    app(ReverseAllocation::class)($setup['user'], $first, 'Wrong invoice');
+
+    $this->actingAs($setup['user'])->get(invoiceUrl($setup, "/{$invoice->id}"))->assertInertia(fn (Assert $page) => $page
+        ->where('invoice.row.balance', '100.00')
+        ->where('invoice.canCreditNote', true)
+        ->has('invoice.allocations', 2)
+        ->has('invoice.creditBlockedBy', 1)
+        ->where('invoice.creditBlockedBy.0.id', $second->id)
+        ->where('invoice.creditBlockedBy.0.canReverse', true));
+
+    app(ReverseAllocation::class)($setup['user'], $second, 'Wrong invoice');
+    payInvoiceInParts($setup, $invoice, ['300.00']);
+
+    $this->get(invoiceUrl($setup, "/{$invoice->id}"))->assertInertia(fn (Assert $page) => $page
+        ->where('invoice.row.balance', '0.00')
+        ->where('invoice.canCreditNote', true)
+        ->has('invoice.creditBlockedBy', 1));
+});
+
+test('credit note is hidden on a void invoice and without the permission', function () {
+    $setup = invoicePagesSetup();
+    $void = ArInvoice::factory()->void()->create(['property_id' => $setup['property']->id]);
+
+    $this->actingAs($setup['user'])->get(invoiceUrl($setup, "/{$void->id}"))->assertInertia(fn (Assert $page) => $page
+        ->where('invoice.canCreditNote', false));
+
+    $frontDesk = invoicePagesSetup(DefaultRoleEnum::FrontDesk);
+    $paid = ArInvoice::factory()->create(['property_id' => $frontDesk['property']->id, 'amount' => '100.00']);
+
+    $this->actingAs($frontDesk['user'])->get(invoiceUrl($frontDesk, "/{$paid->id}"))->assertInertia(fn (Assert $page) => $page
+        ->where('invoice.canCreditNote', false));
+});
+
+test('a credit above the balance names the balance and the payments to reverse', function () {
+    $setup = invoicePagesSetup();
+    $invoice = ArInvoice::factory()->create(['property_id' => $setup['property']->id, 'amount' => '300.00']);
+    $url = invoiceUrl($setup, "/{$invoice->id}/credit-notes");
+    $currency = $setup['property']->settings->currency->value;
+
+    $this->actingAs($setup['user'])->post($url, ['amount' => '400.00', 'reason' => 'Too much'])
+        ->assertSessionHasErrors(['amount' => "The credit cannot be more than the invoice balance ({$currency} 300.00)."]);
+
+    [$first, $second] = payInvoiceInParts($setup, $invoice, ['100.00', '100.00']);
+    $first->load('payment');
+    $second->load('payment');
+
+    $this->post($url, ['amount' => '250.00', 'reason' => 'Too much'])
+        ->assertSessionHasErrors(['amount' => "The credit cannot be more than the invoice balance ({$currency} 100.00). Reverse payments {$first->payment->receipt_number} and {$second->payment->receipt_number} first."]);
+
+    app(ReverseAllocation::class)($setup['user'], $second, 'Wrong invoice');
+
+    $this->post($url, ['amount' => '250.00', 'reason' => 'Too much'])
+        ->assertSessionHasErrors(['amount' => "The credit cannot be more than the invoice balance ({$currency} 200.00). Reverse payment {$first->payment->receipt_number} first."]);
+});
+
+test('after reversing a payment a credit note at the new balance succeeds', function () {
+    $setup = invoicePagesSetup();
+    $invoice = ArInvoice::factory()->create(['property_id' => $setup['property']->id, 'amount' => '300.00']);
+    [$allocation] = payInvoiceInParts($setup, $invoice, ['300.00']);
+    $url = invoiceUrl($setup, "/{$invoice->id}/credit-notes");
+
+    $this->actingAs($setup['user'])->post($url, ['amount' => '300.00', 'reason' => 'Wrong rate'])->assertSessionHasErrors('amount');
+
+    app(ReverseAllocation::class)($setup['user'], $allocation, 'Wrong invoice');
+
+    $this->post($url, ['amount' => '300.00', 'reason' => 'Wrong rate'])->assertSessionHasNoErrors();
+
+    expect(ArInvoice::query()->where('type', ArInvoiceType::CreditNote)->sole()->amount)->toBe('-300.00');
 });

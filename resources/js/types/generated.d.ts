@@ -156,6 +156,7 @@ credited: string,
 creditNotes: App.Data.CityLedger.ArInvoiceRowData[],
 lines: App.Data.CityLedger.ArInvoiceLineData[],
 allocations: App.Data.CityLedger.ArAllocationRowData[],
+creditBlockedBy: App.Data.CityLedger.ArAllocationRowData[],
 canVoid: boolean,
 canCreditNote: boolean,
 };

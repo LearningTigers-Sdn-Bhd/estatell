@@ -25,6 +25,28 @@ class ArInvoiceRefusals
     }
 
     /**
+     * The errors for a refused credit note. `credit_exceeds_balance` names the balance (`MYR 200.00`) and, when
+     * payments are still allocated, the receipts to reverse first. Other codes use `errors()`.
+     *
+     * @param  list<string>  $receipts  The receipt numbers of the active allocations.
+     * @return array<string, string>
+     */
+    public function creditErrors(string $code, string $balanceLabel, array $receipts): array
+    {
+        if ($code !== ArInvoiceResult::REFUSAL_CREDIT_EXCEEDS_BALANCE) {
+            return $this->errors($code);
+        }
+
+        $message = __('The credit cannot be more than the invoice balance (:balance).', ['balance' => $balanceLabel]);
+
+        if ($receipts !== []) {
+            $message .= ' '.trans_choice('{1} Reverse payment :receipts first.|[2,*] Reverse payments :receipts first.', count($receipts), ['receipts' => $this->listed($receipts)]);
+        }
+
+        return ['amount' => $message];
+    }
+
+    /**
      * @param  list<string>  $rooms
      */
     public function message(string $code, array $rooms = []): string
@@ -53,5 +75,15 @@ class ArInvoiceRefusals
             ArInvoiceResult::REFUSAL_ALREADY_VOID => [self::FORM, __('This document is already void.')],
             default => [self::FORM, __('This could not be done.')],
         };
+    }
+
+    /**
+     * @param  list<string>  $receipts
+     */
+    private function listed(array $receipts): string
+    {
+        $last = array_pop($receipts);
+
+        return $receipts === [] ? $last : implode(', ', $receipts).' '.__('and').' '.$last;
     }
 }

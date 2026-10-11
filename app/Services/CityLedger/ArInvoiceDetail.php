@@ -31,6 +31,8 @@ class ArInvoiceDetail
         $notes = $invoice->creditNotes->sortBy('id')->values();
         $credited = $notes->where('status', '<>', ArInvoiceStatus::Void)->reduce(fn (string $sum, ArInvoice $note): string => bcadd($sum, (string) $note->amount, 2), '0.00');
 
+        $allocations = $isInvoice ? $this->allocations($invoice, $user) : [];
+
         return new ArInvoiceData(
             row: ArInvoiceRowData::fromModel($invoice, $balance, $today),
             reason: $invoice->reason,
@@ -42,11 +44,12 @@ class ArInvoiceDetail
             credited: $credited,
             creditNotes: $notes->map(fn (ArInvoice $note): ArInvoiceRowData => ArInvoiceRowData::fromModel($note, null, $today))->all(),
             lines: $this->lines($invoice),
-            allocations: $isInvoice ? $this->allocations($invoice, $user) : [],
+            allocations: $allocations,
+            creditBlockedBy: array_values(array_filter($allocations, fn (ArAllocationRowData $allocation): bool => ! $allocation->isReversed)),
             canVoid: $isInvoice
                 ? $invoice->status === ArInvoiceStatus::Open && $notes->where('status', '<>', ArInvoiceStatus::Void)->isEmpty() && $user->can(PermissionEnum::CityLedgerInvoice->value)
                 : $invoice->status === ArInvoiceStatus::Settled && $user->can(PermissionEnum::CityLedgerCreditNote->value),
-            canCreditNote: $isInvoice && $invoice->status !== ArInvoiceStatus::Void && bccomp($balance, '0', 2) > 0 && $user->can(PermissionEnum::CityLedgerCreditNote->value),
+            canCreditNote: $isInvoice && $invoice->status !== ArInvoiceStatus::Void && $user->can(PermissionEnum::CityLedgerCreditNote->value),
         );
     }
 

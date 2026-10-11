@@ -12,6 +12,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\CityLedger\IssueCreditNoteRequest;
 use App\Models\ArInvoice;
 use App\Models\Property;
+use App\Services\CityLedger\ArInvoiceBalance;
 use App\Services\CityLedger\ArInvoiceDetail;
 use App\Services\CityLedger\ArInvoiceDirectory;
 use App\Services\CityLedger\ArInvoicePrinter;
@@ -67,12 +68,16 @@ class ArInvoiceController extends Controller
     /**
      * Issue a credit note against an invoice. A refusal goes back to the Dialog as an error on the matching field.
      */
-    public function storeCreditNote(IssueCreditNoteRequest $request, Property $property, ArInvoice $invoice, IssueCreditNote $issueCreditNote, ArInvoiceRefusals $refusals): RedirectResponse
+    public function storeCreditNote(IssueCreditNoteRequest $request, Property $property, ArInvoice $invoice, IssueCreditNote $issueCreditNote, ArInvoiceRefusals $refusals, ArInvoiceBalance $arInvoiceBalance): RedirectResponse
     {
         $result = $issueCreditNote($request->user(), $invoice, $request->string('amount')->toString(), $request->string('reason')->toString());
 
         if ($result->isRefused()) {
-            return back(fallback: $this->page($property, $invoice))->withErrors($refusals->errors((string) $result->refusal));
+            $currency = $property->settings?->currency->value ?? '';
+            $balance = trim($currency.' '.number_format((float) $arInvoiceBalance->forInvoice($invoice), 2));
+            $receipts = $arInvoiceBalance->activeReceiptNumbers($invoice);
+
+            return back(fallback: $this->page($property, $invoice))->withErrors($refusals->creditErrors((string) $result->refusal, $balance, $receipts));
         }
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Credit note :number issued.', ['number' => $result->invoice?->number])]);

@@ -14,6 +14,7 @@ class ArInvoiceData extends Data
      * @param  list<ArInvoiceRowData>  $creditNotes
      * @param  list<ArInvoiceLineData>  $lines
      * @param  list<ArAllocationRowData>  $allocations
+     * @param  list<ArAllocationRowData>  $creditBlockedBy  The active allocations: reverse one to free balance for a credit note.
      */
     public function __construct(
         public ArInvoiceRowData $row,
@@ -27,6 +28,7 @@ class ArInvoiceData extends Data
         public array $creditNotes,
         public array $lines,
         public array $allocations,
+        public array $creditBlockedBy,
         public bool $canVoid,
         public bool $canCreditNote,
     ) {}

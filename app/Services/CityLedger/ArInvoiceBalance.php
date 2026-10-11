@@ -35,4 +35,21 @@ class ArInvoiceBalance
 
         return bcsub(bcadd((string) $invoice->amount, $credits, 2), $allocated, 2);
     }
+
+    /**
+     * The receipt numbers of the invoice's active allocations, oldest first. A refused credit note names them.
+     *
+     * @return list<string>
+     */
+    public function activeReceiptNumbers(ArInvoice $invoice): array
+    {
+        return ArAllocation::query()
+            ->where('ar_invoice_id', $invoice->id)
+            ->active()
+            ->with('payment:id,receipt_number')
+            ->orderBy('id')
+            ->get()
+            ->map(fn (ArAllocation $allocation): string => $allocation->payment->receipt_number)
+            ->all();
+    }
 }
