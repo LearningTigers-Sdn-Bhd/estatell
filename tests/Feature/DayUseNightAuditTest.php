@@ -149,3 +149,13 @@ test('a folio item with no unit builds its sheet row for a user who may check in
     expect($group->check)->toBe(AuditCheck::MasterNotBilled)
         ->and(collect($group->actions)->pluck('label')->all())->toBe(['Open folio']);
 });
+
+test('the sheet offers Extend 1 night only on a row with a unit that can be extended', function () {
+    $setup = dayUseAuditDesk();
+    $row = fn (bool $canExtend) => new ReadinessItem(AuditCheck::DepartureNotCheckedOut, $setup['reservation']->id, $setup['unit']->id, 'REF', null, '10 Oct → 11 Oct', canExtend: $canExtend);
+    $labels = fn (bool $canExtend): array => collect(ReadinessGroupData::fromItems([$row($canExtend)], $setup['property'], app(ReadinessAdvice::class), true, true)->actions)->pluck('label')->all();
+
+    expect($labels(true))->toContain('Extend 1 night')
+        ->and($labels(false))->not->toContain('Extend 1 night')
+        ->and($labels(false))->toContain('Check out');
+});

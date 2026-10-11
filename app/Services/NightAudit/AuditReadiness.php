@@ -131,7 +131,7 @@ class AuditReadiness
         return $this->units($property, UnitStatus::CheckedIn)
             ->whereDate('departure_date', '<=', $date->toDateString())
             ->get()
-            ->map(fn (ReservationUnit $unit): ReadinessItem => $this->item(AuditCheck::DepartureNotCheckedOut, $unit, $this->endedDayUseDetail($unit)))
+            ->map(fn (ReservationUnit $unit): ReadinessItem => $this->item(AuditCheck::DepartureNotCheckedOut, $unit, $this->endedDayUseDetail($unit), canExtend: $unit->stay_type !== StayType::DayUse && $unit->departure_date->toDateString() === $date->toDateString()))
             ->all();
     }
 
@@ -311,7 +311,7 @@ class AuditReadiness
         return $block === null ? null : __('Day use · :start–:end', ['start' => substr($block->starts_at, 0, 5), 'end' => substr($block->ends_at, 0, 5)]);
     }
 
-    private function item(AuditCheck $check, ReservationUnit $unit, ?string $detail = null, ?string $message = null, ?int $retryExceptionId = null): ReadinessItem
+    private function item(AuditCheck $check, ReservationUnit $unit, ?string $detail = null, ?string $message = null, ?int $retryExceptionId = null, bool $canExtend = false): ReadinessItem
     {
         return new ReadinessItem(
             check: $check,
@@ -323,6 +323,7 @@ class AuditReadiness
             message: $message,
             retryExceptionId: $retryExceptionId,
             dayUse: $unit->stay_type === StayType::DayUse,
+            canExtend: $canExtend,
         );
     }
 }

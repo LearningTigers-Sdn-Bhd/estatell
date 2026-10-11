@@ -294,3 +294,17 @@ test('the date ends at midnight in the property time zone', function () {
     expect($notEnded)->toBeFalse()
         ->and(app(AuditReadiness::class)->businessDateEnded($property))->toBeTrue();
 });
+
+test('only a unit that departs on the business date can be extended', function () {
+    $property = readinessProperty();
+    $room = fn () => ['room_id' => Room::factory()->for($property)->create()->id];
+    $today = readinessUnit($property, 'checkedIn', '2026-10-10', '2026-10-12');
+    $today->nights()->update($room());
+    $earlier = readinessUnit($property, 'checkedIn', '2026-10-09', '2026-10-11');
+    $earlier->nights()->update($room());
+
+    $items = collect(app(AuditReadiness::class)->items($property))->where('check', AuditCheck::DepartureNotCheckedOut);
+
+    expect($items->firstWhere('reservationUnitId', $today->id)->canExtend)->toBeTrue()
+        ->and($items->firstWhere('reservationUnitId', $earlier->id)->canExtend)->toBeFalse();
+});
