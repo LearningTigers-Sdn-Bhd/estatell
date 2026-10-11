@@ -6,7 +6,7 @@ import {
     PanelRightOpen,
     Plus,
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import type { EnumOption } from '@/components/pms/enum-select';
 import { emptyGuest } from '@/components/pms/reservations/booking-guests';
 import type { BookingGuest } from '@/components/pms/reservations/booking-guests';
@@ -120,10 +120,6 @@ export function GuestsTab({
     const inUnit = shownRows.filter((row) => row.name !== null).length;
     const summaryLabel = summaryHidden ? 'Show summary' : 'Hide summary';
 
-    useEffect(() => {
-        setDirtySaved(new Set());
-    }, [reservationId]);
-
     const addDraft = (unitId: number | null = null) => {
         if (drafts.length >= MAX_DRAFTS) {
             return;
@@ -148,7 +144,7 @@ export function GuestsTab({
     const removeDraft = (key: string) =>
         setDrafts((current) => current.filter((draft) => draft.key !== key));
 
-    const markDirty = (key: string, isDirty: boolean) =>
+    const markDirty = useCallback((key: string, isDirty: boolean) => {
         setDirtySaved((current) => {
             if (current.has(key) === isDirty) {
                 return current;
@@ -164,6 +160,7 @@ export function GuestsTab({
 
             return next;
         });
+    }, []);
 
     const bill = (row: Row) => {
         if (row.unitId === null || row.guestId === null) {
