@@ -368,6 +368,9 @@ Topics on hold. Each one needs a planning session and its docs before it gets co
 | `1e374b2` | feat(reservations): change the price of booked nights                    |
 | `2b32138` | docs(reservations): settle the day use build decisions                   |
 | `d9c193e` | feat(rates): add day use rate plans                                      |
+| `3d9b137` | docs(reservations): split day use booking into backend and form          |
+| `f4fe501` | feat(reservations): book day use rooms and prices                        |
+| `c3ad864` | feat(reservations): add day use to the booking form                      |
 
 Smaller fixes and reverts are in `git log`.
 
