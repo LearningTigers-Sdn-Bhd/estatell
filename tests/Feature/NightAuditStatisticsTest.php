@@ -1,6 +1,7 @@
 <?php
 
 use App\Actions\NightAudit\SnapshotStatistics;
+use App\Enums\StayType;
 use App\Enums\SystemTransactionCode;
 use App\Enums\TransactionKind;
 use App\Models\Bed;
@@ -16,6 +17,7 @@ use App\Models\Room;
 use App\Models\RoomBlock;
 use App\Models\RoomType;
 use App\Models\TransactionCode;
+use App\Models\UnitDayUse;
 use App\Services\NightAudit\StatisticsCalculator;
 use App\Services\Reports\DailyRevenueQuery;
 use Carbon\CarbonImmutable;
@@ -135,6 +137,47 @@ test('the calculator counts supply, sold units, revenue and front desk events fo
         ->and($figures->departures)->toBe(1)
         ->and($figures->noShows)->toBe(1)
         ->and($figures->inHouseGuests)->toBe(4);
+});
+
+test('day use is counted apart from the overnight figures and is saved by the snapshot', function () {
+    ['property' => $property, 'room' => $room, 'discount' => $discount] = statsProperty();
+    $dayUseCode = TransactionCode::factory()->for($property)->system(SystemTransactionCode::DayUseRevenue)->create();
+    $roomType = RoomType::factory()->for($property)->create();
+    $rooms = Room::factory()->count(3)->for($property)->create(['room_type_id' => $roomType->id]);
+    $overnight = statsUnit($property, $roomType, 'checkedIn', '2026-10-12', $rooms[0]);
+
+    $dayUse = function (string $status, string $date, ?Room $place, ?string $releasedAt = null) use ($property, $roomType): ReservationUnit {
+        $factory = ReservationUnit::factory()->for(Reservation::factory()->create(['property_id' => $property->id]));
+        $unit = ($status === 'confirmed' ? $factory : $factory->{$status}())
+            ->create(['room_type_id' => $roomType->id, 'stay_type' => StayType::DayUse, 'arrival_date' => $date, 'departure_date' => $date]);
+        UnitDayUse::factory()->create(['reservation_unit_id' => $unit->id, 'date' => $date, 'room_id' => $place?->id, 'released_at' => $releasedAt]);
+
+        return $unit;
+    };
+
+    $dayUse('checkedOut', '2026-10-12', $rooms[1]);
+    $dayUse('checkedIn', '2026-10-12', $rooms[2]);
+    $dayUse('checkedOut', '2026-10-11', $rooms[1]);
+    $dayUse('noShow', '2026-10-12', $rooms[1], now()->toDateTimeString());
+    $dayUse('confirmed', '2026-10-12', null);
+
+    $charge = statsLine($property, $dayUseCode, '100.00', '2026-10-12');
+    statsLine($property, $discount, '-10.00', '2026-10-12', TransactionKind::Adjustment, ['folio_id' => $charge->folio_id, 'parent_line_id' => $charge->id]);
+    statsLine($property, $dayUseCode, '55.00', '2026-10-11');
+    statsLine($property, $room, '200.00', '2026-10-12');
+    $date = CarbonImmutable::parse('2026-10-12');
+
+    $figures = app(StatisticsCalculator::class)->forDate($property, $date);
+    app(SnapshotStatistics::class)($property, $date);
+    $statistic = DailyStatistic::query()->sole();
+
+    expect($figures->dayUseSold)->toBe(2)
+        ->and((string) $figures->dayUseRevenue->getAmount())->toBe('90.00')
+        ->and($figures->roomsSold)->toBe(1)
+        ->and((string) $figures->adr->getAmount())->toBe('200.00')
+        ->and($statistic->day_use_sold)->toBe(2)
+        ->and($statistic->day_use_revenue)->toBe('90.00')
+        ->and($overnight->id)->not->toBeNull();
 });
 
 test('a date with nothing on sale has zero occupancy, ADR and RevPAR', function () {

@@ -73,7 +73,8 @@ class OccupancyReport implements HasTotals, Report
     }
 
     /**
-     * Sums of the units, the revenue and the front desk counts. Occupancy, ADR and RevPAR come from the sums. In-house
+     * Sums of the units, the revenue, the day use figures and the front desk counts. Occupancy, ADR and RevPAR come from the
+     * sums and never include day use. In-house
      * guests have no total: each date counts the same guests again.
      *
      * @param  list<OccupancyRow>  $rows
@@ -92,6 +93,8 @@ class OccupancyReport implements HasTotals, Report
             'adr' => $sold === 0 ? '0.00' : (string) $revenue->dividedBy($sold, 2, RoundingMode::HalfUp),
             'revpar' => $available === 0 ? '0.00' : (string) $revenue->dividedBy($available, 2, RoundingMode::HalfUp),
             'revenue' => (string) $revenue->toScale(2, RoundingMode::HalfUp),
+            'day_use_sold' => array_sum(array_map(fn (OccupancyRow $row): int => $row->day_use_sold, $rows)),
+            'day_use_revenue' => (string) array_reduce($rows, fn (BigDecimal $sum, OccupancyRow $row): BigDecimal => $sum->plus($row->day_use_revenue), BigDecimal::zero())->toScale(2, RoundingMode::HalfUp),
             'arrivals' => array_sum(array_map(fn (OccupancyRow $row): int => $row->arrivals, $rows)),
             'departures' => array_sum(array_map(fn (OccupancyRow $row): int => $row->departures, $rows)),
             'noshows' => array_sum(array_map(fn (OccupancyRow $row): int => $row->noshows, $rows)),

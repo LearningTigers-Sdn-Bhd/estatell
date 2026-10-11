@@ -3,6 +3,7 @@
 namespace App\Services\NightAudit;
 
 use App\Enums\SellUnit;
+use App\Enums\StayType;
 use App\Enums\UnitStatus;
 use App\Models\Property;
 use App\Models\ReservationUnit;
@@ -28,6 +29,8 @@ use Spatie\Activitylog\Models\Activity;
  *   `DailyRevenueQuery`.
  * - Arrivals, departures and no-shows are the front desk events logged with the business date, one for each unit.
  * - In-house guests are the adults and children of the CheckedIn units.
+ * - Day use is counted apart: the CheckedIn and CheckedOut day use units of the date that still hold their block, and
+ *   the DAY_USE revenue of the date. Neither is in occupancy, ADR or RevPAR.
  *
  * See docs/20-night-audit/05-statistics.md.
  */
@@ -62,6 +65,8 @@ class StatisticsCalculator
             $this->events('reservation.unit_checked_out', $property, $date),
             $this->events('reservation.unit_no_show', $property, $date),
             $this->inHouseGuests($property),
+            $this->dayUseSold($property, $date),
+            $this->revenue->dayUseRevenue($property, $date),
         );
     }
 
@@ -108,6 +113,20 @@ class StatisticsCalculator
             ->where('property_id', $property->id)
             ->where('status', UnitStatus::CheckedIn->value)
             ->sum(DB::raw('adults + children'));
+    }
+
+    /**
+     * The day use units of the date that were used: CheckedIn or CheckedOut, and not released (a cancelled or no-show
+     * block is released). One for each unit, not for each hour.
+     */
+    private function dayUseSold(Property $property, CarbonImmutable $date): int
+    {
+        return ReservationUnit::query()
+            ->where('property_id', $property->id)
+            ->where('stay_type', StayType::DayUse->value)
+            ->whereIn('status', [UnitStatus::CheckedIn->value, UnitStatus::CheckedOut->value])
+            ->whereHas('dayUse', fn ($blocks) => $blocks->whereDate('date', $date->toDateString())->whereNull('released_at'))
+            ->count();
     }
 
     /**

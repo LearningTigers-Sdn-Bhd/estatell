@@ -3,6 +3,7 @@
 namespace App\Services\Reports;
 
 use App\Data\Reports\ReportFilters;
+use App\Enums\StayType;
 use App\Enums\UnitStatus;
 use App\Models\Property;
 use App\Models\ReservationUnit;
@@ -12,7 +13,7 @@ use Illuminate\Support\Collection;
 
 /**
  * The reservation units that stayed in a date range, for the Non-national guests and Police reports: Checked in and
- * Checked out units with arrival on or before the last date and departure after the first date. A Confirmed unit has
+ * Checked out units with arrival on or before the last date and departure after the first date, or a day use on a date in the range (it arrives and leaves the same day). A Confirmed unit has
  * not arrived and a Cancelled or No-show unit never did, so they are left out. An early check-out has already moved the
  * departure date, so the dates alone give the nights that were stayed.
  */
@@ -27,7 +28,11 @@ class StayUnits
         return ReservationUnit::query()
             ->where('property_id', $property->id)
             ->where('arrival_date', '<=', $filters->to)
-            ->where('departure_date', '>', $filters->from)
+            ->where(fn (Builder $stay) => $stay
+                ->where('departure_date', '>', $filters->from)
+                ->orWhere(fn (Builder $dayUse) => $dayUse
+                    ->where('stay_type', StayType::DayUse->value)
+                    ->where('arrival_date', '>=', $filters->from)))
             ->whereIn('status', [UnitStatus::CheckedIn, UnitStatus::CheckedOut])
             ->when($unitIds !== null, fn (Builder $query) => $query->whereIn('id', $unitIds))
             ->with(['reservation.booker', 'guests.guest'])

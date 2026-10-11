@@ -4,6 +4,7 @@ use App\Data\Reports\InHouseRow;
 use App\Data\Reports\ReportFilters;
 use App\Enums\DefaultRoleEnum;
 use App\Enums\ReportKey;
+use App\Enums\StayType;
 use App\Enums\UnitStatus;
 use App\Models\BusinessDate;
 use App\Models\Company;
@@ -14,6 +15,7 @@ use App\Models\PropertySetting;
 use App\Models\Reservation;
 use App\Models\ReservationUnit;
 use App\Models\Room;
+use App\Models\UnitDayUse;
 use App\Models\UnitNight;
 use App\Models\User;
 use App\Services\Reports\InHouseReport;
@@ -85,7 +87,7 @@ test('the page opens on the business date and a date in the URL replaces it', fu
         ->where('to', '2026-10-10')
         ->where('maxRangeDays', null)
         ->where('sort', 'room')
-        ->has('layout.columns', 12)
+        ->has('layout.columns', 13)
         ->where('rows.meta.total', 1));
 
     $this->actingAs($user)->get(inHouseUrl($property, '?date=2026-10-14'))->assertInertia(fn (Assert $page) => $page
@@ -153,6 +155,27 @@ test('the date param is checked and from and to are ignored', function () {
         ->where('rows.meta.total', 1));
 });
 
+test('a day use unit is in-house on its date with its hours as the stay, and not on other dates', function () {
+    [, $property] = inHouseSetup();
+    $room = Room::factory()->for($property)->create();
+    $dayUse = stayingUnit($property, '2026-10-10', '2026-10-10', ['stay_type' => StayType::DayUse, 'arrival_time' => '10:00', 'departure_time' => '14:00']);
+    UnitDayUse::factory()->create(['reservation_unit_id' => $dayUse->id, 'date' => '2026-10-10', 'room_id' => $room->id, 'starts_at' => '10:00', 'ends_at' => '14:00']);
+    $overnight = stayingUnit($property, '2026-10-09', '2026-10-12');
+    $cancelled = stayingUnit($property, '2026-10-10', '2026-10-10', ['stay_type' => StayType::DayUse, 'status' => UnitStatus::Cancelled]);
+    $report = app(InHouseReport::class);
+
+    $rows = $report->rows($property, new ReportFilters('2026-10-10', '2026-10-10'));
+    $other = $report->rows($property, new ReportFilters('2026-10-11', '2026-10-11'));
+    $byKey = collect($rows)->keyBy('key');
+
+    expect($byKey->keys()->all())->toEqualCanonicalizing([$dayUse->id, $overnight->id])
+        ->and($byKey[$dayUse->id]->stay)->toBe('Day use · 10:00–14:00')
+        ->and($byKey[$dayUse->id]->room)->toBe($room->number)
+        ->and($byKey[$overnight->id]->stay)->toBeNull()
+        ->and(collect($other)->pluck('key')->all())->toBe([$overnight->id])
+        ->and($cancelled->id)->not->toBeIn($byKey->keys()->all());
+});
+
 test('the report returns only the requested row keys and is in the registry', function () {
     [, $property] = inHouseSetup();
     $first = stayingUnit($property, '2026-10-09', '2026-10-12');
@@ -162,7 +185,7 @@ test('the report returns only the requested row keys and is in the registry', fu
     $keys = array_map(fn ($column): string => $column->key, ReportKey::InHouse->columns());
 
     expect(array_map(fn (InHouseRow $row): int => $row->key, $report->rows($property, $filters, [$first->id])))->toBe([$first->id])
-        ->and($keys)->toBe(['reservation', 'guest', 'room', 'arrival', 'arrival_time', 'departure', 'departure_time', 'guests', 'adults', 'children', 'company', 'balance'])
+        ->and($keys)->toBe(['reservation', 'guest', 'room', 'arrival', 'arrival_time', 'departure', 'departure_time', 'stay', 'guests', 'adults', 'children', 'company', 'balance'])
         ->and(ReportKey::InHouse->maxRangeDays())->toBeNull()
         ->and(ReportKey::InHouse->report())->toBeInstanceOf(InHouseReport::class);
 });

@@ -47,6 +47,24 @@ class StayLabel
         return self::dayUse($hours->count() === 1 ? $hours->first() : null);
     }
 
+    /**
+     * "Day use · 10:00–14:00" for a day use unit, otherwise null. The reports show it as the stay of the unit.
+     */
+    public function hoursForUnit(ReservationUnit $unit): ?string
+    {
+        if ($unit->stay_type !== StayType::DayUse) {
+            return null;
+        }
+
+        $block = $unit->loadMissing('dayUse')->dayUse;
+
+        if ($block === null) {
+            return self::dayUse(null);
+        }
+
+        return __('Day use · :from–:to', ['from' => substr($block->starts_at, 0, 5), 'to' => substr($block->ends_at, 0, 5)]);
+    }
+
     public static function dayUse(?int $hours): string
     {
         return $hours === null ? __('Day use') : __('Day use · :hours', ['hours' => $hours.'h']);

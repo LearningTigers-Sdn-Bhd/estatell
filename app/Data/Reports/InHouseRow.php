@@ -3,6 +3,7 @@
 namespace App\Data\Reports;
 
 use App\Models\ReservationUnit;
+use App\Services\Reservations\StayLabel;
 use Carbon\CarbonImmutable;
 use Spatie\LaravelData\Data;
 
@@ -21,6 +22,7 @@ class InHouseRow extends Data implements ReportRow
         public string $arrival_time,
         public string $departure,
         public string $departure_time,
+        public ?string $stay,
         public string $guests,
         public int $adults,
         public int $children,
@@ -41,6 +43,7 @@ class InHouseRow extends Data implements ReportRow
             'arrival_time' => $this->arrival_time,
             'departure' => CarbonImmutable::parse($this->departure)->format('j M Y'),
             'departure_time' => $this->departure_time,
+            'stay' => $this->stay ?? '',
             'guests' => $this->guests,
             'adults' => (string) $this->adults,
             'children' => (string) $this->children,
@@ -62,6 +65,7 @@ class InHouseRow extends Data implements ReportRow
             'arrival_time' => $this->arrival_time,
             'departure' => $this->departure,
             'departure_time' => $this->departure_time,
+            'stay' => $this->stay ?? '',
             'guests' => $this->guests,
             'adults' => $this->adults,
             'children' => $this->children,
@@ -87,6 +91,7 @@ class InHouseRow extends Data implements ReportRow
             arrival_time: substr($unit->arrival_time, 0, 5),
             departure: $unit->departure_date->toDateString(),
             departure_time: substr($unit->departure_time, 0, 5),
+            stay: app(StayLabel::class)->hoursForUnit($unit),
             guests: "{$unit->adults} / {$unit->children}",
             adults: $unit->adults,
             children: $unit->children,

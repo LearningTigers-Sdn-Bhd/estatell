@@ -61,7 +61,7 @@ test('the page needs reports.view and is scoped to the property', function () {
         ->component('reports/occupancy')
         ->where('maxRangeDays', 366)
         ->where('sort', 'date')
-        ->has('layout.columns', 11)
+        ->has('layout.columns', 13)
         ->where('rows.meta.total', 1)
         ->where('rows.data.0.key', '2026-10-09'));
 });
@@ -141,6 +141,20 @@ test('the totals add the counts and work the ratios out again from the sums', fu
         ->where('totals.figures.departures', 4)
         ->where('totals.figures.noshows', 1)
         ->where('totals.figures.guests', null));
+});
+
+test('day use is shown apart and summed, and occupancy, ADR and RevPAR ignore it', function () {
+    [$user, $property] = occupancySetup();
+    occupancySnapshot($property, '2026-10-08', ['rooms_available' => 10, 'rooms_sold' => 5, 'occupancy' => '50.00', 'adr' => '100.00', 'day_use_sold' => 2, 'day_use_revenue' => '190.00']);
+    occupancySnapshot($property, '2026-10-09', ['rooms_available' => 10, 'rooms_sold' => 0, 'occupancy' => '0.00', 'adr' => '0.00', 'day_use_sold' => 1, 'day_use_revenue' => '60.50']);
+
+    $this->actingAs($user)->get(occupancyUrl($property, '?from=2026-10-08&to=2026-10-09'))->assertInertia(fn (Assert $page) => $page
+        ->where('rows.data.0.day_use_sold', 2)
+        ->where('rows.data.0.day_use_revenue', '190.00')
+        ->where('rows.data.0.occupancy', '50.00')
+        ->where('totals.figures.day_use_sold', 3)
+        ->where('totals.figures.day_use_revenue', '250.50')
+        ->where('totals.figures.occupancy', '25.00'));
 });
 
 test('the PDF and CSV end with the total row, and the selection totals only the selected dates', function () {

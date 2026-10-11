@@ -5,6 +5,7 @@ namespace App\Services\Reports;
 use App\Data\Reports\InHouseRow;
 use App\Data\Reports\ReportFilters;
 use App\Data\Reports\ReportTotals;
+use App\Enums\StayType;
 use App\Enums\UnitStatus;
 use App\Models\Property;
 use App\Models\ReservationUnit;
@@ -12,7 +13,8 @@ use App\Services\Reservations\ReservationRoomBox;
 
 /**
  * The reservation units that stay on one date: arrival on or before the date and departure after it, so the arrival
- * day counts and the departure day does not. Only Checked in and Checked out units count, so an expected or missed
+ * day counts and the departure day does not. A day use arrives and leaves on the same
+ * date, so it is in-house on that date. Only Checked in and Checked out units count, so an expected or missed
  * arrival is not in-house. An early check-out moves the departure date to the day it happens and removes the unused
  * nights, so the dates alone give the right answer for any date, past or open. `unit_nights` is read only for the
  * room or bed of that night. The total row sums adults and children.
@@ -36,7 +38,11 @@ class InHouseReport implements HasTotals, Report
             ReservationUnit::query()
                 ->where('property_id', $property->id)
                 ->where('arrival_date', '<=', $date)
-                ->where('departure_date', '>', $date)
+                ->where(fn ($stay) => $stay
+                    ->where('departure_date', '>', $date)
+                    ->orWhere(fn ($dayUse) => $dayUse
+                        ->where('stay_type', StayType::DayUse->value)
+                        ->where('arrival_date', $date)))
                 ->whereIn('status', [UnitStatus::CheckedIn, UnitStatus::CheckedOut])
                 ->orderBy('id'),
             $rowKeys,

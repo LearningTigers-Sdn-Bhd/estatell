@@ -29,7 +29,7 @@ class UnitReportRows
     {
         $units = $query
             ->when($rowKeys !== null, fn (Builder $query) => $query->whereIn('id', $rowKeys))
-            ->with(['reservation.booker', 'reservation.company', 'roomType', 'guests.guest'])
+            ->with(['reservation.booker', 'reservation.company', 'roomType', 'guests.guest', 'dayUse'])
             ->get();
 
         $rooms = $roomsFor($units->pluck('id')->all());

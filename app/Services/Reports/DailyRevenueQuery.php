@@ -59,7 +59,7 @@ class DailyRevenueQuery
 
     /**
      * The room revenue of one date, net of tax: the room revenue code plus the discount lines under its charges.
-     * Zero when the property has no room revenue code.
+     * Zero when the property has no room revenue code. Day use is on its own code and is not in it.
      */
     public function roomRevenue(Property $property, CarbonInterface $date): Money
     {
@@ -74,13 +74,32 @@ class DailyRevenueQuery
      */
     public function roomRevenueBetween(Property $property, CarbonInterface $from, CarbonInterface $to): array
     {
+        return $this->codeRevenueBetween($property, SystemTransactionCode::RoomRevenue, $from, $to);
+    }
+
+    /**
+     * The day use revenue of one date, net of tax: the DAY_USE code plus the discount lines under its charges.
+     */
+    public function dayUseRevenue(Property $property, CarbonInterface $date): Money
+    {
+        return $this->codeRevenueBetween($property, SystemTransactionCode::DayUseRevenue, $date, $date)[$date->toDateString()]
+            ?? Money::zero($this->currency($property));
+    }
+
+    /**
+     * The net revenue of one system code and the discount lines under its charges, for each date that has any.
+     *
+     * @return array<string, Money>
+     */
+    private function codeRevenueBetween(Property $property, SystemTransactionCode $system, CarbonInterface $from, CarbonInterface $to): array
+    {
         $currency = $this->currency($property);
-        $roomCodeId = TransactionCode::query()
+        $codeId = TransactionCode::query()
             ->where('property_id', $property->id)
-            ->where('system_key', SystemTransactionCode::RoomRevenue->value)
+            ->where('system_key', $system->value)
             ->value('id');
 
-        if ($roomCodeId === null) {
+        if ($codeId === null) {
             return [];
         }
 
@@ -88,10 +107,10 @@ class DailyRevenueQuery
             ->where('folio_lines.kind', '!=', TransactionKind::Payment->value)
             ->leftJoin('folio_lines as parent_lines', 'parent_lines.id', '=', 'folio_lines.parent_line_id')
             ->where(fn (Builder $lines) => $lines
-                ->where('folio_lines.transaction_code_id', $roomCodeId)
+                ->where('folio_lines.transaction_code_id', $codeId)
                 ->orWhere(fn (Builder $discounts) => $discounts
                     ->where('folio_lines.kind', TransactionKind::Adjustment->value)
-                    ->where('parent_lines.transaction_code_id', $roomCodeId)))
+                    ->where('parent_lines.transaction_code_id', $codeId)))
             ->groupBy('folio_lines.posting_date')
             ->selectRaw('folio_lines.posting_date as date, SUM(folio_lines.amount) as amount')
             ->get();

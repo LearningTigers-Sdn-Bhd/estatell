@@ -5,6 +5,7 @@ use App\Data\Reports\ReportFilters;
 use App\Enums\DefaultRoleEnum;
 use App\Enums\PermissionEnum;
 use App\Enums\ReportKey;
+use App\Enums\StayType;
 use App\Enums\UnitStatus;
 use App\Models\BusinessDate;
 use App\Models\Company;
@@ -16,6 +17,7 @@ use App\Models\PropertySetting;
 use App\Models\Reservation;
 use App\Models\ReservationUnit;
 use App\Models\Room;
+use App\Models\UnitDayUse;
 use App\Models\UnitGuest;
 use App\Models\UnitNight;
 use App\Models\User;
@@ -91,6 +93,18 @@ test('the page opens on the business date and lists the units that arrive', func
         ->where('canEditLayout', true)
         ->has('rows.data', 1)
         ->where('rows.meta.total', 1));
+});
+
+test('a day use unit shows its hours in place of the nights', function () {
+    [, $property] = arrivalsSetup();
+    $unit = arrivingUnit($property, '2026-10-10', ['stay_type' => StayType::DayUse, 'departure_date' => '2026-10-10', 'arrival_time' => '10:00', 'departure_time' => '14:00']);
+    UnitDayUse::factory()->create(['reservation_unit_id' => $unit->id, 'date' => '2026-10-10', 'starts_at' => '10:00', 'ends_at' => '14:00']);
+    $overnight = arrivingUnit($property, '2026-10-10');
+    $rows = collect(app(ArrivalsReport::class)->rows($property, new ReportFilters('2026-10-10', '2026-10-10')))->keyBy('key');
+
+    expect($rows[$unit->id]->cells()['nights'])->toBe('Day use · 10:00–14:00')
+        ->and($rows[$unit->id]->values()['nights'])->toBe('Day use · 10:00–14:00')
+        ->and($rows[$overnight->id]->cells()['nights'])->toBe('2');
 });
 
 test('a single date in the URL is used for both ends', function () {

@@ -49,6 +49,9 @@ const cells: ReportCells<Row> = {
     revenue: (row, currency) => (
         <MoneyText amount={row.revenue} currency={currency} />
     ),
+    day_use_revenue: (row, currency) => (
+        <MoneyText amount={row.day_use_revenue} currency={currency} />
+    ),
 };
 
 const totalCells: ReportTotalCells = {
@@ -60,6 +63,9 @@ const totalCells: ReportTotalCells = {
         <MoneyText amount={String(figure)} currency={currency} />
     ),
     revenue: (figure, currency) => (
+        <MoneyText amount={String(figure)} currency={currency} />
+    ),
+    day_use_revenue: (figure, currency) => (
         <MoneyText amount={String(figure)} currency={currency} />
     ),
 };

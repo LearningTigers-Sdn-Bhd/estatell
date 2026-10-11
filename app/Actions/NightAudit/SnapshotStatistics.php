@@ -44,11 +44,13 @@ class SnapshotStatistics
                 'departures' => $figures->departures,
                 'no_shows' => $figures->noShows,
                 'in_house_guests' => $figures->inHouseGuests,
+                'day_use_sold' => $figures->dayUseSold,
+                'day_use_revenue' => $figures->dayUseRevenue->getAmount(),
                 'created_at' => $now,
                 'updated_at' => $now,
             ]], ['property_id', 'business_date'], [
                 'rooms_available', 'rooms_sold', 'beds_available', 'beds_sold', 'occupancy', 'adr', 'revpar',
-                'arrivals', 'departures', 'no_shows', 'in_house_guests', 'updated_at',
+                'arrivals', 'departures', 'no_shows', 'in_house_guests', 'day_use_sold', 'day_use_revenue', 'updated_at',
             ]);
 
             DailyRevenue::query()

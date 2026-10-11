@@ -27,12 +27,14 @@ use Illuminate\Support\Carbon;
  * @property int $departures
  * @property int $no_shows
  * @property int $in_house_guests
+ * @property int $day_use_sold
+ * @property string $day_use_revenue
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
 #[Fillable([
     'business_date', 'rooms_available', 'rooms_sold', 'beds_available', 'beds_sold', 'occupancy', 'adr', 'revpar',
-    'arrivals', 'departures', 'no_shows', 'in_house_guests',
+    'arrivals', 'departures', 'no_shows', 'in_house_guests', 'day_use_sold', 'day_use_revenue',
 ])]
 class DailyStatistic extends Model
 {
@@ -49,6 +51,7 @@ class DailyStatistic extends Model
             'occupancy' => 'decimal:2',
             'adr' => 'decimal:2',
             'revpar' => 'decimal:2',
+            'day_use_revenue' => 'decimal:2',
         ];
     }
 

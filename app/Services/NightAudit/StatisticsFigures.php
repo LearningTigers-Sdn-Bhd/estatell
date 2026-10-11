@@ -6,7 +6,7 @@ use Brick\Money\Money;
 
 /**
  * The statistics of one business date, as `StatisticsCalculator` worked them out. `occupancy` is a percent with two
- * decimals.
+ * decimals. The day use figures are apart from the overnight ones: occupancy, ADR and RevPAR do not count them.
  */
 class StatisticsFigures
 {
@@ -22,5 +22,7 @@ class StatisticsFigures
         public readonly int $departures,
         public readonly int $noShows,
         public readonly int $inHouseGuests,
+        public readonly int $dayUseSold,
+        public readonly Money $dayUseRevenue,
     ) {}
 }

@@ -32,6 +32,8 @@ class DailyStatisticFactory extends Factory
             'departures' => 1,
             'no_shows' => 0,
             'in_house_guests' => 6,
+            'day_use_sold' => 0,
+            'day_use_revenue' => '0.00',
         ];
     }
 }

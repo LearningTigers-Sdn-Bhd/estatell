@@ -4,6 +4,7 @@ namespace App\Data\Reports;
 
 use App\Data\Shared\BadgeData;
 use App\Models\ReservationUnit;
+use App\Services\Reservations\StayLabel;
 use Carbon\CarbonImmutable;
 use Spatie\LaravelData\Data;
 
@@ -21,6 +22,7 @@ class ArrivalRow extends Data implements ReportRow
         public string $arrival,
         public string $arrival_time,
         public int $nights,
+        public ?string $stay_label,
         public string $unit,
         public string $room_type,
         public ?string $room,
@@ -43,7 +45,7 @@ class ArrivalRow extends Data implements ReportRow
             'phone' => $this->phone ?? '',
             'arrival' => CarbonImmutable::parse($this->arrival)->format('j M Y'),
             'arrival_time' => $this->arrival_time,
-            'nights' => (string) $this->nights,
+            'nights' => $this->stay_label ?? (string) $this->nights,
             'unit' => $this->unit,
             'room_type' => $this->room_type,
             'room' => $this->room ?? '',
@@ -67,7 +69,7 @@ class ArrivalRow extends Data implements ReportRow
             'phone' => $this->phone ?? '',
             'arrival' => $this->arrival,
             'arrival_time' => $this->arrival_time,
-            'nights' => $this->nights,
+            'nights' => $this->stay_label ?? $this->nights,
             'unit' => $this->unit,
             'room_type' => $this->room_type,
             'room' => $this->room ?? '',
@@ -96,6 +98,7 @@ class ArrivalRow extends Data implements ReportRow
             arrival: $unit->arrival_date->toDateString(),
             arrival_time: substr($unit->arrival_time, 0, 5),
             nights: (int) $unit->arrival_date->diffInDays($unit->departure_date),
+            stay_label: app(StayLabel::class)->hoursForUnit($unit),
             unit: $room === null ? $unit->roomType->name : "{$unit->roomType->name} / {$room}",
             room_type: $unit->roomType->name,
             room: $room,

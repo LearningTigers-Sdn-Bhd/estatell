@@ -5,6 +5,7 @@ use App\Data\Reports\PoliceReportRow;
 use App\Data\Reports\ReportFilters;
 use App\Enums\DefaultRoleEnum;
 use App\Enums\ReportKey;
+use App\Enums\StayType;
 use App\Enums\TransactionKind;
 use App\Enums\UnitStatus;
 use App\Models\BusinessDate;
@@ -246,6 +247,18 @@ test('only checked-in and checked-out units that overlap the dates are listed', 
 
     expect($keys)->toBe([$in->id, $out->id])
         ->and(collect(app(PoliceReport::class)->rows($property, $filters))->pluck('status.value')->unique()->sort()->values()->all())->toBe(['checked_in', 'checked_out']);
+});
+
+test('a day use unit is listed on its date and in no other range', function () {
+    [, $property] = registerSetup();
+    $dayUse = registerUnit($property, '2026-10-10', '2026-10-10', 'SG', ['stay_type' => StayType::DayUse, 'status' => UnitStatus::CheckedOut, 'checked_out_at' => now()]);
+
+    $inRange = new ReportFilters('2026-10-08', '2026-10-12');
+    $elsewhere = new ReportFilters('2026-10-11', '2026-10-15');
+
+    expect(collect(app(NonNationalGuestsReport::class)->rows($property, $inRange))->pluck('key')->all())->toBe([$dayUse->id])
+        ->and(collect(app(PoliceReport::class)->rows($property, $inRange))->pluck('key')->all())->toBe(["{$dayUse->id}:{$dayUse->reservation->booker_guest_id}"])
+        ->and(app(NonNationalGuestsReport::class)->rows($property, $elsewhere))->toBe([]);
 });
 
 test('nights count only the nights of the stay inside the dates, and the totals sum them', function () {
