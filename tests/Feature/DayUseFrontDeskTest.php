@@ -32,6 +32,7 @@ use App\Services\Availability\FreeUnits;
 use App\Services\Catalogues\PolicyChargeCalculator;
 use App\Services\Folio\ScheduledFolioRows;
 use App\Services\NightAudit\AuditReadiness;
+use App\Services\Reservations\UnitActionMenu;
 use Carbon\CarbonImmutable;
 use Spatie\Activitylog\Models\Activity;
 
@@ -319,4 +320,54 @@ test('a day use still checked in shows "Day use · ended 14:00" in the audit rea
 
     expect($item->check->value)->toBe('departure_not_checked_out')
         ->and($item->detail)->toBe('Day use · ended 14:00');
+});
+
+test('the unit menu offers a day use unit only what its status and the date allow, never late check-out or change dates', function () {
+    $setup = dayUseDesk();
+    setPermissionsTeamId($setup['property']->id);
+    $menu = fn (): array => array_map(fn ($action): string => $action->key->value, app(UnitActionMenu::class)->for($setup['actor'], $setup['unit']->fresh()));
+
+    setBusinessDate($setup, $setup['date']->subDay());
+    expect($menu())->toBe(['cancel', 'move-room']);
+
+    setBusinessDate($setup, $setup['date']);
+    expect($menu())->toBe(['check-in', 'cancel', 'no-show', 'move-room']);
+
+    setBusinessDate($setup, $setup['date']->addDay());
+    expect($menu())->toBe(['cancel', 'no-show']);
+
+    setBusinessDate($setup, $setup['date']);
+    $setup['unit']->forceFill(['status' => UnitStatus::CheckedIn, 'checked_in_at' => now()])->save();
+    expect($menu())->toBe(['check-out', 'move-room']);
+
+    setBusinessDate($setup, $setup['date']->addDay());
+    expect($menu())->toBe(['check-out']);
+
+    $setup['unit']->forceFill(['status' => UnitStatus::NoShow])->save();
+    setBusinessDate($setup, $setup['date']);
+    expect($menu())->toBe(['reinstate']);
+
+    setBusinessDate($setup, $setup['date']->addDay());
+    expect($menu())->toBe([]);
+});
+
+test('the move preview of a day use lists the rooms free for its hours and not a room with an overlapping block', function () {
+    $setup = dayUseDesk();
+    $url = route('reservations.units.move-preview', ['property' => $setup['property']->code, 'reservation' => $setup['reservation']->id, 'unit' => $setup['unit']->id]);
+    $query = ['from_night' => $setup['date']->toDateString()];
+
+    $free = $this->actingAs($setup['actor'])->postJson($url, $query)->assertOk()->json();
+
+    expect($free['isDayUse'])->toBeTrue()
+        ->and($free['hoursLabel'])->toBe('Day use · 10:00–14:00')
+        ->and($free['current'])->toBe($setup['rooms'][0]->number)
+        ->and($free['reasonRequired'])->toBeTrue()
+        ->and(array_column($free['roomTypes'], 'id'))->toBe([$setup['roomType']->id])
+        ->and(array_column($free['units'], 'label'))->toBe([$setup['rooms'][1]->number]);
+
+    otherDayUse($setup, ['roomId' => $setup['rooms'][1]->id, 'startTime' => '12:00', 'hours' => 2]);
+
+    $busy = $this->actingAs($setup['actor'])->postJson($url, $query)->assertOk()->json();
+
+    expect($busy['units'])->toBe([]);
 });

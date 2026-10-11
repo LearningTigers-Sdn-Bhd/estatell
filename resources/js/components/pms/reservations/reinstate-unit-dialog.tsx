@@ -52,8 +52,15 @@ function ReinstateUnitForm({
             description={
                 <>
                     {unit.primaryGuest ?? 'No primary guest'} ·{' '}
-                    <DateText date={unit.arrival} /> →{' '}
-                    <DateText date={unit.departure} />
+                    <DateText date={unit.arrival} />
+                    {unit.stayLabel === null ? (
+                        <>
+                            {' '}
+                            → <DateText date={unit.departure} />
+                        </>
+                    ) : (
+                        <> · {unit.stayLabel}</>
+                    )}
                 </>
             }
             errors={errors}

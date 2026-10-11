@@ -35,8 +35,10 @@ function addDays(value: string, days: number): string {
 function MoveRoomForm({ open, onOpenChange, reservationId, unit }: Props) {
     const key = { reservation: reservationId, unit: unit.id };
     const businessDate = usePage().props.businessDate?.date ?? unit.arrival;
+    const isDayUse = unit.stayType === 'day_use';
+    // A day use block is on one date, so the date stands in for the first night.
     const firstNight =
-        businessDate > unit.arrival ? businessDate : unit.arrival;
+        !isDayUse && businessDate > unit.arrival ? businessDate : unit.arrival;
     const lastNight = addDays(unit.departure, -1);
     const form = useForm({
         from_night: firstNight,
@@ -79,11 +81,19 @@ function MoveRoomForm({ open, onOpenChange, reservationId, unit }: Props) {
             onOpenChange={onOpenChange}
             title={`${verb} ${noun.toLowerCase()} · ${unit.roomType}`}
             description={
-                <>
-                    {unit.primaryGuest ?? 'No primary guest'} ·{' '}
-                    <DateText date={unit.arrival} /> →{' '}
-                    <DateText date={unit.departure} />
-                </>
+                isDayUse ? (
+                    <>
+                        {unit.primaryGuest ?? 'No primary guest'} ·{' '}
+                        <DateText date={unit.arrival} /> ·{' '}
+                        {preview?.hoursLabel ?? unit.stayLabel}
+                    </>
+                ) : (
+                    <>
+                        {unit.primaryGuest ?? 'No primary guest'} ·{' '}
+                        <DateText date={unit.arrival} /> →{' '}
+                        <DateText date={unit.departure} />
+                    </>
+                )
             }
             errors={errors}
             onSubmit={submit}
@@ -96,37 +106,52 @@ function MoveRoomForm({ open, onOpenChange, reservationId, unit }: Props) {
                 (preview.reasonRequired && data.reason.trim() === '')
             }
         >
-            <Field data-invalid={!!errors.from_night}>
-                <FieldLabel htmlFor="move-from_night">First night</FieldLabel>
-                <DatePicker
-                    id="move-from_night"
-                    value={data.from_night}
-                    min={firstNight}
-                    max={lastNight}
-                    onChange={(value) => {
-                        form.setData((current) => ({
-                            ...current,
-                            from_night: value,
-                            target_id: '',
-                        }));
-                    }}
-                    aria-invalid={!!errors.from_night}
-                />
-                {preview !== null && preview.error === null && (
+            {isDayUse ? (
+                preview !== null &&
+                preview.error === null && (
                     <FieldDescription>
                         {preview.current === null
-                            ? `No ${noun.toLowerCase()} assigned on this night.`
+                            ? 'No room assigned.'
                             : `Now in ${preview.current}.`}{' '}
-                        Earlier nights stay as they are.
+                        Only rooms free for these hours are listed.
                     </FieldDescription>
-                )}
-                <FieldError>{errors.from_night}</FieldError>
-            </Field>
+                )
+            ) : (
+                <Field data-invalid={!!errors.from_night}>
+                    <FieldLabel htmlFor="move-from_night">
+                        First night
+                    </FieldLabel>
+                    <DatePicker
+                        id="move-from_night"
+                        value={data.from_night}
+                        min={firstNight}
+                        max={lastNight}
+                        onChange={(value) => {
+                            form.setData((current) => ({
+                                ...current,
+                                from_night: value,
+                                target_id: '',
+                            }));
+                        }}
+                        aria-invalid={!!errors.from_night}
+                    />
+                    {preview !== null && preview.error === null && (
+                        <FieldDescription>
+                            {preview.current === null
+                                ? `No ${noun.toLowerCase()} assigned on this night.`
+                                : `Now in ${preview.current}.`}{' '}
+                            Earlier nights stay as they are.
+                        </FieldDescription>
+                    )}
+                    <FieldError>{errors.from_night}</FieldError>
+                </Field>
+            )}
             {preview?.error != null && (
                 <p className="text-sm text-destructive">{preview.error}</p>
             )}
             {preview !== null &&
                 preview.error === null &&
+                !preview.isDayUse &&
                 preview.roomTypes.length > 1 && (
                     <Field>
                         <FieldLabel htmlFor="move-room_type_id">
@@ -201,7 +226,7 @@ function MoveRoomForm({ open, onOpenChange, reservationId, unit }: Props) {
 }
 
 /**
- * Move a unit to another room or bed from a night onward. The free rooms or beds come from the preview route for the
+ * Move a unit to another room or bed from a night onward. A day use unit has no night picker and no room type change: it lists the rooms free for its hours. The free rooms or beds come from the preview route for the
  * first night and room type chosen, so the list is never offered a room the server would refuse.
  */
 export function MoveRoomDialog(props: Props) {

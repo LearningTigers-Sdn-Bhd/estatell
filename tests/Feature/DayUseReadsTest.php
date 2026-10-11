@@ -9,7 +9,6 @@ use App\Models\ReservationUnit;
 use App\Services\Reservations\BookingSummary;
 use App\Services\Reservations\StayLabel;
 use App\Services\Reservations\StayTotal;
-use App\Services\Reservations\UnitActionMenu;
 use Inertia\Testing\AssertableInertia as Assert;
 
 beforeEach(function () {
@@ -82,13 +81,6 @@ test('hours that differ read as Day use alone and an overnight unit has no label
         ->and($labels->forUnit($units[1]))->toBe('Day use · 2h')
         ->and(StayLabel::dayUse(3))->toBe('Day use · 3h')
         ->and($labels->forUnits([ReservationUnit::factory()->create()]))->toBeNull();
-});
-
-test('the unit menu lists no action for a day use unit', function () {
-    $setup = dayUseHttpSetup();
-    createDayUseReservation($setup, [dayUseLine($setup)]);
-
-    expect(app(UnitActionMenu::class)->for($setup['user'], ReservationUnit::query()->sole()))->toBe([]);
 });
 
 test('the room charge step of the night audit posts nothing for a day use unit', function () {

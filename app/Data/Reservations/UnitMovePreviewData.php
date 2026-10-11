@@ -8,6 +8,7 @@ use Spatie\LaravelData\Data;
  * What the Move room form shows for the first night typed so far: where the unit is on that night, the room types it
  * can move to (its own and those linked to its rate plan with the same sell unit), and the rooms or beds of the chosen
  * type that are free from that night to the departure. `sellsBeds` tells the form to label the pick Bed. `reasonRequired` is false when the night has no room or bed yet.
+ * For a day use unit `isDayUse` is true, `hoursLabel` reads "Day use · 10:00–14:00", `roomTypes` holds only its own type and `units` are the rooms free for those hours (the night is ignored).
  */
 class UnitMovePreviewData extends Data
 {
@@ -23,6 +24,8 @@ class UnitMovePreviewData extends Data
         public bool $reasonRequired,
         public array $units,
         public ?string $error,
+        public bool $isDayUse = false,
+        public ?string $hoursLabel = null,
     ) {}
 
     public static function refused(string $error): self

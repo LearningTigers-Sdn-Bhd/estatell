@@ -12,7 +12,7 @@ use App\Models\User;
 use App\Services\NightAudit\CurrentBusinessDate;
 
 /**
- * The actions the unit ⋯ menu lists (none for a day use unit until check in and out are built): those the unit's status allows and the user's permissions cover. It reads only.
+ * The actions the unit ⋯ menu lists: those the unit's status allows, the dates allow and the user's permissions cover. A day use unit never lists Late check-out or Change dates. It reads only.
  */
 class UnitActionMenu
 {
@@ -23,10 +23,6 @@ class UnitActionMenu
      */
     public function for(User $user, ReservationUnit $unit): array
     {
-        if ($unit->stay_type === StayType::DayUse) {
-            return [];
-        }
-
         $businessDate = $this->currentBusinessDate->date($unit->property()->firstOrFail());
 
         return collect(UnitAction::cases())
@@ -50,6 +46,11 @@ class UnitActionMenu
         }
 
         $arrival = $unit->arrival_date->toDateString();
+
+        if ($unit->stay_type === StayType::DayUse) {
+            return $this->isTimelyDayUse($action, $arrival, $businessDate);
+        }
+
         $departure = $unit->departure_date->toDateString();
 
         return match ($action) {
@@ -58,6 +59,21 @@ class UnitActionMenu
             UnitAction::LateCheckOut => $businessDate === $departure,
             UnitAction::Reinstate, UnitAction::MoveRoom => $businessDate < $departure,
             default => true,
+        };
+    }
+
+    /**
+     * The dates a day use unit accepts, on its one date: check-in on the date, check-out and no-show from it, reinstate
+     * and move room until it. Late check-out and change dates do not apply (no departure time to extend, no nights).
+     */
+    private function isTimelyDayUse(UnitAction $action, string $date, string $businessDate): bool
+    {
+        return match ($action) {
+            UnitAction::CheckIn => $businessDate === $date,
+            UnitAction::CheckOut, UnitAction::NoShow => $businessDate >= $date,
+            UnitAction::Reinstate, UnitAction::MoveRoom => $businessDate <= $date,
+            UnitAction::Cancel => true,
+            UnitAction::LateCheckOut, UnitAction::ChangeDates => false,
         };
     }
 

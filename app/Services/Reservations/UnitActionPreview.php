@@ -5,6 +5,7 @@ namespace App\Services\Reservations;
 use App\Actions\FrontDesk\UnitStayResult;
 use App\Actions\Reservations\AssignmentResult;
 use App\Data\Reservations\CheckInAllPreviewData;
+use App\Data\Reservations\FreeUnitData;
 use App\Data\Reservations\UnitCheckInPreviewData;
 use App\Data\Reservations\UnitCheckOutPreviewData;
 use App\Data\Reservations\UnitDatesPreviewData;
@@ -26,6 +27,7 @@ use App\Models\RoomType;
 use App\Models\Tax;
 use App\Models\UnitNight;
 use App\Models\User;
+use App\Services\Availability\DayUseAvailability;
 use App\Services\Availability\FreeUnits;
 use App\Services\Catalogues\PolicyChargeCalculator;
 use App\Services\Catalogues\TaxCalculator;
@@ -63,6 +65,7 @@ class UnitActionPreview
         private CheckOutSettlement $checkOutSettlement,
         private CountryOptions $countryOptions,
         private FreeUnits $freeUnits,
+        private DayUseAvailability $dayUseAvailability,
         private TaxCalculator $taxCalculator,
     ) {}
 
@@ -174,10 +177,15 @@ class UnitActionPreview
     /**
      * The Move room form for a first night: the current room or bed, the room types the unit can move to and the free
      * rooms or beds of the chosen type (its own when none is chosen). An unknown or unlinked type falls back to the
-     * unit's own.
+     * unit's own. A day use unit has no night to pick and keeps its room type: the form shows the current room and
+     * the rooms free for the block's hours (`moveDayUse()`).
      */
     public function move(ReservationUnit $unit, CarbonInterface $fromNight, ?int $roomTypeId): UnitMovePreviewData
     {
+        if ($unit->stay_type === StayType::DayUse) {
+            return $this->moveDayUse($unit);
+        }
+
         $from = CarbonImmutable::instance($fromNight)->startOfDay();
 
         if ($from->lt($unit->arrival_date->startOfDay()) || $from->gte($unit->departure_date->startOfDay())) {
@@ -204,6 +212,27 @@ class UnitActionPreview
             reasonRequired: $night === null || $night->room_id !== null || $night->bed_id !== null,
             units: $chosen === null ? [] : $this->freeUnits->forStay(RoomType::query()->findOrFail($chosen->id), $from, $unit->departure_date, $unit->id, $unit->arrival_time, $unit->departure_time),
             error: null,
+        );
+    }
+
+    private function moveDayUse(ReservationUnit $unit): UnitMovePreviewData
+    {
+        $dayUse = $unit->dayUse()->with('room')->firstOrFail();
+        $roomType = $unit->roomType()->firstOrFail();
+
+        return new UnitMovePreviewData(
+            current: $dayUse->room?->number,
+            roomTypes: [['id' => $roomType->id, 'name' => $roomType->name]],
+            roomTypeId: $roomType->id,
+            sellsBeds: false,
+            reasonRequired: true,
+            units: array_values(array_filter(
+                $this->dayUseAvailability->freeRooms($roomType, $dayUse->date, $dayUse->starts_at, $dayUse->ends_at, $unit->id),
+                fn (FreeUnitData $room): bool => $room->id !== $dayUse->room_id,
+            )),
+            error: null,
+            isDayUse: true,
+            hoursLabel: __('Day use · :from–:to', ['from' => substr($dayUse->starts_at, 0, 5), 'to' => substr($dayUse->ends_at, 0, 5)]),
         );
     }
 

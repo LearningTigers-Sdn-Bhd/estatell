@@ -1964,6 +1964,8 @@ sellsBeds: boolean,
 reasonRequired: boolean,
 units: App.Data.Reservations.FreeUnitData[],
 error: string | null,
+isDayUse: boolean,
+hoursLabel: string | null,
 };
 export type UnitPickData = {
 unitIndex: number,
