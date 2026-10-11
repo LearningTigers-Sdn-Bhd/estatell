@@ -177,8 +177,10 @@ Record payment and Refund have their own `ReservationPaymentController` and rout
 
 - The dialog picks a charge item, then quantity, amount (when the item allows one) and an optional description. There is no "Other amount" and no code picker: staff never choose a transaction code. A one-off charge uses the closest item and its own description, for example General fee, "Broken glass". A repeatable charge belongs in the [charge item catalogue](../06-catalogues/02-charge-items.md).
 - A description replaces the item name on the line. The placeholder shows the item name.
-- On a Unit folio the unit is fixed.
-- On a Master or Third-party folio the dialog has a Unit select (units that are CheckedIn or CheckedOut). `PostCharge` takes a unit and `FolioRouter` picks the folio, so the dialog says that routing decides the folio, and the success toast names the folio that received the charge.
+- **Folio** select first: the reservation's Open folios (Master, Third-party and Unit), labelled with type and payer ("Master · Borneo Ventures Sdn Bhd", "Unit 207 · Vincent Majalap"). It defaults to the folio the Dialog was opened from. Closed folios are not listed. The charge lands on the chosen folio; routing does not apply to Post charge.
+- **Room** select: units that are CheckedIn or CheckedOut, so the line keeps its room for grouping and the documents. A Unit folio fixes the room to its own and disables the select. A Master or Third-party folio lets staff pick; with one room it is preselected and still shown.
+- No warning when a routing rule would have chosen another folio: the staff member picked the folio.
+- The server sends the folio options (`FolioData.postFolios` or the page's folio list) and the rooms; the success toast names the folio that received the charge.
 - The form sends `manual:{uuid}` as the idempotency key, so a double click posts once.
 
 ### Reverse, remove discount

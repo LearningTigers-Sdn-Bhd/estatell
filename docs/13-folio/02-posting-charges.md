@@ -33,7 +33,9 @@ All Actions return a result and write nothing on a refusal. Each one is one tran
 
 ### `PostCharge`
 
-`(User $actor, ReservationUnit $unit, NewChargeData $data): PostingResult`. `NewChargeData`: `charge_item_id`, optional `description`, `quantity`, `unit_amount`, `idempotency_key`, optional `unit_add_on_id`. The folio form always sends a charge item. A one-off charge uses the closest item with its own description, so staff never pick a transaction code. The Action still accepts a null item with a `transaction_code_id` for internal callers; no screen offers it.
+`(User $actor, ReservationUnit $unit, NewChargeData $data): PostingResult`. `NewChargeData`: `charge_item_id`, optional `description`, `quantity`, `unit_amount`, `idempotency_key`, optional `unit_add_on_id`, optional `folio_id`.
+
+- **Target folio.** With `folio_id` (the Post charge Dialog always sends one), the charge lands on that folio: it must belong to the unit's reservation (`charge_not_found` otherwise), be Open (`folio_not_open` or `folio_settled_to_city_ledger`), and a Unit folio must be the unit's own (`unit_not_on_folio`). Routing is not used. Without `folio_id` (add-ons and internal callers), `FolioRouter` picks the folio as before. The night audit does not use `PostCharge` and keeps routing. The folio form always sends a charge item. A one-off charge uses the closest item with its own description, so staff never pick a transaction code. The Action still accepts a null item with a `transaction_code_id` for internal callers; no screen offers it.
 
 | Check, in order                                                                                     | Refusal                       |
 | --------------------------------------------------------------------------------------------------- | ----------------------------- |
