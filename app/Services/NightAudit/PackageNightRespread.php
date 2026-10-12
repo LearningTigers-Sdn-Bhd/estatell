@@ -22,7 +22,9 @@ class PackageNightRespread
 
     /**
      * Spread the stored prices of the uncharged nights. A room line identifies a charged night, but its amount is
-     * never used: the night posts its inclusions separately. The preview and the fix share this read-only calculation.
+     * never used: the night posts its inclusions separately. When the uncharged nights cannot cover their inclusions,
+     * the whole stay is spread again instead (`wholeStay`), and the charged nights are corrected by the fix. The
+     * preview and the fix share this read-only calculation.
      */
     public function forException(NightAuditException $exception): PackageNightRespreadResult
     {
@@ -48,17 +50,43 @@ class PackageNightRespread
         $total = Money::sum(...$nights->map(fn (UnitNight $night): Money => Money::of($night->amount, $currency))->all());
         $remaining = array_reduce($unposted, fn (Money $sum, UnitNight $night): Money => $sum->plus($night->amount), Money::zero($currency));
 
+        $inclusions = $target->ratePlan->inclusions;
+        $guests = $unit->adults + $unit->children;
+        $firstNightId = $nights->first()->id;
+
         try {
             $amounts = $this->packagePricing->spreadByInclusions(
                 $remaining,
-                array_map(fn (UnitNight $night): bool => $night->id === $nights->first()->id, $unposted),
-                $target->ratePlan->inclusions,
-                $unit->adults + $unit->children,
+                array_map(fn (UnitNight $night): bool => $night->id === $firstNightId, $unposted),
+                $inclusions,
+                $guests,
             );
+
+            return new PackageNightRespreadResult($unposted, $amounts, $charged->values()->all(), $total, $remaining);
         } catch (QuoteRefused $refused) {
-            return new PackageNightRespreadResult(total: $total, remaining: $remaining, refusal: $refused->reason);
+            if ($charged->isEmpty()) {
+                return new PackageNightRespreadResult(total: $total, remaining: $remaining, refusal: $refused->reason);
+            }
         }
 
-        return new PackageNightRespreadResult($unposted, $amounts, $charged->values()->all(), $total, $remaining);
+        try {
+            $amounts = $this->packagePricing->spreadByInclusions(
+                $total,
+                $nights->map(fn (UnitNight $night): bool => $night->id === $firstNightId)->all(),
+                $inclusions,
+                $guests,
+            );
+        } catch (QuoteRefused $refused) {
+            return new PackageNightRespreadResult(total: $total, remaining: $total, refusal: $refused->reason);
+        }
+
+        return new PackageNightRespreadResult(
+            $nights->all(),
+            $amounts,
+            total: $total,
+            remaining: $total,
+            wholeStay: true,
+            chargedNightIds: $charged->pluck('id')->values()->all(),
+        );
     }
 }

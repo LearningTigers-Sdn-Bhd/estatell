@@ -124,15 +124,61 @@ test('Fix price splits the uncharged extras by the new amounts and preserves the
         ->and($nights->pluck('extra_amount')->all())->toBe(['94.66', '58.67', '22.67']);
 });
 
-test('Fix price refuses when the remaining stored price cannot cover the remaining inclusions and writes nothing', function () {
+test('Fix price spreads the whole stay and corrects the charged nights when the nights left cannot cover their inclusions', function () {
+    $setup = packageFixSetup([PermissionEnum::NightAuditRun, PermissionEnum::ReservationsManage, PermissionEnum::ReservationsChangePrice]);
+    expect(app(PostRoomCharges::class)($setup['user'], $setup['unit'], CarbonImmutable::parse('2026-10-10'))->isRefused())->toBeFalse();
+    $nights = $setup['unit']->nights()->orderBy('date')->get();
+
+    $this->actingAs($setup['user'])->postJson(packageFixUrl($setup, true))->assertOk()
+        ->assertJsonPath('wholeStay', true)
+        ->assertJsonPath('blockedReason', null)
+        ->assertJsonPath('chargedNights', [])
+        ->assertJsonPath('nights.0.newAmount', '1066.67')->assertJsonPath('nights.0.charged', false)
+        ->assertJsonPath('nights.1.newAmount', '346.67')->assertJsonPath('nights.1.charged', true)
+        ->assertJsonPath('nights.2.newAmount', '346.66')->assertJsonPath('nights.2.charged', true);
+
+    $this->postJson(packageFixUrl($setup))->assertOk()->assertJsonPath('done', 1);
+
+    expect($setup['unit']->nights()->orderBy('date')->pluck('amount')->all())->toBe(['1066.67', '346.67', '346.66'])
+        ->and((string) $setup['unit']->nights()->sum('amount'))->toBe('1760.00')
+        ->and($setup['exception']->refresh()->resolved_by)->toBe($setup['user']->id);
+    $this->assertDatabaseHas('folio_lines', ['idempotency_key' => 'night:'.$nights[0]->id, 'amount' => '146.67']);
+
+    foreach ([$nights[1], $nights[2]] as $night) {
+        expect(FolioLine::query()->where('idempotency_key', 'like', 'night:'.$night->id.':fix:%')->exists())->toBeTrue();
+    }
+
+    expect(Activity::query()->where('event', 'reservation.night_price_changed')->count())->toBe(2)
+        ->and(Activity::query()->where('event', 'reservation.package_nights_respread')->sole()->properties['whole_stay'])->toBeTrue();
+});
+
+test('Fix price needs Change price to correct charged nights and writes nothing without it', function () {
     $setup = packageFixSetup();
     $setup['unit']->nights()->whereDate('date', '2026-10-10')->update(['amount' => '400.00', 'base_amount' => '400.00']);
     $before = $setup['unit']->nights()->orderBy('date')->get()->toArray();
     $count = FolioLine::query()->count();
 
+    $this->actingAs($setup['user'])->postJson(packageFixUrl($setup, true))->assertOk()
+        ->assertJsonPath('wholeStay', true)
+        ->assertJsonPath('blockedReason', 'Correcting charged nights needs the Change price permission.');
+    $this->postJson(packageFixUrl($setup))->assertUnprocessable()
+        ->assertJsonPath('message', 'Correcting charged nights needs the Change price permission.');
+
+    expect($setup['unit']->nights()->orderBy('date')->get()->toArray())->toBe($before)
+        ->and(FolioLine::query()->count())->toBe($count)
+        ->and($setup['exception']->refresh()->resolved_at)->toBeNull()
+        ->and(Activity::query()->count())->toBe(0);
+});
+
+test('Fix price refuses when the whole stay cannot cover its inclusions and writes nothing', function () {
+    $setup = packageFixSetup([PermissionEnum::NightAuditRun, PermissionEnum::ReservationsManage, PermissionEnum::ReservationsChangePrice]);
+    $setup['unit']->nights()->whereDate('date', '2026-10-10')->update(['amount' => '100.00', 'base_amount' => '100.00']);
+    $before = $setup['unit']->nights()->orderBy('date')->get()->toArray();
+    $count = FolioLine::query()->count();
+
     $this->actingAs($setup['user'])->postJson(packageFixUrl($setup, true))->assertUnprocessable()
-        ->assertJsonPath('message', "The package price left (MYR 986.67) cannot cover these nights' inclusions. Change the price with Change price.");
-    expect(app(FixPackageNightPrice::class)($setup['user'], $setup['exception'])->refusal)->toBe('package_below_inclusions')
+        ->assertJsonPath('message', "The package price left (MYR 1,273.34) cannot cover these nights' inclusions. Change the price with Change price.");
+    expect(app(FixPackageNightPrice::class)($setup['user'], $setup['exception'], true)->refusal)->toBe('package_below_inclusions')
         ->and($setup['unit']->nights()->orderBy('date')->get()->toArray())->toBe($before)
         ->and(FolioLine::query()->count())->toBe($count)
         ->and($setup['exception']->refresh()->resolved_at)->toBeNull()

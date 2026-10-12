@@ -183,11 +183,12 @@ function FixPackagePriceDialog({
             errors={{
                 ...form.errors,
                 ...(previewError === null ? {} : { form: previewError }),
+                ...(data?.blockedReason ? { form: data.blockedReason } : {}),
             }}
             onSubmit={submit}
             submitLabel="Fix price"
             processing={form.processing}
-            submitDisabled={data === null}
+            submitDisabled={data === null || data.blockedReason !== null}
         >
             {data && (
                 <div className="flex flex-col gap-3 text-sm">
@@ -223,7 +224,9 @@ function FixPackagePriceDialog({
                     )}
                     <div className="flex flex-col gap-1">
                         <p className="text-muted-foreground">
-                            Spread again over the nights not charged yet:
+                            {data.wholeStay
+                                ? 'Spread again over the whole stay:'
+                                : 'Spread again over the nights not charged yet:'}
                         </p>
                         {data.nights.map((night) => (
                             <div
@@ -243,10 +246,24 @@ function FixPackagePriceDialog({
                                         currency={data.currency}
                                         plain
                                     />
+                                    {night.charged &&
+                                        night.oldAmount !== night.newAmount && (
+                                            <span className="text-xs text-muted-foreground">
+                                                {' '}
+                                                · charged, corrected
+                                            </span>
+                                        )}
                                 </span>
                             </div>
                         ))}
                     </div>
+                    {data.wholeStay && (
+                        <p className="text-muted-foreground">
+                            The nights left could not cover their inclusions.
+                            Charged nights are reversed and posted again at
+                            their new price.
+                        </p>
+                    )}
                     <p>
                         The <DateText date={data.retryNight} /> night is charged
                         after this.

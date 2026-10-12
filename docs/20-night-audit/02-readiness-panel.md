@@ -95,16 +95,33 @@ A package night stored with an even split (before the fix to [package nights](..
 └─────────────────────────────────────────────────────────┘
 ```
 
-`FixPackageNightPrice(User $actor, NightAuditException $exception): PostingResult` (`app/Actions/NightAudit/`). It returns what `RetryRoomCharge` returns, so the controller answers Retry and Fix price the same way. The exception row is locked first, like Retry, and everything runs in one transaction:
+When the nights not charged yet cannot cover their inclusions (here 9 and 10 Oct were both charged at the even split), the whole stay is spread again and the charged nights are corrected:
 
-1. The unit's nights with no `night:{id}` line share the sum of their stored prices (`unit_nights.amount`): the package price minus the stored prices of the charged nights. Not the posted room lines, because a charged night posts its inclusions as separate lines. Charged nights are never touched.
+```
+┌ Fix package price · Room 202 · Dive Package ────────────┐
+│ Package price          MYR 1,760.00 (kept)              │
+│ Spread again over the whole stay:                       │
+│   8 Oct   586.67  →  1,066.67                           │
+│   9 Oct   586.67  →    346.67 · charged, corrected      │
+│  10 Oct   586.66  →    346.66 · charged, corrected      │
+│ Charged nights are reversed and posted again at their   │
+│ new price. The 8 Oct night is charged after this.       │
+│                                    [Cancel] [Fix price] │
+└─────────────────────────────────────────────────────────┘
+```
+
+`FixPackageNightPrice(User $actor, NightAuditException $exception, bool $canCorrectChargedNights = false): PostingResult` (`app/Actions/NightAudit/`). It returns what `RetryRoomCharge` returns, so the controller answers Retry and Fix price the same way. The exception row is locked first, like Retry, and everything runs in one transaction:
+
+1. The unit's nights with no `night:{id}` line share the sum of their stored prices (`unit_nights.amount`): the package price minus the stored prices of the charged nights. Not the posted room lines, because a charged night posts its inclusions as separate lines. Charged nights are left as they are.
 2. They are split with `PackagePricing::spreadByInclusions()`, flagged by their real place in the stay, so each night covers its own inclusions and only the stay's first night takes the one-off inclusions. The plan's inclusions and the unit's guests are the ones the posting uses. A night with an `override_amount` gets the new amount as its override and as `amount`. Any other night gets a new `amount`, with `extra_amount` split by the new amounts (as in `fitInclusions()`) and `base_amount` the rest.
-3. It runs `RetryRoomCharge` for the exception's night in the same transaction, which posts it and resolves the exception.
+3. **Whole stay.** When step 2 refuses because the nights left cannot cover their inclusions, and some nights are charged, the whole package price (the sum of every night's stored price) is spread over every night instead, the same way. Each charged night whose price changes is corrected through [`ChangeNightPrice`](../12-reservations/09-change-night-price.md) with the reason "Package price spread by inclusions": its lines are reversed and the night is posted again under `night:{id}:fix:{n}`, and it gets the new amount as `override_amount`. The nights not charged yet are written as in step 2.
+4. It runs `RetryRoomCharge` for the exception's night in the same transaction, which posts it and resolves the exception.
 
-- The package total never changes. When the amount left cannot cover the inclusions of the nights left, it refuses (`package_below_inclusions`): "The package price left (MYR 1,173.33) cannot cover these nights' inclusions. Change the price with Change price."
+- The package total never changes. It refuses with `package_below_inclusions` only when the whole stay cannot cover its inclusions (or the nights left cannot and none is charged): "The package price left (MYR 1,273.34) cannot cover these nights' inclusions. Change the price with Change price."
+- Correcting charged nights is what Change price does, so the whole-stay spread also needs `reservations.change-price`. Without it the preview still shows the spread, with "Correcting charged nights needs the Change price permission." and **Fix price** disabled, and the Action refuses `change_price_required`. The controller passes the permission as `$canCorrectChargedNights`.
 - The Dialog shows the old and new amount of each night from a preview (`POST night-audit/exceptions/{exception}/fix-price/preview`) before anything is saved. `PackageNightRespread` (`app/Services/NightAudit/`) works out the amounts and reads only; the preview and the Action both use it, so the Dialog shows what will be saved.
-- The refusals, in order: `exception_not_retried` (not an open `RoomCharge` exception), `not_package_night` (the message is not `exceeds_night_amount` or the plan is not a Package), `package_below_inclusions`, then any refusal of `RetryRoomCharge`. A refusal writes nothing.
-- Logged on the reservation: `reservation.package_nights_respread`, with the old and new amounts.
+- The refusals, in order: `exception_not_retried` (not an open `RoomCharge` exception), `not_package_night` (the message is not `exceeds_night_amount` or the plan is not a Package), `package_below_inclusions`, `change_price_required`, then any refusal of `ChangeNightPrice` or `RetryRoomCharge`. A refusal writes nothing.
+- Logged on the reservation: `reservation.package_nights_respread`, with `whole_stay` and the old and new amounts (and `charged`) of each night. Each corrected night also logs `reservation.night_price_changed`.
 - Needs `reservations.manage` and `night-audit.run`, like Retry. Only on a carried `RoomCharge` exception with the message `exceeds_night_amount` on a Package plan; other plans use [Change price](../12-reservations/09-change-night-price.md).
 
 ## Dismiss an exception

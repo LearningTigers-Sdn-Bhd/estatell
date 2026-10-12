@@ -13,6 +13,7 @@ use App\Data\NightAudit\NightAuditSheetData;
 use App\Data\NightAudit\PackageNightRespreadData;
 use App\Enums\AuditFix;
 use App\Enums\AuditTrigger;
+use App\Enums\PermissionEnum;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\NightAudit\DismissAuditExceptionRequest;
 use App\Http\Requests\NightAudit\RunAuditFixRequest;
@@ -125,12 +126,12 @@ class NightAuditController extends Controller
             return $this->refused($advice->reason($spread->refusal, $spread->remaining));
         }
 
-        return response()->json(PackageNightRespreadData::fromSpread($nightAuditException, $spread));
+        return response()->json(PackageNightRespreadData::fromSpread($nightAuditException, $spread, $request->user()->can(PermissionEnum::ReservationsChangePrice->value)));
     }
 
     public function fixPrice(Request $request, Property $property, NightAuditException $nightAuditException, FixPackageNightPrice $fixPackageNightPrice, ReadinessAdvice $advice): JsonResponse
     {
-        $result = $fixPackageNightPrice($request->user(), $nightAuditException);
+        $result = $fixPackageNightPrice($request->user(), $nightAuditException, $request->user()->can(PermissionEnum::ReservationsChangePrice->value));
 
         if ($result->isRefused()) {
             return $this->refused($advice->reason((string) $result->refusal));

@@ -682,6 +682,7 @@ id: number,
 date: string,
 oldAmount: string,
 newAmount: string | null,
+charged: boolean,
 };
 export type PackageNightRespreadData = {
 title: string,
@@ -690,6 +691,8 @@ total: string,
 retryNight: string,
 nights: App.Data.NightAudit.PackageNightAmountData[],
 chargedNights: App.Data.NightAudit.PackageNightAmountData[],
+wholeStay: boolean,
+blockedReason: string | null,
 };
 export type ReadinessActionData = {
 kind: string,

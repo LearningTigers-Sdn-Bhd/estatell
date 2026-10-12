@@ -12,7 +12,9 @@ class PackageNightRespreadData extends Data
 {
     /**
      * @param  list<PackageNightAmountData>  $nights
-     * @param  list<PackageNightAmountData>  $chargedNights
+     * @param  list<PackageNightAmountData>  $chargedNights  Charged nights left as they are
+     * @param  bool  $wholeStay  Every night is spread again, and the charged nights in `$nights` are corrected
+     * @param  string|null  $blockedReason  Why the user cannot apply this spread; Fix price is disabled
      */
     public function __construct(
         public string $title,
@@ -21,9 +23,11 @@ class PackageNightRespreadData extends Data
         public string $retryNight,
         public array $nights,
         public array $chargedNights,
+        public bool $wholeStay,
+        public ?string $blockedReason,
     ) {}
 
-    public static function fromSpread(NightAuditException $exception, PackageNightRespreadResult $spread): self
+    public static function fromSpread(NightAuditException $exception, PackageNightRespreadResult $spread, bool $canCorrectChargedNights): self
     {
         $unit = $exception->reservationUnit;
         $target = $unit->nights()->with(['room', 'bed.room', 'ratePlan'])->whereDate('date', $exception->nightAudit->businessDate->date)->firstOrFail();
@@ -34,8 +38,10 @@ class PackageNightRespreadData extends Data
             currency: $unit->property->settings->currency,
             total: (string) $spread->total->getAmount(),
             retryNight: $target->date->toDateString(),
-            nights: array_map(fn (UnitNight $night, int $index): PackageNightAmountData => PackageNightAmountData::fromNight($night, $spread->amounts[$index]), $spread->nights, array_keys($spread->nights)),
+            nights: array_map(fn (UnitNight $night, int $index): PackageNightAmountData => PackageNightAmountData::fromNight($night, $spread->amounts[$index], $spread->isCharged($night)), $spread->nights, array_keys($spread->nights)),
             chargedNights: array_map(fn (UnitNight $night): PackageNightAmountData => PackageNightAmountData::fromNight($night), $spread->chargedNights),
+            wholeStay: $spread->wholeStay,
+            blockedReason: $spread->wholeStay && ! $canCorrectChargedNights ? __('Correcting charged nights needs the Change price permission.') : null,
         );
     }
 }

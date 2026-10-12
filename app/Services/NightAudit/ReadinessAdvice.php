@@ -56,6 +56,7 @@ class ReadinessAdvice
             'exception_not_retried', 'exception_not_open' => __('There is nothing left to fix here. The list has been refreshed.'),
             'not_package_night' => __('This exception is not a package night whose price needs fixing.'),
             'reason_required' => __('Enter a reason to dismiss this exception.'),
+            'change_price_required' => __('Correcting charged nights needs the Change price permission.'),
             'package_below_inclusions' => $remaining === null
                 ? __('The package price left cannot cover these nights\' inclusions. Change the price with Change price.')
                 : __('The package price left (:amount) cannot cover these nights\' inclusions. Change the price with Change price.', ['amount' => $remaining->getCurrency()->getCurrencyCode().' '.number_format((string) $remaining->getAmount(), 2)]),
