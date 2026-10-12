@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
+import { toast } from '@/components/ui/toast';
 import {
     Table,
     TableBody,
@@ -436,6 +437,13 @@ export default function ChargeItemsIndex({
                     preserveScroll: true,
                     onStart: () => setToggling(true),
                     onFinish: () => setToggling(false),
+                    onError: (errors) =>
+                        toast.add({
+                            title:
+                                Object.values(errors)[0] ??
+                                'The change could not be saved.',
+                            type: 'error',
+                        }),
                 },
             );
     };

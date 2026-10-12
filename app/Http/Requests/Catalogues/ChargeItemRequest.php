@@ -123,7 +123,18 @@ class ChargeItemRequest extends FormRequest
                     }
                 },
             ],
-            'active' => ['required', 'boolean'],
+            'active' => [
+                'required', 'boolean',
+                function (string $attribute, mixed $value, Closure $fail) use ($current): void {
+                    if (filter_var($value, FILTER_VALIDATE_BOOLEAN) || ! $current instanceof ChargeItem || ! $current->active) {
+                        return;
+                    }
+
+                    if (app(BoatFareUsage::class)->isUsedByAvailableDeparture($current)) {
+                        $fail(__('This fare is used by an available departure. Change their fare first.'));
+                    }
+                },
+            ],
             'tax_ids' => [
                 'present', 'array', 'distinct',
                 function (string $attribute, mixed $value, Closure $fail) use ($property): void {

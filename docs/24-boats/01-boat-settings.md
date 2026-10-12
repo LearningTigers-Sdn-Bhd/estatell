@@ -208,6 +208,7 @@ Boats never write `charge_items` directly. Both Actions live in `app/Actions/Boa
 
 - Fares also show on the Charge items list, with category Transport.
 - On the edit page of a charge item that any departure uses (available or not), **Add to every new booking** is disabled with "Added by boat trips", so a fare is never charged twice. `ChargeItemRequest` also refuses `auto_add` on for such an item.
+- The Charge items list cannot turn off a fare that an available departure uses either. `ChargeItemRequest` refuses `active` off with "This fare is used by an available departure. Change their fare first.", shown as an error toast.
 - Changing a fare's charging unit there is allowed but not useful. The Fares tab shows the charging unit in muted text when it is not Per guest.
 
 ## Build order

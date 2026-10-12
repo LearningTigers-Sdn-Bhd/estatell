@@ -285,3 +285,35 @@ test('a fare any departure uses cannot be added to every new booking, and its ed
         ->get(route('settings.charge-items.edit', [$property->code, $plain]))
         ->assertInertia(fn (Assert $page) => $page->where('autoAddLocked', false));
 });
+
+test('the charge items page cannot turn off a fare while an available departure uses it', function (bool $available) {
+    $owner = User::factory()->owner()->create();
+    $property = $owner->property;
+    boatFareEnable($property);
+    $fare = boatFareMake($property);
+    boatFareDepartureUsing($property, $fare, available: $available);
+
+    $response = $this->actingAs($owner)
+        ->put(route('settings.charge-items.update', [$property->code, $fare]), [
+            'name' => $fare->name,
+            'code' => $fare->transactionCode->code,
+            'category' => TransactionCategory::Transport->value,
+            'description' => null,
+            'default_amount' => '35.00',
+            'charging_unit' => ChargingUnit::PerGuest->value,
+            'allow_override' => true,
+            'active' => false,
+            'tax_ids' => [],
+        ]);
+
+    if ($available) {
+        $response->assertSessionHasErrors(['active' => 'This fare is used by an available departure. Change their fare first.']);
+    } else {
+        $response->assertSessionHasNoErrors();
+    }
+
+    expect($fare->refresh()->active)->toBe($available);
+})->with([
+    'used by an available departure' => [true],
+    'used only by an unavailable departure' => [false],
+]);
