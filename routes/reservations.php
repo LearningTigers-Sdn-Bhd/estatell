@@ -2,6 +2,7 @@
 
 use App\Enums\PermissionEnum;
 use App\Http\Controllers\Reservations\BookingSummaryController;
+use App\Http\Controllers\Reservations\ReservationBoatTripController;
 use App\Http\Controllers\Reservations\ReservationBookingController;
 use App\Http\Controllers\Reservations\ReservationCityLedgerController;
 use App\Http\Controllers\Reservations\ReservationCompanyController;
@@ -131,6 +132,10 @@ Route::prefix('reservations')->name('reservations.')->scopeBindings()->group(fun
                 Route::put('guests/{guestId}', [ReservationUnitController::class, 'updateGuest'])->whereNumber('guestId')->middleware('can:'.PermissionEnum::GuestsManage->value)->name('guests.update');
                 Route::post('guests/{guestId}/replace', [ReservationUnitController::class, 'replaceGuest'])->whereNumber('guestId')->name('guests.replace');
                 Route::delete('guests/{guestId}', [ReservationUnitController::class, 'destroyGuest'])->whereNumber('guestId')->name('guests.destroy');
+                Route::middleware('boats')->group(function () {
+                    Route::put('boat-trips/{direction}', [ReservationBoatTripController::class, 'set'])->name('boat-trips.set');
+                    Route::delete('boat-trips/{direction}', [ReservationBoatTripController::class, 'clear'])->name('boat-trips.clear');
+                });
                 Route::post('add-ons', [ReservationUnitAddOnController::class, 'store'])->name('add-ons.store');
                 Route::delete('add-ons/{addOn}', [ReservationUnitAddOnController::class, 'destroy'])->name('add-ons.destroy');
 

@@ -4,6 +4,8 @@ namespace App\Services\Reservations;
 
 use App\Data\Reservations\ReservationActivityData;
 use App\Enums\BillingMode;
+use App\Enums\BoatDirection;
+use App\Enums\BoatMode;
 use App\Models\ChargeItem;
 use App\Models\Guest;
 use App\Models\Reservation;
@@ -102,6 +104,8 @@ class ReservationActivityLog
             'reservation.night_price_changed' => trans_choice('Price of :count night changed to :amount|Price of :count nights changed to :amount', count($properties->get('nights', [])), [
                 'amount' => data_get($properties->get('nights', []), '0.new_amount'),
             ]),
+            'reservation.boat_trip_set' => $this->boatTripSetText($properties),
+            'reservation.boat_trip_cleared' => __(':direction: not set.', ['direction' => BoatDirection::from((string) $properties->get('direction'))->label()]),
             default => (string) $activity->description,
         };
 
@@ -121,6 +125,26 @@ class ReservationActivityLog
             causerName: $activity->causer?->name,
             createdAt: $activity->created_at->toIso8601String(),
         );
+    }
+
+    /**
+     * "Boat in: Scheduled boat 09:00 (Kuala Besut jetty)." for a scheduled trip, "Boat out: Own boat 11:30." otherwise.
+     *
+     * @param  Collection<string, mixed>  $properties
+     */
+    private function boatTripSetText(Collection $properties): string
+    {
+        $direction = BoatDirection::from((string) $properties->get('direction'))->label();
+        $mode = BoatMode::from((string) $properties->get('mode'));
+        $pickup = (string) $properties->get('pickup_point');
+
+        if ($mode->needsDeparture()) {
+            return $pickup === ''
+                ? __(':direction: :mode :time.', ['direction' => $direction, 'mode' => $mode->label(), 'time' => $properties->get('boat_time')])
+                : __(':direction: :mode :time (:pickup).', ['direction' => $direction, 'mode' => $mode->label(), 'time' => $properties->get('boat_time'), 'pickup' => $pickup]);
+        }
+
+        return __(':direction: :mode :time.', ['direction' => $direction, 'mode' => $mode->label(), 'time' => $properties->get('unit_time')]);
     }
 
     /**

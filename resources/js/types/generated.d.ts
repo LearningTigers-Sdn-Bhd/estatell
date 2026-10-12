@@ -37,6 +37,13 @@ childrenSummary: string,
 taxes: App.Data.Catalogues.ChargeItemTaxData[],
 childPrices: App.Data.Catalogues.ChargeItemChildPriceData[],
 };
+export type BoatTripData = {
+direction: App.Enums.BoatDirection,
+mode: App.Enums.BoatMode,
+boatDepartureId: number | null,
+time: string | null,
+note: string | null,
+};
 }
 namespace Catalogues {
 export type ChargeItemChildPriceData = {
@@ -2315,6 +2322,7 @@ export type AuditStepStatus = 'running' | 'completed' | 'failed';
 export type AuditTrigger = 'scheduled' | 'manual';
 export type BillingMode = 'master_pays' | 'master_pays_all' | 'each_pays';
 export type BoatDirection = 'in' | 'out';
+export type BoatMode = 'scheduled' | 'charter' | 'own';
 export type BusinessDateStatus = 'open' | 'auditing' | 'closed';
 export type ChargingUnit = 'per_item' | 'per_night' | 'per_stay' | 'per_guest_night' | 'per_guest';
 export type CheckInRoomState = 'assigned' | 'auto' | 'none';

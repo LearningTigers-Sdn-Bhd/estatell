@@ -34,7 +34,7 @@ boat_trip_add_ons  id, unit_boat_trip_id → unit_boat_trips (cascade),
 
 ## Setting a trip
 
-`SetBoatTrip` (`app/Actions/Boats/`): `(User $actor, ReservationUnit $unit, BoatTripData $data): BoatTripResult`. `BoatTripData`: `direction`, `mode`, `boat_departure_id` (Scheduled), `time` (Charter and Own, `H:i`), `note` (optional). It locks the unit row first and does everything in one transaction:
+`SetBoatTrip` (`app/Actions/Boats/`): `(User $actor, ReservationUnit $unit, BoatTripData $data): BoatTripResult`. `BoatTripData`: `direction`, `mode`, `boat_departure_id` (Scheduled), `time` (Charter and Own, `H:i`), `note` (optional). It takes a shared lock on the departure, then locks the unit row (the same order as `UpdateBoatDeparture`, so the two cannot deadlock), and does everything in one transaction:
 
 1. Writes or replaces the trip row.
 2. Sets the unit time:
@@ -91,7 +91,7 @@ Boat out  [Not set ▾]
 - Picking a departure fills the matching time input with its property-side time and locks it. Picking Charter or Own unlocks the time and shows a **Note** input.
 - Seats are counted for the form's arrival and departure dates.
 - The request sends `boat_in` and `boat_out` (each `BoatTripData` or null). `NewUnitData` gains `boat_trips`. `AddUnit` calls `SetBoatTrip` for each trip inside its transaction, so a booking stays all or nothing, as with add-ons.
-- **Add unit** on the reservation page copies the first unit's trips, as it copies the times.
+- **Add unit** on the reservation page copies the first unit's trips, as it copies the times. A trip whose departure is now unavailable is skipped, and the toast says so. Add unit is not refused.
 - Channel and company portal bookings arrive without trips. The [dashboard](#dashboard) lists them.
 
 ## Reservation page
@@ -105,7 +105,7 @@ Boat   In   Scheduled · 09:00 Kuala Besut → 09:45            [Change]
 
 - **Change** opens a Dialog (`FormOverlay`, `md`) for that direction: **Mode** (Not set, Scheduled boat, Charter, Own boat), then **Departure** (with seats) for Scheduled, or **Time** and **Note** for Charter and Own. The button is "Save boat in" or "Save boat out".
 - **Change** shows only while `SetBoatTrip` would accept the unit (Boat in while Confirmed, Boat out while Confirmed or CheckedIn) and the user has `reservations.manage`. Otherwise the row is read only.
-- **⋯ More › Set boats** on the reservation header opens one Dialog with Boat in and Boat out for **every open unit**. It calls `SetBoatTrip` per unit and direction in one transaction. One refusal saves nothing and names the unit. Afterwards each unit can still differ.
+- **⋯ More › Set boats** on the reservation header opens one Dialog with Boat in and Boat out for **every open unit** (Confirmed and CheckedIn). Boat in is read only on a CheckedIn unit. It calls `SetBoatTrip` per unit and direction in one transaction. One refusal saves nothing and names the unit. Afterwards each unit can still differ.
 - Trip changes show on the Activity tab with the `ship` icon.
 
 ## Meals

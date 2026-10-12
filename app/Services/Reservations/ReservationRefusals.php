@@ -2,6 +2,7 @@
 
 namespace App\Services\Reservations;
 
+use App\Actions\Boats\BoatTripResult;
 use App\Actions\Folio\FolioStatusResult;
 use App\Actions\Folio\PostingResult;
 use App\Actions\FrontDesk\UnitStayResult;
@@ -77,6 +78,23 @@ class ReservationRefusals
         $field = (string) array_key_first($errors);
 
         return in_array($field, ['night_ids', 'price', 'reason'], true) ? $errors : [self::FORM => $errors[$field]];
+    }
+
+    /**
+     * The errors of the boat trip Dialog, keyed by field. `unit_not_open` is shared with other Actions, so the boat
+     * trip messages stay here and do not change the shared list.
+     *
+     * @return array<string, string>
+     */
+    public function boatTripErrors(string $code): array
+    {
+        return match ($code) {
+            BoatTripResult::REFUSAL_BOATS_OFF => [self::FORM, __('Boats is not on for this property.')],
+            BoatTripResult::REFUSAL_UNIT_NOT_OPEN => [self::FORM, __('This unit cannot take a boat trip in its current status.')],
+            BoatTripResult::REFUSAL_DEPARTURE_NOT_FOUND => ['boat_departure_id', __('This boat is not available for this direction. Choose another.')],
+            BoatTripResult::REFUSAL_TIME_REQUIRED => ['time', __('Enter the time.')],
+            default => [self::FORM, __('This change was refused.')],
+        };
     }
 
     /**

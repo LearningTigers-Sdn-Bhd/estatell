@@ -90,7 +90,7 @@ The first column is a `Switch` (`size="sm"`), as on the Charge items list. It se
 | Turn off, no upcoming trips   | Saves. Toast: "09:00 boat in is unavailable."                                                                                       |
 | Turn off, with upcoming trips | An AlertDialog first: "5 upcoming bookings use the 09:00 boat in. They keep it. New bookings cannot choose it." [Cancel] [Turn off] |
 
-Upcoming trips are trips of Confirmed and CheckedIn units whose trip date is on or after the business date. An unavailable departure leaves the booking pickers. Trips that use it keep it and it stays on the manifest.
+Upcoming trips are Scheduled trips on the departure whose unit `SetBoatTrip` would still accept (Boat in: Confirmed; Boat out: Confirmed or CheckedIn) and whose trip date is on or after the business date. `BoatTripUsage::upcomingUnits()` is the one query. Counts are distinct reservations ("5 upcoming bookings"). A guest who has arrived keeps their arrival time. An unavailable departure leaves the booking pickers. Trips that use it keep it and it stays on the manifest.
 
 ### Add or edit departure
 
@@ -115,11 +115,11 @@ Fare           [Speedboat · RM35.00       ▾]
 
 ### Actions
 
-| Action                | Does                                                                                                                                                                                                                                                                              |
-| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `CreateBoatDeparture` | Adds the row. Logs `boat_departure.created`.                                                                                                                                                                                                                                      |
-| `UpdateBoatDeparture` | Saves the row. When the property-side time changes, sets `arrival_time` (In) or `departure_time` (Out) on every upcoming trip's unit to the new time, in the same transaction. Logs `boat_departure.updated` with the before and after values and the number of bookings changed. |
-| `DeleteBoatDeparture` | Deletes a row with no trips. Refused (`departure_in_use`) when any trip, of any status, uses it.                                                                                                                                                                                  |
+| Action                | Does                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `CreateBoatDeparture` | Adds the row. Logs `boat_departure.created`.                                                                                                                                                                                                                                                                                                                                                                                    |
+| `UpdateBoatDeparture` | Saves the row. When the property-side time changes, sets `arrival_time` (In) or `departure_time` (Out) on every upcoming trip's unit to the new time, in the same transaction. Locks the departure, then the units in id order. Refuses a direction change (`departure_in_use`) while any trip uses the departure. Logs `boat_departure.updated` with the before and after values and the number of bookings and units changed. |
+| `DeleteBoatDeparture` | Deletes a row with no trips. Refused (`departure_in_use`) when any trip, of any status, uses it.                                                                                                                                                                                                                                                                                                                                |
 
 ### Rules
 
@@ -130,6 +130,7 @@ Fare           [Speedboat · RM35.00       ▾]
 | Seats     | Empty, or a whole number above 0 (database CHECK)                                                                                                                                                                                                 |
 | Fare      | An available Transport charge item of the property with **Add to every new booking** off, the departure's current fare (even when unavailable), or none. A fare with auto-add on: "This fare is added to every new booking. Turn that off first." |
 | Available | A departure can be made available only while its fare is available, or it has no fare. Message: "Turn the fare Speedboat on first."                                                                                                               |
+| Direction | Cannot change while any trip uses the departure (`departure_in_use`).                                                                                                                                                                             |
 | Delete    | Only when never used. Otherwise turn the switch off.                                                                                                                                                                                              |
 
 ## Fares tab
@@ -215,7 +216,8 @@ Boats never write `charge_items` directly. Both Actions live in `app/Actions/Boa
 
 - `add boat departures`: one Departures page with no tabs. Nothing uses a departure yet, so Update saves the row only and Delete always works.
 - `add boat fares`: the Fares tab and the `TabLinks`.
-- `set boat trips on units`: the upcoming trip count, the turn-off AlertDialog, moving unit times on Update with its edit note, and the `departure_in_use` refusal.
+- `add boat trips and set them on units`: the upcoming trip query, moving unit times on Update, the direction lock and the `departure_in_use` refusal on Delete.
+- `show boat trips on the reservation page`: the turn-off AlertDialog with the upcoming booking count and the edit note.
 
 ## Permissions
 

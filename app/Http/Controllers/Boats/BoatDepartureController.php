@@ -72,7 +72,13 @@ class BoatDepartureController extends Controller
     {
         $wasActive = $boatDeparture->active;
 
-        $updateBoatDeparture($request->user(), $boatDeparture, $request->validated());
+        $result = $updateBoatDeparture($request->user(), $boatDeparture, $request->validated());
+
+        if ($result->isRefused()) {
+            Inertia::flash('toast', ['type' => 'error', 'message' => __('Boat trips use this departure, so its direction cannot change.')]);
+
+            return to_route('settings.boats.departures.index', $property);
+        }
 
         $boatDeparture->refresh();
         $isActive = $request->validated('active') ?? $wasActive;
@@ -94,7 +100,13 @@ class BoatDepartureController extends Controller
 
     public function destroy(Request $request, Property $property, BoatDeparture $boatDeparture, DeleteBoatDeparture $deleteBoatDeparture): RedirectResponse
     {
-        $deleteBoatDeparture($request->user(), $boatDeparture);
+        $result = $deleteBoatDeparture($request->user(), $boatDeparture);
+
+        if ($result->isRefused()) {
+            Inertia::flash('toast', ['type' => 'error', 'message' => __('Boat trips use this departure. Turn it off instead.')]);
+
+            return to_route('settings.boats.departures.index', $property);
+        }
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Boat departure deleted.')]);
 

@@ -2,42 +2,94 @@
 
 namespace App\Actions\Boats;
 
+use App\Enums\BoatDirection;
 use App\Models\BoatDeparture;
+use App\Models\Property;
+use App\Models\ReservationUnit;
 use App\Models\User;
+use App\Services\Boats\BoatTripUsage;
+use App\Services\NightAudit\CurrentBusinessDate;
+use App\Services\Property\PropertyToday;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 
 class UpdateBoatDeparture
 {
+    public function __construct(
+        private BoatTripUsage $boatTripUsage,
+        private CurrentBusinessDate $currentBusinessDate,
+        private PropertyToday $propertyToday,
+    ) {}
+
     /**
-     * Save a departure. A save that changes nothing is not logged. Nothing uses a departure yet, so only the row
-     * changes; moving unit times comes with boat trips.
+     * Save a departure. The departure row is locked first, then the upcoming units of its trips, in id order (the same
+     * order `SetBoatTrip` uses). When the property-side time changes (`arrives_at` for Boat in, `leaves_at` for Boat out),
+     * every upcoming unit of a scheduled trip takes it as its `arrival_time` or `departure_time`, in the same transaction.
+     * A direction change is refused while any trip uses the departure. A save that changes nothing is not logged. The
+     * log counts the bookings whose times moved. See docs/24-boats/01-boat-settings.md#actions.
      *
      * @param  array<string, mixed>  $attributes  Validated departure fields, the full row.
      */
-    public function __invoke(User $actor, BoatDeparture $boatDeparture, array $attributes): bool
+    public function __invoke(User $actor, BoatDeparture $boatDeparture, array $attributes): BoatDepartureResult
     {
-        return DB::transaction(function () use ($actor, $boatDeparture, $attributes): bool {
+        return DB::transaction(function () use ($actor, $boatDeparture, $attributes): BoatDepartureResult {
             $boatDeparture = BoatDeparture::query()->lockForUpdate()->findOrFail($boatDeparture->id);
             $before = $this->snapshot($boatDeparture);
+            $oldPropertyTime = substr($boatDeparture->direction->propertyTime($boatDeparture), 0, 5);
+
+            $direction = BoatDirection::tryFrom((string) ($attributes['direction'] ?? $boatDeparture->direction->value));
+
+            if ($direction !== $boatDeparture->direction && $this->boatTripUsage->isUsed($boatDeparture)) {
+                return BoatDepartureResult::refused(BoatDepartureResult::REFUSAL_DEPARTURE_IN_USE);
+            }
 
             $boatDeparture->fill($attributes);
             $after = $this->snapshot($boatDeparture);
 
             if ($after === $before) {
-                return true;
+                return BoatDepartureResult::done();
             }
 
             $boatDeparture->save();
+
+            $bookingsChanged = 0;
+            $unitsChanged = 0;
+            $newPropertyTime = substr($boatDeparture->direction->propertyTime($boatDeparture), 0, 5);
+
+            if ($newPropertyTime !== $oldPropertyTime) {
+                $units = $this->boatTripUsage->upcomingUnits($boatDeparture, $this->businessDate($boatDeparture->property), lock: true);
+
+                if ($units->isNotEmpty()) {
+                    $column = $boatDeparture->direction === BoatDirection::In ? 'arrival_time' : 'departure_time';
+
+                    ReservationUnit::query()->whereKey($units->modelKeys())->update([$column => $newPropertyTime.':00', 'updated_at' => now()]);
+
+                    $unitsChanged = $units->count();
+                    $bookingsChanged = $units->pluck('reservation_id')->unique()->count();
+                }
+            }
 
             activity()
                 ->performedOn($boatDeparture)
                 ->causedBy($actor)
                 ->event('boat_departure.updated')
-                ->withProperties(['property_id' => $boatDeparture->property_id, 'before' => $before, 'after' => $after])
+                ->withProperties([
+                    'property_id' => $boatDeparture->property_id,
+                    'before' => $before,
+                    'after' => $after,
+                    'units_changed' => $unitsChanged,
+                    'bookings_changed' => $bookingsChanged,
+                ])
                 ->log('Boat departure updated');
 
-            return true;
+            return BoatDepartureResult::done($bookingsChanged);
         });
+    }
+
+    /** The business date the upcoming trips are judged against. */
+    private function businessDate(Property $property): CarbonImmutable
+    {
+        return $this->currentBusinessDate->date($property) ?? $this->propertyToday->date($property);
     }
 
     /** @return array{direction: string, leaves_at: string, arrives_at: string, pickup_point: string|null, seats: int|null, charge_item_id: int|null, active: bool} */
