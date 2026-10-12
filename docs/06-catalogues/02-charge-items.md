@@ -105,7 +105,7 @@ Charge items use a list, a short **New charge item** Dialog and a full edit page
 | Add to every new booking | Off                                                                          |
 | Position                 | The end of the active list                                                   |
 
-**Edit page sections**, one column, max 720 px:
+**Edit page sections**, in two columns from the `lg` breakpoint (Details on the left, Pricing and Taxes on the right) and one column below it, max 1024 px:
 
 ```
 Settings › Charge items › Breakfast                          [Cancel] [Save]

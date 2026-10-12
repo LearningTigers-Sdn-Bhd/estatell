@@ -162,7 +162,7 @@ export default function ChargeItemEdit({
                         }
                     />
 
-                    <div className="flex w-full max-w-180 flex-col gap-8">
+                    <div className="grid w-full max-w-5xl items-start gap-8 lg:grid-cols-2">
                         <Section title="Details">
                             <FieldGroup>
                                 <Field data-invalid={!!form.errors.name}>
@@ -262,154 +262,168 @@ export default function ChargeItemEdit({
                             </FieldGroup>
                         </Section>
 
-                        <Section title="Pricing">
-                            <FieldGroup>
-                                <Field
-                                    data-invalid={!!form.errors.charging_unit}
-                                >
-                                    <FieldLabel htmlFor="charge-item-unit">
-                                        Charged
-                                    </FieldLabel>
-                                    <EnumSelect
-                                        id="charge-item-unit"
-                                        name="charging_unit"
-                                        options={chargingUnits}
-                                        value={form.data.charging_unit}
-                                        onValueChange={(value) =>
-                                            form.setData('charging_unit', value)
-                                        }
-                                        aria-invalid={
-                                            !!form.errors.charging_unit
-                                        }
-                                    />
-                                    <FieldError>
-                                        {form.errors.charging_unit}
-                                    </FieldError>
-                                </Field>
-                                <FieldSet>
-                                    <FieldLegend variant="label">
-                                        Pricing method
-                                    </FieldLegend>
-                                    <RadioGroup
-                                        value={
-                                            enteredWhenCharging
-                                                ? 'entered'
-                                                : 'fixed'
-                                        }
-                                        onValueChange={(value) =>
-                                            setPricing(value as string)
-                                        }
-                                    >
-                                        {pricingOptions.map((option) => (
-                                            <FieldLabel
-                                                key={option.value}
-                                                htmlFor={`charge-item-price-${option.value}`}
-                                            >
-                                                <Field orientation="horizontal">
-                                                    <RadioGroupItem
-                                                        id={`charge-item-price-${option.value}`}
-                                                        value={option.value}
-                                                    />
-                                                    <FieldContent>
-                                                        <span className="text-sm font-medium">
-                                                            {option.label}
-                                                        </span>
-                                                        <FieldDescription>
-                                                            {option.description}
-                                                        </FieldDescription>
-                                                    </FieldContent>
-                                                </Field>
-                                            </FieldLabel>
-                                        ))}
-                                    </RadioGroup>
-                                </FieldSet>
-                                {!enteredWhenCharging && (
+                        <div className="flex flex-col gap-8">
+                            <Section title="Pricing">
+                                <FieldGroup>
                                     <Field
                                         data-invalid={
-                                            !!form.errors.default_amount
+                                            !!form.errors.charging_unit
                                         }
                                     >
-                                        <FieldLabel htmlFor="charge-item-amount">
-                                            Price
+                                        <FieldLabel htmlFor="charge-item-unit">
+                                            Charged
                                         </FieldLabel>
-                                        <InputGroup className="sm:max-w-60">
-                                            <InputGroupAddon>
-                                                {currency}
-                                            </InputGroupAddon>
-                                            <InputGroupInput
-                                                id="charge-item-amount"
-                                                placeholder="0.00"
-                                                type="number"
-                                                min="0.01"
-                                                max="9999999999.99"
-                                                step="0.01"
-                                                inputMode="decimal"
-                                                value={form.data.default_amount}
-                                                onChange={(event) =>
-                                                    form.setData(
-                                                        'default_amount',
-                                                        event.target.value,
-                                                    )
-                                                }
-                                                aria-invalid={
-                                                    !!form.errors.default_amount
-                                                }
-                                            />
-                                        </InputGroup>
+                                        <EnumSelect
+                                            id="charge-item-unit"
+                                            name="charging_unit"
+                                            options={chargingUnits}
+                                            value={form.data.charging_unit}
+                                            onValueChange={(value) =>
+                                                form.setData(
+                                                    'charging_unit',
+                                                    value,
+                                                )
+                                            }
+                                            aria-invalid={
+                                                !!form.errors.charging_unit
+                                            }
+                                        />
                                         <FieldError>
-                                            {form.errors.default_amount}
+                                            {form.errors.charging_unit}
                                         </FieldError>
                                     </Field>
-                                )}
-                                <Field orientation="horizontal">
-                                    <Switch
-                                        id="charge-item-override"
-                                        checked={form.data.allow_override}
-                                        onCheckedChange={(checked) =>
-                                            form.setData(
-                                                'allow_override',
-                                                checked,
-                                            )
-                                        }
-                                        disabled={enteredWhenCharging}
-                                    />
-                                    <FieldContent>
-                                        <FieldLabel htmlFor="charge-item-override">
-                                            Allow amount override
-                                        </FieldLabel>
-                                        <FieldDescription>
-                                            Staff may change the default amount
-                                            when posting the charge.
-                                        </FieldDescription>
-                                    </FieldContent>
-                                </Field>
-                            </FieldGroup>
-                        </Section>
+                                    <FieldSet>
+                                        <FieldLegend variant="label">
+                                            Pricing method
+                                        </FieldLegend>
+                                        <RadioGroup
+                                            value={
+                                                enteredWhenCharging
+                                                    ? 'entered'
+                                                    : 'fixed'
+                                            }
+                                            onValueChange={(value) =>
+                                                setPricing(value as string)
+                                            }
+                                        >
+                                            {pricingOptions.map((option) => (
+                                                <FieldLabel
+                                                    key={option.value}
+                                                    htmlFor={`charge-item-price-${option.value}`}
+                                                >
+                                                    <Field orientation="horizontal">
+                                                        <RadioGroupItem
+                                                            id={`charge-item-price-${option.value}`}
+                                                            value={option.value}
+                                                        />
+                                                        <FieldContent>
+                                                            <span className="text-sm font-medium">
+                                                                {option.label}
+                                                            </span>
+                                                            <FieldDescription>
+                                                                {
+                                                                    option.description
+                                                                }
+                                                            </FieldDescription>
+                                                        </FieldContent>
+                                                    </Field>
+                                                </FieldLabel>
+                                            ))}
+                                        </RadioGroup>
+                                    </FieldSet>
+                                    {!enteredWhenCharging && (
+                                        <Field
+                                            data-invalid={
+                                                !!form.errors.default_amount
+                                            }
+                                        >
+                                            <FieldLabel htmlFor="charge-item-amount">
+                                                Price
+                                            </FieldLabel>
+                                            <InputGroup className="sm:max-w-60">
+                                                <InputGroupAddon>
+                                                    {currency}
+                                                </InputGroupAddon>
+                                                <InputGroupInput
+                                                    id="charge-item-amount"
+                                                    placeholder="0.00"
+                                                    type="number"
+                                                    min="0.01"
+                                                    max="9999999999.99"
+                                                    step="0.01"
+                                                    inputMode="decimal"
+                                                    value={
+                                                        form.data.default_amount
+                                                    }
+                                                    onChange={(event) =>
+                                                        form.setData(
+                                                            'default_amount',
+                                                            event.target.value,
+                                                        )
+                                                    }
+                                                    aria-invalid={
+                                                        !!form.errors
+                                                            .default_amount
+                                                    }
+                                                />
+                                            </InputGroup>
+                                            <FieldError>
+                                                {form.errors.default_amount}
+                                            </FieldError>
+                                        </Field>
+                                    )}
+                                    <Field orientation="horizontal">
+                                        <Switch
+                                            id="charge-item-override"
+                                            checked={form.data.allow_override}
+                                            onCheckedChange={(checked) =>
+                                                form.setData(
+                                                    'allow_override',
+                                                    checked,
+                                                )
+                                            }
+                                            disabled={enteredWhenCharging}
+                                        />
+                                        <FieldContent>
+                                            <FieldLabel htmlFor="charge-item-override">
+                                                Allow amount override
+                                            </FieldLabel>
+                                            <FieldDescription>
+                                                Staff may change the default
+                                                amount when posting the charge.
+                                            </FieldDescription>
+                                        </FieldContent>
+                                    </Field>
+                                </FieldGroup>
+                            </Section>
 
-                        <Section title="Taxes">
-                            <Field data-invalid={!!form.errors.tax_ids}>
-                                <FieldLabel htmlFor="charge-item-taxes">
-                                    Taxes
-                                </FieldLabel>
-                                <MultiCombobox
-                                    id="charge-item-taxes"
-                                    name="tax_ids"
-                                    items={taxItems}
-                                    value={form.data.tax_ids}
-                                    onValueChange={(value) =>
-                                        form.setData('tax_ids', value)
-                                    }
-                                    placeholder="No taxes"
-                                    invalid={!!form.errors.tax_ids}
-                                />
-                                <FieldDescription>
-                                    {form.data.tax_ids.length === 0
-                                        ? 'No taxes are added to this item.'
-                                        : 'Taxes added automatically when this item is charged.'}
-                                </FieldDescription>
-                                <FieldError>{form.errors.tax_ids}</FieldError>
-                            </Field>
-                        </Section>
+                            <Section title="Taxes">
+                                <Field data-invalid={!!form.errors.tax_ids}>
+                                    <FieldLabel htmlFor="charge-item-taxes">
+                                        Taxes
+                                    </FieldLabel>
+                                    <MultiCombobox
+                                        id="charge-item-taxes"
+                                        name="tax_ids"
+                                        items={taxItems}
+                                        value={form.data.tax_ids}
+                                        onValueChange={(value) =>
+                                            form.setData('tax_ids', value)
+                                        }
+                                        placeholder="No taxes"
+                                        invalid={!!form.errors.tax_ids}
+                                    />
+                                    <FieldDescription>
+                                        {form.data.tax_ids.length === 0
+                                            ? 'No taxes are added to this item.'
+                                            : 'Taxes added automatically when this item is charged.'}
+                                    </FieldDescription>
+                                    <FieldError>
+                                        {form.errors.tax_ids}
+                                    </FieldError>
+                                </Field>
+                            </Section>
+                        </div>
                     </div>
                 </div>
 

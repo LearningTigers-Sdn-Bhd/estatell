@@ -382,6 +382,7 @@ Topics on hold. Each one needs a planning session and its docs before it gets co
 | `84593f5` | feat(front-desk): add day use to the unit menu                           |
 | `95542c2` | docs(reports): settle the day use reports build decisions                |
 | `c800e50` | feat(reports): show day use apart                                        |
+| `3e07588` | refactor(catalogues): edit charge items on their own page                |
 
 Smaller fixes and reverts are in `git log`.
 
