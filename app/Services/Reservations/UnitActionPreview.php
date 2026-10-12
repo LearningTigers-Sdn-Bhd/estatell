@@ -15,6 +15,7 @@ use App\Data\Reservations\UnitFeePreviewData;
 use App\Data\Reservations\UnitLateCheckOutPreviewData;
 use App\Data\Reservations\UnitMovePreviewData;
 use App\Data\Reservations\UnitReinstatePreviewData;
+use App\Data\Reservations\UnitUndoPreviewData;
 use App\Enums\CheckInRoomState;
 use App\Enums\FolioStatus;
 use App\Enums\PermissionEnum;
@@ -39,6 +40,7 @@ use App\Services\CityLedger\CreditCheck;
 use App\Services\FrontDesk\CheckInCollection;
 use App\Services\FrontDesk\CheckOutSettlement;
 use App\Services\FrontDesk\EarlyCheckOutRule;
+use App\Services\FrontDesk\UndoCheckInRule;
 use App\Services\Guests\CountryOptions;
 use App\Services\NightAudit\CurrentBusinessDate;
 use App\Services\Rates\RateQuoteRequest;
@@ -75,6 +77,7 @@ class UnitActionPreview
         private DayUseAvailability $dayUseAvailability,
         private TaxCalculator $taxCalculator,
         private EarlyCheckOutRule $earlyCheckOutRule,
+        private UndoCheckInRule $undoCheckInRule,
     ) {}
 
     /**
@@ -314,6 +317,31 @@ class UnitActionPreview
             standardTime: substr((string) $unit->property()->with('settings')->firstOrFail()->settings?->check_out_time, 0, 5),
             error: null,
         );
+    }
+
+    /**
+     * The Undo check-in form: why it cannot be undone, or the charges and payments that stay on the folios.
+     */
+    public function undoCheckIn(ReservationUnit $unit): UnitUndoPreviewData
+    {
+        $businessDate = $this->currentBusinessDate->get($unit->property()->firstOrFail());
+
+        if ($businessDate === null) {
+            return UnitUndoPreviewData::refused($this->refusals->message(UnitStayResult::REFUSAL_NO_BUSINESS_DATE));
+        }
+
+        $refusal = $this->undoCheckInRule->refusal($unit, $businessDate);
+
+        if ($refusal !== null) {
+            return UnitUndoPreviewData::refused($this->refusals->message($refusal));
+        }
+
+        $folioIds = $this->checkOutSettlement->folios($unit)->modelKeys();
+        $lines = FolioLine::query()->whereIn('folio_id', $folioIds)->whereNull('parent_line_id')->orderBy('id')->get();
+        $charges = $lines->where('kind', TransactionKind::Charge)->map(fn (FolioLine $line): array => ['description' => $line->description, 'amount' => (string) $line->amount])->values()->all();
+        $paid = $lines->where('kind', TransactionKind::Payment)->reduce(fn (BigDecimal $sum, FolioLine $line): BigDecimal => $sum->minus((string) $line->amount), BigDecimal::zero());
+
+        return new UnitUndoPreviewData($charges, (string) $paid->toScale(2), null);
     }
 
     /**

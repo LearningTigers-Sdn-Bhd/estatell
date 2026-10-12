@@ -162,7 +162,7 @@ One Dialog cancels several units, so a group is not cancelled one Dialog at a ti
 
 ### Cancel, void and undo
 
-|              | Cancel                                   | Void (later)                                                                                               | Undo check-in (later)                          | Undo check-out (later)                                                       |
+|              | Cancel                                   | Void (later)                                                                                               | Undo check-in                                  | Undo check-out (later)                                                       |
 | ------------ | ---------------------------------------- | ---------------------------------------------------------------------------------------------------------- | ---------------------------------------------- | ---------------------------------------------------------------------------- |
 | For          | A real booking called off before arrival | A booking that should never have existed: duplicate, test, wrong property                                  | Checked in by mistake                          | Checked out by mistake, or the guest stays on                                |
 | Allowed when | The unit is Confirmed                    | Nothing posted is left (all reversed) and no money is left (refunded)                                      | Same business date, before any night is posted | Checked out on the current business date, and the room is still free tonight |

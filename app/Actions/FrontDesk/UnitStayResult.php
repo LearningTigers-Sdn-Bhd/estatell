@@ -70,6 +70,10 @@ class UnitStayResult
 
     public const REFUSAL_ARRIVED_TODAY = 'arrived_today';
 
+    public const REFUSAL_UNDO_TOO_LATE = 'undo_too_late';
+
+    public const REFUSAL_NIGHT_POSTED = 'night_posted';
+
     public const REFUSAL_TIME_NOT_LATER = 'time_not_later';
 
     public const REFUSAL_ROOM_NOT_FREE = 'room_not_free';

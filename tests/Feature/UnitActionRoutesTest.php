@@ -1,5 +1,7 @@
 <?php
 
+use App\Actions\FrontDesk\CheckInUnit;
+use App\Actions\FrontDesk\UndoCheckIn;
 use App\Actions\Payments\RecordPayment;
 use App\Data\Payments\NewPaymentData;
 use App\Enums\DefaultRoleEnum;
@@ -120,7 +122,7 @@ test('the unit menu lists only what the status and the permissions allow', funct
             ->where('canWaiveFees', $role === DefaultRoleEnum::Owner));
 })->with([
     'confirmed' => [[], DefaultRoleEnum::Owner, ['check-in', 'change-dates', 'cancel', 'no-show', 'move-room']],
-    'checked in' => [['status' => UnitStatus::CheckedIn, 'checked_in_at' => now()], DefaultRoleEnum::Owner, ['change-dates', 'move-room']],
+    'checked in' => [['status' => UnitStatus::CheckedIn, 'checked_in_at' => now()], DefaultRoleEnum::Owner, ['change-dates', 'move-room', 'undo-check-in']],
     'cancelled' => [['status' => UnitStatus::Cancelled], DefaultRoleEnum::Owner, ['reinstate']],
     'no-show' => [['status' => UnitStatus::NoShow], DefaultRoleEnum::FrontDesk, ['reinstate']],
     'checked out' => [['status' => UnitStatus::CheckedOut, 'checked_in_at' => now()->subDay(), 'checked_out_at' => now()], DefaultRoleEnum::Owner, []],
@@ -1040,7 +1042,7 @@ function uaArrivedTodaySetup(): array
 
 test('a unit that arrived today has no early check-out in the menu, the preview or the Action', function () {
     $setup = uaArrivedTodaySetup();
-    $message = 'This unit arrived today, so there is no night to remove. It can check out on its departure date.';
+    $message = 'This unit arrived today, so there is no night to remove. It can check out on its departure date. If it checked in by mistake, use Undo check-in.';
 
     $this->actingAs($setup['user'])
         ->get(route('reservations.show', ['property' => $setup['property']->code, 'reservation' => $setup['reservation']->id]))
@@ -1070,4 +1072,121 @@ test('a unit that arrived yesterday is still offered an early check-out', functi
     $this->actingAs($setup['user'])
         ->get(route('reservations.show', ['property' => $setup['property']->code, 'reservation' => $setup['reservation']->id]))
         ->assertInertia(fn (Assert $page) => $page->where('unit.actions', fn ($actions) => collect($actions)->pluck('key')->contains('check-out')));
+});
+
+/**
+ * A checked-in unit that arrived today, with a 100.00 deposit held on its folio.
+ *
+ * @return array{user: User, property: Property, reservation: Reservation, unit: ReservationUnit}
+ */
+function uaUndoSetup(): array
+{
+    $setup = uaArrivedTodaySetup();
+    $cash = PaymentMethod::query()->firstOrFail();
+    app(RecordPayment::class)($setup['user'], $setup['reservation'], null, $setup['unit'], new NewPaymentData($cash->id, PaymentPurpose::SecurityDeposit, '100.00', null, fake()->uuid()));
+
+    return $setup;
+}
+
+test('undo check-in puts the unit back to Confirmed, keeps the money and the room, and logs the reason', function () {
+    $setup = uaUndoSetup();
+    $roomId = $setup['unit']->nights()->value('room_id');
+
+    $this->actingAs($setup['user'])->postJson(uaUrl($setup, 'undo-check-in-preview'))
+        ->assertOk()
+        ->assertJsonPath('error', null)
+        ->assertJsonPath('paid', '100.00');
+
+    $this->actingAs($setup['user'])
+        ->post(uaUrl($setup, 'undo-check-in'), ['reason' => 'Wrong guest checked in'])
+        ->assertRedirect()
+        ->assertSessionHasNoErrors();
+
+    $unit = $setup['unit']->fresh();
+    $log = Activity::query()->where('event', 'reservation.unit_check_in_undone')->sole();
+
+    expect($unit->status)->toBe(UnitStatus::Confirmed)
+        ->and($unit->checked_in_at)->toBeNull()
+        ->and($unit->nights()->value('room_id'))->toBe($roomId)
+        ->and(Payment::query()->count())->toBe(1)
+        ->and($log->properties['reason'])->toBe('Wrong guest checked in')
+        ->and($log->causer_id)->toBe($setup['user']->id)
+        ->and($setup['reservation']->fresh()->status)->toBe(ReservationStatus::Confirmed);
+});
+
+test('undo check-in needs a reason', function () {
+    $setup = uaUndoSetup();
+
+    $this->actingAs($setup['user'])
+        ->post(uaUrl($setup, 'undo-check-in'), ['reason' => ''])
+        ->assertSessionHasErrors('reason');
+
+    expect($setup['unit']->fresh()->status)->toBe(UnitStatus::CheckedIn)
+        ->and(Activity::query()->where('event', 'reservation.unit_check_in_undone')->count())->toBe(0);
+});
+
+test('undo check-in is refused once the night audit has run since the check-in', function () {
+    $setup = uaUndoSetup();
+    $setup['unit']->forceFill(['checked_in_at' => now()->subDay()])->save();
+
+    $this->actingAs($setup['user'])->postJson(uaUrl($setup, 'undo-check-in-preview'))
+        ->assertJsonPath('error', 'The business date has changed since this was done, so it cannot be undone.');
+
+    $this->actingAs($setup['user'])
+        ->post(uaUrl($setup, 'undo-check-in'), ['reason' => 'Mistake'])
+        ->assertSessionHasErrors('form');
+
+    expect($setup['unit']->fresh()->status)->toBe(UnitStatus::CheckedIn);
+});
+
+test('undo check-in is refused by a posted night, an inclusion line or a day use block, and not by another unit\'s', function (string $key, bool $refused) {
+    $setup = uaUndoSetup();
+    $night = $setup['unit']->nights()->first();
+    $other = $setup['unit']->nights()->latest('id')->first();
+    $replace = ['{night}' => $night->id, '{unit}' => $setup['unit']->id, '{foreign}' => $other->id + 1000];
+    FolioLine::factory()->create(['folio_id' => Folio::query()->firstOrFail()->id, 'idempotency_key' => strtr($key, $replace)]);
+
+    $this->actingAs($setup['user'])
+        ->post(uaUrl($setup, 'undo-check-in'), ['reason' => 'Mistake']);
+
+    expect($setup['unit']->fresh()->status)->toBe($refused ? UnitStatus::CheckedIn : UnitStatus::Confirmed);
+})->with([
+    'night' => ['night:{night}', true],
+    'inclusion' => ['night:{night}:incl:7', true],
+    'fix' => ['night:{night}:fix:1', true],
+    'day use' => ['dayuse:{unit}', true],
+    'another unit' => ['night:{foreign}', false],
+]);
+
+test('a re-check-in after an undo does not post an add-on twice', function () {
+    $setup = uaUndoSetup();
+    $addOn = UnitAddOn::factory()->create(['reservation_unit_id' => $setup['unit']->id, 'service_date' => null, 'folio_line_id' => null]);
+
+    app(UndoCheckIn::class)($setup['user'], $setup['unit']->fresh(), 'Wrong room');
+    $first = app(CheckInUnit::class)($setup['user'], $setup['unit']->fresh());
+    $linesAfterFirst = FolioLine::query()->whereNull('parent_line_id')->count();
+
+    app(UndoCheckIn::class)($setup['user'], $setup['unit']->fresh(), 'Wrong room again');
+    app(CheckInUnit::class)($setup['user'], $setup['unit']->fresh());
+
+    expect($first->isRefused())->toBeFalse()
+        ->and($addOn->fresh()->folio_line_id)->not->toBeNull()
+        ->and(FolioLine::query()->whereNull('parent_line_id')->count())->toBe($linesAfterFirst);
+});
+
+test('undo check-in is in the menu for Owner and Manager only, and its routes need the permission', function () {
+    $setup = uaUndoSetup();
+    $clerk = User::factory()->withRole(DefaultRoleEnum::FrontDesk)->create(['property_id' => $setup['property']->id]);
+    $showUrl = route('reservations.show', ['property' => $setup['property']->code, 'reservation' => $setup['reservation']->id]);
+
+    $this->actingAs($setup['user'])->get($showUrl)
+        ->assertInertia(fn (Assert $page) => $page->where('unit.actions', fn ($actions) => collect($actions)->pluck('key')->contains('undo-check-in')));
+
+    $this->actingAs($clerk)->get($showUrl)
+        ->assertInertia(fn (Assert $page) => $page->where('unit.actions', fn ($actions) => ! collect($actions)->pluck('key')->contains('undo-check-in')));
+
+    $this->actingAs($clerk)->postJson(uaUrl($setup, 'undo-check-in-preview'))->assertForbidden();
+    $this->actingAs($clerk)->post(uaUrl($setup, 'undo-check-in'), ['reason' => 'x'])->assertForbidden();
+
+    expect($setup['unit']->fresh()->status)->toBe(UnitStatus::CheckedIn);
 });

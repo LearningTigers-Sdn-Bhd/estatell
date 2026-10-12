@@ -50,6 +50,15 @@ enum UnitStatus: string
     }
 
     /**
+     * Undo check-in puts a CheckedIn unit back to Confirmed. It is not in `canTransitionTo()`, because that method also
+     * decides Reinstate, which is for Cancelled and NoShow units only.
+     */
+    public function canUndoCheckIn(): bool
+    {
+        return $this === self::CheckedIn;
+    }
+
+    /**
      * Whether a unit in this status takes its room or bed off sale on its nights.
      * Cancelled and no-show units release their nights. Checked-out units keep them, so past nights stay sold.
      */

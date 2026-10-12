@@ -247,7 +247,7 @@ class GroupCheckOutPreview
             $selectable,
             match ($kind) {
                 self::KIND_DEPARTS_LATER => $arrivedToday
-                ? __('Departs :date. Arrived today, so there is no night to remove.', ['date' => $unit->departure_date->format('j M')])
+                ? __('Departs :date. Arrived today, so there is no night to remove. If it checked in by mistake, use Undo check-in.', ['date' => $unit->departure_date->format('j M')])
                 : __('Departs :date', ['date' => $unit->departure_date->format('j M')]),
                 self::KIND_CHARGED_ELSEWHERE => IncomingScheduledCharges::message($incoming),
                 self::KIND_NOT_ARRIVED => __('Not checked in: Cancel or mark no-show.'),

@@ -14,6 +14,7 @@ use App\Actions\FrontDesk\ExtendDepartureTime;
 use App\Actions\FrontDesk\MarkNoShow;
 use App\Actions\FrontDesk\MoveUnit;
 use App\Actions\FrontDesk\ReinstateUnit;
+use App\Actions\FrontDesk\UndoCheckIn;
 use App\Actions\FrontDesk\UnitStayResult;
 use App\Actions\Reservations\AssignmentResult;
 use App\Enums\PermissionEnum;
@@ -29,6 +30,7 @@ use App\Http\Requests\Reservations\MoveUnitPreviewRequest;
 use App\Http\Requests\Reservations\MoveUnitRequest;
 use App\Http\Requests\Reservations\ReinstateUnitRequest;
 use App\Http\Requests\Reservations\UnitPolicyFeeRequest;
+use App\Http\Requests\Reservations\UnitUndoRequest;
 use App\Models\Property;
 use App\Models\Reservation;
 use App\Models\ReservationUnit;
@@ -54,6 +56,11 @@ class ReservationUnitStayController extends Controller
     public function cancelAllPreview(Property $property, Reservation $reservation, UnitActionPreview $preview): JsonResponse
     {
         return response()->json($preview->cancelAll($reservation));
+    }
+
+    public function undoCheckInPreview(Property $property, Reservation $reservation, ReservationUnit $unit, UnitActionPreview $preview): JsonResponse
+    {
+        return response()->json($preview->undoCheckIn($unit));
     }
 
     public function noShowPreview(Property $property, Reservation $reservation, ReservationUnit $unit, UnitActionPreview $preview): JsonResponse
@@ -219,6 +226,16 @@ class ReservationUnitStayController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => trans_choice(':count room cancelled.|:count rooms cancelled.', $result->cancelled)]);
 
         return back(fallback: $page);
+    }
+
+    /**
+     * Put a unit that checked in during the open business date back to Confirmed, with a reason.
+     */
+    public function undoCheckIn(UnitUndoRequest $request, Property $property, Reservation $reservation, ReservationUnit $unit, UndoCheckIn $undoCheckIn, ReservationRefusals $refusals): RedirectResponse
+    {
+        $result = $undoCheckIn($request->user(), $unit, $request->string('reason')->toString());
+
+        return $this->respond($property, $reservation, $result->refusal, $refusals, __('Check-in undone.'));
     }
 
     /**

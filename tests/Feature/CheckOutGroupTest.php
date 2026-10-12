@@ -645,7 +645,7 @@ test('a room that arrived today departs later without a Check out early button',
 
     expect($rows[$today->id]['group'])->toBe('later')
         ->and($rows[$today->id]['unit'])->toBeNull()
-        ->and($rows[$today->id]['note'])->toBe('Departs 15 Oct. Arrived today, so there is no night to remove.')
+        ->and($rows[$today->id]['note'])->toBe('Departs 15 Oct. Arrived today, so there is no night to remove. If it checked in by mistake, use Undo check-in.')
         ->and($rows[$yesterday->id]['unit']['id'])->toBe($yesterday->id)
         ->and($rows[$yesterday->id]['note'])->toBe('Departs 15 Oct');
 });

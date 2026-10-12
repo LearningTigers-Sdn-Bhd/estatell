@@ -6,9 +6,11 @@ use App\Data\Reservations\UnitActionData;
 use App\Enums\PermissionEnum;
 use App\Enums\StayType;
 use App\Enums\UnitAction;
+use App\Models\BusinessDate;
 use App\Models\ReservationUnit;
 use App\Models\User;
 use App\Services\FrontDesk\EarlyCheckOutRule;
+use App\Services\FrontDesk\UndoCheckInRule;
 use App\Services\NightAudit\CurrentBusinessDate;
 
 /**
@@ -19,6 +21,7 @@ class UnitActionMenu
     public function __construct(
         private CurrentBusinessDate $currentBusinessDate,
         private EarlyCheckOutRule $earlyCheckOutRule,
+        private UndoCheckInRule $undoCheckInRule,
     ) {}
 
     /**
@@ -26,12 +29,12 @@ class UnitActionMenu
      */
     public function for(User $user, ReservationUnit $unit): array
     {
-        $businessDate = $this->currentBusinessDate->date($unit->property()->firstOrFail());
+        $current = $this->currentBusinessDate->get($unit->property()->firstOrFail());
 
         return collect(UnitAction::cases())
             ->filter(fn (UnitAction $action): bool => $action->isOpenFor($unit->status)
                 && $user->can($action->permission()->value)
-                && $this->isTimely($action, $unit, $businessDate?->toDateString(), $user))
+                && $this->isTimely($action, $unit, $current, $user))
             ->map(fn (UnitAction $action): UnitActionData => UnitActionData::fromAction($action))
             ->values()
             ->all();
@@ -42,11 +45,13 @@ class UnitActionMenu
      * until the departure date, check-out from the departure date (or before it, see `isEarlyCheckOut()`), late check-out on the departure date, reinstate
      * and move room while the stay is still ahead. A checked-in unit past its departure can still be extended.
      */
-    private function isTimely(UnitAction $action, ReservationUnit $unit, ?string $businessDate, User $user): bool
+    private function isTimely(UnitAction $action, ReservationUnit $unit, ?BusinessDate $current, User $user): bool
     {
-        if ($businessDate === null) {
+        if ($current === null) {
             return false;
         }
+
+        $businessDate = $current->date->toDateString();
 
         $arrival = $unit->arrival_date->toDateString();
 
@@ -61,6 +66,7 @@ class UnitActionMenu
             UnitAction::CheckOut => $businessDate >= $departure || $this->isEarlyCheckOut($unit, $businessDate, $user),
             UnitAction::LateCheckOut => $businessDate === $departure,
             UnitAction::Reinstate, UnitAction::MoveRoom => $businessDate < $departure,
+            UnitAction::UndoCheckIn => $this->undoCheckInRule->isOffered($unit, $current),
             default => true,
         };
     }
@@ -76,7 +82,7 @@ class UnitActionMenu
             UnitAction::CheckOut, UnitAction::NoShow => $businessDate >= $date,
             UnitAction::Reinstate, UnitAction::MoveRoom => $businessDate <= $date,
             UnitAction::Cancel => true,
-            UnitAction::LateCheckOut, UnitAction::ChangeDates => false,
+            UnitAction::LateCheckOut, UnitAction::ChangeDates, UnitAction::UndoCheckIn => false,
         };
     }
 
