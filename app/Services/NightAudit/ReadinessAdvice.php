@@ -50,9 +50,15 @@ class ReadinessAdvice
     /**
      * The reason an earlier audit left a unit, from the refusal code it stored.
      */
-    public function reason(string $code): string
+    public function reason(string $code, ?Money $remaining = null): string
     {
         return match ($code) {
+            'exception_not_retried', 'exception_not_open' => __('There is nothing left to fix here. The list has been refreshed.'),
+            'not_package_night' => __('This exception is not a package night whose price needs fixing.'),
+            'reason_required' => __('Enter a reason to dismiss this exception.'),
+            'package_below_inclusions' => $remaining === null
+                ? __('The package price left cannot cover these nights\' inclusions. Change the price with Change price.')
+                : __('The package price left (:amount) cannot cover these nights\' inclusions. Change the price with Change price.', ['amount' => $remaining->getCurrency()->getCurrencyCode().' '.number_format((string) $remaining->getAmount(), 2)]),
             'folio_not_open' => __('The folio was closed, so the night could not be charged.'),
             'folio_settled_to_city_ledger' => __('The folio was settled to the city ledger, so the charge could not be posted. Open a third-party folio for the company and route it there.'),
             'nationality_required' => __('The guest has no nationality, and a tax needs it.'),

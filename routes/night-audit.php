@@ -13,4 +13,7 @@ Route::prefix('night-audit')->name('night-audit.')->scopeBindings()->middleware(
     Route::get('reservations/{reservation}', [NightAuditController::class, 'reservation'])->middleware('can:'.PermissionEnum::ReservationsView->value)->name('reservation');
     Route::post('reservations/{reservation}/fix/{fix}', [NightAuditController::class, 'fix'])->middleware('can:'.PermissionEnum::ReservationsManage->value)->name('fix');
     Route::post('exceptions/{nightAuditException}/retry', [NightAuditController::class, 'retry'])->middleware('can:'.PermissionEnum::ReservationsManage->value)->name('exceptions.retry');
+    Route::post('exceptions/{nightAuditException}/fix-price/preview', [NightAuditController::class, 'fixPricePreview'])->middleware('can:'.PermissionEnum::ReservationsManage->value)->name('exceptions.fix-price.preview');
+    Route::post('exceptions/{nightAuditException}/fix-price', [NightAuditController::class, 'fixPrice'])->middleware('can:'.PermissionEnum::ReservationsManage->value)->name('exceptions.fix-price');
+    Route::post('exceptions/{nightAuditException}/dismiss', [NightAuditController::class, 'dismiss'])->name('exceptions.dismiss');
 });

@@ -1,5 +1,12 @@
 import { router, useHttp } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
+import { DateText } from '@/components/pms/date-text';
+import { FormOverlay } from '@/components/pms/form-overlay';
+import { MoneyText } from '@/components/pms/money-text';
+import { Field, FieldError, FieldLabel } from '@/components/ui/field';
+import { Textarea } from '@/components/ui/textarea';
+import { dismiss, fixPrice } from '@/routes/night-audit/exceptions';
+import { preview } from '@/routes/night-audit/exceptions/fix-price';
 import { CheckInAllDialog } from '@/components/pms/reservations/check-in-all-dialog';
 import { CheckInDialog } from '@/components/pms/reservations/check-in-dialog';
 import { CheckOutDialog } from '@/components/pms/reservations/check-out-dialog';
@@ -13,7 +20,7 @@ type Data = App.Data.NightAudit.NightAuditReservationData;
  * loads its reservation, units and payment options from the sheet's own route when it opens, and the sheet reloads when
  * it closes. This is the one place a Dialog may open over another overlay. See docs/design-system/05-form-containers.md.
  */
-export function AuditDialogHost({
+function ReservationAuditDialogHost({
     action,
     onLoaded,
     onClose,
@@ -112,4 +119,226 @@ export function AuditDialogHost({
             )}
         </div>
     );
+}
+
+type HostProps = {
+    action: Action | null;
+    onLoaded: () => void;
+    onClose: () => void;
+    onNavigate: () => void;
+    onError: (message: string) => void;
+};
+
+function FixPackagePriceDialog({
+    action,
+    onLoaded,
+    onClose,
+    onError,
+}: HostProps & { action: Action }) {
+    const loader = useHttp<
+        Record<string, never>,
+        App.Data.NightAudit.PackageNightRespreadData
+    >({});
+    const form = useHttp<Record<string, never>, { done: number }>({});
+    const [data, setData] =
+        useState<App.Data.NightAudit.PackageNightRespreadData | null>(null);
+    const exception = { nightAuditException: action.exceptionId! };
+
+    useEffect(() => {
+        let current = true;
+        loader
+            .post(preview.url({ nightAuditException: action.exceptionId! }), {
+                onSuccess: (result) => current && setData(result),
+                onError: (errors) => {
+                    if (current) {
+                        onError(
+                            errors.form ??
+                                'The package price could not be previewed.',
+                        );
+                        onClose();
+                    }
+                },
+            })
+            .catch(() => undefined)
+            .finally(() => current && onLoaded());
+        return () => {
+            current = false;
+        };
+        // Load once when this exception Dialog opens.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [action]);
+
+    const submit = () => {
+        form.post(fixPrice.url(exception), {
+            onSuccess: onClose,
+            onError: (errors) => {
+                onError(errors.form ?? 'The package price could not be fixed.');
+                onClose();
+            },
+        }).catch(() => undefined);
+    };
+
+    return (
+        <FormOverlay
+            variant="dialog"
+            open
+            onOpenChange={(open) => !open && onClose()}
+            title={data?.title ?? 'Fix package price'}
+            loading={data === null}
+            errors={form.errors}
+            onSubmit={submit}
+            submitLabel="Fix price"
+            processing={form.processing}
+            submitDisabled={data === null}
+        >
+            {data && (
+                <div className="flex flex-col gap-3 text-sm">
+                    <div className="flex justify-between gap-4">
+                        <span>Package price</span>
+                        <span>
+                            <MoneyText
+                                amount={data.total}
+                                currency={data.currency}
+                            />{' '}
+                            (kept)
+                        </span>
+                    </div>
+                    {data.chargedNights.length > 0 && (
+                        <div className="flex flex-col gap-1">
+                            <span className="text-muted-foreground">
+                                Already charged
+                            </span>
+                            {data.chargedNights.map((night) => (
+                                <div
+                                    key={night.id}
+                                    className="flex justify-between gap-4"
+                                >
+                                    <DateText date={night.date} />
+                                    <MoneyText
+                                        amount={night.oldAmount}
+                                        currency={data.currency}
+                                        plain
+                                    />
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                    <div className="flex flex-col gap-1">
+                        <p className="text-muted-foreground">
+                            Spread again over the nights not charged yet:
+                        </p>
+                        {data.nights.map((night) => (
+                            <div
+                                key={night.id}
+                                className="flex justify-between gap-4"
+                            >
+                                <DateText date={night.date} />
+                                <span>
+                                    <MoneyText
+                                        amount={night.oldAmount}
+                                        currency={data.currency}
+                                        plain
+                                    />{' '}
+                                    →{' '}
+                                    <MoneyText
+                                        amount={night.newAmount!}
+                                        currency={data.currency}
+                                        plain
+                                    />
+                                </span>
+                            </div>
+                        ))}
+                    </div>
+                    <p>
+                        The <DateText date={data.retryNight} /> night is charged
+                        after this.
+                    </p>
+                </div>
+            )}
+        </FormOverlay>
+    );
+}
+
+function DismissExceptionDialog({
+    action,
+    onLoaded,
+    onClose,
+    onError,
+}: HostProps & { action: Action }) {
+    const form = useHttp<{ reason: string }, { done: number }>({ reason: '' });
+    useEffect(onLoaded, [onLoaded]);
+    const submit = () => {
+        form.post(dismiss.url({ nightAuditException: action.exceptionId! }), {
+            onSuccess: onClose,
+            onError: (errors) => {
+                if (errors.form) {
+                    onError(errors.form);
+                    onClose();
+                }
+            },
+        }).catch(() => undefined);
+    };
+
+    return (
+        <FormOverlay
+            variant="dialog"
+            size="sm"
+            open
+            onOpenChange={(open) => !open && onClose()}
+            title="Dismiss audit exception"
+            description="Resolve an exception you have handled another way. Nothing is charged."
+            errors={form.errors}
+            onSubmit={submit}
+            submitLabel="Dismiss"
+            processing={form.processing}
+            submitDisabled={form.data.reason.trim() === ''}
+        >
+            <Field data-invalid={!!form.errors.reason}>
+                <FieldLabel htmlFor="dismiss-exception-reason">
+                    Reason
+                </FieldLabel>
+                <Textarea
+                    id="dismiss-exception-reason"
+                    name="reason"
+                    required
+                    autoFocus
+                    rows={3}
+                    maxLength={500}
+                    value={form.data.reason}
+                    onChange={(event) =>
+                        form.setData('reason', event.target.value)
+                    }
+                    aria-invalid={!!form.errors.reason}
+                />
+                <FieldError>{form.errors.reason}</FieldError>
+            </Field>
+        </FormOverlay>
+    );
+}
+
+export function AuditDialogHost(props: HostProps) {
+    const { action } = props;
+    if (action?.dialog === 'fix-price' || action?.dialog === 'dismiss') {
+        return (
+            <div
+                className="contents"
+                onSubmit={(event) => event.stopPropagation()}
+            >
+                {action.dialog === 'fix-price' ? (
+                    <FixPackagePriceDialog
+                        key={action.exceptionId}
+                        {...props}
+                        action={action}
+                    />
+                ) : (
+                    <DismissExceptionDialog
+                        key={action.exceptionId}
+                        {...props}
+                        action={action}
+                    />
+                )}
+            </div>
+        );
+    }
+    return <ReservationAuditDialogHost {...props} />;
 }

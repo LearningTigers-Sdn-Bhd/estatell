@@ -3,17 +3,22 @@
 use App\Actions\Reservations\AddUnit;
 use App\Actions\Reservations\ReservationResult;
 use App\Data\Reservations\NewUnitData;
+use App\Enums\ChargingUnit;
 use App\Enums\DiscountScope;
+use App\Enums\PackageUnit;
+use App\Enums\PricingBasis;
 use App\Enums\ReservationSource;
 use App\Enums\ReservationStatus;
 use App\Models\BusinessDate;
 use App\Models\ChargeItem;
 use App\Models\Discount;
+use App\Models\PackagePrice;
 use App\Models\Property;
 use App\Models\PropertyAgeGroup;
 use App\Models\PropertySetting;
 use App\Models\Rate;
 use App\Models\RatePlan;
+use App\Models\RatePlanInclusion;
 use App\Models\RatePlanStayDiscount;
 use App\Models\Reservation;
 use App\Models\ReservationUnit;
@@ -24,6 +29,8 @@ use App\Models\RoomType;
 use App\Models\UnitAddOn;
 use App\Models\UnitNight;
 use App\Models\User;
+use App\Services\Rates\RateQuote;
+use App\Services\Reservations\BookingQuote;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Spatie\Activitylog\Models\Activity;
@@ -485,6 +492,36 @@ test('an override is spread over the nights and the last night takes the remaind
 
     expect($activity->properties['override_reason'])->toBe('Loyal guest')
         ->and($activity->properties['override_total'])->toBe('100.00');
+});
+
+test('a package override covers its inclusions and the booking preview matches the stored night amounts', function () {
+    $setup = unitSetup();
+    $setup['plan']->forceFill(['pricing_basis' => PricingBasis::Package, 'fixed_nights' => 3, 'package_unit' => PackageUnit::PerGuest])->save();
+    PackagePrice::factory()->for($setup['plan'])->create(['room_type_id' => $setup['roomType']->id, 'arrival_from' => $setup['arrival']->toDateString(), 'arrival_to' => $setup['arrival']->toDateString(), 'amount' => '880.00']);
+    RatePlanInclusion::factory()->for($setup['plan'])->create(['charging_unit' => ChargingUnit::PerGuestNight, 'allocated_amount' => '100.00']);
+    RatePlanInclusion::factory()->for($setup['plan'])->create(['charging_unit' => ChargingUnit::PerGuest, 'quantity' => 2, 'allocated_amount' => '180.00']);
+
+    $quote = app(BookingQuote::class)->line($setup['property'], $setup['roomType']->id, $setup['plan']->id, $setup['arrival'], $setup['arrival']->addDays(3), 2, [], 1, overrideTotal: '1800.00');
+    $result = addUnit($setup, unitData($setup, 3, ['overrideTotal' => '1800.00', 'overrideReason' => 'Agreed package price']));
+
+    expect($result->isRefused())->toBeFalse()
+        ->and(UnitNight::query()->orderBy('date')->pluck('override_amount')->all())->toBe(['1080.00', '360.00', '360.00'])
+        ->and(UnitNight::query()->orderBy('date')->pluck('amount')->all())->toBe(['1080.00', '360.00', '360.00'])
+        ->and(array_map(fn ($night): string => $night->amount, $quote->nights))->toBe(['1080.00', '360.00', '360.00']);
+});
+
+test('a package override below its inclusions is refused before writing and through the booking preview', function () {
+    $setup = unitSetup();
+    $setup['plan']->forceFill(['pricing_basis' => PricingBasis::Package, 'fixed_nights' => 3, 'package_unit' => PackageUnit::PerGuest])->save();
+    PackagePrice::factory()->for($setup['plan'])->create(['room_type_id' => $setup['roomType']->id, 'arrival_from' => $setup['arrival']->toDateString(), 'arrival_to' => $setup['arrival']->toDateString(), 'amount' => '880.00']);
+    RatePlanInclusion::factory()->for($setup['plan'])->create(['charging_unit' => ChargingUnit::PerGuest, 'allocated_amount' => '700.00']);
+
+    $quote = app(BookingQuote::class)->line($setup['property'], $setup['roomType']->id, $setup['plan']->id, $setup['arrival'], $setup['arrival']->addDays(3), 2, [], 1, overrideTotal: '1000.00');
+    $result = addUnit($setup, unitData($setup, 3, ['overrideTotal' => '1000.00', 'overrideReason' => 'Agreed package price']));
+
+    expect($result->refusal)->toBe(RateQuote::REFUSAL_PACKAGE_BELOW_INCLUSIONS)
+        ->and($quote->errors)->toBe(['form' => 'The package price is less than its inclusions.']);
+    expectNothingWritten();
 });
 
 test('an override above the quote is allowed', function () {

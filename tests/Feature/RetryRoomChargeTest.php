@@ -130,7 +130,7 @@ test('only an open room charge exception can be retried', function () {
 
 test('the sheet offers Retry on a carried room charge only', function () {
     $setup = retrySetup();
-    $otherUnit = ReservationUnit::factory()->for(Reservation::factory()->create(['property_id' => $setup['property']->id]))->withNights()->checkedIn()->create(['arrival_date' => '2026-10-12', 'departure_date' => '2026-10-14']);
+    $otherUnit = ReservationUnit::factory()->for(Reservation::factory()->create(['property_id' => $setup['property']->id]))->withNights()->create(['arrival_date' => '2026-10-12', 'departure_date' => '2026-10-14']);
     $otherUnit->nights()->update(['room_id' => Room::factory()->for($setup['property'])->create()->id]);
     $other = NightAuditException::factory()->create([
         'night_audit_id' => $setup['exception']->night_audit_id,
@@ -143,9 +143,9 @@ test('the sheet offers Retry on a carried room charge only', function () {
         ->where('check', 'carried_exception')
         ->keyBy('reservationId');
 
-    expect(array_column($warnings[$setup['unit']->reservation_id]['actions'], 'label'))->toBe(['Retry', 'Open'])
+    expect(array_column($warnings[$setup['unit']->reservation_id]['actions'], 'label'))->toBe(['Retry', 'Dismiss', 'Open'])
         ->and($warnings[$setup['unit']->reservation_id]['actions'][0]['url'])->toBe(route('night-audit.exceptions.retry', [$setup['property']->code, $setup['exception']], absolute: false))
-        ->and(array_column($warnings[$other->reservationUnit->reservation_id]['actions'], 'label'))->toBe(['Open']);
+        ->and(array_column($warnings[$other->reservationUnit->reservation_id]['actions'], 'label'))->toBe(['Dismiss', 'Open']);
 });
 
 test('Retry needs reservations.manage and an exception of the property', function () {

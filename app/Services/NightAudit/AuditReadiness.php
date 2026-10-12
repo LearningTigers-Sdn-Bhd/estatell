@@ -8,12 +8,14 @@ use App\Enums\AuditExceptionType;
 use App\Enums\BusinessDateStatus;
 use App\Enums\FolioStatus;
 use App\Enums\FolioType;
+use App\Enums\PricingBasis;
 use App\Enums\StayType;
 use App\Enums\UnitStatus;
 use App\Models\Folio;
 use App\Models\NightAuditException;
 use App\Models\Property;
 use App\Models\ReservationUnit;
+use App\Services\Packages\InclusionSplit;
 use App\Services\Property\PropertyToday;
 use Carbon\CarbonImmutable;
 use Closure;
@@ -263,7 +265,7 @@ class AuditReadiness
             ->open()
             ->notStale()
             ->whereNotNull('reservation_unit_id')
-            ->with(['reservationUnit.reservation.booker', 'reservationUnit.guests.guest'])
+            ->with(['reservationUnit.reservation.booker', 'reservationUnit.guests.guest', 'reservationUnit.nights.ratePlan', 'nightAudit.businessDate'])
             ->orderBy('id')
             ->get()
             ->map(fn (NightAuditException $exception): ReadinessItem => $this->item(
@@ -271,7 +273,10 @@ class AuditReadiness
                 $exception->reservationUnit,
                 $exception->type->label(),
                 $exception->message,
-                $exception->type === AuditExceptionType::RoomCharge ? $exception->id : null,
+                $exception->id,
+                canFixPrice: $exception->type === AuditExceptionType::RoomCharge && $exception->message === InclusionSplit::REFUSAL_EXCEEDS_NIGHT_AMOUNT
+                    && $exception->reservationUnit->nights->first(fn ($night): bool => $night->date->toDateString() === $exception->nightAudit->businessDate->date->toDateString())?->ratePlan->pricing_basis === PricingBasis::Package,
+                exceptionType: $exception->type,
             ))
             ->all();
     }
@@ -312,7 +317,7 @@ class AuditReadiness
         return $block === null ? null : __('Day use · :start–:end', ['start' => substr($block->starts_at, 0, 5), 'end' => substr($block->ends_at, 0, 5)]);
     }
 
-    private function item(AuditCheck $check, ReservationUnit $unit, ?string $detail = null, ?string $message = null, ?int $retryExceptionId = null, bool $canExtend = false): ReadinessItem
+    private function item(AuditCheck $check, ReservationUnit $unit, ?string $detail = null, ?string $message = null, ?int $exceptionId = null, bool $canExtend = false, bool $canFixPrice = false, ?AuditExceptionType $exceptionType = null): ReadinessItem
     {
         return new ReadinessItem(
             check: $check,
@@ -322,7 +327,9 @@ class AuditReadiness
             guest: $unit->guests->firstWhere('is_primary', true)?->guest->full_name ?? $unit->reservation->booker?->full_name,
             detail: $detail ?? $unit->arrival_date->format('j M').' → '.$unit->departure_date->format('j M'),
             message: $message,
-            retryExceptionId: $retryExceptionId,
+            exceptionId: $exceptionId,
+            canFixPrice: $canFixPrice,
+            exceptionType: $exceptionType,
             dayUse: $unit->stay_type === StayType::DayUse,
             canExtend: $canExtend,
         );

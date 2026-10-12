@@ -677,6 +677,20 @@ summary: string,
 canForce: boolean,
 canViewPacket: boolean,
 };
+export type PackageNightAmountData = {
+id: number,
+date: string,
+oldAmount: string,
+newAmount: string | null,
+};
+export type PackageNightRespreadData = {
+title: string,
+currency: App.Enums.Currency,
+total: string,
+retryNight: string,
+nights: App.Data.NightAudit.PackageNightAmountData[],
+chargedNights: App.Data.NightAudit.PackageNightAmountData[],
+};
 export type ReadinessActionData = {
 kind: string,
 label: string,
@@ -685,6 +699,7 @@ unitId: number | null,
 confirm: string | null,
 dialog: string | null,
 icon: string,
+exceptionId: number | null,
 };
 export type ReadinessGroupData = {
 check: App.Enums.AuditCheck,

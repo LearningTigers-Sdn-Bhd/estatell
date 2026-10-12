@@ -130,11 +130,14 @@ test('an exception left by an earlier audit says why in plain words', function (
     $unit = sheetUnit($setup['property']);
     $unit->nights()->update(['room_id' => Room::factory()->for($setup['property'])->create()->id]);
     $audit = NightAudit::factory()->completed()->create(['business_date_id' => BusinessDate::factory()->closed()->create(['property_id' => $setup['property']->id, 'date' => '2026-10-11'])->id]);
-    NightAuditException::factory()->create(['night_audit_id' => $audit->id, 'reservation_unit_id' => $unit->id, 'message' => 'folio_not_open']);
+    $exception = NightAuditException::factory()->create(['night_audit_id' => $audit->id, 'reservation_unit_id' => $unit->id, 'message' => 'folio_not_open']);
 
     $this->actingAs($setup['user'])->getJson(route('night-audit.show', $setup['property']->code))
         ->assertJsonPath('warnings.0.check', 'carried_exception')
-        ->assertJsonPath('warnings.0.reasons.0', 'The folio was closed, so the night could not be charged.');
+        ->assertJsonPath('warnings.0.reasons.0', 'The folio was closed, so the night could not be charged.')
+        ->assertJsonPath('warnings.0.actions.0.label', 'Retry')
+        ->assertJsonPath('warnings.0.actions.1.label', 'Dismiss')
+        ->assertJsonPath('warnings.0.actions.1.exceptionId', $exception->id);
 });
 
 test('an exception for a folio settled to the city ledger says what to do', function () {

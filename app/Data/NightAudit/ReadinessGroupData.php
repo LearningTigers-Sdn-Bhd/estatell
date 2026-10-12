@@ -3,6 +3,7 @@
 namespace App\Data\NightAudit;
 
 use App\Enums\AuditCheck;
+use App\Enums\AuditExceptionType;
 use App\Enums\AuditFix;
 use App\Models\Property;
 use App\Services\NightAudit\ReadinessAdvice;
@@ -62,7 +63,7 @@ class ReadinessGroupData extends Data
                 ? array_values(array_unique(array_map(fn (ReadinessItem $item): string => $advice->reason((string) $item->message), $items)))
                 : [],
             actions: [
-                ...($count === 1 && $first->retryExceptionId !== null ? [ReadinessActionData::retry($property, $first->retryExceptionId)] : []),
+                ...($count === 1 ? self::exceptionActions($first, $property) : []),
                 ...self::actions($check, $property, $first->reservationId, $count, $unitIds, $advice, null, true, $canCheckIn, $canCheckOut, $first->folioId, array_any($items, fn (ReadinessItem $item): bool => $item->canExtend)),
             ],
             units: $count === 1 ? [] : array_map(fn (ReadinessItem $item): ReadinessUnitData => new ReadinessUnitData(
@@ -71,12 +72,28 @@ class ReadinessGroupData extends Data
                 detail: $item->detail,
                 reason: $item->message === null ? null : $advice->reason($item->message),
                 actions: [
-                    ...($item->retryExceptionId !== null ? [ReadinessActionData::retry($property, $item->retryExceptionId)] : []),
+                    ...self::exceptionActions($item, $property),
                     ...self::actions($check, $property, $item->reservationId, 1, [(int) $item->reservationUnitId], $advice, (int) $item->reservationUnitId, false, $canCheckIn, $canCheckOut, null, $item->canExtend),
                 ],
             ), $items),
             openUnits: $check === AuditCheck::DepartureNotCheckedOut && $count > 1,
         );
+    }
+
+    /**
+     * @return list<ReadinessActionData>
+     */
+    private static function exceptionActions(ReadinessItem $item, Property $property): array
+    {
+        if ($item->exceptionId === null) {
+            return [];
+        }
+
+        return [
+            ...($item->canFixPrice ? [ReadinessActionData::fixPrice($property, $item->exceptionId)]
+                : ($item->exceptionType === AuditExceptionType::RoomCharge ? [ReadinessActionData::retry($property, $item->exceptionId)] : [])),
+            ReadinessActionData::dismiss($property, $item->exceptionId),
+        ];
     }
 
     /**

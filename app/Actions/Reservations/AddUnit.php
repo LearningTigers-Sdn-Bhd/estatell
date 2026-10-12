@@ -21,6 +21,8 @@ use App\Services\Availability\NightAvailability;
 use App\Services\NightAudit\CurrentBusinessDate;
 use App\Services\Property\PropertyToday;
 use App\Services\Rates\Pricing\NightPrice;
+use App\Services\Rates\Pricing\PackagePricing;
+use App\Services\Rates\Pricing\QuoteRefused;
 use App\Services\Rates\RateQuote;
 use App\Services\Rates\RateQuoteRequest;
 use App\Services\Rates\RateQuoteService;
@@ -42,6 +44,7 @@ class AddUnit
         private LogDeclinedAutoAddOns $logDeclinedAutoAddOns,
         private SyncRoutingRules $syncRoutingRules,
         private AddDayUseUnit $addDayUseUnit,
+        private PackagePricing $packagePricing,
     ) {}
 
     /**
@@ -197,6 +200,14 @@ class AddUnit
             $overrideTotal = Money::of($data->overrideTotal, $quote->total->getCurrency());
         }
 
+        try {
+            $overrides = $overrideTotal === null ? null : ($ratePlan->pricing_basis === PricingBasis::Package
+                ? $this->packagePricing->spreadByInclusions($overrideTotal, array_map(fn (int $index): bool => $index === 0, array_keys($quote->nights)), $ratePlan->inclusions, $data->adults + count($data->childAges))
+                : $this->spread($overrideTotal, count($quote->nights)));
+        } catch (QuoteRefused $refused) {
+            return $refuse($refused->reason);
+        }
+
         $firstUnit = $reservation->units()->oldest('id')->first(['arrival_time', 'departure_time']);
 
         $unit = $reservation->units()->make([
@@ -212,8 +223,6 @@ class AddUnit
             'late_arrival_expected' => $data->lateArrivalExpected,
         ]);
         $unit->forceFill(['property_id' => $reservation->property_id, 'status' => UnitStatus::Confirmed])->save();
-
-        $overrides = $overrideTotal === null ? null : $this->spread($overrideTotal, count($quote->nights));
 
         $unit->nights()->createMany(array_map(
             fn (NightPrice $night, int $index): array => [

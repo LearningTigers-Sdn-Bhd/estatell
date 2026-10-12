@@ -2,15 +2,19 @@
 
 namespace App\Http\Controllers\NightAudit;
 
+use App\Actions\NightAudit\DismissAuditException;
+use App\Actions\NightAudit\FixPackageNightPrice;
 use App\Actions\NightAudit\NightAuditResult;
 use App\Actions\NightAudit\RetryRoomCharge;
 use App\Actions\NightAudit\RunAuditFix;
 use App\Actions\NightAudit\Steps\ResolveOverdueDepartures;
 use App\Data\NightAudit\NightAuditReservationData;
 use App\Data\NightAudit\NightAuditSheetData;
+use App\Data\NightAudit\PackageNightRespreadData;
 use App\Enums\AuditFix;
 use App\Enums\AuditTrigger;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\NightAudit\DismissAuditExceptionRequest;
 use App\Http\Requests\NightAudit\RunAuditFixRequest;
 use App\Http\Requests\NightAudit\RunNightAuditRequest;
 use App\Jobs\RunNightAuditJob;
@@ -19,6 +23,7 @@ use App\Models\Property;
 use App\Models\Reservation;
 use App\Services\NightAudit\AuditReadiness;
 use App\Services\NightAudit\CurrentBusinessDate;
+use App\Services\NightAudit\PackageNightRespread;
 use App\Services\NightAudit\ReadinessAdvice;
 use App\Services\Reservations\ReservationFormOptions;
 use App\Services\Reservations\ReservationOverview;
@@ -107,6 +112,39 @@ class NightAuditController extends Controller
             return $this->refused($result->refusal === RetryRoomCharge::REFUSAL_EXCEPTION_NOT_RETRIED
                 ? __('There is nothing left to fix here. The list has been refreshed.')
                 : $advice->reason((string) $result->refusal));
+        }
+
+        return response()->json(['done' => 1]);
+    }
+
+    public function fixPricePreview(Request $request, Property $property, NightAuditException $nightAuditException, PackageNightRespread $respread, ReadinessAdvice $advice): JsonResponse
+    {
+        $spread = $respread->forException($nightAuditException);
+
+        if ($spread->refusal !== null) {
+            return $this->refused($advice->reason($spread->refusal, $spread->remaining));
+        }
+
+        return response()->json(PackageNightRespreadData::fromSpread($nightAuditException, $spread));
+    }
+
+    public function fixPrice(Request $request, Property $property, NightAuditException $nightAuditException, FixPackageNightPrice $fixPackageNightPrice, ReadinessAdvice $advice): JsonResponse
+    {
+        $result = $fixPackageNightPrice($request->user(), $nightAuditException);
+
+        if ($result->isRefused()) {
+            return $this->refused($advice->reason((string) $result->refusal));
+        }
+
+        return response()->json(['done' => 1]);
+    }
+
+    public function dismiss(DismissAuditExceptionRequest $request, Property $property, NightAuditException $nightAuditException, DismissAuditException $dismissAuditException, ReadinessAdvice $advice): JsonResponse
+    {
+        $result = $dismissAuditException($request->user(), $nightAuditException, $request->validated('reason'));
+
+        if ($result->isRefused()) {
+            return $this->refused($advice->reason((string) $result->refusal));
         }
 
         return response()->json(['done' => 1]);

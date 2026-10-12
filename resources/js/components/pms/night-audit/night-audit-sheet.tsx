@@ -15,6 +15,7 @@ import {
     RotateCw,
     TriangleAlert,
     UserX,
+    X,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
@@ -94,6 +95,7 @@ const icons: Record<string, LucideIcon> = {
     'log-out': LogOut,
     receipt: Receipt,
     'rotate-cw': RotateCw,
+    x: X,
     'arrow-up-right': ArrowUpRight,
 };
 
@@ -679,10 +681,15 @@ export function NightAuditSheet({
                 action={dialog}
                 onLoaded={() => setBusy(null)}
                 onClose={() => {
+                    setBusy(null);
                     setDialog(null);
                     refresh();
                 }}
                 onNavigate={() => close(false)}
+                onError={(message) => {
+                    setFixError(message);
+                    refresh();
+                }}
             />
         </FormOverlay>
     );

@@ -6,6 +6,7 @@ use App\Enums\AgeBandPricing;
 use App\Enums\PackageUnit;
 use App\Enums\SellUnit;
 use App\Models\PackagePrice;
+use App\Models\RatePlanInclusion;
 use App\Services\Packages\InclusionAllocator;
 use App\Services\Rates\RateQuote;
 use Brick\Math\BigDecimal;
@@ -69,26 +70,15 @@ class PackagePricing implements StayPricing
     public function fitInclusions(array $nights, iterable $inclusions, int $guests): array
     {
         $currency = $nights[0]->base->getCurrency();
-        $nightInclusions = array_map(
-            fn (int $index): Money => $this->inclusionAllocator->total($currency, $inclusions, $guests, $index === 0),
-            array_keys($nights),
-        );
-        $inclusionsTotal = Money::sum(...$nightInclusions);
+        $inclusions = collect($inclusions);
+        $base = Money::sum(...array_map(fn (NightPrice $night): Money => $night->base, $nights));
+        $extra = Money::sum(...array_map(fn (NightPrice $night): Money => $night->extra, $nights));
+        $nightTotals = $this->spreadByInclusions($base->plus($extra), array_map(fn (int $index): bool => $index === 0, array_keys($nights)), $inclusions, $guests);
 
-        if ($inclusionsTotal->isZero()) {
+        if ($this->inclusionAllocator->total($currency, $inclusions, $guests, true)->isZero()) {
             return $nights;
         }
 
-        $base = Money::sum(...array_map(fn (NightPrice $night): Money => $night->base, $nights));
-        $extra = Money::sum(...array_map(fn (NightPrice $night): Money => $night->extra, $nights));
-        $room = $base->plus($extra)->minus($inclusionsTotal);
-
-        if ($room->isNegative()) {
-            throw new QuoteRefused(RateQuote::REFUSAL_PACKAGE_BELOW_INCLUSIONS);
-        }
-
-        $roomShares = $room->allocate(array_fill(0, count($nights), 1), AllocationMode::FloorToFirst);
-        $nightTotals = array_map(fn (Money $included, Money $share): Money => $included->plus($share), $nightInclusions, $roomShares);
         // Largest remainder never rounds a night's extra above its total, so the base is never negative.
         $extras = $extra->isZero()
             ? array_fill(0, count($nights), $extra)
@@ -100,6 +90,33 @@ class PackagePricing implements StayPricing
             $nightTotals,
             $extras,
         );
+    }
+
+    /**
+     * @param  list<bool>  $firstNight  Whether each night is the stay's real first night
+     * @param  iterable<RatePlanInclusion>  $inclusions
+     * @return list<Money>
+     */
+    public function spreadByInclusions(Money $total, array $firstNight, iterable $inclusions, int $guests): array
+    {
+        if ($firstNight === []) {
+            return [];
+        }
+
+        $inclusions = collect($inclusions);
+        $nightInclusions = array_map(
+            fn (bool $first): Money => $this->inclusionAllocator->total($total->getCurrency(), $inclusions, $guests, $first),
+            $firstNight,
+        );
+        $room = $total->minus(Money::sum(...$nightInclusions));
+
+        if ($room->isNegative()) {
+            throw new QuoteRefused(RateQuote::REFUSAL_PACKAGE_BELOW_INCLUSIONS);
+        }
+
+        $roomShares = $room->allocate(array_fill(0, count($firstNight), 1), AllocationMode::FloorToFirst);
+
+        return array_map(fn (Money $included, Money $share): Money => $included->plus($share), $nightInclusions, $roomShares);
     }
 
     /**

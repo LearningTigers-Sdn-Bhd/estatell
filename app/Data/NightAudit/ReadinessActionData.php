@@ -26,6 +26,7 @@ class ReadinessActionData extends Data
         public ?string $confirm = null,
         public ?string $dialog = null,
         public string $icon = 'arrow-up-right',
+        public ?int $exceptionId = null,
     ) {}
 
     public static function fix(AuditFix $fix, string $label, Property $property, int $reservationId, ?int $unitId = null, ?string $confirm = null): self
@@ -51,6 +52,24 @@ class ReadinessActionData extends Data
             label: __('Retry'),
             url: route('night-audit.exceptions.retry', ['property' => $property->code, 'nightAuditException' => $exceptionId], absolute: false),
             icon: 'rotate-cw',
+        );
+    }
+
+    public static function fixPrice(Property $property, int $exceptionId): self
+    {
+        return new self(
+            kind: 'dialog', label: __('Fix price'),
+            url: route('night-audit.exceptions.fix-price.preview', ['property' => $property->code, 'nightAuditException' => $exceptionId], absolute: false),
+            dialog: 'fix-price', icon: 'rotate-cw', exceptionId: $exceptionId,
+        );
+    }
+
+    public static function dismiss(Property $property, int $exceptionId): self
+    {
+        return new self(
+            kind: 'dialog', label: __('Dismiss'),
+            url: route('night-audit.exceptions.dismiss', ['property' => $property->code, 'nightAuditException' => $exceptionId], absolute: false),
+            dialog: 'dismiss', icon: 'x', exceptionId: $exceptionId,
         );
     }
 

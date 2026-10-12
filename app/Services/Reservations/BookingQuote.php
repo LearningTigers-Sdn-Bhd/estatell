@@ -21,6 +21,8 @@ use App\Services\NightAudit\CurrentBusinessDate;
 use App\Services\Property\PropertyToday;
 use App\Services\Rates\DayUseOffers;
 use App\Services\Rates\Pricing\NightPrice;
+use App\Services\Rates\Pricing\PackagePricing;
+use App\Services\Rates\Pricing\QuoteRefused;
 use App\Services\Rates\RateQuote;
 use App\Services\Rates\RateQuoteRequest;
 use App\Services\Rates\RateQuoteService;
@@ -48,6 +50,7 @@ class BookingQuote
         private PropertyToday $propertyToday,
         private DayUseAvailability $dayUseAvailability,
         private DayUseOffers $dayUseOffers,
+        private PackagePricing $packagePricing,
     ) {}
 
     /**
@@ -83,15 +86,25 @@ class BookingQuote
 
         $unitTotal = $overrideTotal === null ? $quote->total : Money::of($overrideTotal, $quote->total->getCurrency());
 
+        $overrides = null;
+
+        if ($overrideTotal !== null && $ratePlan->pricing_basis === PricingBasis::Package) {
+            try {
+                $overrides = $this->packagePricing->spreadByInclusions($unitTotal, array_map(fn (int $index): bool => $index === 0, array_keys($quote->nights)), $ratePlan->inclusions, $adults + count($childAges));
+            } catch (QuoteRefused $refused) {
+                return BookingQuoteData::refused($this->refusals->errors($refused->reason), $beds);
+            }
+        }
+
         return new BookingQuoteData(
-            nights: array_map(fn (NightPrice $night): BookingQuoteNightData => new BookingQuoteNightData(
+            nights: array_map(fn (NightPrice $night, int $index): BookingQuoteNightData => new BookingQuoteNightData(
                 date: $night->date->toDateString(),
                 base: (string) $night->base->getAmount(),
                 extra: (string) $night->extra->getAmount(),
                 supplement: (string) $night->supplement->getAmount(),
                 discount: (string) $night->discountAmount->getAmount(),
-                amount: (string) $night->net()->getAmount(),
-            ), $quote->nights),
+                amount: (string) ($overrides[$index] ?? $night->net())->getAmount(),
+            ), $quote->nights, array_keys($quote->nights)),
             unitTotal: (string) $unitTotal->getAmount(),
             lineTotal: (string) $unitTotal->multipliedBy($beds)->getAmount(),
             addOnsTotal: (string) $this->addOnsTotal($property, $addOns, $arrival, $departure, $adults, $childAges, $quote->total->getCurrency())->multipliedBy($beds)->getAmount(),

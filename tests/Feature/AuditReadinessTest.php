@@ -92,13 +92,15 @@ test('an open unit folio after check-out and an open exception from an earlier a
 
     $previous = BusinessDate::factory()->closed()->create(['property_id' => $property->id, 'date' => '2026-10-11']);
     $audit = NightAudit::factory()->completed()->create(['business_date_id' => $previous->id]);
-    NightAuditException::factory()->create(['night_audit_id' => $audit->id, 'reservation_unit_id' => $out->id, 'message' => 'folio_not_open']);
+    $exception = NightAuditException::factory()->create(['night_audit_id' => $audit->id, 'reservation_unit_id' => $out->id, 'message' => 'folio_not_open']);
     NightAuditException::factory()->resolved()->create(['night_audit_id' => $audit->id, 'reservation_unit_id' => $out->id]);
 
     $items = app(AuditReadiness::class)->items($property);
 
     expect(array_map(fn ($item): string => $item->check->value, $items))->toBe([AuditCheck::FolioOpenAfterCheckOut->value, AuditCheck::CarriedException->value])
-        ->and($items[1]->message)->toBe('folio_not_open');
+        ->and($items[1]->message)->toBe('folio_not_open')
+        ->and($items[1]->exceptionId)->toBe($exception->id)
+        ->and($items[1]->canFixPrice)->toBeFalse();
 });
 
 /**
