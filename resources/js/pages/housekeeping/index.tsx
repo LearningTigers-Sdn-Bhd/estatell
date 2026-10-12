@@ -69,6 +69,15 @@ type Props = {
 
 const OUT_OF_SERVICE = 'out_of_service';
 
+/** Icon colours that match the tone of the status badge the action produces. */
+const toneText: Record<App.Enums.Tone, string> = {
+    neutral: 'text-muted-foreground',
+    info: 'text-info',
+    success: 'text-success',
+    warning: 'text-warning',
+    danger: 'text-destructive',
+};
+
 function matchesMovement(room: Room, movement: Movement): boolean {
     switch (movement) {
         case 'arrivals':
@@ -358,6 +367,11 @@ export default function HousekeepingIndex({
     }
 
     const dirtyBadge = statuses.find((item) => item.value === 'dirty');
+    const statusIconClass = (value: string) => {
+        const tone = statuses.find((item) => item.value === value)?.tone;
+
+        return tone ? toneText[tone] : undefined;
+    };
 
     return (
         <>
@@ -559,7 +573,10 @@ export default function HousekeepingIndex({
                         variant="outline"
                         onClick={() => runBulk('mark_clean')}
                     >
-                        <CircleCheck data-icon="inline-start" />
+                        <CircleCheck
+                            data-icon="inline-start"
+                            className={statusIconClass('clean')}
+                        />
                         Mark clean
                     </Button>
                     {can.inspect && (
@@ -568,7 +585,10 @@ export default function HousekeepingIndex({
                             variant="outline"
                             onClick={() => runBulk('mark_inspected')}
                         >
-                            <ClipboardCheck data-icon="inline-start" />
+                            <ClipboardCheck
+                                data-icon="inline-start"
+                                className={statusIconClass('inspected')}
+                            />
                             Mark inspected
                         </Button>
                     )}
