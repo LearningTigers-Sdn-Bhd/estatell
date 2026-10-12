@@ -37,22 +37,21 @@ A room can have a departure and an arrival on the same day. Both show, each in i
 
 The status enum is `HousekeepingStatus`: Dirty > Clean > Inspected. Any room can become Dirty again (`canTransitionTo()`).
 
-| State          | Badge tone      | Next step button | Who can use it         |
-| -------------- | --------------- | ---------------- | ---------------------- |
-| Dirty          | Warning (amber) | Mark clean       | `housekeeping.update`  |
-| Clean          | Success (green) | Inspect          | `housekeeping.inspect` |
-| Inspected      | Info (blue)     | none             |                        |
-| Out of service | Danger (red)    | none             |                        |
+| State          | Badge tone      | Menu moves to    | Who can pick it                                                 |
+| -------------- | --------------- | ---------------- | --------------------------------------------------------------- |
+| Dirty          | Warning (amber) | Clean            | `housekeeping.update`                                           |
+| Clean          | Success (green) | Dirty, Inspected | `housekeeping.update`, and `housekeeping.inspect` for Inspected |
+| Inspected      | Info (blue)     | Dirty            | `housekeeping.update`                                           |
+| Out of service | Danger (red)    | none             |                                                                 |
 
 - Every badge shows an icon and the word, so colour is never the only signal. The tones come from `HousekeepingStatus::tone()`; Out of service uses `Tone::Danger` in the board only.
-- The row ⋯ menu has **Mark dirty** for a Clean or Inspected room (`housekeeping.update`).
-- A user without the permission for the next step sees the badge and no button.
-- Staff cannot pick a status. The button always shows the next legal step, so a refusal is rare. A refusal (a race, a room blocked a moment ago) shows as a plain sentence in a toast and the row goes back to its old state.
+- The badge is the control: it opens a dropdown that lists only the legal moves (`canTransitionTo()` and the viewer's permissions). The server sends them as `moves`, so the browser holds no rules. A room with no move (Out of service, or a user without `housekeeping.update`) shows a plain badge.
+- The menu never offers a status the room cannot take, so a refusal is rare. A refusal (a race, a room blocked a moment ago) shows as a plain sentence in a toast and the row goes back to its old state.
 
-| Refusal code         | Sentence (English)                       |
-| -------------------- | ---------------------------------------- |
-| `out_of_service`     | Room 203 is out of service until 18 Oct. |
-| `invalid_transition` | Room 102 is already Clean.               |
+| Refusal code         | Sentence (English)                   |
+| -------------------- | ------------------------------------ |
+| `out_of_service`     | Room 203 is out of service.          |
+| `invalid_transition` | Room 102 cannot move to that status. |
 
 Sentences come from `lang/en.json` and `lang/ms.json`. A repeated click on a room that is already in the wanted status is not an error.
 
@@ -84,7 +83,7 @@ It disappears when the room is Clean, so it can never be stale. For an Out of se
 
 An open `room_blocks` row that covers the business date makes the room **Out of service**. The board only reads it.
 
-- The red badge replaces the status badge. The Action cell reads the reason and the last night, for example "Maintenance · until 18 Oct", and the block notes show as the grey line.
+- The red badge replaces the status badge. The status cell also shows the reason and the last night, for example "Maintenance · until 18 Oct", and the block notes show as the grey line.
 - The stored room status stays under the block and comes back when the block ends.
 - A **bed block** does not take the room out of service. The room row stays workable and shows a note, for example "Bed A3 out of order until 21 Oct".
 - The row ⋯ menu has **Block room** for a user with `rooms.block`. It opens the Room blocks sheet and calls `CreateRoomBlock`. Ending a block stays on the Room blocks page.
@@ -159,20 +158,20 @@ Front desk context > Housekeeping (`housekeeping.index`, `/p/{code}/housekeeping
 Housekeeping Tasks · Mon 12 Oct                          [ Columns ] [ Export v ]
 View: ( All ) ( Grouped by room group ) ( Grouped by room type )   Status v  Assigned v  Arr · Dep · Stay
 
- ☐  Room  Status              Action          Assigned  Arrival       Departure     Flags   Remarks
- ▼ Floor 1                                                          6 rooms · 2 dirty
- ☑  101   [● Dirty]           [ Mark clean ]  Siti      12 Oct 14:00  12 Oct 11:00  ! Maint Extra towels
-                                                                                              ↳ Departed
- ☐  102   [● Clean]           [ Inspect ]     Aminah    –             –                     Add remark…
- ☐  103   [● Inspected]       ✓               Aminah    –             –
- –  203   [● Out of service]  Maintenance · until 18 Oct                                     Aircon
+ ☐  Room  Status               Assigned  Arrival       Departure     Flags   Remarks
+ ▼ Floor 1                                                   6 rooms · 2 dirty
+ ☑  101   [● Dirty ⌄]         Siti      12 Oct 14:00  12 Oct 11:00  ! Maint Extra towels
+                                                                              ↳ Departed
+ ☐  102   [● Clean ⌄]         Aminah    –             –                     Add remark…
+ ☐  103   [● Inspected ⌄]     Aminah    –             –
+ –  203   [● Out of service]  –         Maintenance · until 18 Oct            Aircon
 
  ╔═ 2 selected  [ Assign to v ] [ Mark clean ] [ Mark inspected ] [ Priority ] [ Add remark ] [ Print selected ] [ Clear ] ═╗
 ```
 
-- The status button and the remark cell update at once (an optimistic update) and go back if the server refuses, with the sentence in a toast. The Inertia v3 optimistic API is checked with `search-docs` before the build.
+- The status badge menu and the remark cell update at once (an optimistic update) and go back if the server refuses, with the sentence in a toast. The Inertia v3 optimistic API is checked with `search-docs` before the build.
 - **Columns** shows only for users with `settings.manage`. **Export** has Print sheet (PDF), Excel and CSV.
-- On a narrow screen the table keeps Room, Status and Action, and the rest moves into the row detail.
+- On a narrow screen the table keeps Room and Status, and the rest moves into the row detail.
 
 ## Out of scope
 

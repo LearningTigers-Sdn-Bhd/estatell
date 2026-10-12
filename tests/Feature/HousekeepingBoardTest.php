@@ -82,15 +82,16 @@ test('the board lists every active room with its status, stay and reason, depart
             ->where('rooms.0.reason', 'Checked out today')
             ->where('rooms.0.guest', 'Departed Guest')
             ->where('rooms.0.departureTime', '11:00')
-            ->where('rooms.0.nextStatus', 'clean')
-            ->where('rooms.0.nextStatusLabel', 'Mark clean')
+            ->has('rooms.0.moves', 1)
+            ->where('rooms.0.moves.0.value', 'clean')
+            ->where('rooms.0.moves.0.label', 'Clean')
             ->where('rooms.1.number', '103')
             ->where('rooms.1.arrivalTime', '14:30')
             ->where('rooms.2.number', '102')
             ->where('rooms.2.isStayOver', true)
             ->where('rooms.2.reason', 'Guest in house')
             ->where('rooms.3.number', '104')
-            ->where('rooms.3.nextStatus', null)
+            ->where('rooms.3.moves.0.value', 'dirty')
             ->where('can.update', true));
 
     expect($idle->status->status)->toBe(HousekeepingStatus::Inspected);
@@ -120,24 +121,23 @@ test('an open whole-room block puts a room out of service and a bed block only a
             ->where('rooms.1.status.tone', 'danger')
             ->where('rooms.1.outOfService.endsOn', '2026-10-18')
             ->where('rooms.1.outOfService.notes', 'Aircon')
-            ->where('rooms.1.nextStatus', null)
-            ->where('rooms.1.canMarkDirty', false));
+            ->where('rooms.1.moves', []));
 });
 
-test('housekeepers see Mark clean but not Inspect, front desk sees both', function () {
+test('housekeepers cannot move a room to Inspected, front desk can', function () {
     $housekeeper = User::factory()->withRole(DefaultRoleEnum::Housekeeping)->create();
     $property = boardProperty($housekeeper);
     boardRoom($property, '101', HousekeepingStatus::Clean);
 
     $this->actingAs($housekeeper)
         ->get(route('housekeeping.index', $property->code))
-        ->assertInertia(fn (Assert $page) => $page->where('rooms.0.nextStatus', null)->where('can.update', true));
+        ->assertInertia(fn (Assert $page) => $page->has('rooms.0.moves', 1)->where('rooms.0.moves.0.value', 'dirty')->where('can.update', true));
 
     $frontDesk = User::factory()->withRole(DefaultRoleEnum::FrontDesk)->create(['property_id' => $property->id]);
 
     $this->actingAs($frontDesk)
         ->get(route('housekeeping.index', $property->code))
-        ->assertInertia(fn (Assert $page) => $page->where('rooms.0.nextStatus', 'inspected')->where('rooms.0.nextStatusLabel', 'Inspect'));
+        ->assertInertia(fn (Assert $page) => $page->has('rooms.0.moves', 2)->where('rooms.0.moves.1.value', 'inspected'));
 });
 
 test('staff without housekeeping.view cannot open the board', function () {

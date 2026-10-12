@@ -167,16 +167,6 @@ export default function HousekeepingIndex({
         })),
     ];
 
-    function advance(room: Room) {
-        const target = statuses.find((item) => item.value === room.nextStatus);
-
-        if (!target) {
-            return;
-        }
-
-        send(room, target.value, target);
-    }
-
     function send(room: Room, value: string, badge: Badge) {
         router
             .optimistic<{ rooms: Room[] }>((props) => ({
@@ -185,9 +175,7 @@ export default function HousekeepingIndex({
                         ? {
                               ...item,
                               status: badge,
-                              nextStatus: null,
-                              nextStatusLabel: null,
-                              canMarkDirty: value !== 'dirty',
+                              moves: [],
                               reason: value === 'dirty' ? item.reason : null,
                           }
                         : item,
@@ -380,10 +368,8 @@ export default function HousekeepingIndex({
                                             dirtyLabel={dirtyBadge?.label}
                                             can={can}
                                             staffOptions={staffOptions}
-                                            onAdvance={advance}
-                                            onMarkDirty={(room) =>
-                                                dirtyBadge &&
-                                                send(room, 'dirty', dirtyBadge)
+                                            onMove={(room, move) =>
+                                                send(room, move.value, move)
                                             }
                                             onAssign={assign}
                                             onPriority={togglePriority}
@@ -409,8 +395,7 @@ function GroupRows({
     dirtyLabel,
     can,
     staffOptions,
-    onAdvance,
-    onMarkDirty,
+    onMove,
     onAssign,
     onPriority,
     onDnd,
@@ -423,8 +408,7 @@ function GroupRows({
     dirtyLabel?: string;
     can: Props['can'];
     staffOptions: { value: string; label: string }[];
-    onAdvance: (room: Room) => void;
-    onMarkDirty: (room: Room) => void;
+    onMove: (room: Room, move: Badge) => void;
     onAssign: (room: Room, value: string) => void;
     onPriority: (room: Room) => void;
     onDnd: (room: Room) => void;
@@ -464,19 +448,39 @@ function GroupRows({
                             </div>
                         </TableCell>
                         <TableCell>
-                            <div className="flex flex-wrap items-center gap-2">
-                                <StatusBadge status={room.status} />
-                                {room.nextStatus && room.nextStatusLabel && (
-                                    <Button
-                                        type="button"
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={() => onAdvance(room)}
+                            {room.moves.length > 0 ? (
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger
+                                        render={
+                                            <button
+                                                type="button"
+                                                className="inline-flex items-center gap-1 rounded-md focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                                                aria-label={`Change status of room ${room.number}, now ${room.status.label}`}
+                                            />
+                                        }
                                     >
-                                        {room.nextStatusLabel}
-                                    </Button>
-                                )}
-                            </div>
+                                        <StatusBadge status={room.status} />
+                                        <ChevronDown
+                                            aria-hidden
+                                            className="size-3.5 text-muted-foreground"
+                                        />
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="start">
+                                        {room.moves.map((move) => (
+                                            <DropdownMenuItem
+                                                key={move.value}
+                                                onClick={() =>
+                                                    onMove(room, move)
+                                                }
+                                            >
+                                                {move.label}
+                                            </DropdownMenuItem>
+                                        ))}
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            ) : (
+                                <StatusBadge status={room.status} />
+                            )}
                             {room.outOfService && (
                                 <div className="mt-1 text-xs text-muted-foreground">
                                     {room.outOfService.reasonLabel} until{' '}
@@ -584,15 +588,6 @@ function GroupRows({
                                         <MoreHorizontal />
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="end">
-                                        {can.update && room.canMarkDirty && (
-                                            <DropdownMenuItem
-                                                onClick={() =>
-                                                    onMarkDirty(room)
-                                                }
-                                            >
-                                                Mark dirty
-                                            </DropdownMenuItem>
-                                        )}
                                         {can.update && (
                                             <>
                                                 <DropdownMenuItem

@@ -16,6 +16,7 @@ class HousekeepingRoomData extends Data
 {
     /**
      * @param  list<HousekeepingBedBlockData>  $bedBlocks
+     * @param  list<BadgeData>  $moves  The statuses the viewer may move this room to.
      */
     public function __construct(
         public int $id,
@@ -27,9 +28,7 @@ class HousekeepingRoomData extends Data
         public BadgeData $status,
         public ?HousekeepingOutOfServiceData $outOfService,
         public array $bedBlocks,
-        public ?string $nextStatus,
-        public ?string $nextStatusLabel,
-        public bool $canMarkDirty,
+        public array $moves,
         public ?int $assignedTo,
         public ?string $assignedName,
         public ?string $guest,
@@ -61,8 +60,15 @@ class HousekeepingRoomData extends Data
         string $date,
     ): self {
         $roomStatus = $room->status;
-        $next = $outOfService === null ? $roomStatus->status->next() : null;
-        $mayAdvance = $next !== null && ($next === HousekeepingStatus::Inspected ? $canInspect : $canUpdate);
+        $moves = [];
+
+        if ($outOfService === null && $canUpdate) {
+            foreach (HousekeepingStatus::cases() as $status) {
+                if ($roomStatus->status->canTransitionTo($status) && ($status !== HousekeepingStatus::Inspected || $canInspect)) {
+                    $moves[] = new BadgeData($status->value, $status->label(), $status->tone());
+                }
+            }
+        }
 
         return new self(
             id: $room->id,
@@ -76,9 +82,7 @@ class HousekeepingRoomData extends Data
                 : new BadgeData('out_of_service', __('Out of service'), Tone::Danger),
             outOfService: $outOfService,
             bedBlocks: $bedBlocks,
-            nextStatus: $mayAdvance ? $next->value : null,
-            nextStatusLabel: $mayAdvance ? $next->actionLabel() : null,
-            canMarkDirty: $canUpdate && $outOfService === null && $roomStatus->status !== HousekeepingStatus::Dirty,
+            moves: $moves,
             assignedTo: $roomStatus->assigned_to,
             assignedName: $roomStatus->assignee?->name,
             guest: $stay['guest'],
