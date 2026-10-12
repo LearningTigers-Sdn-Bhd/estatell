@@ -598,3 +598,20 @@ test('pricing an item when charging turns auto-add off, and a save without the f
     expect($item->refresh()->auto_add)->toBeFalse()
         ->and($item->default_amount)->toBeNull();
 });
+
+test('Transport is a charge item category, so a boat fare can be made on this page', function () {
+    $owner = User::factory()->owner()->create();
+
+    $this->actingAs($owner)
+        ->post(route('settings.charge-items.store', $owner->property->code), [
+            'name' => 'Speedboat fare',
+            'code' => 'SPEEDBOAT',
+            'category' => TransactionCategory::Transport->value,
+        ])
+        ->assertRedirect();
+
+    $chargeItem = ChargeItem::query()->where('property_id', $owner->property->id)->sole();
+
+    expect($chargeItem->transactionCode->category)->toBe(TransactionCategory::Transport)
+        ->and(TransactionCategory::chargeItemOptions())->toContain(['value' => 'transport', 'label' => 'Transport']);
+});

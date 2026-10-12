@@ -2,6 +2,7 @@
 
 namespace App\Enums;
 
+use App\Features\Boats;
 use App\Features\ChannelManager;
 
 /**
@@ -10,11 +11,13 @@ use App\Features\ChannelManager;
 enum PlatformFeature: string
 {
     case ChannelManager = 'channel-manager';
+    case Boats = 'boats';
 
     public function label(): string
     {
         return match ($this) {
             self::ChannelManager => __('Channel manager'),
+            self::Boats => __('Boats'),
         };
     }
 
@@ -22,6 +25,7 @@ enum PlatformFeature: string
     {
         return match ($this) {
             self::ChannelManager => __('Connect this property to Channex and sync OTAs.'),
+            self::Boats => __('Boat departures, fares and boat trips for island and jetty properties.'),
         };
     }
 
@@ -32,6 +36,7 @@ enum PlatformFeature: string
     {
         return match ($this) {
             self::ChannelManager => ChannelManager::class,
+            self::Boats => Boats::class,
         };
     }
 }

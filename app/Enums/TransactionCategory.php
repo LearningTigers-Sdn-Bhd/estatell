@@ -8,6 +8,7 @@ enum TransactionCategory: string
     case FoodAndBeverage = 'food_and_beverage';
     case Laundry = 'laundry';
     case Minibar = 'minibar';
+    case Transport = 'transport';
     case Fee = 'fee';
     case Tax = 'tax';
     case Discount = 'discount';
@@ -29,6 +30,7 @@ enum TransactionCategory: string
             self::FoodAndBeverage => __('Food and beverage'),
             self::Laundry => __('Laundry'),
             self::Minibar => __('Minibar'),
+            self::Transport => __('Transport'),
             self::Fee => __('Fee'),
             self::Tax => __('Tax'),
             self::Discount => __('Discount'),
@@ -61,7 +63,7 @@ enum TransactionCategory: string
      */
     public static function chargeItemCases(): array
     {
-        return [self::FoodAndBeverage, self::Laundry, self::Minibar, self::Fee, self::Other];
+        return [self::FoodAndBeverage, self::Laundry, self::Minibar, self::Transport, self::Fee, self::Other];
     }
 
     /**

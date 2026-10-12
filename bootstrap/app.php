@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\EnsureBoatsIsActive;
 use App\Http\Middleware\EnsurePasswordChanged;
 use App\Http\Middleware\EnsurePropertyAccess;
 use App\Http\Middleware\EnsurePropertyIsLive;
@@ -28,12 +29,14 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->alias([
             'admin.2fa' => RequireAdminTwoFactor::class,
+            'boats' => EnsureBoatsIsActive::class,
             'live' => EnsurePropertyIsLive::class,
             'property.access' => EnsurePropertyAccess::class,
         ]);
 
         $middleware->appendToPriorityList(SubstituteBindings::class, EnsurePropertyAccess::class);
         $middleware->appendToPriorityList(EnsurePropertyAccess::class, EnsurePropertyIsLive::class);
+        $middleware->appendToPriorityList(EnsurePropertyAccess::class, EnsureBoatsIsActive::class);
 
         $middleware->web(append: [
             AuthenticateSession::class,

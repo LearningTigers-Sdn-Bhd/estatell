@@ -5,8 +5,10 @@ namespace App\Navigation;
 use App\Data\Navigation\NavGroupData;
 use App\Data\Navigation\NavItemData;
 use App\Enums\PermissionEnum;
+use App\Features\Boats;
 use App\Models\Property;
 use App\Models\User;
+use Laravel\Pennant\Feature;
 
 /**
  * Sidebar groups for the Settings context. Items the user has no permission for are left out.
@@ -38,6 +40,12 @@ class SettingsNavigation
                     href: route('settings.printing.general', ['property' => $property->code], absolute: false),
                     icon: 'printer',
                     active: request()->routeIs('settings.printing.*'),
+                ) : null,
+                $user->can(PermissionEnum::SettingsManage->value) && Feature::for($property)->active(Boats::class) ? new NavItemData(
+                    title: __('Boats'),
+                    href: route('settings.boats', ['property' => $property->code], absolute: false),
+                    icon: 'ship',
+                    active: request()->routeIs('settings.boats', 'settings.boats.*'),
                 ) : null,
             ]))),
             new NavGroupData(label: __('Rooms'), items: array_values(array_filter([

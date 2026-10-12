@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\PermissionEnum;
+use App\Http\Controllers\Boats\BoatDepartureController;
 use App\Http\Controllers\Catalogues\ChargeItemController;
 use App\Http\Controllers\Catalogues\DiscountController;
 use App\Http\Controllers\Catalogues\PaymentMethodController;
@@ -120,6 +121,16 @@ Route::prefix('settings')->name('settings.')->group(function () {
         Route::put('order', [ChargeItemController::class, 'reorder'])->name('reorder');
         Route::get('{chargeItem}/edit', [ChargeItemController::class, 'edit'])->name('edit');
         Route::put('{chargeItem}', [ChargeItemController::class, 'update'])->name('update');
+    });
+
+    Route::middleware(['boats', 'can:'.PermissionEnum::SettingsManage->value])->scopeBindings()->group(function () {
+        Route::get('boats', [BoatDepartureController::class, 'redirectToDepartures'])->name('boats');
+        Route::prefix('boats/departures')->name('boats.departures.')->group(function () {
+            Route::get('/', [BoatDepartureController::class, 'index'])->name('index');
+            Route::post('/', [BoatDepartureController::class, 'store'])->name('store');
+            Route::put('{boatDeparture}', [BoatDepartureController::class, 'update'])->name('update');
+            Route::delete('{boatDeparture}', [BoatDepartureController::class, 'destroy'])->name('destroy');
+        });
     });
 
     Route::prefix('taxes')->name('taxes.')->middleware('can:'.PermissionEnum::SettingsManage->value)->scopeBindings()->group(function () {

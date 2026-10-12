@@ -1,0 +1,238 @@
+import { Form, Head, router } from '@inertiajs/react';
+import { Plus, Ship } from 'lucide-react';
+import { useState } from 'react';
+import { BoatDepartureSheet } from '@/components/pms/settings/boat-departure-sheet';
+import { BoatDepartureTable } from '@/components/pms/settings/boat-departure-table';
+import { EmptyState } from '@/components/pms/empty-state';
+import { PageHeader } from '@/components/pms/page-header';
+import { Button } from '@/components/ui/button';
+import {
+    AlertDialog,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Spinner } from '@/components/ui/spinner';
+import { destroy, update } from '@/routes/settings/boats/departures';
+
+type Departure = App.Data.Boats.BoatDepartureData;
+type Fare = App.Data.Boats.BoatFareData;
+type Option = { value: string; label: string };
+
+type SheetState = {
+    open: boolean;
+    departure: Departure | null;
+    direction: string;
+};
+
+/** The full row, so the update route can save it with a new `active`. */
+function formValues(departure: Departure) {
+    return {
+        direction: departure.direction,
+        leaves_at: departure.leavesAt,
+        arrives_at: departure.arrivesAt,
+        pickup_point: departure.pickupPoint ?? '',
+        seats: departure.seats === null ? '' : String(departure.seats),
+        charge_item_id:
+            departure.chargeItemId === null
+                ? ''
+                : String(departure.chargeItemId),
+        active: departure.active,
+    };
+}
+
+export default function BoatDeparturesPage({
+    departures,
+    fares,
+    directions,
+    currency,
+}: {
+    departures: Departure[];
+    fares: Fare[];
+    directions: Option[];
+    currency: App.Enums.Currency;
+}) {
+    const [sheet, setSheet] = useState<SheetState>({
+        open: false,
+        departure: null,
+        direction: directions[0]?.value ?? 'in',
+    });
+    const [togglingIds, setTogglingIds] = useState<Set<number>>(new Set());
+    const [deleting, setDeleting] = useState<Departure | null>(null);
+    const money = new Intl.NumberFormat(undefined, {
+        style: 'currency',
+        currency,
+    });
+
+    const openAdd = (direction: string) =>
+        setSheet({ open: true, departure: null, direction });
+    const openEdit = (departure: Departure) =>
+        setSheet({ open: true, departure, direction: departure.direction });
+
+    const toggleActive = (departure: Departure, active: boolean) => {
+        const setToggling = (toggling: boolean) => {
+            setTogglingIds((current) => {
+                const next = new Set(current);
+
+                if (toggling) {
+                    next.add(departure.id);
+                } else {
+                    next.delete(departure.id);
+                }
+
+                return next;
+            });
+        };
+
+        router
+            .optimistic<{ departures: Departure[] }>((props) => ({
+                departures: props.departures.map((item) =>
+                    item.id === departure.id ? { ...item, active } : item,
+                ),
+            }))
+            .put(
+                update.url({ boatDeparture: departure.id }),
+                { ...formValues(departure), active },
+                {
+                    preserveScroll: true,
+                    onStart: () => setToggling(true),
+                    onFinish: () => setToggling(false),
+                },
+            );
+    };
+
+    return (
+        <>
+            <Head title="Boats" />
+
+            <div className="flex flex-1 flex-col gap-6 p-4">
+                <PageHeader
+                    title="Boats"
+                    description="When each boat leaves and arrives. Guests pick a departure on their booking."
+                />
+
+                {directions.map((direction) => {
+                    const rows = departures.filter(
+                        (departure) => departure.direction === direction.value,
+                    );
+
+                    return (
+                        <section
+                            key={direction.value}
+                            className="flex flex-col gap-3"
+                        >
+                            <div className="flex items-center justify-between gap-4">
+                                <h2 className="text-base font-medium">
+                                    {direction.label}
+                                </h2>
+                                {rows.length > 0 && (
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => openAdd(direction.value)}
+                                    >
+                                        <Plus data-icon="inline-start" />
+                                        Add departure
+                                    </Button>
+                                )}
+                            </div>
+
+                            {rows.length === 0 ? (
+                                <EmptyState
+                                    icon={Ship}
+                                    title={`No ${direction.label.toLowerCase()} departures yet.`}
+                                    action={
+                                        <Button
+                                            onClick={() =>
+                                                openAdd(direction.value)
+                                            }
+                                        >
+                                            <Plus data-icon="inline-start" />
+                                            Add departure
+                                        </Button>
+                                    }
+                                />
+                            ) : (
+                                <BoatDepartureTable
+                                    departures={rows}
+                                    money={money}
+                                    togglingIds={togglingIds}
+                                    onToggleActive={toggleActive}
+                                    onEdit={openEdit}
+                                    onDelete={setDeleting}
+                                />
+                            )}
+                        </section>
+                    );
+                })}
+            </div>
+
+            <BoatDepartureSheet
+                open={sheet.open}
+                onOpenChange={(open) =>
+                    setSheet((current) => ({ ...current, open }))
+                }
+                departure={sheet.departure}
+                defaultDirection={sheet.direction}
+                directions={directions}
+                fares={fares}
+                currency={currency}
+            />
+
+            <AlertDialog
+                open={deleting !== null}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setDeleting(null);
+                    }
+                }}
+            >
+                <AlertDialogContent>
+                    {deleting && (
+                        <Form
+                            {...destroy.form({ boatDeparture: deleting.id })}
+                            options={{ preserveScroll: true }}
+                            onSuccess={() => setDeleting(null)}
+                        >
+                            {({ processing }) => (
+                                <>
+                                    <AlertDialogHeader>
+                                        <AlertDialogTitle>
+                                            Delete {deleting.leavesAt}{' '}
+                                            {deleting.direction === 'in'
+                                                ? 'boat in'
+                                                : 'boat out'}
+                                            ?
+                                        </AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                            The departure is removed from the
+                                            list.
+                                        </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                        <AlertDialogCancel>
+                                            Cancel
+                                        </AlertDialogCancel>
+                                        <Button
+                                            type="submit"
+                                            variant="destructive"
+                                            disabled={processing}
+                                            focusableWhenDisabled
+                                        >
+                                            {processing && (
+                                                <Spinner data-icon="inline-start" />
+                                            )}
+                                            Delete departure
+                                        </Button>
+                                    </AlertDialogFooter>
+                                </>
+                            )}
+                        </Form>
+                    )}
+                </AlertDialogContent>
+            </AlertDialog>
+        </>
+    );
+}
