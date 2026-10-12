@@ -78,7 +78,7 @@ A PerGuest or PerGuestNight item can charge children less than adults, by [age g
 
 - It needs a default amount (database CHECK). With **Enter when charging** the switch is disabled: "Set a fixed price first."
 - Turning it on or off never changes existing bookings.
-- On a fare that a boat departure uses, the switch is disabled with "Added by boat trips", because the boat trip adds it (see [Boat trips](../24-boats/02-boat-trips.md#fare)).
+- On a fare that any boat departure uses, the switch is disabled with "Added by boat trips", because the boat trip adds it, and the request refuses `auto_add` on (see [Boat settings](../24-boats/01-boat-settings.md#on-the-charge-items-page)).
 - Where it applies is in [Add-ons](../12-reservations/04-add-ons.md#added-automatically).
 
 ## Taxes

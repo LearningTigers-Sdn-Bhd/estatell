@@ -123,13 +123,14 @@ Fare           [Speedboat · RM35.00       ▾]
 
 ### Rules
 
-| Rule   | Detail                                                                                                            |
-| ------ | ----------------------------------------------------------------------------------------------------------------- |
-| Unique | One departure per direction per Leaves time. Message: "A boat in already leaves at 09:00."                        |
-| Times  | Arrives after Leaves (database CHECK). Message: "Arrives must be after Leaves."                                   |
-| Seats  | Empty, or a whole number above 0 (database CHECK)                                                                 |
-| Fare   | An available Transport charge item of the property, the departure's current fare (even when unavailable), or none |
-| Delete | Only when never used. Otherwise turn the switch off.                                                              |
+| Rule      | Detail                                                                                                                                                                                                                                            |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Unique    | One departure per direction per Leaves time. Message: "A boat in already leaves at 09:00."                                                                                                                                                        |
+| Times     | Arrives after Leaves (database CHECK). Message: "Arrives must be after Leaves."                                                                                                                                                                   |
+| Seats     | Empty, or a whole number above 0 (database CHECK)                                                                                                                                                                                                 |
+| Fare      | An available Transport charge item of the property with **Add to every new booking** off, the departure's current fare (even when unavailable), or none. A fare with auto-add on: "This fare is added to every new booking. Turn that off first." |
+| Available | A departure can be made available only while its fare is available, or it has no fare. Message: "Turn the fare Speedboat on first."                                                                                                               |
+| Delete    | Only when never used. Otherwise turn the switch off.                                                                                                                                                                                              |
 
 ## Fares tab
 
@@ -154,11 +155,11 @@ Fares                                                               [+ Add fare]
 
 Same control as on Departures. It sends the fare with the new `active` value to the fare update route, which calls `UpdateChargeItem`, so the fare's transaction code follows as for any charge item.
 
-| Action                                   | What happens                                                                                |
-| ---------------------------------------- | ------------------------------------------------------------------------------------------- |
-| Turn on                                  | Saves. The item moves to the end of the charge item list (the existing reactivation rule).  |
-| Turn off, no available departure uses it | Saves                                                                                       |
-| An available departure uses it           | The switch is disabled. Tooltip: "Used by 2 available departures. Change their fare first." |
+| Action                                   | What happens                                                                                                                                                                     |
+| ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Turn on                                  | Saves. The item moves to the end of the charge item list (the existing reactivation rule).                                                                                       |
+| Turn off, no available departure uses it | Saves                                                                                                                                                                            |
+| An available departure uses it           | The switch is disabled. Tooltip: "Used by 2 available departures. Change their fare first." `UpdateBoatFare` also refuses it (`fare_in_use`), and the page shows an error toast. |
 
 ### Add or edit fare
 
@@ -168,7 +169,7 @@ A Sheet (`FormOverlay`, `lg`). It has four short sections and fixed age group ro
 Edit fare · Speedboat                                       ×
 Details
  Name        [Speedboat           ]
- Code        SPEEDBOAT              (typed on create, then follows the name)
+ Code        SPEEDBOAT              (typed on create, then read only)
 
 Price · one way, per guest
  Adult       RM [35.00]
@@ -186,7 +187,7 @@ Taxes
                                         [Cancel] [Save fare]
 ```
 
-- **Code** is asked on create only, suggested from the name, as in the New charge item Dialog. After that, renaming the fare renames its code (the charge item rule).
+- **Code** is typed on create only, suggested from the name, as in the New charge item Dialog. After that the Sheet shows it read only and sends it unchanged. Renaming the fare renames the code's name, not the code (the charge item rule). The code can change on the charge item page (**More settings**).
 - **Adult** is required and above 0. A fare always has a fixed price, never Enter when charging.
 - **Children** reuses the rate plan and charge item Children control (Free, Percent, Fixed per age group).
 - **Taxes** is the charge item taxes multiselect.
@@ -206,7 +207,7 @@ Boats never write `charge_items` directly. Both Actions live in `app/Actions/Boa
 ### On the Charge items page
 
 - Fares also show on the Charge items list, with category Transport.
-- On a charge item that a departure uses, **Add to every new booking** is disabled with "Added by boat trips", so a fare is never charged twice.
+- On the edit page of a charge item that any departure uses (available or not), **Add to every new booking** is disabled with "Added by boat trips", so a fare is never charged twice. `ChargeItemRequest` also refuses `auto_add` on for such an item.
 - Changing a fare's charging unit there is allowed but not useful. The Fares tab shows the charging unit in muted text when it is not Per guest.
 
 ## Build order
