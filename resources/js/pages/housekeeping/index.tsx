@@ -459,7 +459,10 @@ function GroupRows({
                                             />
                                         }
                                     >
-                                        <StatusBadge status={room.status} />
+                                        <StatusBadge
+                                            status={room.status}
+                                            size="lg"
+                                        />
                                         <ChevronDown
                                             aria-hidden
                                             className="size-3.5 text-muted-foreground"
@@ -474,13 +477,16 @@ function GroupRows({
                                                     onMove(room, move)
                                                 }
                                             >
-                                                <StatusBadge status={move} />
+                                                <StatusBadge
+                                                    status={move}
+                                                    size="lg"
+                                                />
                                             </DropdownMenuItem>
                                         ))}
                                     </DropdownMenuContent>
                                 </DropdownMenu>
                             ) : (
-                                <StatusBadge status={room.status} />
+                                <StatusBadge status={room.status} size="lg" />
                             )}
                             {room.outOfService && (
                                 <div className="mt-1 text-xs text-muted-foreground">
