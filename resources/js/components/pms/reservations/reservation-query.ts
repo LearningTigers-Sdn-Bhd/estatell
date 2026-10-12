@@ -71,6 +71,15 @@ export function hasActiveFilters(filters: ReservationFilters): boolean {
     );
 }
 
+/** True when Reset would change something: search, source or stay differ from the default. The status tab stays. */
+export function canResetFilters(filters: ReservationFilters): boolean {
+    return (
+        filters.search !== '' ||
+        filters.source !== '' ||
+        filters.stay.mode !== 'default'
+    );
+}
+
 /** The state after Reset: search, source and stay return to their defaults, and the tab stays. */
 export function resetFilters(filters: ReservationFilters): ReservationFilters {
     return {

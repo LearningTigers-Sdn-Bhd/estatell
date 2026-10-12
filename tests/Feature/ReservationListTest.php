@@ -431,13 +431,27 @@ test('the room box shows the first night room or bed of each unit', function () 
     $this->actingAs($user)->get(listUrl($property))->assertInertia(fn (Assert $page) => $page
         ->where('reservations.data.0.roomBox.state', 'assigned')
         ->where('reservations.data.0.roomBox.numbers', ['101'])
-        ->where('reservations.data.0.roomBox.units', [])
+        ->has('reservations.data.0.roomBox.units', 1)
+        ->where('reservations.data.0.roomBox.units.0.assigned', '101')
+        ->where('reservations.data.0.roomBox.units.0.status.label', 'Confirmed')
+        ->where('reservations.data.0.roomBox.units.0.arrivalDate', '2026-10-12')
         ->where('reservations.data.1.roomBox.state', 'assigned')
         ->where('reservations.data.1.roomBox.numbers', ['102', '103'])
         ->where('reservations.data.1.roomBox.more', 1)
         ->where('reservations.data.1.roomBox.count', 1)
         ->where('reservations.data.1.roomBox.units.3.assigned', null)
         ->where('reservations.data.1.roomBox.units.0.roomType', $roomType->name));
+});
+
+test('a cancelled reservation lists its units in the room box with their status', function () {
+    [$user, $property] = listOwner();
+    listReservation($property, ['status' => ReservationStatus::Cancelled], [['status' => 'cancelled']]);
+
+    $this->actingAs($user)->get(listUrl($property))->assertInertia(fn (Assert $page) => $page
+        ->where('reservations.data.0.roomBox.state', 'cancelled')
+        ->has('reservations.data.0.roomBox.units', 1)
+        ->where('reservations.data.0.roomBox.units.0.status.label', 'Cancelled')
+        ->where('reservations.data.0.roomBox.units.0.assigned', null));
 });
 
 test('the room box shows a bed label for a bed unit', function () {

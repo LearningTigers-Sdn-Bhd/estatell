@@ -6,10 +6,11 @@ import { FilterBar } from '@/components/pms/filter-bar';
 import { Button } from '@/components/ui/button';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { cn } from '@/lib/utils';
+import { canResetFilters } from './reservation-query';
 import type { ReservationFilters, ReservationView } from './reservation-query';
 
 /**
- * Search, source, stay dates, sort and the Cards or List switch. Search, source and stay run on the server through
+ * Search, source, stay dates, sort and the Cards or List switch. Reset shows only while a filter differs from the default. Search, source and stay run on the server through
  * `onChange`. The view switch makes no request.
  */
 export function ReservationFiltersBar({
@@ -37,7 +38,7 @@ export function ReservationFiltersBar({
         <FilterBar
             search={filters.search}
             onSearchChange={(search) => onChange({ search })}
-            searchPlaceholder="Ref, guest, phone, email, ext. ref"
+            searchPlaceholder="Search reservations by ref, guest, phone or email"
         >
             <EnumSelect
                 options={sources}
@@ -65,9 +66,11 @@ export function ReservationFiltersBar({
                 months={2}
                 className="w-auto min-w-52"
             />
-            <Button type="button" variant="ghost" onClick={onReset}>
-                Reset
-            </Button>
+            {canResetFilters(filters) && (
+                <Button type="button" variant="ghost" onClick={onReset}>
+                    Reset
+                </Button>
+            )}
             <EnumSelect
                 options={sorts}
                 value={sort}

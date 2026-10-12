@@ -137,7 +137,7 @@ Three columns in the muted strip, each with a small muted label above the amount
 
 ### Room box
 
-Room or bed numbers when assigned (from the first night of each unit). Every other state shows a Lucide icon with a tooltip and an `aria-label`.
+Room or bed numbers when assigned (from the first night of each unit). Every other state shows a Lucide icon and an `aria-label`. Hovering the box (list and cards) opens a hover card: the note from the Tooltip column (when there is one), then every unit of the reservation with its room type, room or bed (or "Not assigned"), status badge and dates. Touch screens have no hover, so the `aria-label` carries the note. The data is `ReservationRoomBoxData.units` (`ReservationRoomBoxUnitData`), filled for every state, cancelled ones included.
 
 | State                                | Box                     | Icon           | Tone    | Tooltip                     |
 | ------------------------------------ | ----------------------- | -------------- | ------- | --------------------------- |
@@ -150,7 +150,7 @@ Room or bed numbers when assigned (from the first night of each unit). Every oth
 | Cancelled                            | Icon                    | `Ban`          | Muted   | Cancelled                   |
 | Every live unit is a no-show         | Icon                    | `UserX`        | Muted   | No-show                     |
 
-`+N` counts only assigned rooms. Unassigned units of a partly assigned group are listed in the tooltip.
+`+N` counts only assigned rooms. Unassigned units of a partly assigned group are listed in the hover card.
 
 ### List view
 

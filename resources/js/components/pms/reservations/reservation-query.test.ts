@@ -1,5 +1,6 @@
 import { expect, test } from 'vite-plus/test';
 import {
+    canResetFilters,
     hasActiveFilters,
     reservationQuery,
     resetFilters,
@@ -67,4 +68,17 @@ test('reset keeps the status tab and clears everything else', () => {
         source: '',
         stay: { mode: 'default', from: null, to: null },
     });
+});
+
+test('reset is offered only when search, source or stay differ from the default', () => {
+    expect(canResetFilters(clean)).toBe(false);
+    expect(canResetFilters({ ...clean, status: 'confirmed' })).toBe(false);
+    expect(canResetFilters({ ...clean, search: 'tan' })).toBe(true);
+    expect(canResetFilters({ ...clean, source: 'phone' })).toBe(true);
+    expect(
+        canResetFilters({
+            ...clean,
+            stay: { mode: 'all', from: null, to: null },
+        }),
+    ).toBe(true);
 });

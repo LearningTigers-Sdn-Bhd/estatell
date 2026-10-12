@@ -1,5 +1,5 @@
 import { Search } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import {
     InputGroup,
@@ -16,7 +16,8 @@ type Props = {
 };
 
 /**
- * Search box plus filters for Index pages. The search is debounced so typing makes one request.
+ * Search box plus filters for Index pages. The search is debounced so typing makes one request. Text typed while a
+ * request is in flight is kept; the box follows the `search` prop only when something else changes it (a cleared filter).
  */
 export function FilterBar({
     search,
@@ -25,18 +26,33 @@ export function FilterBar({
     children,
 }: Props) {
     const [draft, setDraft] = useState(search);
-
-    useEffect(() => setDraft(search), [search]);
+    const latest = useRef(onSearchChange);
+    /** The last value the box sent up, so the page echoing it back is not mistaken for an outside change. */
+    const sent = useRef(search);
 
     useEffect(() => {
-        if (draft === search) {
+        latest.current = onSearchChange;
+    }, [onSearchChange]);
+
+    useEffect(() => {
+        if (search !== sent.current) {
+            sent.current = search;
+            setDraft(search);
+        }
+    }, [search]);
+
+    useEffect(() => {
+        if (draft === sent.current) {
             return;
         }
 
-        const timeout = setTimeout(() => onSearchChange(draft), 300);
+        const timeout = setTimeout(() => {
+            sent.current = draft;
+            latest.current(draft);
+        }, 300);
 
         return () => clearTimeout(timeout);
-    }, [draft, search, onSearchChange]);
+    }, [draft]);
 
     return (
         <div className="flex flex-wrap items-center gap-2">

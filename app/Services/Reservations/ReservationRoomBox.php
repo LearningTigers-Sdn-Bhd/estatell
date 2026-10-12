@@ -41,25 +41,29 @@ class ReservationRoomBox
      */
     private function box(Reservation $reservation, array $assigned, bool $autoAssignRooms): ReservationRoomBoxData
     {
+        $everyUnit = $reservation->units
+            ->sortBy('id')
+            ->map(fn (ReservationUnit $unit): ReservationRoomBoxUnitData => ReservationRoomBoxUnitData::fromModel($unit, $assigned[$unit->id] ?? null))
+            ->values()
+            ->all();
+
         if ($reservation->status === ReservationStatus::Cancelled) {
-            return $this->iconBox(ReservationRoomBoxState::Cancelled, __('Cancelled'));
+            return $this->iconBox(ReservationRoomBoxState::Cancelled, __('Cancelled'), $everyUnit);
         }
 
         $live = $reservation->units->filter(fn (ReservationUnit $unit): bool => $unit->status->holdsInventory())->values();
 
         if ($live->isEmpty()) {
             return $reservation->units->contains(fn (ReservationUnit $unit): bool => $unit->status === UnitStatus::NoShow)
-                ? $this->iconBox(ReservationRoomBoxState::NoShow, __('No-show'))
-                : $this->iconBox(ReservationRoomBoxState::Cancelled, __('Cancelled'));
+                ? $this->iconBox(ReservationRoomBoxState::NoShow, __('No-show'), $everyUnit)
+                : $this->iconBox(ReservationRoomBoxState::Cancelled, __('Cancelled'), $everyUnit);
         }
 
         $numbers = $live->map(fn (ReservationUnit $unit): ?string => $assigned[$unit->id] ?? null);
         $assignedNumbers = $numbers->filter()->values();
         $unassigned = $live->filter(fn (ReservationUnit $unit): bool => ! isset($assigned[$unit->id]))->values();
         $isGroup = $live->count() > 1;
-        $units = $isGroup
-            ? $live->map(fn (ReservationUnit $unit): ReservationRoomBoxUnitData => new ReservationRoomBoxUnitData($unit->roomType->name, $assigned[$unit->id] ?? null))->all()
-            : [];
+        $units = $everyUnit;
 
         if ($assignedNumbers->isNotEmpty()) {
             return new ReservationRoomBoxData(
@@ -108,9 +112,12 @@ class ReservationRoomBox
         );
     }
 
-    private function iconBox(ReservationRoomBoxState $state, string $tooltip): ReservationRoomBoxData
+    /**
+     * @param  list<ReservationRoomBoxUnitData>  $units
+     */
+    private function iconBox(ReservationRoomBoxState $state, string $tooltip, array $units): ReservationRoomBoxData
     {
-        return new ReservationRoomBoxData($state, $state->label(), $state->tone(), $tooltip, [], 0, 0, false, []);
+        return new ReservationRoomBoxData($state, $state->label(), $state->tone(), $tooltip, [], 0, 0, false, $units);
     }
 
     /**

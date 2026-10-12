@@ -41,7 +41,10 @@ export function ReservationCard({ reservation }: { reservation: Item }) {
             )}
         >
             <CardHeader className="flex flex-row items-start gap-3">
-                <RoomBox box={reservation.roomBox} />
+                <RoomBox
+                    box={reservation.roomBox}
+                    href={show.url({ reservation: reservation.id })}
+                />
                 <div className="flex min-w-0 flex-1 flex-col gap-1">
                     <div className="flex min-w-0 items-center gap-1.5">
                         <h2 className="truncate font-heading text-base leading-snug font-medium">

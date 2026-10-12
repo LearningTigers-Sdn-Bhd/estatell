@@ -1867,6 +1867,9 @@ units: App.Data.Reservations.ReservationRoomBoxUnitData[],
 export type ReservationRoomBoxUnitData = {
 roomType: string,
 assigned: string | null,
+status: App.Data.Shared.BadgeData,
+arrivalDate: string,
+departureDate: string,
 };
 export type ReservationStatusCountData = {
 value: string,
