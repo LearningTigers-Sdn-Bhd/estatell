@@ -339,45 +339,49 @@ export default function HousekeepingIndex({
                                 description="Change the filters to see more rooms."
                             />
                         ) : (
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Room</TableHead>
-                                        <TableHead>Status</TableHead>
-                                        <TableHead>Assigned</TableHead>
-                                        <TableHead>Guest</TableHead>
-                                        <TableHead>Arrival</TableHead>
-                                        <TableHead>Departure</TableHead>
-                                        <TableHead>Notes</TableHead>
-                                        <TableHead className="w-10">
-                                            <span className="sr-only">
-                                                Row actions
-                                            </span>
-                                        </TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {groups.map((group) => (
-                                        <GroupRows
-                                            key={group.key}
-                                            name={group.name}
-                                            groupKey={group.key}
-                                            rooms={group.rooms}
-                                            collapsed={collapsed.has(group.key)}
-                                            onToggle={toggleGroup}
-                                            dirtyLabel={dirtyBadge?.label}
-                                            can={can}
-                                            staffOptions={staffOptions}
-                                            onMove={(room, move) =>
-                                                send(room, move.value, move)
-                                            }
-                                            onAssign={assign}
-                                            onPriority={togglePriority}
-                                            onDnd={toggleDnd}
-                                        />
-                                    ))}
-                                </TableBody>
-                            </Table>
+                            <div className="overflow-auto rounded-lg border">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Room</TableHead>
+                                            <TableHead>Status</TableHead>
+                                            <TableHead>Assigned</TableHead>
+                                            <TableHead>Guest</TableHead>
+                                            <TableHead>Arrival</TableHead>
+                                            <TableHead>Departure</TableHead>
+                                            <TableHead>Notes</TableHead>
+                                            <TableHead className="w-10">
+                                                <span className="sr-only">
+                                                    Row actions
+                                                </span>
+                                            </TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {groups.map((group) => (
+                                            <GroupRows
+                                                key={group.key}
+                                                name={group.name}
+                                                groupKey={group.key}
+                                                rooms={group.rooms}
+                                                collapsed={collapsed.has(
+                                                    group.key,
+                                                )}
+                                                onToggle={toggleGroup}
+                                                dirtyLabel={dirtyBadge?.label}
+                                                can={can}
+                                                staffOptions={staffOptions}
+                                                onMove={(room, move) =>
+                                                    send(room, move.value, move)
+                                                }
+                                                onAssign={assign}
+                                                onPriority={togglePriority}
+                                                onDnd={toggleDnd}
+                                            />
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </div>
                         )}
                     </>
                 )}
