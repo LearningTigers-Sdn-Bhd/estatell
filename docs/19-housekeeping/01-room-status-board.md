@@ -45,7 +45,7 @@ The status enum is `HousekeepingStatus`: Dirty > Clean > Inspected. Any room can
 | Out of service | Danger (red)    | none             |                                                                 |
 
 - Every badge shows an icon and the word, so colour is never the only signal. The tones come from `HousekeepingStatus::tone()`; Out of service uses `Tone::Danger` in the board only.
-- The badge is the control: it opens a dropdown that lists only the legal moves (`canTransitionTo()` and the viewer's permissions). The server sends them as `moves`, so the browser holds no rules. A room with no move (Out of service, or a user without `housekeeping.update`) shows a plain badge.
+- The badge is the control: it opens a dropdown that lists only the legal moves (`canTransitionTo()` and the viewer's permissions). The server sends them as `moves`, so the browser holds no rules. Each option is drawn as a badge in its own tone, so the menu matches the badge that will replace the current one. A room with no move (Out of service, or a user without `housekeeping.update`) shows a plain badge.
 - The menu never offers a status the room cannot take, so a refusal is rare. A refusal (a race, a room blocked a moment ago) shows as a plain sentence in a toast and the row goes back to its old state.
 
 | Refusal code         | Sentence (English)                   |

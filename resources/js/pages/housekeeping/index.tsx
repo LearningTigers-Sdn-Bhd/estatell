@@ -469,11 +469,12 @@ function GroupRows({
                                         {room.moves.map((move) => (
                                             <DropdownMenuItem
                                                 key={move.value}
+                                                aria-label={`Change to ${move.label}`}
                                                 onClick={() =>
                                                     onMove(room, move)
                                                 }
                                             >
-                                                {move.label}
+                                                <StatusBadge status={move} />
                                             </DropdownMenuItem>
                                         ))}
                                     </DropdownMenuContent>
