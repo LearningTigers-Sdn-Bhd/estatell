@@ -13,7 +13,9 @@ use App\Data\Housekeeping\HousekeepingStaffData;
 use App\Data\Rooms\RoomGroupData;
 use App\Data\Shared\BadgeData;
 use App\Enums\HousekeepingStatus;
+use App\Enums\PageOrientation;
 use App\Enums\PermissionEnum;
+use App\Enums\ReportKey;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Housekeeping\AssignHousekeeperRequest;
 use App\Http\Requests\Housekeeping\BulkUpdateRoomsRequest;
@@ -29,6 +31,7 @@ use App\Models\RoomGroup;
 use App\Models\User;
 use App\Services\Housekeeping\HousekeepingBoardBuilder;
 use App\Services\Housekeeping\HousekeepingDate;
+use App\Services\Reports\ReportLayoutResolver;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -39,7 +42,7 @@ class HousekeepingBoardController extends Controller
     /**
      * Every active room for the board date. Filtering, grouping and sorting happen in the browser.
      */
-    public function index(Request $request, Property $property, HousekeepingDate $housekeepingDate, HousekeepingBoardBuilder $builder): Response
+    public function index(Request $request, Property $property, HousekeepingDate $housekeepingDate, HousekeepingBoardBuilder $builder, ReportLayoutResolver $layoutResolver): Response
     {
         $user = $request->user();
         $date = $housekeepingDate->for($property);
@@ -54,6 +57,9 @@ class HousekeepingBoardController extends Controller
                 ->map(fn (RoomGroup $group): RoomGroupData => RoomGroupData::fromModel($group)),
             'statuses' => array_map(fn (HousekeepingStatus $status): BadgeData => new BadgeData($status->value, $status->label(), $status->tone()), HousekeepingStatus::cases()),
             'staff' => $canUpdate ? $this->staff($property) : [],
+            'layout' => $layoutResolver->resolve($property, ReportKey::HousekeepingTasks),
+            'orientationOptions' => PageOrientation::options(),
+            'canEditLayout' => $user->can(PermissionEnum::SettingsManage->value),
             'can' => [
                 'update' => $canUpdate,
                 'inspect' => $canInspect,

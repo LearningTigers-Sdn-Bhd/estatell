@@ -99,22 +99,22 @@ An open `room_blocks` row that covers the business date makes the room **Blocked
 | Sort    | Default **due**: departures by `departure_time`, then arrivals by `arrival_time`, then other rooms by room number. With boats, the boat order (see the Boats items in the checklist). A column header overrides it: click once for ascending, again for descending, a third time to go back to due. Empty cells go last. |
 | Browser | The view and collapsed groups are remembered in the browser. They are not saved on the server and are not part of the report layout.                                                                                                                                                                                     |
 
-The columns of the table (order, visibility, orientation) are the property layout in [Print, export and layout](02-print-and-layout.md).
+The table on the board has fixed columns. The property layout (order, visibility, orientation) drives the printed sheet and the spreadsheet only, see [Print, export and layout](02-print-and-layout.md).
 
 ## Bulk bar
 
 `BulkActionBar` (`resources/js/components/pms/bulk-action-bar.tsx`) floats at the bottom while rows are ticked. A group header ticks all its rooms, and the table header ticks every room that can be picked. A room that is out of service has no tick box.
 
-| Bulk action       | Calls                 | Notes                                                                         |
-| ----------------- | --------------------- | ----------------------------------------------------------------------------- |
-| Assign to         | `AssignHousekeeper`   | Staff with `housekeeping.update`, or Unassign                                 |
-| Mark clean        | `UpdateRoomStatus`    | Dirty rooms move. A Clean room counts as done. Other rooms are skipped.       |
-| Mark inspected    | `UpdateRoomStatus`    | Clean rooms move. Needs `housekeeping.inspect`, or the request is refused.    |
-| Set priority      | `SetRoomPriority`     | Keeps the room's priority note                                                |
-| Clear priority    | `SetRoomPriority`     | Clears the flag and the note                                                  |
-| Add remark        | `SetRoomRemark`       | A Dialog asks for the text. It is added on a new line, cut at 500 characters. |
-| Needs maintenance | `SetNeedsMaintenance` | Set only, because dismissing needs `rooms.block`                              |
-| Print selected    | the PDF route         | Comes with [Print, export and layout](02-print-and-layout.md)                 |
+| Bulk action       | Calls                 | Notes                                                                                         |
+| ----------------- | --------------------- | --------------------------------------------------------------------------------------------- |
+| Assign to         | `AssignHousekeeper`   | Staff with `housekeeping.update`, or Unassign                                                 |
+| Mark clean        | `UpdateRoomStatus`    | Dirty rooms move. A Clean room counts as done. Other rooms are skipped.                       |
+| Mark inspected    | `UpdateRoomStatus`    | Clean rooms move. Needs `housekeeping.inspect`, or the request is refused.                    |
+| Set priority      | `SetRoomPriority`     | Keeps the room's priority note                                                                |
+| Clear priority    | `SetRoomPriority`     | Clears the flag and the note                                                                  |
+| Add remark        | `SetRoomRemark`       | A Dialog asks for the text. It is added on a new line, cut at 500 characters.                 |
+| Needs maintenance | `SetNeedsMaintenance` | Set only, because dismissing needs `rooms.block`                                              |
+| Export selected   | the export routes     | PDF, CSV or Excel of the ticked rooms, see [Print, export and layout](02-print-and-layout.md) |
 
 - `POST /p/{code}/housekeeping/bulk` (`housekeeping.bulk`, `housekeeping.update`) takes `room_ids` (at most 200), `action` (`HousekeepingBulkAction`), and `assigned_to` or `remark` for those actions. A room of another property or an archived room makes the whole request a 404.
 - `BulkUpdateRooms` runs the single-room Action for each room. It is not one transaction. A refused room is skipped and does not stop the others, and running the same action twice changes nothing the second time.

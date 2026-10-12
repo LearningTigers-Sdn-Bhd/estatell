@@ -13,6 +13,7 @@ import {
     MoonStar,
     MessageSquarePlus,
     MoreHorizontal,
+    Settings2,
     Star,
     StarOff,
     UserRound,
@@ -22,9 +23,11 @@ import { useMemo, useState } from 'react';
 import { BulkActionBar } from '@/components/pms/bulk-action-bar';
 import { DateText } from '@/components/pms/date-text';
 import { EmptyState } from '@/components/pms/empty-state';
-import { EnumSelect } from '@/components/pms/enum-select';
+import { EnumSelect, type EnumOption } from '@/components/pms/enum-select';
 import { BulkRemarkDialog } from '@/components/pms/housekeeping/bulk-remark-dialog';
 import { PageHeader } from '@/components/pms/page-header';
+import { ReportExportMenu } from '@/components/pms/reports/report-export-menu';
+import { ReportLayoutSheet } from '@/components/pms/reports/report-layout-sheet';
 import { StatusBadge } from '@/components/pms/status-badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -45,7 +48,7 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { bulk, index } from '@/routes/housekeeping';
+import { bulk, index, pdf, spreadsheet } from '@/routes/housekeeping';
 import {
     assignee,
     dnd,
@@ -76,6 +79,9 @@ type Props = {
     roomGroups: App.Data.Rooms.RoomGroupData[];
     statuses: Badge[];
     staff: Staff[];
+    layout: App.Data.Reports.ReportLayoutData;
+    orientationOptions: EnumOption[];
+    canEditLayout: boolean;
     can: { update: boolean; inspect: boolean; block: boolean };
 };
 
@@ -223,6 +229,9 @@ export default function HousekeepingIndex({
     roomGroups,
     statuses,
     staff,
+    layout,
+    orientationOptions,
+    canEditLayout,
     can,
 }: Props) {
     const [view, setView] = useState<View>('group');
@@ -233,6 +242,8 @@ export default function HousekeepingIndex({
     const [selected, setSelected] = useState<Set<number>>(new Set());
     const [remarkOpen, setRemarkOpen] = useState(false);
     const [sort, setSort] = useState<Sort>(null);
+    const [layoutDraft, setLayoutDraft] =
+        useState<App.Data.Reports.ReportLayoutData | null>(null);
 
     function cycleSort(key: SortKey) {
         setSort((current) =>
@@ -272,6 +283,16 @@ export default function HousekeepingIndex({
         () => [...selected].filter((id) => selectableIds.has(id)),
         [selected, selectableIds],
     );
+
+    /** What the PDF and the spreadsheet receive: the ticked rooms, or every room the filters show. */
+    const exportDates = useMemo(() => ({ date }), [date]);
+    const exportSort =
+        sort === null
+            ? 'due'
+            : `${sort.direction === 'desc' ? '-' : ''}${sort.key}`;
+    const exportRowKeys = (
+        selectedIds.length > 0 ? selectedIds : shown.map((room) => room.id)
+    ).map(String);
 
     const groups = useMemo(() => {
         if (view === 'all') {
@@ -502,6 +523,30 @@ export default function HousekeepingIndex({
                         <>
                             {rooms.length} rooms on <DateText date={date} />
                         </>
+                    }
+                    actions={
+                        rooms.length === 0 ? undefined : (
+                            <>
+                                {canEditLayout && (
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        onClick={() => setLayoutDraft(layout)}
+                                    >
+                                        <Settings2 data-icon="inline-start" />
+                                        Columns
+                                    </Button>
+                                )}
+                                <ReportExportMenu
+                                    report="housekeeping-tasks"
+                                    dates={exportDates}
+                                    sort={exportSort}
+                                    rowKeys={exportRowKeys}
+                                    pdfUrl={pdf.url()}
+                                    spreadsheetUrl={spreadsheet.url()}
+                                />
+                            </>
+                        )
                     }
                 />
 
@@ -774,8 +819,36 @@ export default function HousekeepingIndex({
                             </DropdownMenuItem>
                         </DropdownMenuContent>
                     </DropdownMenu>
+                    <ReportExportMenu
+                        report="housekeeping-tasks"
+                        dates={exportDates}
+                        sort={exportSort}
+                        rowKeys={exportRowKeys}
+                        pdfUrl={pdf.url()}
+                        spreadsheetUrl={spreadsheet.url()}
+                        side="top"
+                    />
                 </BulkActionBar>
             </div>
+
+            {canEditLayout && layoutDraft && (
+                <ReportLayoutSheet
+                    open
+                    onOpenChange={(next) => {
+                        if (!next) {
+                            setLayoutDraft(null);
+                        }
+                    }}
+                    report="housekeeping-tasks"
+                    reportLabel="Housekeeping tasks"
+                    saved={layout}
+                    draft={layoutDraft}
+                    onDraftChange={setLayoutDraft}
+                    orientations={orientationOptions}
+                    dates={exportDates}
+                    onDone={() => setLayoutDraft(null)}
+                />
+            )}
 
             <BulkRemarkDialog
                 open={remarkOpen}

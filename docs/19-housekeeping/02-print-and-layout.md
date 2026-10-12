@@ -82,7 +82,7 @@ Settings > Housekeeping (`settings.housekeeping.edit` and `.update`, `/p/{code}/
 
 ## Layout
 
-- The Columns button on the board opens the shared `ReportLayoutSheet` for `housekeeping-tasks`: order, visibility, alignment, orientation and Preview PDF.
+- The Columns button on the board (named for the print and export columns) opens the shared `ReportLayoutSheet` for `housekeeping-tasks`: order, visibility, alignment, orientation and Preview PDF.
 - It shows for users with `settings.manage`. The shared routes `reports.layout.update`, `.destroy` and `.preview` need `reports.view` as well, and Owner and Manager have both.
 - The preview posts the `date` field and the server reads the rows again.
 - `ReportLayoutResolver` merges the stored layout with the columns in code, so adding a column later needs no data migration.

@@ -487,3 +487,23 @@ test('housekeeping tasks is not listed in the Reports menu', function () {
     expect($hrefs)->not->toBeEmpty()
         ->and($hrefs->contains(fn (string $href): bool => str_contains($href, 'housekeeping-tasks')))->toBeFalse();
 });
+
+test('the board sends the print layout and who may edit it', function () {
+    $owner = User::factory()->owner()->create();
+    $property = boardProperty($owner);
+    boardRoom($property, '101');
+
+    $this->actingAs($owner)
+        ->get(route('housekeeping.index', $property->code))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('canEditLayout', true)
+            ->where('layout.orientation', 'landscape')
+            ->where('layout.columns.0.key', 'room')
+            ->has('orientationOptions', 2));
+
+    $housekeeper = User::factory()->withRole(DefaultRoleEnum::Housekeeping)->create(['property_id' => $property->id]);
+
+    $this->actingAs($housekeeper)
+        ->get(route('housekeeping.index', $property->code))
+        ->assertInertia(fn (Assert $page) => $page->where('canEditLayout', false));
+});

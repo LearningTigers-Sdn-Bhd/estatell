@@ -24,6 +24,8 @@ export function ReportExportMenu({
     sort,
     rowKeys,
     side = 'bottom',
+    pdfUrl,
+    spreadsheetUrl,
 }: {
     report: App.Enums.ReportKey;
     /** The date fields of the report page: `from` and `to`, or `date` for a report of one date. */
@@ -32,6 +34,9 @@ export function ReportExportMenu({
     rowKeys: string[];
     /** Where the menu opens. The floating bulk action bar opens it upwards. */
     side?: 'top' | 'bottom';
+    /** Own export routes, for a page whose users do not have `reports.view`. Default: the shared report routes. */
+    pdfUrl?: string;
+    spreadsheetUrl?: string;
 }) {
     const { csrfToken } = usePage().props;
     const formRef = useRef<HTMLFormElement>(null);
@@ -39,7 +44,7 @@ export function ReportExportMenu({
 
     const download = (format: 'csv' | 'xlsx') => {
         setBusy(true);
-        postDownload(spreadsheet.url({ report }), {
+        postDownload(spreadsheetUrl ?? spreadsheet.url({ report }), {
             format,
             ...dates,
             sort,
@@ -88,7 +93,7 @@ export function ReportExportMenu({
             <form
                 ref={formRef}
                 method="post"
-                action={pdf.url({ report })}
+                action={pdfUrl ?? pdf.url({ report })}
                 target="_blank"
                 hidden
             >
