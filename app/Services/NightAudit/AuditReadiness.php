@@ -277,6 +277,7 @@ class AuditReadiness
                 canFixPrice: $exception->type === AuditExceptionType::RoomCharge && $exception->message === InclusionSplit::REFUSAL_EXCEEDS_NIGHT_AMOUNT
                     && $exception->reservationUnit->nights->first(fn ($night): bool => $night->date->toDateString() === $exception->nightAudit->businessDate->date->toDateString())?->ratePlan->pricing_basis === PricingBasis::Package,
                 exceptionType: $exception->type,
+                exceptionDate: $exception->nightAudit->businessDate->date->toDateString(),
             ))
             ->all();
     }
@@ -317,7 +318,7 @@ class AuditReadiness
         return $block === null ? null : __('Day use · :start–:end', ['start' => substr($block->starts_at, 0, 5), 'end' => substr($block->ends_at, 0, 5)]);
     }
 
-    private function item(AuditCheck $check, ReservationUnit $unit, ?string $detail = null, ?string $message = null, ?int $exceptionId = null, bool $canExtend = false, bool $canFixPrice = false, ?AuditExceptionType $exceptionType = null): ReadinessItem
+    private function item(AuditCheck $check, ReservationUnit $unit, ?string $detail = null, ?string $message = null, ?int $exceptionId = null, bool $canExtend = false, bool $canFixPrice = false, ?AuditExceptionType $exceptionType = null, ?string $exceptionDate = null): ReadinessItem
     {
         return new ReadinessItem(
             check: $check,
@@ -332,6 +333,7 @@ class AuditReadiness
             exceptionType: $exceptionType,
             dayUse: $unit->stay_type === StayType::DayUse,
             canExtend: $canExtend,
+            exceptionDate: $exceptionDate,
         );
     }
 }

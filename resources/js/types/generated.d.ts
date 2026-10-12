@@ -714,6 +714,7 @@ reasons: string[],
 actions: App.Data.NightAudit.ReadinessActionData[],
 units: App.Data.NightAudit.ReadinessUnitData[],
 openUnits: boolean,
+flatUnits: boolean,
 };
 export type ReadinessUnitData = {
 unitId: number,
@@ -721,6 +722,8 @@ guest: string,
 detail: string,
 reason: string | null,
 actions: App.Data.NightAudit.ReadinessActionData[],
+exceptionId: number | null,
+date: string | null,
 };
 }
 namespace Notifications {

@@ -21,8 +21,9 @@ class ReadinessGroupData extends Data
      * @param  string|null  $consequence  What the audit does with the row if nobody touches it.
      * @param  list<string>  $reasons  Why an earlier audit left the units, one for each different reason.
      * @param  list<ReadinessActionData>  $actions
-     * @param  list<ReadinessUnitData>  $units  Empty for a reservation with one unit.
+     * @param  list<ReadinessUnitData>  $units  Empty for a row with one item. Carried exceptions have one entry per issue.
      * @param  bool  $openUnits  The units are the way to fix the row, so the sheet shows them open.
+     * @param  bool  $flatUnits  Several carried exceptions on one unit show directly, without a toggle or group reasons.
      */
     public function __construct(
         public AuditCheck $check,
@@ -37,6 +38,7 @@ class ReadinessGroupData extends Data
         public array $actions,
         public array $units,
         public bool $openUnits = false,
+        public bool $flatUnits = false,
     ) {}
 
     /**
@@ -49,6 +51,14 @@ class ReadinessGroupData extends Data
         $count = count($items);
         $unitIds = array_values(array_filter(array_map(fn (ReadinessItem $item): int => (int) $item->reservationUnitId, $items)));
         $dates = array_values(array_unique(array_map(fn (ReadinessItem $item): string => $item->detail, $items)));
+        $unitCount = count(array_unique($unitIds));
+        $flatUnits = $check === AuditCheck::CarriedException && $count > 1 && $unitCount === 1;
+        $headline = match (true) {
+            $count === 1 => $check->label(),
+            $flatUnits => __(':count issues — :check', ['count' => $count, 'check' => mb_strtolower($check->label())]),
+            $check === AuditCheck::CarriedException => __(':count issues on :units units — :check', ['count' => $count, 'units' => $unitCount, 'check' => mb_strtolower($check->label())]),
+            default => __(':count units — :check', ['count' => $count, 'check' => mb_strtolower($check->label())]),
+        };
 
         return new self(
             check: $check,
@@ -56,10 +66,10 @@ class ReadinessGroupData extends Data
             reservationId: $first->reservationId,
             reference: $first->reference,
             guest: $first->guest ?? $first->reference,
-            headline: $count === 1 ? $check->label() : __(':count units — :check', ['count' => $count, 'check' => mb_strtolower($check->label())]),
+            headline: $headline,
             dates: count($dates) === 1 ? $dates[0] : '',
             consequence: $advice->consequence($check, $property, $first->dayUse),
-            reasons: $check === AuditCheck::CarriedException
+            reasons: $check === AuditCheck::CarriedException && ! $flatUnits
                 ? array_values(array_unique(array_map(fn (ReadinessItem $item): string => $advice->reason((string) $item->message), $items)))
                 : [],
             actions: [
@@ -75,8 +85,11 @@ class ReadinessGroupData extends Data
                     ...self::exceptionActions($item, $property),
                     ...self::actions($check, $property, $item->reservationId, 1, [(int) $item->reservationUnitId], $advice, (int) $item->reservationUnitId, false, $canCheckIn, $canCheckOut, null, $item->canExtend),
                 ],
+                exceptionId: $item->exceptionId,
+                date: $item->exceptionDate,
             ), $items),
             openUnits: $check === AuditCheck::DepartureNotCheckedOut && $count > 1,
+            flatUnits: $flatUnits,
         );
     }
 

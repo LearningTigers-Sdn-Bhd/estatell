@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\AuditExceptionType;
 use App\Enums\AuditTrigger;
 use App\Enums\MissedArrivalPolicy;
 use App\Enums\OverdueDeparturePolicy;
@@ -26,6 +27,7 @@ use App\Models\RoomRevenuePolicy;
 use App\Models\RoomType;
 use App\Models\TransactionCode;
 use App\Models\User;
+use App\Services\Packages\InclusionSplit;
 use Illuminate\Support\Facades\Queue;
 use Inertia\Testing\AssertableInertia as Assert;
 use Spatie\Activitylog\Models\Activity;
@@ -114,6 +116,9 @@ test('a group booking is one row that opens to its units, and the policy decides
 
     expect($json['warnings'])->toHaveCount(2)
         ->and($group['headline'])->toBe('3 units — not checked in')
+        ->and($group['flatUnits'])->toBeFalse()
+        ->and(array_column($group['units'], 'exceptionId'))->toBe([null, null, null])
+        ->and(array_column($group['units'], 'date'))->toBe([null, null, null])
         ->and($group['units'])->toHaveCount(3)
         ->and($group['consequence'])->toBe('If you leave it: marked no-show, and the no-show fee is charged.')
         ->and($group['actions'][1]['label'])->toBe('Mark all no-show')
@@ -134,11 +139,60 @@ test('an exception left by an earlier audit says why in plain words', function (
 
     $this->actingAs($setup['user'])->getJson(route('night-audit.show', $setup['property']->code))
         ->assertJsonPath('warnings.0.check', 'carried_exception')
+        ->assertJsonPath('warnings.0.headline', 'Left from an earlier audit')
+        ->assertJsonPath('warnings.0.flatUnits', false)
+        ->assertJsonCount(0, 'warnings.0.units')
         ->assertJsonPath('warnings.0.reasons.0', 'The folio was closed, so the night could not be charged.')
         ->assertJsonPath('warnings.0.actions.0.label', 'Retry')
         ->assertJsonPath('warnings.0.actions.1.label', 'Dismiss')
         ->assertJsonPath('warnings.0.actions.1.exceptionId', $exception->id);
 });
+
+test('carried exceptions count issues and keep each exception date and actions', function (bool $severalUnits) {
+    $setup = sheetSetup();
+    $property = $setup['property'];
+    $plan = RatePlan::factory()->for($property)->package(nights: 3)->create();
+    $first = sheetUnit($property, ['arrival_date' => '2026-10-08', 'departure_date' => '2026-10-11', 'rate_plan_id' => $plan->id]);
+    $second = $severalUnits
+        ? ReservationUnit::factory()->for($first->reservation)->withNights()->checkedIn()->create(['arrival_date' => '2026-10-08', 'departure_date' => '2026-10-11'])
+        : $first;
+    $room = Room::factory()->for($property)->create();
+    $first->nights()->update(['room_id' => $room->id]);
+    if ($severalUnits) {
+        $second->nights()->update(['room_id' => Room::factory()->for($property)->create()->id]);
+    }
+    $exceptions = [];
+
+    foreach (['2026-10-08', '2026-10-11'] as $index => $date) {
+        $audit = NightAudit::factory()->completed()->create(['business_date_id' => BusinessDate::factory()->closed()->create(['property_id' => $property->id, 'date' => $date])->id]);
+        $exceptions[] = NightAuditException::factory()->create([
+            'night_audit_id' => $audit->id,
+            'reservation_unit_id' => $index === 0 ? $first->id : $second->id,
+            'type' => $index === 0 ? AuditExceptionType::RoomCharge : AuditExceptionType::OverdueDeparture,
+            'message' => $index === 0 ? InclusionSplit::REFUSAL_EXCEEDS_NIGHT_AMOUNT : 'overdue_departure_blocked',
+        ]);
+    }
+
+    $warnings = $this->actingAs($setup['user'])->getJson(route('night-audit.show', $property->code))->assertOk()->json('warnings');
+    $group = collect($warnings)->firstWhere('check', 'carried_exception');
+
+    expect($group['headline'])->toBe($severalUnits ? '2 issues on 2 units — left from an earlier audit' : '2 issues — left from an earlier audit')
+        ->and($group['flatUnits'])->toBe(! $severalUnits)
+        ->and($group['openUnits'])->toBeFalse()
+        ->and($group['units'])->toHaveCount(2)
+        ->and(array_column($group['units'], 'unitId'))->toBe([$first->id, $second->id])
+        ->and(array_column($group['units'], 'exceptionId'))->toBe([$exceptions[0]->id, $exceptions[1]->id])
+        ->and(array_column($group['units'], 'date'))->toBe(['2026-10-08', '2026-10-11'])
+        ->and(array_column($group['units'], 'detail'))->toBe(['Room charge not posted', 'Overdue departure not resolved'])
+        ->and(array_column($group['units'], 'reason'))->toBe(["The night's price is less than its inclusions, so it could not be split.", 'The guest is past the departure date and your policy blocks extending.'])
+        ->and(array_column($group['units'][0]['actions'], 'label'))->toBe(['Fix price', 'Dismiss'])
+        ->and($group['units'][0]['actions'][0]['exceptionId'])->toBe($exceptions[0]->id)
+        ->and($group['units'][0]['actions'][1]['exceptionId'])->toBe($exceptions[0]->id)
+        ->and(array_column($group['units'][1]['actions'], 'label'))->toBe(['Dismiss'])
+        ->and($group['units'][1]['actions'][0]['exceptionId'])->toBe($exceptions[1]->id)
+        ->and(array_column($group['actions'], 'label'))->toBe(['Open'])
+        ->and($group['reasons'])->toHaveCount($severalUnits ? 2 : 0);
+})->with(['one unit' => false, 'two units' => true]);
 
 test('an exception for a folio settled to the city ledger says what to do', function () {
     $setup = sheetSetup();

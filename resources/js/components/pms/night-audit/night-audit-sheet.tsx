@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
+import { DateText } from '@/components/pms/date-text';
 import { FormOverlay } from '@/components/pms/form-overlay';
 import { AuditDialogHost } from '@/components/pms/night-audit/audit-dialog-host';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -240,30 +241,44 @@ function GroupRow({
             <Actions actions={group.actions} handlers={handlers} />
             {group.units.length > 0 && (
                 <div className="flex flex-col gap-1">
-                    <button
-                        type="button"
-                        className="flex items-center gap-1 self-start text-xs text-muted-foreground hover:text-foreground"
-                        aria-expanded={open}
-                        onClick={() => setOpen(!open)}
-                    >
-                        <ChevronRight
-                            className={`size-3 transition-transform ${open ? 'rotate-90' : ''}`}
-                        />
-                        {open ? 'Hide units' : 'Treat one unit by itself'}
-                    </button>
-                    {open && (
+                    {!group.flatUnits && (
+                        <button
+                            type="button"
+                            className="flex items-center gap-1 self-start text-xs text-muted-foreground hover:text-foreground"
+                            aria-expanded={open}
+                            onClick={() => setOpen(!open)}
+                        >
+                            <ChevronRight
+                                className={`size-3 transition-transform ${open ? 'rotate-90' : ''}`}
+                            />
+                            {open ? 'Hide units' : 'Treat one unit by itself'}
+                        </button>
+                    )}
+                    {(group.flatUnits || open) && (
                         <ul className="flex flex-col gap-2 border-l pl-3">
                             {group.units.map((unit) => (
                                 <li
-                                    key={unit.unitId}
+                                    key={unit.exceptionId ?? unit.unitId}
                                     className="flex flex-col gap-1"
                                 >
                                     <span className="text-sm">
-                                        {unit.guest}
-                                        <span className="text-xs text-muted-foreground">
-                                            {' '}
-                                            · {unit.detail}
-                                        </span>
+                                        {group.flatUnits ? (
+                                            unit.detail
+                                        ) : (
+                                            <>
+                                                {unit.guest}
+                                                <span className="text-xs text-muted-foreground">
+                                                    {' '}
+                                                    · {unit.detail}
+                                                </span>
+                                            </>
+                                        )}
+                                        {unit.date && (
+                                            <span className="text-xs text-muted-foreground">
+                                                {' '}
+                                                · <DateText date={unit.date} />
+                                            </span>
+                                        )}
                                     </span>
                                     {unit.reason && (
                                         <span className="text-xs text-muted-foreground">

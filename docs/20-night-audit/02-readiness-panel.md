@@ -117,7 +117,8 @@ A package night stored with an even split (before the fix to [package nights](..
 - `ReadinessActionData::fixPrice()` and `ReadinessActionData::dismiss()` open two Dialogs in the sheet's dialog host, on `FormOverlay`: the Fix price preview and the Dismiss reason. Like a fix, a refusal shows on the sheet and the sheet reloads.
 
 - Retry needs `reservations.manage` as well as `night-audit.run`, like the fixes. Like a fix, a refusal shows on the sheet and the sheet reloads.
-- The buttons show on a row with one carried exception, and on each unit of a row with several.
+- The buttons show on a row with one carried exception, and on each entry of a row with several. A row with several carried exceptions has one entry per exception (not per unit), with the business date of its audit.
+- Several carried exceptions on **one unit** read "2 issues — left from an earlier audit" and show their entries directly, with no units toggle and no group reasons (`ReadinessGroupData::flatUnits`). Over several units they read "3 issues on 2 units — left from an earlier audit" and keep the toggle.
 - `ReadinessAdvice` says `exceeds_night_amount` in words: "The night's price is less than its inclusions, so it could not be split."
 
 ## Not built
