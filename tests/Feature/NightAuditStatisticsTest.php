@@ -250,3 +250,19 @@ test('the snapshot copies the live revenue of the date and a second run changes 
         ->and($unit->id)->not->toBeNull()
         ->and(array_column($first[1], 'amount'))->toBe(array_column(DailyRevenue::query()->orderBy('transaction_code_id')->get()->toArray(), 'amount'));
 });
+
+test('a date whose reversals exceed its charges is saved with a negative ADR and RevPAR', function () {
+    ['property' => $property, 'room' => $room] = statsProperty();
+    $roomType = RoomType::factory()->for($property)->create();
+    Room::factory()->count(3)->for($property)->create(['room_type_id' => $roomType->id]);
+    $original = statsLine($property, $room, '300.00', '2026-10-10');
+    statsLine($property, $room, '-300.00', '2026-10-12', attributes: ['folio_id' => $original->folio_id, 'reversal_of_id' => $original->id]);
+    statsLine($property, $room, '150.00', '2026-10-12', attributes: ['folio_id' => $original->folio_id]);
+
+    app(SnapshotStatistics::class)($property, CarbonImmutable::parse('2026-10-12'));
+    $statistic = DailyStatistic::query()->sole();
+
+    expect($statistic->rooms_sold)->toBe(0)
+        ->and($statistic->adr)->toBe('0.00')
+        ->and($statistic->revpar)->toBe('-50.00');
+});

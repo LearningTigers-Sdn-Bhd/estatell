@@ -40,6 +40,8 @@ Both tables are unique on `(property_id, business_date)` (and the code for `dail
 
 `daily_revenue` has one row for each transaction code with lines on the date: the amount and the line count. Charges, taxes and adjustments count, payment lines do not. A line counts on its posting date, so a reversal reduces the date it was posted on. Money math uses `brick/money`.
 
+A date can net below zero: a correction posted today reverses the charges of earlier nights, and today may have fewer new charges. `adr`, `revpar`, `day_use_revenue` and the revenue amounts keep the negative figure, so the statistics match `daily_revenue`. Only `occupancy` is checked to be non-negative.
+
 ## Morning handoff
 
 `NotifyNightAuditResult` (`app/Actions/NightAudit/`) runs in `NotifyNightAuditResultJob` (`app/Jobs/`), which `RunNightAudit` queues when the audit ends, after it is Completed or Failed. The close is already committed by then, and a message that cannot be sent never changes the audit. A resumed audit sends one message for each end: a Failed message when it fails and a Completed or Exceptions message when it completes. The Action sends one of:
