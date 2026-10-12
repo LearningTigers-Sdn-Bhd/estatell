@@ -18,6 +18,7 @@ use App\Models\ChargeItem;
 use App\Models\Property;
 use App\Models\PropertyAgeGroup;
 use App\Models\Tax;
+use App\Services\Boats\BoatFareUsage;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -58,7 +59,7 @@ class ChargeItemController extends Controller
         return to_route('settings.charge-items.edit', [$property, $chargeItem]);
     }
 
-    public function edit(Property $property, ChargeItem $chargeItem): Response
+    public function edit(Property $property, ChargeItem $chargeItem, BoatFareUsage $boatFareUsage): Response
     {
         abort_if($property->settings === null, 404);
 
@@ -66,6 +67,7 @@ class ChargeItemController extends Controller
 
         return Inertia::render('settings/charge-items/edit', [
             'chargeItem' => ChargeItemData::fromModel($chargeItem->load('transactionCode.applicableTaxes')),
+            'autoAddLocked' => $boatFareUsage->isUsedByAnyDeparture($chargeItem),
             'childPrices' => $property->ageGroups()->ordered()->get()
                 ->map(fn (PropertyAgeGroup $ageGroup): ChargeItemChildPriceData => ChargeItemChildPriceData::forAgeGroup($chargeItem, $ageGroup, $prices->get($ageGroup->id)))
                 ->all(),

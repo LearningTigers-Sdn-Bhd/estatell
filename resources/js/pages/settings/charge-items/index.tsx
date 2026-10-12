@@ -5,6 +5,7 @@ import { EmptyState } from '@/components/pms/empty-state';
 import { EnumSelect } from '@/components/pms/enum-select';
 import { FormOverlay } from '@/components/pms/form-overlay';
 import { PageHeader } from '@/components/pms/page-header';
+import { suggestCode } from '@/lib/charge-code';
 import { Badge } from '@/components/ui/badge';
 import { Button, buttonVariants } from '@/components/ui/button';
 import {
@@ -34,16 +35,6 @@ import {
 type ChargeItem = App.Data.Catalogues.ChargeItemData;
 type Tax = App.Data.Catalogues.ChargeItemTaxData;
 type Option = { value: string; label: string };
-
-/** The charge code suggested from a name: upper case, `_` between words, at most 20 characters. */
-function suggestCode(name: string): string {
-    return name
-        .toUpperCase()
-        .replace(/[^A-Z0-9]+/g, '_')
-        .replace(/^_+|_+$/g, '')
-        .slice(0, 20)
-        .replace(/_+$/, '');
-}
 
 /** The full values of an item, for saving a change that does not come from the edit page. */
 function formValues(chargeItem: ChargeItem) {

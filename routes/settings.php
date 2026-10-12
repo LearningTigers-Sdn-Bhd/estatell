@@ -2,6 +2,7 @@
 
 use App\Enums\PermissionEnum;
 use App\Http\Controllers\Boats\BoatDepartureController;
+use App\Http\Controllers\Boats\BoatFareController;
 use App\Http\Controllers\Catalogues\ChargeItemController;
 use App\Http\Controllers\Catalogues\DiscountController;
 use App\Http\Controllers\Catalogues\PaymentMethodController;
@@ -130,6 +131,11 @@ Route::prefix('settings')->name('settings.')->group(function () {
             Route::post('/', [BoatDepartureController::class, 'store'])->name('store');
             Route::put('{boatDeparture}', [BoatDepartureController::class, 'update'])->name('update');
             Route::delete('{boatDeparture}', [BoatDepartureController::class, 'destroy'])->name('destroy');
+        });
+        Route::prefix('boats/fares')->name('boats.fares.')->group(function () {
+            Route::get('/', [BoatFareController::class, 'index'])->name('index');
+            Route::post('/', [BoatFareController::class, 'store'])->name('store');
+            Route::put('{chargeItem}', [BoatFareController::class, 'update'])->name('update');
         });
     });
 

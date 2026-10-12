@@ -12,11 +12,30 @@ chargeItemId: number | null,
 fare: App.Data.Boats.BoatFareData | null,
 active: boolean,
 };
+export type BoatFareAgeGroupData = {
+ageGroupId: number,
+label: string,
+minAge: number,
+maxAge: number,
+};
 export type BoatFareData = {
 id: number,
 name: string,
 amount: string | null,
 active: boolean,
+};
+export type BoatFareRowData = {
+id: number,
+name: string,
+code: string,
+amount: string | null,
+allowOverride: boolean,
+active: boolean,
+chargingUnit: App.Enums.ChargingUnit,
+usedBy: number,
+childrenSummary: string,
+taxes: App.Data.Catalogues.ChargeItemTaxData[],
+childPrices: App.Data.Catalogues.ChargeItemChildPriceData[],
 };
 }
 namespace Catalogues {

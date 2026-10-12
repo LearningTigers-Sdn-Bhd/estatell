@@ -255,7 +255,9 @@ function BoatDepartureForm({
                     <FieldDescription>
                         Applies to new boat trips only.
                     </FieldDescription>
-                    <FieldError>{errors.charge_item_id}</FieldError>
+                    <FieldError>
+                        {errors.charge_item_id ?? errors.active}
+                    </FieldError>
                 </Field>
             </FieldGroup>
         </FormOverlay>

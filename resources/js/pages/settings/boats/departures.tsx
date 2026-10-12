@@ -1,8 +1,10 @@
+import { boats } from '@/routes/settings';
 import { Form, Head, router } from '@inertiajs/react';
 import { Plus, Ship } from 'lucide-react';
 import { useState } from 'react';
 import { BoatDepartureSheet } from '@/components/pms/settings/boat-departure-sheet';
 import { BoatDepartureTable } from '@/components/pms/settings/boat-departure-table';
+import { BoatSettingsTabs } from '@/components/pms/settings/boat-settings-tabs';
 import { EmptyState } from '@/components/pms/empty-state';
 import { PageHeader } from '@/components/pms/page-header';
 import { Button } from '@/components/ui/button';
@@ -16,6 +18,7 @@ import {
     AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Spinner } from '@/components/ui/spinner';
+import { toast } from '@/components/ui/toast';
 import { destroy, update } from '@/routes/settings/boats/departures';
 
 type Departure = App.Data.Boats.BoatDepartureData;
@@ -100,6 +103,13 @@ export default function BoatDeparturesPage({
                     preserveScroll: true,
                     onStart: () => setToggling(true),
                     onFinish: () => setToggling(false),
+                    onError: (errors) =>
+                        toast.add({
+                            title:
+                                Object.values(errors)[0] ??
+                                'The change could not be saved.',
+                            type: 'error',
+                        }),
                 },
             );
     };
@@ -114,37 +124,25 @@ export default function BoatDeparturesPage({
                     description="When each boat leaves and arrives. Guests pick a departure on their booking."
                 />
 
-                {directions.map((direction) => {
-                    const rows = departures.filter(
-                        (departure) => departure.direction === direction.value,
-                    );
+                <BoatSettingsTabs activeTab="departures">
+                    {directions.map((direction) => {
+                        const rows = departures.filter(
+                            (departure) =>
+                                departure.direction === direction.value,
+                        );
 
-                    return (
-                        <section
-                            key={direction.value}
-                            className="flex flex-col gap-3"
-                        >
-                            <div className="flex items-center justify-between gap-4">
-                                <h2 className="text-base font-medium">
-                                    {direction.label}
-                                </h2>
-                                {rows.length > 0 && (
-                                    <Button
-                                        variant="outline"
-                                        onClick={() => openAdd(direction.value)}
-                                    >
-                                        <Plus data-icon="inline-start" />
-                                        Add departure
-                                    </Button>
-                                )}
-                            </div>
-
-                            {rows.length === 0 ? (
-                                <EmptyState
-                                    icon={Ship}
-                                    title={`No ${direction.label.toLowerCase()} departures yet.`}
-                                    action={
+                        return (
+                            <section
+                                key={direction.value}
+                                className="flex flex-col gap-3"
+                            >
+                                <div className="flex items-center justify-between gap-4">
+                                    <h2 className="text-base font-medium">
+                                        {direction.label}
+                                    </h2>
+                                    {rows.length > 0 && (
                                         <Button
+                                            variant="outline"
                                             onClick={() =>
                                                 openAdd(direction.value)
                                             }
@@ -152,21 +150,38 @@ export default function BoatDeparturesPage({
                                             <Plus data-icon="inline-start" />
                                             Add departure
                                         </Button>
-                                    }
-                                />
-                            ) : (
-                                <BoatDepartureTable
-                                    departures={rows}
-                                    money={money}
-                                    togglingIds={togglingIds}
-                                    onToggleActive={toggleActive}
-                                    onEdit={openEdit}
-                                    onDelete={setDeleting}
-                                />
-                            )}
-                        </section>
-                    );
-                })}
+                                    )}
+                                </div>
+
+                                {rows.length === 0 ? (
+                                    <EmptyState
+                                        icon={Ship}
+                                        title={`No ${direction.label.toLowerCase()} departures yet.`}
+                                        action={
+                                            <Button
+                                                onClick={() =>
+                                                    openAdd(direction.value)
+                                                }
+                                            >
+                                                <Plus data-icon="inline-start" />
+                                                Add departure
+                                            </Button>
+                                        }
+                                    />
+                                ) : (
+                                    <BoatDepartureTable
+                                        departures={rows}
+                                        money={money}
+                                        togglingIds={togglingIds}
+                                        onToggleActive={toggleActive}
+                                        onEdit={openEdit}
+                                        onDelete={setDeleting}
+                                    />
+                                )}
+                            </section>
+                        );
+                    })}
+                </BoatSettingsTabs>
             </div>
 
             <BoatDepartureSheet
@@ -236,3 +251,7 @@ export default function BoatDeparturesPage({
         </>
     );
 }
+
+BoatDeparturesPage.layout = {
+    breadcrumbs: [{ title: 'Boats', href: boats() }],
+};

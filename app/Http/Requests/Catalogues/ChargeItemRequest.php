@@ -9,6 +9,7 @@ use App\Models\ChargeItem;
 use App\Models\Property;
 use App\Models\Tax;
 use App\Models\TransactionCode;
+use App\Services\Boats\BoatFareUsage;
 use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Database\Eloquent\Builder;
@@ -58,7 +59,7 @@ class ChargeItemRequest extends FormRequest
     /**
      * @return array<string, ValidationRule|array<mixed>|string>
      */
-    private function allRules(): array
+    protected function allRules(): array
     {
         $property = $this->route('property');
         if (! $property instanceof Property) {
@@ -106,9 +107,19 @@ class ChargeItemRequest extends FormRequest
             'allow_override' => ['required', 'boolean'],
             'auto_add' => [
                 'sometimes', 'boolean',
-                function (string $attribute, mixed $value, Closure $fail): void {
-                    if (filter_var($value, FILTER_VALIDATE_BOOLEAN) && ! filled($this->input('default_amount'))) {
+                function (string $attribute, mixed $value, Closure $fail) use ($current): void {
+                    if (! filter_var($value, FILTER_VALIDATE_BOOLEAN)) {
+                        return;
+                    }
+
+                    if (! filled($this->input('default_amount'))) {
                         $fail(__('Set a fixed price first. An item priced when charging cannot be added to every new booking.'));
+
+                        return;
+                    }
+
+                    if ($current instanceof ChargeItem && app(BoatFareUsage::class)->isUsedByAnyDeparture($current)) {
+                        $fail(__('Boat trips add this fare. Turn off Add to every new booking first.'));
                     }
                 },
             ],

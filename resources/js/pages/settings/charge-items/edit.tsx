@@ -1,13 +1,9 @@
 import { Head, Link, useForm } from '@inertiajs/react';
 import { useState } from 'react';
-import { ChildPriceTable } from '@/components/pms/child-price-table';
-import { EmptyState } from '@/components/pms/empty-state';
+import { ChargeItemChildrenField } from '@/components/pms/charge-item-children-field';
+import { ChargeItemTaxesField } from '@/components/pms/charge-item-taxes-field';
 import { EnumSelect } from '@/components/pms/enum-select';
 import { FormActions } from '@/components/pms/form-actions';
-import {
-    MultiCombobox,
-    type MultiComboboxOption,
-} from '@/components/pms/multi-combobox';
 import { PageHeader } from '@/components/pms/page-header';
 import { UnsavedChangesDialog } from '@/components/pms/unsaved-changes-dialog';
 import { Badge } from '@/components/ui/badge';
@@ -32,6 +28,11 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Spinner } from '@/components/ui/spinner';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { useUnsavedChanges } from '@/hooks/use-unsaved-changes';
 import { cn } from '@/lib/utils';
 import { edit, index, update } from '@/routes/settings/charge-items';
@@ -56,18 +57,6 @@ const pricingOptions = [
     },
 ];
 
-function taxLabel(tax: Tax, currency: App.Enums.Currency): string {
-    const rate =
-        tax.rateType === 'percent'
-            ? `${Number(tax.rate).toFixed(2)}%`
-            : new Intl.NumberFormat(undefined, {
-                  style: 'currency',
-                  currency,
-              }).format(Number(tax.rate));
-
-    return `${tax.name} · ${rate}${tax.enabled ? '' : ' (inactive)'}`;
-}
-
 function Section({
     title,
     className,
@@ -87,6 +76,7 @@ function Section({
 
 export default function ChargeItemEdit({
     chargeItem,
+    autoAddLocked,
     childPrices,
     pricings,
     taxes,
@@ -95,6 +85,8 @@ export default function ChargeItemEdit({
     currency,
 }: {
     chargeItem: ChargeItem;
+    /** A boat departure uses this fare, so it is added by boat trips and never by the auto-add. */
+    autoAddLocked: boolean;
     childPrices: ChildPrice[];
     pricings: Option[];
     taxes: Tax[];
@@ -124,10 +116,6 @@ export default function ChargeItemEdit({
     );
     const guard = useUnsavedChanges(form.isDirty);
     const isStarter = chargeItem.isStarter;
-    const taxItems: MultiComboboxOption[] = taxes.map((tax) => ({
-        value: String(tax.id),
-        label: taxLabel(tax, currency),
-    }));
 
     const setPricing = (value: string) => {
         const entered = value === 'entered';
@@ -153,6 +141,14 @@ export default function ChargeItemEdit({
         form.data.charging_unit,
     );
     const errors = form.errors as Record<string, string | undefined>;
+    const autoAddSwitch = (
+        <Switch
+            id="charge-item-auto-add"
+            checked={form.data.auto_add}
+            onCheckedChange={(checked) => form.setData('auto_add', checked)}
+            disabled={enteredWhenCharging || autoAddLocked}
+        />
+    );
 
     const setChildPrice = (
         index: number,
@@ -437,35 +433,15 @@ export default function ChargeItemEdit({
 
                         {usesChildPrices && (
                             <Section title="Children" className="lg:col-span-2">
-                                {childPrices.length === 0 ? (
-                                    <EmptyState
-                                        title="No age groups"
-                                        description="Every guest counts as an adult. Add age groups in the property settings to price children separately."
-                                    />
-                                ) : (
-                                    <>
-                                        <p className="text-sm text-muted-foreground">
-                                            {enteredWhenCharging
-                                                ? 'This item has no default amount, so a child price is Free or a fixed amount.'
-                                                : 'A percentage is taken from the default amount. Adults pay the full amount.'}
-                                        </p>
-                                        <ChildPriceTable
-                                            groups={childPrices}
-                                            rows={form.data.child_prices}
-                                            pricings={pricings}
-                                            currency={currency}
-                                            errors={errors}
-                                            errorPrefix="child_prices"
-                                            percentDisabled={
-                                                enteredWhenCharging
-                                            }
-                                            onChange={setChildPrice}
-                                        />
-                                        <FieldError>
-                                            {errors.child_prices}
-                                        </FieldError>
-                                    </>
-                                )}
+                                <ChargeItemChildrenField
+                                    groups={childPrices}
+                                    rows={form.data.child_prices}
+                                    pricings={pricings}
+                                    currency={currency}
+                                    errors={errors}
+                                    enteredWhenCharging={enteredWhenCharging}
+                                    onChange={setChildPrice}
+                                />
                             </Section>
                         )}
 
@@ -474,22 +450,32 @@ export default function ChargeItemEdit({
                                 orientation="horizontal"
                                 data-invalid={!!form.errors.auto_add}
                             >
-                                <Switch
-                                    id="charge-item-auto-add"
-                                    checked={form.data.auto_add}
-                                    onCheckedChange={(checked) =>
-                                        form.setData('auto_add', checked)
-                                    }
-                                    disabled={enteredWhenCharging}
-                                />
+                                {autoAddLocked ? (
+                                    <Tooltip>
+                                        <TooltipTrigger
+                                            render={
+                                                <span className="inline-flex" />
+                                            }
+                                        >
+                                            {autoAddSwitch}
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            Added by boat trips
+                                        </TooltipContent>
+                                    </Tooltip>
+                                ) : (
+                                    autoAddSwitch
+                                )}
                                 <FieldContent>
                                     <FieldLabel htmlFor="charge-item-auto-add">
                                         Add to every new booking
                                     </FieldLabel>
                                     <FieldDescription>
-                                        {enteredWhenCharging
-                                            ? 'Set a fixed price first.'
-                                            : 'Put this item on every new room as an add-on, so staff do not have to remember it. Existing bookings do not change.'}
+                                        {autoAddLocked
+                                            ? 'Added by boat trips. A boat trip adds this fare, so it is never charged twice.'
+                                            : enteredWhenCharging
+                                              ? 'Set a fixed price first.'
+                                              : 'Put this item on every new room as an add-on, so staff do not have to remember it. Existing bookings do not change.'}
                                     </FieldDescription>
                                     <FieldError>
                                         {form.errors.auto_add}
@@ -499,28 +485,15 @@ export default function ChargeItemEdit({
                         </Section>
 
                         <Section title="Taxes" className="lg:col-span-2">
-                            <Field data-invalid={!!form.errors.tax_ids}>
-                                <FieldLabel htmlFor="charge-item-taxes">
-                                    Taxes
-                                </FieldLabel>
-                                <MultiCombobox
-                                    id="charge-item-taxes"
-                                    name="tax_ids"
-                                    items={taxItems}
-                                    value={form.data.tax_ids}
-                                    onValueChange={(value) =>
-                                        form.setData('tax_ids', value)
-                                    }
-                                    placeholder="No taxes"
-                                    invalid={!!form.errors.tax_ids}
-                                />
-                                <FieldDescription>
-                                    {form.data.tax_ids.length === 0
-                                        ? 'No taxes are added to this item.'
-                                        : 'Taxes added automatically when this item is charged.'}
-                                </FieldDescription>
-                                <FieldError>{form.errors.tax_ids}</FieldError>
-                            </Field>
+                            <ChargeItemTaxesField
+                                taxes={taxes}
+                                currency={currency}
+                                value={form.data.tax_ids}
+                                onValueChange={(value) =>
+                                    form.setData('tax_ids', value)
+                                }
+                                error={form.errors.tax_ids}
+                            />
                         </Section>
                     </div>
                 </div>

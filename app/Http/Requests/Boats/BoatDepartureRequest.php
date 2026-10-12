@@ -78,24 +78,49 @@ class BoatDepartureRequest extends FormRequest
             'charge_item_id' => [
                 'nullable', 'integer',
                 function (string $attribute, mixed $value, Closure $fail) use ($property, $current): void {
-                    // A departure keeps its current fare even when that fare is now unavailable.
-                    if ($value === null || (int) $value === $current?->charge_item_id) {
+                    if ($value === null) {
                         return;
                     }
 
-                    $isAvailableFare = ChargeItem::query()
-                        ->where('property_id', $property->id)
-                        ->whereKey($value)
-                        ->where('active', true)
-                        ->whereHas('transactionCode', fn (Builder $query) => $query->where('category', TransactionCategory::Transport->value))
-                        ->exists();
+                    $fare = $this->fareFor($value, $property);
 
-                    if (! $isAvailableFare) {
+                    if ($fare === null) {
                         $fail(__('Choose a fare from this property.'));
+
+                        return;
+                    }
+
+                    if (! $fare->active) {
+                        // An available departure needs an available fare. A create is always available, and an edit that
+                        // sends no `active` keeps the departure's state; an edit that sends `active` is checked by that rule.
+                        // An unavailable departure keeps its fare, but cannot take a new unavailable one.
+                        if ($this->isMethod('POST') || (! $this->has('active') && $this->savesAvailable($current))) {
+                            $fail(__('Turn the fare :name on first.', ['name' => $fare->name]));
+                        } elseif ((int) $value !== $current?->charge_item_id && ! $this->savesAvailable($current)) {
+                            $fail(__('Choose a fare from this property.'));
+                        }
+                    }
+
+                    if ($fare->auto_add) {
+                        $fail(__('This fare is added to every new booking. Turn that off first.'));
                     }
                 },
             ],
-            'active' => ['sometimes', 'boolean'],
+            'active' => [
+                'sometimes', 'boolean',
+                function (string $attribute, mixed $value, Closure $fail) use ($property): void {
+                    // A create reports its fare on `charge_item_id`, the field the hotelier picks.
+                    if ($this->isMethod('POST') || ! filter_var($value, FILTER_VALIDATE_BOOLEAN)) {
+                        return;
+                    }
+
+                    $fare = $this->input('charge_item_id') === null ? null : $this->fareFor($this->input('charge_item_id'), $property);
+
+                    if ($fare !== null && ! $fare->active) {
+                        $fail(__('Turn the fare :name on first.', ['name' => $fare->name]));
+                    }
+                },
+            ],
         ];
     }
 
@@ -107,5 +132,28 @@ class BoatDepartureRequest extends FormRequest
         return [
             'arrives_at.after' => __('Arrives must be after Leaves.'),
         ];
+    }
+
+    /** A Transport charge item of the property, or null. Active or not. */
+    private function fareFor(mixed $value, Property $property): ?ChargeItem
+    {
+        return ChargeItem::query()
+            ->where('property_id', $property->id)
+            ->whereKey($value)
+            ->whereHas('transactionCode', fn (Builder $query) => $query->where('category', TransactionCategory::Transport->value))
+            ->first();
+    }
+
+    /**
+     * Whether this save makes the departure available: a create always does, an edit does when `active` is sent true,
+     * and an edit without `active` keeps the departure's own state.
+     */
+    private function savesAvailable(?BoatDeparture $current): bool
+    {
+        if ($this->has('active')) {
+            return filter_var($this->input('active'), FILTER_VALIDATE_BOOLEAN);
+        }
+
+        return $current?->active ?? true;
     }
 }

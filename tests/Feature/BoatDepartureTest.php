@@ -206,24 +206,63 @@ test('a fare must be an available Transport item of this property', function (ca
     expect(BoatDeparture::query()->count())->toBe(0);
 })->with([
     'not a Transport item' => [fn (Property $property) => ChargeItem::factory()->for($property)->create()->id],
-    'an unavailable fare' => [fn (Property $property) => boatDepartureTransportFare($property, ['active' => false])->id],
     'another property\'s fare' => [fn () => boatDepartureTransportFare(Property::factory()->create())->id],
 ]);
 
-test('a departure keeps its current fare when that fare becomes unavailable', function () {
+test('a new departure cannot take an unavailable fare, and says to turn the fare on', function () {
+    $owner = User::factory()->owner()->create();
+    $property = $owner->property;
+    boatDepartureEnable($property);
+    $fare = boatDepartureTransportFare($property, ['active' => false]);
+
+    $this->actingAs($owner)
+        ->post(route('settings.boats.departures.store', $property->code), boatDeparturePayload(['charge_item_id' => $fare->id]))
+        ->assertSessionHasErrors(['charge_item_id' => 'Turn the fare Speedboat on first.']);
+
+    expect(BoatDeparture::query()->count())->toBe(0);
+});
+
+test('a departure keeps its current fare when it is unavailable and that fare becomes unavailable', function () {
     $owner = User::factory()->owner()->create();
     $property = $owner->property;
     boatDepartureEnable($property);
     $fare = boatDepartureTransportFare($property);
-    $departure = BoatDeparture::factory()->for($property)->create(['charge_item_id' => $fare->id]);
+    $departure = BoatDeparture::factory()->for($property)->create(['charge_item_id' => $fare->id, 'active' => false]);
     $fare->update(['active' => false]);
 
     $this->actingAs($owner)
-        ->put(route('settings.boats.departures.update', ['property' => $property->code, 'boatDeparture' => $departure->id]), boatDeparturePayload(['charge_item_id' => $fare->id, 'seats' => 18]))
+        ->put(route('settings.boats.departures.update', ['property' => $property->code, 'boatDeparture' => $departure->id]), boatDeparturePayload(['charge_item_id' => $fare->id, 'seats' => 18, 'active' => false]))
         ->assertSessionHasNoErrors();
 
     expect($departure->refresh()->charge_item_id)->toBe($fare->id)
         ->and($departure->seats)->toBe(18);
+});
+
+test('an available departure cannot keep an unavailable fare, on turn-on or an edit that sends active', function () {
+    $owner = User::factory()->owner()->create();
+    $property = $owner->property;
+    boatDepartureEnable($property);
+    $fare = boatDepartureTransportFare($property, ['active' => false]);
+    $departure = BoatDeparture::factory()->for($property)->create(['charge_item_id' => $fare->id, 'active' => false]);
+
+    $this->actingAs($owner)
+        ->put(route('settings.boats.departures.update', ['property' => $property->code, 'boatDeparture' => $departure->id]), boatDeparturePayload(['charge_item_id' => $fare->id, 'active' => true]))
+        ->assertSessionHasErrors(['active' => 'Turn the fare Speedboat on first.']);
+
+    expect($departure->refresh()->active)->toBeFalse();
+});
+
+test('a fare that adds itself to every new booking cannot be a departure\'s fare', function () {
+    $owner = User::factory()->owner()->create();
+    $property = $owner->property;
+    boatDepartureEnable($property);
+    $fare = boatDepartureTransportFare($property, ['auto_add' => true]);
+
+    $this->actingAs($owner)
+        ->post(route('settings.boats.departures.store', $property->code), boatDeparturePayload(['charge_item_id' => $fare->id]))
+        ->assertSessionHasErrors(['charge_item_id' => 'This fare is added to every new booking. Turn that off first.']);
+
+    expect(BoatDeparture::query()->count())->toBe(0);
 });
 
 test('turning a departure off saves at once with a toast, and on again', function () {
