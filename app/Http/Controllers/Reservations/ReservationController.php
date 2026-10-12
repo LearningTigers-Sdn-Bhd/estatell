@@ -7,6 +7,7 @@ use App\Data\Folio\RoutingRulesData;
 use App\Data\Reservations\ReservationActivityData;
 use App\Data\Reservations\ReservationAddOnData;
 use App\Data\Reservations\ReservationListItemData;
+use App\Data\Reservations\ReservationMoneyData;
 use App\Data\Reservations\ReservationStatusCountData;
 use App\Data\Reservations\ReservationUnitData;
 use App\Data\Reservations\ReservationUnitOptionData;
@@ -36,6 +37,7 @@ use App\Services\Folio\RoutingRuleList;
 use App\Services\FrontDesk\GroupCheckOutPreview;
 use App\Services\Guests\CountryOptions;
 use App\Services\Payments\PaymentReceipt;
+use App\Services\Reservations\BookingSummary;
 use App\Services\Reservations\ReservationActivityLog;
 use App\Services\Reservations\ReservationDirectory;
 use App\Services\Reservations\ReservationFormOptions;
@@ -223,6 +225,7 @@ class ReservationController extends Controller
 
         return Inertia::render('reservations/show', [
             'reservation' => $overview['reservation'],
+            'money' => ReservationMoneyData::fromSummary(app(BookingSummary::class)->for($property, $reservation)),
             'units' => $overview['units'],
             'tab' => $tab,
             'autoAssignRooms' => (bool) $property->settings?->auto_assign_rooms,

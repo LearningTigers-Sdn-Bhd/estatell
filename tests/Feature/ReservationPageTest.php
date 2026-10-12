@@ -3,6 +3,7 @@
 use App\Enums\BillingMode;
 use App\Enums\DefaultRoleEnum;
 use App\Enums\ReservationStatus;
+use App\Enums\SystemTransactionCode;
 use App\Models\Folio;
 use App\Models\FolioLine;
 use App\Models\FolioRoutingRule;
@@ -16,10 +17,12 @@ use App\Models\ReservationUnitChild;
 use App\Models\Role;
 use App\Models\Room;
 use App\Models\RoomType;
+use App\Models\TransactionCode;
 use App\Models\UnitAddOn;
 use App\Models\UnitGuest;
 use App\Models\UnitNight;
 use App\Models\User;
+use App\Services\Reservations\BookingSummary;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -465,7 +468,7 @@ test('the page needs a constant number of queries however many units it has', fu
         $few = $queries(2, $route);
         $many = $queries(7, $route);
 
-        expect($many)->toBe($few, "queries on {$route}")->and($many)->toBeLessThanOrEqual(25);
+        expect($many)->toBe($few, "queries on {$route}")->and($many)->toBeLessThanOrEqual(46); // 25 for the page, 21 more for the summary card (`BookingSummary`)
     }
 });
 
@@ -574,4 +577,44 @@ test('Print receipts sends every payment that is not a refund, only with payment
     $staffReservation = pageReservation($staff->property);
     Payment::factory()->create(['folio_id' => Folio::factory()->create(['property_id' => $staff->property_id, 'reservation_id' => $staffReservation->id])->id]);
     $this->actingAs($staff)->get(pageUrl($staff->property, $staffReservation))->assertInertia(fn (Assert $page) => $page->where('receiptPaymentIds', []));
+});
+
+test('the money figures of the summary card match the booking summary', function () {
+    [$user, $property] = pageOwner();
+    $directBill = TransactionCode::factory()->system(SystemTransactionCode::DirectBillPayment)->create(['property_id' => $property->id]);
+    $reservation = pageReservation($property);
+    pageUnit($reservation);
+    $folio = Folio::factory()->master()->create(['property_id' => $property->id, 'reservation_id' => $reservation->id]);
+    FolioLine::factory()->for($folio)->create(['unit_amount' => '300.00', 'amount' => '300.00']);
+    FolioLine::factory()->for($folio)->payment('120.00')->create();
+    FolioLine::factory()->for($folio)->payment('80.00')->create(['transaction_code_id' => $directBill->id]);
+
+    $summary = app(BookingSummary::class)->for($property, $reservation);
+
+    $this->actingAs($user)->get(pageUrl($property, $reservation))->assertInertia(fn (Assert $page) => $page
+        ->where('money.total', $summary->total())
+        ->where('money.paid', '120.00')
+        ->where('money.billedToCompany', '80.00')
+        ->where('money.stillToPay', $summary->balanceDue)
+        ->where('money.isCredit', false));
+});
+
+test('the money figures read credit when paid exceeds the total and zero with nothing booked', function () {
+    [$user, $property] = pageOwner();
+    $reservation = pageReservation($property);
+    pageUnit($reservation);
+    $folio = Folio::factory()->master()->create(['property_id' => $property->id, 'reservation_id' => $reservation->id]);
+    FolioLine::factory()->for($folio)->payment('250.00')->create();
+    $empty = pageReservation($property);
+    pageUnit($empty);
+
+    $this->actingAs($user)->get(pageUrl($property, $reservation))->assertInertia(fn (Assert $page) => $page
+        ->where('money.paid', '250.00')
+        ->where('money.stillToPay', '250.00')
+        ->where('money.isCredit', true));
+
+    $this->get(pageUrl($property, $empty))->assertInertia(fn (Assert $page) => $page
+        ->where('money.total', '0.00')
+        ->where('money.stillToPay', '0.00')
+        ->where('money.isCredit', false));
 });

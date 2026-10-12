@@ -17,6 +17,7 @@ import { show as showGuest } from '@/routes/guests';
 import { show } from '@/routes/reservations';
 import {
     ReservationMarkers,
+    RoomTotalLabel,
     SourceIcon,
     reservationSubtitle,
 } from './reservation-parts';
@@ -26,7 +27,7 @@ type Item = App.Data.Reservations.ReservationListItemData;
 
 /**
  * One reservation as a card: room box, title with markers, stay strip, status, occupancy, room types and the money
- * strip (Total, Paid, Balance).
+ * strip (Room total, Paid, Balance).
  * The title is a stretched link that opens the reservation.
  */
 export function ReservationCard({ reservation }: { reservation: Item }) {
@@ -160,7 +161,10 @@ export function ReservationCard({ reservation }: { reservation: Item }) {
                     </dd>
                 </dl>
                 <dl className="mt-auto grid grid-cols-3 divide-x rounded-lg bg-muted py-2 text-sm">
-                    <MoneyCell label="Total" amount={reservation.total} />
+                    <MoneyCell
+                        label={<RoomTotalLabel />}
+                        amount={reservation.total}
+                    />
                     <MoneyCell
                         label="Paid"
                         amount={reservation.paid}
@@ -182,6 +186,14 @@ export function ReservationCard({ reservation }: { reservation: Item }) {
                         label="Balance"
                         amount={reservation.balance}
                         owing
+                        note={
+                            reservation.depositHeld ? (
+                                <StatusBadge
+                                    status={reservation.depositHeld}
+                                    dot={false}
+                                />
+                            ) : undefined
+                        }
                     />
                 </dl>
             </CardContent>
@@ -199,7 +211,7 @@ function MoneyCell({
     owing = false,
     note,
 }: {
-    label: string;
+    label: ReactNode;
     amount: string;
     owing?: boolean;
     note?: ReactNode;

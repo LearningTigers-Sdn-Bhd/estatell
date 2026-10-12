@@ -350,7 +350,8 @@ test('paid and balance add up the folios that are not Voided, and are 0.00 witho
         $rows = collect($page->toArray()['props']['reservations']['data']);
 
         expect($rows->pluck('paid')->all())->toBe(['150.00', '300.00', '0.00', '0.00'])
-            ->and($rows->pluck('balance')->all())->toBe(['186.00', '-300.00', '0.00', '0.00']);
+            ->and($rows->pluck('balance')->all())->toBe(['186.00', '-300.00', '0.00', '0.00'])
+            ->and($rows->pluck('depositHeld.label')->all())->toBe([null, 'Deposit held', null, null]);
     });
 });
 

@@ -390,7 +390,7 @@ Booker (name, VIP, phone, email; the name is an underlined link to the guest tha
 | Billed to company | City ledger amounts, only above 0                                                         |
 | Still to pay      | Total − Paid − Billed to company. Below 0 it reads "Credit"                               |
 
-Room nights stay in the card as a count. The folio tab keeps each folio's own Balance (posted) and Projected total.
+The figures are sent as the `money` prop (`ReservationMoneyData::fromSummary()` over `BookingSummary`; `stillToPay` is never negative and `isCredit` flips the label to Credit). They add about 21 queries to every tab of the page, a constant number (the query-count test allows 46). Room nights stay in the card as a count. The folio tab keeps each folio's own Balance (posted) and Projected total.
 
 ### Page build status
 

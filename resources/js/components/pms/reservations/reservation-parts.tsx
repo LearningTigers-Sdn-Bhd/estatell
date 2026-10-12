@@ -3,6 +3,7 @@ import {
     BriefcaseBusiness,
     Footprints,
     Globe,
+    Info,
     Network,
     Phone,
     RotateCw,
@@ -43,6 +44,23 @@ function IconWithTooltip({
             </TooltipTrigger>
             <TooltipContent>{label}</TooltipContent>
         </Tooltip>
+    );
+}
+
+/**
+ * "Room total" with an info tooltip: the list and card figure counts room nights only, so a correct payment never
+ * looks like an overpayment.
+ */
+export function RoomTotalLabel() {
+    return (
+        <span className="inline-flex items-center gap-1">
+            Room total
+            <IconWithTooltip
+                icon={Info}
+                label="Room nights only, before tax and extras."
+                className="size-3.5 text-muted-foreground"
+            />
+        </span>
     );
 }
 

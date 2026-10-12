@@ -7,7 +7,11 @@ import { DateText } from '@/components/pms/date-text';
 import { MoneyText } from '@/components/pms/money-text';
 import { StatusBadge } from '@/components/pms/status-badge';
 import { cn } from '@/lib/utils';
-import { ReservationMarkers, reservationSubtitle } from './reservation-parts';
+import {
+    ReservationMarkers,
+    RoomTotalLabel,
+    reservationSubtitle,
+} from './reservation-parts';
 import { show } from '@/routes/reservations';
 import { RoomBox } from './room-box';
 
@@ -116,7 +120,7 @@ export function ReservationList({
                 ),
             }),
             column.accessor('total', {
-                header: 'Total',
+                header: () => <RoomTotalLabel />,
                 cell: (info) => (
                     <MoneyText amount={info.getValue()} currency={currency} />
                 ),
@@ -146,15 +150,24 @@ export function ReservationList({
             column.accessor('balance', {
                 header: 'Balance',
                 cell: (info) => (
-                    <span
-                        className={cn(
-                            Number(info.getValue()) > 0 && 'text-destructive',
+                    <span className="flex flex-col items-start gap-1">
+                        <span
+                            className={cn(
+                                Number(info.getValue()) > 0 &&
+                                    'text-destructive',
+                            )}
+                        >
+                            <MoneyText
+                                amount={info.getValue()}
+                                currency={currency}
+                            />
+                        </span>
+                        {info.row.original.depositHeld && (
+                            <StatusBadge
+                                status={info.row.original.depositHeld}
+                                dot={false}
+                            />
                         )}
-                    >
-                        <MoneyText
-                            amount={info.getValue()}
-                            currency={currency}
-                        />
                     </span>
                 ),
             }),

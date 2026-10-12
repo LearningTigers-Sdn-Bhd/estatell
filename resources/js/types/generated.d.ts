@@ -1834,7 +1834,15 @@ total: string,
 paid: string,
 billedToCompany: string,
 balance: string,
+depositHeld: App.Data.Shared.BadgeData | null,
 roomBox: App.Data.Reservations.ReservationRoomBoxData,
+};
+export type ReservationMoneyData = {
+total: string,
+paid: string,
+billedToCompany: string,
+stillToPay: string,
+isCredit: boolean,
 };
 export type ReservationNightData = {
 id: number,

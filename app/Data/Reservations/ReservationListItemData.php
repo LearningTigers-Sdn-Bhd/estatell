@@ -6,6 +6,7 @@ use App\Data\Shared\BadgeData;
 use App\Enums\ReservationSource;
 use App\Enums\ReservationStatus;
 use App\Enums\StayType;
+use App\Enums\Tone;
 use App\Models\Reservation;
 use App\Models\ReservationUnit;
 use App\Services\Reservations\StayLabel;
@@ -17,7 +18,7 @@ use Spatie\LaravelData\Data;
  * One card or row of the reservations list. Expects the list query of `ReservationDirectory`: the `booker` and
  * `units.roomType` relations and the aggregate columns (`first_arrival`, `last_departure`, `live_units`, `all_units`,
  * `adults`, `children`, `stay_total`, `paid`, `billed`, `balance`). Dates, counts and the total come from units that hold
- * inventory. `paid` (real payments), `billedToCompany` (the DIRECT_BILL line of a folio settled to the city ledger) and `balance` come from the folios that are not Voided, and are 0.00 while the reservation has none.
+ * inventory. `paid` (real payments), `billedToCompany` (the DIRECT_BILL line of a folio settled to the city ledger) and `balance` come from the folios that are not Voided, and are 0.00 while the reservation has none. `depositHeld` is set when the balance is below 0.
  */
 class ReservationListItemData extends Data
 {
@@ -54,6 +55,7 @@ class ReservationListItemData extends Data
         public string $paid,
         public string $billedToCompany,
         public string $balance,
+        public ?BadgeData $depositHeld,
         public ReservationRoomBoxData $roomBox,
     ) {}
 
@@ -66,6 +68,7 @@ class ReservationListItemData extends Data
         $liveUnits = (int) $reservation->getAttribute('live_units');
         $unitCount = $liveUnits > 0 ? $liveUnits : (int) $reservation->getAttribute('all_units');
         $counted = $reservation->units->filter(fn (ReservationUnit $unit): bool => $liveUnits === 0 || $unit->status->holdsInventory());
+        $balance = (string) $reservation->getAttribute('balance');
         $firstArrival = $reservation->getAttribute('first_arrival');
         $lastDeparture = $reservation->getAttribute('last_departure');
 
@@ -101,7 +104,8 @@ class ReservationListItemData extends Data
             total: BigDecimal::of((string) $reservation->getAttribute('stay_total'))->toScale(2)->__toString(),
             paid: (string) $reservation->getAttribute('paid'),
             billedToCompany: (string) $reservation->getAttribute('billed'),
-            balance: (string) $reservation->getAttribute('balance'),
+            balance: $balance,
+            depositHeld: BigDecimal::of($balance)->isNegative() ? new BadgeData('deposit_held', __('Deposit held'), Tone::Info) : null,
             roomBox: $roomBox,
         );
     }

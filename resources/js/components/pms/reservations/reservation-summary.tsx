@@ -6,6 +6,8 @@ import {
     CalendarArrowUp,
     CalendarPlus,
     Globe,
+    HandCoins,
+    Landmark,
     Mail,
     Moon,
     Phone,
@@ -26,6 +28,7 @@ import { show as showCompany } from '@/routes/finance/city-ledger/companies';
 import { show as showGuest } from '@/routes/guests';
 
 type Reservation = App.Data.Reservations.ReservationData;
+type Money = App.Data.Reservations.ReservationMoneyData;
 
 function Row({
     icon: Icon,
@@ -53,10 +56,12 @@ function Row({
  */
 export function ReservationSummary({
     reservation,
+    money,
     canViewCompany,
     currency,
 }: {
     reservation: Reservation;
+    money: Money;
     canViewCompany: boolean;
     currency: App.Enums.Currency | null;
 }) {
@@ -133,28 +138,36 @@ export function ReservationSummary({
                         {reservation.stayLabel ?? reservation.roomNights}
                     </span>
                 </Row>
-                <Row icon={Wallet} label="Stay total">
-                    <MoneyText
-                        amount={reservation.stayTotal}
-                        currency={currency}
-                    />
+                <Row icon={Wallet} label="Total">
+                    <MoneyText amount={money.total} currency={currency} />
                 </Row>
-                <Row icon={Scale} label="Balance">
-                    {reservation.balance === null ? (
-                        <span className="text-muted-foreground">No folio</span>
-                    ) : (
-                        <span
-                            className={cn(
-                                Number(reservation.balance) > 0 &&
-                                    'text-destructive',
-                            )}
-                        >
-                            <MoneyText
-                                amount={reservation.balance}
-                                currency={currency}
-                            />
-                        </span>
-                    )}
+                <Row icon={HandCoins} label="Paid">
+                    <MoneyText amount={money.paid} currency={currency} />
+                </Row>
+                {Number(money.billedToCompany) > 0 && (
+                    <Row icon={Landmark} label="Billed to company">
+                        <MoneyText
+                            amount={money.billedToCompany}
+                            currency={currency}
+                        />
+                    </Row>
+                )}
+                <Row
+                    icon={Scale}
+                    label={money.isCredit ? 'Credit' : 'Still to pay'}
+                >
+                    <span
+                        className={cn(
+                            !money.isCredit &&
+                                Number(money.stillToPay) > 0 &&
+                                'text-destructive',
+                        )}
+                    >
+                        <MoneyText
+                            amount={money.stillToPay}
+                            currency={currency}
+                        />
+                    </span>
                 </Row>
             </dl>
             <Separator />
