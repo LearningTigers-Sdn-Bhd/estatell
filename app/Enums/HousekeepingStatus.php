@@ -43,6 +43,30 @@ enum HousekeepingStatus: string
     }
 
     /**
+     * The status housekeeping moves a room to next, or null when the room is done (Inspected).
+     */
+    public function next(): ?self
+    {
+        return match ($this) {
+            self::Dirty => self::Clean,
+            self::Clean => self::Inspected,
+            self::Inspected => null,
+        };
+    }
+
+    /**
+     * The button label for the action that moves a room into this status.
+     */
+    public function actionLabel(): string
+    {
+        return match ($this) {
+            self::Clean => __('Mark clean'),
+            self::Dirty => __('Mark dirty'),
+            self::Inspected => __('Inspect'),
+        };
+    }
+
+    /**
      * @return list<array{value: string, label: string}>
      */
     public static function options(): array

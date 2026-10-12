@@ -47,7 +47,7 @@ The status enum is `HousekeepingStatus`: Dirty > Clean > Inspected. Any room can
 - Every badge shows an icon and the word, so colour is never the only signal. The tones come from `HousekeepingStatus::tone()`; Out of service uses `Tone::Danger` in the board only.
 - The row ⋯ menu has **Mark dirty** for a Clean or Inspected room (`housekeeping.update`).
 - A user without the permission for the next step sees the badge and no button.
-- Staff cannot pick a status. The button always shows the next legal step, so a refusal is rare. A refusal (a race, a room blocked a moment ago) shows as a plain sentence on that row and the row goes back to its old state.
+- Staff cannot pick a status. The button always shows the next legal step, so a refusal is rare. A refusal (a race, a room blocked a moment ago) shows as a plain sentence in a toast and the row goes back to its old state.
 
 | Refusal code         | Sentence (English)                       |
 | -------------------- | ---------------------------------------- |
@@ -170,7 +170,7 @@ View: ( All ) ( Grouped by room group ) ( Grouped by room type )   Status v  Ass
  ╔═ 2 selected  [ Assign to v ] [ Mark clean ] [ Mark inspected ] [ Priority ] [ Add remark ] [ Print selected ] [ Clear ] ═╗
 ```
 
-- The status button and the remark cell update at once (an optimistic update) and go back if the server refuses, with the sentence on the row. The Inertia v3 optimistic API is checked with `search-docs` before the build.
+- The status button and the remark cell update at once (an optimistic update) and go back if the server refuses, with the sentence in a toast. The Inertia v3 optimistic API is checked with `search-docs` before the build.
 - **Columns** shows only for users with `settings.manage`. **Export** has Print sheet (PDF), Excel and CSV.
 - On a narrow screen the table keeps Room, Status and Action, and the rest moves into the row detail.
 

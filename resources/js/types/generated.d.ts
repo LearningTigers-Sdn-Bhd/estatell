@@ -589,6 +589,48 @@ id: number,
 name: string,
 };
 }
+namespace Housekeeping {
+export type HousekeepingBedBlockData = {
+bedLabel: string,
+reasonLabel: string,
+endsOn: string,
+};
+export type HousekeepingOutOfServiceData = {
+reasonLabel: string,
+endsOn: string,
+notes: string | null,
+};
+export type HousekeepingRoomData = {
+id: number,
+number: string,
+roomGroupId: number | null,
+roomGroupName: string | null,
+roomTypeId: number,
+roomTypeName: string,
+status: App.Data.Shared.BadgeData,
+outOfService: App.Data.Housekeeping.HousekeepingOutOfServiceData | null,
+bedBlocks: App.Data.Housekeeping.HousekeepingBedBlockData[],
+nextStatus: string | null,
+nextStatusLabel: string | null,
+canMarkDirty: boolean,
+assignedTo: number | null,
+assignedName: string | null,
+guest: string | null,
+arrivalDate: string | null,
+arrivalTime: string | null,
+departureDate: string | null,
+departureTime: string | null,
+isStayOver: boolean,
+isPriority: boolean,
+priorityNote: string | null,
+doNotDisturb: boolean,
+reason: string | null,
+};
+export type HousekeepingStaffData = {
+id: number,
+name: string,
+};
+}
 namespace Meals {
 export type MealEntitlementData = {
 date: string,
@@ -2223,6 +2265,8 @@ export type FolioStatus = 'open' | 'closed' | 'voided';
 export type FolioType = 'master' | 'unit' | 'third_party';
 export type Gender = 'male' | 'female';
 export type GuestMatchReason = 'phone' | 'email' | 'id_number' | 'name_and_birth_date' | 'name';
+export type HousekeepingReason = 'departed' | 'stay_over';
+export type HousekeepingRefusal = 'out_of_service' | 'invalid_transition';
 export type HousekeepingStatus = 'clean' | 'dirty' | 'inspected';
 export type IdentityDocumentType = 'mykad' | 'passport' | 'other';
 export type InclusionEnd = 'departure_day' | 'night_before_departure';
@@ -2244,7 +2288,7 @@ export type PaymentStage = 'before_arrival' | 'in_house' | 'departed';
 export type PaymentStatus = 'pending' | 'completed' | 'failed';
 export type PdfFont = 'office' | 'modern' | 'fancy' | 'handwritten';
 export type PdfFontSize = 'small' | 'medium' | 'large';
-export type PermissionEnum = 'settings.manage' | 'staff.view' | 'staff.manage' | 'roles.manage' | 'rooms.view' | 'rooms.manage' | 'rooms.block' | 'notification.manage' | 'rates.view' | 'rates.manage' | 'rates.override-restrictions' | 'guests.view' | 'guests.manage' | 'guests.blacklist' | 'guests.view-documents' | 'guests.merge' | 'guests.anonymize' | 'reservations.view' | 'reservations.manage' | 'reservations.change-price' | 'folio.post-charge' | 'folio.reverse' | 'folio.transfer' | 'folio.discount' | 'folio.discount-open' | 'folio.close' | 'folio.reopen' | 'folio.print-voucher' | 'payment.record' | 'payment.refund' | 'company.view' | 'company.manage' | 'company.credit-override' | 'city-ledger.invoice' | 'city-ledger.credit-note' | 'city-ledger.payment' | 'city-ledger.allocate' | 'registration-card.manage-terms' | 'registration-card.sign' | 'registration-card.send-link' | 'registration-card.void' | 'front-desk.check-in' | 'front-desk.check-out' | 'front-desk.check-in-without-card' | 'front-desk.waive-fees' | 'front-desk.undo-check-in' | 'front-desk.undo-check-out' | 'night-audit.run' | 'night-audit.force' | 'night-audit.receive-report' | 'reports.view';
+export type PermissionEnum = 'settings.manage' | 'staff.view' | 'staff.manage' | 'roles.manage' | 'rooms.view' | 'rooms.manage' | 'rooms.block' | 'notification.manage' | 'rates.view' | 'rates.manage' | 'rates.override-restrictions' | 'guests.view' | 'guests.manage' | 'guests.blacklist' | 'guests.view-documents' | 'guests.merge' | 'guests.anonymize' | 'reservations.view' | 'reservations.manage' | 'reservations.change-price' | 'folio.post-charge' | 'folio.reverse' | 'folio.transfer' | 'folio.discount' | 'folio.discount-open' | 'folio.close' | 'folio.reopen' | 'folio.print-voucher' | 'payment.record' | 'payment.refund' | 'company.view' | 'company.manage' | 'company.credit-override' | 'city-ledger.invoice' | 'city-ledger.credit-note' | 'city-ledger.payment' | 'city-ledger.allocate' | 'registration-card.manage-terms' | 'registration-card.sign' | 'registration-card.send-link' | 'registration-card.void' | 'front-desk.check-in' | 'front-desk.check-out' | 'front-desk.check-in-without-card' | 'front-desk.waive-fees' | 'front-desk.undo-check-in' | 'front-desk.undo-check-out' | 'night-audit.run' | 'night-audit.force' | 'night-audit.receive-report' | 'reports.view' | 'housekeeping.view' | 'housekeeping.update' | 'housekeeping.inspect';
 export type PlatformFeature = 'channel-manager';
 export type PolicyChargeMode = 'free' | 'fixed_amount' | 'percentage';
 export type PolicyRateBasis = 'booked_rate' | 'current_rate';

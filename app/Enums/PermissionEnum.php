@@ -59,6 +59,9 @@ enum PermissionEnum: string
     case NightAuditForce = 'night-audit.force';
     case NightAuditReceiveReport = 'night-audit.receive-report';
     case ReportsView = 'reports.view';
+    case HousekeepingView = 'housekeeping.view';
+    case HousekeepingUpdate = 'housekeeping.update';
+    case HousekeepingInspect = 'housekeeping.inspect';
 
     public function label(): string
     {
@@ -114,6 +117,9 @@ enum PermissionEnum: string
             self::NightAuditForce => __('Force close the night audit'),
             self::NightAuditReceiveReport => __('Receive the night audit report'),
             self::ReportsView => __('View and export reports'),
+            self::HousekeepingView => __('View the housekeeping board'),
+            self::HousekeepingUpdate => __('Update room status, assignments and flags'),
+            self::HousekeepingInspect => __('Mark rooms as inspected'),
         };
     }
 
@@ -137,6 +143,7 @@ enum PermissionEnum: string
             self::FrontDeskCheckIn, self::FrontDeskCheckOut, self::FrontDeskCheckInWithoutCard, self::FrontDeskWaiveFees, self::FrontDeskUndoCheckIn, self::FrontDeskUndoCheckOut => __('Front desk'),
             self::NightAuditRun, self::NightAuditForce, self::NightAuditReceiveReport => __('Night audit'),
             self::ReportsView => __('Reports'),
+            self::HousekeepingView, self::HousekeepingUpdate, self::HousekeepingInspect => __('Housekeeping'),
         };
     }
 

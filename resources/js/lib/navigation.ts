@@ -6,6 +6,7 @@ import {
     Bed,
     Bell,
     Building2,
+    SprayCan,
     CalendarCheck,
     CalendarRange,
     ChartColumn,
@@ -55,6 +56,7 @@ const icons: Record<string, LucideIcon> = {
     moon: Moon,
     shield: Shield,
     tag: Tag,
+    'spray-can': SprayCan,
 };
 
 export function navIcon(name: string): LucideIcon | undefined {

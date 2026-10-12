@@ -36,6 +36,12 @@ class FrontDeskNavigation
                     icon: 'ban',
                     active: request()->routeIs('front-desk.room-blocks.*'),
                 ) : null,
+                $user->can(PermissionEnum::HousekeepingView->value) ? new NavItemData(
+                    title: __('Housekeeping'),
+                    href: route('housekeeping.index', ['property' => $property->code], absolute: false),
+                    icon: 'spray-can',
+                    active: request()->routeIs('housekeeping.*'),
+                ) : null,
             ]))),
             new NavGroupData(label: __('Reservations'), items: array_values(array_filter([
                 $user->can(PermissionEnum::ReservationsView->value) ? new NavItemData(

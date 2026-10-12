@@ -21,6 +21,7 @@ Route::prefix('p/{property:code}')->whereNumber('property')->middleware([EnsureP
         require __DIR__.'/finance.php';
         require __DIR__.'/front-desk.php';
         require __DIR__.'/guests.php';
+        require __DIR__.'/housekeeping.php';
         require __DIR__.'/registration.php';
         require __DIR__.'/reports.php';
         require __DIR__.'/reservations.php';

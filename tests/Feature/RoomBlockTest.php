@@ -369,7 +369,9 @@ test('the front desk sidebar shows room blocks only with rooms.block', function 
     $this->actingAs($housekeeping)
         ->get(route('dashboard', $code))
         ->assertInertia(fn (Assert $page) => $page
-            ->has('navigation.contexts.0.groups', 2)
-            ->where('navigation.contexts.0.groups.1.label', 'Operations')
-            ->where('navigation.contexts.0.groups.1.items.0.title', 'Rate calendar'));
+            ->has('navigation.contexts.0.groups', 3)
+            ->where('navigation.contexts.0.groups.1.label', 'Rooms')
+            ->where('navigation.contexts.0.groups.1.items.0.title', 'Housekeeping')
+            ->where('navigation.contexts.0.groups.2.label', 'Operations')
+            ->where('navigation.contexts.0.groups.2.items.0.title', 'Rate calendar'));
 });
