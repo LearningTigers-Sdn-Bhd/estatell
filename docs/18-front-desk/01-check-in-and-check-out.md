@@ -168,12 +168,14 @@ One Dialog cancels several units, so a group is not cancelled one Dialog at a ti
 | Allowed when | The unit is Confirmed                    | Nothing posted is left (all reversed) and no money is left (refunded)                                      | Same business date, before any night is posted | Checked out on the current business date, and the room is still free tonight |
 | Fee          | Policy may charge                        | Never                                                                                                      | None                                           | None                                                                         |
 | Reports      | Counts as a cancellation                 | Left out                                                                                                   | –                                              | –                                                                            |
-| Result       | Unit Cancelled; Reinstate undoes it      | `voided_at` and a reason on the reservation; its units Cancelled with no fee; hidden from the default list | Unit back to Confirmed, room released          | Unit back to CheckedIn, its folios reopened                                  |
+| Result       | Unit Cancelled; Reinstate undoes it      | `voided_at` and a reason on the reservation; its units Cancelled with no fee; hidden from the default list | Unit back to Confirmed, room assignment kept   | Unit back to CheckedIn, its folios reopened                                  |
 
 - A CheckedIn unit cannot be cancelled: the guest has used the room. Early check-out or check-out is the action.
 - **Void** uses a `voided_at` mark on a Cancelled reservation instead of a new status, so code that reads "closed" statuses does not need a second case (the wastays bug where a voided booking read as Paid).
 - **Undo check-out** keeps every payment and refund made at check-out (ledger lines), reopens the unit folios with their invoice number through `ReopenFolio`, and leaves the room Dirty. It is refused after the night audit (`undo_too_late`), when another unit has the room tonight (`room_taken`), when a unit folio was settled to the city ledger since, and without a reason. After an **early** check-out it does not restore the removed nights or reverse the fee; the Dialog says to extend the stay and reverse the fee if it no longer applies. A guest staying on is Undo check-out, then Extend stay.
-- **Undo check-in** needs `front-desk.check-in` and undo check-out `front-desk.check-out`; both need a reason and log `reservation.unit_check_in_undone` or `reservation.unit_check_out_undone`.
+- **Undo check-in** sets the unit back to Confirmed and clears `checked_in_at`. It is allowed only when the unit checked in during the open business date (`checked_in_at` is at or after `business_dates.opened_at`) and no `night:` or `dayuse:` line is posted for it (`night_posted`), so a day use unit never qualifies. It keeps what check-in posted: payments, collected taxes and deposit, and add-ons posted at check-in stay on the folio, and the Dialog lists them so staff can reverse them from the folio. The room or bed assignment stays; Cancel releases it later. Signed registration cards stay.
+- **Undo check-out** uses the same business date rule on `checked_out_at`.
+- **Permissions.** Undo check-in needs `front-desk.undo-check-in` and Undo check-out `front-desk.undo-check-out`, both Owner and Manager only. Both need a reason and log `reservation.unit_check_in_undone` or `reservation.unit_check_out_undone`. The unit **⋯** menu shows the item only while the rules allow it.
 
 ### Change dates, extend and late check-out
 
@@ -222,7 +224,7 @@ One Dialog cancels several units, so a group is not cancelled one Dialog at a ti
 
 ## Permissions
 
-`front-desk.check-in`, `front-desk.check-out`, `front-desk.check-in-without-card`, `front-desk.waive-fees` (Owner and Manager). The cancel, no-show and reinstate Actions need `reservations.manage`, checked by the route.
+`front-desk.check-in`, `front-desk.check-out`, `front-desk.check-in-without-card`, `front-desk.waive-fees`, `front-desk.undo-check-in`, `front-desk.undo-check-out` (Owner and Manager). The cancel, no-show and reinstate Actions need `reservations.manage`, checked by the route.
 
 ## Build order
 

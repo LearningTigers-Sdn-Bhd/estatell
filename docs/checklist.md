@@ -114,6 +114,8 @@ The critical path: the front desk actions on the reservation, then the night aud
 
 Needed for go-live, but nothing in Now waits for them.
 
+- [ ] `feat(front-desk): undo a check-in made today` — `front-desk.undo-check-in` (Owner, Manager) with a syncing migration, `UnitStatus` allowing CheckedIn → Confirmed, `UndoCheckIn` (open business date by `checked_in_at` against `business_dates.opened_at`, `night_posted` for a `night:` or `dayuse:` line, reason required, payments and posted add-ons kept, room kept, `reservation.unit_check_in_undone`), the **Undo check-in** unit menu item and Dialog that lists what stays, and the group page note and `arrived_today` message pointing to it. Tests: allowed on the same date, refused after the night audit, with a posted night, for day use and without a reason; payments and add-ons stay; a re-check-in does not post an add-on twice; menu and permission scoping. Docs: [Cancel, void and undo](18-front-desk/01-check-in-and-check-out.md#cancel-void-and-undo).
+- [ ] `feat(front-desk): undo a check-out made today` — `front-desk.undo-check-out` (Owner, Manager), CheckedOut → CheckedIn, `UndoCheckOut` (open business date by `checked_out_at`, `room_taken`, a folio settled to the city ledger refused, unit folios reopened through `ReopenFolio`, payments and refunds kept, room left Dirty, nights and early fee not restored, `reservation.unit_check_out_undone`), the **Undo check-out** menu item and Dialog. Tests: reopen keeps the invoice number, refused when the room is taken or the folio is settled to the city ledger, payments stay, menu and permission scoping. Needs: undo a check-in made today. Docs: [Cancel, void and undo](18-front-desk/01-check-in-and-check-out.md#cancel-void-and-undo).
 - [x] `feat(reservations): print every receipt of a reservation` — **⋯ More › Print receipts** on the reservation page: one PDF from `reservations.check-out.receipts` with every payment of the reservation that is not a refund, in id order, shown with `payment.record` when at least one payment exists (also on closed reservations). No new PDF code. Docs: [Reservations list and reservation page](12-reservations/06-reservation-page.md#header), [Group check-out](18-front-desk/05-group-check-out.md).
 - [ ] `feat(housekeeping): add the room status board` — Docs: [Room status board](19-housekeeping/01-room-status-board.md).
 - [x] `feat(catalogues): add the collect at check-in switch to taxes` — `taxes.collect_at_check_in` (default false, on for the Tourism tax preset) and the switch on the tax form. Item 10 needs it for Collect now. Docs: [Taxes](06-catalogues/03-taxes.md).
@@ -169,7 +171,6 @@ For island and jetty properties, behind the `Boats` feature. Build in this order
 ### Front desk corrections
 
 - [ ] `feat(reservations): void a reservation entered by mistake` — only with nothing posted left and no money left; `voided_at` and a reason on the reservation, units Cancelled with no fee, left out of reports and hidden from the default list. Docs: [Cancel, void and undo](18-front-desk/01-check-in-and-check-out.md#cancel-void-and-undo).
-- [ ] `feat(front-desk): undo a check-in or check-out made today` — Undo check-in (same business date, no night posted, room released) and Undo check-out (same business date, room free tonight, unit folios reopened, payments kept; after an early check-out the nights and fee stay), each with a reason and its own permission. Docs: [Cancel, void and undo](18-front-desk/01-check-in-and-check-out.md#cancel-void-and-undo).
 
 ### E-invoicing
 
@@ -391,6 +392,7 @@ Topics on hold. Each one needs a planning session and its docs before it gets co
 | `d4536cc` | feat(reservations): add charge items to every new booking                |
 | `ad1b6d2` | fix(night-audit): fix the price of a stuck package night                 |
 | `f18d2ae` | feat(front-desk): cancel a whole reservation                             |
+| `15689a3` | fix(front-desk): hide early check-out for a unit that arrived today      |
 
 Smaller fixes and reverts are in `git log`.
 

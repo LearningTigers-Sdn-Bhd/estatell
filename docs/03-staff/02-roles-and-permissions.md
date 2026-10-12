@@ -54,6 +54,8 @@ roles    spatie columns + property_id (NOT NULL, FK) + default_role (nullable)
 | `front-desk.check-out`             | Check out a unit                                                      | ✓     | ✓       | Front desk                        |
 | `front-desk.check-in-without-card` | Check in a unit that has no signed registration card                  | ✓     | ✓       | –                                 |
 | `front-desk.waive-fees`            | Choose Do not charge on a cancellation or no-show fee                 | ✓     | ✓       | –                                 |
+| `front-desk.undo-check-in`         | Undo a check-in made on the open business date                        | ✓     | ✓       | –                                 |
+| `front-desk.undo-check-out`        | Undo a check-out made on the open business date                       | ✓     | ✓       | –                                 |
 | `reservations.view`                | Reservations list and reservation page                                | ✓     | ✓       | Front desk, Finance               |
 | `reservations.manage`              | Create reservations, add units, attach guests, edit group and add-ons | ✓     | ✓       | Front desk                        |
 | `reservations.change-price`        | Change the price of booked nights                                     | ✓     | ✓       | Finance                           |
