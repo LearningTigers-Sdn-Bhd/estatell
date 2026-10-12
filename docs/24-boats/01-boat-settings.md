@@ -7,7 +7,7 @@ Island and jetty properties (Perhentian, Redang, Tioman, Semporna) bring guests 
 ## Feature flag
 
 - Pennant feature `Boats` (`App\Features\Boats`, `#[Name('boats')]`), off by default. A platform admin turns it on per property on the admin Features tab (see [Feature flags](../01-platform/03-feature-flags.md)). `PlatformFeature::Boats` lists it.
-- With the feature off, the Boats settings item, the boat fields on bookings, the manifest and the meal time rule are hidden or off, and the boat routes return 404.
+- With the feature off, the Boats settings item, the boat fields on bookings, the manifest and the meal time rule are hidden or off, and the boat routes return 404. A small `boats` middleware does this, not Pennant's `EnsureFeaturesAreActive`, whose inactive handler is global and is kept for the Channels upsell (see [Feature flags](../01-platform/03-feature-flags.md)).
 - Turning the feature off keeps all boat data. Turning it on again shows it as it was.
 
 ## Data model
@@ -30,10 +30,10 @@ boat_departures  id, property_id, direction (BoatDirection),
 
 ## Enums
 
-| Enum                  | Cases (label)                    | Notes                                                                   |
-| --------------------- | -------------------------------- | ----------------------------------------------------------------------- |
-| `BoatDirection`       | In ("Boat in"), Out ("Boat out") | `propertyTime(BoatDeparture)`: `arrives_at` for In, `leaves_at` for Out |
-| `TransactionCategory` | adds Transport ("Transport")     | In `chargeItemCases()`. Marks a charge item as a fare                   |
+| Enum                  | Cases (label)                    | Notes                                                                                   |
+| --------------------- | -------------------------------- | --------------------------------------------------------------------------------------- |
+| `BoatDirection`       | In ("Boat in"), Out ("Boat out") | `propertyTime(BoatDeparture)`: `arrives_at` for In, `leaves_at` for Out                 |
+| `TransactionCategory` | adds Transport ("Transport")     | In `chargeItemCases()`, so also a folio routing category. Marks a charge item as a fare |
 
 ## Where it lives
 
@@ -123,13 +123,13 @@ Fare           [Speedboat · RM35.00       ▾]
 
 ### Rules
 
-| Rule   | Detail                                                                                     |
-| ------ | ------------------------------------------------------------------------------------------ |
-| Unique | One departure per direction per Leaves time. Message: "A boat in already leaves at 09:00." |
-| Times  | Arrives after Leaves (database CHECK). Message: "Arrives must be after Leaves."            |
-| Seats  | Empty, or a whole number above 0 (database CHECK)                                          |
-| Fare   | An available Transport charge item of the property, or none                                |
-| Delete | Only when never used. Otherwise turn the switch off.                                       |
+| Rule   | Detail                                                                                                            |
+| ------ | ----------------------------------------------------------------------------------------------------------------- |
+| Unique | One departure per direction per Leaves time. Message: "A boat in already leaves at 09:00."                        |
+| Times  | Arrives after Leaves (database CHECK). Message: "Arrives must be after Leaves."                                   |
+| Seats  | Empty, or a whole number above 0 (database CHECK)                                                                 |
+| Fare   | An available Transport charge item of the property, the departure's current fare (even when unavailable), or none |
+| Delete | Only when never used. Otherwise turn the switch off.                                                              |
 
 ## Fares tab
 
@@ -208,6 +208,12 @@ Boats never write `charge_items` directly. Both Actions live in `app/Actions/Boa
 - Fares also show on the Charge items list, with category Transport.
 - On a charge item that a departure uses, **Add to every new booking** is disabled with "Added by boat trips", so a fare is never charged twice.
 - Changing a fare's charging unit there is allowed but not useful. The Fares tab shows the charging unit in muted text when it is not Per guest.
+
+## Build order
+
+- `add boat departures`: one Departures page with no tabs. Nothing uses a departure yet, so Update saves the row only and Delete always works.
+- `add boat fares`: the Fares tab and the `TabLinks`.
+- `set boat trips on units`: the upcoming trip count, the turn-off AlertDialog, moving unit times on Update with its edit note, and the `departure_in_use` refusal.
 
 ## Permissions
 

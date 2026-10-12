@@ -18,6 +18,7 @@ Turn optional capabilities on or off per property, without code changes. The fir
 - `PlatformFeature` enum lists the features admins manage: `label()`, `description()`, `featureClass()`.
 - Routes use `EnsureFeaturesAreActive::using(ChannelManager::class)` (from the Channels module).
 - `EnsureFeaturesAreActive::whenInactive()` redirects to an upsell page instead of a 400 response (from the Channels module).
+- A feature whose routes must return 404 when off uses its own small middleware instead, because `whenInactive()` is global. First case: `Boats` (see [Boat settings](../24-boats/01-boat-settings.md#feature-flag)).
 
 ## Admin UI
 
