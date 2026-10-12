@@ -2,12 +2,15 @@
 
 namespace App\Http\Requests\Reservations;
 
+use App\Data\Boats\BoatTripData;
 use App\Data\Reservations\NewAddOnData;
 use App\Data\Reservations\NewBookingData;
 use App\Data\Reservations\NewBookingGuestData;
 use App\Data\Reservations\NewUnitData;
 use App\Data\Reservations\UnitPickData;
 use App\Enums\BillingMode;
+use App\Enums\BoatDirection;
+use App\Enums\BoatMode;
 use App\Enums\PermissionEnum;
 use App\Enums\ReservationSource;
 use App\Enums\SellUnit;
@@ -48,6 +51,16 @@ class StoreBookingRequest extends FormRequest
             'start_time' => ['required_if:stay_type,day_use', 'nullable', 'date_format:H:i'],
             'arrival_time' => ['nullable', 'date_format:H:i'],
             'departure_time' => ['nullable', 'date_format:H:i'],
+            'boat_in' => ['prohibited_if:stay_type,day_use', 'nullable', 'array'],
+            'boat_in.mode' => ['required_with:boat_in', Rule::enum(BoatMode::class)],
+            'boat_in.boat_departure_id' => ['required_if:boat_in.mode,'.BoatMode::Scheduled->value, 'nullable', 'integer'],
+            'boat_in.time' => ['nullable', 'date_format:H:i'],
+            'boat_in.note' => ['nullable', 'string', 'max:255'],
+            'boat_out' => ['prohibited_if:stay_type,day_use', 'nullable', 'array'],
+            'boat_out.mode' => ['required_with:boat_out', Rule::enum(BoatMode::class)],
+            'boat_out.boat_departure_id' => ['required_if:boat_out.mode,'.BoatMode::Scheduled->value, 'nullable', 'integer'],
+            'boat_out.time' => ['nullable', 'date_format:H:i'],
+            'boat_out.note' => ['nullable', 'string', 'max:255'],
             'group_name' => ['nullable', 'string', 'max:150'],
             'company_id' => ['nullable', 'integer'],
             'credit_override_reason' => ['nullable', 'string', 'max:500'],
@@ -132,6 +145,7 @@ class StoreBookingRequest extends FormRequest
         $units = [];
         $picks = [];
         $unitIndex = 0;
+        $boatTrips = $isDayUse ? [] : $this->boatTrips();
 
         foreach ($this->validated('lines') as $line) {
             $isBed = $this->isBedLine((int) $line['room_type_id']);
@@ -162,6 +176,7 @@ class StoreBookingRequest extends FormRequest
                     serviceDate: isset($addOn['service_date']) ? CarbonImmutable::parse($addOn['service_date']) : null,
                 ), $line['add_ons'] ?? []),
                 declinedAutoAddOns: array_map(intval(...), $line['declined_auto_add_ons'] ?? []),
+                boatTrips: $boatTrips,
             );
 
             foreach (range(0, $beds - 1) as $bed) {
@@ -187,6 +202,26 @@ class StoreBookingRequest extends FormRequest
             creditOverrideReason: $this->user()->can(PermissionEnum::CompanyCreditOverride->value) ? $this->validated('credit_override_reason') : null,
             notes: $this->validated('notes'),
         );
+    }
+
+    /**
+     * The Boat in and Boat out trips of every line. Each unit of the booking takes the same trips.
+     *
+     * @return list<BoatTripData>
+     */
+    private function boatTrips(): array
+    {
+        $trips = [];
+
+        if (is_array($this->validated('boat_in'))) {
+            $trips[] = BoatTripData::fromInput($this->validated('boat_in'), BoatDirection::In);
+        }
+
+        if (is_array($this->validated('boat_out'))) {
+            $trips[] = BoatTripData::fromInput($this->validated('boat_out'), BoatDirection::Out);
+        }
+
+        return $trips;
     }
 
     /**

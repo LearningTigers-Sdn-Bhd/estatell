@@ -28,6 +28,10 @@ class BookingErrorKeys
      */
     public function errors(BookingResult $result, array $unitsPerLine, bool $canOverrideRestrictions): array
     {
+        if ($result->boatDirection !== null) {
+            return ['boat_'.$result->boatDirection => (string) current($this->refusals->boatTripErrors((string) $result->refusal))];
+        }
+
         $errors = $this->refusals->errors((string) $result->refusal, $result->date, $canOverrideRestrictions);
         $field = (string) array_key_first($errors);
         $message = $errors[$field];

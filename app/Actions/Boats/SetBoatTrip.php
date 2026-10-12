@@ -44,7 +44,7 @@ class SetBoatTrip
                     ->first()
                 : null;
 
-            $locked = ReservationUnit::query()->lockForUpdate()->findOrFail($unit->id);
+            $locked = ReservationUnit::query()->with('reservation')->lockForUpdate()->findOrFail($unit->id);
 
             if (! in_array($locked->status, $data->direction->unitStatuses(), true)) {
                 return BoatTripResult::refused(BoatTripResult::REFUSAL_UNIT_NOT_OPEN);

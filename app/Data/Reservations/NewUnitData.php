@@ -2,6 +2,7 @@
 
 namespace App\Data\Reservations;
 
+use App\Data\Boats\BoatTripData;
 use App\Enums\StayType;
 use Carbon\CarbonImmutable;
 use Spatie\LaravelData\Attributes\WithCast;
@@ -21,6 +22,7 @@ class NewUnitData extends Data
      * @param  list<int>  $childAges
      * @param  list<NewAddOnData>  $addOns
      * @param  list<int>  $declinedAutoAddOns  Auto-add charge item ids staff removed from this room on the booking form.
+     * @param  list<BoatTripData>  $boatTrips  Boat in and Boat out trips of this unit, set by `SetBoatTrip` inside the unit's transaction.
      */
     public function __construct(
         public int $roomTypeId,
@@ -45,5 +47,6 @@ class NewUnitData extends Data
         public ?int $hours = null,
         public ?int $roomId = null,
         public array $declinedAutoAddOns = [],
+        public array $boatTrips = [],
     ) {}
 }

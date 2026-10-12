@@ -27,6 +27,7 @@ Route::prefix('reservations')->name('reservations.')->scopeBindings()->group(fun
         Route::post('/', [ReservationBookingController::class, 'store'])->name('store');
         Route::get('free-units', [ReservationBookingController::class, 'freeUnits'])->name('free-units');
         Route::get('day-use-offers', [ReservationBookingController::class, 'dayUseOffers'])->name('day-use-offers');
+        Route::get('boat-seats', [ReservationBookingController::class, 'boatSeats'])->middleware('boats')->name('boat-seats');
     });
 
     Route::middleware('can:'.PermissionEnum::ReservationsView->value)->group(function () {

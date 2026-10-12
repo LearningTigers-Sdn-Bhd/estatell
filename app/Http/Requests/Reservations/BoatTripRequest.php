@@ -39,15 +39,6 @@ class BoatTripRequest extends FormRequest
      */
     public function toTripData(BoatDirection $direction): BoatTripData
     {
-        $mode = BoatMode::from((string) $this->validated('mode'));
-        $scheduled = $mode->needsDeparture();
-
-        return new BoatTripData(
-            direction: $direction,
-            mode: $mode,
-            boatDepartureId: $scheduled && $this->filled('boat_departure_id') ? $this->integer('boat_departure_id') : null,
-            time: $scheduled || ! $this->filled('time') ? null : $this->string('time')->toString(),
-            note: $this->filled('note') ? $this->string('note')->toString() : null,
-        );
+        return BoatTripData::fromInput($this->validated(), $direction);
     }
 }

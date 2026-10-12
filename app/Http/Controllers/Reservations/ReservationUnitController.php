@@ -9,6 +9,7 @@ use App\Actions\Reservations\DetachGuest;
 use App\Actions\Reservations\ReplaceUnitGuest;
 use App\Data\Reservations\NewAddOnData;
 use App\Enums\PermissionEnum;
+use App\Enums\StayType;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Reservations\AddUnitRequest;
 use App\Http\Requests\Reservations\AttachGuestRequest;
@@ -17,6 +18,7 @@ use App\Models\ChargeItem;
 use App\Models\Property;
 use App\Models\Reservation;
 use App\Models\ReservationUnit;
+use App\Services\Boats\CopyableBoatTrips;
 use App\Services\Reservations\AutoAddOns;
 use App\Services\Reservations\ReservationRefusals;
 use App\Services\Reservations\RoutingChangeNotice;
@@ -30,11 +32,13 @@ class ReservationUnitController extends Controller
     /**
      * Add one unit. A refusal goes back to the Sheet as an error on the matching field. A second unit that starts sending room charges to the Master folio saves with a warning toast when a unit's own folio keeps room lines or an advance.
      */
-    public function store(AddUnitRequest $request, Property $property, Reservation $reservation, AddUnit $addUnit, ReservationRefusals $refusals, RoutingChangeNotice $notice, AutoAddOns $autoAddOns): RedirectResponse
+    public function store(AddUnitRequest $request, Property $property, Reservation $reservation, AddUnit $addUnit, ReservationRefusals $refusals, RoutingChangeNotice $notice, AutoAddOns $autoAddOns, CopyableBoatTrips $copyableBoatTrips): RedirectResponse
     {
         $data = $request->toUnitData();
         $autoItems = $autoAddOns->items($property, $data->stayType);
         $data->addOns = array_map(fn (ChargeItem $item): NewAddOnData => new NewAddOnData($item->id), $autoItems);
+        $boatTrips = $data->stayType === StayType::Overnight ? $copyableBoatTrips->forNewUnit($reservation, $property) : ['trips' => [], 'skipped' => []];
+        $data->boatTrips = $boatTrips['trips'];
 
         $result = $addUnit($request->user(), $reservation, $data);
 
@@ -47,6 +51,10 @@ class ReservationUnitController extends Controller
         $message = $autoItems === []
             ? __('Unit added.')
             : __('Unit added with :items.', ['items' => implode(', ', array_map(fn (ChargeItem $item): string => $item->name, $autoItems))]);
+
+        foreach ($boatTrips['skipped'] as $skipped) {
+            $message .= ' '.__(':boat was skipped. It is no longer available.', ['boat' => $skipped]);
+        }
 
         Inertia::flash('toast', $notice->toast($message, $reservation, $result->unitsWithPostedRoomLines, $result->unitAdvances));
 

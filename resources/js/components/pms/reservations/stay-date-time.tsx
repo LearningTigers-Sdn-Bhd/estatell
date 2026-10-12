@@ -19,6 +19,8 @@ type Props = {
     dateLocked?: boolean;
     'aria-invalid'?: boolean;
     timeInvalid?: boolean;
+    /** The time is set by a boat trip: it shows and cannot be typed until the trip is cleared. */
+    timeLocked?: boolean;
     timeLabel: string;
     /** Step of the time input in seconds. 1800 limits a start to the hour and the half hour. */
     step?: number;
@@ -38,6 +40,7 @@ export function StayDateTime({
     max,
     dateLocked = false,
     timeInvalid,
+    timeLocked = false,
     timeLabel,
     step,
     ...props
@@ -67,6 +70,7 @@ export function StayDateTime({
                 aria-label={timeLabel}
                 aria-invalid={timeInvalid}
                 value={time}
+                readOnly={timeLocked}
                 onChange={(event) => onTimeChange(event.target.value)}
                 className="w-32 flex-none rounded-none border-l tabular-nums"
             />

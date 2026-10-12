@@ -81,6 +81,8 @@ class ReservationResult
         public readonly ?string $detail = null,
         /** @var array<int, string> */
         public readonly array $unitAdvances = [],
+        /** The direction (`in` or `out`) of a boat trip that refused the unit, so the form shows it on the Stay row. */
+        public readonly ?string $boatDirection = null,
     ) {}
 
     /**
@@ -92,9 +94,9 @@ class ReservationResult
         return new self($reservation, null, null, null, $unitsWithPostedRoomLines, null, $unitAdvances);
     }
 
-    public static function refused(string $refusal, ?int $lineIndex = null, ?CarbonInterface $date = null, ?string $detail = null): self
+    public static function refused(string $refusal, ?int $lineIndex = null, ?CarbonInterface $date = null, ?string $detail = null, ?string $boatDirection = null): self
     {
-        return new self(null, $refusal, $lineIndex, $date, [], $detail);
+        return new self(null, $refusal, $lineIndex, $date, [], $detail, [], $boatDirection);
     }
 
     public function isRefused(): bool

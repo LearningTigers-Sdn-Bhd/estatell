@@ -92,6 +92,8 @@ test('the posted lines drop the client key and send dorm beds instead of adults 
     };
     const data: BookingForm = {
         stay_type: 'overnight',
+        boat_in: { value: '', note: '' },
+        boat_out: { value: '', note: '' },
         start_time: '',
         source: 'phone',
         external_reference: '',
@@ -162,6 +164,8 @@ test('a day use booking posts the date as departure and no overnight fields', ()
     };
     const data: BookingForm = {
         stay_type: 'day_use',
+        boat_in: { value: '', note: '' },
+        boat_out: { value: '', note: '' },
         start_time: '10:00',
         source: 'phone',
         external_reference: '',
@@ -182,6 +186,8 @@ test('a day use booking posts the date as departure and no overnight fields', ()
 
     expect(payload).toMatchObject({
         stay_type: 'day_use',
+        boat_in: null,
+        boat_out: null,
         start_time: '10:00',
         departure_date: '2026-10-20',
     });
@@ -199,6 +205,8 @@ test('a day use booking posts the date as departure and no overnight fields', ()
 test('an overnight booking sends no start time and no hours', () => {
     const data: BookingForm = {
         stay_type: 'overnight',
+        boat_in: { value: '', note: '' },
+        boat_out: { value: '', note: '' },
         start_time: '10:00',
         source: 'phone',
         external_reference: '',
@@ -287,6 +295,8 @@ test('removing an automatic add-on is remembered once and a manual one is not', 
 test('the posted add-ons carry the declined ids and not the client-only tag', () => {
     const form: BookingForm = {
         stay_type: 'overnight',
+        boat_in: { value: '', note: '' },
+        boat_out: { value: '', note: '' },
         start_time: '',
         source: 'phone',
         external_reference: '',

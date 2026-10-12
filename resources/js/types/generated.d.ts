@@ -12,6 +12,14 @@ chargeItemId: number | null,
 fare: App.Data.Boats.BoatFareData | null,
 active: boolean,
 };
+export type BoatDepartureOptionData = {
+id: number,
+direction: string,
+leavesAt: string,
+propertyTime: string,
+pickupPoint: string | null,
+seats: number | null,
+};
 export type BoatFareAgeGroupData = {
 ageGroupId: number,
 label: string,
@@ -1865,6 +1873,7 @@ startTime: string | null,
 hours: number | null,
 roomId: number | null,
 declinedAutoAddOns: number[],
+boatTrips: App.Data.Boats.BoatTripData[],
 };
 export type NightPriceChangePreviewData = {
 nights: App.Data.Reservations.NightPriceNightData[],

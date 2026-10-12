@@ -2,6 +2,7 @@
 
 namespace App\Actions\Reservations;
 
+use App\Actions\Boats\SetBoatTrip;
 use App\Actions\Folio\SyncRoutingRules;
 use App\Data\Reservations\NewUnitData;
 use App\Enums\DiscountScope;
@@ -45,6 +46,7 @@ class AddUnit
         private SyncRoutingRules $syncRoutingRules,
         private AddDayUseUnit $addDayUseUnit,
         private PackagePricing $packagePricing,
+        private SetBoatTrip $setBoatTrip,
     ) {}
 
     /**
@@ -246,6 +248,14 @@ class AddUnit
 
             if ($addOnResult->isRefused()) {
                 throw new ReservationRefused(ReservationResult::refused((string) $addOnResult->refusal, $lineIndex));
+            }
+        }
+
+        foreach ($data->boatTrips as $boatTrip) {
+            $tripResult = ($this->setBoatTrip)($actor, $unit, $boatTrip);
+
+            if ($tripResult->isRefused()) {
+                throw new ReservationRefused(ReservationResult::refused((string) $tripResult->refusal, $lineIndex, null, null, $boatTrip->direction->value));
             }
         }
 

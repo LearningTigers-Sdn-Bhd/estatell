@@ -32,6 +32,7 @@ import {
 import {
     addDays,
     bookingPayload,
+    bookingSeats,
     autoAddOns,
     emptyLine,
     nightsBetween,
@@ -52,6 +53,16 @@ import {
 import type { BookingTab } from '@/components/pms/reservations/booking-tabs';
 import { FormError } from '@/components/pms/form-error';
 import { StayDateTime } from '@/components/pms/reservations/stay-date-time';
+import { BookingBoatSelect } from '@/components/pms/reservations/booking-boat-select';
+import {
+    departuresFor,
+    isScheduled,
+    NOT_SET,
+    pickedTime,
+    type BoatChoice,
+    type BoatDirection,
+} from '@/components/pms/reservations/boat-trips';
+import { useBoatSeats } from '@/components/pms/reservations/use-boat-seats';
 import {
     DayUseLineRow,
     DayUseLinesHeader,
@@ -118,6 +129,10 @@ type Props = {
     canManageGuests: boolean;
     /** Whether the property has an active Day use plan: it turns the Stay type switch on. */
     hasDayUse: boolean;
+    /** Whether the Boats feature is on: it shows the Boat in and Boat out picks on the Stay row. */
+    hasBoats: boolean;
+    /** The available boat departures, both directions. Each pick filters them by direction. */
+    boatDepartures: App.Data.Boats.BoatDepartureOptionData[];
     countries: EnumOption[];
     genders: EnumOption[];
     locales: EnumOption[];
@@ -167,6 +182,8 @@ export default function ReservationCreate({
     canOverrideRestrictions,
     canManageGuests,
     hasDayUse,
+    hasBoats,
+    boatDepartures,
     countries,
     genders,
     locales,
@@ -187,6 +204,8 @@ export default function ReservationCreate({
         notes: '',
         guests: [emptyGuest()],
         lines: [emptyLine(autoAddOns(chargeItems, 'overnight'))],
+        boat_in: NOT_SET,
+        boat_out: NOT_SET,
     });
     const { data, errors } = form;
     const [quotes, setQuotes] = useState<Record<string, Quote>>({});
@@ -295,6 +314,37 @@ export default function ReservationCreate({
         : autoAssignRooms
           ? 'Auto-assign'
           : 'Select later';
+
+    // The seats are for the dates the stay takes: Boat in on the arrival, Boat out on the departure.
+    const boatInSeats = useBoatSeats(
+        'in',
+        hasBoats && !isDayUse ? data.arrival_date : '',
+    );
+    const boatOutSeats = useBoatSeats(
+        'out',
+        hasBoats && !isDayUse ? departure : '',
+    );
+    const party = bookingSeats(data.lines, roomTypes);
+
+    /** A Boat in or Boat out pick. A scheduled departure also sets the Stay row time, which then locks. */
+    const setBoat = (direction: BoatDirection, choice: BoatChoice) =>
+        form.setData((current) => {
+            const next = {
+                ...current,
+                ...(direction === 'in'
+                    ? { boat_in: choice }
+                    : { boat_out: choice }),
+            };
+            const time = pickedTime(choice, boatDepartures);
+
+            if (time === null) {
+                return next;
+            }
+
+            return direction === 'in'
+                ? { ...next, arrival_time: time }
+                : { ...next, departure_time: time };
+        });
 
     const setLine = (position: number, patch: Partial<BookingLine>) =>
         form.setData(
@@ -524,6 +574,9 @@ export default function ReservationCreate({
                                                     date={data.arrival_date}
                                                     time={data.arrival_time}
                                                     timeLabel="Arrival time"
+                                                    timeLocked={isScheduled(
+                                                        data.boat_in,
+                                                    )}
                                                     dateLocked={isWalkIn}
                                                     min={today}
                                                     max={lastBookable}
@@ -595,6 +648,9 @@ export default function ReservationCreate({
                                                     }
                                                     time={data.departure_time}
                                                     timeLabel="Departure time"
+                                                    timeLocked={isScheduled(
+                                                        data.boat_out,
+                                                    )}
                                                     dateLocked={
                                                         lockedNights !== null
                                                     }
@@ -660,6 +716,44 @@ export default function ReservationCreate({
                                                     onValueChange={switchMode}
                                                 />
                                             </Field>
+                                        </div>
+                                    )}
+                                    {!isDayUse && hasBoats && (
+                                        <div className="grid gap-4 sm:grid-cols-2">
+                                            <BookingBoatSelect
+                                                id="booking-boat-in"
+                                                label="Boat in"
+                                                value={data.boat_in}
+                                                onChange={(choice) =>
+                                                    setBoat('in', choice)
+                                                }
+                                                departures={departuresFor(
+                                                    boatDepartures,
+                                                    'in',
+                                                )}
+                                                seats={boatInSeats.seats}
+                                                seatsLoaded={boatInSeats.loaded}
+                                                bookingSeats={party}
+                                                error={errors.boat_in}
+                                            />
+                                            <BookingBoatSelect
+                                                id="booking-boat-out"
+                                                label="Boat out"
+                                                value={data.boat_out}
+                                                onChange={(choice) =>
+                                                    setBoat('out', choice)
+                                                }
+                                                departures={departuresFor(
+                                                    boatDepartures,
+                                                    'out',
+                                                )}
+                                                seats={boatOutSeats.seats}
+                                                seatsLoaded={
+                                                    boatOutSeats.loaded
+                                                }
+                                                bookingSeats={party}
+                                                error={errors.boat_out}
+                                            />
                                         </div>
                                     )}
                                     <div

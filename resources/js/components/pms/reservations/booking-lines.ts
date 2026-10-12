@@ -1,5 +1,10 @@
 import type { BookingGuest } from '@/components/pms/reservations/booking-guests';
 import { guestsPayload } from '@/components/pms/reservations/booking-guests';
+import {
+    boatTripPayload,
+    NOT_SET,
+    type BoatChoice,
+} from '@/components/pms/reservations/boat-trips';
 
 /** One booking line of the form: a room type and rate plan, the party, and what is picked for it. */
 export type BookingAddOn = {
@@ -50,6 +55,9 @@ export type BookingForm = {
     notes: string;
     guests: BookingGuest[];
     lines: BookingLine[];
+    /** Overnight only: the Boat in and Boat out picks, applied to every line. A day use block takes none. */
+    boat_in: BoatChoice;
+    boat_out: BoatChoice;
 };
 
 type RoomTypeOption = App.Data.Reservations.RoomTypeOptionData;
@@ -280,6 +288,24 @@ export function quotePayload(
     };
 }
 
+/**
+ * The party of the booking on its stay: the guests of every unit, counted for the boat seats. A bed unit holds one guest.
+ */
+export function bookingSeats(
+    lines: BookingLine[],
+    roomTypes: RoomTypeOption[],
+): number {
+    return lines.reduce((sum, line) => {
+        const isBed =
+            roomTypes.find((type) => String(type.id) === line.room_type_id)
+                ?.isBed === true;
+        const adults = Number.parseInt(line.adults, 10) || 0;
+        const people = isBed ? 1 : adults + line.child_ages.length;
+
+        return sum + unitsInLine(line, roomTypes) * people;
+    }, 0);
+}
+
 /** The add-ons that have a charge item, without the client-only `auto` tag. */
 function sendableAddOns(addOns: BookingAddOn[]) {
     return addOns
@@ -293,6 +319,8 @@ export function bookingPayload(data: BookingForm, roomTypes: RoomTypeOption[]) {
         return {
             ...data,
             departure_date: data.arrival_date,
+            boat_in: null,
+            boat_out: null,
             guests: guestsPayload(data.guests),
             lines: data.lines.map((line) => {
                 const { key: _key, ...rest } = line;
@@ -314,6 +342,11 @@ export function bookingPayload(data: BookingForm, roomTypes: RoomTypeOption[]) {
     return {
         ...data,
         start_time: '',
+        boat_in: boatTripPayload(data.boat_in ?? NOT_SET, data.arrival_time),
+        boat_out: boatTripPayload(
+            data.boat_out ?? NOT_SET,
+            data.departure_time,
+        ),
         guests: guestsPayload(data.guests),
         lines: data.lines.map((line) => {
             const isBed = roomTypeOf(line, roomTypes)?.isBed === true;

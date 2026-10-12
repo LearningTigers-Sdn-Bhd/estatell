@@ -89,9 +89,12 @@ Boat out  [Not set ▾]
 
 - Each select lists **Not set**, the available departures of that direction with seats, **Charter** and **Own boat**.
 - Picking a departure fills the matching time input with its property-side time and locks it. Picking Charter or Own unlocks the time and shows a **Note** input.
-- Seats are counted for the form's arrival and departure dates.
+- Seats are counted for the form's arrival and departure dates. The form reads `GET /p/{code}/reservations/boat-seats?direction=in&date=2026-10-12` (`reservations.boat-seats`, `reservations.manage`, `boats`), which returns `{"seats": {"<departure id>": 14}}` from `BoatSeats::forDate`. The picker label shows the saved count. The over-seats warning also adds this booking's guests, in the browser only.
+- A Scheduled trip sends no time: `SetBoatTrip` takes it from the departure. Charter and Own send the Stay row's arrival time (In) or departure time (Out).
+- A refused trip refuses the whole booking (`AddUnit` throws `ReservationRefused`). The error shows on `boat_in` or `boat_out` on the Stay row, not on a line.
+- **Day use has no boat trips.** A day use unit's times are its start and end, and a trip would overwrite them. The Boat row is hidden on day use, the request refuses `boat_in` and `boat_out` there, and Add unit copies no trips onto a day use reservation.
 - The request sends `boat_in` and `boat_out` (each `BoatTripData` or null). `NewUnitData` gains `boat_trips`. `AddUnit` calls `SetBoatTrip` for each trip inside its transaction, so a booking stays all or nothing, as with add-ons.
-- **Add unit** on the reservation page copies the first unit's trips, as it copies the times. A trip whose departure is now unavailable is skipped, and the toast says so. Add unit is not refused.
+- **Add unit** on the reservation page copies the first unit's trips, as it copies the times. A trip whose departure is now unavailable is skipped, and the toast says so ("Boat in 09:00 was skipped. It is no longer available."). Add unit is not refused. The copy is read by `CopyableBoatTrips` in the controller; `AddUnit` stays strict.
 - Channel and company portal bookings arrive without trips. The [dashboard](#dashboard) lists them.
 
 ## Reservation page

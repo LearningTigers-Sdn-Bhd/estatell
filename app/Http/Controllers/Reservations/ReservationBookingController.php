@@ -4,11 +4,14 @@ namespace App\Http\Controllers\Reservations;
 
 use App\Actions\Reservations\CreateBooking;
 use App\Enums\BillingMode;
+use App\Enums\BoatDirection;
 use App\Enums\Gender;
 use App\Enums\Locale;
 use App\Enums\PermissionEnum;
 use App\Enums\ReservationSource;
+use App\Features\Boats;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Reservations\BoatSeatsRequest;
 use App\Http\Requests\Reservations\DayUseOffersRequest;
 use App\Http\Requests\Reservations\FreeUnitsRequest;
 use App\Http\Requests\Reservations\QuoteBookingLineRequest;
@@ -18,6 +21,7 @@ use App\Models\RatePlan;
 use App\Models\RoomType;
 use App\Services\Availability\DayUseAvailability;
 use App\Services\Availability\FreeUnits;
+use App\Services\Boats\BoatSeats;
 use App\Services\CityLedger\CompanyOptions;
 use App\Services\Guests\CountryOptions;
 use App\Services\NightAudit\CurrentBusinessDate;
@@ -32,6 +36,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
+use Laravel\Pennant\Feature;
 
 class ReservationBookingController extends Controller
 {
@@ -145,6 +150,23 @@ class ReservationBookingController extends Controller
         )]);
     }
 
+    /**
+     * The seats taken on each available departure of one direction for one date, for the Boat in and Boat out pickers.
+     * Counts only: a full boat is a warning in the form, never a refusal. Departures of another property do not appear.
+     */
+    public function boatSeats(BoatSeatsRequest $request, Property $property, BoatSeats $boatSeats): JsonResponse
+    {
+        $direction = BoatDirection::from($request->string('direction')->toString());
+        $departureIds = $property->boatDepartures()
+            ->where('direction', $direction->value)
+            ->where('active', true)
+            ->pluck('id')
+            ->map(intval(...))
+            ->all();
+
+        return response()->json(['seats' => (object) $boatSeats->forDate($direction, $request->date('date', 'Y-m-d')->toImmutable(), $departureIds)]);
+    }
+
     private function form(Request $request, Property $property, ReservationFormOptions $options, CurrentBusinessDate $businessDate, PropertyToday $today, bool $walkIn): Response
     {
         $canManageGuests = $request->user()->can(PermissionEnum::GuestsManage->value);
@@ -164,6 +186,8 @@ class ReservationBookingController extends Controller
             'canOverrideCredit' => $request->user()->can(PermissionEnum::CompanyCreditOverride->value),
             'companies' => $request->user()->can(PermissionEnum::CompanyView->value) ? app(CompanyOptions::class)->active($property) : [],
             'hasDayUse' => $property->ratePlans()->active()->dayUse()->exists(),
+            'hasBoats' => Feature::for($property)->active(Boats::class),
+            'boatDepartures' => Feature::for($property)->active(Boats::class) ? $options->boatDepartures($property) : [],
             'autoAssignRooms' => (bool) $property->settings?->auto_assign_rooms,
             'currency' => $property->settings?->currency,
             'canOverrideRestrictions' => $request->user()->can(PermissionEnum::RatesOverrideRestrictions->value),

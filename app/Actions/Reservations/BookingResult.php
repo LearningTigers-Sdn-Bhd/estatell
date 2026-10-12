@@ -25,6 +25,7 @@ class BookingResult
         public readonly ?int $guestIndex,
         public readonly ?int $unitIndex,
         public readonly ?CarbonInterface $date,
+        public readonly ?string $boatDirection = null,
     ) {}
 
     public static function created(Reservation $reservation): self
@@ -32,9 +33,9 @@ class BookingResult
         return new self($reservation, null, null, null, null, null);
     }
 
-    public static function refused(string $refusal, ?int $lineIndex = null, ?int $guestIndex = null, ?int $unitIndex = null, ?CarbonInterface $date = null): self
+    public static function refused(string $refusal, ?int $lineIndex = null, ?int $guestIndex = null, ?int $unitIndex = null, ?CarbonInterface $date = null, ?string $boatDirection = null): self
     {
-        return new self(null, $refusal, $lineIndex, $guestIndex, $unitIndex, $date);
+        return new self(null, $refusal, $lineIndex, $guestIndex, $unitIndex, $date, $boatDirection);
     }
 
     public function isRefused(): bool

@@ -2,6 +2,7 @@
 
 namespace App\Services\Reservations;
 
+use App\Data\Boats\BoatDepartureOptionData;
 use App\Data\Folio\FolioDiscountOptionData;
 use App\Data\Payments\PaymentFormOptionsData;
 use App\Data\Payments\PaymentMethodOptionData;
@@ -15,6 +16,7 @@ use App\Enums\DiscountScope;
 use App\Enums\DiscountType;
 use App\Enums\PaymentMethodType;
 use App\Enums\TransactionKind;
+use App\Models\BoatDeparture;
 use App\Models\ChargeItem;
 use App\Models\Discount;
 use App\Models\PaymentMethod;
@@ -56,6 +58,17 @@ class ReservationFormOptions
     {
         return ChargeItem::query()->where('property_id', $property->id)->active()->ordered()->get()
             ->map(ChargeItemOptionData::fromModel(...))->all();
+    }
+
+    /**
+     * The active boat departures the booking form picks from. Bounded: a few rows a day.
+     *
+     * @return list<BoatDepartureOptionData>
+     */
+    public function boatDepartures(Property $property): array
+    {
+        return BoatDeparture::query()->where('property_id', $property->id)->where('active', true)->ordered()->get()
+            ->map(BoatDepartureOptionData::fromModel(...))->all();
     }
 
     /**

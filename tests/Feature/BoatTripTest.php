@@ -400,3 +400,12 @@ test('the trip routes are 404 for a unit of another reservation or another prope
 
     expect(UnitBoatTrip::query()->count())->toBe(0);
 });
+
+test('a refused trip route puts the message on its field', function () {
+    $fixture = boatTripFixture();
+    $params = ['property' => $fixture['property']->code, 'reservation' => $fixture['reservation']->id, 'unit' => $fixture['unit']->id, 'direction' => 'in'];
+
+    $this->actingAs($fixture['owner'])
+        ->put(route('reservations.units.boat-trips.set', $params), ['mode' => 'scheduled', 'boat_departure_id' => $fixture['out']->id])
+        ->assertSessionHasErrors(['boat_departure_id' => 'This boat is not available for this direction. Choose another.']);
+});

@@ -64,7 +64,7 @@ class CreateBooking
                 ), $fromChannel);
 
                 if ($result->isRefused()) {
-                    throw new BookingRefused(BookingResult::refused((string) $result->refusal, lineIndex: $result->lineIndex, date: $result->date));
+                    throw new BookingRefused(BookingResult::refused((string) $result->refusal, lineIndex: $result->lineIndex, date: $result->date, boatDirection: $result->boatDirection));
                 }
 
                 $reservation = $result->reservation;
