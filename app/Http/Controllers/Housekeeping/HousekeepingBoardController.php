@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Housekeeping;
 
 use App\Actions\Housekeeping\AssignHousekeeper;
 use App\Actions\Housekeeping\SetDoNotDisturb;
+use App\Actions\Housekeeping\SetNeedsMaintenance;
 use App\Actions\Housekeeping\SetRoomPriority;
+use App\Actions\Housekeeping\SetRoomRemark;
 use App\Actions\Housekeeping\UpdateRoomStatus;
 use App\Data\Housekeeping\HousekeepingStaffData;
 use App\Data\Rooms\RoomGroupData;
@@ -14,7 +16,9 @@ use App\Enums\PermissionEnum;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Housekeeping\AssignHousekeeperRequest;
 use App\Http\Requests\Housekeeping\SetDoNotDisturbRequest;
+use App\Http\Requests\Housekeeping\SetNeedsMaintenanceRequest;
 use App\Http\Requests\Housekeeping\SetRoomPriorityRequest;
+use App\Http\Requests\Housekeeping\SetRoomRemarkRequest;
 use App\Http\Requests\Housekeeping\UpdateRoomStatusRequest;
 use App\Models\Property;
 use App\Models\Role;
@@ -39,17 +43,18 @@ class HousekeepingBoardController extends Controller
         $date = $housekeepingDate->for($property);
         $canUpdate = $user->can(PermissionEnum::HousekeepingUpdate->value);
         $canInspect = $user->can(PermissionEnum::HousekeepingInspect->value);
+        $canBlock = $user->can(PermissionEnum::RoomsBlock->value);
 
         return Inertia::render('housekeeping/index', [
             'date' => $date->toDateString(),
-            'rooms' => $builder->rows($property, $date, $canUpdate, $canInspect),
+            'rooms' => $builder->rows($property, $date, $canUpdate, $canInspect, $canBlock),
             'roomGroups' => $property->roomGroups()->orderBy('position')->orderBy('id')->get()
                 ->map(fn (RoomGroup $group): RoomGroupData => RoomGroupData::fromModel($group)),
             'statuses' => array_map(fn (HousekeepingStatus $status): BadgeData => new BadgeData($status->value, $status->label(), $status->tone()), HousekeepingStatus::cases()),
             'staff' => $canUpdate ? $this->staff($property) : [],
             'can' => [
                 'update' => $canUpdate,
-                'block' => $user->can(PermissionEnum::RoomsBlock->value),
+                'block' => $canBlock,
             ],
         ]);
     }
@@ -90,6 +95,24 @@ class HousekeepingBoardController extends Controller
         abort_if($room->archived_at !== null, 404);
 
         $setDoNotDisturb($request->user(), $room, $request->boolean('dnd'), $housekeepingDate->for($property));
+
+        return to_route('housekeeping.index', $property);
+    }
+
+    public function remark(SetRoomRemarkRequest $request, Property $property, Room $room, SetRoomRemark $setRoomRemark): RedirectResponse
+    {
+        abort_if($room->archived_at !== null, 404);
+
+        $setRoomRemark($request->user(), $room, $request->validated('remark'));
+
+        return to_route('housekeeping.index', $property);
+    }
+
+    public function maintenance(SetNeedsMaintenanceRequest $request, Property $property, Room $room, SetNeedsMaintenance $setNeedsMaintenance): RedirectResponse
+    {
+        abort_if($room->archived_at !== null, 404);
+
+        $setNeedsMaintenance($request->user(), $room, $request->boolean('needs_maintenance'));
 
         return to_route('housekeeping.index', $property);
     }

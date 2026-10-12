@@ -2,6 +2,7 @@
 
 namespace App\Actions\Rooms;
 
+use App\Actions\Housekeeping\SetNeedsMaintenance;
 use App\Models\Bed;
 use App\Models\Room;
 use App\Models\RoomBlock;
@@ -11,12 +12,13 @@ use Illuminate\Support\Facades\DB;
 
 class CreateRoomBlock
 {
-    public function __construct(private RoomBlockConflicts $conflicts) {}
+    public function __construct(private RoomBlockConflicts $conflicts, private SetNeedsMaintenance $setNeedsMaintenance) {}
 
     /**
      * Take a room, or one of its beds, out of sale for the given nights.
      *
-     * Returns null when the room or bed is archived, or when an open block already covers any of the nights.
+     * Returns null when the room or bed is archived, or when an open block already covers any of the nights. A new
+     * block answers the room's "needs maintenance" flag, so the flag is cleared.
      *
      * @param  array{reason: string, starts_on: string, ends_on: string, notes: string|null}  $attributes  Validated block fields.
      */
@@ -53,6 +55,8 @@ class CreateRoomBlock
                     'ends_on' => $attributes['ends_on'],
                 ])
                 ->log('Room block created');
+
+            ($this->setNeedsMaintenance)($actor, $room, false);
 
             return $block;
         });

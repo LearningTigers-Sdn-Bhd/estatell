@@ -281,3 +281,94 @@ test('the board runs the same number of queries for few rooms and many', functio
 
     expect($count())->toBe($few);
 });
+
+test('a remark is trimmed, saved, logged and kept when the room turns clean', function () {
+    $housekeeper = User::factory()->withRole(DefaultRoleEnum::Housekeeping)->create();
+    $property = boardProperty($housekeeper);
+    $room = boardRoom($property, '101', HousekeepingStatus::Dirty);
+    $url = route('housekeeping.rooms.remark', [$property->code, $room]);
+
+    $this->actingAs($housekeeper)->put($url, ['remark' => '  Extra towels  '])->assertSessionHasNoErrors();
+
+    expect($room->status->fresh()->remark)->toBe('Extra towels');
+
+    $activity = Activity::query()->where('event', 'room_status.remark_set')->sole();
+    expect($activity->properties['from'])->toBeNull()->and($activity->properties['to'])->toBe('Extra towels');
+
+    $this->put(route('housekeeping.rooms.status', [$property->code, $room]), ['status' => 'clean'])->assertRedirect();
+
+    expect($room->status->fresh()->remark)->toBe('Extra towels');
+
+    $this->put($url, ['remark' => 'Extra towels'])->assertSessionHasNoErrors();
+    expect(Activity::query()->where('event', 'room_status.remark_set')->count())->toBe(1);
+
+    $this->put($url, ['remark' => '   '])->assertSessionHasNoErrors();
+    expect($room->status->fresh()->remark)->toBeNull();
+
+    $this->put($url, ['remark' => str_repeat('a', 501)])->assertSessionHasErrors('remark');
+});
+
+test('the board sends the remark and the needs maintenance flag', function () {
+    $owner = User::factory()->owner()->create();
+    $property = boardProperty($owner);
+    $room = boardRoom($property, '101');
+    $room->status->update(['remark' => 'Key at desk', 'needs_maintenance' => true]);
+
+    $this->actingAs($owner)
+        ->get(route('housekeeping.index', $property->code))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('rooms.0.remark', 'Key at desk')
+            ->where('rooms.0.needsMaintenance', true)
+            ->where('rooms.0.canDismissMaintenance', true));
+
+    $housekeeper = User::factory()->withRole(DefaultRoleEnum::Housekeeping)->create(['property_id' => $property->id]);
+
+    $this->actingAs($housekeeper)
+        ->get(route('housekeeping.index', $property->code))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('rooms.0.needsMaintenance', true)
+            ->where('rooms.0.canDismissMaintenance', false));
+});
+
+test('housekeeping raises needs maintenance but only rooms.block dismisses it', function () {
+    $housekeeper = User::factory()->withRole(DefaultRoleEnum::Housekeeping)->create();
+    $property = boardProperty($housekeeper);
+    $room = boardRoom($property, '101');
+    $url = route('housekeeping.rooms.maintenance', [$property->code, $room]);
+
+    $this->actingAs($housekeeper)->put($url, ['needs_maintenance' => true])->assertSessionHasNoErrors();
+
+    expect($room->status->fresh()->needs_maintenance)->toBeTrue()
+        ->and(Activity::query()->where('event', 'room_status.maintenance_flagged')->count())->toBe(1);
+
+    $this->put($url, ['needs_maintenance' => false])->assertForbidden();
+
+    expect($room->status->fresh()->needs_maintenance)->toBeTrue();
+
+    $frontDesk = User::factory()->withRole(DefaultRoleEnum::FrontDesk)->create(['property_id' => $property->id]);
+
+    $this->actingAs($frontDesk)->put($url, ['needs_maintenance' => false])->assertSessionHasNoErrors();
+
+    expect($room->status->fresh()->needs_maintenance)->toBeFalse()
+        ->and(Activity::query()->where('event', 'room_status.maintenance_cleared')->count())->toBe(1);
+});
+
+test('blocking a room clears its needs maintenance flag', function () {
+    $frontDesk = User::factory()->withRole(DefaultRoleEnum::FrontDesk)->create();
+    $property = boardProperty($frontDesk);
+    $room = boardRoom($property, '101');
+    $room->status->update(['needs_maintenance' => true]);
+
+    $this->actingAs($frontDesk)
+        ->post(route('front-desk.room-blocks.store', $property->code), [
+            'room_id' => $room->id,
+            'reason' => 'maintenance',
+            'starts_on' => '2026-10-12',
+            'ends_on' => '2026-10-14',
+            'notes' => 'Aircon',
+        ])
+        ->assertSessionHasNoErrors();
+
+    expect(RoomBlock::query()->where('room_id', $room->id)->count())->toBe(1)
+        ->and($room->status->fresh()->needs_maintenance)->toBeFalse();
+});

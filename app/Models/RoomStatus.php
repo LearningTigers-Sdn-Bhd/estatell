@@ -19,6 +19,8 @@ use Illuminate\Support\Carbon;
  * @property HousekeepingStatus $status
  * @property bool $is_priority
  * @property string|null $priority_note
+ * @property string|null $remark
+ * @property bool $needs_maintenance
  * @property Carbon|null $do_not_disturb_on
  * @property int|null $assigned_to
  * @property int|null $last_changed_by
@@ -26,7 +28,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-#[Fillable(['status', 'is_priority', 'priority_note', 'do_not_disturb_on', 'assigned_to', 'last_changed_by', 'last_changed_at'])]
+#[Fillable(['status', 'is_priority', 'priority_note', 'remark', 'needs_maintenance', 'do_not_disturb_on', 'assigned_to', 'last_changed_by', 'last_changed_at'])]
 class RoomStatus extends Model
 {
     /** @use HasFactory<RoomStatusFactory> */
@@ -40,6 +42,7 @@ class RoomStatus extends Model
         return [
             'status' => HousekeepingStatus::class,
             'is_priority' => 'boolean',
+            'needs_maintenance' => 'boolean',
             'do_not_disturb_on' => 'date',
             'last_changed_at' => 'datetime',
         ];

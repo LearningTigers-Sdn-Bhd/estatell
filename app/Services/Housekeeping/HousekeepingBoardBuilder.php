@@ -27,7 +27,7 @@ class HousekeepingBoardBuilder
      *
      * @return list<HousekeepingRoomData>
      */
-    public function rows(Property $property, CarbonImmutable $date, bool $canUpdate, bool $canInspect): array
+    public function rows(Property $property, CarbonImmutable $date, bool $canUpdate, bool $canInspect, bool $canBlock): array
     {
         $rooms = Room::query()
             ->where('property_id', $property->id)
@@ -46,7 +46,7 @@ class HousekeepingBoardBuilder
         $stays = $this->staysByRoom($property, $date);
         $dateString = $date->toDateString();
 
-        $rows = $rooms->map(function (Room $room) use ($blocks, $stays, $canUpdate, $canInspect, $dateString): array {
+        $rows = $rooms->map(function (Room $room) use ($blocks, $stays, $canUpdate, $canInspect, $canBlock, $dateString): array {
             $roomBlocks = $blocks->get($room->id, collect());
             $wholeRoom = $roomBlocks->first(fn (RoomBlock $block): bool => $block->bed_id === null);
             $bedBlocks = $roomBlocks->filter(fn (RoomBlock $block): bool => $block->bed_id !== null)
@@ -62,6 +62,7 @@ class HousekeepingBoardBuilder
                 reason: $stay['reason'],
                 canUpdate: $canUpdate,
                 canInspect: $canInspect,
+                canBlock: $canBlock,
                 date: $dateString,
             );
 

@@ -12,5 +12,7 @@ Route::prefix('housekeeping')->name('housekeeping.')->scopeBindings()->group(fun
         Route::put('assignee', [HousekeepingBoardController::class, 'assignee'])->name('assignee');
         Route::put('priority', [HousekeepingBoardController::class, 'priority'])->name('priority');
         Route::put('dnd', [HousekeepingBoardController::class, 'dnd'])->name('dnd');
+        Route::put('remark', [HousekeepingBoardController::class, 'remark'])->name('remark');
+        Route::put('maintenance', [HousekeepingBoardController::class, 'maintenance'])->name('maintenance');
     });
 });

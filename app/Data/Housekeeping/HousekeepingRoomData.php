@@ -39,6 +39,9 @@ class HousekeepingRoomData extends Data
         public bool $isStayOver,
         public bool $isPriority,
         public ?string $priorityNote,
+        public ?string $remark,
+        public bool $needsMaintenance,
+        public bool $canDismissMaintenance,
         public bool $doNotDisturb,
         public ?string $reason,
     ) {}
@@ -57,6 +60,7 @@ class HousekeepingRoomData extends Data
         ?HousekeepingReason $reason,
         bool $canUpdate,
         bool $canInspect,
+        bool $canBlock,
         string $date,
     ): self {
         $roomStatus = $room->status;
@@ -93,6 +97,9 @@ class HousekeepingRoomData extends Data
             isStayOver: $stay['isStayOver'],
             isPriority: $roomStatus->is_priority,
             priorityNote: $roomStatus->priority_note,
+            remark: $roomStatus->remark,
+            needsMaintenance: $roomStatus->needs_maintenance,
+            canDismissMaintenance: $canBlock && $roomStatus->needs_maintenance,
             doNotDisturb: $roomStatus->do_not_disturb_on?->toDateString() === $date,
             reason: $roomStatus->status === HousekeepingStatus::Dirty ? $reason?->label() : null,
         );

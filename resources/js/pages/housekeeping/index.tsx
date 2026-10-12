@@ -6,6 +6,7 @@ import {
     MoonStar,
     MoreHorizontal,
     Star,
+    Wrench,
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { DateText } from '@/components/pms/date-text';
@@ -14,6 +15,7 @@ import { EnumSelect } from '@/components/pms/enum-select';
 import { PageHeader } from '@/components/pms/page-header';
 import { StatusBadge } from '@/components/pms/status-badge';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -31,7 +33,14 @@ import {
 } from '@/components/ui/table';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { index } from '@/routes/housekeeping';
-import { assignee, dnd, priority, status } from '@/routes/housekeeping/rooms';
+import {
+    assignee,
+    dnd,
+    maintenance,
+    priority,
+    remark,
+    status,
+} from '@/routes/housekeeping/rooms';
 import { index as roomBlocks } from '@/routes/front-desk/room-blocks';
 
 type Room = App.Data.Housekeeping.HousekeepingRoomData;
@@ -243,6 +252,47 @@ export default function HousekeepingIndex({
             );
     }
 
+    function saveRemark(room: Room, value: string) {
+        const next = value.trim() === '' ? null : value.trim();
+
+        if (next === room.remark) {
+            return;
+        }
+
+        router
+            .optimistic<{ rooms: Room[] }>((props) => ({
+                rooms: props.rooms.map((item) =>
+                    item.id === room.id ? { ...item, remark: next } : item,
+                ),
+            }))
+            .put(
+                remark.url({ room: room.id }),
+                { remark: next },
+                { preserveScroll: true },
+            );
+    }
+
+    function setMaintenance(room: Room, needsMaintenance: boolean) {
+        router
+            .optimistic<{ rooms: Room[] }>((props) => ({
+                rooms: props.rooms.map((item) =>
+                    item.id === room.id
+                        ? {
+                              ...item,
+                              needsMaintenance,
+                              canDismissMaintenance:
+                                  needsMaintenance && can.block,
+                          }
+                        : item,
+                ),
+            }))
+            .put(
+                maintenance.url({ room: room.id }),
+                { needs_maintenance: needsMaintenance },
+                { preserveScroll: true },
+            );
+    }
+
     function toggleGroup(key: string) {
         setCollapsed((current) => {
             const next = new Set(current);
@@ -377,6 +427,8 @@ export default function HousekeepingIndex({
                                                 onAssign={assign}
                                                 onPriority={togglePriority}
                                                 onDnd={toggleDnd}
+                                                onRemark={saveRemark}
+                                                onMaintenance={setMaintenance}
                                             />
                                         ))}
                                     </TableBody>
@@ -403,6 +455,8 @@ function GroupRows({
     onAssign,
     onPriority,
     onDnd,
+    onRemark,
+    onMaintenance,
 }: {
     name: string | null;
     groupKey: string;
@@ -416,6 +470,8 @@ function GroupRows({
     onAssign: (room: Room, value: string) => void;
     onPriority: (room: Room) => void;
     onDnd: (room: Room) => void;
+    onRemark: (room: Room, value: string) => void;
+    onMaintenance: (room: Room, needsMaintenance: boolean) => void;
 }) {
     const dirty = rooms.filter((room) => room.status.value === 'dirty').length;
 
@@ -560,7 +616,42 @@ function GroupRows({
                                             Do not disturb
                                         </span>
                                     )}
+                                    {room.needsMaintenance && (
+                                        <StatusBadge
+                                            status={{
+                                                value: 'needs_maintenance',
+                                                label: 'Needs maintenance',
+                                                tone: 'warning',
+                                            }}
+                                            icon={Wrench}
+                                        />
+                                    )}
                                 </div>
+                                {can.update ? (
+                                    <Input
+                                        key={`${room.id}:${room.remark ?? ''}`}
+                                        defaultValue={room.remark ?? ''}
+                                        maxLength={500}
+                                        placeholder="Add remark…"
+                                        aria-label={`Remark for room ${room.number}`}
+                                        onBlur={(event) =>
+                                            onRemark(room, event.target.value)
+                                        }
+                                        onKeyDown={(event) => {
+                                            if (event.key === 'Enter') {
+                                                event.currentTarget.blur();
+                                            }
+
+                                            if (event.key === 'Escape') {
+                                                event.currentTarget.value =
+                                                    room.remark ?? '';
+                                                event.currentTarget.blur();
+                                            }
+                                        }}
+                                    />
+                                ) : (
+                                    room.remark && <span>{room.remark}</span>
+                                )}
                                 {room.outOfService?.notes && (
                                     <span className="text-muted-foreground">
                                         {room.outOfService.notes}
@@ -617,7 +708,28 @@ function GroupRows({
                                                         ? 'Clear do not disturb'
                                                         : 'Do not disturb today'}
                                                 </DropdownMenuItem>
+                                                {!room.needsMaintenance && (
+                                                    <DropdownMenuItem
+                                                        onClick={() =>
+                                                            onMaintenance(
+                                                                room,
+                                                                true,
+                                                            )
+                                                        }
+                                                    >
+                                                        Needs maintenance
+                                                    </DropdownMenuItem>
+                                                )}
                                             </>
+                                        )}
+                                        {room.canDismissMaintenance && (
+                                            <DropdownMenuItem
+                                                onClick={() =>
+                                                    onMaintenance(room, false)
+                                                }
+                                            >
+                                                Maintenance fixed
+                                            </DropdownMenuItem>
                                         )}
                                         {can.block && (
                                             <>
