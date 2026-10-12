@@ -79,7 +79,6 @@ roles    spatie columns + property_id (NOT NULL, FK) + default_role (nullable)
 | `housekeeping.view`                | Housekeeping board, print and export                                        | ✓     | ✓       | Front desk, Housekeeping          |
 | `housekeeping.update`              | Mark clean or dirty, assign, priority, DND, remark, raise Needs maintenance | ✓     | ✓       | Front desk, Housekeeping          |
 | `housekeeping.inspect`             | Mark a room Inspected                                                       | ✓     | ✓       | Front desk                        |
-| `housekeeping.manage-checklist`    | Pen box items in Settings > Housekeeping                                    | ✓     | ✓       | –                                 |
 
 Later modules add rows here. Their module docs list their permissions.
 

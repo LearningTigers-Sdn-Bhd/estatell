@@ -17,7 +17,7 @@ Legend: **Needs** lists items that must be done first.
 
 ## Now
 
-The critical path is done. What is open now is housekeeping, the company portal and boats.
+The critical path is done. Housekeeping is done. What is open now is the company portal and boats.
 
 ### 19 Housekeeping
 
@@ -30,7 +30,6 @@ Build in this order. Docs: [Room status board](19-housekeeping/01-room-status-bo
 - [x] **Print and export the board**, in two commits, in this order. Needs: the bulk bar. Docs: [Print, export and layout](19-housekeeping/02-print-and-layout.md).
     - [x] `feat(housekeeping): print and export the board` — backend: `ReportKey::HousekeepingTasks` (hidden from the Reports menu), `HousekeepingTasksReport`, `HousekeepingTaskRow`, the merged and split columns, `housekeeping.pdf` and `housekeeping.spreadsheet`.
     - [x] `feat(housekeeping): add the export menu and columns button` — the Export menu (Print sheet, Excel, CSV, Print selected in the bulk bar) and the Columns button on the shared `ReportLayoutSheet`. Needs: the export routes.
-- [ ] `feat(housekeeping): add pen box items` — `housekeeping_checklist_items`, seeded by `SeedPropertyDefaults` with a back-fill, `housekeeping.manage-checklist`, `SaveChecklistItems`, Settings > Housekeeping, the `pen_boxes` column and the PDF legend. Needs: print and export the board. Docs: [Print, export and layout](19-housekeeping/02-print-and-layout.md#pen-box-items).
 
 ### 24 Boats
 

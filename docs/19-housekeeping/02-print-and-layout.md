@@ -7,7 +7,7 @@ Let housekeeping print the board as a work sheet, and let a manager choose its c
 ## Decided
 
 - The column layout is **per property**, not per user. A manager sets it in the Layout Sheet and every user sees it.
-- The checklist is **on paper**. The sheet prints empty pen boxes. Nothing is ticked in the app and nothing gates Inspected.
+- There is **no checklist**. Nothing is ticked in the app and nothing gates Inspected.
 - The View toggle (All, Grouped by room group, Grouped by room type) is a board feature. The report frame has no section headers, so the PDF is one list sorted by room group.
 
 ## The report
@@ -54,31 +54,11 @@ A merged column keeps its key, label and default visibility. Its split columns a
 | `remarks`           | Remarks        | left  | ✓       | –           | text (remark and reason)         |
 | `remark`            | Remark         | left  | –       | `remarks`   | text                             |
 | `system_reason`     | Reason         | left  | –       | `remarks`   | text                             |
-| `pen_boxes`         | Check          | left  | –       | –           | text (`[ ] BED  [ ] BATH`)       |
 
 - `arrival` and `departure` hold the date and time in one value, so a sort puts them in time order. A same-day turnover keeps both.
-- `pen_boxes` comes with the pen box items. Until then the report has 20 columns.
 - `room` and `status` stay visible: the Layout Sheet refuses a layout without at least one visible column, and the board needs both.
 - `unit` shows "Deluxe / 203"; `room_group` is for properties that use groups.
-- `pen_boxes` is **one column** with a stable key. Its cell is built from the checklist items of the property, so no column key depends on data. An Out of service room has an empty cell.
 - A same-day turnover shows the departing unit in `departure` and the arriving unit in `arrival`.
-
-## Pen box items
-
-```
-housekeeping_checklist_items
-  id, property_id (FK, cascade), label varchar(30), code varchar(6), sort_order smallint, timestamps
-  unique (property_id, code)
-```
-
-- At most **6 items** for each property. The Action refuses the seventh.
-- `SeedPropertyDefaults` seeds five: Bed (`BED`), Bathroom (`BATH`), Floor (`FLR`), Towels (`TWL`), Minibar (`MINI`). A migration back-fills existing properties.
-- The cell prints each code as `[ ] CODE`. The PDF note (`ReportKey::note()`) prints the legend, for example `BED = Bed · BATH = Bathroom`.
-- Labels are plain English text typed by the property. They are not translated.
-
-### Settings page
-
-Settings > Housekeeping (`settings.housekeeping.edit` and `.update`, `/p/{code}/settings/housekeeping`, `housekeeping.manage-checklist`). It lists the items with a label, a code and drag order, with Add item and Remove. `SaveChecklistItems` replaces the list in one transaction and logs `housekeeping.checklist_saved`. It checks the limit and unique codes.
 
 ## Layout
 
@@ -103,10 +83,10 @@ Housekeeping staff do not have `reports.view`, and the shared export routes sit 
 
 ## Sheet for each housekeeper
 
-**Print selected** prints the ticked rooms. To print one housekeeper's sheet, filter **Assigned** to that person and use **Export > Print sheet**. A split in one file (one page for each housekeeper) is a later improvement.
+**Export** in the bulk bar prints the ticked rooms. To print one housekeeper's sheet, filter **Assigned** to that person and use **Export > PDF**. A split in one file (one page for each housekeeper) is a later improvement.
 
 ## Out of scope
 
 - Section headers for room groups in the PDF.
-- A pen box ticked in the app.
+- A checklist, printed or ticked in the app.
 - Several paper sizes. The paper comes from the printing settings.

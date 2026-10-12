@@ -146,12 +146,11 @@ All in `app/Actions/Housekeeping/`. Each logs activity and returns a result for 
 
 ## Permissions
 
-| Permission                      | Guards                                                                      | Owner | Manager | Front desk | Housekeeping |
-| ------------------------------- | --------------------------------------------------------------------------- | ----- | ------- | ---------- | ------------ |
-| `housekeeping.view`             | The board, print and export                                                 | ✓     | ✓       | ✓          | ✓            |
-| `housekeeping.update`           | Mark clean or dirty, assign, priority, DND, remark, raise Needs maintenance | ✓     | ✓       | ✓          | ✓            |
-| `housekeeping.inspect`          | Mark a room Inspected                                                       | ✓     | ✓       | ✓          | –            |
-| `housekeeping.manage-checklist` | The pen box items in settings                                               | ✓     | ✓       | –          | –            |
+| Permission             | Guards                                                                      | Owner | Manager | Front desk | Housekeeping |
+| ---------------------- | --------------------------------------------------------------------------- | ----- | ------- | ---------- | ------------ |
+| `housekeeping.view`    | The board, print and export                                                 | ✓     | ✓       | ✓          | ✓            |
+| `housekeeping.update`  | Mark clean or dirty, assign, priority, DND, remark, raise Needs maintenance | ✓     | ✓       | ✓          | ✓            |
+| `housekeeping.inspect` | Mark a room Inspected                                                       | ✓     | ✓       | ✓          | –            |
 
 Each module adds its permissions with a syncing migration (see [Roles and permissions](../03-staff/02-roles-and-permissions.md#seeding-and-syncing)).
 
@@ -181,5 +180,5 @@ View: ( All ) ( Grouped by room group ) ( Grouped by room type )   Status v  Ass
 ## Out of scope
 
 - Guest housekeeping requests and complaint workflows from wastays.
-- Per-item digital ticks on a checklist, and a gate on Inspected. The printed boxes are ticked with a pen.
+- A room checklist, with digital ticks or printed boxes, and a gate on Inspected.
 - A corridor mobile app, and per-user column layouts.
