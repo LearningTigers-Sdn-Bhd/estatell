@@ -12,6 +12,7 @@ use App\Models\ChargeItem;
 use App\Models\FolioLine;
 use App\Models\Guest;
 use App\Models\Property;
+use App\Models\PropertyAgeGroup;
 use App\Models\PropertySetting;
 use App\Models\Reservation;
 use App\Models\ReservationUnit;
@@ -138,4 +139,14 @@ test('a date that is not the business date posts nothing', function () {
 
     expect(app(PostScheduledAddOns::class)(null, $setup['property'], CarbonImmutable::parse('2026-10-13')))->toBe([])
         ->and(FolioLine::query()->count())->toBe(0);
+});
+
+test('a child price row posts with its age group in the description', function () {
+    $setup = scheduledAddOnSetup();
+    $group = PropertyAgeGroup::factory()->create(['property_id' => $setup['property']->id, 'label' => 'Child', 'min_age' => 4, 'max_age' => 11]);
+    $addOn = dueAddOn($setup['unit'], ['property_age_group_id' => $group->id, 'quantity' => 1, 'unit_amount' => '15.00']);
+
+    $results = app(PostScheduledAddOns::class)(null, $setup['property'], $setup['date']);
+
+    expect($results[$addOn->id]->lines[0]->description)->toBe($addOn->chargeItem->name.' · Child 4–11');
 });

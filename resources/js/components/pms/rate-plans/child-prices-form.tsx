@@ -1,23 +1,10 @@
 import { useForm } from '@inertiajs/react';
 import { EmptyState } from '@/components/pms/empty-state';
-import { EnumSelect } from '@/components/pms/enum-select';
+import { ChildPriceTable } from '@/components/pms/child-price-table';
 import { UnsavedChangesDialog } from '@/components/pms/unsaved-changes-dialog';
 import { Button } from '@/components/ui/button';
 import { FieldError } from '@/components/ui/field';
-import {
-    InputGroup,
-    InputGroupAddon,
-    InputGroupInput,
-} from '@/components/ui/input-group';
 import { Spinner } from '@/components/ui/spinner';
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from '@/components/ui/table';
 import { useUnsavedChanges } from '@/hooks/use-unsaved-changes';
 import { update } from '@/routes/settings/rate-plans/child-prices';
 
@@ -90,117 +77,15 @@ export function ChildPricesForm({
             <p className="text-sm text-muted-foreground">
                 A percentage is taken from the price of one adult for the night.
             </p>
-            <div className="overflow-auto rounded-lg border">
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>Age group</TableHead>
-                            <TableHead>Price</TableHead>
-                            <TableHead>Value</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {rows.map((row, index) => {
-                            const price = childPrices[index];
-
-                            return (
-                                <TableRow key={row.age_group_id}>
-                                    <TableCell className="align-top">
-                                        <span className="font-medium">
-                                            {price.label}
-                                        </span>{' '}
-                                        <span className="text-muted-foreground tabular-nums">
-                                            {price.minAge}–{price.maxAge}
-                                        </span>
-                                    </TableCell>
-                                    <TableCell className="align-top">
-                                        <EnumSelect
-                                            aria-label={`Price for ${price.label}`}
-                                            options={pricings}
-                                            value={row.pricing}
-                                            onValueChange={(value) =>
-                                                setRow(index, {
-                                                    pricing: value,
-                                                    value:
-                                                        value === 'free'
-                                                            ? ''
-                                                            : row.value,
-                                                })
-                                            }
-                                            aria-invalid={
-                                                !!errors[
-                                                    `prices.${index}.pricing`
-                                                ]
-                                            }
-                                        />
-                                        <FieldError>
-                                            {errors[`prices.${index}.pricing`]}
-                                        </FieldError>
-                                    </TableCell>
-                                    <TableCell className="align-top">
-                                        {row.pricing !== 'free' && (
-                                            <>
-                                                <InputGroup className="sm:max-w-48">
-                                                    {row.pricing ===
-                                                        'fixed' && (
-                                                        <InputGroupAddon>
-                                                            {currency}
-                                                        </InputGroupAddon>
-                                                    )}
-                                                    <InputGroupInput
-                                                        aria-label={`Value for ${price.label}`}
-                                                        type="number"
-                                                        min={
-                                                            row.pricing ===
-                                                            'percent'
-                                                                ? '1'
-                                                                : '0'
-                                                        }
-                                                        max={
-                                                            row.pricing ===
-                                                            'percent'
-                                                                ? '100'
-                                                                : '9999999999.99'
-                                                        }
-                                                        step="0.01"
-                                                        inputMode="decimal"
-                                                        value={row.value}
-                                                        onChange={(event) =>
-                                                            setRow(index, {
-                                                                value: event
-                                                                    .target
-                                                                    .value,
-                                                            })
-                                                        }
-                                                        aria-invalid={
-                                                            !!errors[
-                                                                `prices.${index}.value`
-                                                            ]
-                                                        }
-                                                    />
-                                                    {row.pricing ===
-                                                        'percent' && (
-                                                        <InputGroupAddon align="inline-end">
-                                                            %
-                                                        </InputGroupAddon>
-                                                    )}
-                                                </InputGroup>
-                                                <FieldError>
-                                                    {
-                                                        errors[
-                                                            `prices.${index}.value`
-                                                        ]
-                                                    }
-                                                </FieldError>
-                                            </>
-                                        )}
-                                    </TableCell>
-                                </TableRow>
-                            );
-                        })}
-                    </TableBody>
-                </Table>
-            </div>
+            <ChildPriceTable
+                groups={childPrices}
+                rows={rows}
+                pricings={pricings}
+                currency={currency}
+                errors={errors}
+                errorPrefix="prices"
+                onChange={setRow}
+            />
             <FieldError>{errors.prices}</FieldError>
             <footer className="flex justify-end">
                 <Button

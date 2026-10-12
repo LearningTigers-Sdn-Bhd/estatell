@@ -6,7 +6,9 @@ use App\Data\Reservations\NewAddOnData;
 use App\Enums\ChargingUnit;
 use App\Models\BusinessDate;
 use App\Models\ChargeItem;
+use App\Models\ChargeItemChildPrice;
 use App\Models\Property;
+use App\Models\PropertyAgeGroup;
 use App\Models\PropertySetting;
 use App\Models\Reservation;
 use App\Models\ReservationUnit;
@@ -331,4 +333,103 @@ test('the unit row is read with a lock', function () {
     addOn($setup);
 
     expect(collect($queries)->contains(fn (string $sql): bool => str_contains($sql, 'from "reservation_units"') && str_contains($sql, 'for update')))->toBeTrue();
+});
+
+/**
+ * A unit of 2 adults and two children (ages 6 and 2) with Infant 0-3 and Child 4-11 on the property, and a per guest
+ * item of 30.00. The child price rows are given as pricing and value for Infant, then Child.
+ *
+ * @param  array{0: string, 1: string|null}  $infant
+ * @param  array{0: string, 1: string|null}  $child
+ * @param  array<string, mixed>  $itemAttributes
+ * @return array{property: Property, user: User, unit: ReservationUnit, item: ChargeItem, arrival: CarbonImmutable, infant: PropertyAgeGroup, child: PropertyAgeGroup}
+ */
+function childPriceSetup(array $infant = ['free', null], array $child = ['percent', '50.00'], array $itemAttributes = [], array $ages = [6, 2]): array
+{
+    $setup = addOnSetup(['children' => count($ages)], ['charging_unit' => ChargingUnit::PerGuest, 'default_amount' => '30.00', ...$itemAttributes]);
+    $infantGroup = PropertyAgeGroup::factory()->create(['property_id' => $setup['property']->id, 'label' => 'Infant', 'min_age' => 0, 'max_age' => 3]);
+    $childGroup = PropertyAgeGroup::factory()->create(['property_id' => $setup['property']->id, 'label' => 'Child', 'min_age' => 4, 'max_age' => 11]);
+
+    foreach ($ages as $age) {
+        $setup['unit']->childAges()->create(['age' => $age]);
+    }
+
+    ChargeItemChildPrice::factory()->create(['charge_item_id' => $setup['item']->id, 'property_age_group_id' => $infantGroup->id, 'pricing' => $infant[0], 'value' => $infant[1]]);
+    ChargeItemChildPrice::factory()->create(['charge_item_id' => $setup['item']->id, 'property_age_group_id' => $childGroup->id, 'pricing' => $child[0], 'value' => $child[1]]);
+
+    return [...$setup, 'infant' => $infantGroup, 'child' => $childGroup];
+}
+
+test('a per guest item splits by price: adults at the default, a child at its percent, a free infant not charged', function () {
+    $setup = childPriceSetup();
+
+    $result = addOn($setup);
+
+    $rows = UnitAddOn::query()->orderBy('id')->get();
+
+    expect($result->isRefused())->toBeFalse()
+        ->and($rows)->toHaveCount(2)
+        ->and([$rows[0]->quantity, $rows[0]->unit_amount, $rows[0]->property_age_group_id])->toBe([2, '30.00', null])
+        ->and([$rows[1]->quantity, $rows[1]->unit_amount, $rows[1]->property_age_group_id])->toBe([1, '15.00', $setup['child']->id]);
+});
+
+test('a fixed child price is its own amount and a staff override changes the adult row only', function () {
+    $setup = childPriceSetup(child: ['fixed', '12.50']);
+
+    addOn($setup, ['unitAmount' => '40.00']);
+
+    $rows = UnitAddOn::query()->orderBy('id')->get();
+
+    expect($rows->map(fn (UnitAddOn $row): array => [$row->quantity, $row->unit_amount])->all())->toBe([[2, '40.00'], [1, '12.50']]);
+});
+
+test('a percent follows the default amount, not the staff override', function () {
+    $setup = childPriceSetup();
+
+    addOn($setup, ['unitAmount' => '40.00']);
+
+    expect(UnitAddOn::query()->whereNotNull('property_age_group_id')->sole()->unit_amount)->toBe('15.00');
+});
+
+test('a per guest night item splits by price on every night', function () {
+    $setup = childPriceSetup(itemAttributes: ['charging_unit' => ChargingUnit::PerGuestNight]);
+
+    addOn($setup);
+
+    $rows = UnitAddOn::query()->orderBy('service_date')->orderBy('id')->get();
+
+    expect($rows)->toHaveCount(6)
+        ->and($rows->whereNull('property_age_group_id')->every(fn (UnitAddOn $row): bool => $row->quantity === 2 && $row->unit_amount === '30.00'))->toBeTrue()
+        ->and($rows->whereNotNull('property_age_group_id')->every(fn (UnitAddOn $row): bool => $row->quantity === 1 && $row->unit_amount === '15.00'))->toBeTrue();
+});
+
+test('Percent 100 on every group keeps the total of charging all guests as adults', function () {
+    $setup = childPriceSetup(['percent', '100.00'], ['percent', '100.00']);
+
+    addOn($setup);
+
+    $total = UnitAddOn::query()->get()->sum(fn (UnitAddOn $row): float => $row->quantity * (float) $row->unit_amount);
+
+    expect($total)->toBe(4 * 30.0);
+});
+
+test('free groups write no row and an age past the last group is charged as an adult', function () {
+    $setup = childPriceSetup(['free', null], ['free', null], ages: [15, 2]);
+
+    addOn($setup);
+
+    $rows = UnitAddOn::query()->get();
+
+    expect($rows)->toHaveCount(1)
+        ->and([$rows[0]->quantity, $rows[0]->unit_amount, $rows[0]->property_age_group_id])->toBe([3, '30.00', null]);
+});
+
+test('an item with no child prices charges every guest the same', function () {
+    $setup = addOnSetup(['children' => 1], ['charging_unit' => ChargingUnit::PerGuest, 'default_amount' => '30.00']);
+
+    addOn($setup);
+
+    $row = UnitAddOn::query()->sole();
+
+    expect([$row->quantity, $row->property_age_group_id])->toBe([3, null]);
 });

@@ -20,11 +20,12 @@ use Illuminate\Support\Carbon;
  * @property int $quantity
  * @property string $unit_amount
  * @property Carbon|null $service_date
+ * @property int|null $property_age_group_id The age group of a child price row. Null for the adult price.
  * @property int|null $folio_line_id The charge line that posted this add-on. Null while it is only scheduled.
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-#[Fillable(['charge_item_id', 'quantity', 'unit_amount', 'service_date'])]
+#[Fillable(['charge_item_id', 'quantity', 'unit_amount', 'service_date', 'property_age_group_id'])]
 class UnitAddOn extends Model
 {
     /** @use HasFactory<UnitAddOnFactory> */
@@ -64,5 +65,13 @@ class UnitAddOn extends Model
     public function chargeItem(): BelongsTo
     {
         return $this->belongsTo(ChargeItem::class);
+    }
+
+    /**
+     * @return BelongsTo<PropertyAgeGroup, $this>
+     */
+    public function ageGroup(): BelongsTo
+    {
+        return $this->belongsTo(PropertyAgeGroup::class, 'property_age_group_id');
     }
 }

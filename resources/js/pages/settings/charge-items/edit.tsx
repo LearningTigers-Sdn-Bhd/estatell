@@ -1,5 +1,7 @@
 import { Head, Link, useForm } from '@inertiajs/react';
 import { useState } from 'react';
+import { ChildPriceTable } from '@/components/pms/child-price-table';
+import { EmptyState } from '@/components/pms/empty-state';
 import { EnumSelect } from '@/components/pms/enum-select';
 import { FormActions } from '@/components/pms/form-actions';
 import {
@@ -36,6 +38,7 @@ import { edit, index, update } from '@/routes/settings/charge-items';
 
 type ChargeItem = App.Data.Catalogues.ChargeItemData;
 type Tax = App.Data.Catalogues.ChargeItemTaxData;
+type ChildPrice = App.Data.Catalogues.ChargeItemChildPriceData;
 type Option = { value: string; label: string };
 
 const pricingOptions = [
@@ -84,12 +87,16 @@ function Section({
 
 export default function ChargeItemEdit({
     chargeItem,
+    childPrices,
+    pricings,
     taxes,
     categories,
     chargingUnits,
     currency,
 }: {
     chargeItem: ChargeItem;
+    childPrices: ChildPrice[];
+    pricings: Option[];
     taxes: Tax[];
     categories: Option[];
     chargingUnits: Option[];
@@ -105,6 +112,11 @@ export default function ChargeItemEdit({
         allow_override: chargeItem.allowOverride,
         active: chargeItem.active,
         tax_ids: chargeItem.taxIds.map(String),
+        child_prices: childPrices.map((price) => ({
+            property_age_group_id: price.ageGroupId,
+            pricing: price.pricing as string,
+            value: price.value ?? '',
+        })),
     });
     const [enteredWhenCharging, setEnteredWhenCharging] = useState(
         chargeItem.defaultAmount === null,
@@ -126,8 +138,30 @@ export default function ChargeItemEdit({
                 ...data,
                 default_amount: '',
                 allow_override: true,
+                child_prices: data.child_prices.map((price) =>
+                    price.pricing === 'percent'
+                        ? { ...price, pricing: 'free', value: '' }
+                        : price,
+                ),
             }));
         }
+    };
+
+    const usesChildPrices = ['per_guest', 'per_guest_night'].includes(
+        form.data.charging_unit,
+    );
+    const errors = form.errors as Record<string, string | undefined>;
+
+    const setChildPrice = (
+        index: number,
+        values: { pricing?: string; value?: string },
+    ) => {
+        form.setData(
+            'child_prices',
+            form.data.child_prices.map((price, position) =>
+                position === index ? { ...price, ...values } : price,
+            ),
+        );
     };
 
     const save = (onSaved?: () => void) => {
@@ -159,9 +193,16 @@ export default function ChargeItemEdit({
                         back={{ href: index.url(), label: 'Charge items' }}
                         description="Configure how staff select and price this charge."
                         badge={
-                            chargeItem.active ? undefined : (
-                                <Badge variant="secondary">Inactive</Badge>
-                            )
+                            <>
+                                {!chargeItem.active && (
+                                    <Badge variant="secondary">Inactive</Badge>
+                                )}
+                                {chargeItem.needsChildPriceReview && (
+                                    <Badge variant="outline">
+                                        Check child prices
+                                    </Badge>
+                                )}
+                            </>
                         }
                     />
 
@@ -388,6 +429,40 @@ export default function ChargeItemEdit({
                                 </Field>
                             </FieldGroup>
                         </Section>
+
+                        {usesChildPrices && (
+                            <Section title="Children" className="lg:col-span-2">
+                                {childPrices.length === 0 ? (
+                                    <EmptyState
+                                        title="No age groups"
+                                        description="Every guest counts as an adult. Add age groups in the property settings to price children separately."
+                                    />
+                                ) : (
+                                    <>
+                                        <p className="text-sm text-muted-foreground">
+                                            {enteredWhenCharging
+                                                ? 'This item has no default amount, so a child price is Free or a fixed amount.'
+                                                : 'A percentage is taken from the default amount. Adults pay the full amount.'}
+                                        </p>
+                                        <ChildPriceTable
+                                            groups={childPrices}
+                                            rows={form.data.child_prices}
+                                            pricings={pricings}
+                                            currency={currency}
+                                            errors={errors}
+                                            errorPrefix="child_prices"
+                                            percentDisabled={
+                                                enteredWhenCharging
+                                            }
+                                            onChange={setChildPrice}
+                                        />
+                                        <FieldError>
+                                            {errors.child_prices}
+                                        </FieldError>
+                                    </>
+                                )}
+                            </Section>
+                        )}
 
                         <Section title="Taxes" className="lg:col-span-2">
                             <Field data-invalid={!!form.errors.tax_ids}>

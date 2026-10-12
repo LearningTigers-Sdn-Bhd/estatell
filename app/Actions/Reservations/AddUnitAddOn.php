@@ -12,6 +12,7 @@ use App\Models\ChargeItem;
 use App\Models\ReservationUnit;
 use App\Models\UnitAddOn;
 use App\Models\User;
+use App\Services\Catalogues\ChargeChildPrices;
 use App\Services\Catalogues\ChargeQuantityResolver;
 use App\Services\NightAudit\CurrentBusinessDate;
 use App\Services\Property\PropertyToday;
@@ -25,6 +26,7 @@ class AddUnitAddOn
         private CurrentBusinessDate $currentBusinessDate,
         private PropertyToday $propertyToday,
         private ChargeQuantityResolver $quantityResolver,
+        private ChargeChildPrices $childPrices,
         private PostCharge $postCharge,
     ) {}
 
@@ -99,7 +101,8 @@ class AddUnitAddOn
                 $serviceDate = $businessDate;
             }
 
-            $rows = $this->quantityResolver->rows($item->charging_unit, $locked, $businessDate, $quantity, $serviceDate);
+            $split = $this->childPrices->split($item, $locked->childAges()->pluck('age')->map(fn (mixed $age): int => (int) $age)->all(), $locked->children);
+            $rows = $this->quantityResolver->rows($item->charging_unit, $locked, $businessDate, $quantity, $serviceDate, $split);
 
             if ($rows === []) {
                 return AddOnResult::refused(AddOnResult::REFUSAL_SERVICE_DATE_IN_PAST);
@@ -108,8 +111,9 @@ class AddUnitAddOn
             $addOns = array_map(fn (array $row): UnitAddOn => $locked->addOns()->create([
                 'charge_item_id' => $item->id,
                 'quantity' => $row['quantity'],
-                'unit_amount' => (string) $amount->getAmount(),
+                'unit_amount' => (string) $this->childPrices->rowAmount($row['child_price'], $amount, $default)->getAmount(),
                 'service_date' => $row['service_date']?->toDateString(),
+                'property_age_group_id' => $row['age_group_id'],
             ]), $rows);
 
             if ($locked->stay_type === StayType::DayUse && $locked->status === UnitStatus::CheckedIn) {

@@ -19,6 +19,7 @@ use App\Models\UnitAddOn;
 use App\Models\UnitNight;
 use App\Services\Catalogues\TaxCalculationResult;
 use App\Services\Catalogues\TaxCalculator;
+use App\Services\Reservations\AddOnLabel;
 use Brick\Money\Money;
 use Illuminate\Support\Collection;
 
@@ -66,7 +67,7 @@ class ScheduledFolioRows
         $this->propertyTaxes = null;
         $units = $reservation->units()
             ->whereIn('status', array_map(fn (UnitStatus $status): string => $status->value, UnitStatus::holdingInventory()))
-            ->with(['discount', 'nights' => fn ($nights) => $nights->orderBy('date'), 'nights.ratePlan.inclusions.chargeItem.transactionCode', 'addOns' => fn ($addOns) => $addOns->whereNull('folio_line_id'), 'addOns.chargeItem.transactionCode'])
+            ->with(['discount', 'nights' => fn ($nights) => $nights->orderBy('date'), 'nights.ratePlan.inclusions.chargeItem.transactionCode', 'addOns' => fn ($addOns) => $addOns->whereNull('folio_line_id'), 'addOns.chargeItem.transactionCode', 'addOns.ageGroup'])
             ->orderBy('id')
             ->get();
         $dayUseUnits = $units->filter(fn (ReservationUnit $unit): bool => $unit->stay_type === StayType::DayUse)->load('dayUse', 'ratePlan.inclusions.chargeItem.transactionCode');
@@ -167,7 +168,7 @@ class ScheduledFolioRows
         $key = 'addon:'.$addOn->id;
         $entered = Money::of($addOn->unit_amount, $currency)->multipliedBy($addOn->quantity);
         $tax = $this->tax($property, $code, $entered, (string) $addOn->quantity, $nationality);
-        $name = $addOn->chargeItem->name.($addOn->quantity > 1 ? ' ×'.$addOn->quantity : '');
+        $name = AddOnLabel::for($addOn).($addOn->quantity > 1 ? ' ×'.$addOn->quantity : '');
 
         return [
             $this->row($key, $date, $name, 0, $label, $tax->isCalculated() ? $tax->netAmount : $entered, [FolioRowTag::Scheduled]),

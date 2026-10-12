@@ -21,6 +21,12 @@ enum ChargingUnit: string
         };
     }
 
+    /** Whether the item can charge children by age group. */
+    public function pricesChildren(): bool
+    {
+        return $this === self::PerGuest || $this === self::PerGuestNight;
+    }
+
     /** @return list<array{value: string, label: string}> */
     public static function options(): array
     {

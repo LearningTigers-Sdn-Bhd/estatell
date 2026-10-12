@@ -17,6 +17,7 @@ use App\Services\Catalogues\TaxCalculator;
 use App\Services\Folio\FolioPostability;
 use App\Services\Folio\FolioRouter;
 use App\Services\NightAudit\CurrentBusinessDate;
+use App\Services\Reservations\AddOnLabel;
 use App\Services\Reservations\UnitNationality;
 use Brick\Money\Money;
 use Carbon\CarbonImmutable;
@@ -73,7 +74,7 @@ class PostScheduledAddOns
         return DB::transaction(function () use ($actor, $property, $addOnId, $businessDate): PostingResult {
             $unitId = UnitAddOn::query()->whereKey($addOnId)->value('reservation_unit_id');
             $unit = $unitId === null ? null : ReservationUnit::query()->lockForUpdate()->find($unitId);
-            $addOn = $unit === null ? null : UnitAddOn::query()->with('chargeItem.transactionCode')->find($addOnId);
+            $addOn = $unit === null ? null : UnitAddOn::query()->with(['chargeItem.transactionCode', 'ageGroup'])->find($addOnId);
 
             if ($addOn === null || $unit === null || $addOn->folio_line_id !== null || $unit->status !== UnitStatus::CheckedIn || $unit->property_id !== $property->id) {
                 return PostingResult::refused(PostingResult::REFUSAL_UNIT_NOT_POSTABLE);
@@ -106,7 +107,7 @@ class PostScheduledAddOns
             }
 
             $folio ??= ($this->createFolio)($unit->reservation, $unit);
-            $lines = ($this->postFolioCharge)($actor, $folio, $code, $addOn->chargeItem->name, $addOn->quantity, $unitAmount, $tax, $key, $businessDate->toDateString(), $addOn);
+            $lines = ($this->postFolioCharge)($actor, $folio, $code, AddOnLabel::for($addOn), $addOn->quantity, $unitAmount, $tax, $key, $businessDate->toDateString(), $addOn);
             $addOn->folio_line_id = $lines[0]->id;
             $addOn->save();
 

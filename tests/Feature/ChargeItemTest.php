@@ -1,8 +1,10 @@
 <?php
 
+use App\Actions\Catalogues\CreateChargeItem;
 use App\Actions\Catalogues\ReorderChargeItems;
 use App\Actions\Catalogues\SeedChargeItems;
 use App\Actions\Catalogues\SeedTransactionCodes;
+use App\Enums\AgeBandPricing;
 use App\Enums\ChargingUnit;
 use App\Enums\Currency;
 use App\Enums\DefaultRoleEnum;
@@ -10,7 +12,9 @@ use App\Enums\SystemTransactionCode;
 use App\Enums\TransactionCategory;
 use App\Enums\TransactionKind;
 use App\Models\ChargeItem;
+use App\Models\ChargeItemChildPrice;
 use App\Models\Property;
+use App\Models\PropertyAgeGroup;
 use App\Models\PropertySetting;
 use App\Models\Tax;
 use App\Models\TransactionCode;
@@ -421,4 +425,144 @@ test('the settings sidebar lists charge items only with settings permission', fu
     $this->actingAs($frontDesk)
         ->get(route('dashboard', $frontDesk->property->code))
         ->assertInertia(fn (Assert $page) => $page->missing('navigation.contexts.3.groups.3.items.0'));
+});
+
+/**
+ * Infant 0-3 and Child 4-11 on the property, and a per guest item of 30.00 with Percent 100 on both.
+ *
+ * @return array{0: User, 1: ChargeItem, 2: PropertyAgeGroup, 3: PropertyAgeGroup}
+ */
+function perGuestItemWithGroups(): array
+{
+    $owner = User::factory()->owner()->create();
+    $property = $owner->property;
+    $infant = PropertyAgeGroup::factory()->for($property)->create(['label' => 'Infant', 'min_age' => 0, 'max_age' => 3]);
+    $child = PropertyAgeGroup::factory()->for($property)->create(['label' => 'Child', 'min_age' => 4, 'max_age' => 11]);
+    $item = ChargeItem::factory()->for($property)->create(['charging_unit' => ChargingUnit::PerGuest, 'default_amount' => '30.00', 'needs_child_price_review' => true]);
+    ChargeItemChildPrice::factory()->create(['charge_item_id' => $item->id, 'property_age_group_id' => $infant->id]);
+    ChargeItemChildPrice::factory()->create(['charge_item_id' => $item->id, 'property_age_group_id' => $child->id]);
+
+    return [$owner, $item, $infant, $child];
+}
+
+test('saving child prices keeps one row per age group and clears the review flag', function () {
+    [$owner, $item, $infant, $child] = perGuestItemWithGroups();
+
+    $this->actingAs($owner)
+        ->put(route('settings.charge-items.update', [$owner->property->code, $item]), chargeItemPayloadFor($item, [
+            'child_prices' => [
+                ['property_age_group_id' => $infant->id, 'pricing' => 'free', 'value' => null],
+                ['property_age_group_id' => $child->id, 'pricing' => 'percent', 'value' => '50'],
+            ],
+        ]))
+        ->assertSessionHasNoErrors();
+
+    $prices = $item->childPrices()->get()->keyBy('property_age_group_id');
+
+    expect($prices)->toHaveCount(2)
+        ->and([$prices[$infant->id]->pricing, $prices[$infant->id]->value])->toBe([AgeBandPricing::Free, null])
+        ->and([$prices[$child->id]->pricing, $prices[$child->id]->value])->toBe([AgeBandPricing::Percent, '50.00'])
+        ->and($item->refresh()->needs_child_price_review)->toBeFalse()
+        ->and(Activity::query()->where('event', 'charge_item.updated')->sole()->properties['changed'])->toContain('child_prices');
+});
+
+test('a save without child prices leaves them and the review flag alone', function () {
+    [$owner, $item] = perGuestItemWithGroups();
+
+    $this->actingAs($owner)
+        ->put(route('settings.charge-items.update', [$owner->property->code, $item]), chargeItemPayloadFor($item, ['active' => false]))
+        ->assertSessionHasNoErrors();
+
+    expect($item->childPrices()->count())->toBe(2)
+        ->and($item->refresh()->needs_child_price_review)->toBeTrue();
+});
+
+test('child prices are validated', function (array $row, string $field) {
+    [$owner, $item, $infant, $child] = perGuestItemWithGroups();
+
+    $this->actingAs($owner)
+        ->put(route('settings.charge-items.update', [$owner->property->code, $item]), chargeItemPayloadFor($item, [
+            'child_prices' => [
+                ['property_age_group_id' => $infant->id, 'pricing' => 'free', 'value' => null],
+                ['property_age_group_id' => $child->id, ...$row],
+            ],
+        ]))
+        ->assertSessionHasErrors($field);
+})->with([
+    'a percent above 100' => [['pricing' => 'percent', 'value' => '150'], 'child_prices.1.value'],
+    'a fixed amount is required' => [['pricing' => 'fixed', 'value' => null], 'child_prices.1.value'],
+    'an unknown pricing' => [['pricing' => 'half', 'value' => '1'], 'child_prices.1.pricing'],
+]);
+
+test('child prices must cover exactly the age groups of the property', function () {
+    [$owner, $item, $infant] = perGuestItemWithGroups();
+
+    $this->actingAs($owner)
+        ->put(route('settings.charge-items.update', [$owner->property->code, $item]), chargeItemPayloadFor($item, [
+            'child_prices' => [['property_age_group_id' => $infant->id, 'pricing' => 'free', 'value' => null]],
+        ]))
+        ->assertSessionHasErrors('child_prices');
+});
+
+test('a percent needs a default amount', function () {
+    [$owner, $item, $infant, $child] = perGuestItemWithGroups();
+
+    $this->actingAs($owner)
+        ->put(route('settings.charge-items.update', [$owner->property->code, $item]), chargeItemPayloadFor($item, [
+            'default_amount' => '',
+            'child_prices' => [
+                ['property_age_group_id' => $infant->id, 'pricing' => 'free', 'value' => null],
+                ['property_age_group_id' => $child->id, 'pricing' => 'percent', 'value' => '50'],
+            ],
+        ]))
+        ->assertSessionHasErrors('child_prices.1.pricing');
+});
+
+test('changing to a unit that does not price children removes the rows, and back adds the defaults', function () {
+    [$owner, $item] = perGuestItemWithGroups();
+    $url = route('settings.charge-items.update', [$owner->property->code, $item]);
+
+    $this->actingAs($owner)->put($url, chargeItemPayloadFor($item, ['charging_unit' => ChargingUnit::PerItem->value]))->assertSessionHasNoErrors();
+
+    expect($item->childPrices()->count())->toBe(0);
+
+    $this->put($url, chargeItemPayloadFor($item, ['charging_unit' => ChargingUnit::PerGuestNight->value]))->assertSessionHasNoErrors();
+
+    $prices = $item->childPrices()->get();
+
+    expect($prices)->toHaveCount(2)
+        ->and($prices->every(fn (ChargeItemChildPrice $price): bool => $price->pricing === AgeBandPricing::Percent && $price->value === '100.00'))->toBeTrue();
+});
+
+test('the edit page lists every age group with its price or the default', function () {
+    [$owner, $item, $infant, $child] = perGuestItemWithGroups();
+    PropertySetting::factory()->for($owner->property)->create();
+    $item->childPrices()->where('property_age_group_id', $child->id)->update(['pricing' => 'fixed', 'value' => '12.00']);
+    $teen = PropertyAgeGroup::factory()->for($owner->property)->create(['label' => 'Teen', 'min_age' => 12, 'max_age' => 15]);
+
+    $this->actingAs($owner)
+        ->get(route('settings.charge-items.edit', [$owner->property->code, $item]))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('childPrices', fn ($rows) => collect($rows)->map(fn ($row) => [$row['label'], $row['pricing'], $row['value']])->all() === [
+                ['Infant', 'percent', '100.00'],
+                ['Child', 'fixed', '12.00'],
+                ['Teen', 'percent', '100.00'],
+            ])
+            ->where('chargeItem.needsChildPriceReview', true));
+
+    expect($teen->id)->toBeInt();
+});
+
+test('creating a per guest item gives every age group the default child price', function () {
+    $owner = User::factory()->owner()->create();
+    $property = $owner->property;
+    PropertyAgeGroup::factory()->for($property)->create(['label' => 'Child', 'min_age' => 4, 'max_age' => 11]);
+
+    $priced = app(CreateChargeItem::class)($property, $owner, ['name' => 'Breakfast', 'code' => 'BREAKFAST', 'category' => TransactionCategory::FoodAndBeverage, 'default_amount' => '25.00', 'charging_unit' => ChargingUnit::PerGuest, 'tax_ids' => []]);
+    $open = app(CreateChargeItem::class)($property, $owner, ['name' => 'Tour', 'code' => 'TOUR', 'category' => TransactionCategory::Other, 'charging_unit' => ChargingUnit::PerGuest, 'tax_ids' => []]);
+    $perItem = app(CreateChargeItem::class)($property, $owner, ['name' => 'Cake', 'code' => 'CAKE', 'category' => TransactionCategory::Other, 'tax_ids' => []]);
+
+    expect($priced->childPrices()->sole()->only(['pricing', 'value']))->toBe(['pricing' => AgeBandPricing::Percent, 'value' => '100.00'])
+        ->and($open->childPrices()->sole()->only(['pricing', 'value']))->toBe(['pricing' => AgeBandPricing::Free, 'value' => null])
+        ->and($perItem->childPrices()->count())->toBe(0);
 });

@@ -5,8 +5,10 @@ namespace App\Http\Controllers\Catalogues;
 use App\Actions\Catalogues\CreateChargeItem;
 use App\Actions\Catalogues\ReorderChargeItems;
 use App\Actions\Catalogues\UpdateChargeItem;
+use App\Data\Catalogues\ChargeItemChildPriceData;
 use App\Data\Catalogues\ChargeItemData;
 use App\Data\Catalogues\ChargeItemTaxData;
+use App\Enums\AgeBandPricing;
 use App\Enums\ChargingUnit;
 use App\Enums\TransactionCategory;
 use App\Http\Controllers\Controller;
@@ -14,6 +16,7 @@ use App\Http\Requests\Catalogues\ChargeItemRequest;
 use App\Http\Requests\Catalogues\ReorderChargeItemsRequest;
 use App\Models\ChargeItem;
 use App\Models\Property;
+use App\Models\PropertyAgeGroup;
 use App\Models\Tax;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
@@ -59,8 +62,14 @@ class ChargeItemController extends Controller
     {
         abort_if($property->settings === null, 404);
 
+        $prices = $chargeItem->childPrices()->get()->keyBy('property_age_group_id');
+
         return Inertia::render('settings/charge-items/edit', [
             'chargeItem' => ChargeItemData::fromModel($chargeItem->load('transactionCode.applicableTaxes')),
+            'childPrices' => $property->ageGroups()->ordered()->get()
+                ->map(fn (PropertyAgeGroup $ageGroup): ChargeItemChildPriceData => ChargeItemChildPriceData::forAgeGroup($chargeItem, $ageGroup, $prices->get($ageGroup->id)))
+                ->all(),
+            'pricings' => AgeBandPricing::options(),
             'taxes' => $property->taxes()
                 ->orderByDesc('enabled')
                 ->orderBy('name')

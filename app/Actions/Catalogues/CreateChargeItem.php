@@ -11,6 +11,8 @@ use Illuminate\Support\Facades\DB;
 
 class CreateChargeItem
 {
+    public function __construct(private SyncChargeItemChildPrices $syncChildPrices) {}
+
     /**
      * Add a charge item with its own charge code at the end of the property's active list.
      * Missing fields take the new-item defaults: priced when charging, per item, no taxes, available.
@@ -54,6 +56,7 @@ class CreateChargeItem
             $chargeItem->transaction_code_id = $transactionCode->id;
             $chargeItem->position = ((int) $property->chargeItems()->active()->max('position')) + 1;
             $chargeItem->save();
+            ($this->syncChildPrices)($chargeItem, null);
 
             activity()
                 ->performedOn($chargeItem)

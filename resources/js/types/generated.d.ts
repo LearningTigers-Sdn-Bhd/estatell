@@ -1,6 +1,14 @@
 declare namespace App {
 namespace Data {
 namespace Catalogues {
+export type ChargeItemChildPriceData = {
+ageGroupId: number,
+label: string,
+minAge: number,
+maxAge: number,
+pricing: App.Enums.AgeBandPricing,
+value: string | null,
+};
 export type ChargeItemData = {
 id: number,
 name: string,
@@ -11,6 +19,7 @@ description: string | null,
 defaultAmount: string | null,
 chargingUnit: App.Enums.ChargingUnit,
 allowOverride: boolean,
+needsChildPriceReview: boolean,
 active: boolean,
 taxIds: number[],
 };

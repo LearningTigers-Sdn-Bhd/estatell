@@ -29,9 +29,9 @@ The charge item's `ChargingUnit` decides how many rows are written and their qua
 | PerGuest      | One           | Optional                          | Adults + children |
 
 - **Split by price.** A PerGuest or PerGuestNight item with [child prices](../06-catalogues/02-charge-items.md#child-prices) writes one row per price instead of one row for everyone: adults (`property_age_group_id` null, the default amount) and one row per age group that has children and is not Free (its own amount). Example, Breakfast 30.00, Child 4–11 at 50%, Infant Free, for 2 adults, a child of 6 and a baby: adults 2 × 30.00 and Child 4–11 1 × 15.00, and no infant row. Nightly items do this for each night. A staff override of the amount applies to the adult row only.
-- The folio line of a child row reads "Breakfast · Child 4–11".
+- The folio line of a child row reads "Breakfast · Child 4–11" (`AddOnLabel`): the scheduled rows, the Add-ons tab and the posted line all use it.
 
-`ChargeQuantityResolver` (`app/Services/Catalogues/`, one `match` returning row arrays) turns a charging unit and the unit's stay (adults and `reservation_unit_children` ages) into these rows. Nightly rows let each night post under its own `addon:{id}` key, and let an early departure drop the later nights.
+`ChargeQuantityResolver` (`app/Services/Catalogues/`, one `match` returning row arrays) turns a charging unit and the unit's stay into these rows. For a per-guest item, `ChargeChildPrices::split()` maps the `reservation_unit_children` ages to age groups first (an age past the last group, or a child with no recorded age, pays the adult price) and the resolver writes the adult row and one row per billable group. Each row carries `age_group_id` and its `child_price`; `ChargeChildPrices::rowAmount()` prices it. `AddUnitAddOn` and `BookingQuote` both use them, so a quote matches what is written. A child row is `unit_add_ons.property_age_group_id`; it is set null if the age group is deleted. Nightly rows let each night post under its own `addon:{id}` key, and let an early departure drop the later nights.
 
 ## Price
 

@@ -66,6 +66,9 @@ A PerGuest or PerGuestNight item can charge children less than adults, by [age g
 - **Default: Percent 100 for every group**, so an item charges children as adults until staff change it. A back-fill migration writes these rows for existing per-guest items.
 - **Children only** (a kids' club): default amount 0 is not allowed (it must be positive), so the item uses **Enter when charging** or a small adult price with Fixed child prices. **Adults only** (a bar package): every group Free.
 - An item with **Enter when charging** has no default to take a percentage of: Percent is disabled, and only Free and Fixed are offered.
+- A back-fill and a new item with **Enter when charging** get **Free** (not Percent 100) on every group, and the back-fill flags them "Check child prices". On a new age group the same applies: Percent 100 on priced items, Free on open-price items.
+- A percentage is of the **default amount**, not of a staff override. The override changes the adult row only.
+- Saving without the Children section (for example the Available switch on the list) leaves the rows and the badge as they are. A change to a charging unit that does not price children deletes the rows; a change back adds the defaults.
 - A new age group gets Percent 100 on every per-guest item and sets `needs_child_price_review` (the "Check child prices" badge), like rate plans. Saving the item clears it. A removed group's rows go with it.
 - How the rows split by price is in [Add-ons](../12-reservations/04-add-ons.md#rows-by-charging-unit).
 

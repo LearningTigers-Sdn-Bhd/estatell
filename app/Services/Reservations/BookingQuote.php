@@ -15,6 +15,7 @@ use App\Models\ReservationUnit;
 use App\Models\RoomType;
 use App\Services\Availability\AvailabilityService;
 use App\Services\Availability\DayUseAvailability;
+use App\Services\Catalogues\ChargeChildPrices;
 use App\Services\Catalogues\ChargeQuantityResolver;
 use App\Services\NightAudit\CurrentBusinessDate;
 use App\Services\Property\PropertyToday;
@@ -42,6 +43,7 @@ class BookingQuote
         private AvailabilityService $availability,
         private ReservationRefusals $refusals,
         private ChargeQuantityResolver $quantityResolver,
+        private ChargeChildPrices $childPrices,
         private CurrentBusinessDate $currentBusinessDate,
         private PropertyToday $propertyToday,
         private DayUseAvailability $dayUseAvailability,
@@ -92,7 +94,7 @@ class BookingQuote
             ), $quote->nights),
             unitTotal: (string) $unitTotal->getAmount(),
             lineTotal: (string) $unitTotal->multipliedBy($beds)->getAmount(),
-            addOnsTotal: (string) $this->addOnsTotal($property, $addOns, $arrival, $departure, $adults, count($childAges), $quote->total->getCurrency())->multipliedBy($beds)->getAmount(),
+            addOnsTotal: (string) $this->addOnsTotal($property, $addOns, $arrival, $departure, $adults, $childAges, $quote->total->getCurrency())->multipliedBy($beds)->getAmount(),
             isOverridden: $overrideTotal !== null,
             beds: $beds,
             violations: $this->restrictionCheck->violations($ratePlan->id, $roomType->id, $arrival, $departure),
@@ -146,7 +148,7 @@ class BookingQuote
             nights: [],
             unitTotal: $total,
             lineTotal: $total,
-            addOnsTotal: (string) $this->addOnsTotal($property, $addOns, $date, $date, $adults, count($childAges), $quote->amount->getCurrency())->getAmount(),
+            addOnsTotal: (string) $this->addOnsTotal($property, $addOns, $date, $date, $adults, $childAges, $quote->amount->getCurrency())->getAmount(),
             isOverridden: false,
             beds: 1,
             violations: $this->restrictionCheck->dayUseViolations($ratePlan->id, $roomType->id, $date),
@@ -159,8 +161,9 @@ class BookingQuote
      * The add-ons of one unit: each item's rows from `ChargeQuantityResolver`, times the amount.
      *
      * @param  list<NewAddOnData>  $addOns
+     * @param  list<int>  $childAges
      */
-    private function addOnsTotal(Property $property, array $addOns, CarbonImmutable $arrival, CarbonImmutable $departure, int $adults, int $children, mixed $currency): Money
+    private function addOnsTotal(Property $property, array $addOns, CarbonImmutable $arrival, CarbonImmutable $departure, int $adults, array $childAges, mixed $currency): Money
     {
         $total = Money::zero($currency);
 
@@ -168,7 +171,7 @@ class BookingQuote
             return $total;
         }
 
-        $unit = (new ReservationUnit)->forceFill(['arrival_date' => $arrival, 'departure_date' => $departure, 'adults' => $adults, 'children' => $children]);
+        $unit = (new ReservationUnit)->forceFill(['arrival_date' => $arrival, 'departure_date' => $departure, 'adults' => $adults, 'children' => count($childAges)]);
         $businessDate = $this->currentBusinessDate->date($property) ?? $this->propertyToday->date($property);
         $items = ChargeItem::query()->where('property_id', $property->id)->active()->whereIn('id', array_map(fn (NewAddOnData $addOn): int => $addOn->chargeItemId, $addOns))->get()->keyBy('id');
 
@@ -181,9 +184,12 @@ class BookingQuote
             }
 
             $price = Money::of($amount, $currency, roundingMode: RoundingMode::Down);
+            $default = $item->default_amount === null ? null : Money::of($item->default_amount, $currency);
+            $split = $this->childPrices->split($item, $childAges, count($childAges));
 
-            foreach ($this->quantityResolver->rows($item->charging_unit, $unit, $businessDate, $addOn->quantity, $addOn->serviceDate) as $row) {
-                $total = $total->plus($price->multipliedBy($row['quantity']));
+            foreach ($this->quantityResolver->rows($item->charging_unit, $unit, $businessDate, $addOn->quantity, $addOn->serviceDate, $split) as $row) {
+                $rowPrice = $this->childPrices->rowAmount($row['child_price'], $price, $default);
+                $total = $total->plus($rowPrice->multipliedBy($row['quantity']));
             }
         }
 

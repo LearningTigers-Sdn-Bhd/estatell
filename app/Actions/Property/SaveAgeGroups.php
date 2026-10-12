@@ -3,6 +3,7 @@
 namespace App\Actions\Property;
 
 use App\Enums\AgeBandPricing;
+use App\Enums\ChargingUnit;
 use App\Models\Property;
 use App\Models\PropertyAgeGroup;
 use App\Models\User;
@@ -17,6 +18,8 @@ class SaveAgeGroups
      * so ranges never have gaps or overlaps. A row with an id keeps that id. A row without one is new.
      * An existing group missing from the list is deleted, and its child prices go with it.
      * A new group gets a Free child price on every per-guest rate plan, and those plans are flagged "Check child prices".
+     * It gets Percent 100 on every per-guest charge item (Free on an item priced when charging), and those items are
+     * flagged "Check child prices" too.
      *
      * Returns false, without writing, when a row id is not one of the property's current groups.
      * A save that changes nothing is not logged.
@@ -94,6 +97,21 @@ class SaveAgeGroups
                 'value' => null,
             ]);
             $ratePlan->forceFill(['needs_child_price_review' => true])->save();
+        }
+
+        $chargeItems = $property->chargeItems()
+            ->whereIn('charging_unit', array_map(fn (ChargingUnit $unit): string => $unit->value, array_filter(ChargingUnit::cases(), fn (ChargingUnit $unit): bool => $unit->pricesChildren())))
+            ->get();
+
+        foreach ($chargeItems as $chargeItem) {
+            $priced = $chargeItem->default_amount !== null;
+
+            $chargeItem->childPrices()->create([
+                'property_age_group_id' => $ageGroup->id,
+                'pricing' => $priced ? AgeBandPricing::Percent : AgeBandPricing::Free,
+                'value' => $priced ? '100.00' : null,
+            ]);
+            $chargeItem->forceFill(['needs_child_price_review' => true])->save();
         }
     }
 }

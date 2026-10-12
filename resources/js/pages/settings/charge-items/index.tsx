@@ -231,8 +231,13 @@ function ChargeItemTable({
                                 </TableCell>
                                 <TableCell>
                                     <div className="flex min-w-0 flex-col gap-0.5">
-                                        <span className="font-medium">
+                                        <span className="flex items-center gap-2 font-medium">
                                             {chargeItem.name}
+                                            {chargeItem.needsChildPriceReview && (
+                                                <Badge variant="outline">
+                                                    Check child prices
+                                                </Badge>
+                                            )}
                                         </span>
                                         {chargeItem.description && (
                                             <span className="max-w-xs truncate text-xs text-muted-foreground">

@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Catalogues;
 
+use App\Enums\AgeBandPricing;
 use App\Enums\ChargingUnit;
 use App\Enums\TransactionCategory;
 use App\Models\ChargeItem;
@@ -117,6 +118,47 @@ class ChargeItemRequest extends FormRequest
                 },
             ],
             'tax_ids.*' => ['integer'],
+            'child_prices' => [
+                'sometimes', 'array',
+                function (string $attribute, mixed $value, Closure $fail) use ($property): void {
+                    $unit = ChargingUnit::tryFrom((string) $this->input('charging_unit'));
+
+                    if (! $unit?->pricesChildren()) {
+                        return;
+                    }
+
+                    $groupIds = $property->ageGroups()->pluck('id')->all();
+                    $sent = is_array($value) ? array_column($value, 'property_age_group_id') : [];
+
+                    if (count($sent) !== count($groupIds) || array_diff($sent, $groupIds) !== []) {
+                        $fail(__('The age groups changed. Reload the page and try again.'));
+                    }
+                },
+            ],
+            'child_prices.*.property_age_group_id' => ['required', 'integer', 'distinct'],
+            'child_prices.*.pricing' => [
+                'required', Rule::enum(AgeBandPricing::class),
+                function (string $attribute, mixed $value, Closure $fail): void {
+                    if ($value === AgeBandPricing::Percent->value && ! filled($this->input('default_amount'))) {
+                        $fail(__('A percentage needs a default amount. Choose Free or a fixed amount.'));
+                    }
+                },
+            ],
+            'child_prices.*.value' => [
+                'required_if:child_prices.*.pricing,percent,fixed', 'nullable', 'decimal:0,2',
+                function (string $attribute, mixed $value, Closure $fail): void {
+                    $index = explode('.', $attribute)[1];
+                    $pricing = $this->input("child_prices.{$index}.pricing");
+
+                    if ($pricing === AgeBandPricing::Percent->value && (! is_numeric($value) || $value <= 0 || $value > 100)) {
+                        $fail(__('Enter a percentage from 1 to 100.'));
+                    }
+
+                    if ($pricing === AgeBandPricing::Fixed->value && (! is_numeric($value) || $value < 0 || $value > 9999999999)) {
+                        $fail(__('Enter an amount of 0 or more.'));
+                    }
+                },
+            ],
         ];
     }
 }

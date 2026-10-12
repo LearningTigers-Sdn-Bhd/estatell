@@ -3,7 +3,9 @@
 use App\Actions\Reservations\AssignRoom;
 use App\Enums\DefaultRoleEnum;
 use App\Models\ChargeItem;
+use App\Models\ChargeItemChildPrice;
 use App\Models\Property;
+use App\Models\PropertyAgeGroup;
 use App\Models\Rate;
 use App\Models\RatePlan;
 use App\Models\Reservation;
@@ -188,4 +190,19 @@ test('a price override replaces the quote and is flagged', function () {
         ->assertJsonPath('lineTotal', '150.00')
         ->assertJsonPath('isOverridden', true)
         ->assertJsonPath('nights.0.amount', '100.00');
+});
+
+test('a quote prices the children of a per guest add-on by age group', function () {
+    $setup = bookingSetup();
+    $property = $setup['property'];
+    $infant = PropertyAgeGroup::factory()->create(['property_id' => $property->id, 'label' => 'Infant', 'min_age' => 0, 'max_age' => 3]);
+    $child = PropertyAgeGroup::factory()->create(['property_id' => $property->id, 'label' => 'Child', 'min_age' => 4, 'max_age' => 11]);
+    $item = ChargeItem::factory()->create(['property_id' => $property->id, 'default_amount' => '30.00', 'charging_unit' => 'per_guest']);
+    ChargeItemChildPrice::factory()->free()->create(['charge_item_id' => $item->id, 'property_age_group_id' => $infant->id]);
+    ChargeItemChildPrice::factory()->percent('50')->create(['charge_item_id' => $item->id, 'property_age_group_id' => $child->id]);
+
+    $this->actingAs($setup['user'])
+        ->postJson(previewUrl($setup, 'reservations.quote'), quoteBody($setup, ['adults' => 2, 'child_ages' => [6, 2], 'add_ons' => [['charge_item_id' => $item->id]]]))
+        ->assertOk()
+        ->assertJsonPath('addOnsTotal', '75.00');
 });

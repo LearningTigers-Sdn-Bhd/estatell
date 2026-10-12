@@ -18,6 +18,7 @@ use App\Services\Catalogues\TaxCalculator;
 use App\Services\Folio\FolioPostability;
 use App\Services\Folio\FolioRouter;
 use App\Services\NightAudit\CurrentBusinessDate;
+use App\Services\Reservations\AddOnLabel;
 use App\Services\Reservations\UnitNationality;
 use Brick\Money\Money;
 use Illuminate\Support\Facades\DB;
@@ -134,13 +135,13 @@ class PostCharge
             }
 
             $folio ??= ($this->createFolio)($locked->reservation, $locked);
-            $addOn = $data->unitAddOnId === null ? null : $locked->addOns()->lockForUpdate()->findOrFail($data->unitAddOnId);
+            $addOn = $data->unitAddOnId === null ? null : $locked->addOns()->lockForUpdate()->with(['chargeItem', 'ageGroup'])->findOrFail($data->unitAddOnId);
 
             $lines = ($this->postFolioCharge)(
                 $actor,
                 $folio,
                 $code,
-                filled($data->description) ? trim((string) $data->description) : ($item?->name ?? $code->name),
+                filled($data->description) ? trim((string) $data->description) : ($addOn instanceof UnitAddOn ? AddOnLabel::for($addOn) : ($item?->name ?? $code->name)),
                 $data->quantity,
                 $unitAmount,
                 $tax,

@@ -2,7 +2,10 @@
 
 use App\Actions\Property\SaveAgeGroups;
 use App\Actions\Property\SeedAgeGroups;
+use App\Enums\AgeBandPricing;
+use App\Enums\ChargingUnit;
 use App\Enums\DefaultRoleEnum;
+use App\Models\ChargeItem;
 use App\Models\Property;
 use App\Models\PropertyAgeGroup;
 use App\Models\User;
@@ -234,3 +237,28 @@ test('the database enforces age group invariants', function (array $attributes) 
     'label is trimmed' => [['label' => ' Child ']],
     'label is not empty' => [['label' => '']],
 ]);
+
+test('a new group gets Percent 100 on per guest charge items and flags them for review', function () {
+    [$owner, $property] = seededAgeGroupProperty();
+    [$infant, $child] = $property->ageGroups()->ordered()->get();
+    $priced = ChargeItem::factory()->for($property)->create(['charging_unit' => ChargingUnit::PerGuest, 'default_amount' => '30.00']);
+    $open = ChargeItem::factory()->for($property)->create(['charging_unit' => ChargingUnit::PerGuestNight, 'default_amount' => null]);
+    $perItem = ChargeItem::factory()->for($property)->create(['charging_unit' => ChargingUnit::PerItem]);
+
+    $this->actingAs($owner)
+        ->put(route('settings.age-groups.update', $property->code), ['groups' => [
+            ['id' => $infant->id, 'label' => 'Infant', 'max_age' => 3],
+            ['id' => $child->id, 'label' => 'Child', 'max_age' => 11],
+            ['label' => 'Teen', 'max_age' => 15],
+        ]])
+        ->assertSessionHasNoErrors();
+
+    $teen = $property->ageGroups()->where('label', 'Teen')->sole();
+
+    expect($priced->childPrices()->where('property_age_group_id', $teen->id)->sole()->only(['pricing', 'value']))->toBe(['pricing' => AgeBandPricing::Percent, 'value' => '100.00'])
+        ->and($open->childPrices()->where('property_age_group_id', $teen->id)->sole()->pricing)->toBe(AgeBandPricing::Free)
+        ->and($priced->refresh()->needs_child_price_review)->toBeTrue()
+        ->and($open->refresh()->needs_child_price_review)->toBeTrue()
+        ->and($perItem->childPrices()->count())->toBe(0)
+        ->and($perItem->refresh()->needs_child_price_review)->toBeFalse();
+});

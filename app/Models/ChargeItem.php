@@ -23,6 +23,7 @@ use Illuminate\Support\Carbon;
  * @property string|null $default_amount
  * @property ChargingUnit $charging_unit
  * @property bool $allow_override
+ * @property bool $needs_child_price_review
  * @property int $position
  * @property bool $active
  * @property Carbon|null $created_at
@@ -30,7 +31,7 @@ use Illuminate\Support\Carbon;
  */
 #[Fillable([
     'transaction_code_id', 'name', 'description', 'default_amount', 'charging_unit',
-    'allow_override', 'position', 'active',
+    'allow_override', 'needs_child_price_review', 'position', 'active',
 ])]
 class ChargeItem extends Model
 {
@@ -44,6 +45,7 @@ class ChargeItem extends Model
             'default_amount' => 'decimal:2',
             'charging_unit' => ChargingUnit::class,
             'allow_override' => 'boolean',
+            'needs_child_price_review' => 'boolean',
             'position' => 'integer',
             'active' => 'boolean',
         ];
@@ -59,6 +61,12 @@ class ChargeItem extends Model
     public function transactionCode(): BelongsTo
     {
         return $this->belongsTo(TransactionCode::class);
+    }
+
+    /** @return HasMany<ChargeItemChildPrice, $this> */
+    public function childPrices(): HasMany
+    {
+        return $this->hasMany(ChargeItemChildPrice::class);
     }
 
     /** @return HasMany<PaymentMethod, $this> */
