@@ -77,11 +77,15 @@ class UnitStayResult
         public readonly ?string $refusal,
         /** @var list<string> */
         public readonly array $rooms = [],
+        public readonly ?string $fee = null,
     ) {}
 
-    public static function done(ReservationUnit $unit): self
+    /**
+     * @param  string|null  $fee  The policy fee `CancelUnit` posted before tax ("0.00" when none), for `CancelUnits`.
+     */
+    public static function done(ReservationUnit $unit, ?string $fee = null): self
     {
-        return new self($unit, null);
+        return new self($unit, null, [], $fee);
     }
 
     /**

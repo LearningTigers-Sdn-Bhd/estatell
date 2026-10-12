@@ -111,7 +111,7 @@ class CancelUnit
 
             ($this->syncReservationStatus)($locked->reservation);
 
-            return UnitStayResult::done($locked);
+            return UnitStayResult::done($locked, $postsFee ? $feeAmount : '0.00');
         });
     }
 }

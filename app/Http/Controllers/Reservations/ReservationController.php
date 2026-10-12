@@ -235,6 +235,7 @@ class ReservationController extends Controller
             'canCheckIn' => $user->can(PermissionEnum::FrontDeskCheckIn->value),
             'canCheckOutAll' => $user->can(PermissionEnum::FrontDeskCheckOut->value) && app(GroupCheckOutPreview::class)->isOffered($overview['models']),
             'receiptPaymentIds' => $user->can(PermissionEnum::PaymentRecord->value) ? app(PaymentReceipt::class)->paymentIdsFor($reservation) : [],
+            'canCancelReservation' => $user->can(PermissionEnum::ReservationsManage->value) && $overview['models']->contains(fn ($unit): bool => $unit->status === UnitStatus::Confirmed),
             'canWaiveFees' => $user->can(PermissionEnum::FrontDeskWaiveFees->value),
             'canOverrideRestrictions' => $user->can(PermissionEnum::RatesOverrideRestrictions->value),
             'billingModes' => BillingMode::options(),

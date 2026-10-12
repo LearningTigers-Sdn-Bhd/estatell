@@ -4,6 +4,7 @@ namespace App\Services\Reservations;
 
 use App\Actions\FrontDesk\UnitStayResult;
 use App\Actions\Reservations\AssignmentResult;
+use App\Data\Reservations\CancelAllPreviewData;
 use App\Data\Reservations\CheckInAllPreviewData;
 use App\Data\Reservations\FreeUnitData;
 use App\Data\Reservations\UnitCheckInPreviewData;
@@ -15,11 +16,14 @@ use App\Data\Reservations\UnitLateCheckOutPreviewData;
 use App\Data\Reservations\UnitMovePreviewData;
 use App\Data\Reservations\UnitReinstatePreviewData;
 use App\Enums\CheckInRoomState;
+use App\Enums\FolioStatus;
 use App\Enums\PermissionEnum;
 use App\Enums\SellUnit;
 use App\Enums\StayType;
 use App\Enums\SystemTransactionCode;
+use App\Enums\TransactionKind;
 use App\Enums\UnitStatus;
+use App\Models\FolioLine;
 use App\Models\Reservation;
 use App\Models\ReservationUnit;
 use App\Models\RoomRevenuePolicy;
@@ -40,9 +44,11 @@ use App\Services\Rates\RateQuoteRequest;
 use App\Services\Rates\RateQuoteService;
 use App\Services\Rates\RestrictionCheck;
 use App\Services\Registration\RegistrationCardRequirement;
+use Brick\Math\BigDecimal;
 use Brick\Money\Money;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
+use Illuminate\Support\Facades\DB;
 
 /**
  * What the unit action forms show when they open: the policy fee, the price after a reinstate and the price after a
@@ -300,6 +306,96 @@ class UnitActionPreview
             standardTime: substr((string) $unit->property()->with('settings')->firstOrFail()->settings?->check_out_time, 0, 5),
             error: null,
         );
+    }
+
+    /**
+     * The rows of the Cancel reservation form: every unit with its cancellation fee (before and after tax) on the
+     * business date, the money held on the reservation and the company portal request. Only a Confirmed unit can be
+     * ticked. The fee is the figure `CancelUnit` computes, so the Dialog and a Cancel unit agree.
+     */
+    public function cancelAll(Reservation $reservation): CancelAllPreviewData
+    {
+        $property = $reservation->property()->firstOrFail();
+        $businessDate = $this->currentBusinessDate->date($property);
+
+        if ($businessDate === null) {
+            return CancelAllPreviewData::refused($this->refusals->message(UnitStayResult::REFUSAL_NO_BUSINESS_DATE));
+        }
+
+        $policy = RoomRevenuePolicy::query()->where('property_id', $property->id)->where('code', SystemTransactionCode::CancellationRevenue)->first();
+        $code = $property->transactionCodes()->where('system_key', SystemTransactionCode::CancellationRevenue->value)->where('active', true)->first();
+
+        if ($policy === null || $code === null) {
+            return CancelAllPreviewData::refused($this->refusals->message(UnitStayResult::REFUSAL_POLICY_NOT_FOUND));
+        }
+
+        $units = $reservation->units()->with(['roomType', 'guests.guest', 'dayUse'])->withCount(['addOns as unposted_add_ons_count' => fn ($query) => $query->whereNull('folio_line_id')])->orderBy('id')->get();
+        $stayLabel = app(StayLabel::class);
+        $rows = [];
+
+        foreach ($units as $unit) {
+            $row = [
+                'unitId' => $unit->id,
+                'label' => $unit->roomType->name,
+                'guest' => $unit->guests->firstWhere('is_primary', true)?->guest->full_name,
+                'arrival' => $unit->arrival_date->toDateString(),
+                'departure' => $unit->departure_date->toDateString(),
+                'stayLabel' => $stayLabel->forUnit($unit),
+                'canCancel' => false,
+                'fee' => null,
+                'feeTotal' => null,
+                'withinFreeWindow' => false,
+                'unpostedAddOns' => 0,
+                'note' => null,
+            ];
+
+            if ($unit->status !== UnitStatus::Confirmed) {
+                $row['note'] = $unit->status === UnitStatus::CheckedIn
+                    ? __('Checked in: use Check out or Early check-out.')
+                    : __('Already :status.', ['status' => strtolower($unit->status->label())]);
+                $rows[] = $row;
+
+                continue;
+            }
+
+            $charge = $this->policyChargeCalculator->calculate($policy, $unit);
+            $tax = $this->taxCalculator->calculate($property, $code, $charge->amount, '1', $this->unitNationality->for($unit));
+
+            if (! $tax->isCalculated()) {
+                $row['note'] = $this->refusals->message((string) $tax->refusalReason);
+                $rows[] = $row;
+
+                continue;
+            }
+
+            $row['canCancel'] = true;
+            $row['fee'] = (string) $charge->amount->getAmount();
+            $row['feeTotal'] = $charge->isFree() ? '0.00' : (string) $tax->grossAmount->getAmount();
+            $row['withinFreeWindow'] = $charge->withinFreeWindow;
+            $row['unpostedAddOns'] = (int) $unit->unposted_add_ons_count;
+            $rows[] = $row;
+        }
+
+        $paid = FolioLine::query()
+            ->join('folios', 'folios.id', '=', 'folio_lines.folio_id')
+            ->leftJoin('transaction_codes', 'transaction_codes.id', '=', 'folio_lines.transaction_code_id')
+            ->where('folios.reservation_id', $reservation->id)
+            ->where('folios.status', '!=', FolioStatus::Voided->value)
+            ->where('folio_lines.kind', TransactionKind::Payment->value)
+            ->whereRaw('transaction_codes.system_key is distinct from ?', [SystemTransactionCode::DirectBillPayment->value])
+            ->sum(DB::raw('-folio_lines.amount'));
+
+        $request = null;
+
+        if ($reservation->cancellation_requested_at !== null) {
+            $reservation->loadMissing(['company', 'cancellationRequester']);
+            $request = [
+                'by' => $reservation->company?->name ?? $reservation->cancellationRequester?->name ?? __('The booker'),
+                'at' => $reservation->cancellation_requested_at->toDateString(),
+            ];
+        }
+
+        return new CancelAllPreviewData($rows, $policy->free_until_days, (string) BigDecimal::of($paid ?: 0)->toScale(2), $request, null);
     }
 
     /**

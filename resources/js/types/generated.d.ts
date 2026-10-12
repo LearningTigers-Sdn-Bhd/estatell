@@ -1523,6 +1523,29 @@ supplement: string,
 discount: string,
 amount: string,
 };
+export type CancelAllPreviewData = {
+rows: {
+unitId: number,
+label: string,
+guest: string | null,
+arrival: string,
+departure: string,
+stayLabel: string | null,
+canCancel: boolean,
+fee: string | null,
+feeTotal: string | null,
+withinFreeWindow: boolean,
+unpostedAddOns: number,
+note: string | null,
+}[],
+freeUntilDays: number | null,
+paid: string,
+request: {
+by: string,
+at: string,
+} | null,
+error: string | null,
+};
 export type ChargeCodeOptionData = {
 id: number,
 code: string,

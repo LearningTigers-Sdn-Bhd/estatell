@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Reservations;
 
 use App\Actions\FrontDesk\CancelUnit;
+use App\Actions\FrontDesk\CancelUnits;
+use App\Actions\FrontDesk\CancelUnitsResult;
 use App\Actions\FrontDesk\ChangeUnitDates;
 use App\Actions\FrontDesk\CheckInAllUnits;
 use App\Actions\FrontDesk\CheckInAndCollect;
@@ -17,6 +19,7 @@ use App\Actions\Reservations\AssignmentResult;
 use App\Enums\PermissionEnum;
 use App\Enums\SystemTransactionCode;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Reservations\CancelReservationRequest;
 use App\Http\Requests\Reservations\ChangeUnitDatesRequest;
 use App\Http\Requests\Reservations\CheckInAllRequest;
 use App\Http\Requests\Reservations\CheckInUnitRequest;
@@ -46,6 +49,11 @@ class ReservationUnitStayController extends Controller
     public function cancelPreview(Property $property, Reservation $reservation, ReservationUnit $unit, UnitActionPreview $preview): JsonResponse
     {
         return response()->json($preview->fee($unit, SystemTransactionCode::CancellationRevenue));
+    }
+
+    public function cancelAllPreview(Property $property, Reservation $reservation, UnitActionPreview $preview): JsonResponse
+    {
+        return response()->json($preview->cancelAll($reservation));
     }
 
     public function noShowPreview(Property $property, Reservation $reservation, ReservationUnit $unit, UnitActionPreview $preview): JsonResponse
@@ -186,6 +194,31 @@ class ReservationUnitStayController extends Controller
         $result = $cancelUnit($request->user(), $unit, $request->doNotCharge(), $request->reason(), $request->expectedFee(), $request->boolean('remove_add_ons'));
 
         return $this->respond($property, $reservation, $result->refusal, $refusals, __('Unit cancelled.'));
+    }
+
+    /**
+     * Cancel the ticked units of the reservation, all or nothing. A refusal cancels nothing and goes back to the
+     * Dialog, keyed to the form field it belongs to, with the room it came from.
+     */
+    public function cancelAll(CancelReservationRequest $request, Property $property, Reservation $reservation, CancelUnits $cancelUnits, ReservationRefusals $refusals): RedirectResponse
+    {
+        $result = $cancelUnits($request->user(), $reservation, $request->unitIds(), $request->doNotCharge(), $request->reason(), $request->boolean('remove_add_ons'), $request->expectedFees());
+        $page = route('reservations.show', ['property' => $property, 'reservation' => $reservation]);
+
+        if ($result->isRefused()) {
+            $errors = $result->refusal === CancelUnitsResult::REFUSAL_NO_UNITS
+                ? ['unit_ids' => __('Tick at least one room to cancel.')]
+                : array_map(
+                    fn (string $message): string => $result->failedRoom === null ? $message : $result->failedRoom.': '.$message,
+                    $refusals->unitErrors((string) $result->refusal),
+                );
+
+            return back(fallback: $page)->withErrors($errors);
+        }
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => trans_choice(':count room cancelled.|:count rooms cancelled.', $result->cancelled)]);
+
+        return back(fallback: $page);
     }
 
     /**

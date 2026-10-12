@@ -43,6 +43,7 @@ type Props = {
     canCheckIn: boolean;
     canCheckOutAll: boolean;
     receiptPaymentIds: number[];
+    canCancelReservation: boolean;
     canWaiveFees: boolean;
     canOverrideRestrictions: boolean;
     billingModes: EnumOption[];
@@ -84,6 +85,7 @@ export default function ReservationShow({
     canCheckIn,
     canCheckOutAll,
     receiptPaymentIds,
+    canCancelReservation,
     canWaiveFees,
     canOverrideRestrictions,
     billingModes,
@@ -235,6 +237,8 @@ export default function ReservationShow({
                             canViewCompany={canViewCompany}
                             canCheckIn={canCheckIn}
                             canCheckOutAll={canCheckOutAll}
+                            canCancelReservation={canCancelReservation}
+                            canWaiveFees={canWaiveFees}
                             receiptPaymentIds={receiptPaymentIds}
                             canOverrideCredit={canOverrideCredit}
                             companies={companies}
