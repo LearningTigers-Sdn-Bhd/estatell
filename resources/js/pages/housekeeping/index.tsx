@@ -503,9 +503,25 @@ function GroupRows({
             )}
             {!collapsed &&
                 rooms.map((room) => (
-                    <TableRow key={room.id}>
+                    <TableRow
+                        key={room.id}
+                        className={
+                            room.isPriority
+                                ? 'bg-warning/10 hover:bg-warning/15'
+                                : undefined
+                        }
+                    >
                         <TableCell className="font-medium tabular-nums">
-                            {room.number}
+                            <span className="inline-flex items-center gap-1.5">
+                                {room.number}
+                                {room.isPriority && (
+                                    <Star
+                                        role="img"
+                                        aria-label="Priority"
+                                        className="size-3.5 fill-current text-warning"
+                                    />
+                                )}
+                            </span>
                             <div className="text-xs font-normal text-muted-foreground">
                                 {room.roomTypeName}
                             </div>
