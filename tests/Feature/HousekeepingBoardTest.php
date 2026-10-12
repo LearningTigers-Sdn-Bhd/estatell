@@ -97,6 +97,35 @@ test('the board lists every active room with its status, stay and reason, depart
     expect($idle->status->status)->toBe(HousekeepingStatus::Inspected);
 });
 
+test('the board orders departures by departure time, then arrivals by arrival time, then the rest by room', function () {
+    $owner = User::factory()->owner()->create();
+    $property = boardProperty($owner);
+    $idle = boardRoom($property, '101', HousekeepingStatus::Inspected);
+    $lateArrival = boardRoom($property, '102');
+    $lateDeparture = boardRoom($property, '103', HousekeepingStatus::Dirty);
+    $earlyArrival = boardRoom($property, '104');
+    $earlyDeparture = boardRoom($property, '105', HousekeepingStatus::Dirty);
+    $inHouse = boardRoom($property, '106', HousekeepingStatus::Dirty);
+
+    boardUnit($property, $lateArrival, ['arrival_date' => '2026-10-12', 'departure_date' => '2026-10-13', 'arrival_time' => '15:00'], 'Late Arrival');
+    boardUnit($property, $lateDeparture, ['arrival_date' => '2026-10-10', 'departure_date' => '2026-10-12', 'departure_time' => '12:00'], 'Late Departure', 'checkedOut');
+    boardUnit($property, $earlyArrival, ['arrival_date' => '2026-10-12', 'departure_date' => '2026-10-13', 'arrival_time' => '12:30'], 'Early Arrival');
+    boardUnit($property, $earlyDeparture, ['arrival_date' => '2026-10-10', 'departure_date' => '2026-10-12', 'departure_time' => '09:00'], 'Early Departure', 'checkedOut');
+    boardUnit($property, $inHouse, ['arrival_date' => '2026-10-11', 'departure_date' => '2026-10-14'], 'Staying Guest', 'checkedIn');
+
+    $this->actingAs($owner)
+        ->get(route('housekeeping.index', $property->code))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('rooms.0.number', '105')
+            ->where('rooms.1.number', '103')
+            ->where('rooms.2.number', '104')
+            ->where('rooms.3.number', '102')
+            ->where('rooms.4.number', '101')
+            ->where('rooms.5.number', '106'));
+
+    expect($idle->status->status)->toBe(HousekeepingStatus::Inspected);
+});
+
 test('an open whole-room block puts a room out of service and a bed block only adds a note', function () {
     $owner = User::factory()->owner()->create();
     $property = boardProperty($owner);

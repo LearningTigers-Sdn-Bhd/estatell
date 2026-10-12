@@ -92,12 +92,12 @@ An open `room_blocks` row that covers the business date makes the room **Blocked
 
 ## Views, filters and order
 
-| Part    | Behavior                                                                                                                                                                                                                              |
-| ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| View    | All, Grouped by room group, Grouped by room type. A group header shows the room count and the Dirty count, and can be collapsed.                                                                                                      |
-| Filters | Status (including Blocked), Assigned (including Unassigned), and Arrivals today, Departures today, Stayovers.                                                                                                                         |
-| Sort    | Default **due**: departures by `departure_time`, then arrivals by `arrival_time`, then other rooms by room number. With boats, the boat order (see the checklist item "order rooms by expected times"). A column header overrides it. |
-| Browser | The view and collapsed groups are remembered in the browser. They are not saved on the server and are not part of the report layout.                                                                                                  |
+| Part    | Behavior                                                                                                                                                                                                                                                                                                                 |
+| ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| View    | All, Grouped by room group, Grouped by room type. A group header shows the room count and the Dirty count, and can be collapsed.                                                                                                                                                                                         |
+| Filters | Status (including Blocked), Assigned (including Unassigned), and Arrivals today, Departures today, Stayovers.                                                                                                                                                                                                            |
+| Sort    | Default **due**: departures by `departure_time`, then arrivals by `arrival_time`, then other rooms by room number. With boats, the boat order (see the Boats items in the checklist). A column header overrides it: click once for ascending, again for descending, a third time to go back to due. Empty cells go last. |
+| Browser | The view and collapsed groups are remembered in the browser. They are not saved on the server and are not part of the report layout.                                                                                                                                                                                     |
 
 The columns of the table (order, visibility, orientation) are the property layout in [Print, export and layout](02-print-and-layout.md).
 

@@ -1,5 +1,8 @@
 import { Head, Link, router } from '@inertiajs/react';
 import {
+    ArrowDown,
+    ArrowUp,
+    ArrowUpDown,
     Ban,
     BedDouble,
     BedSingle,
@@ -58,6 +61,14 @@ type Staff = App.Data.Housekeeping.HousekeepingStaffData;
 type Badge = App.Data.Shared.BadgeData;
 type View = 'all' | 'group' | 'type';
 type Movement = '' | 'arrivals' | 'departures' | 'stayovers';
+type SortKey =
+    | 'room'
+    | 'status'
+    | 'assigned'
+    | 'guest'
+    | 'arrival'
+    | 'departure';
+type Sort = { key: SortKey; direction: 'asc' | 'desc' } | null;
 
 type Props = {
     date: string;
@@ -90,6 +101,101 @@ function matchesMovement(room: Room, movement: Movement): boolean {
         default:
             return true;
     }
+}
+
+function sortValue(room: Room, key: SortKey): string | null {
+    switch (key) {
+        case 'room':
+            return room.number;
+        case 'status':
+            return room.status.label;
+        case 'assigned':
+            return room.assignedName;
+        case 'guest':
+            return room.guest;
+        case 'arrival':
+            return room.arrivalDate === null
+                ? null
+                : `${room.arrivalDate} ${room.arrivalTime ?? ''}`;
+        case 'departure':
+            return room.departureDate === null
+                ? null
+                : `${room.departureDate} ${room.departureTime ?? ''}`;
+    }
+}
+
+/** A header sort overrides the server's due order. Empty cells go last in both directions. */
+function sortRooms(rooms: Room[], sort: Sort): Room[] {
+    if (sort === null) {
+        return rooms;
+    }
+
+    const sign = sort.direction === 'asc' ? 1 : -1;
+
+    return [...rooms].sort((a, b) => {
+        const left = sortValue(a, sort.key);
+        const right = sortValue(b, sort.key);
+
+        if (left === null || right === null) {
+            return left === right ? 0 : left === null ? 1 : -1;
+        }
+
+        return (
+            sign *
+            left.localeCompare(right, undefined, {
+                numeric: true,
+                sensitivity: 'base',
+            })
+        );
+    });
+}
+
+function SortHead({
+    label,
+    sortKey,
+    sort,
+    onSort,
+}: {
+    label: string;
+    sortKey: SortKey;
+    sort: Sort;
+    onSort: (key: SortKey) => void;
+}) {
+    const active = sort?.key === sortKey ? sort.direction : null;
+    const Icon =
+        active === 'asc'
+            ? ArrowUp
+            : active === 'desc'
+              ? ArrowDown
+              : ArrowUpDown;
+
+    return (
+        <TableHead
+            aria-sort={
+                active === 'asc'
+                    ? 'ascending'
+                    : active === 'desc'
+                      ? 'descending'
+                      : undefined
+            }
+        >
+            <button
+                type="button"
+                onClick={() => onSort(sortKey)}
+                className="-ml-1 flex items-center gap-1 rounded px-1 hover:text-foreground"
+            >
+                {label}
+                <Icon
+                    aria-hidden="true"
+                    className={
+                        active === null
+                            ? 'size-3.5 text-muted-foreground'
+                            : 'size-3.5'
+                    }
+                />
+            </button>
+        </TableHead>
+    );
 }
 
 function StayCell({
@@ -126,10 +232,21 @@ export default function HousekeepingIndex({
     const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
     const [selected, setSelected] = useState<Set<number>>(new Set());
     const [remarkOpen, setRemarkOpen] = useState(false);
+    const [sort, setSort] = useState<Sort>(null);
+
+    function cycleSort(key: SortKey) {
+        setSort((current) =>
+            current?.key !== key
+                ? { key, direction: 'asc' }
+                : current.direction === 'asc'
+                  ? { key, direction: 'desc' }
+                  : null,
+        );
+    }
 
     const shown = useMemo(
         () =>
-            rooms.filter(
+            sortRooms(rooms, sort).filter(
                 (room) =>
                     (statusFilter === '' ||
                         room.status.value === statusFilter) &&
@@ -139,7 +256,7 @@ export default function HousekeepingIndex({
                             : String(room.assignedTo) === assignedFilter)) &&
                     matchesMovement(room, movement),
             ),
-        [rooms, statusFilter, assignedFilter, movement],
+        [rooms, sort, statusFilter, assignedFilter, movement],
     );
 
     const selectableIds = useMemo(
@@ -487,12 +604,42 @@ export default function HousekeepingIndex({
                                                     />
                                                 </TableHead>
                                             )}
-                                            <TableHead>Room</TableHead>
-                                            <TableHead>Status</TableHead>
-                                            <TableHead>Assigned</TableHead>
-                                            <TableHead>Guest</TableHead>
-                                            <TableHead>Arrival</TableHead>
-                                            <TableHead>Departure</TableHead>
+                                            <SortHead
+                                                label="Room"
+                                                sortKey="room"
+                                                sort={sort}
+                                                onSort={cycleSort}
+                                            />
+                                            <SortHead
+                                                label="Status"
+                                                sortKey="status"
+                                                sort={sort}
+                                                onSort={cycleSort}
+                                            />
+                                            <SortHead
+                                                label="Assigned"
+                                                sortKey="assigned"
+                                                sort={sort}
+                                                onSort={cycleSort}
+                                            />
+                                            <SortHead
+                                                label="Guest"
+                                                sortKey="guest"
+                                                sort={sort}
+                                                onSort={cycleSort}
+                                            />
+                                            <SortHead
+                                                label="Arrival"
+                                                sortKey="arrival"
+                                                sort={sort}
+                                                onSort={cycleSort}
+                                            />
+                                            <SortHead
+                                                label="Departure"
+                                                sortKey="departure"
+                                                sort={sort}
+                                                onSort={cycleSort}
+                                            />
                                             <TableHead>Notes</TableHead>
                                             <TableHead className="w-10">
                                                 <span className="sr-only">
