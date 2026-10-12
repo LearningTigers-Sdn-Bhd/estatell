@@ -2,6 +2,7 @@ import { Head, Link, router } from '@inertiajs/react';
 import {
     Ban,
     BedDouble,
+    BedSingle,
     ChevronDown,
     ChevronRight,
     CircleCheck,
@@ -200,7 +201,7 @@ export default function HousekeepingIndex({
 
     const statusOptions = [
         ...statuses.map((item) => ({ value: item.value, label: item.label })),
-        { value: OUT_OF_SERVICE, label: 'Out of service' },
+        { value: OUT_OF_SERVICE, label: 'Blocked' },
     ];
     const staffOptions = [
         { value: 'none', label: 'Unassigned' },
@@ -807,6 +808,36 @@ function GroupRows({
                                     <DateText date={room.outOfService.endsOn} />
                                 </div>
                             )}
+                            {(room.needsMaintenance ||
+                                room.bedBlocks.length > 0) && (
+                                <div className="mt-1.5 flex flex-wrap gap-1.5">
+                                    {room.needsMaintenance && (
+                                        <StatusBadge
+                                            status={{
+                                                value: 'needs_maintenance',
+                                                label: 'Needs maintenance',
+                                                tone: 'warning',
+                                            }}
+                                            icon={Wrench}
+                                        />
+                                    )}
+                                    {room.bedBlocks.map((block) => (
+                                        <span
+                                            key={block.bedLabel}
+                                            title={`${block.reasonLabel} until ${block.endsOn}`}
+                                        >
+                                            <StatusBadge
+                                                status={{
+                                                    value: 'bed_blocked',
+                                                    label: `Bed ${block.bedLabel} blocked`,
+                                                    tone: 'neutral',
+                                                }}
+                                                icon={BedSingle}
+                                            />
+                                        </span>
+                                    ))}
+                                </div>
+                            )}
                         </TableCell>
                         <TableCell>
                             {can.update ? (
@@ -869,16 +900,6 @@ function GroupRows({
                                             Do not disturb
                                         </span>
                                     )}
-                                    {room.needsMaintenance && (
-                                        <StatusBadge
-                                            status={{
-                                                value: 'needs_maintenance',
-                                                label: 'Needs maintenance',
-                                                tone: 'warning',
-                                            }}
-                                            icon={Wrench}
-                                        />
-                                    )}
                                 </div>
                                 {can.update ? (
                                     <Input
@@ -915,16 +936,6 @@ function GroupRows({
                                         {room.reason}
                                     </span>
                                 )}
-                                {room.bedBlocks.map((block) => (
-                                    <span
-                                        key={block.bedLabel}
-                                        className="text-muted-foreground"
-                                    >
-                                        Bed {block.bedLabel}:{' '}
-                                        {block.reasonLabel} until{' '}
-                                        <DateText date={block.endsOn} />
-                                    </span>
-                                ))}
                             </div>
                         </TableCell>
                         <TableCell>

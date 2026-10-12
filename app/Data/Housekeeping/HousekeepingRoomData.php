@@ -83,7 +83,7 @@ class HousekeepingRoomData extends Data
             roomTypeName: $room->roomType->name,
             status: $outOfService === null
                 ? new BadgeData($roomStatus->status->value, $roomStatus->status->label(), $roomStatus->status->tone())
-                : new BadgeData('out_of_service', __('Out of service'), Tone::Danger),
+                : new BadgeData('out_of_service', __('Blocked'), Tone::Danger),
             outOfService: $outOfService,
             bedBlocks: $bedBlocks,
             moves: $moves,

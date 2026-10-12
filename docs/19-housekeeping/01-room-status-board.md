@@ -21,15 +21,15 @@ The system reason (see below) is not stored. It is worked out from the room and 
 - One row for each **active room** (archived rooms are left out) for the open business date (`CurrentBusinessDate`, or `PropertyToday` before business dates exist). There is no date picker, because only today can be worked on.
 - The server sends every row field. The browser sorts, filters and groups the rows it holds.
 
-| Field              | Source                                                                                           |
-| ------------------ | ------------------------------------------------------------------------------------------------ |
-| Room, group, type  | `rooms`, room group, room type                                                                   |
-| Status             | `room_statuses.status`, or **Out of service** when an open block covers the date                 |
-| Assigned           | `room_statuses.assigned_to`                                                                      |
-| Guest              | The primary guest of the unit that departs or stays in the room, else the one that arrives today |
-| Arrival, Departure | The unit that arrives today and the unit that departs today: date and expected time (not actual) |
-| Flags              | `is_priority`, `do_not_disturb_on` (today), `needs_maintenance`                                  |
-| Remark, reason     | `remark` written by staff, and the derived system reason                                         |
+| Field              | Source                                                                                             |
+| ------------------ | -------------------------------------------------------------------------------------------------- |
+| Room, group, type  | `rooms`, room group, room type                                                                     |
+| Status             | `room_statuses.status`, or **Blocked** (value `out_of_service`) when an open block covers the date |
+| Assigned           | `room_statuses.assigned_to`                                                                        |
+| Guest              | The primary guest of the unit that departs or stays in the room, else the one that arrives today   |
+| Arrival, Departure | The unit that arrives today and the unit that departs today: date and expected time (not actual)   |
+| Flags              | `is_priority`, `do_not_disturb_on` (today), `needs_maintenance`                                    |
+| Remark, reason     | `remark` written by staff, and the derived system reason                                           |
 
 A room can have a departure and an arrival on the same day. Both show, each in its own column.
 
@@ -37,15 +37,15 @@ A room can have a departure and an arrival on the same day. Both show, each in i
 
 The status enum is `HousekeepingStatus`: Dirty > Clean > Inspected. Any room can become Dirty again (`canTransitionTo()`).
 
-| State          | Badge tone      | Menu moves to    | Who can pick it                                                 |
-| -------------- | --------------- | ---------------- | --------------------------------------------------------------- |
-| Dirty          | Warning (amber) | Clean            | `housekeeping.update`                                           |
-| Clean          | Success (green) | Dirty, Inspected | `housekeeping.update`, and `housekeeping.inspect` for Inspected |
-| Inspected      | Info (blue)     | Dirty            | `housekeeping.update`                                           |
-| Out of service | Danger (red)    | none             |                                                                 |
+| State     | Badge tone      | Menu moves to    | Who can pick it                                                 |
+| --------- | --------------- | ---------------- | --------------------------------------------------------------- |
+| Dirty     | Warning (amber) | Clean            | `housekeeping.update`                                           |
+| Clean     | Success (green) | Dirty, Inspected | `housekeeping.update`, and `housekeeping.inspect` for Inspected |
+| Inspected | Info (blue)     | Dirty            | `housekeeping.update`                                           |
+| Blocked   | Danger (red)    | none             |                                                                 |
 
-- Every badge shows an icon and the word, so colour is never the only signal. The tones come from `HousekeepingStatus::tone()`; Out of service uses `Tone::Danger` in the board only.
-- The badge is the control: it opens a dropdown that lists only the legal moves (`canTransitionTo()` and the viewer's permissions). The server sends them as `moves`, so the browser holds no rules. Each option is drawn as a badge in its own tone, so the menu matches the badge that will replace the current one. A room with no move (Out of service, or a user without `housekeeping.update`) shows a plain badge.
+- Every badge shows an icon and the word, so colour is never the only signal. The tones come from `HousekeepingStatus::tone()`; Blocked uses `Tone::Danger` in the board only. The word on the badge is **Blocked**, like the Room blocks page. The stored value and the docs still say "out of service" for the concept.
+- The badge is the control: it opens a dropdown that lists only the legal moves (`canTransitionTo()` and the viewer's permissions). The server sends them as `moves`, so the browser holds no rules. Each option is drawn as a badge in its own tone, so the menu matches the badge that will replace the current one. A room with no move (Blocked, or a user without `housekeeping.update`) shows a plain badge.
 - The menu never offers a status the room cannot take, so a refusal is rare. A refusal (a race, a room blocked a moment ago) shows as a plain sentence in a toast and the row goes back to its old state.
 
 | Refusal code         | Sentence (English)                   |
@@ -64,7 +64,7 @@ Sentences come from `lang/en.json` and `lang/ms.json`. A repeated click on a roo
 | Departed  | A unit checked out of the room on the business date      |
 | Stay-over | A checked-in unit sleeps in the room and does not depart |
 
-It disappears when the room is Clean, so it can never be stale. For an Out of service room the grey line shows the block reason and its notes instead.
+It disappears when the room is Clean, so it can never be stale. For a Blocked room the grey line shows the block reason and its notes instead.
 
 ## Remark
 
@@ -81,20 +81,21 @@ It disappears when the room is Clean, so it can never be stale. For an Out of se
 
 ## Maintenance blocks on the board
 
-An open `room_blocks` row that covers the business date makes the room **Out of service**. The board only reads it.
+An open `room_blocks` row that covers the business date makes the room **Blocked** (out of service). The board only reads it.
 
 - The red badge replaces the status badge. The status cell also shows the reason and the last night, for example "Maintenance · until 18 Oct", and the block notes show as the grey line.
 - The stored room status stays under the block and comes back when the block ends.
-- A **bed block** does not take the room out of service. The room row stays workable and shows a note, for example "Bed A3 out of order until 21 Oct".
+- A **bed block** does not take the room out of service. The room row stays workable and shows a neutral badge in the Status cell, for example "Bed A3 blocked", with the reason and last night on hover.
+- The **Needs maintenance** flag shows as an amber badge with a wrench under the status, in the same cell.
 - The row ⋯ menu has **Block room** for a user with `rooms.block`. It opens the Room blocks sheet and calls `CreateRoomBlock`. Ending a block stays on the Room blocks page.
-- Out of service rows have no tick box, and the bulk bar skips them.
+- Blocked rows have no tick box, and the bulk bar skips them.
 
 ## Views, filters and order
 
 | Part    | Behavior                                                                                                                                                                                                                              |
 | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | View    | All, Grouped by room group, Grouped by room type. A group header shows the room count and the Dirty count, and can be collapsed.                                                                                                      |
-| Filters | Status (including Out of service), Assigned (including Unassigned), and Arrivals today, Departures today, Stayovers.                                                                                                                  |
+| Filters | Status (including Blocked), Assigned (including Unassigned), and Arrivals today, Departures today, Stayovers.                                                                                                                         |
 | Sort    | Default **due**: departures by `departure_time`, then arrivals by `arrival_time`, then other rooms by room number. With boats, the boat order (see the checklist item "order rooms by expected times"). A column header overrides it. |
 | Browser | The view and collapsed groups are remembered in the browser. They are not saved on the server and are not part of the report layout.                                                                                                  |
 
@@ -140,7 +141,7 @@ All in `app/Actions/Housekeeping/`. Each logs activity and returns a result for 
 
 - The night audit marks occupied rooms Dirty (see [Audit run](../20-night-audit/03-audit-run.md)).
 - Check-out marks the room Dirty.
-- A room that is Out of service refuses a status change. The bulk bar skips it.
+- A room that is Blocked refuses a status change. The bulk bar skips it.
 - Every query is scoped by `property_id`, and a room id from another property is a 404.
 
 ## Permissions
@@ -168,7 +169,7 @@ View: ( All ) ( Grouped by room group ) ( Grouped by room type )   Status v  Ass
                                                                               ↳ Departed
  ☐  102   [● Clean ⌄]         Aminah    –             –                     Add remark…
  ☐  103   [● Inspected ⌄]     Aminah    –             –
- –  203   [● Out of service]  –         Maintenance · until 18 Oct            Aircon
+ –  203   [● Blocked]  –                 Maintenance · until 18 Oct            Aircon
 
  ╔═ 2 selected  [ Assign to v ] [ Mark clean ] [ Mark inspected ] [ Priority ] [ Add remark ] [ Print selected ] [ Clear ] ═╗
 ```
