@@ -5,19 +5,25 @@ import {
     ChevronDown,
     ChevronRight,
     CircleCheck,
+    ClipboardCheck,
     MoonStar,
+    MessageSquarePlus,
     MoreHorizontal,
     Star,
     StarOff,
+    UserRound,
     Wrench,
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import { BulkActionBar } from '@/components/pms/bulk-action-bar';
 import { DateText } from '@/components/pms/date-text';
 import { EmptyState } from '@/components/pms/empty-state';
 import { EnumSelect } from '@/components/pms/enum-select';
+import { BulkRemarkDialog } from '@/components/pms/housekeeping/bulk-remark-dialog';
 import { PageHeader } from '@/components/pms/page-header';
 import { StatusBadge } from '@/components/pms/status-badge';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import {
     DropdownMenu,
@@ -35,7 +41,7 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { index } from '@/routes/housekeeping';
+import { bulk, index } from '@/routes/housekeeping';
 import {
     assignee,
     dnd,
@@ -58,7 +64,7 @@ type Props = {
     roomGroups: App.Data.Rooms.RoomGroupData[];
     statuses: Badge[];
     staff: Staff[];
-    can: { update: boolean; block: boolean };
+    can: { update: boolean; inspect: boolean; block: boolean };
 };
 
 const OUT_OF_SERVICE = 'out_of_service';
@@ -108,6 +114,8 @@ export default function HousekeepingIndex({
     const [assignedFilter, setAssignedFilter] = useState('');
     const [movement, setMovement] = useState<Movement>('');
     const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+    const [selected, setSelected] = useState<Set<number>>(new Set());
+    const [remarkOpen, setRemarkOpen] = useState(false);
 
     const shown = useMemo(
         () =>
@@ -122,6 +130,20 @@ export default function HousekeepingIndex({
                     matchesMovement(room, movement),
             ),
         [rooms, statusFilter, assignedFilter, movement],
+    );
+
+    const selectableIds = useMemo(
+        () =>
+            new Set(
+                shown
+                    .filter((room) => room.status.value !== OUT_OF_SERVICE)
+                    .map((room) => room.id),
+            ),
+        [shown],
+    );
+    const selectedIds = useMemo(
+        () => [...selected].filter((id) => selectableIds.has(id)),
+        [selected, selectableIds],
     );
 
     const groups = useMemo(() => {
@@ -296,6 +318,33 @@ export default function HousekeepingIndex({
             );
     }
 
+    function toggleRooms(ids: number[], on: boolean) {
+        setSelected((current) => {
+            const next = new Set(current);
+
+            for (const id of ids) {
+                if (on) {
+                    next.add(id);
+                } else {
+                    next.delete(id);
+                }
+            }
+
+            return next;
+        });
+    }
+
+    function runBulk(action: string, extra: Record<string, unknown> = {}) {
+        router.post(
+            bulk.url(),
+            { room_ids: selectedIds, action, ...extra },
+            {
+                preserveScroll: true,
+                onSuccess: () => setSelected(new Set()),
+            },
+        );
+    }
+
     function toggleGroup(key: string) {
         setCollapsed((current) => {
             const next = new Set(current);
@@ -396,6 +445,33 @@ export default function HousekeepingIndex({
                                 <Table>
                                     <TableHeader>
                                         <TableRow>
+                                            {can.update && (
+                                                <TableHead className="w-10">
+                                                    <Checkbox
+                                                        aria-label="Select all rooms"
+                                                        checked={
+                                                            selectableIds.size >
+                                                                0 &&
+                                                            selectedIds.length ===
+                                                                selectableIds.size
+                                                        }
+                                                        indeterminate={
+                                                            selectedIds.length >
+                                                                0 &&
+                                                            selectedIds.length <
+                                                                selectableIds.size
+                                                        }
+                                                        onCheckedChange={(on) =>
+                                                            toggleRooms(
+                                                                [
+                                                                    ...selectableIds,
+                                                                ],
+                                                                on,
+                                                            )
+                                                        }
+                                                    />
+                                                </TableHead>
+                                            )}
                                             <TableHead>Room</TableHead>
                                             <TableHead>Status</TableHead>
                                             <TableHead>Assigned</TableHead>
@@ -430,6 +506,8 @@ export default function HousekeepingIndex({
                                                 onAssign={assign}
                                                 onPriority={togglePriority}
                                                 onDnd={toggleDnd}
+                                                selected={selected}
+                                                onSelect={toggleRooms}
                                                 onRemark={saveRemark}
                                                 onMaintenance={setMaintenance}
                                             />
@@ -440,7 +518,103 @@ export default function HousekeepingIndex({
                         )}
                     </>
                 )}
+
+                <BulkActionBar
+                    count={selectedIds.length}
+                    onClear={() => setSelected(new Set())}
+                >
+                    <DropdownMenu>
+                        <DropdownMenuTrigger
+                            render={<Button type="button" variant="outline" />}
+                        >
+                            <UserRound data-icon="inline-start" />
+                            Assign to
+                            <ChevronDown data-icon="inline-end" />
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="min-w-48">
+                            {staff.map((member) => (
+                                <DropdownMenuItem
+                                    key={member.id}
+                                    onClick={() =>
+                                        runBulk('assign', {
+                                            assigned_to: member.id,
+                                        })
+                                    }
+                                >
+                                    {member.name}
+                                </DropdownMenuItem>
+                            ))}
+                            {staff.length > 0 && <DropdownMenuSeparator />}
+                            <DropdownMenuItem
+                                onClick={() =>
+                                    runBulk('assign', { assigned_to: null })
+                                }
+                            >
+                                Unassign
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => runBulk('mark_clean')}
+                    >
+                        <CircleCheck data-icon="inline-start" />
+                        Mark clean
+                    </Button>
+                    {can.inspect && (
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => runBulk('mark_inspected')}
+                        >
+                            <ClipboardCheck data-icon="inline-start" />
+                            Mark inspected
+                        </Button>
+                    )}
+                    <DropdownMenu>
+                        <DropdownMenuTrigger
+                            render={<Button type="button" variant="outline" />}
+                        >
+                            More
+                            <ChevronDown data-icon="inline-end" />
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="min-w-56">
+                            <DropdownMenuItem
+                                onClick={() => runBulk('set_priority')}
+                            >
+                                <Star />
+                                Set priority
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                                onClick={() => runBulk('clear_priority')}
+                            >
+                                <StarOff />
+                                Clear priority
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                                onClick={() => runBulk('needs_maintenance')}
+                            >
+                                <Wrench />
+                                Needs maintenance
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                                onClick={() => setRemarkOpen(true)}
+                            >
+                                <MessageSquarePlus />
+                                Add remark…
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                </BulkActionBar>
             </div>
+
+            <BulkRemarkDialog
+                open={remarkOpen}
+                onOpenChange={setRemarkOpen}
+                roomIds={selectedIds}
+                onDone={() => setSelected(new Set())}
+            />
         </>
     );
 }
@@ -458,6 +632,8 @@ function GroupRows({
     onAssign,
     onPriority,
     onDnd,
+    selected,
+    onSelect,
     onRemark,
     onMaintenance,
 }: {
@@ -473,31 +649,56 @@ function GroupRows({
     onAssign: (room: Room, value: string) => void;
     onPriority: (room: Room) => void;
     onDnd: (room: Room) => void;
+    selected: Set<number>;
+    onSelect: (ids: number[], on: boolean) => void;
     onRemark: (room: Room, value: string) => void;
     onMaintenance: (room: Room, needsMaintenance: boolean) => void;
 }) {
     const dirty = rooms.filter((room) => room.status.value === 'dirty').length;
+    const selectableIds = rooms
+        .filter((room) => room.status.value !== OUT_OF_SERVICE)
+        .map((room) => room.id);
+    const pickedInGroup = selectableIds.filter((id) => selected.has(id)).length;
 
     return (
         <>
             {name !== null && (
                 <TableRow className="bg-muted/50 hover:bg-muted/50">
-                    <TableCell colSpan={8}>
-                        <button
-                            type="button"
-                            className="flex w-full items-center gap-2 text-left font-medium"
-                            aria-expanded={!collapsed}
-                            onClick={() => onToggle(groupKey)}
-                        >
-                            {collapsed ? <ChevronRight /> : <ChevronDown />}
-                            {name}
-                            <span className="text-sm font-normal text-muted-foreground">
-                                {rooms.length} rooms
-                                {dirtyLabel
-                                    ? `, ${dirty} ${dirtyLabel.toLowerCase()}`
-                                    : ''}
-                            </span>
-                        </button>
+                    <TableCell colSpan={9}>
+                        <div className="flex items-center gap-3">
+                            {can.update && (
+                                <Checkbox
+                                    aria-label={`Select all rooms in ${name}`}
+                                    disabled={selectableIds.length === 0}
+                                    checked={
+                                        selectableIds.length > 0 &&
+                                        pickedInGroup === selectableIds.length
+                                    }
+                                    indeterminate={
+                                        pickedInGroup > 0 &&
+                                        pickedInGroup < selectableIds.length
+                                    }
+                                    onCheckedChange={(on) =>
+                                        onSelect(selectableIds, on)
+                                    }
+                                />
+                            )}
+                            <button
+                                type="button"
+                                className="flex flex-1 items-center gap-2 text-left font-medium"
+                                aria-expanded={!collapsed}
+                                onClick={() => onToggle(groupKey)}
+                            >
+                                {collapsed ? <ChevronRight /> : <ChevronDown />}
+                                {name}
+                                <span className="text-sm font-normal text-muted-foreground">
+                                    {rooms.length} rooms
+                                    {dirtyLabel
+                                        ? `, ${dirty} ${dirtyLabel.toLowerCase()}`
+                                        : ''}
+                                </span>
+                            </button>
+                        </div>
                     </TableCell>
                 </TableRow>
             )}
@@ -511,6 +712,19 @@ function GroupRows({
                                 : undefined
                         }
                     >
+                        {can.update && (
+                            <TableCell>
+                                {room.status.value !== OUT_OF_SERVICE && (
+                                    <Checkbox
+                                        aria-label={`Select room ${room.number}`}
+                                        checked={selected.has(room.id)}
+                                        onCheckedChange={(on) =>
+                                            onSelect([room.id], on)
+                                        }
+                                    />
+                                )}
+                            </TableCell>
+                        )}
                         <TableCell className="font-medium tabular-nums">
                             <span className="inline-flex items-center gap-1.5">
                                 {room.number}

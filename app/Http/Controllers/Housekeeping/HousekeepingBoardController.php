@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Housekeeping;
 
 use App\Actions\Housekeeping\AssignHousekeeper;
+use App\Actions\Housekeeping\BulkUpdateRooms;
 use App\Actions\Housekeeping\SetDoNotDisturb;
 use App\Actions\Housekeeping\SetNeedsMaintenance;
 use App\Actions\Housekeeping\SetRoomPriority;
@@ -15,6 +16,7 @@ use App\Enums\HousekeepingStatus;
 use App\Enums\PermissionEnum;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Housekeeping\AssignHousekeeperRequest;
+use App\Http\Requests\Housekeeping\BulkUpdateRoomsRequest;
 use App\Http\Requests\Housekeeping\SetDoNotDisturbRequest;
 use App\Http\Requests\Housekeeping\SetNeedsMaintenanceRequest;
 use App\Http\Requests\Housekeeping\SetRoomPriorityRequest;
@@ -54,6 +56,7 @@ class HousekeepingBoardController extends Controller
             'staff' => $canUpdate ? $this->staff($property) : [],
             'can' => [
                 'update' => $canUpdate,
+                'inspect' => $canInspect,
                 'block' => $canBlock,
             ],
         ]);
@@ -95,6 +98,38 @@ class HousekeepingBoardController extends Controller
         abort_if($room->archived_at !== null, 404);
 
         $setDoNotDisturb($request->user(), $room, $request->boolean('dnd'), $housekeepingDate->for($property));
+
+        return to_route('housekeeping.index', $property);
+    }
+
+    /**
+     * Run one action on the ticked rooms. A room of another property or an archived room makes the whole request 404.
+     */
+    public function bulk(BulkUpdateRoomsRequest $request, Property $property, BulkUpdateRooms $bulkUpdateRooms): RedirectResponse
+    {
+        $ids = $request->roomIds();
+        $rooms = $property->rooms()->active()->with('status')->whereIn('id', $ids)->ordered()->get();
+
+        abort_if($rooms->count() !== count($ids), 404);
+
+        $result = $bulkUpdateRooms($request->user(), $rooms, $request->action(), $request->assignee(), $request->remark());
+
+        $message = trans_choice('{0} No rooms updated.|{1} :count room updated.|[2,*] :count rooms updated.', $result->done);
+
+        if ($result->skipped !== []) {
+            $reasons = array_map(fn (array $skip): string => $skip['refusal']->message($skip['number']), array_slice($result->skipped, 0, 3));
+            $more = count($result->skipped) - count($reasons);
+
+            $message .= ' '.__(':count skipped: :reasons', [
+                'count' => count($result->skipped),
+                'reasons' => implode(' ', $reasons).($more > 0 ? ' '.__('and :count more.', ['count' => $more]) : ''),
+            ]);
+        }
+
+        Inertia::flash('toast', [
+            'type' => $result->done === 0 ? 'error' : ($result->skipped === [] ? 'success' : 'info'),
+            'message' => $message,
+        ]);
 
         return to_route('housekeeping.index', $property);
     }

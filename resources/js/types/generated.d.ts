@@ -595,6 +595,13 @@ bedLabel: string,
 reasonLabel: string,
 endsOn: string,
 };
+export type HousekeepingBulkResultData = {
+done: number,
+skipped: {
+number: string,
+refusal: App.Enums.HousekeepingRefusal,
+}[],
+};
 export type HousekeepingOutOfServiceData = {
 reasonLabel: string,
 endsOn: string,
@@ -2266,6 +2273,7 @@ export type FolioStatus = 'open' | 'closed' | 'voided';
 export type FolioType = 'master' | 'unit' | 'third_party';
 export type Gender = 'male' | 'female';
 export type GuestMatchReason = 'phone' | 'email' | 'id_number' | 'name_and_birth_date' | 'name';
+export type HousekeepingBulkAction = 'assign' | 'mark_clean' | 'mark_inspected' | 'set_priority' | 'clear_priority' | 'add_remark' | 'needs_maintenance';
 export type HousekeepingReason = 'departed' | 'stay_over';
 export type HousekeepingRefusal = 'out_of_service' | 'invalid_transition';
 export type HousekeepingStatus = 'clean' | 'dirty' | 'inspected';

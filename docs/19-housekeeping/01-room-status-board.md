@@ -102,19 +102,23 @@ The columns of the table (order, visibility, orientation) are the property layou
 
 ## Bulk bar
 
-`BulkActionBar` (`resources/js/components/pms/bulk-action-bar.tsx`) floats at the bottom while rows are ticked. A group header ticks all its rooms.
+`BulkActionBar` (`resources/js/components/pms/bulk-action-bar.tsx`) floats at the bottom while rows are ticked. A group header ticks all its rooms, and the table header ticks every room that can be picked. A room that is out of service has no tick box.
 
-| Bulk action       | Calls                 | Notes                                             |
-| ----------------- | --------------------- | ------------------------------------------------- |
-| Assign to         | `AssignHousekeeper`   | Housekeepers are staff with `housekeeping.update` |
-| Mark clean        | `UpdateRoomStatus`    | Only Dirty rooms                                  |
-| Mark inspected    | `UpdateRoomStatus`    | Only Clean rooms, needs `housekeeping.inspect`    |
-| Priority          | `SetRoomPriority`     | Set or clear, with an optional note               |
-| Add remark        | `SetRoomRemark`       | Appends on a new line, cut at 500 characters      |
-| Needs maintenance | `SetNeedsMaintenance` | Set only                                          |
-| Print selected    | the PDF route         | The selected room ids are the row keys            |
+| Bulk action       | Calls                 | Notes                                                                         |
+| ----------------- | --------------------- | ----------------------------------------------------------------------------- |
+| Assign to         | `AssignHousekeeper`   | Staff with `housekeeping.update`, or Unassign                                 |
+| Mark clean        | `UpdateRoomStatus`    | Dirty rooms move. A Clean room counts as done. Other rooms are skipped.       |
+| Mark inspected    | `UpdateRoomStatus`    | Clean rooms move. Needs `housekeeping.inspect`, or the request is refused.    |
+| Set priority      | `SetRoomPriority`     | Keeps the room's priority note                                                |
+| Clear priority    | `SetRoomPriority`     | Clears the flag and the note                                                  |
+| Add remark        | `SetRoomRemark`       | A Dialog asks for the text. It is added on a new line, cut at 500 characters. |
+| Needs maintenance | `SetNeedsMaintenance` | Set only, because dismissing needs `rooms.block`                              |
+| Print selected    | the PDF route         | Comes with [Print, export and layout](02-print-and-layout.md)                 |
 
-`BulkUpdateRooms` runs the single-room Action for each room. It is not one transaction. A refused room is skipped and does not stop the others. The result lists the rooms done and the rooms skipped with their refusal code, and the bar shows "5 done, 1 skipped (203 is out of service)".
+- `POST /p/{code}/housekeeping/bulk` (`housekeeping.bulk`, `housekeeping.update`) takes `room_ids` (at most 200), `action` (`HousekeepingBulkAction`), and `assigned_to` or `remark` for those actions. A room of another property or an archived room makes the whole request a 404.
+- `BulkUpdateRooms` runs the single-room Action for each room. It is not one transaction. A refused room is skipped and does not stop the others, and running the same action twice changes nothing the second time.
+- The result lists the rooms done and the rooms skipped with their refusal code. The toast reads, for example, "2 rooms updated. 1 skipped: Room 104 is out of service." It shows the first three reasons and then "and N more".
+- The selection clears after the action works, so a second click cannot repeat it.
 
 ## Actions
 
