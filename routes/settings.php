@@ -118,6 +118,7 @@ Route::prefix('settings')->name('settings.')->group(function () {
         Route::get('/', [ChargeItemController::class, 'index'])->name('index');
         Route::post('/', [ChargeItemController::class, 'store'])->name('store');
         Route::put('order', [ChargeItemController::class, 'reorder'])->name('reorder');
+        Route::get('{chargeItem}/edit', [ChargeItemController::class, 'edit'])->name('edit');
         Route::put('{chargeItem}', [ChargeItemController::class, 'update'])->name('update');
     });
 

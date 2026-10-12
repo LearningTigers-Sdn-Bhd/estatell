@@ -12,6 +12,7 @@ use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use LogicException;
@@ -42,9 +43,21 @@ class ChargeItemRequest extends FormRequest
     }
 
     /**
+     * Creating takes only the name, code and category; the edit page sets the rest.
+     *
      * @return array<string, ValidationRule|array<mixed>|string>
      */
     public function rules(): array
+    {
+        $rules = $this->allRules();
+
+        return $this->isMethod('POST') ? Arr::only($rules, ['name', 'code', 'category']) : $rules;
+    }
+
+    /**
+     * @return array<string, ValidationRule|array<mixed>|string>
+     */
+    private function allRules(): array
     {
         $property = $this->route('property');
         if (! $property instanceof Property) {

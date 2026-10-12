@@ -1,42 +1,19 @@
-import { Head, router, useForm } from '@inertiajs/react';
+import { Head, Link, router, useForm } from '@inertiajs/react';
 import { ArrowDown, ArrowUp, Plus, ReceiptText } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { EmptyState } from '@/components/pms/empty-state';
 import { EnumSelect } from '@/components/pms/enum-select';
-import {
-    MultiCombobox,
-    type MultiComboboxOption,
-} from '@/components/pms/multi-combobox';
+import { FormOverlay } from '@/components/pms/form-overlay';
 import { PageHeader } from '@/components/pms/page-header';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import {
     Field,
-    FieldContent,
     FieldDescription,
     FieldError,
-    FieldGroup,
     FieldLabel,
-    FieldLegend,
-    FieldSet,
 } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import {
-    InputGroup,
-    InputGroupAddon,
-    InputGroupInput,
-} from '@/components/ui/input-group';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import {
-    Sheet,
-    SheetClose,
-    SheetContent,
-    SheetDescription,
-    SheetFooter,
-    SheetHeader,
-    SheetTitle,
-} from '@/components/ui/sheet';
-import { Spinner } from '@/components/ui/spinner';
 import { Switch } from '@/components/ui/switch';
 import {
     Table,
@@ -46,341 +23,138 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import { Textarea } from '@/components/ui/textarea';
-import { index, reorder, store, update } from '@/routes/settings/charge-items';
+import {
+    edit,
+    index,
+    reorder,
+    store,
+    update,
+} from '@/routes/settings/charge-items';
 
 type ChargeItem = App.Data.Catalogues.ChargeItemData;
 type Tax = App.Data.Catalogues.ChargeItemTaxData;
 type Option = { value: string; label: string };
 
-type FormData = {
-    name: string;
-    code: string;
-    category: string;
-    description: string;
-    default_amount: string;
-    charging_unit: string;
-    allow_override: boolean;
-    active: boolean;
-    tax_ids: string[];
-};
+/** The charge code suggested from a name: upper case, `_` between words, at most 20 characters. */
+function suggestCode(name: string): string {
+    return name
+        .toUpperCase()
+        .replace(/[^A-Z0-9]+/g, '_')
+        .replace(/^_+|_+$/g, '')
+        .slice(0, 20)
+        .replace(/_+$/, '');
+}
 
-function formValues(chargeItem: ChargeItem | null): FormData {
+/** The full values of an item, for saving a change that does not come from the edit page. */
+function formValues(chargeItem: ChargeItem) {
     return {
-        name: chargeItem?.name ?? '',
-        code: chargeItem?.code ?? '',
-        category: chargeItem?.category ?? 'other',
-        description: chargeItem?.description ?? '',
-        default_amount: chargeItem?.defaultAmount ?? '',
-        charging_unit: chargeItem?.chargingUnit ?? 'per_item',
-        allow_override: chargeItem?.allowOverride ?? true,
-        active: chargeItem?.active ?? true,
-        tax_ids: (chargeItem?.taxIds ?? []).map(String),
+        name: chargeItem.name,
+        code: chargeItem.code,
+        category: chargeItem.category,
+        description: chargeItem.description ?? '',
+        default_amount: chargeItem.defaultAmount ?? '',
+        charging_unit: chargeItem.chargingUnit,
+        allow_override: chargeItem.allowOverride,
+        active: chargeItem.active,
+        tax_ids: chargeItem.taxIds,
     };
 }
 
-const pricingOptions = [
-    {
-        value: 'fixed',
-        label: 'Default amount',
-        description:
-            'The amount is filled in when staff post this item. Use it for items with a set price, such as breakfast or parking.',
-    },
-    {
-        value: 'entered',
-        label: 'Enter when charging',
-        description:
-            'Staff type the amount each time. Use it for items with a varying price, such as damage or minibar.',
-    },
-];
-
-function taxLabel(tax: Tax, currency: App.Enums.Currency): string {
-    const rate =
-        tax.rateType === 'percent'
-            ? `${Number(tax.rate).toFixed(2)}%`
-            : new Intl.NumberFormat(undefined, {
-                  style: 'currency',
-                  currency,
-              }).format(Number(tax.rate));
-
-    return `${tax.name} · ${rate}${tax.enabled ? '' : ' (inactive)'}`;
-}
-
-function ChargeItemForm({
-    chargeItem,
-    taxes,
+function NewChargeItemDialog({
+    open,
+    onOpenChange,
     categories,
-    chargingUnits,
-    currency,
-    onDone,
 }: {
-    chargeItem: ChargeItem | null;
-    taxes: Tax[];
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
     categories: Option[];
-    chargingUnits: Option[];
-    currency: App.Enums.Currency;
-    onDone: () => void;
 }) {
-    const form = useForm<FormData>(formValues(chargeItem));
-    const [enteredWhenCharging, setEnteredWhenCharging] = useState(
-        chargeItem !== null && chargeItem.defaultAmount === null,
-    );
-    const isStarter = chargeItem?.isStarter ?? false;
-    const taxItems: MultiComboboxOption[] = taxes.map((tax) => ({
-        value: String(tax.id),
-        label: taxLabel(tax, currency),
-    }));
+    const form = useForm({ name: '', code: '', category: 'other' });
+    const [codeEdited, setCodeEdited] = useState(false);
 
-    const setPricing = (value: string) => {
-        const entered = value === 'entered';
-
-        setEnteredWhenCharging(entered);
-
-        if (entered) {
-            form.setData((data) => ({
-                ...data,
-                default_amount: '',
-                allow_override: true,
-            }));
+    const changeOpen = (next: boolean) => {
+        if (!next) {
+            form.reset();
+            form.clearErrors();
+            setCodeEdited(false);
         }
-    };
 
-    const submit = (event: React.FormEvent) => {
-        event.preventDefault();
-
-        const options = { preserveScroll: true, onSuccess: onDone };
-
-        if (chargeItem) {
-            form.put(update.url({ chargeItem: chargeItem.id }), options);
-        } else {
-            form.post(store.url(), options);
-        }
+        onOpenChange(next);
     };
 
     return (
-        <form onSubmit={submit} className="flex min-h-0 flex-1 flex-col">
-            <FieldGroup className="flex-1 overflow-y-auto px-4">
-                <Field data-invalid={!!form.errors.name}>
-                    <FieldLabel htmlFor="charge-item-name">Name</FieldLabel>
+        <FormOverlay
+            variant="dialog"
+            open={open}
+            onOpenChange={changeOpen}
+            title="New charge item"
+            description="Name it here. You set the price and taxes on the next page."
+            errors={form.errors}
+            processing={form.processing}
+            submitLabel="Create charge item"
+            onSubmit={() => form.post(store.url())}
+        >
+            <Field data-invalid={!!form.errors.name}>
+                <FieldLabel htmlFor="new-charge-item-name">Name</FieldLabel>
+                <Input
+                    id="new-charge-item-name"
+                    placeholder="e.g. Airport transfer"
+                    maxLength={100}
+                    value={form.data.name}
+                    onChange={(event) => {
+                        const name = event.target.value;
+
+                        form.setData((data) => ({
+                            ...data,
+                            name,
+                            code: codeEdited ? data.code : suggestCode(name),
+                        }));
+                    }}
+                    aria-invalid={!!form.errors.name}
+                    autoFocus
+                />
+                <FieldError>{form.errors.name}</FieldError>
+            </Field>
+            <div className="grid gap-4 sm:grid-cols-2">
+                <Field data-invalid={!!form.errors.code}>
+                    <FieldLabel htmlFor="new-charge-item-code">Code</FieldLabel>
                     <Input
-                        id="charge-item-name"
-                        placeholder="e.g. Airport transfer"
-                        maxLength={100}
-                        value={form.data.name}
-                        onChange={(event) =>
-                            form.setData('name', event.target.value)
-                        }
-                        aria-invalid={!!form.errors.name}
-                        autoFocus
+                        id="new-charge-item-code"
+                        placeholder="e.g. AIRPORT"
+                        maxLength={20}
+                        value={form.data.code}
+                        onChange={(event) => {
+                            setCodeEdited(true);
+                            form.setData(
+                                'code',
+                                event.target.value.toUpperCase(),
+                            );
+                        }}
+                        aria-invalid={!!form.errors.code}
                     />
-                    <FieldError>{form.errors.name}</FieldError>
+                    <FieldDescription>
+                        Used in reports and accounting exports.
+                    </FieldDescription>
+                    <FieldError>{form.errors.code}</FieldError>
                 </Field>
-                <div className="grid gap-4 sm:grid-cols-2">
-                    <Field data-invalid={!!form.errors.code}>
-                        <FieldLabel htmlFor="charge-item-code">Code</FieldLabel>
-                        <Input
-                            id="charge-item-code"
-                            placeholder="e.g. AIRPORT"
-                            maxLength={20}
-                            value={form.data.code}
-                            onChange={(event) =>
-                                form.setData(
-                                    'code',
-                                    event.target.value.toUpperCase(),
-                                )
-                            }
-                            disabled={isStarter}
-                            aria-invalid={!!form.errors.code}
-                        />
-                        <FieldDescription>
-                            {isStarter
-                                ? 'Starter items keep their code.'
-                                : 'Used in reports and accounting exports.'}
-                        </FieldDescription>
-                        <FieldError>{form.errors.code}</FieldError>
-                    </Field>
-                    <Field data-invalid={!!form.errors.category}>
-                        <FieldLabel htmlFor="charge-item-category">
-                            Category
-                        </FieldLabel>
-                        <EnumSelect
-                            id="charge-item-category"
-                            options={categories}
-                            value={form.data.category}
-                            onValueChange={(value) =>
-                                form.setData('category', value)
-                            }
-                            disabled={isStarter}
-                            aria-invalid={!!form.errors.category}
-                        />
-                        <FieldError>{form.errors.category}</FieldError>
-                    </Field>
-                </div>
-                <Field data-invalid={!!form.errors.description}>
-                    <FieldLabel htmlFor="charge-item-description">
-                        Description
+                <Field data-invalid={!!form.errors.category}>
+                    <FieldLabel htmlFor="new-charge-item-category">
+                        Category
                     </FieldLabel>
-                    <Textarea
-                        id="charge-item-description"
-                        placeholder="e.g. One-way transfer to the airport, up to 4 guests"
-                        maxLength={2000}
-                        value={form.data.description}
-                        onChange={(event) =>
-                            form.setData('description', event.target.value)
-                        }
-                        aria-invalid={!!form.errors.description}
-                    />
-                    <FieldDescription>
-                        Optional guidance shown to staff when choosing a charge.
-                    </FieldDescription>
-                    <FieldError>{form.errors.description}</FieldError>
-                </Field>
-                <FieldSet>
-                    <FieldLegend variant="label">Pricing method</FieldLegend>
-                    <RadioGroup
-                        value={enteredWhenCharging ? 'entered' : 'fixed'}
-                        onValueChange={(value) => setPricing(value as string)}
-                    >
-                        {pricingOptions.map((option) => (
-                            <FieldLabel
-                                key={option.value}
-                                htmlFor={`charge-item-price-${option.value}`}
-                            >
-                                <Field orientation="horizontal">
-                                    <RadioGroupItem
-                                        id={`charge-item-price-${option.value}`}
-                                        value={option.value}
-                                    />
-                                    <FieldContent>
-                                        <span className="text-sm font-medium">
-                                            {option.label}
-                                        </span>
-                                        <FieldDescription>
-                                            {option.description}
-                                        </FieldDescription>
-                                    </FieldContent>
-                                </Field>
-                            </FieldLabel>
-                        ))}
-                    </RadioGroup>
-                </FieldSet>
-                <div className="grid gap-4 sm:grid-cols-2">
-                    {!enteredWhenCharging && (
-                        <Field data-invalid={!!form.errors.default_amount}>
-                            <FieldLabel htmlFor="charge-item-amount">
-                                Price
-                            </FieldLabel>
-                            <InputGroup>
-                                <InputGroupAddon>{currency}</InputGroupAddon>
-                                <InputGroupInput
-                                    id="charge-item-amount"
-                                    placeholder="0.00"
-                                    type="number"
-                                    min="0.01"
-                                    max="9999999999.99"
-                                    step="0.01"
-                                    inputMode="decimal"
-                                    value={form.data.default_amount}
-                                    onChange={(event) =>
-                                        form.setData(
-                                            'default_amount',
-                                            event.target.value,
-                                        )
-                                    }
-                                    aria-invalid={!!form.errors.default_amount}
-                                />
-                            </InputGroup>
-                            <FieldError>
-                                {form.errors.default_amount}
-                            </FieldError>
-                        </Field>
-                    )}
-                    <Field data-invalid={!!form.errors.charging_unit}>
-                        <FieldLabel htmlFor="charge-item-unit">
-                            Charged
-                        </FieldLabel>
-                        <EnumSelect
-                            id="charge-item-unit"
-                            options={chargingUnits}
-                            value={form.data.charging_unit}
-                            onValueChange={(value) =>
-                                form.setData('charging_unit', value)
-                            }
-                            aria-invalid={!!form.errors.charging_unit}
-                        />
-                        <FieldError>{form.errors.charging_unit}</FieldError>
-                    </Field>
-                </div>
-                <Field orientation="horizontal">
-                    <Switch
-                        id="charge-item-override"
-                        checked={form.data.allow_override}
-                        onCheckedChange={(checked) =>
-                            form.setData('allow_override', checked)
-                        }
-                        disabled={enteredWhenCharging}
-                    />
-                    <FieldContent>
-                        <FieldLabel htmlFor="charge-item-override">
-                            Allow amount override
-                        </FieldLabel>
-                        <FieldDescription>
-                            Staff may change the default amount when posting the
-                            charge.
-                        </FieldDescription>
-                    </FieldContent>
-                </Field>
-                <Field data-invalid={!!form.errors.tax_ids}>
-                    <FieldLabel htmlFor="charge-item-taxes">Taxes</FieldLabel>
-                    <MultiCombobox
-                        id="charge-item-taxes"
-                        name="tax_ids"
-                        items={taxItems}
-                        value={form.data.tax_ids}
+                    <EnumSelect
+                        id="new-charge-item-category"
+                        name="category"
+                        options={categories}
+                        value={form.data.category}
                         onValueChange={(value) =>
-                            form.setData('tax_ids', value)
+                            form.setData('category', value)
                         }
-                        placeholder="No taxes"
-                        invalid={!!form.errors.tax_ids}
+                        aria-invalid={!!form.errors.category}
                     />
-                    <FieldDescription>
-                        Taxes added automatically when this item is charged.
-                    </FieldDescription>
-                    <FieldError>{form.errors.tax_ids}</FieldError>
+                    <FieldError>{form.errors.category}</FieldError>
                 </Field>
-                <Field orientation="horizontal">
-                    <Switch
-                        id="charge-item-active"
-                        checked={form.data.active}
-                        onCheckedChange={(checked) =>
-                            form.setData('active', checked)
-                        }
-                    />
-                    <FieldContent>
-                        <FieldLabel htmlFor="charge-item-active">
-                            Available to charge
-                        </FieldLabel>
-                        <FieldDescription>
-                            Staff can post this item to a folio. Turn it off to
-                            hide the item without deleting it.
-                        </FieldDescription>
-                    </FieldContent>
-                </Field>
-            </FieldGroup>
-            <SheetFooter>
-                <SheetClose render={<Button type="button" variant="outline" />}>
-                    Cancel
-                </SheetClose>
-                <Button
-                    type="submit"
-                    disabled={form.processing}
-                    focusableWhenDisabled
-                >
-                    {form.processing && <Spinner data-icon="inline-start" />}
-                    {chargeItem ? 'Save changes' : 'Create charge item'}
-                </Button>
-            </SheetFooter>
-        </form>
+            </div>
+        </FormOverlay>
     );
 }
 
@@ -389,7 +163,6 @@ function ChargeItemTable({
     taxes,
     chargingUnits,
     currency,
-    onEdit,
     onMove,
     onToggleActive,
     togglingIds,
@@ -398,7 +171,6 @@ function ChargeItemTable({
     taxes: Tax[];
     chargingUnits: Option[];
     currency: App.Enums.Currency;
-    onEdit: (chargeItem: ChargeItem) => void;
     onMove?: (from: number, to: number) => void;
     onToggleActive: (chargeItem: ChargeItem, active: boolean) => void;
     togglingIds: Set<number>;
@@ -555,13 +327,17 @@ function ChargeItemTable({
                                                 Inactive
                                             </Badge>
                                         )}
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => onEdit(chargeItem)}
+                                        <Link
+                                            href={edit({
+                                                chargeItem: chargeItem.id,
+                                            })}
+                                            className={buttonVariants({
+                                                variant: 'ghost',
+                                                size: 'sm',
+                                            })}
                                         >
                                             Edit
-                                        </Button>
+                                        </Link>
                                     </div>
                                 </TableCell>
                             </TableRow>
@@ -586,9 +362,7 @@ export default function ChargeItemsIndex({
     chargingUnits: Option[];
     currency: App.Enums.Currency;
 }) {
-    const [editing, setEditing] = useState<ChargeItem | null | undefined>(
-        undefined,
-    );
+    const [creating, setCreating] = useState(false);
     const [togglingIds, setTogglingIds] = useState<Set<number>>(new Set());
     const [query, setQuery] = useState('');
     const filtered = useMemo(() => {
@@ -674,7 +448,7 @@ export default function ChargeItemsIndex({
                     title="Charge items"
                     description="The products and services staff can post to a folio."
                     actions={
-                        <Button onClick={() => setEditing(null)}>
+                        <Button onClick={() => setCreating(true)}>
                             <Plus data-icon="inline-start" />
                             New charge item
                         </Button>
@@ -687,7 +461,7 @@ export default function ChargeItemsIndex({
                         title="No charge items yet"
                         description="Add the first product or service staff can post to a folio."
                         action={
-                            <Button onClick={() => setEditing(null)}>
+                            <Button onClick={() => setCreating(true)}>
                                 <Plus data-icon="inline-start" />
                                 New charge item
                             </Button>
@@ -716,7 +490,6 @@ export default function ChargeItemsIndex({
                                 taxes={taxes}
                                 chargingUnits={chargingUnits}
                                 currency={currency}
-                                onEdit={setEditing}
                                 onMove={move}
                                 onToggleActive={toggleActive}
                                 togglingIds={togglingIds}
@@ -731,34 +504,11 @@ export default function ChargeItemsIndex({
                 )}
             </div>
 
-            <Sheet
-                open={editing !== undefined}
-                onOpenChange={(open) => !open && setEditing(undefined)}
-            >
-                <SheetContent className="data-[side=right]:sm:max-w-xl">
-                    <SheetHeader>
-                        <SheetTitle>
-                            {editing
-                                ? `Edit ${editing.name}`
-                                : 'New charge item'}
-                        </SheetTitle>
-                        <SheetDescription>
-                            Configure how staff select and price this charge.
-                        </SheetDescription>
-                    </SheetHeader>
-                    {editing !== undefined && (
-                        <ChargeItemForm
-                            key={editing?.id ?? 'new'}
-                            chargeItem={editing}
-                            taxes={taxes}
-                            categories={categories}
-                            chargingUnits={chargingUnits}
-                            currency={currency}
-                            onDone={() => setEditing(undefined)}
-                        />
-                    )}
-                </SheetContent>
-            </Sheet>
+            <NewChargeItemDialog
+                open={creating}
+                onOpenChange={setCreating}
+                categories={categories}
+            />
         </>
     );
 }

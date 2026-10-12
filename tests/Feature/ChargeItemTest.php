@@ -89,51 +89,91 @@ test('the list loads the bounded catalogue in active order with its form data', 
             ->where('currency', Currency::Myr->value));
 });
 
-test('owners create charge items at the end with their own charge code and taxes', function () {
+test('owners create charge items at the end with defaults and their own charge code, then land on the edit page', function () {
     $owner = User::factory()->owner()->create();
     $property = $owner->property;
     $tax = Tax::factory()->for($property)->create();
     ChargeItem::factory()->for($property)->create(['position' => 4]);
 
     $this->actingAs($owner)
-        ->post(route('settings.charge-items.store', $property->code), chargeItemPayload([
+        ->post(route('settings.charge-items.store', $property->code), [
             'name' => ' Breakfast buffet ',
             'code' => ' breakfast buffet ',
+            'category' => TransactionCategory::FoodAndBeverage->value,
+            'default_amount' => '25.00',
             'tax_ids' => [$tax->id],
-        ]))
-        ->assertRedirect(route('settings.charge-items.index', $property->code))
-        ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Breakfast buffet created.']);
+        ])
+        ->assertSessionHasNoErrors();
 
     $chargeItem = ChargeItem::query()->where('name', 'Breakfast buffet')->sole();
     $transactionCode = $chargeItem->transactionCode;
 
     expect($chargeItem->property_id)->toBe($property->id)
         ->and($chargeItem->position)->toBe(5)
-        ->and($chargeItem->default_amount)->toBe('25.00')
-        ->and($chargeItem->charging_unit)->toBe(ChargingUnit::PerGuest)
+        ->and($chargeItem->default_amount)->toBeNull()
+        ->and($chargeItem->allow_override)->toBeTrue()
+        ->and($chargeItem->charging_unit)->toBe(ChargingUnit::PerItem)
+        ->and($chargeItem->active)->toBeTrue()
         ->and($transactionCode->property_id)->toBe($property->id)
         ->and($transactionCode->code)->toBe('BREAKFAST_BUFFET')
         ->and($transactionCode->name)->toBe('Breakfast buffet')
         ->and($transactionCode->kind)->toBe(TransactionKind::Charge)
         ->and($transactionCode->category)->toBe(TransactionCategory::FoodAndBeverage)
         ->and($transactionCode->system_key)->toBeNull()
-        ->and($transactionCode->applicableTaxes()->pluck('taxes.id')->all())->toBe([$tax->id])
+        ->and($transactionCode->applicableTaxes()->count())->toBe(0)
         ->and(Activity::query()->where('event', 'charge_item.created')->count())->toBe(1);
+});
+
+test('creating a charge item redirects to its edit page with a toast', function () {
+    $owner = User::factory()->owner()->create();
+    $property = $owner->property;
+
+    $response = $this->actingAs($owner)->post(route('settings.charge-items.store', $property->code), [
+        'name' => 'Breakfast',
+        'code' => 'BREAKFAST',
+        'category' => TransactionCategory::FoodAndBeverage->value,
+    ]);
+
+    $chargeItem = ChargeItem::query()->sole();
+
+    $response->assertRedirect(route('settings.charge-items.edit', [$property->code, $chargeItem]))
+        ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Breakfast created. Set its price and taxes.']);
+});
+
+test('the edit page loads the item with its form data', function () {
+    $owner = User::factory()->owner()->create();
+    $property = $owner->property;
+    PropertySetting::factory()->for($property)->create(['currency' => Currency::Myr]);
+    $tax = Tax::factory()->for($property)->create(['name' => 'Service tax']);
+    $chargeItem = ChargeItem::factory()->for($property)->create(['name' => 'Breakfast', 'default_amount' => '25.00']);
+    $tax->applicableTransactionCodes()->attach($chargeItem->transaction_code_id);
+
+    $this->actingAs($owner)
+        ->get(route('settings.charge-items.edit', [$property->code, $chargeItem]))
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('settings/charge-items/edit')
+            ->where('chargeItem.id', $chargeItem->id)
+            ->where('chargeItem.name', 'Breakfast')
+            ->where('chargeItem.defaultAmount', '25.00')
+            ->where('chargeItem.taxIds', [$tax->id])
+            ->where('taxes', fn ($taxes) => collect($taxes)->pluck('name')->all() === ['Service tax'])
+            ->where('categories', TransactionCategory::chargeItemOptions())
+            ->where('chargingUnits', ChargingUnit::options())
+            ->where('currency', Currency::Myr->value));
 });
 
 test('items priced when charging always allow the amount to be entered', function () {
     $owner = User::factory()->owner()->create();
+    $chargeItem = ChargeItem::factory()->for($owner->property)->create(['default_amount' => '25.00', 'allow_override' => false]);
 
     $this->actingAs($owner)
-        ->post(route('settings.charge-items.store', $owner->property->code), chargeItemPayload([
+        ->put(route('settings.charge-items.update', [$owner->property->code, $chargeItem]), chargeItemPayloadFor($chargeItem, [
             'default_amount' => '',
             'allow_override' => false,
         ]))
         ->assertSessionHasNoErrors();
 
-    $chargeItem = ChargeItem::query()->sole();
-
-    expect($chargeItem->default_amount)->toBeNull()
+    expect($chargeItem->refresh()->default_amount)->toBeNull()
         ->and($chargeItem->allow_override)->toBeTrue();
 });
 
@@ -183,17 +223,40 @@ test('starter items keep their system code and category but follow the item name
         ->and($transactionCode->active)->toBeFalse();
 });
 
-test('charge item fields are validated', function (array $overrides, string $field) {
+test('new charge item fields are validated', function (array $overrides, string $field) {
     $owner = User::factory()->owner()->create();
     ChargeItem::factory()->for($owner->property)->inactive()->create(['name' => 'Breakfast buffet']);
     TransactionCode::factory()->for($owner->property)->create(['code' => 'ROOM']);
-    $foreignTax = Tax::factory()->create();
 
     $this->actingAs($owner)
-        ->post(route('settings.charge-items.store', $owner->property->code), chargeItemPayload($overrides === ['tax_ids' => 'foreign'] ? ['tax_ids' => [$foreignTax->id]] : $overrides))
+        ->post(route('settings.charge-items.store', $owner->property->code), array_merge([
+            'name' => 'Laundry bag',
+            'code' => 'LAUNDRY_BAG',
+            'category' => TransactionCategory::Laundry->value,
+        ], $overrides))
         ->assertSessionHasErrors($field);
 
     expect(ChargeItem::query()->count())->toBe(1);
+})->with([
+    'name is required' => [['name' => ''], 'name'],
+    'name stays unique after deactivation' => [['name' => 'breakfast BUFFET'], 'name'],
+    'code is required' => [['code' => ' '], 'code'],
+    'code is at most 20 characters' => [['code' => str_repeat('A', 21)], 'code'],
+    'code is unique among transaction codes' => [['code' => 'room'], 'code'],
+    'category is a charge item category' => [['category' => TransactionCategory::Room->value], 'category'],
+]);
+
+test('charge item edit fields are validated', function (array $overrides, string $field) {
+    $owner = User::factory()->owner()->create();
+    $property = $owner->property;
+    $chargeItem = ChargeItem::factory()->for($property)->create(['name' => 'Laundry bag']);
+    ChargeItem::factory()->for($property)->inactive()->create(['name' => 'Breakfast buffet']);
+    TransactionCode::factory()->for($property)->create(['code' => 'ROOM']);
+    $foreignTax = Tax::factory()->create();
+
+    $this->actingAs($owner)
+        ->put(route('settings.charge-items.update', [$property->code, $chargeItem]), chargeItemPayloadFor($chargeItem, $overrides === ['tax_ids' => 'foreign'] ? ['tax_ids' => [$foreignTax->id]] : $overrides))
+        ->assertSessionHasErrors($field);
 })->with([
     'name is required' => [['name' => ''], 'name'],
     'name stays unique after deactivation' => [['name' => 'breakfast BUFFET'], 'name'],
@@ -201,7 +264,6 @@ test('charge item fields are validated', function (array $overrides, string $fie
     'amount has at most two decimal places' => [['default_amount' => '1.001'], 'default_amount'],
     'charging unit is known' => [['charging_unit' => 'per_room'], 'charging_unit'],
     'code is required' => [['code' => ' '], 'code'],
-    'code is at most 20 characters' => [['code' => str_repeat('A', 21)], 'code'],
     'code is unique among transaction codes' => [['code' => 'room'], 'code'],
     'category is a charge item category' => [['category' => TransactionCategory::Room->value], 'category'],
     'taxes come from the same property' => [['tax_ids' => 'foreign'], 'tax_ids'],
@@ -333,11 +395,13 @@ test('routes enforce settings permission and property scoping', function () {
 
     $this->actingAs($frontDesk)->get(route('settings.charge-items.index', $frontDesk->property->code))->assertForbidden();
     $this->post(route('settings.charge-items.store', $frontDesk->property->code), chargeItemPayload())->assertForbidden();
+    $this->get(route('settings.charge-items.edit', [$frontDesk->property->code, ChargeItem::factory()->for($frontDesk->property)->create()]))->assertForbidden();
 
     $this->actingAs($owner)
         ->put(route('settings.charge-items.update', [$owner->property->code, $otherItem]), chargeItemPayload())
         ->assertNotFound();
     $this->get(route('settings.charge-items.index', $otherProperty->code))->assertNotFound();
+    $this->get(route('settings.charge-items.edit', [$owner->property->code, $otherItem]))->assertNotFound();
 
     expect($otherItem->refresh()->name)->not->toBe('Breakfast buffet');
 });

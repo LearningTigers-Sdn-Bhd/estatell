@@ -50,9 +50,26 @@ class ChargeItemController extends Controller
     {
         $chargeItem = $createChargeItem($property, $request->user(), $request->validated());
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => __(':name created.', ['name' => $chargeItem->name])]);
+        Inertia::flash('toast', ['type' => 'success', 'message' => __(':name created. Set its price and taxes.', ['name' => $chargeItem->name])]);
 
-        return to_route('settings.charge-items.index', $property);
+        return to_route('settings.charge-items.edit', [$property, $chargeItem]);
+    }
+
+    public function edit(Property $property, ChargeItem $chargeItem): Response
+    {
+        abort_if($property->settings === null, 404);
+
+        return Inertia::render('settings/charge-items/edit', [
+            'chargeItem' => ChargeItemData::fromModel($chargeItem->load('transactionCode.applicableTaxes')),
+            'taxes' => $property->taxes()
+                ->orderByDesc('enabled')
+                ->orderBy('name')
+                ->get()
+                ->map(fn (Tax $tax): ChargeItemTaxData => ChargeItemTaxData::fromModel($tax)),
+            'categories' => TransactionCategory::chargeItemOptions(),
+            'chargingUnits' => ChargingUnit::options(),
+            'currency' => $property->settings->currency,
+        ]);
     }
 
     public function update(ChargeItemRequest $request, Property $property, ChargeItem $chargeItem, UpdateChargeItem $updateChargeItem): RedirectResponse
