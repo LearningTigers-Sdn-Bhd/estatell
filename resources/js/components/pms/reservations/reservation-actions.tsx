@@ -86,7 +86,7 @@ export function ReservationActions({
                     <MoreHorizontal data-icon="inline-start" />
                     More
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
+                <DropdownMenuContent align="end" className="min-w-56">
                     {canManage && (
                         <DropdownMenuItem onClick={() => setEditingGroup(true)}>
                             <Pencil />

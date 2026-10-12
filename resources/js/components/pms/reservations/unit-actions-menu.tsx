@@ -91,7 +91,7 @@ export function UnitActionsMenu({
                 >
                     <MoreHorizontal />
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
+                <DropdownMenuContent align="end" className="min-w-56">
                     {unit.actions.map((item) => {
                         const Icon = ICONS[item.key];
 
