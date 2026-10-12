@@ -35,7 +35,7 @@ class ReportsNavigation
                         icon: $key->icon(),
                         active: request()->routeIs('reports.'.$key->value),
                     ),
-                    array_filter(ReportKey::cases(), fn (ReportKey $key): bool => $key->category() === $category),
+                    array_filter(ReportKey::cases(), fn (ReportKey $key): bool => $key->listedInReportsMenu() && $key->category() === $category),
                 )),
             ),
             ReportCategory::cases(),

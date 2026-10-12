@@ -6,6 +6,7 @@ use App\Models\Bed;
 use App\Models\BusinessDate;
 use App\Models\Guest;
 use App\Models\Property;
+use App\Models\PropertySetting;
 use App\Models\Reservation;
 use App\Models\ReservationUnit;
 use App\Models\Room;
@@ -14,6 +15,7 @@ use App\Models\RoomType;
 use App\Models\UnitGuest;
 use App\Models\UnitNight;
 use App\Models\User;
+use App\Navigation\ReportsNavigation;
 use Illuminate\Support\Facades\DB;
 use Inertia\Testing\AssertableInertia as Assert;
 use Spatie\Activitylog\Models\Activity;
@@ -400,4 +402,88 @@ test('blocking a room clears its needs maintenance flag', function () {
 
     expect(RoomBlock::query()->where('room_id', $room->id)->count())->toBe(1)
         ->and($room->status->fresh()->needs_maintenance)->toBeFalse();
+});
+
+function exportBoardRooms(User $user): Property
+{
+    $property = boardProperty($user);
+    PropertySetting::factory()->for($property)->create();
+
+    $departed = boardRoom($property, '102', HousekeepingStatus::Dirty);
+    $arriving = boardRoom($property, '101');
+    boardRoom($property, '103', HousekeepingStatus::Inspected);
+    boardUnit($property, $departed, ['arrival_date' => '2026-10-10', 'departure_date' => '2026-10-12', 'departure_time' => '11:00'], 'Departed Guest', 'checkedOut');
+    boardUnit($property, $arriving, ['arrival_date' => '2026-10-12', 'departure_date' => '2026-10-13', 'arrival_time' => '14:30'], 'Arriving Guest');
+    $departed->status->update(['remark' => 'Spill on rug', 'is_priority' => true]);
+
+    return $property;
+}
+
+test('the board spreadsheet lists the rooms in due order with the saved layout', function () {
+    $owner = User::factory()->owner()->create();
+    $property = exportBoardRooms($owner);
+
+    $response = $this->actingAs($owner)->post(route('housekeeping.spreadsheet', $property->code), ['format' => 'csv', 'date' => '2026-10-12']);
+
+    $response->assertOk();
+    expect($response->headers->get('Content-Disposition'))->toContain('housekeeping-tasks-2026-10-12.csv');
+
+    $rows = array_map('str_getcsv', array_values(array_filter(explode("\n", ltrim($response->streamedContent(), "\xEF\xBB\xBF")))));
+
+    expect($rows[0])->toBe(['Room', 'Status', 'Assigned', 'Guest', 'Arrival', 'Departure', 'Flags', 'Remarks'])
+        ->and(array_column($rows, 0))->toBe(['Room', '102', '101', '103'])
+        ->and($rows[1])->toBe(['102', 'Dirty', '', 'Departed Guest', '', '12 Oct · 11:00', 'Priority', 'Spill on rug · Checked out today'])
+        ->and($rows[2][4])->toBe('12 Oct · 14:30');
+});
+
+test('the board export keeps only the selected rooms and drops another property\'s', function () {
+    $owner = User::factory()->owner()->create();
+    $property = exportBoardRooms($owner);
+    $mine = Room::query()->where('property_id', $property->id)->where('number', '103')->firstOrFail();
+    $other = Room::factory()->create();
+
+    $response = $this->actingAs($owner)->post(route('housekeeping.spreadsheet', $property->code), [
+        'format' => 'csv',
+        'rowKeys' => [$mine->id, $other->id],
+    ]);
+
+    $rows = array_map('str_getcsv', array_values(array_filter(explode("\n", ltrim($response->streamedContent(), "\xEF\xBB\xBF")))));
+
+    expect(array_column($rows, 0))->toBe(['Room', '103']);
+});
+
+test('the board export sorts by a visible column and housekeepers can print without reports.view', function () {
+    $housekeeper = User::factory()->withRole(DefaultRoleEnum::Housekeeping)->create();
+    $property = exportBoardRooms($housekeeper);
+
+    $response = $this->actingAs($housekeeper)->post(route('housekeeping.spreadsheet', $property->code), ['format' => 'csv', 'sort' => '-room']);
+    $rows = array_map('str_getcsv', array_values(array_filter(explode("\n", ltrim($response->streamedContent(), "\xEF\xBB\xBF")))));
+
+    expect(array_column($rows, 0))->toBe(['Room', '103', '102', '101']);
+
+    $this->actingAs($housekeeper)->post(route('housekeeping.pdf', $property->code), ['date' => '2026-10-12'])
+        ->assertOk()
+        ->assertHeader('content-type', 'application/pdf');
+});
+
+test('the board export needs housekeeping.view and a format for the spreadsheet', function () {
+    $owner = User::factory()->owner()->create();
+    $property = exportBoardRooms($owner);
+    $guest = User::factory()->create(['property_id' => $property->id]);
+
+    $this->actingAs($guest)->post(route('housekeeping.pdf', $property->code))->assertForbidden();
+    $this->actingAs($owner)->postJson(route('housekeeping.spreadsheet', $property->code), [])->assertJsonValidationErrors('format');
+});
+
+test('housekeeping tasks is not listed in the Reports menu', function () {
+    $owner = User::factory()->owner()->create();
+    $property = boardProperty($owner);
+    $this->actingAs($owner);
+    setPermissionsTeamId($property->id);
+
+    $hrefs = collect(app(ReportsNavigation::class)->groups($property, $owner))
+        ->flatMap(fn ($group) => collect($group->items)->pluck('href'));
+
+    expect($hrefs)->not->toBeEmpty()
+        ->and($hrefs->contains(fn (string $href): bool => str_contains($href, 'housekeeping-tasks')))->toBeFalse();
 });

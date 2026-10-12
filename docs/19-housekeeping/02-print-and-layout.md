@@ -24,7 +24,7 @@ Let housekeeping print the board as a work sheet, and let a manager choose its c
 | Row                 | `HousekeepingTaskRow`, one for each active room. The `key` is the room id.          |
 | Identity numbers    | none, so exports are not logged as identity exports                                 |
 
-- `HousekeepingTaskRow` implements `ReportRow` and is also the Data object the board page receives. The screen, the PDF and the spreadsheet read the same rows.
+- `HousekeepingTaskRow` implements `ReportRow` and is built from `HousekeepingRoomData` (the board page keeps its own Data object, which also holds the actions the viewer may take). The PDF and the spreadsheet read the same rooms, in the same order, because `HousekeepingTasksReport` reads `HousekeepingBoardBuilder`. Its `due` property is the place of the room in that order.
 - `HousekeepingTasks` is **not listed in the Reports menu**. `ReportsNavigation` lists every `ReportKey` case under its category, so the key gets a `listedInReportsMenu()` method that returns false for it. The board is opened from Housekeeping in the Front desk context.
 - There is no `reports.housekeeping-tasks` page. The shared layout services need the key, and the board is the only page.
 
@@ -56,6 +56,8 @@ A merged column keeps its key, label and default visibility. Its split columns a
 | `system_reason`     | Reason         | left  | –       | `remarks`   | text                             |
 | `pen_boxes`         | Check          | left  | –       | –           | text (`[ ] BED  [ ] BATH`)       |
 
+- `arrival` and `departure` hold the date and time in one value, so a sort puts them in time order. A same-day turnover keeps both.
+- `pen_boxes` comes with the pen box items. Until then the report has 20 columns.
 - `room` and `status` stay visible: the Layout Sheet refuses a layout without at least one visible column, and the board needs both.
 - `unit` shows "Deluxe / 203"; `room_group` is for properties that use groups.
 - `pen_boxes` is **one column** with a stable key. Its cell is built from the checklist items of the property, so no column key depends on data. An Out of service room has an empty cell.

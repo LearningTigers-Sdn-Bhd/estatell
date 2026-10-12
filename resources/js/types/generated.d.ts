@@ -1360,6 +1360,30 @@ kind: string,
 staff: string | null,
 amount: string,
 };
+export type HousekeepingTaskRow = {
+key: number,
+due: number,
+room: string,
+room_group: string | null,
+unit: string,
+room_type: string,
+status: string,
+assigned: string | null,
+guest: string | null,
+arrival: string | null,
+arrival_date: string | null,
+arrival_time: string | null,
+departure: string | null,
+departure_date: string | null,
+departure_time: string | null,
+flags: string,
+priority: boolean,
+do_not_disturb: boolean,
+needs_maintenance: boolean,
+remarks: string,
+remark: string | null,
+system_reason: string | null,
+};
 export type InHouseRow = {
 key: number,
 reservation: string,
@@ -2315,7 +2339,7 @@ export type RegistrationCardStatus = 'draft' | 'signed' | 'void';
 export type ReportCategory = 'front-desk' | 'revenue' | 'finance' | 'kitchen' | 'audit';
 export type ReportDatePreset = 'today' | 'yesterday' | 'tomorrow' | 'next-7-days' | 'this-week' | 'last-week' | 'next-week' | 'this-month' | 'last-month' | 'this-year' | 'last-30-days';
 export type ReportGroup = 'day' | 'month' | 'method' | 'staff';
-export type ReportKey = 'arrivals' | 'departures' | 'in-house' | 'occupancy' | 'revenue' | 'payments' | 'folio-ledger' | 'tax' | 'meal-counts' | 'night-audit-history' | 'outstanding-balance' | 'deposit-liability' | 'non-national-guests' | 'police-report';
+export type ReportKey = 'arrivals' | 'departures' | 'in-house' | 'occupancy' | 'revenue' | 'payments' | 'folio-ledger' | 'tax' | 'meal-counts' | 'night-audit-history' | 'outstanding-balance' | 'deposit-liability' | 'non-national-guests' | 'police-report' | 'housekeeping-tasks';
 export type ReservationRoomBoxState = 'assigned' | 'unassigned' | 'auto_assign' | 'cancelled' | 'no_show';
 export type ReservationSource = 'direct' | 'walk_in' | 'phone' | 'channel' | 'portal';
 export type ReservationStatus = 'confirmed' | 'in_house' | 'completed' | 'cancelled';

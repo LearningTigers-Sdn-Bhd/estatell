@@ -15,6 +15,7 @@ use App\Services\Reports\FolioLedgerReport;
 use App\Services\Reports\HasBreakdown;
 use App\Services\Reports\HasNote;
 use App\Services\Reports\HasTotals;
+use App\Services\Reports\HousekeepingTasksReport;
 use App\Services\Reports\InHouseReport;
 use App\Services\Reports\MealCountsReport;
 use App\Services\Reports\NightAuditHistoryReport;
@@ -47,6 +48,7 @@ enum ReportKey: string
     case DepositLiability = 'deposit-liability';
     case NonNationalGuests = 'non-national-guests';
     case PoliceReport = 'police-report';
+    case HousekeepingTasks = 'housekeeping-tasks';
 
     public function label(): string
     {
@@ -65,13 +67,14 @@ enum ReportKey: string
             self::DepositLiability => __('Deposit liability'),
             self::NonNationalGuests => __('Non-national guests'),
             self::PoliceReport => __('Police report'),
+            self::HousekeepingTasks => __('Housekeeping tasks'),
         };
     }
 
     public function category(): ReportCategory
     {
         return match ($this) {
-            self::Arrivals, self::Departures, self::InHouse, self::PoliceReport => ReportCategory::FrontDesk,
+            self::Arrivals, self::Departures, self::InHouse, self::PoliceReport, self::HousekeepingTasks => ReportCategory::FrontDesk,
             self::Occupancy, self::Revenue, self::Tax, self::NonNationalGuests => ReportCategory::Revenue,
             self::Payments, self::FolioLedger, self::OutstandingBalance, self::DepositLiability => ReportCategory::Finance,
             self::MealCounts => ReportCategory::Kitchen,
@@ -83,7 +86,7 @@ enum ReportKey: string
     {
         return match ($this) {
             self::Arrivals, self::Departures, self::InHouse, self::Occupancy, self::Revenue, self::Payments, self::MealCounts => PageOrientation::Portrait,
-            self::FolioLedger, self::Tax, self::NightAuditHistory, self::OutstandingBalance, self::DepositLiability, self::NonNationalGuests, self::PoliceReport => PageOrientation::Landscape,
+            self::FolioLedger, self::Tax, self::NightAuditHistory, self::OutstandingBalance, self::DepositLiability, self::NonNationalGuests, self::PoliceReport, self::HousekeepingTasks => PageOrientation::Landscape,
         };
     }
 
@@ -105,6 +108,7 @@ enum ReportKey: string
             self::OutstandingBalance => '-days',
             self::DepositLiability, self::NonNationalGuests => 'arrival',
             self::PoliceReport => 'room',
+            self::HousekeepingTasks => 'due',
         };
     }
 
@@ -115,7 +119,7 @@ enum ReportKey: string
     {
         return match ($this) {
             self::Arrivals, self::Departures, self::FolioLedger, self::MealCounts, self::NonNationalGuests, self::PoliceReport => 31,
-            self::InHouse, self::OutstandingBalance, self::DepositLiability => null,
+            self::InHouse, self::OutstandingBalance, self::DepositLiability, self::HousekeepingTasks => null,
             self::Occupancy, self::Revenue, self::Payments, self::Tax, self::NightAuditHistory => 366,
         };
     }
@@ -395,7 +399,38 @@ enum ReportKey: string
                 new ReportColumn('checked_out_time', __('Checked out time'), ColumnAlign::Left, false),
                 new ReportColumn('status', __('Status'), ColumnAlign::Left, true),
             ],
+            self::HousekeepingTasks => [
+                new ReportColumn('room', __('Room'), ColumnAlign::Left, true),
+                new ReportColumn('room_group', __('Group'), ColumnAlign::Left, false),
+                new ReportColumn('unit', __('Type / room'), ColumnAlign::Left, false),
+                new ReportColumn('room_type', __('Room type'), ColumnAlign::Left, false),
+                new ReportColumn('status', __('Status'), ColumnAlign::Left, true),
+                new ReportColumn('assigned', __('Assigned'), ColumnAlign::Left, true),
+                new ReportColumn('guest', __('Guest'), ColumnAlign::Left, true),
+                new ReportColumn('arrival', __('Arrival'), ColumnAlign::Left, true),
+                new ReportColumn('arrival_date', __('Arrival date'), ColumnAlign::Left, false),
+                new ReportColumn('arrival_time', __('Arrival time'), ColumnAlign::Left, false),
+                new ReportColumn('departure', __('Departure'), ColumnAlign::Left, true),
+                new ReportColumn('departure_date', __('Departure date'), ColumnAlign::Left, false),
+                new ReportColumn('departure_time', __('Departure time'), ColumnAlign::Left, false),
+                new ReportColumn('flags', __('Flags'), ColumnAlign::Left, true),
+                new ReportColumn('priority', __('Priority'), ColumnAlign::Left, false),
+                new ReportColumn('do_not_disturb', __('Do not disturb'), ColumnAlign::Left, false),
+                new ReportColumn('needs_maintenance', __('Maintenance'), ColumnAlign::Left, false),
+                new ReportColumn('remarks', __('Remarks'), ColumnAlign::Left, true),
+                new ReportColumn('remark', __('Remark'), ColumnAlign::Left, false),
+                new ReportColumn('system_reason', __('Reason'), ColumnAlign::Left, false),
+            ],
         };
+    }
+
+    /**
+     * Whether the report is listed in the Reports sidebar. Housekeeping tasks is the board's print sheet, opened from
+     * the Housekeeping page, and has no page of its own.
+     */
+    public function listedInReportsMenu(): bool
+    {
+        return $this !== self::HousekeepingTasks;
     }
 
     /**
@@ -418,6 +453,7 @@ enum ReportKey: string
             self::DepositLiability => 'shield',
             self::NonNationalGuests => 'users',
             self::PoliceReport => 'id-card',
+            self::HousekeepingTasks => 'bed',
         };
     }
 
@@ -438,6 +474,7 @@ enum ReportKey: string
             self::DepositLiability => app(DepositLiabilityReport::class),
             self::NonNationalGuests => app(NonNationalGuestsReport::class),
             self::PoliceReport => app(PoliceReport::class),
+            self::HousekeepingTasks => app(HousekeepingTasksReport::class),
         };
     }
 
