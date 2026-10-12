@@ -126,14 +126,12 @@ type HostProps = {
     onLoaded: () => void;
     onClose: () => void;
     onNavigate: () => void;
-    onError: (message: string) => void;
 };
 
 function FixPackagePriceDialog({
     action,
     onLoaded,
     onClose,
-    onError,
 }: HostProps & { action: Action }) {
     const loader = useHttp<
         Record<string, never>,
@@ -142,6 +140,7 @@ function FixPackagePriceDialog({
     const form = useHttp<Record<string, never>, { done: number }>({});
     const [data, setData] =
         useState<App.Data.NightAudit.PackageNightRespreadData | null>(null);
+    const [previewError, setPreviewError] = useState<string | null>(null);
     const exception = { nightAuditException: action.exceptionId! };
 
     useEffect(() => {
@@ -151,11 +150,11 @@ function FixPackagePriceDialog({
                 onSuccess: (result) => current && setData(result),
                 onError: (errors) => {
                     if (current) {
-                        onError(
+                        setData(null);
+                        setPreviewError(
                             errors.form ??
                                 'The package price could not be previewed.',
                         );
-                        onClose();
                     }
                 },
             })
@@ -171,10 +170,6 @@ function FixPackagePriceDialog({
     const submit = () => {
         form.post(fixPrice.url(exception), {
             onSuccess: onClose,
-            onError: (errors) => {
-                onError(errors.form ?? 'The package price could not be fixed.');
-                onClose();
-            },
         }).catch(() => undefined);
     };
 
@@ -184,8 +179,11 @@ function FixPackagePriceDialog({
             open
             onOpenChange={(open) => !open && onClose()}
             title={data?.title ?? 'Fix package price'}
-            loading={data === null}
-            errors={form.errors}
+            loading={data === null && previewError === null}
+            errors={{
+                ...form.errors,
+                ...(previewError === null ? {} : { form: previewError }),
+            }}
             onSubmit={submit}
             submitLabel="Fix price"
             processing={form.processing}
@@ -263,19 +261,12 @@ function DismissExceptionDialog({
     action,
     onLoaded,
     onClose,
-    onError,
 }: HostProps & { action: Action }) {
     const form = useHttp<{ reason: string }, { done: number }>({ reason: '' });
     useEffect(onLoaded, [onLoaded]);
     const submit = () => {
         form.post(dismiss.url({ nightAuditException: action.exceptionId! }), {
             onSuccess: onClose,
-            onError: (errors) => {
-                if (errors.form) {
-                    onError(errors.form);
-                    onClose();
-                }
-            },
         }).catch(() => undefined);
     };
 

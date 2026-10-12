@@ -686,10 +686,6 @@ export function NightAuditSheet({
                     refresh();
                 }}
                 onNavigate={() => close(false)}
-                onError={(message) => {
-                    setFixError(message);
-                    refresh();
-                }}
             />
         </FormOverlay>
     );

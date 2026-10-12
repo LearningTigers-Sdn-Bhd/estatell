@@ -388,6 +388,7 @@ Topics on hold. Each one needs a planning session and its docs before it gets co
 | `af7ad10` | feat(catalogues): price children on per-guest charge items               |
 | `6582cd4` | fix(front-desk): keep child price rows when a stay is extended           |
 | `d4536cc` | feat(reservations): add charge items to every new booking                |
+| `ad1b6d2` | fix(night-audit): fix the price of a stuck package night                 |
 
 Smaller fixes and reverts are in `git log`.
 
