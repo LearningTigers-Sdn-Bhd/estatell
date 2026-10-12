@@ -381,3 +381,22 @@ test('the trip routes are 404 while the feature is off and refuse staff without 
 
     expect(UnitBoatTrip::query()->count())->toBe(0);
 });
+
+test('the trip routes are 404 for a unit of another reservation or another property', function () {
+    $fixture = boatTripFixture();
+    $other = boatTripFixture();
+
+    $this->actingAs($fixture['owner'])
+        ->put(route('reservations.units.boat-trips.set', [
+            'property' => $fixture['property']->code, 'reservation' => $fixture['reservation']->id, 'unit' => $other['unit']->id, 'direction' => 'in',
+        ]), ['mode' => 'charter', 'time' => '10:30'])
+        ->assertNotFound();
+
+    $this->actingAs($fixture['owner'])
+        ->put(route('reservations.units.boat-trips.set', [
+            'property' => $other['property']->code, 'reservation' => $other['reservation']->id, 'unit' => $other['unit']->id, 'direction' => 'in',
+        ]), ['mode' => 'charter', 'time' => '10:30'])
+        ->assertNotFound();
+
+    expect(UnitBoatTrip::query()->count())->toBe(0);
+});
