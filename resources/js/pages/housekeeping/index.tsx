@@ -1,11 +1,14 @@
 import { Head, Link, router } from '@inertiajs/react';
 import {
+    Ban,
     BedDouble,
     ChevronDown,
     ChevronRight,
+    CircleCheck,
     MoonStar,
     MoreHorizontal,
     Star,
+    StarOff,
     Wrench,
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
@@ -689,7 +692,10 @@ function GroupRows({
                                     >
                                         <MoreHorizontal />
                                     </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end">
+                                    <DropdownMenuContent
+                                        align="end"
+                                        className="min-w-56"
+                                    >
                                         {can.update && (
                                             <>
                                                 <DropdownMenuItem
@@ -697,6 +703,11 @@ function GroupRows({
                                                         onPriority(room)
                                                     }
                                                 >
+                                                    {room.isPriority ? (
+                                                        <StarOff />
+                                                    ) : (
+                                                        <Star />
+                                                    )}
                                                     {room.isPriority
                                                         ? 'Clear priority'
                                                         : 'Set priority'}
@@ -704,6 +715,7 @@ function GroupRows({
                                                 <DropdownMenuItem
                                                     onClick={() => onDnd(room)}
                                                 >
+                                                    <MoonStar />
                                                     {room.doNotDisturb
                                                         ? 'Clear do not disturb'
                                                         : 'Do not disturb today'}
@@ -717,6 +729,7 @@ function GroupRows({
                                                             )
                                                         }
                                                     >
+                                                        <Wrench />
                                                         Needs maintenance
                                                     </DropdownMenuItem>
                                                 )}
@@ -728,6 +741,7 @@ function GroupRows({
                                                     onMaintenance(room, false)
                                                 }
                                             >
+                                                <CircleCheck />
                                                 Maintenance fixed
                                             </DropdownMenuItem>
                                         )}
@@ -741,6 +755,7 @@ function GroupRows({
                                                         />
                                                     }
                                                 >
+                                                    <Ban />
                                                     Block room…
                                                 </DropdownMenuItem>
                                             </>
