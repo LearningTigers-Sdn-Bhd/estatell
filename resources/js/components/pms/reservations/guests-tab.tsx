@@ -273,6 +273,7 @@ export function GuestsTab({
                             title="All guests"
                         >
                             <List />
+                            All
                         </ToggleGroupItem>
                         <ToggleGroupItem
                             value="grouped"
@@ -280,6 +281,7 @@ export function GuestsTab({
                             title="Grouped by unit"
                         >
                             <ListTree />
+                            Grouped
                         </ToggleGroupItem>
                     </ToggleGroup>
                 ) : (
