@@ -95,23 +95,29 @@ A package night stored with an even split (before the fix to [package nights](..
 └─────────────────────────────────────────────────────────┘
 ```
 
-`FixPackageNightPrice(User $actor, NightAuditException $exception): AuditFixResult` (`app/Actions/NightAudit/`):
+`FixPackageNightPrice(User $actor, NightAuditException $exception): PostingResult` (`app/Actions/NightAudit/`). It returns what `RetryRoomCharge` returns, so the controller answers Retry and Fix price the same way. The exception row is locked first, like Retry, and everything runs in one transaction:
 
-1. The unit's nights with no `night:{id}` line share the package price minus the room lines already posted for the unit's other nights. Charged nights are never touched.
-2. They are split with `PackagePricing::fitInclusions()`, so each night covers its own inclusions. A night with an `override_amount` gets the new amount as its override.
+1. The unit's nights with no `night:{id}` line share the sum of their stored prices (`unit_nights.amount`): the package price minus the stored prices of the charged nights. Not the posted room lines, because a charged night posts its inclusions as separate lines. Charged nights are never touched.
+2. They are split with `PackagePricing::spreadByInclusions()`, flagged by their real place in the stay, so each night covers its own inclusions and only the stay's first night takes the one-off inclusions. The plan's inclusions and the unit's guests are the ones the posting uses. A night with an `override_amount` gets the new amount as its override and as `amount`. Any other night gets a new `amount`, with `extra_amount` split by the new amounts (as in `fitInclusions()`) and `base_amount` the rest.
 3. It runs `RetryRoomCharge` for the exception's night in the same transaction, which posts it and resolves the exception.
 
 - The package total never changes. When the amount left cannot cover the inclusions of the nights left, it refuses (`package_below_inclusions`): "The package price left (MYR 1,173.33) cannot cover these nights' inclusions. Change the price with Change price."
-- The Dialog shows the old and new amount of each night from a preview (`POST night-audit/exceptions/{exception}/fix-price/preview`) before anything is saved.
+- The Dialog shows the old and new amount of each night from a preview (`POST night-audit/exceptions/{exception}/fix-price/preview`) before anything is saved. `PackageNightRespread` (`app/Services/NightAudit/`) works out the amounts and reads only; the preview and the Action both use it, so the Dialog shows what will be saved.
+- The refusals, in order: `exception_not_retried` (not an open `RoomCharge` exception), `not_package_night` (the message is not `exceeds_night_amount` or the plan is not a Package), `package_below_inclusions`, then any refusal of `RetryRoomCharge`. A refusal writes nothing.
 - Logged on the reservation: `reservation.package_nights_respread`, with the old and new amounts.
 - Needs `reservations.manage` and `night-audit.run`, like Retry. Only on a carried `RoomCharge` exception with the message `exceeds_night_amount` on a Package plan; other plans use [Change price](../12-reservations/09-change-night-price.md).
 
 ## Dismiss an exception
 
-**Dismiss** on any carried exception asks for a required reason and resolves it without posting (`resolved_at`, `resolved_by`, and the reason in the activity log, `night_audit.exception_dismissed`). It is for an exception staff have handled another way, for example a night they charged by hand. Needs `night-audit.run`. Nothing is posted or reversed.
+**Dismiss** on any carried exception asks for a required reason and resolves it without posting (`resolved_at`, `resolved_by`, and the reason in the activity log, `night_audit.exception_dismissed`, logged on the unit's reservation). It is for an exception staff have handled another way, for example a night they charged by hand. Needs `night-audit.run`. Nothing is posted or reversed.
+
+`DismissAuditException(User $actor, NightAuditException $exception, string $reason)` (`app/Actions/NightAudit/`) locks the row and refuses an exception that is already resolved (`exception_not_open`) or a blank reason (`reason_required`).
+
+- The row buttons: a carried `RoomCharge` exception shows **Retry**, or **Fix price** when its message is `exceeds_night_amount` on a Package plan. Every carried exception also shows **Dismiss**. `ReadinessItem` carries `exceptionId` (the exception of a carried row) and `canFixPrice`, which replace `retryExceptionId`.
+- `ReadinessActionData::fixPrice()` and `ReadinessActionData::dismiss()` open two Dialogs in the sheet's dialog host, on `FormOverlay`: the Fix price preview and the Dismiss reason. Like a fix, a refusal shows on the sheet and the sheet reloads.
 
 - Retry needs `reservations.manage` as well as `night-audit.run`, like the fixes. Like a fix, a refusal shows on the sheet and the sheet reloads.
-- The button shows on a row with one carried room charge, and on each unit of a row with several. `ReadinessItem::retryExceptionId` carries the exception.
+- The buttons show on a row with one carried exception, and on each unit of a row with several.
 - `ReadinessAdvice` says `exceeds_night_amount` in words: "The night's price is less than its inclusions, so it could not be split."
 
 ## Not built
@@ -152,12 +158,15 @@ The sheet shows what its own run is doing until the audit of that date has finis
 
 All under `/p/{code}/night-audit` (`night-audit.`), behind `live` and `can:night-audit.run`.
 
-| Route                                                              | Purpose                                                                                                                                                   |
-| ------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `GET /` (`show`)                                                   | The sheet data.                                                                                                                                           |
-| `POST run`                                                         | Queue `RunNightAuditJob` for the current user. Body: `force`, `reason`. A blocker with no force gives 422. `force` without `night-audit.force` gives 422. |
-| `POST reservations/{reservation}/units/{unit}/assign`              | `AutoAssignRooms`. Needs `reservations.manage`. 422 with a message when nothing is free.                                                                  |
-| `POST exceptions/{nightAuditException}/retry` (`exceptions.retry`) | `RetryRoomCharge`. Needs `reservations.manage`. An exception of another property is a 404. A refusal answers 422 with the reason in words.                |
+| Route                                                                                      | Purpose                                                                                                                                                   |
+| ------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /` (`show`)                                                                           | The sheet data.                                                                                                                                           |
+| `POST run`                                                                                 | Queue `RunNightAuditJob` for the current user. Body: `force`, `reason`. A blocker with no force gives 422. `force` without `night-audit.force` gives 422. |
+| `POST reservations/{reservation}/units/{unit}/assign`                                      | `AutoAssignRooms`. Needs `reservations.manage`. 422 with a message when nothing is free.                                                                  |
+| `POST exceptions/{nightAuditException}/retry` (`exceptions.retry`)                         | `RetryRoomCharge`. Needs `reservations.manage`. An exception of another property is a 404. A refusal answers 422 with the reason in words.                |
+| `POST exceptions/{nightAuditException}/fix-price/preview` (`exceptions.fix-price.preview`) | `PackageNightRespread`: the old and new amount of each night not charged yet. Reads only. Needs `reservations.manage`.                                    |
+| `POST exceptions/{nightAuditException}/fix-price` (`exceptions.fix-price`)                 | `FixPackageNightPrice`. Needs `reservations.manage`. A refusal answers 422 with the reason in words.                                                      |
+| `POST exceptions/{nightAuditException}/dismiss` (`exceptions.dismiss`)                     | `DismissAuditException`. Body: `reason` (required). Needs `night-audit.run` only.                                                                         |
 
 ## Lessons from wastays
 

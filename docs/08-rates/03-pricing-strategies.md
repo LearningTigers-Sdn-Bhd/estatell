@@ -56,6 +56,16 @@ Interface `StayPricing`: `priceStay()` returns one amount breakdown per night (b
 3. Each night = its inclusions + its room part.
 4. `extra` is split by these night amounts with `allocate()`. `base` is the night amount − `extra`. The stay total does not change.
 
+Steps 1–3 live in `PackagePricing::spreadByInclusions(Money $total, list<bool> $firstNight, iterable $inclusions, int $guests): list<Money>`. It gets the amount to spread and, for each night, whether it is the stay's first night (the night that posts the one-off inclusions). It refuses with `package_below_inclusions` when the total is below the inclusions. Three callers use it, so the rule is written once:
+
+| Caller                                                                            | Total                                                                                                             | Nights                                                                   |
+| --------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| `fitInclusions()`                                                                 | The quoted stay total                                                                                             | Every night, the first one flagged                                       |
+| `override_total` on a package (`AddUnit`, `CreateReservation`)                    | The override                                                                                                      | Every night, the first one flagged                                       |
+| [Fix price](../20-night-audit/02-readiness-panel.md#fix-price-of-a-package-night) | The stored prices of the nights not charged yet (the package price minus the stored prices of the charged nights) | Only the nights not charged yet, flagged by their real place in the stay |
+
+The flag matters for Fix price. When night 1 is already charged, the first night in the list is night 2. It is not the stay's first night, so it gets no one-off inclusions.
+
 It runs after the derived percent, with the inclusions of the plan being sold, so a derived package with its own inclusions fits too. A plan with no inclusions keeps the even split. When the inclusions add up to more than the stay total, the quote is refused (`package_below_inclusions`).
 
 Example, Dive Package, 2 adults, RM880 per adult, 3 nights: meals RM100 per guest a night, diving RM180 × 2 per guest once. Inclusions: RM920 on night 1, RM200 on nights 2 and 3. Room part RM440 = 146.67 + 146.67 + 146.66. Nights: RM1,066.67 + RM346.67 + RM346.66 = RM1,760. The even split (586.67 a night) could not post night 1.
@@ -65,6 +75,8 @@ A booking-time `override_total` on a package is spread with the same rule (each 
 Only packages are re-split. A nightly plan keeps the price set for each date, so `NightlyPricing::fitInclusions()` only checks: each night, before the long-stay discount, must be at least the inclusions it posts (`InclusionAllocator::total()`). Otherwise the quote is refused as `rate_below_inclusions` with that night's date, so staff see it at booking, not at the night audit.
 
 Example: RM200 a night with a RM300 transfer (PerStay) is refused on the arrival date. RM200 a night with breakfast RM25 × 2 guests is fine.
+
+An `override_total` on a nightly plan is still spread evenly and is not checked against the inclusions. A night it leaves below its inclusions is refused at the night audit (`exceeds_night_amount`), and staff fix it with [Change price](../12-reservations/09-change-night-price.md). Not in scope for now.
 
 ## Child prices
 
