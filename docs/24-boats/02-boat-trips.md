@@ -67,7 +67,7 @@ When the trip is Scheduled and its departure has a fare, the trip adds the fare 
 - **Package skip.** No fare is added when the unit's rate plan has an inclusion for the same charge item (an island package that includes the boat). The check reads the plan through a Rates service, not the Rates models.
 - **Changing or clearing a trip** first removes the trip's unposted fare rows with `RemoveUnitAddOn`, then adds the new fare if there is one. A posted fare row is kept. The Dialog then says: "The old fare is already posted. Reverse it on the folio if needed." The fix is `ReverseLine` on the folio. Nothing is reversed automatically.
 - **Charter and Own** add nothing. Staff add a charter charge by hand, for example with an Enter when charging item.
-- **Guest count changes** re-run the quantities of per-guest add-ons, including fare rows ([Add-ons rules](../12-reservations/04-add-ons.md#rules)). To verify in the build: a change that writes a new age-group row also links it to the trip.
+- **Guest counts and stay changes** leave fare rows alone. Guest counts cannot change after booking, and stay changes leave undated rows as they are ([Add-ons rules](../12-reservations/04-add-ons.md#rules)), so fare rows keep their link. A future guest count change must link any new age-group fare row to its trip.
 - Cancel, no-show and reinstate treat fare rows like any add-on: they stay as history and come back on reinstate.
 
 ## Seats
