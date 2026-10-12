@@ -54,6 +54,7 @@ enum PermissionEnum: string
     case FrontDeskCheckInWithoutCard = 'front-desk.check-in-without-card';
     case FrontDeskWaiveFees = 'front-desk.waive-fees';
     case FrontDeskUndoCheckIn = 'front-desk.undo-check-in';
+    case FrontDeskUndoCheckOut = 'front-desk.undo-check-out';
     case NightAuditRun = 'night-audit.run';
     case NightAuditForce = 'night-audit.force';
     case NightAuditReceiveReport = 'night-audit.receive-report';
@@ -108,6 +109,7 @@ enum PermissionEnum: string
             self::FrontDeskCheckInWithoutCard => __('Check in without a registration card'),
             self::FrontDeskWaiveFees => __('Do not charge cancellation and no-show fees'),
             self::FrontDeskUndoCheckIn => __('Undo a check-in made today'),
+            self::FrontDeskUndoCheckOut => __('Undo a check-out made today'),
             self::NightAuditRun => __('Run the night audit'),
             self::NightAuditForce => __('Force close the night audit'),
             self::NightAuditReceiveReport => __('Receive the night audit report'),
@@ -132,7 +134,7 @@ enum PermissionEnum: string
             self::PaymentRecord, self::PaymentRefund => __('Payments'),
             self::CompanyView, self::CompanyManage, self::CompanyCreditOverride, self::CityLedgerInvoice, self::CityLedgerCreditNote, self::CityLedgerPayment, self::CityLedgerAllocate => __('City ledger'),
             self::RegistrationCardManageTerms, self::RegistrationCardSign, self::RegistrationCardSendLink, self::RegistrationCardVoid => __('Registration card'),
-            self::FrontDeskCheckIn, self::FrontDeskCheckOut, self::FrontDeskCheckInWithoutCard, self::FrontDeskWaiveFees, self::FrontDeskUndoCheckIn => __('Front desk'),
+            self::FrontDeskCheckIn, self::FrontDeskCheckOut, self::FrontDeskCheckInWithoutCard, self::FrontDeskWaiveFees, self::FrontDeskUndoCheckIn, self::FrontDeskUndoCheckOut => __('Front desk'),
             self::NightAuditRun, self::NightAuditForce, self::NightAuditReceiveReport => __('Night audit'),
             self::ReportsView => __('Reports'),
         };

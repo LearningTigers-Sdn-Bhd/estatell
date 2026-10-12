@@ -17,6 +17,7 @@ enum UnitAction: string
     case Reinstate = 'reinstate';
     case MoveRoom = 'move-room';
     case UndoCheckIn = 'undo-check-in';
+    case UndoCheckOut = 'undo-check-out';
 
     public function label(): string
     {
@@ -30,6 +31,7 @@ enum UnitAction: string
             self::ChangeDates => __('Change dates'),
             self::MoveRoom => __('Move room'),
             self::UndoCheckIn => __('Undo check-in'),
+            self::UndoCheckOut => __('Undo check-out'),
         };
     }
 
@@ -39,6 +41,7 @@ enum UnitAction: string
             self::CheckIn => PermissionEnum::FrontDeskCheckIn,
             self::CheckOut, self::LateCheckOut => PermissionEnum::FrontDeskCheckOut,
             self::UndoCheckIn => PermissionEnum::FrontDeskUndoCheckIn,
+            self::UndoCheckOut => PermissionEnum::FrontDeskUndoCheckOut,
             self::Cancel, self::NoShow, self::Reinstate, self::ChangeDates, self::MoveRoom => PermissionEnum::ReservationsManage,
         };
     }
@@ -54,6 +57,7 @@ enum UnitAction: string
             self::CheckOut => $status->canTransitionTo(UnitStatus::CheckedOut),
             self::LateCheckOut => $status === UnitStatus::CheckedIn,
             self::UndoCheckIn => $status->canUndoCheckIn(),
+            self::UndoCheckOut => $status->canUndoCheckOut(),
             self::Cancel => $status->canTransitionTo(UnitStatus::Cancelled),
             self::NoShow => $status->canTransitionTo(UnitStatus::NoShow),
             self::Reinstate => $status->canTransitionTo(UnitStatus::Confirmed),

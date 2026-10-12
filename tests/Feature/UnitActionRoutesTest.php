@@ -2,6 +2,8 @@
 
 use App\Actions\FrontDesk\CheckInUnit;
 use App\Actions\FrontDesk\UndoCheckIn;
+use App\Actions\FrontDesk\UndoCheckOut;
+use App\Actions\FrontDesk\UnitStayResult;
 use App\Actions\Payments\RecordPayment;
 use App\Data\Payments\NewPaymentData;
 use App\Enums\DefaultRoleEnum;
@@ -14,6 +16,7 @@ use App\Enums\ReservationStatus;
 use App\Enums\SystemTransactionCode;
 use App\Enums\TransactionCategory;
 use App\Enums\UnitStatus;
+use App\Models\ArInvoice;
 use App\Models\BusinessDate;
 use App\Models\Folio;
 use App\Models\FolioLine;
@@ -125,7 +128,7 @@ test('the unit menu lists only what the status and the permissions allow', funct
     'checked in' => [['status' => UnitStatus::CheckedIn, 'checked_in_at' => now()], DefaultRoleEnum::Owner, ['change-dates', 'move-room', 'undo-check-in']],
     'cancelled' => [['status' => UnitStatus::Cancelled], DefaultRoleEnum::Owner, ['reinstate']],
     'no-show' => [['status' => UnitStatus::NoShow], DefaultRoleEnum::FrontDesk, ['reinstate']],
-    'checked out' => [['status' => UnitStatus::CheckedOut, 'checked_in_at' => now()->subDay(), 'checked_out_at' => now()], DefaultRoleEnum::Owner, []],
+    'checked out' => [['status' => UnitStatus::CheckedOut, 'checked_in_at' => now()->subDay(), 'checked_out_at' => now()], DefaultRoleEnum::Owner, ['undo-check-out']],
 ]);
 
 test('reinstate is not offered once the stay has ended', function () {
@@ -1189,4 +1192,123 @@ test('undo check-in is in the menu for Owner and Manager only, and its routes ne
     $this->actingAs($clerk)->post(uaUrl($setup, 'undo-check-in'), ['reason' => 'x'])->assertForbidden();
 
     expect($setup['unit']->fresh()->status)->toBe(UnitStatus::CheckedIn);
+});
+
+/**
+ * A unit that arrived yesterday and checked out today through the route (the 100.00 deposit refunded), so its unit
+ * folio is Closed with an invoice number and its room is Dirty.
+ *
+ * @return array{user: User, property: Property, reservation: Reservation, unit: ReservationUnit}
+ */
+function uaCheckedOutSetup(): array
+{
+    $setup = uaDepartingSetup();
+    test()->actingAs($setup['user'])
+        ->post(uaUrl($setup, 'check-out'), ['refund_amount' => '100.00', 'idempotency_key' => fake()->uuid()])
+        ->assertSessionHasNoErrors();
+
+    return $setup;
+}
+
+test('undo check-out puts the unit back to CheckedIn, reopens the folio with its number and keeps the refund', function () {
+    $setup = uaCheckedOutSetup();
+    $folio = Folio::query()->where('reservation_unit_id', $setup['unit']->id)->sole();
+    $number = $folio->invoice_number;
+
+    $this->actingAs($setup['user'])->postJson(uaUrl($setup, 'undo-check-out-preview'))
+        ->assertOk()
+        ->assertJsonPath('error', null)
+        ->assertJsonPath('reopens.0', $folio->number.' · '.$number);
+
+    $this->actingAs($setup['user'])
+        ->post(uaUrl($setup, 'undo-check-out'), ['reason' => 'Guest stays another night'])
+        ->assertRedirect()
+        ->assertSessionHasNoErrors();
+
+    $unit = $setup['unit']->fresh();
+    $log = Activity::query()->where('event', 'reservation.unit_check_out_undone')->sole();
+
+    expect($unit->status)->toBe(UnitStatus::CheckedIn)
+        ->and($unit->checked_out_at)->toBeNull()
+        ->and($folio->fresh()->status)->toBe(FolioStatus::Open)
+        ->and($folio->fresh()->invoice_number)->toBe($number)
+        ->and(Payment::query()->whereNotNull('refund_of_id')->count())->toBe(1)
+        ->and($log->properties['reason'])->toBe('Guest stays another night')
+        ->and($log->properties['reopened_folio_ids'])->toBe([$folio->id])
+        ->and($setup['reservation']->fresh()->status)->toBe(ReservationStatus::InHouse);
+});
+
+test('undo check-out needs a reason and the night audit not to have run', function () {
+    $setup = uaCheckedOutSetup();
+
+    $this->actingAs($setup['user'])
+        ->post(uaUrl($setup, 'undo-check-out'), ['reason' => ''])
+        ->assertSessionHasErrors('reason');
+
+    $setup['unit']->forceFill(['checked_out_at' => now()->subDay(), 'checked_in_at' => now()->subDays(2)])->save();
+
+    $this->actingAs($setup['user'])
+        ->post(uaUrl($setup, 'undo-check-out'), ['reason' => 'Mistake'])
+        ->assertSessionHasErrors('form');
+
+    expect($setup['unit']->fresh()->status)->toBe(UnitStatus::CheckedOut)
+        ->and(Folio::query()->where('reservation_unit_id', $setup['unit']->id)->sole()->status)->toBe(FolioStatus::Closed)
+        ->and(Activity::query()->where('event', 'reservation.unit_check_out_undone')->count())->toBe(0);
+});
+
+test('undo check-out is refused when another unit holds the room tonight', function () {
+    $setup = uaCheckedOutSetup();
+    $roomId = $setup['unit']->nights()->value('room_id');
+    $other = ReservationUnit::factory()->for($setup['reservation'])->withNights()->create(['room_type_id' => $setup['unit']->room_type_id, 'arrival_date' => today()->toDateString(), 'departure_date' => today()->addDay()->toDateString()]);
+    $other->nights()->update(['room_id' => $roomId]);
+
+    $this->actingAs($setup['user'])->postJson(uaUrl($setup, 'undo-check-out-preview'))
+        ->assertJsonPath('error', 'Another guest holds this room tonight, so the check-out cannot be undone.');
+
+    $this->actingAs($setup['user'])
+        ->post(uaUrl($setup, 'undo-check-out'), ['reason' => 'Mistake'])
+        ->assertSessionHasErrors('form');
+
+    expect($setup['unit']->fresh()->status)->toBe(UnitStatus::CheckedOut);
+});
+
+test('undo check-out is refused when the folio was settled to the city ledger', function () {
+    $setup = uaCheckedOutSetup();
+    $folio = Folio::query()->where('reservation_unit_id', $setup['unit']->id)->sole();
+    ArInvoice::factory()->create(['property_id' => $setup['property']->id, 'folio_id' => $folio->id]);
+
+    $this->actingAs($setup['user'])
+        ->post(uaUrl($setup, 'undo-check-out'), ['reason' => 'Mistake'])
+        ->assertSessionHasErrors('form');
+
+    expect($setup['unit']->fresh()->status)->toBe(UnitStatus::CheckedOut)
+        ->and($folio->fresh()->status)->toBe(FolioStatus::Closed);
+});
+
+test('a checked-in unit and a stranger cannot undo a check-out, and the menu follows the permission', function () {
+    $setup = uaCheckedOutSetup();
+    $clerk = User::factory()->withRole(DefaultRoleEnum::FrontDesk)->create(['property_id' => $setup['property']->id]);
+    $showUrl = route('reservations.show', ['property' => $setup['property']->code, 'reservation' => $setup['reservation']->id]);
+
+    $this->actingAs($setup['user'])->get($showUrl)
+        ->assertInertia(fn (Assert $page) => $page->where('unit.actions', fn ($actions) => collect($actions)->pluck('key')->contains('undo-check-out')));
+    $this->actingAs($clerk)->get($showUrl)
+        ->assertInertia(fn (Assert $page) => $page->where('unit.actions', fn ($actions) => ! collect($actions)->pluck('key')->contains('undo-check-out')));
+    $this->actingAs($clerk)->post(uaUrl($setup, 'undo-check-out'), ['reason' => 'x'])->assertForbidden();
+
+    $inHouse = uaDepartingSetup();
+    $this->actingAs($inHouse['user'])->post(uaUrl($inHouse, 'undo-check-out'), ['reason' => 'x'])->assertSessionHasErrors('form');
+
+    expect($setup['unit']->fresh()->status)->toBe(UnitStatus::CheckedOut);
+});
+
+test('undo check-out through the Action twice does not reopen again', function () {
+    $setup = uaCheckedOutSetup();
+
+    $first = app(UndoCheckOut::class)($setup['user'], $setup['unit']->fresh(), 'Mistake');
+    $second = app(UndoCheckOut::class)($setup['user'], $setup['unit']->fresh(), 'Mistake');
+
+    expect($first->isRefused())->toBeFalse()
+        ->and($second->refusal)->toBe(UnitStayResult::REFUSAL_INVALID_STATUS)
+        ->and(Activity::query()->where('event', 'reservation.unit_check_out_undone')->count())->toBe(1);
 });

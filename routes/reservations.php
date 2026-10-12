@@ -90,6 +90,11 @@ Route::prefix('reservations')->name('reservations.')->scopeBindings()->group(fun
                     Route::post('undo-check-in', [ReservationUnitStayController::class, 'undoCheckIn'])->name('undo-check-in');
                 });
 
+                Route::middleware('can:'.PermissionEnum::FrontDeskUndoCheckOut->value)->group(function () {
+                    Route::post('undo-check-out/preview', [ReservationUnitStayController::class, 'undoCheckOutPreview'])->name('undo-check-out-preview');
+                    Route::post('undo-check-out', [ReservationUnitStayController::class, 'undoCheckOut'])->name('undo-check-out');
+                });
+
                 Route::middleware('can:'.PermissionEnum::FrontDeskCheckIn->value)->group(function () {
                     Route::post('check-in/preview', [ReservationUnitStayController::class, 'checkInPreview'])->name('check-in-preview');
                     Route::post('check-in', [ReservationUnitStayController::class, 'checkIn'])->name('check-in');

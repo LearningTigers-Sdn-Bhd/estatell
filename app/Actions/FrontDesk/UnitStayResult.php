@@ -74,6 +74,8 @@ class UnitStayResult
 
     public const REFUSAL_NIGHT_POSTED = 'night_posted';
 
+    public const REFUSAL_ROOM_TAKEN = 'room_taken';
+
     public const REFUSAL_TIME_NOT_LATER = 'time_not_later';
 
     public const REFUSAL_ROOM_NOT_FREE = 'room_not_free';

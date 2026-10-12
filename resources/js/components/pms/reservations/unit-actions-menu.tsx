@@ -18,7 +18,7 @@ import { ChangeDatesDialog } from '@/components/pms/reservations/change-dates-di
 import { MoveRoomDialog } from '@/components/pms/reservations/move-room-dialog';
 import { LateCheckOutDialog } from '@/components/pms/reservations/late-check-out-dialog';
 import { ReinstateUnitDialog } from '@/components/pms/reservations/reinstate-unit-dialog';
-import { UndoCheckInDialog } from '@/components/pms/reservations/undo-check-in-dialog';
+import { UndoStayDialog } from '@/components/pms/reservations/undo-stay-dialog';
 import { UnitPolicyFeeDialog } from '@/components/pms/reservations/unit-policy-fee-dialog';
 import { Button } from '@/components/ui/button';
 import {
@@ -40,6 +40,7 @@ const ICONS: Record<App.Enums.UnitAction, LucideIcon> = {
     'change-dates': CalendarClock,
     'move-room': MoveRight,
     'undo-check-in': Undo2,
+    'undo-check-out': Undo2,
 };
 
 /**
@@ -135,7 +136,13 @@ export function UnitActionsMenu({
             />
             <ReinstateUnitDialog {...common} open={action === 'reinstate'} />
             <MoveRoomDialog {...common} open={action === 'move-room'} />
-            <UndoCheckInDialog {...common} open={action === 'undo-check-in'} />
+            <UndoStayDialog
+                {...common}
+                open={action === 'undo-check-in' || action === 'undo-check-out'}
+                kind={
+                    lastAction === 'undo-check-out' ? 'check-out' : 'check-in'
+                }
+            />
             <ChangeDatesDialog
                 {...common}
                 open={action === 'change-dates'}

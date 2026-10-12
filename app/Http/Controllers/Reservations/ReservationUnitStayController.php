@@ -15,6 +15,7 @@ use App\Actions\FrontDesk\MarkNoShow;
 use App\Actions\FrontDesk\MoveUnit;
 use App\Actions\FrontDesk\ReinstateUnit;
 use App\Actions\FrontDesk\UndoCheckIn;
+use App\Actions\FrontDesk\UndoCheckOut;
 use App\Actions\FrontDesk\UnitStayResult;
 use App\Actions\Reservations\AssignmentResult;
 use App\Enums\PermissionEnum;
@@ -61,6 +62,11 @@ class ReservationUnitStayController extends Controller
     public function undoCheckInPreview(Property $property, Reservation $reservation, ReservationUnit $unit, UnitActionPreview $preview): JsonResponse
     {
         return response()->json($preview->undoCheckIn($unit));
+    }
+
+    public function undoCheckOutPreview(Property $property, Reservation $reservation, ReservationUnit $unit, UnitActionPreview $preview): JsonResponse
+    {
+        return response()->json($preview->undoCheckOut($unit));
     }
 
     public function noShowPreview(Property $property, Reservation $reservation, ReservationUnit $unit, UnitActionPreview $preview): JsonResponse
@@ -236,6 +242,17 @@ class ReservationUnitStayController extends Controller
         $result = $undoCheckIn($request->user(), $unit, $request->string('reason')->toString());
 
         return $this->respond($property, $reservation, $result->refusal, $refusals, __('Check-in undone.'));
+    }
+
+    /**
+     * Put a unit that checked out during the open business date back to CheckedIn and reopen its folios, with a
+     * reason.
+     */
+    public function undoCheckOut(UnitUndoRequest $request, Property $property, Reservation $reservation, ReservationUnit $unit, UndoCheckOut $undoCheckOut, ReservationRefusals $refusals): RedirectResponse
+    {
+        $result = $undoCheckOut($request->user(), $unit, $request->string('reason')->toString());
+
+        return $this->respond($property, $reservation, $result->refusal, $refusals, __('Check-out undone.'));
     }
 
     /**

@@ -11,6 +11,7 @@ use App\Models\ReservationUnit;
 use App\Models\User;
 use App\Services\FrontDesk\EarlyCheckOutRule;
 use App\Services\FrontDesk\UndoCheckInRule;
+use App\Services\FrontDesk\UndoCheckOutRule;
 use App\Services\NightAudit\CurrentBusinessDate;
 
 /**
@@ -22,6 +23,7 @@ class UnitActionMenu
         private CurrentBusinessDate $currentBusinessDate,
         private EarlyCheckOutRule $earlyCheckOutRule,
         private UndoCheckInRule $undoCheckInRule,
+        private UndoCheckOutRule $undoCheckOutRule,
     ) {}
 
     /**
@@ -53,6 +55,14 @@ class UnitActionMenu
 
         $businessDate = $current->date->toDateString();
 
+        if ($action === UnitAction::UndoCheckIn) {
+            return $this->undoCheckInRule->isOffered($unit, $current);
+        }
+
+        if ($action === UnitAction::UndoCheckOut) {
+            return $this->undoCheckOutRule->isOffered($unit, $current);
+        }
+
         $arrival = $unit->arrival_date->toDateString();
 
         if ($unit->stay_type === StayType::DayUse) {
@@ -66,7 +76,6 @@ class UnitActionMenu
             UnitAction::CheckOut => $businessDate >= $departure || $this->isEarlyCheckOut($unit, $businessDate, $user),
             UnitAction::LateCheckOut => $businessDate === $departure,
             UnitAction::Reinstate, UnitAction::MoveRoom => $businessDate < $departure,
-            UnitAction::UndoCheckIn => $this->undoCheckInRule->isOffered($unit, $current),
             default => true,
         };
     }
@@ -82,7 +91,7 @@ class UnitActionMenu
             UnitAction::CheckOut, UnitAction::NoShow => $businessDate >= $date,
             UnitAction::Reinstate, UnitAction::MoveRoom => $businessDate <= $date,
             UnitAction::Cancel => true,
-            UnitAction::LateCheckOut, UnitAction::ChangeDates, UnitAction::UndoCheckIn => false,
+            UnitAction::LateCheckOut, UnitAction::ChangeDates, UnitAction::UndoCheckIn, UnitAction::UndoCheckOut => false,
         };
     }
 

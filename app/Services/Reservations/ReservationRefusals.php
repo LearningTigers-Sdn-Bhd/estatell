@@ -2,6 +2,7 @@
 
 namespace App\Services\Reservations;
 
+use App\Actions\Folio\FolioStatusResult;
 use App\Actions\Folio\PostingResult;
 use App\Actions\FrontDesk\UnitStayResult;
 use App\Actions\Reservations\AddOnResult;
@@ -110,6 +111,8 @@ class ReservationRefusals
             UnitStayResult::REFUSAL_RECEIVES_SCHEDULED_CHARGES => [self::FORM, IncomingScheduledCharges::message($rooms)],
             UnitStayResult::REFUSAL_ARRIVED_TODAY => [self::FORM, __('This unit arrived today, so there is no night to remove. It can check out on its departure date. If it checked in by mistake, use Undo check-in.')],
             UnitStayResult::REFUSAL_UNDO_TOO_LATE => [self::FORM, __('The business date has changed since this was done, so it cannot be undone.')],
+            UnitStayResult::REFUSAL_ROOM_TAKEN => [self::FORM, __('Another guest holds this room tonight, so the check-out cannot be undone.')],
+            FolioStatusResult::REFUSAL_HAS_AR_INVOICE => [self::FORM, __('A folio of this unit was settled to the city ledger, so the check-out cannot be undone. Issue a credit note on its AR invoice instead.')],
             UnitStayResult::REFUSAL_NIGHT_POSTED => [self::FORM, __('A night or day use block is already posted for this unit, so the check-in cannot be undone.')],
             UnitStayResult::REFUSAL_NOT_EARLY => [self::FORM, __('The departure date is today or past, so check out the normal way.')],
             UnitStayResult::REFUSAL_NOT_DEPARTURE_DATE => [self::FORM, __('A late check-out is only for the departure date.')],

@@ -24,6 +24,7 @@ use App\Enums\StayType;
 use App\Enums\SystemTransactionCode;
 use App\Enums\TransactionKind;
 use App\Enums\UnitStatus;
+use App\Models\Folio;
 use App\Models\FolioLine;
 use App\Models\Reservation;
 use App\Models\ReservationUnit;
@@ -41,6 +42,7 @@ use App\Services\FrontDesk\CheckInCollection;
 use App\Services\FrontDesk\CheckOutSettlement;
 use App\Services\FrontDesk\EarlyCheckOutRule;
 use App\Services\FrontDesk\UndoCheckInRule;
+use App\Services\FrontDesk\UndoCheckOutRule;
 use App\Services\Guests\CountryOptions;
 use App\Services\NightAudit\CurrentBusinessDate;
 use App\Services\Rates\RateQuoteRequest;
@@ -78,6 +80,7 @@ class UnitActionPreview
         private TaxCalculator $taxCalculator,
         private EarlyCheckOutRule $earlyCheckOutRule,
         private UndoCheckInRule $undoCheckInRule,
+        private UndoCheckOutRule $undoCheckOutRule,
     ) {}
 
     /**
@@ -336,12 +339,44 @@ class UnitActionPreview
             return UnitUndoPreviewData::refused($this->refusals->message($refusal));
         }
 
+        return $this->undoPreview($unit, []);
+    }
+
+    /**
+     * The Undo check-out form: why it cannot be undone, or the folios it reopens and what stays on them.
+     */
+    public function undoCheckOut(ReservationUnit $unit): UnitUndoPreviewData
+    {
+        $businessDate = $this->currentBusinessDate->get($unit->property()->firstOrFail());
+
+        if ($businessDate === null) {
+            return UnitUndoPreviewData::refused($this->refusals->message(UnitStayResult::REFUSAL_NO_BUSINESS_DATE));
+        }
+
+        $refusal = $this->undoCheckOutRule->refusal($unit, $businessDate);
+
+        if ($refusal !== null) {
+            return UnitUndoPreviewData::refused($this->refusals->message($refusal));
+        }
+
+        $reopens = $this->undoCheckOutRule->foliosToReopen($unit)
+            ->map(fn (Folio $folio): string => $folio->invoice_number === null ? $folio->number : $folio->number.' · '.$folio->invoice_number)
+            ->all();
+
+        return $this->undoPreview($unit, $reopens);
+    }
+
+    /**
+     * @param  list<string>  $reopens
+     */
+    private function undoPreview(ReservationUnit $unit, array $reopens): UnitUndoPreviewData
+    {
         $folioIds = $this->checkOutSettlement->folios($unit)->modelKeys();
         $lines = FolioLine::query()->whereIn('folio_id', $folioIds)->whereNull('parent_line_id')->orderBy('id')->get();
         $charges = $lines->where('kind', TransactionKind::Charge)->map(fn (FolioLine $line): array => ['description' => $line->description, 'amount' => (string) $line->amount])->values()->all();
         $paid = $lines->where('kind', TransactionKind::Payment)->reduce(fn (BigDecimal $sum, FolioLine $line): BigDecimal => $sum->minus((string) $line->amount), BigDecimal::zero());
 
-        return new UnitUndoPreviewData($charges, (string) $paid->toScale(2), null);
+        return new UnitUndoPreviewData($charges, (string) $paid->toScale(2), $reopens, null);
     }
 
     /**
