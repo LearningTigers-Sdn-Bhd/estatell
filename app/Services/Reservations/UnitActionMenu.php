@@ -6,9 +6,9 @@ use App\Data\Reservations\UnitActionData;
 use App\Enums\PermissionEnum;
 use App\Enums\StayType;
 use App\Enums\UnitAction;
-use App\Enums\UnitStatus;
 use App\Models\ReservationUnit;
 use App\Models\User;
+use App\Services\FrontDesk\EarlyCheckOutRule;
 use App\Services\NightAudit\CurrentBusinessDate;
 
 /**
@@ -16,7 +16,10 @@ use App\Services\NightAudit\CurrentBusinessDate;
  */
 class UnitActionMenu
 {
-    public function __construct(private CurrentBusinessDate $currentBusinessDate) {}
+    public function __construct(
+        private CurrentBusinessDate $currentBusinessDate,
+        private EarlyCheckOutRule $earlyCheckOutRule,
+    ) {}
 
     /**
      * @return list<UnitActionData>
@@ -78,13 +81,12 @@ class UnitActionMenu
     }
 
     /**
-     * An early check-out needs a CheckedIn unit that arrived before the business date (a same-day arrival has no
-     * night to keep) and the right to change the dates.
+     * An early check-out follows `EarlyCheckOutRule` (a same-day arrival has no night to keep) and needs the right to
+     * change the dates.
      */
     private function isEarlyCheckOut(ReservationUnit $unit, string $businessDate, User $user): bool
     {
-        return $unit->status === UnitStatus::CheckedIn
-            && $businessDate > $unit->arrival_date->toDateString()
+        return $this->earlyCheckOutRule->isOffered($unit, $businessDate)
             && $user->can(PermissionEnum::ReservationsManage->value);
     }
 }

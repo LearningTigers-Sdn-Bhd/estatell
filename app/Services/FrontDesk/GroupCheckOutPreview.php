@@ -4,6 +4,7 @@ namespace App\Services\FrontDesk;
 
 use App\Actions\FrontDesk\GroupCheckOutRow;
 use App\Actions\FrontDesk\OnePayment;
+use App\Actions\FrontDesk\UnitStayResult;
 use App\Data\Payments\PaymentMethodOptionData;
 use App\Data\Reservations\GroupCheckOutMasterData;
 use App\Data\Reservations\GroupCheckOutPreviewData;
@@ -60,6 +61,7 @@ class GroupCheckOutPreview
         private IncomingScheduledCharges $incomingScheduledCharges,
         private MoveChargesPreview $moveChargesPreview,
         private FolioReopenRule $folioReopenRule,
+        private EarlyCheckOutRule $earlyCheckOutRule,
     ) {}
 
     public static function selectable(string $kind): bool
@@ -219,6 +221,7 @@ class GroupCheckOutPreview
             $canMove ? 'move' : null,
             $actionable && $balance->isNegative() && $refundPool->isPositive() && $user->can(PermissionEnum::PaymentRefund->value) ? 'refund' : null,
         ]));
+        $arrivedToday = $kind === self::KIND_DEPARTS_LATER && $this->earlyCheckOutRule->refusal($unit, $businessDate->toDateString()) === UnitStayResult::REFUSAL_ARRIVED_TODAY;
         $group = match ($kind) {
             self::KIND_READY => 'ready',
             self::KIND_OUT, self::KIND_CANCELLED => 'money',
@@ -243,7 +246,9 @@ class GroupCheckOutPreview
             $selectable && ($kind === self::KIND_READY || ($hasMoney && $openFolio !== null)),
             $selectable,
             match ($kind) {
-                self::KIND_DEPARTS_LATER => __('Departs :date', ['date' => $unit->departure_date->format('j M')]),
+                self::KIND_DEPARTS_LATER => $arrivedToday
+                ? __('Departs :date. Arrived today, so there is no night to remove.', ['date' => $unit->departure_date->format('j M')])
+                : __('Departs :date', ['date' => $unit->departure_date->format('j M')]),
                 self::KIND_CHARGED_ELSEWHERE => IncomingScheduledCharges::message($incoming),
                 self::KIND_NOT_ARRIVED => __('Not checked in: Cancel or mark no-show.'),
                 default => $folioClosed ? __('Folio closed: reopen it to settle.') : null,
@@ -264,7 +269,7 @@ class GroupCheckOutPreview
             $folioClosed ? $closedFolio?->id : null,
             $folioClosed && $closedFolio !== null && $this->folioReopenRule->allows($user, $closedFolio),
             $kind === self::KIND_CHARGED_ELSEWHERE && $user->can(PermissionEnum::FolioTransfer->value),
-            $kind === self::KIND_DEPARTS_LATER ? $this->unitData($unit, $user) : null,
+            $kind === self::KIND_DEPARTS_LATER && ! $arrivedToday ? $this->unitData($unit, $user) : null,
         );
     }
 

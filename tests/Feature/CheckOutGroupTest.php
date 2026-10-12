@@ -633,3 +633,19 @@ test('the page still opens right after a save that checked the last room out', f
     gcSave($this, $s, [['unit_id' => $s['units'][0]->id]])
         ->assertInertia(fn (Assert $page) => $page->component('reservations/check-out'));
 });
+
+test('a room that arrived today departs later without a Check out early button', function () {
+    $s = gcSetup(1);
+    $today = ReservationUnit::factory()->for($s['reservation'])->checkedIn()->create(['room_type_id' => $s['units'][0]->room_type_id, 'arrival_date' => '2026-10-10', 'departure_date' => '2026-10-15']);
+    app(CreateFolio::class)($s['reservation'], $today);
+    $yesterday = ReservationUnit::factory()->for($s['reservation'])->checkedIn()->create(['room_type_id' => $s['units'][0]->room_type_id, 'arrival_date' => '2026-10-09', 'departure_date' => '2026-10-15']);
+    app(CreateFolio::class)($s['reservation'], $yesterday);
+
+    $rows = collect($this->actingAs($s['user'])->postJson(gcUrl($s, 'preview'))->assertOk()->json('rows'))->keyBy('unitId');
+
+    expect($rows[$today->id]['group'])->toBe('later')
+        ->and($rows[$today->id]['unit'])->toBeNull()
+        ->and($rows[$today->id]['note'])->toBe('Departs 15 Oct. Arrived today, so there is no night to remove.')
+        ->and($rows[$yesterday->id]['unit']['id'])->toBe($yesterday->id)
+        ->and($rows[$yesterday->id]['note'])->toBe('Departs 15 Oct');
+});

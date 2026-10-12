@@ -68,6 +68,8 @@ class UnitStayResult
 
     public const REFUSAL_NOT_DEPARTURE_DATE = 'not_departure_date';
 
+    public const REFUSAL_ARRIVED_TODAY = 'arrived_today';
+
     public const REFUSAL_TIME_NOT_LATER = 'time_not_later';
 
     public const REFUSAL_ROOM_NOT_FREE = 'room_not_free';

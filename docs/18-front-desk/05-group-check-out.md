@@ -61,6 +61,7 @@ Can't check out yet (2)
 | --------------------------------------------------------------------------------------------------------- | ------------------- | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
 | CheckedIn, departing on or before the business date                                                       | Ready to check out  | Yes             | By balance, below. It is checked out                                                                                                             |
 | CheckedIn, departing later                                                                                | Departing later     | No checkbox     | "Departs 15 Oct" with **Check out early…** ([below](#check-out-early-from-the-page))                                                             |
+| CheckedIn, departing later, arrived on the business date                                                  | Departing later     | No checkbox     | "Departs 15 Oct. Arrived today, so there is no night to remove." No **Check out early…** (`EarlyCheckOutRule`)                                   |
 | CheckedIn, its folio still receives another room's Scheduled charges (`folio_receives_scheduled_charges`) | Can't check out yet | No checkbox     | "Room 106 pays for it: still charged tonight", with **Move charges** ([Move charges](../13-folio/07-move-charges.md)) only with `folio.transfer` |
 | CheckedOut                                                                                                | Money to settle     | Only with money | With money: the choices by balance, and **no check-out step**. At 0: not a row, named in the "already checked out" line                          |
 | Confirmed                                                                                                 | Can't check out yet | No checkbox     | Muted: "Not checked in: Cancel or mark no-show."                                                                                                 |
@@ -80,7 +81,7 @@ Can't check out yet (2)
 
 ## Check out early from the page
 
-A room departing after the business date has **Check out early…** (with `front-desk.check-out`). It opens the room's existing **Check out** Dialog (`CheckOutDialog`), which shows the early departure fee, the nights removed and **Do not charge** (`front-desk.waive-fees`), and runs `EarlyCheckOut`.
+A room departing after the business date, and not arrived on it, has **Check out early…** (with `front-desk.check-out`). It opens the room's existing **Check out** Dialog (`CheckOutDialog`), which shows the early departure fee, the nights removed and **Do not charge** (`front-desk.waive-fees`), and runs `EarlyCheckOut`.
 
 - It is its **own save**, not part of the group save: the fee is confirmed or waived per room, and one refused fee must not undo the group.
 - The page sends the unit data and payment options the Dialog needs for these rows, as the reservation page does.

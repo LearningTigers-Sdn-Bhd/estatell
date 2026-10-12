@@ -6,6 +6,7 @@ use App\Data\Reservations\CheckOutCollectData;
 use App\Enums\UnitStatus;
 use App\Models\ReservationUnit;
 use App\Models\User;
+use App\Services\FrontDesk\EarlyCheckOutRule;
 use App\Services\NightAudit\CurrentBusinessDate;
 use Illuminate\Support\Facades\DB;
 use Throwable;
@@ -16,6 +17,7 @@ class EarlyCheckOut
         private CurrentBusinessDate $currentBusinessDate,
         private ChangeUnitDates $changeUnitDates,
         private CheckOutAndRefund $checkOutAndRefund,
+        private EarlyCheckOutRule $earlyCheckOutRule,
     ) {}
 
     /**
@@ -23,7 +25,7 @@ class EarlyCheckOut
      * the business date (the early departure fee, the unused nights deleted), then `CheckOutAndRefund` collects the
      * balance, refunds the deposit and checks the unit out. A refusal of either step rolls both back, so a fee is never left on a unit
      * that is still in house. A unit that arrived on the business date has no night to keep and is refused with
-     * `invalid_stay` by `ChangeUnitDates`; a departure on or before the business date is refused with `not_early`.
+     * `arrived_today`; a departure on or before the business date is refused with `not_early` (`EarlyCheckOutRule`).
      * The arguments after the unit are those of `ChangeUnitDates` and `CheckOutAndRefund`. Permissions
      * (`front-desk.check-out` and `reservations.manage`) are checked by the route.
      * See docs/18-front-desk/01-check-in-and-check-out.md#early-check-out.
@@ -59,8 +61,10 @@ class EarlyCheckOut
             return UnitStayResult::refused(UnitStayResult::REFUSAL_NO_BUSINESS_DATE);
         }
 
-        if ($businessDate->toDateString() >= $locked->departure_date->toDateString()) {
-            return UnitStayResult::refused(UnitStayResult::REFUSAL_NOT_EARLY);
+        $refusal = $this->earlyCheckOutRule->refusal($locked, $businessDate->toDateString());
+
+        if ($refusal !== null) {
+            return UnitStayResult::refused($refusal);
         }
 
         $dates = ($this->changeUnitDates)($actor, $locked, $locked->arrival_date, $businessDate, $doNotCharge, $reason, $expectedFee);

@@ -80,13 +80,13 @@ A unit's own folio can hold another room's charges: a Manual rule such as "Room 
 | --------------------------------------------------------------------------------- | ----------------------------------------------- |
 | The unit is CheckedIn (the unit row is locked first)                              | `invalid_status`                                |
 | A business date exists and it is before the departure date                        | `no_business_date`, `not_early`                 |
-| The business date is after the arrival date                                       | `invalid_stay`                                  |
+| The business date is after the arrival date                                       | `arrived_today`                                 |
 | The checks of `ProcessEarlyDeparture` (reason, policy row, `fee_changed`, charge) | its refusals                                    |
 | The refund and the checks of `CheckOutUnit`                                       | `refund_exceeds_payment`, `balance_not_settled` |
 
 - **One transaction.** The fee, the deleted nights, the payment, the refund and the check-out commit together. A refusal at any step writes nothing.
 - **New departure** is the business date. The form never sends it.
-- **Same-day stay.** A unit that arrived on the business date has no night to keep, so `departure_date > arrival_date` cannot hold. It is refused with `invalid_stay`, and staff use Cancel instead.
+- **Same-day stay.** A unit that arrived on the business date has no night to keep, so `departure_date > arrival_date` cannot hold. It is refused with `arrived_today`. `EarlyCheckOutRule` (`app/Services/FrontDesk/`) holds this rule and the unit menu, the group check-out page, the preview and the Action all ask it, so none of them offers what another refuses. The Dialog's preview carries the message and the group page shows it as the row note, without **Check out early…**. The guest checks out on the departure date, or after Undo check-in once it is built (see [Cancel, void and undo](#cancel-void-and-undo)).
 - **Departure today or later.** `not_early` is refused. Normal check-out runs through `CheckOutAndRefund`.
 - **Fee:** read by `PolicyChargeCalculator` with the business date as the new departure, and posted with the key `early_departure:{unit}:{n}`. **Do not charge** needs a reason and `front-desk.waive-fees`. `$expectedFee` from the form guards against a policy change (`fee_changed`).
 - **Balance:** the fee joins the unit folio, so the balance to settle includes it. Posted add-ons on removed nights stay and can leave a balance. The form shows the balance before submit. It takes no payment for the fee in this version: staff record the payment first with `RecordPayment`.

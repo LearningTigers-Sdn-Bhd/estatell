@@ -948,7 +948,7 @@ test('a unit that arrived today cannot check out early', function () {
 
     $this->actingAs($setup['user'])
         ->post(uaUrl($setup, 'early-check-out'), [])
-        ->assertSessionHasErrors('departure_date');
+        ->assertSessionHasErrors('form');
 
     expect($setup['unit']->fresh()->status)->toBe(UnitStatus::CheckedIn);
 });
@@ -1024,3 +1024,50 @@ test('the check-in preview tells whether tonight has a room, will get one or nee
     'no room, auto assign on' => [false, true, 'auto'],
     'no room, auto assign off' => [false, false, 'none'],
 ]);
+
+/**
+ * A checked-in unit that arrived on the business date and departs in two days: it has no night to keep.
+ *
+ * @return array{user: User, property: Property, reservation: Reservation, unit: ReservationUnit}
+ */
+function uaArrivedTodaySetup(): array
+{
+    $setup = uaSetup(DefaultRoleEnum::Owner, ['status' => UnitStatus::CheckedIn, 'checked_in_at' => now(), 'arrival_date' => today()->toDateString(), 'departure_date' => today()->addDays(2)->toDateString()]);
+    uaCheckInSetup($setup);
+
+    return $setup;
+}
+
+test('a unit that arrived today has no early check-out in the menu, the preview or the Action', function () {
+    $setup = uaArrivedTodaySetup();
+    $message = 'This unit arrived today, so there is no night to remove. It can check out on its departure date.';
+
+    $this->actingAs($setup['user'])
+        ->get(route('reservations.show', ['property' => $setup['property']->code, 'reservation' => $setup['reservation']->id]))
+        ->assertInertia(fn (Assert $page) => $page->where('unit.actions', fn ($actions) => ! collect($actions)->pluck('key')->contains('check-out')));
+
+    $this->actingAs($setup['user'])->postJson(uaUrl($setup, 'check-out-preview'))
+        ->assertOk()
+        ->assertJsonPath('error', $message)
+        ->assertJsonPath('early', null);
+
+    $this->actingAs($setup['user'])
+        ->post(uaUrl($setup, 'early-check-out'), ['idempotency_key' => fake()->uuid()])
+        ->assertSessionHasErrors(['form' => $message]);
+
+    $unit = $setup['unit']->fresh();
+
+    expect($unit->status)->toBe(UnitStatus::CheckedIn)
+        ->and($unit->departure_date->toDateString())->toBe(today()->addDays(2)->toDateString())
+        ->and($unit->nights()->count())->toBe(2)
+        ->and(uaEarlyFeeLines($unit))->toBe(0)
+        ->and(Activity::query()->whereIn('event', ['reservation.unit_dates_changed', 'reservation.unit_checked_out'])->count())->toBe(0);
+});
+
+test('a unit that arrived yesterday is still offered an early check-out', function () {
+    $setup = uaEarlySetup();
+
+    $this->actingAs($setup['user'])
+        ->get(route('reservations.show', ['property' => $setup['property']->code, 'reservation' => $setup['reservation']->id]))
+        ->assertInertia(fn (Assert $page) => $page->where('unit.actions', fn ($actions) => collect($actions)->pluck('key')->contains('check-out')));
+});

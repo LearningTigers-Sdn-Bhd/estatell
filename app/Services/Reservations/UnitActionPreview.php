@@ -38,6 +38,7 @@ use App\Services\Catalogues\TaxCalculator;
 use App\Services\CityLedger\CreditCheck;
 use App\Services\FrontDesk\CheckInCollection;
 use App\Services\FrontDesk\CheckOutSettlement;
+use App\Services\FrontDesk\EarlyCheckOutRule;
 use App\Services\Guests\CountryOptions;
 use App\Services\NightAudit\CurrentBusinessDate;
 use App\Services\Rates\RateQuoteRequest;
@@ -73,6 +74,7 @@ class UnitActionPreview
         private FreeUnits $freeUnits,
         private DayUseAvailability $dayUseAvailability,
         private TaxCalculator $taxCalculator,
+        private EarlyCheckOutRule $earlyCheckOutRule,
     ) {}
 
     /**
@@ -263,6 +265,12 @@ class UnitActionPreview
      */
     private function earlyCheckOut(ReservationUnit $unit, CarbonImmutable $businessDate, UnitCheckOutPreviewData $preview): UnitCheckOutPreviewData
     {
+        $refusal = $this->earlyCheckOutRule->refusal($unit, $businessDate->toDateString());
+
+        if ($refusal !== null) {
+            return UnitCheckOutPreviewData::refused($this->refusals->message($refusal));
+        }
+
         $property = $unit->property()->firstOrFail();
         $policy = $this->policy($unit, SystemTransactionCode::EarlyDepartureRevenue);
         $code = $property->transactionCodes()->where('system_key', SystemTransactionCode::EarlyDepartureRevenue->value)->where('active', true)->first();

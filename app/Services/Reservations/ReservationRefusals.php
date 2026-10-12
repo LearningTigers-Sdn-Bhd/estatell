@@ -108,6 +108,7 @@ class ReservationRefusals
                 ? __('The unit folio is not settled. Collect the balance or refund the deposit first.')
                 : __('The unit folio is not settled. It holds :amounts. Collect it, or move those charges first.', ['amounts' => implode(', ', $rooms)])],
             UnitStayResult::REFUSAL_RECEIVES_SCHEDULED_CHARGES => [self::FORM, IncomingScheduledCharges::message($rooms)],
+            UnitStayResult::REFUSAL_ARRIVED_TODAY => [self::FORM, __('This unit arrived today, so there is no night to remove. It can check out on its departure date.')],
             UnitStayResult::REFUSAL_NOT_EARLY => [self::FORM, __('The departure date is today or past, so check out the normal way.')],
             UnitStayResult::REFUSAL_NOT_DEPARTURE_DATE => [self::FORM, __('A late check-out is only for the departure date.')],
             UnitStayResult::REFUSAL_TIME_NOT_LATER => ['new_time', __('Choose a time later than the current departure time.')],
