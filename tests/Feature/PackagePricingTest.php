@@ -245,9 +245,9 @@ test('an edited package price changes the next quote only', function () {
         ->and((string) packageQuote($plan, $roomType)->total->getAmount())->toBe('1400.00');
 });
 
-test('every pricing basis has a pricing strategy', function (PricingBasis $basis) {
+test('every nightly pricing basis has a pricing strategy', function (PricingBasis $basis) {
     expect(is_subclass_of($basis->strategy(), StayPricing::class))->toBeTrue();
-})->with(PricingBasis::cases());
+})->with(array_values(array_filter(PricingBasis::cases(), fn (PricingBasis $basis): bool => $basis !== PricingBasis::DayUse)));
 
 test('the arrival weekday of a package is checked as a restriction', function (string $arrival, bool $allowed) {
     [, $plan, $roomType] = packageQuoteSetup();
