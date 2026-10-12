@@ -1312,3 +1312,48 @@ test('undo check-out through the Action twice does not reopen again', function (
         ->and($second->refusal)->toBe(UnitStayResult::REFUSAL_INVALID_STATUS)
         ->and(Activity::query()->where('event', 'reservation.unit_check_out_undone')->count())->toBe(1);
 });
+
+test('a single-unit reservation sends its one live unit on every tab, and a group does not', function () {
+    $setup = uaSetup();
+    $params = ['property' => $setup['property']->code, 'reservation' => $setup['reservation']->id];
+
+    foreach (['reservations.show', 'reservations.guests', 'reservations.folio', 'reservations.activity'] as $route) {
+        $this->actingAs($setup['user'])->get(route($route, $params))
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('singleUnit.id', $setup['unit']->id)
+                ->where('hasUnitToCheckIn', true)
+                ->where('singleUnit.actions', fn ($actions) => collect($actions)->pluck('key')->contains('check-in')));
+    }
+
+    ReservationUnit::factory()->for($setup['reservation'])->create(['room_type_id' => $setup['unit']->room_type_id]);
+
+    $this->actingAs($setup['user'])->get(route('reservations.guests', $params))
+        ->assertInertia(fn (Assert $page) => $page->where('singleUnit', null));
+});
+
+test('a cancelled unit does not make a group, and the live unit is the single one', function () {
+    $setup = uaSetup();
+    $cancelled = ReservationUnit::factory()->for($setup['reservation'])->create(['room_type_id' => $setup['unit']->room_type_id, 'status' => UnitStatus::Cancelled]);
+    $params = ['property' => $setup['property']->code, 'reservation' => $setup['reservation']->id];
+
+    $this->actingAs($setup['user'])->get(route('reservations.show', $params + ['unit' => $cancelled->id]))
+        ->assertInertia(fn (Assert $page) => $page->where('unit.id', $cancelled->id)->where('singleUnit.id', $setup['unit']->id));
+});
+
+test('the single unit offers Check out once checked in, and Check in all hides with no Confirmed unit', function () {
+    $setup = uaDepartingSetup();
+    $params = ['property' => $setup['property']->code, 'reservation' => $setup['reservation']->id];
+
+    $this->actingAs($setup['user'])->get(route('reservations.guests', $params))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('hasUnitToCheckIn', false)
+            ->where('singleUnit.actions', fn ($actions) => collect($actions)->pluck('key')->contains('check-out') && ! collect($actions)->pluck('key')->contains('check-in')));
+});
+
+test('the single unit carries only the actions the user may use', function () {
+    $setup = uaSetup();
+    $viewer = uaStaffWith($setup['property'], ['reservations.view']);
+
+    $this->actingAs($viewer)->get(route('reservations.guests', ['property' => $setup['property']->code, 'reservation' => $setup['reservation']->id]))
+        ->assertInertia(fn (Assert $page) => $page->where('singleUnit.actions', []));
+});

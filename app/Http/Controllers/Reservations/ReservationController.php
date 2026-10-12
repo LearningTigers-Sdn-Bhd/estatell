@@ -103,18 +103,14 @@ class ReservationController extends Controller
                 return ['unit' => null];
             }
 
-            $selected->load(['ratePlan', 'childAges', 'guests.guest', 'nights' => fn ($nights) => $nights->orderBy('date'), 'nights.room', 'nights.bed', 'nights.ratePlan']);
-            $override = $activityLog->priceOverride($reservation, $selected->id);
+            $data = $this->unitData($request->user(), $reservation, $selected, $activityLog, $actionMenu);
+            $live = $unitModels->filter(fn (ReservationUnit $unit): bool => $unit->status->holdsInventory());
+            $single = $live->count() === 1 ? $live->first() : null;
 
-            $canChangePrice = $request->user()->can(PermissionEnum::ReservationsChangePrice->value)
-                && in_array($selected->status, [UnitStatus::Confirmed, UnitStatus::CheckedIn, UnitStatus::CheckedOut], true);
-            $charged = FolioLine::query()
-                ->whereIn('idempotency_key', $selected->nights->map(fn (UnitNight $night): string => 'night:'.$night->id)->all())
-                ->pluck('source_id')
-                ->map(intval(...))
-                ->all();
-
-            return ['unit' => ReservationUnitData::fromModel($selected, $request->user()->can(PermissionEnum::GuestsView->value), $override['reason'] ?? null, $override['by'] ?? null, $actionMenu->for($request->user(), $selected), $canChangePrice, $charged)];
+            return [
+                'unit' => $data,
+                'singleUnit' => $single === null ? null : ($single->id === $selected->id ? $data : $this->unitData($request->user(), $reservation, $single, $activityLog, $actionMenu)),
+            ];
         });
     }
 
@@ -209,6 +205,42 @@ class ReservationController extends Controller
     }
 
     /**
+     * The unit as the Units tab shows it, with the actions its status and the user's permissions allow.
+     */
+    private function unitData(User $user, Reservation $reservation, ReservationUnit $unit, ReservationActivityLog $activityLog, UnitActionMenu $actionMenu): ReservationUnitData
+    {
+        $unit->load(['ratePlan', 'childAges', 'guests.guest', 'nights' => fn ($nights) => $nights->orderBy('date'), 'nights.room', 'nights.bed', 'nights.ratePlan']);
+        $override = $activityLog->priceOverride($reservation, $unit->id);
+
+        $canChangePrice = $user->can(PermissionEnum::ReservationsChangePrice->value)
+            && in_array($unit->status, [UnitStatus::Confirmed, UnitStatus::CheckedIn, UnitStatus::CheckedOut], true);
+        $charged = FolioLine::query()
+            ->whereIn('idempotency_key', $unit->nights->map(fn (UnitNight $night): string => 'night:'.$night->id)->all())
+            ->pluck('source_id')
+            ->map(intval(...))
+            ->all();
+
+        return ReservationUnitData::fromModel($unit, $user->can(PermissionEnum::GuestsView->value), $override['reason'] ?? null, $override['by'] ?? null, $actionMenu->for($user, $unit), $canChangePrice, $charged);
+    }
+
+    /**
+     * The one live unit of a single-unit reservation, so More can offer its Check in and Check out on every tab. Null
+     * for a group. The Units tab sets it from the unit it already built.
+     *
+     * @param  Collection<int, ReservationUnit>  $units
+     */
+    private function singleUnitData(User $user, Reservation $reservation, Collection $units): ?ReservationUnitData
+    {
+        $live = $units->filter(fn (ReservationUnit $unit): bool => $unit->status->holdsInventory());
+
+        if ($live->count() !== 1) {
+            return null;
+        }
+
+        return $this->unitData($user, $reservation, $live->first(), app(ReservationActivityLog::class), app(UnitActionMenu::class));
+    }
+
+    /**
      * Each tab has its own URL, so the open tab survives a refresh. Every tab gets the header, the summary and the unit
      * list. Only the open tab's own data is read and sent. The form option lists are optional props, read when an
      * overlay opens.
@@ -235,6 +267,8 @@ class ReservationController extends Controller
             'canCheckIn' => $user->can(PermissionEnum::FrontDeskCheckIn->value),
             'canCheckOutAll' => $user->can(PermissionEnum::FrontDeskCheckOut->value) && app(GroupCheckOutPreview::class)->isOffered($overview['models']),
             'receiptPaymentIds' => $user->can(PermissionEnum::PaymentRecord->value) ? app(PaymentReceipt::class)->paymentIdsFor($reservation) : [],
+            'singleUnit' => $tab === 'units' ? null : $this->singleUnitData($user, $reservation, $overview['models']),
+            'hasUnitToCheckIn' => $overview['models']->contains(fn ($unit): bool => $unit->status === UnitStatus::Confirmed),
             'canCancelReservation' => $user->can(PermissionEnum::ReservationsManage->value) && $overview['models']->contains(fn ($unit): bool => $unit->status === UnitStatus::Confirmed),
             'canWaiveFees' => $user->can(PermissionEnum::FrontDeskWaiveFees->value),
             'canOverrideRestrictions' => $user->can(PermissionEnum::RatesOverrideRestrictions->value),

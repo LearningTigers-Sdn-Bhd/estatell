@@ -16,6 +16,7 @@ import { AddUnitSheet } from '@/components/pms/reservations/add-unit-sheet';
 import { CheckInAllDialog } from '@/components/pms/reservations/check-in-all-dialog';
 import { CancelReservationDialog } from '@/components/pms/reservations/cancel-reservation-dialog';
 import { ChangeCompanyDialog } from '@/components/pms/reservations/change-company-dialog';
+import { UnitActionDialogs } from '@/components/pms/reservations/unit-actions-menu';
 import { EditGroupDialog } from '@/components/pms/reservations/edit-group-dialog';
 import { Button } from '@/components/ui/button';
 import {
@@ -28,7 +29,7 @@ import { bookingSummary, checkOut } from '@/routes/reservations';
 import { receipts } from '@/routes/reservations/check-out';
 
 /**
- * The page header buttons: Add unit (hidden once the reservation is closed) and More, which holds Edit group, Change company, for a group Check in all and Check out all (the group check-out page), the booking summary prints (the second one without prices, for a reservation with a company) and Cancel reservation (one Dialog for several units, with `reservations.manage` while a unit is Confirmed) and Print receipts (one PDF with every receipt of the reservation; the server sends the payment ids only with payment.record). The prints show on closed reservations too.
+ * The page header buttons: Add unit (hidden once the reservation is closed) and More, which holds Edit group, Change company, for a group Check in all and Check out all (the group check-out page), the booking summary prints (the second one without prices, for a reservation with a company) and Check in and Check out of the one unit of a single-unit reservation (the unit menu's own Dialogs), Cancel reservation (one Dialog for several units, with `reservations.manage` while a unit is Confirmed) and Print receipts (one PDF with every receipt of the reservation; the server sends the payment ids only with payment.record). The prints show on closed reservations too.
  */
 export function ReservationActions({
     canManage,
@@ -39,7 +40,11 @@ export function ReservationActions({
     canCheckIn,
     canCheckOutAll,
     canCancelReservation,
+    hasUnitToCheckIn,
+    singleUnit,
     canWaiveFees,
+    canOverrideRestrictions,
+    paymentOptions,
     receiptPaymentIds,
     canOverrideCredit,
     companies,
@@ -53,7 +58,11 @@ export function ReservationActions({
     canCheckIn: boolean;
     canCheckOutAll: boolean;
     canCancelReservation: boolean;
+    hasUnitToCheckIn: boolean;
+    singleUnit: App.Data.Reservations.ReservationUnitData | null;
     canWaiveFees: boolean;
+    canOverrideRestrictions: boolean;
+    paymentOptions?: App.Data.Payments.PaymentFormOptionsData;
     receiptPaymentIds: number[];
     canOverrideCredit: boolean;
     companies?: App.Data.CityLedger.CompanyOptionData[];
@@ -64,10 +73,24 @@ export function ReservationActions({
     const [changingCompany, setChangingCompany] = useState(false);
     const [checkingInAll, setCheckingInAll] = useState(false);
     const [cancelling, setCancelling] = useState(false);
+    const [unitAction, setUnitAction] = useState<App.Enums.UnitAction | null>(
+        null,
+    );
+    const [lastUnitAction, setLastUnitAction] =
+        useState<App.Enums.UnitAction>('check-in');
+    const chooseUnitAction = (next: App.Enums.UnitAction) => {
+        setUnitAction(next);
+        setLastUnitAction(next);
+    };
+    // A single-unit reservation gets the unit's own Check in and Check out here, whenever its menu offers them.
+    const singleUnitItems = (singleUnit?.actions ?? []).filter(
+        (item) => item.key === 'check-in' || item.key === 'check-out',
+    );
     const canCheckInAll =
         canManage &&
         canCheckIn &&
         !reservation.isClosed &&
+        hasUnitToCheckIn &&
         reservation.unitCount > 1;
 
     return (
@@ -87,6 +110,15 @@ export function ReservationActions({
                     More
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="min-w-56">
+                    {singleUnitItems.map((item) => (
+                        <DropdownMenuItem
+                            key={item.key}
+                            onClick={() => chooseUnitAction(item.key)}
+                        >
+                            {item.key === 'check-in' ? <LogIn /> : <LogOut />}
+                            {item.label}
+                        </DropdownMenuItem>
+                    ))}
                     {canManage && (
                         <DropdownMenuItem onClick={() => setEditingGroup(true)}>
                             <Pencil />
@@ -196,6 +228,20 @@ export function ReservationActions({
                     options={addUnitOptions}
                     currency={currency}
                     stayType={reservation.stayType}
+                />
+            )}
+            {singleUnit !== null && singleUnitItems.length > 0 && (
+                <UnitActionDialogs
+                    reservationId={reservation.id}
+                    unit={singleUnit}
+                    canWaiveFees={canWaiveFees}
+                    canOverrideRestrictions={canOverrideRestrictions}
+                    paymentOptions={paymentOptions}
+                    currency={currency}
+                    action={unitAction}
+                    lastAction={lastUnitAction}
+                    onChoose={chooseUnitAction}
+                    onClose={() => setUnitAction(null)}
                 />
             )}
             {canCheckInAll && (

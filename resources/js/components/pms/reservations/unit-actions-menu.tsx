@@ -43,71 +43,46 @@ const ICONS: Record<App.Enums.UnitAction, LucideIcon> = {
     'undo-check-out': Undo2,
 };
 
-/**
- * The unit ⋯ menu and the forms it opens. The server sends only the actions the unit's status and the user's
- * permissions allow, so the menu has no rules of its own and hides itself when the list is empty.
- */
-export function UnitActionsMenu({
-    reservationId,
-    unit,
-    canWaiveFees,
-    canOverrideRestrictions,
-    paymentOptions,
-    currency,
-}: {
+type DialogProps = {
     reservationId: number;
     unit: Unit;
     canWaiveFees: boolean;
     canOverrideRestrictions: boolean;
     paymentOptions?: App.Data.Payments.PaymentFormOptionsData;
     currency: App.Enums.Currency | null;
+};
+
+/**
+ * The forms of the unit actions, driven by the caller. The unit ⋯ menu and, for a single-unit reservation, More both
+ * open them, so the same Dialog runs from either place. `lastAction` keeps a form's kind until its exit animation
+ * ends.
+ */
+export function UnitActionDialogs({
+    reservationId,
+    unit,
+    canWaiveFees,
+    canOverrideRestrictions,
+    paymentOptions,
+    currency,
+    action,
+    lastAction,
+    onChoose,
+    onClose,
+}: DialogProps & {
+    action: App.Enums.UnitAction | null;
+    lastAction: App.Enums.UnitAction;
+    onChoose: (action: App.Enums.UnitAction) => void;
+    onClose: () => void;
 }) {
-    const [action, setAction] = useState<App.Enums.UnitAction | null>(null);
-    // The form keeps its kind until the exit animation ends.
-    const [lastAction, setLastAction] =
-        useState<App.Enums.UnitAction>('cancel');
-
-    if (unit.actions.length === 0) {
-        return null;
-    }
-
-    const choose = (next: App.Enums.UnitAction) => {
-        setAction(next);
-        setLastAction(next);
-    };
     const common = {
         reservationId,
         unit,
         currency,
-        onOpenChange: (open: boolean) => !open && setAction(null),
+        onOpenChange: (open: boolean) => !open && onClose(),
     };
 
     return (
         <>
-            <DropdownMenu>
-                <DropdownMenuTrigger
-                    render={<Button variant="outline" size="icon" />}
-                    aria-label="Unit actions"
-                >
-                    <MoreHorizontal />
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="min-w-56">
-                    {unit.actions.map((item) => {
-                        const Icon = ICONS[item.key];
-
-                        return (
-                            <DropdownMenuItem
-                                key={item.key}
-                                onClick={() => choose(item.key)}
-                            >
-                                <Icon />
-                                {item.label}
-                            </DropdownMenuItem>
-                        );
-                    })}
-                </DropdownMenuContent>
-            </DropdownMenu>
-
             <CheckInDialog
                 {...common}
                 open={action === 'check-in'}
@@ -115,7 +90,7 @@ export function UnitActionsMenu({
                 canAssignRoom={unit.actions.some(
                     (item) => item.key === 'move-room',
                 )}
-                onAssignRoom={() => choose('move-room')}
+                onAssignRoom={() => onChoose('move-room')}
             />
             <CheckOutDialog
                 {...common}
@@ -148,6 +123,62 @@ export function UnitActionsMenu({
                 open={action === 'change-dates'}
                 canWaiveFees={canWaiveFees}
                 canOverrideRestrictions={canOverrideRestrictions}
+            />
+        </>
+    );
+}
+
+/**
+ * The unit ⋯ menu and the forms it opens. The server sends only the actions the unit's status and the user's
+ * permissions allow, so the menu has no rules of its own and hides itself when the list is empty.
+ */
+export function UnitActionsMenu(props: DialogProps) {
+    const { unit } = props;
+    const [action, setAction] = useState<App.Enums.UnitAction | null>(null);
+    const [lastAction, setLastAction] =
+        useState<App.Enums.UnitAction>('cancel');
+
+    if (unit.actions.length === 0) {
+        return null;
+    }
+
+    const choose = (next: App.Enums.UnitAction) => {
+        setAction(next);
+        setLastAction(next);
+    };
+
+    return (
+        <>
+            <DropdownMenu>
+                <DropdownMenuTrigger
+                    render={<Button variant="outline" size="icon" />}
+                    aria-label="Unit actions"
+                >
+                    <MoreHorizontal />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="min-w-56">
+                    {unit.actions.map((item) => {
+                        const Icon = ICONS[item.key];
+
+                        return (
+                            <DropdownMenuItem
+                                key={item.key}
+                                onClick={() => choose(item.key)}
+                            >
+                                <Icon />
+                                {item.label}
+                            </DropdownMenuItem>
+                        );
+                    })}
+                </DropdownMenuContent>
+            </DropdownMenu>
+
+            <UnitActionDialogs
+                {...props}
+                action={action}
+                lastAction={lastAction}
+                onChoose={choose}
+                onClose={() => setAction(null)}
             />
         </>
     );
