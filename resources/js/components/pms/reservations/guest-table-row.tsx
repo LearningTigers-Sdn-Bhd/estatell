@@ -41,7 +41,9 @@ import {
 import {
     DropdownMenu,
     DropdownMenuContent,
+    DropdownMenuGroup,
     DropdownMenuItem,
+    DropdownMenuLabel,
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
@@ -176,40 +178,48 @@ function RowMenu({
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-52">
                 {hasCard && row.cardUnitGuestId !== null && (
-                    <DropdownMenuItem
-                        render={
-                            <Link
-                                href={showCard.url({
-                                    unitGuest: row.cardUnitGuestId,
-                                })}
-                            />
-                        }
-                    >
-                        <IdCard />
-                        Registration card
-                    </DropdownMenuItem>
+                    <DropdownMenuGroup>
+                        <DropdownMenuLabel>Registration</DropdownMenuLabel>
+                        <DropdownMenuItem
+                            render={
+                                <Link
+                                    href={showCard.url({
+                                        unitGuest: row.cardUnitGuestId,
+                                    })}
+                                />
+                            }
+                        >
+                            <IdCard />
+                            Registration card
+                        </DropdownMenuItem>
+                    </DropdownMenuGroup>
                 )}
+                {hasCard && (hasBill || canChange) && <DropdownMenuSeparator />}
                 {hasBill && (
-                    <DropdownMenuItem onClick={() => onBill(row)}>
-                        <Receipt />
-                        Bill to this guest
-                    </DropdownMenuItem>
+                    <DropdownMenuGroup>
+                        <DropdownMenuLabel>Billing</DropdownMenuLabel>
+                        <DropdownMenuItem onClick={() => onBill(row)}>
+                            <Receipt />
+                            Bill to this guest
+                        </DropdownMenuItem>
+                    </DropdownMenuGroup>
                 )}
-                {canChange && (hasCard || hasBill) && <DropdownMenuSeparator />}
+                {hasBill && canChange && <DropdownMenuSeparator />}
                 {canChange && (
-                    <DropdownMenuItem onClick={() => onReplace(row)}>
-                        <Replace />
-                        Replace guest
-                    </DropdownMenuItem>
-                )}
-                {canChange && (
-                    <DropdownMenuItem
-                        variant="destructive"
-                        onClick={() => onRemove(row)}
-                    >
-                        <UserMinus />
-                        Remove from unit
-                    </DropdownMenuItem>
+                    <DropdownMenuGroup>
+                        <DropdownMenuLabel>Guest</DropdownMenuLabel>
+                        <DropdownMenuItem onClick={() => onReplace(row)}>
+                            <Replace />
+                            Replace guest
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                            variant="destructive"
+                            onClick={() => onRemove(row)}
+                        >
+                            <UserMinus />
+                            Remove from unit
+                        </DropdownMenuItem>
+                    </DropdownMenuGroup>
                 )}
             </DropdownMenuContent>
         </DropdownMenu>
