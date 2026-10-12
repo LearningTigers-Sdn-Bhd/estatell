@@ -15,6 +15,7 @@ use App\Models\BusinessDate;
 use App\Models\ChargeItem;
 use App\Models\FolioLine;
 use App\Models\Property;
+use App\Models\PropertyAgeGroup;
 use App\Models\PropertySetting;
 use App\Models\Rate;
 use App\Models\RatePlan;
@@ -132,6 +133,28 @@ test('extending gives each nightly add-on rows for the new nights and leaves the
         ->and($rows->pluck('unit_amount')->unique()->all())->toBe(['15.00'])
         ->and($rows->last()->service_date->toDateString())->toBe(today()->addDays(5)->toDateString())
         ->and($setup['unit']->addOns()->where('charge_item_id', $perStay->id)->count())->toBe(1);
+});
+
+test('extending keeps the adult row and each child price row of a per-guest-night add-on', function () {
+    $setup = datesSetup();
+    $group = PropertyAgeGroup::factory()->create(['property_id' => $setup['property']->id, 'label' => 'Child', 'min_age' => 4, 'max_age' => 11]);
+    $item = ChargeItem::factory()->create(['property_id' => $setup['property']->id, 'charging_unit' => ChargingUnit::PerGuestNight]);
+
+    foreach ([1, 2, 3] as $offset) {
+        $date = today()->addDays($offset)->toDateString();
+        UnitAddOn::factory()->create(['reservation_unit_id' => $setup['unit']->id, 'charge_item_id' => $item->id, 'quantity' => 2, 'unit_amount' => '30.00', 'service_date' => $date]);
+        UnitAddOn::factory()->create(['reservation_unit_id' => $setup['unit']->id, 'charge_item_id' => $item->id, 'quantity' => 1, 'unit_amount' => '15.00', 'service_date' => $date, 'property_age_group_id' => $group->id]);
+    }
+
+    changeDates($setup, departure: today()->addDays(6));
+
+    $new = $setup['unit']->addOns()->whereDate('service_date', '>=', today()->addDays(4)->toDateString())->orderBy('service_date')->orderBy('id')->get();
+
+    expect($new)->toHaveCount(4)
+        ->and($new->map(fn (UnitAddOn $row): array => [$row->quantity, $row->unit_amount, $row->property_age_group_id])->all())->toBe([
+            [2, '30.00', null], [1, '15.00', $group->id],
+            [2, '30.00', null], [1, '15.00', $group->id],
+        ]);
 });
 
 test('an in-house unit can be extended, and the new night keeps its room', function () {

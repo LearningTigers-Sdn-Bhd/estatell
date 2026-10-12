@@ -4,14 +4,16 @@ namespace App\Actions\FrontDesk;
 
 use App\Enums\ChargingUnit;
 use App\Models\ReservationUnit;
+use App\Models\UnitAddOn;
 use Carbon\CarbonImmutable;
 
 class AddNightlyAddOnRows
 {
     /**
      * Give each nightly add-on of a unit (PerNight and PerGuestNight) a row for the given new nights, copying its
-     * charge item, quantity and amount from its latest row. Nights before the business date get no row, because they
-     * would never post, and a night that already has a row for the item is skipped. `ChangeUnitDates` calls this
+     * charge item, age group, quantity and amount from its latest row for that price (an item split by child prices has
+     * an adult row and one row per age group on each night, and each keeps its own). Nights before the business date get no row, because they
+     * would never post, and a night that already has a row for the item and price is skipped. `ChangeUnitDates` calls this
      * inside its transaction, after the new nights exist. See docs/12-reservations/04-add-ons.md.
      *
      * @param  list<CarbonImmutable>  $newNights
@@ -29,11 +31,14 @@ class AddNightlyAddOnRows
             ->whereHas('chargeItem', fn ($item) => $item->whereIn('charging_unit', [ChargingUnit::PerNight->value, ChargingUnit::PerGuestNight->value]))
             ->orderBy('id')
             ->get()
-            ->keyBy('charge_item_id');
+            ->keyBy(fn (UnitAddOn $addOn): string => $addOn->charge_item_id.':'.($addOn->property_age_group_id ?? 'adult'));
         $created = 0;
 
         foreach ($templates as $template) {
-            $existing = $unit->addOns()->where('charge_item_id', $template->charge_item_id)->pluck('service_date')
+            $existing = $unit->addOns()
+                ->where('charge_item_id', $template->charge_item_id)
+                ->where('property_age_group_id', $template->property_age_group_id)
+                ->pluck('service_date')
                 ->map(fn (mixed $date): string => $date->toDateString())->all();
 
             foreach ($dates as $date) {
@@ -46,6 +51,7 @@ class AddNightlyAddOnRows
                     'quantity' => $template->quantity,
                     'unit_amount' => $template->unit_amount,
                     'service_date' => $date->toDateString(),
+                    'property_age_group_id' => $template->property_age_group_id,
                 ]);
                 $created++;
             }
