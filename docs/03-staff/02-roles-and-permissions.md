@@ -30,52 +30,56 @@ roles    spatie columns + property_id (NOT NULL, FK) + default_role (nullable)
 
 ## Default permissions
 
-| Permission                         | Guards                                                                | Owner | Manager | Front desk, Housekeeping, Finance |
-| ---------------------------------- | --------------------------------------------------------------------- | ----- | ------- | --------------------------------- |
-| `settings.manage`                  | Property settings pages                                               | ✓     | ✓       | –                                 |
-| `staff.view`                       | Staff list                                                            | ✓     | ✓       | –                                 |
-| `staff.manage`                     | Invite, deactivate, reactivate, assign roles                          | ✓     | ✓       | –                                 |
-| `roles.manage`                     | Create roles, edit role permissions                                   | ✓     | –       | –                                 |
-| `notification.manage`              | Property notification settings                                        | ✓     | –       | –                                 |
-| `rates.view`                       | Rate calendar (view)                                                  | ✓     | ✓       | ✓                                 |
-| `rates.manage`                     | Edit rates and restrictions in the calendar                           | ✓     | ✓       | –                                 |
-| `rates.override-restrictions`      | Book past a rate restriction at the front desk                        | ✓     | ✓       | –                                 |
-| `guests.view`                      | Guest list and guest page                                             | ✓     | ✓       | Front desk, Finance               |
-| `guests.manage`                    | Add and edit guests, tags, VIP mark, notes                            | ✓     | ✓       | Front desk                        |
-| `guests.blacklist`                 | Blacklist a guest, remove from the blacklist                          | ✓     | ✓       | –                                 |
-| `guests.view-documents`            | See, add, edit guest ID documents and scans                           | ✓     | ✓       | Front desk                        |
-| `guests.merge`                     | Merge duplicate guests                                                | ✓     | ✓       | –                                 |
-| `guests.anonymize`                 | Anonymize a guest (removes personal data)                             | ✓     | –       | –                                 |
-| `registration-card.manage-terms`   | Registration terms: publish, add documents, apply templates           | ✓     | ✓       | –                                 |
-| `registration-card.sign`           | Prepare, complete and sign a registration card                        | ✓     | ✓       | Front desk                        |
-| `registration-card.send-link`      | Email a guest the link to sign remotely                               | ✓     | ✓       | Front desk                        |
-| `registration-card.void`           | Void a registration card                                              | ✓     | ✓       | –                                 |
-| `front-desk.check-in`              | Check in a unit                                                       | ✓     | ✓       | Front desk                        |
-| `front-desk.check-out`             | Check out a unit                                                      | ✓     | ✓       | Front desk                        |
-| `front-desk.check-in-without-card` | Check in a unit that has no signed registration card                  | ✓     | ✓       | –                                 |
-| `front-desk.waive-fees`            | Choose Do not charge on a cancellation or no-show fee                 | ✓     | ✓       | –                                 |
-| `front-desk.undo-check-in`         | Undo a check-in made on the open business date                        | ✓     | ✓       | –                                 |
-| `front-desk.undo-check-out`        | Undo a check-out made on the open business date                       | ✓     | ✓       | –                                 |
-| `reservations.view`                | Reservations list and reservation page                                | ✓     | ✓       | Front desk, Finance               |
-| `reservations.manage`              | Create reservations, add units, attach guests, edit group and add-ons | ✓     | ✓       | Front desk                        |
-| `reservations.change-price`        | Change the price of booked nights                                     | ✓     | ✓       | Finance                           |
-| `folio.post-charge`                | Post a manual charge to a unit's folio                                | ✓     | ✓       | Front desk, Finance               |
-| `folio.reverse`                    | Reverse a folio line                                                  | ✓     | ✓       | Finance                           |
-| `folio.transfer`                   | Transfer lines between folios and manage routing                      | ✓     | ✓       | Finance                           |
-| `folio.discount`                   | Apply a Percent or an unchanged Fixed discount, remove a discount     | ✓     | ✓       | Front desk, Finance               |
-| `folio.discount-open`              | Apply an Open discount, or change the amount of a discount            | ✓     | ✓       | Finance                           |
-| `folio.close`                      | Close a folio with a balance of 0                                     | ✓     | ✓       | Front desk, Finance               |
-| `folio.reopen`                     | Reopen a Closed folio                                                 | ✓     | ✓       | Finance                           |
-| `payment.record`                   | Record a payment, download a receipt                                  | ✓     | ✓       | Front desk, Finance               |
-| `payment.refund`                   | Refund a payment                                                      | ✓     | ✓       | Finance                           |
-| `company.view`                     | Companies list and page, pick a company on a booking                  | ✓     | ✓       | Front desk, Finance               |
-| `company.manage`                   | Create, edit, suspend and reactivate companies                        | ✓     | ✓       | Finance                           |
-| `company.credit-override`          | Pass a credit limit check, with a reason                              | ✓     | ✓       |                                   |
-| `city-ledger.invoice`              | Settle a folio to City ledger, void an AR invoice                     | ✓     | ✓       | Finance                           |
-| `city-ledger.credit-note`          | Issue and void AR credit notes                                        | ✓     | ✓       | Finance                           |
-| `city-ledger.payment`              | Record and void AR payments                                           | ✓     | ✓       | Finance                           |
-| `city-ledger.allocate`             | Allocate AR payments, reverse allocations                             | ✓     | ✓       | Finance                           |
-| `reports.view`                     | Report pages, report exports, the night audit packet                  | ✓     | ✓       | Finance                           |
+| Permission                         | Guards                                                                      | Owner | Manager | Front desk, Housekeeping, Finance |
+| ---------------------------------- | --------------------------------------------------------------------------- | ----- | ------- | --------------------------------- |
+| `settings.manage`                  | Property settings pages                                                     | ✓     | ✓       | –                                 |
+| `staff.view`                       | Staff list                                                                  | ✓     | ✓       | –                                 |
+| `staff.manage`                     | Invite, deactivate, reactivate, assign roles                                | ✓     | ✓       | –                                 |
+| `roles.manage`                     | Create roles, edit role permissions                                         | ✓     | –       | –                                 |
+| `notification.manage`              | Property notification settings                                              | ✓     | –       | –                                 |
+| `rates.view`                       | Rate calendar (view)                                                        | ✓     | ✓       | ✓                                 |
+| `rates.manage`                     | Edit rates and restrictions in the calendar                                 | ✓     | ✓       | –                                 |
+| `rates.override-restrictions`      | Book past a rate restriction at the front desk                              | ✓     | ✓       | –                                 |
+| `guests.view`                      | Guest list and guest page                                                   | ✓     | ✓       | Front desk, Finance               |
+| `guests.manage`                    | Add and edit guests, tags, VIP mark, notes                                  | ✓     | ✓       | Front desk                        |
+| `guests.blacklist`                 | Blacklist a guest, remove from the blacklist                                | ✓     | ✓       | –                                 |
+| `guests.view-documents`            | See, add, edit guest ID documents and scans                                 | ✓     | ✓       | Front desk                        |
+| `guests.merge`                     | Merge duplicate guests                                                      | ✓     | ✓       | –                                 |
+| `guests.anonymize`                 | Anonymize a guest (removes personal data)                                   | ✓     | –       | –                                 |
+| `registration-card.manage-terms`   | Registration terms: publish, add documents, apply templates                 | ✓     | ✓       | –                                 |
+| `registration-card.sign`           | Prepare, complete and sign a registration card                              | ✓     | ✓       | Front desk                        |
+| `registration-card.send-link`      | Email a guest the link to sign remotely                                     | ✓     | ✓       | Front desk                        |
+| `registration-card.void`           | Void a registration card                                                    | ✓     | ✓       | –                                 |
+| `front-desk.check-in`              | Check in a unit                                                             | ✓     | ✓       | Front desk                        |
+| `front-desk.check-out`             | Check out a unit                                                            | ✓     | ✓       | Front desk                        |
+| `front-desk.check-in-without-card` | Check in a unit that has no signed registration card                        | ✓     | ✓       | –                                 |
+| `front-desk.waive-fees`            | Choose Do not charge on a cancellation or no-show fee                       | ✓     | ✓       | –                                 |
+| `front-desk.undo-check-in`         | Undo a check-in made on the open business date                              | ✓     | ✓       | –                                 |
+| `front-desk.undo-check-out`        | Undo a check-out made on the open business date                             | ✓     | ✓       | –                                 |
+| `reservations.view`                | Reservations list and reservation page                                      | ✓     | ✓       | Front desk, Finance               |
+| `reservations.manage`              | Create reservations, add units, attach guests, edit group and add-ons       | ✓     | ✓       | Front desk                        |
+| `reservations.change-price`        | Change the price of booked nights                                           | ✓     | ✓       | Finance                           |
+| `folio.post-charge`                | Post a manual charge to a unit's folio                                      | ✓     | ✓       | Front desk, Finance               |
+| `folio.reverse`                    | Reverse a folio line                                                        | ✓     | ✓       | Finance                           |
+| `folio.transfer`                   | Transfer lines between folios and manage routing                            | ✓     | ✓       | Finance                           |
+| `folio.discount`                   | Apply a Percent or an unchanged Fixed discount, remove a discount           | ✓     | ✓       | Front desk, Finance               |
+| `folio.discount-open`              | Apply an Open discount, or change the amount of a discount                  | ✓     | ✓       | Finance                           |
+| `folio.close`                      | Close a folio with a balance of 0                                           | ✓     | ✓       | Front desk, Finance               |
+| `folio.reopen`                     | Reopen a Closed folio                                                       | ✓     | ✓       | Finance                           |
+| `payment.record`                   | Record a payment, download a receipt                                        | ✓     | ✓       | Front desk, Finance               |
+| `payment.refund`                   | Refund a payment                                                            | ✓     | ✓       | Finance                           |
+| `company.view`                     | Companies list and page, pick a company on a booking                        | ✓     | ✓       | Front desk, Finance               |
+| `company.manage`                   | Create, edit, suspend and reactivate companies                              | ✓     | ✓       | Finance                           |
+| `company.credit-override`          | Pass a credit limit check, with a reason                                    | ✓     | ✓       |                                   |
+| `city-ledger.invoice`              | Settle a folio to City ledger, void an AR invoice                           | ✓     | ✓       | Finance                           |
+| `city-ledger.credit-note`          | Issue and void AR credit notes                                              | ✓     | ✓       | Finance                           |
+| `city-ledger.payment`              | Record and void AR payments                                                 | ✓     | ✓       | Finance                           |
+| `city-ledger.allocate`             | Allocate AR payments, reverse allocations                                   | ✓     | ✓       | Finance                           |
+| `reports.view`                     | Report pages, report exports, the night audit packet                        | ✓     | ✓       | Finance                           |
+| `housekeeping.view`                | Housekeeping board, print and export                                        | ✓     | ✓       | Front desk, Housekeeping          |
+| `housekeeping.update`              | Mark clean or dirty, assign, priority, DND, remark, raise Needs maintenance | ✓     | ✓       | Front desk, Housekeeping          |
+| `housekeeping.inspect`             | Mark a room Inspected                                                       | ✓     | ✓       | Front desk                        |
+| `housekeeping.manage-checklist`    | Pen box items in Settings > Housekeeping                                    | ✓     | ✓       | –                                 |
 
 Later modules add rows here. Their module docs list their permissions.
 

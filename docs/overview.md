@@ -239,7 +239,7 @@ The build plan, as one commit per item, is in [checklist.md](checklist.md).
 | 16  | [Registration](16-registration/)     | Registration cards and terms                                                     |
 | 17  | [Onboarding](17-onboarding/)         | Account creation, wizard, go-live                                                |
 | 18  | [Front desk](18-front-desk/)         | Check-in, check-out, assignment, dashboard, group check-out                      |
-| 19  | [Housekeeping](19-housekeeping/)     | Room status board                                                                |
+| 19  | [Housekeeping](19-housekeeping/)     | Room status board, printed work sheet and property column layout                 |
 | 20  | [Night audit](20-night-audit/)       | Business dates, readiness, audit run                                             |
 | 21  | [Channels](21-channels/)             | Channex connection, mapping, sync                                                |
 | 22  | [Reports](22-reports/)               | Core reports, column layouts, row export (PDF, CSV, Excel)                       |

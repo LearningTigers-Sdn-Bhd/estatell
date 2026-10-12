@@ -23,9 +23,11 @@ The reports a small property needs daily and monthly, with a shared frame: a dat
 | Non-national guests           | `NonNationalGuests`  | foreign units that stayed, and their tourism tax lines | Range    | Landscape           | 31 days       |
 | Police report                 | `PoliceReport`       | every guest of a unit that stayed (`unit_guests`)      | Range    | Landscape           | 31 days       |
 | Boat manifest                 | `BoatManifest`       | `unit_boat_trips` (only with the Boats feature)        | One date | Portrait            | –             |
+| Housekeeping tasks            | `HousekeepingTasks`  | `room_statuses`, `unit_nights`, `room_blocks`          | One date | Landscape           | –             |
 
 - Revenue by transaction code is live for every date, open or closed, from `DailyRevenueQuery` (`app/Services/Reports/`), with grouping by day or month and drill-down to the lines. The night audit copies one closed date of the same query into `daily_revenue`.
 - **Boat manifest** belongs to the Boats module. See [Boat manifest](../24-boats/03-boat-manifest.md).
+- **Housekeeping tasks** belongs to the Housekeeping module and is printed from the board, not from the Reports menu. It has no report page. Its export routes sit under `housekeeping.view`, and its Layout Sheet uses the shared layout routes. See [Print, export and layout](../19-housekeeping/02-print-and-layout.md).
 - The core reports (item 20) are complete. The last six reports come from wastays (step 7 of the build order). Payments also gets a **Received by** grouping with a cash-up total per staff member, and a **Refunds only** filter, in place of the wastays cashier activity and refund reports. Extra charges are covered by Revenue by transaction code.
 - Occupancy, ADR and RevPAR read the `daily_statistics` snapshot for closed dates and `StatisticsCalculator` for the open date.
 - City ledger aging and statements are already built on the Finance side (`AgingReport`, `StatementBuilder`). They stay there and are not in the registry. Their PDFs get the letterhead from [Printing settings](../02-property/05-printing-settings.md).

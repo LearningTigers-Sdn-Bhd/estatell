@@ -13,7 +13,8 @@ room_blocks      id, property_id, room_id, bed_id (nullable), reason (RoomBlockR
                  check: notes are not blank when reason = other
 room_statuses    id, property_id, room_id (unique), status (HousekeepingStatus, default clean),
                  is_priority, priority_note, do_not_disturb_on (nullable),
-                 assigned_to (nullable), last_changed_by (nullable), last_changed_at, timestamps
+                 assigned_to (nullable), last_changed_by (nullable), last_changed_at,
+                 remark (varchar 500, nullable), needs_maintenance (bool, default false), timestamps
 ```
 
 ## Enums
@@ -56,13 +57,14 @@ The status enum is `HousekeepingStatus`, not `RoomStatus`, because the `RoomStat
 
 - Every room has exactly one `room_statuses` row. `CreateRoom` and `GenerateRooms` create it as Clean. The migration backfilled a Clean row for every existing room, including archived rooms.
 - The night audit marks occupied and departed rooms Dirty (see [Audit run](../20-night-audit/03-audit-run.md)).
-- Status changes, assignees, priority and do-not-disturb are managed on the [Room status board](../19-housekeeping/01-room-status-board.md).
+- Status changes, assignees, priority, do-not-disturb, the remark and the `needs_maintenance` flag are managed on the [Room status board](../19-housekeeping/01-room-status-board.md). `remark` and `needs_maintenance` are added by module 19.
+- `CreateRoomBlock` clears `needs_maintenance` of the room it blocks, by calling `SetNeedsMaintenance`.
 
 ## Actions
 
 - `CreateRoomBlock`, `UpdateRoomBlock`, `EndRoomBlock`, `CancelRoomBlock`. Each logs activity (`room_block.created`, `.updated`, `.ended`, `.cancelled`).
 - `ArchiveRoom` and `ArchiveBed` end open current and upcoming blocks.
-- Housekeeping Actions (`UpdateRoomStatus`, `AssignHousekeeper`, `SetRoomPriority`) come with module 19.
+- Housekeeping Actions (`UpdateRoomStatus`, `AssignHousekeeper`, `SetRoomPriority`, `SetDoNotDisturb`, `SetRoomRemark`, `SetNeedsMaintenance`, `BulkUpdateRooms`) come with module 19. See [Room status board](../19-housekeeping/01-room-status-board.md#actions).
 
 ## Permissions
 
@@ -85,7 +87,7 @@ Room          Reason        Nights                      Notes
 - **Block room** opens a sheet: room, bed (dorm rooms only, default "Whole room"), reason, nights (`DateRangePicker`) and notes.
 - **End now** opens a confirm dialog. For a whole-room block it asks "Room is Dirty / Clean" (default Dirty).
 - **Cancel** opens a confirm dialog.
-- Later, the stay view's "Block room" cell action uses the same Actions.
+- Later, the stay view's "Block room" cell action uses the same Actions. The housekeeping board's row menu **Block room** opens this sheet for a user with `rooms.block`.
 
 ## Later
 
