@@ -5,12 +5,14 @@ import { EnumSelect } from '@/components/pms/enum-select';
 import { MoneyInput } from '@/components/pms/money-input';
 import {
     moveAddOn,
+    removeAddOn,
     roomTypeOf,
 } from '@/components/pms/reservations/booking-lines';
 import type {
     BookingAddOn,
     BookingLine,
 } from '@/components/pms/reservations/booking-lines';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Field, FieldError, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
@@ -162,6 +164,11 @@ function AddOnRow({
                     }}
                     aria-invalid={error !== undefined}
                 />
+                {addOn.auto === true && (
+                    <Badge variant="secondary" className="w-fit">
+                        Added automatically
+                    </Badge>
+                )}
             </Field>
             {item?.chargingUnit === 'per_item' ? (
                 <Field>
@@ -222,7 +229,11 @@ function AddOnRow({
                     type="button"
                     variant="ghost"
                     size="icon-sm"
-                    aria-label="Remove this add-on"
+                    aria-label={
+                        addOn.auto === true
+                            ? 'Do not add this charge item to this booking'
+                            : 'Remove this add-on'
+                    }
                     onClick={onRemove}
                 >
                     <Trash2 />
@@ -346,26 +357,42 @@ export function BookingAddOnsSection({
                             ? errors[`lines.${lineIndex}.add_ons`]
                             : undefined
                     }
-                    onChange={(patch) =>
+                    onChange={(patch) => {
+                        const line = lines[lineIndex];
+                        const current = line.add_ons[position];
+                        const swapped =
+                            current.auto === true &&
+                            patch.charge_item_id !== undefined &&
+                            patch.charge_item_id !== current.charge_item_id;
+                        // Picking another item for an automatic row is the same as removing the automatic one.
+                        const base = swapped
+                            ? removeAddOn(line, position)
+                            : line;
+
                         onChange(lineIndex, {
-                            add_ons: lines[lineIndex].add_ons.map(
-                                (current, at) =>
-                                    at === position
-                                        ? { ...current, ...patch }
-                                        : current,
+                            declined_auto_add_ons: base.declined_auto_add_ons,
+                            add_ons: line.add_ons.map((one, at) =>
+                                at !== position
+                                    ? one
+                                    : {
+                                          ...one,
+                                          ...patch,
+                                          auto: swapped ? false : one.auto,
+                                      },
                             ),
-                        })
-                    }
+                        });
+                    }}
                     onMove={(to) =>
                         onLinesChange(moveAddOn(lines, lineIndex, position, to))
                     }
-                    onRemove={() =>
+                    onRemove={() => {
+                        const next = removeAddOn(lines[lineIndex], position);
+
                         onChange(lineIndex, {
-                            add_ons: lines[lineIndex].add_ons.filter(
-                                (_, at) => at !== position,
-                            ),
-                        })
-                    }
+                            add_ons: next.add_ons,
+                            declined_auto_add_ons: next.declined_auto_add_ons,
+                        });
+                    }}
                 />
             ))}
         </ExtrasTable>

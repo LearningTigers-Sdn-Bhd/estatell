@@ -479,3 +479,34 @@ test('staff without company.view cannot name a company', function () {
 
     expect(Reservation::query()->sole()->company_id)->toBeNull();
 });
+
+test('removed auto-add items are logged on the reservation and the kept ones are ordinary add-ons', function () {
+    $setup = bookingSetup();
+    $kept = ChargeItem::factory()->create(['property_id' => $setup['property']->id, 'name' => 'Cleaning fee', 'default_amount' => '20.00', 'charging_unit' => 'per_stay', 'auto_add' => true]);
+    $declined = ChargeItem::factory()->create(['property_id' => $setup['property']->id, 'name' => 'Resort fee', 'default_amount' => '5.00', 'charging_unit' => 'per_night', 'auto_add' => true]);
+    $notAuto = ChargeItem::factory()->create(['property_id' => $setup['property']->id, 'default_amount' => '5.00', 'auto_add' => false]);
+
+    $this->actingAs($setup['user'])->post(bookingFormUrl($setup, 'reservations.store'), bookingBody($setup, [
+        'lines' => [bookingFormLine($setup, [
+            'add_ons' => [['charge_item_id' => $kept->id]],
+            'declined_auto_add_ons' => [$declined->id, $notAuto->id, 999999],
+        ])],
+    ]))->assertSessionHasNoErrors();
+
+    $reservation = Reservation::query()->sole();
+    $logs = Activity::query()->where('event', 'reservation.auto_add_on_declined')->get();
+
+    expect($reservation->units()->sole()->addOns()->pluck('charge_item_id')->all())->toBe([$kept->id])
+        ->and($logs)->toHaveCount(1)
+        ->and($logs[0]->properties['charge_item_id'])->toBe($declined->id)
+        ->and($logs[0]->subject_id)->toBe($reservation->id);
+});
+
+test('the booking form options say which charge items are added automatically', function () {
+    $setup = bookingSetup();
+    ChargeItem::factory()->create(['property_id' => $setup['property']->id, 'default_amount' => '20.00', 'auto_add' => true]);
+
+    $this->actingAs($setup['user'])
+        ->get(bookingFormUrl($setup, 'reservations.new'))
+        ->assertInertia(fn (Assert $page) => $page->where('chargeItems.0.autoAdd', true));
+});

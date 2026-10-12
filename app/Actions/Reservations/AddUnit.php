@@ -39,6 +39,7 @@ class AddUnit
         private CurrentBusinessDate $currentBusinessDate,
         private PropertyToday $propertyToday,
         private AddUnitAddOn $addUnitAddOn,
+        private LogDeclinedAutoAddOns $logDeclinedAutoAddOns,
         private SyncRoutingRules $syncRoutingRules,
         private AddDayUseUnit $addDayUseUnit,
     ) {}
@@ -238,6 +239,8 @@ class AddUnit
                 throw new ReservationRefused(ReservationResult::refused((string) $addOnResult->refusal, $lineIndex));
             }
         }
+
+        ($this->logDeclinedAutoAddOns)($actor, $reservation, $unit, $data->declinedAutoAddOns);
 
         $this->log($actor, $reservation, $unit, $restrictionOverride, $overrideTotal, $data->overrideReason);
 

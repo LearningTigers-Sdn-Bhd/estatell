@@ -7,6 +7,8 @@ export type BookingAddOn = {
     quantity: string;
     unit_amount: string;
     service_date: string;
+    /** Client only: put there by the form for a charge item that is added to every new booking. */
+    auto?: boolean;
 };
 
 export type BookingLine = {
@@ -22,6 +24,8 @@ export type BookingLine = {
     override_reason: string;
     restriction_override_reason: string;
     add_ons: BookingAddOn[];
+    /** Charge item ids of the auto-add items staff removed from this line. The server logs them. */
+    declined_auto_add_ons: string[];
     room_id: string;
     bed_ids: string[];
     /** Day use only: the number of hours, as text. */
@@ -52,7 +56,50 @@ type RoomTypeOption = App.Data.Reservations.RoomTypeOptionData;
 
 let lineCount = 0;
 
-export function emptyLine(): BookingLine {
+type ChargeItemOption = App.Data.Reservations.ChargeItemOptionData;
+
+const NIGHTLY = ['per_night', 'per_guest_night'];
+
+/**
+ * The add-ons a new line starts with: every charge item that is added to every new booking. A day use block has no
+ * nights, so it gets only the items that do not charge by the night.
+ */
+export function autoAddOns(
+    chargeItems: ChargeItemOption[],
+    stayType: BookingForm['stay_type'],
+): BookingAddOn[] {
+    return chargeItems
+        .filter(
+            (item) =>
+                item.autoAdd &&
+                (stayType !== 'day_use' ||
+                    !NIGHTLY.includes(item.chargingUnit)),
+        )
+        .map((item) => ({
+            charge_item_id: String(item.id),
+            quantity: '1',
+            unit_amount: item.defaultAmount ?? '',
+            service_date: '',
+            auto: true,
+        }));
+}
+
+/** Takes one add-on off a line. Removing an automatic one is remembered, so the server can log it. */
+export function removeAddOn(line: BookingLine, position: number): BookingLine {
+    const removed = line.add_ons[position];
+
+    return {
+        ...line,
+        add_ons: line.add_ons.filter((_, at) => at !== position),
+        declined_auto_add_ons:
+            removed?.auto === true &&
+            !line.declined_auto_add_ons.includes(removed.charge_item_id)
+                ? [...line.declined_auto_add_ons, removed.charge_item_id]
+                : line.declined_auto_add_ons,
+    };
+}
+
+export function emptyLine(autoAdds: BookingAddOn[] = []): BookingLine {
     lineCount += 1;
 
     return {
@@ -66,7 +113,8 @@ export function emptyLine(): BookingLine {
         override_total: '',
         override_reason: '',
         restriction_override_reason: '',
-        add_ons: [],
+        add_ons: autoAdds.map((addOn) => ({ ...addOn })),
+        declined_auto_add_ons: [],
         room_id: '',
         bed_ids: [],
         hours: '',
@@ -232,6 +280,13 @@ export function quotePayload(
     };
 }
 
+/** The add-ons that have a charge item, without the client-only `auto` tag. */
+function sendableAddOns(addOns: BookingAddOn[]) {
+    return addOns
+        .filter((addOn) => addOn.charge_item_id !== '')
+        .map(({ auto: _auto, ...rest }) => rest);
+}
+
 /** The request the form posts: the client-only key is dropped and a dorm line sends its beds, not adults and children. */
 export function bookingPayload(data: BookingForm, roomTypes: RoomTypeOption[]) {
     if (data.stay_type === 'day_use') {
@@ -250,9 +305,7 @@ export function bookingPayload(data: BookingForm, roomTypes: RoomTypeOption[]) {
                     discount_id: '',
                     override_total: '',
                     override_reason: '',
-                    add_ons: line.add_ons.filter(
-                        (addOn) => addOn.charge_item_id !== '',
-                    ),
+                    add_ons: sendableAddOns(line.add_ons),
                 };
             }),
         };
@@ -274,9 +327,7 @@ export function bookingPayload(data: BookingForm, roomTypes: RoomTypeOption[]) {
                 room_id: isBed ? '' : line.room_id,
                 bed_ids: isBed ? line.bed_ids : [],
                 hours: '',
-                add_ons: line.add_ons.filter(
-                    (addOn) => addOn.charge_item_id !== '',
-                ),
+                add_ons: sendableAddOns(line.add_ons),
             };
         }),
     };

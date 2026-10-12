@@ -104,6 +104,14 @@ class ChargeItemRequest extends FormRequest
             'default_amount' => ['nullable', 'numeric', 'decimal:0,2', 'min:0.01', 'max:9999999999.99'],
             'charging_unit' => ['required', Rule::enum(ChargingUnit::class)],
             'allow_override' => ['required', 'boolean'],
+            'auto_add' => [
+                'sometimes', 'boolean',
+                function (string $attribute, mixed $value, Closure $fail): void {
+                    if (filter_var($value, FILTER_VALIDATE_BOOLEAN) && ! filled($this->input('default_amount'))) {
+                        $fail(__('Set a fixed price first. An item priced when charging cannot be added to every new booking.'));
+                    }
+                },
+            ],
             'active' => ['required', 'boolean'],
             'tax_ids' => [
                 'present', 'array', 'distinct',

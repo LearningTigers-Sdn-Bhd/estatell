@@ -80,7 +80,7 @@ An item with **Add to every new booking** (`charge_items.auto_add`) is added to 
 | ------------------------------------ | ----------------------------------------------------------------------------------------------------- |
 | Booking form and walk-in             | Prefilled in each room's Add-ons with an **Added automatically** tag and **×** to remove it           |
 | **Add unit** on the reservation page | Added by the server (the Sheet has no add-ons); the toast names them: "Unit added with Cleaning fee." |
-| Company portal booking               | Added by the server; the company user cannot remove them                                              |
+| Company portal booking               | Added by the server; the company user cannot remove them (comes with the portal item; not built yet)  |
 | Channel booking                      | Not added. The OTA price and terms decide what the guest pays                                         |
 | Reinstate                            | Not added again. The unit's old add-ons come back as they were                                        |
 | Day use unit                         | PerStay, PerGuest and PerItem items only; nightly items have no nights                                |
@@ -88,6 +88,9 @@ An item with **Add to every new booking** (`charge_items.auto_add`) is added to 
 - An auto-added add-on posts, prices and follows stay changes like any add-on.
 - Removing one on the booking form is logged on the reservation: "Cleaning fee was not added (removed on the booking form)." The form sends the removed item ids as `declined_auto_add_ons`.
 - The price follows the item's `allow_override` rule, like any add-on.
+- On the booking form a switch to day use starts the lines again, so each line is seeded for the new stay type (nightly items drop out for day use). Picking another charge item on an automatic row counts as removing the automatic one.
+- `LogDeclinedAutoAddOns` logs `reservation.auto_add_on_declined` for each removed item that is still an active auto-add item of the property. A stale or foreign id writes nothing.
+- On Add unit, `AutoAddOns::items()` picks the items and the controller passes them as ordinary add-ons, so a refusal refuses the whole unit like any add-on.
 
 ## Rules
 

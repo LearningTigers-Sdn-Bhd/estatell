@@ -20,6 +20,7 @@ class NewUnitData extends Data
     /**
      * @param  list<int>  $childAges
      * @param  list<NewAddOnData>  $addOns
+     * @param  list<int>  $declinedAutoAddOns  Auto-add charge item ids staff removed from this room on the booking form.
      */
     public function __construct(
         public int $roomTypeId,
@@ -43,5 +44,6 @@ class NewUnitData extends Data
         public ?string $startTime = null,
         public ?int $hours = null,
         public ?int $roomId = null,
+        public array $declinedAutoAddOns = [],
     ) {}
 }

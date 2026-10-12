@@ -23,6 +23,7 @@ use Illuminate\Support\Carbon;
  * @property string|null $default_amount
  * @property ChargingUnit $charging_unit
  * @property bool $allow_override
+ * @property bool $auto_add
  * @property bool $needs_child_price_review
  * @property int $position
  * @property bool $active
@@ -31,7 +32,7 @@ use Illuminate\Support\Carbon;
  */
 #[Fillable([
     'transaction_code_id', 'name', 'description', 'default_amount', 'charging_unit',
-    'allow_override', 'needs_child_price_review', 'position', 'active',
+    'allow_override', 'auto_add', 'needs_child_price_review', 'position', 'active',
 ])]
 class ChargeItem extends Model
 {
@@ -45,6 +46,7 @@ class ChargeItem extends Model
             'default_amount' => 'decimal:2',
             'charging_unit' => ChargingUnit::class,
             'allow_override' => 'boolean',
+            'auto_add' => 'boolean',
             'needs_child_price_review' => 'boolean',
             'position' => 'integer',
             'active' => 'boolean',

@@ -32,6 +32,7 @@ import {
 import {
     addDays,
     bookingPayload,
+    autoAddOns,
     emptyLine,
     nightsBetween,
     plansFor,
@@ -185,7 +186,7 @@ export default function ReservationCreate({
         billing_mode: billingModes[0]?.value ?? 'master_pays',
         notes: '',
         guests: [emptyGuest()],
-        lines: [emptyLine()],
+        lines: [emptyLine(autoAddOns(chargeItems, 'overnight'))],
     });
     const { data, errors } = form;
     const [quotes, setQuotes] = useState<Record<string, Quote>>({});
@@ -228,7 +229,11 @@ export default function ReservationCreate({
             ...current,
             stay_type: next as BookingForm['stay_type'],
             start_time: next === 'day_use' ? defaultStart(isWalkIn) : '',
-            lines: [emptyLine()],
+            lines: [
+                emptyLine(
+                    autoAddOns(chargeItems, next as BookingForm['stay_type']),
+                ),
+            ],
         }));
 
         if (next === 'day_use' && tab === 'discounts') {
@@ -1051,7 +1056,12 @@ export default function ReservationCreate({
                                                                 'lines',
                                                                 [
                                                                     ...data.lines,
-                                                                    emptyLine(),
+                                                                    emptyLine(
+                                                                        autoAddOns(
+                                                                            chargeItems,
+                                                                            data.stay_type,
+                                                                        ),
+                                                                    ),
                                                                 ],
                                                             )
                                                         }

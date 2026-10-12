@@ -17,10 +17,11 @@ class ChargeItemOptionData extends Data
         public string $chargingUnitLabel,
         public ?string $defaultAmount,
         public bool $allowOverride,
+        public bool $autoAdd = false,
     ) {}
 
     public static function fromModel(ChargeItem $item): self
     {
-        return new self($item->id, $item->name, $item->charging_unit->value, $item->charging_unit->label(), $item->default_amount, $item->allow_override);
+        return new self($item->id, $item->name, $item->charging_unit->value, $item->charging_unit->label(), $item->default_amount, $item->allow_override, $item->auto_add);
     }
 }

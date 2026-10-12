@@ -34,6 +34,7 @@ class UpdateChargeItem
 
             if ($attributes['default_amount'] === null) {
                 $attributes['allow_override'] = true;
+                $attributes['auto_add'] = false;
             }
 
             if (! $chargeItem->active && $attributes['active']) {

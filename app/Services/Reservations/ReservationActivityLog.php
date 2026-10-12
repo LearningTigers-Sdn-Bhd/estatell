@@ -94,6 +94,9 @@ class ReservationActivityLog
                 'quantity' => $properties->get('quantity'),
                 'amount' => $properties->get('unit_amount'),
             ]),
+            'reservation.auto_add_on_declined' => __(':item was not added (removed on the booking form)', [
+                'item' => $name('charge_item_id'),
+            ]),
             'reservation.group_updated' => $this->groupText($properties->get('old', []), $properties->get('new', [])),
             'reservation.guest_attached' => __(':guest added to a unit', ['guest' => $name('guest_id')]),
             'reservation.night_price_changed' => trans_choice('Price of :count night changed to :amount|Price of :count nights changed to :amount', count($properties->get('nights', [])), [

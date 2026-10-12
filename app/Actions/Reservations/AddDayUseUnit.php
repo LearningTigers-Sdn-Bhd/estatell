@@ -36,6 +36,7 @@ class AddDayUseUnit
         private CurrentBusinessDate $currentBusinessDate,
         private PropertyToday $propertyToday,
         private AddUnitAddOn $addUnitAddOn,
+        private LogDeclinedAutoAddOns $logDeclinedAutoAddOns,
         private SyncRoutingRules $syncRoutingRules,
     ) {}
 
@@ -193,6 +194,8 @@ class AddDayUseUnit
                 throw new ReservationRefused(ReservationResult::refused((string) $addOnResult->refusal, $lineIndex));
             }
         }
+
+        ($this->logDeclinedAutoAddOns)($actor, $reservation, $unit, $data->declinedAutoAddOns);
 
         $this->log($actor, $reservation, $unit, $room, $data->hours, $startsAt, $endsAt, $restrictionOverride);
 

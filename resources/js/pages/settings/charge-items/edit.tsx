@@ -112,6 +112,7 @@ export default function ChargeItemEdit({
         allow_override: chargeItem.allowOverride,
         active: chargeItem.active,
         tax_ids: chargeItem.taxIds.map(String),
+        auto_add: chargeItem.autoAdd,
         child_prices: childPrices.map((price) => ({
             property_age_group_id: price.ageGroupId,
             pricing: price.pricing as string,
@@ -138,6 +139,7 @@ export default function ChargeItemEdit({
                 ...data,
                 default_amount: '',
                 allow_override: true,
+                auto_add: false,
                 child_prices: data.child_prices.map((price) =>
                     price.pricing === 'percent'
                         ? { ...price, pricing: 'free', value: '' }
@@ -196,6 +198,9 @@ export default function ChargeItemEdit({
                             <>
                                 {!chargeItem.active && (
                                     <Badge variant="secondary">Inactive</Badge>
+                                )}
+                                {chargeItem.autoAdd && (
+                                    <Badge variant="outline">Auto</Badge>
                                 )}
                                 {chargeItem.needsChildPriceReview && (
                                     <Badge variant="outline">
@@ -463,6 +468,35 @@ export default function ChargeItemEdit({
                                 )}
                             </Section>
                         )}
+
+                        <Section title="New bookings" className="lg:col-span-2">
+                            <Field
+                                orientation="horizontal"
+                                data-invalid={!!form.errors.auto_add}
+                            >
+                                <Switch
+                                    id="charge-item-auto-add"
+                                    checked={form.data.auto_add}
+                                    onCheckedChange={(checked) =>
+                                        form.setData('auto_add', checked)
+                                    }
+                                    disabled={enteredWhenCharging}
+                                />
+                                <FieldContent>
+                                    <FieldLabel htmlFor="charge-item-auto-add">
+                                        Add to every new booking
+                                    </FieldLabel>
+                                    <FieldDescription>
+                                        {enteredWhenCharging
+                                            ? 'Set a fixed price first.'
+                                            : 'Put this item on every new room as an add-on, so staff do not have to remember it. Existing bookings do not change.'}
+                                    </FieldDescription>
+                                    <FieldError>
+                                        {form.errors.auto_add}
+                                    </FieldError>
+                                </FieldContent>
+                            </Field>
+                        </Section>
 
                         <Section title="Taxes" className="lg:col-span-2">
                             <Field data-invalid={!!form.errors.tax_ids}>

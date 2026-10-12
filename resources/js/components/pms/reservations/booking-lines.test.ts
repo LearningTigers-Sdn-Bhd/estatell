@@ -1,12 +1,14 @@
 import { expect, test } from 'vite-plus/test';
 import {
     addDays,
+    autoAddOns,
     bookingPayload,
     emptyLine,
     isQuotable,
     moveAddOn,
     nightsBetween,
     plansFor,
+    removeAddOn,
     resizeAges,
     resizeBeds,
     sumMoney,
@@ -233,4 +235,81 @@ test('plans are split by stay type', () => {
 
     expect(plansFor(plans, '1', '').map((one) => one.id)).toEqual([1]);
     expect(plansFor(plans, '1', '', true).map((one) => one.id)).toEqual([2]);
+});
+
+const item = (overrides: Record<string, unknown>) => ({
+    id: 1,
+    name: 'Cleaning fee',
+    chargingUnit: 'per_stay',
+    chargingUnitLabel: 'Per stay',
+    defaultAmount: '20.00',
+    allowOverride: false,
+    autoAdd: true,
+    ...overrides,
+});
+
+test('a new line starts with the auto-add items, and a day use line skips the nightly ones', () => {
+    const items = [
+        item({ id: 1 }),
+        item({ id: 2, chargingUnit: 'per_night', defaultAmount: '5.00' }),
+        item({ id: 3, autoAdd: false }),
+    ];
+
+    expect(
+        autoAddOns(items, 'overnight').map((addOn) => addOn.charge_item_id),
+    ).toEqual(['1', '2']);
+    expect(
+        autoAddOns(items, 'day_use').map((addOn) => addOn.charge_item_id),
+    ).toEqual(['1']);
+    expect(autoAddOns(items, 'overnight')[0]).toMatchObject({
+        unit_amount: '20.00',
+        auto: true,
+    });
+});
+
+test('removing an automatic add-on is remembered once and a manual one is not', () => {
+    const line = emptyLine([
+        ...autoAddOns([item({ id: 1 })], 'overnight'),
+        {
+            charge_item_id: '9',
+            quantity: '1',
+            unit_amount: '',
+            service_date: '',
+        },
+    ]);
+    const first = removeAddOn(line, 0);
+
+    expect(first.add_ons.map((addOn) => addOn.charge_item_id)).toEqual(['9']);
+    expect(first.declined_auto_add_ons).toEqual(['1']);
+    expect(removeAddOn(first, 0).declined_auto_add_ons).toEqual(['1']);
+});
+
+test('the posted add-ons carry the declined ids and not the client-only tag', () => {
+    const form: BookingForm = {
+        stay_type: 'overnight',
+        start_time: '',
+        source: 'phone',
+        external_reference: '',
+        arrival_date: '2026-10-20',
+        departure_date: '2026-10-22',
+        arrival_time: '14:00',
+        departure_time: '12:00',
+        group_name: '',
+        company_id: '',
+        credit_override_reason: '',
+        billing_mode: 'master_pays',
+        notes: '',
+        guests: [],
+        lines: [
+            {
+                ...emptyLine(autoAddOns([item({ id: 1 })], 'overnight')),
+                room_type_id: '1',
+                declined_auto_add_ons: ['5'],
+            },
+        ],
+    };
+    const [line] = bookingPayload(form, [roomType]).lines;
+
+    expect(line.declined_auto_add_ons).toEqual(['5']);
+    expect(line.add_ons[0]).not.toHaveProperty('auto');
 });

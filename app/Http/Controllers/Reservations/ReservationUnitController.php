@@ -7,14 +7,17 @@ use App\Actions\Reservations\AddGuestToUnit;
 use App\Actions\Reservations\AddUnit;
 use App\Actions\Reservations\DetachGuest;
 use App\Actions\Reservations\ReplaceUnitGuest;
+use App\Data\Reservations\NewAddOnData;
 use App\Enums\PermissionEnum;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Reservations\AddUnitRequest;
 use App\Http\Requests\Reservations\AttachGuestRequest;
 use App\Http\Requests\Reservations\UpdateUnitGuestRequest;
+use App\Models\ChargeItem;
 use App\Models\Property;
 use App\Models\Reservation;
 use App\Models\ReservationUnit;
+use App\Services\Reservations\AutoAddOns;
 use App\Services\Reservations\ReservationRefusals;
 use App\Services\Reservations\RoutingChangeNotice;
 use Illuminate\Http\RedirectResponse;
@@ -27,9 +30,13 @@ class ReservationUnitController extends Controller
     /**
      * Add one unit. A refusal goes back to the Sheet as an error on the matching field. A second unit that starts sending room charges to the Master folio saves with a warning toast when a unit's own folio keeps room lines or an advance.
      */
-    public function store(AddUnitRequest $request, Property $property, Reservation $reservation, AddUnit $addUnit, ReservationRefusals $refusals, RoutingChangeNotice $notice): RedirectResponse
+    public function store(AddUnitRequest $request, Property $property, Reservation $reservation, AddUnit $addUnit, ReservationRefusals $refusals, RoutingChangeNotice $notice, AutoAddOns $autoAddOns): RedirectResponse
     {
-        $result = $addUnit($request->user(), $reservation, $request->toUnitData());
+        $data = $request->toUnitData();
+        $autoItems = $autoAddOns->items($property, $data->stayType);
+        $data->addOns = array_map(fn (ChargeItem $item): NewAddOnData => new NewAddOnData($item->id), $autoItems);
+
+        $result = $addUnit($request->user(), $reservation, $data);
 
         if ($result->isRefused()) {
             return back(fallback: $this->page($property, $reservation))->withErrors(
@@ -37,7 +44,11 @@ class ReservationUnitController extends Controller
             );
         }
 
-        Inertia::flash('toast', $notice->toast(__('Unit added.'), $reservation, $result->unitsWithPostedRoomLines, $result->unitAdvances));
+        $message = $autoItems === []
+            ? __('Unit added.')
+            : __('Unit added with :items.', ['items' => implode(', ', array_map(fn (ChargeItem $item): string => $item->name, $autoItems))]);
+
+        Inertia::flash('toast', $notice->toast($message, $reservation, $result->unitsWithPostedRoomLines, $result->unitAdvances));
 
         return back(fallback: $this->page($property, $reservation));
     }

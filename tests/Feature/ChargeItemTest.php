@@ -376,6 +376,7 @@ test('the database enforces charge item invariants', function (array $attributes
     'open amount allows override' => [['default_amount' => null, 'allow_override' => false]],
     'known charging unit' => [['charging_unit' => 'per_room']],
     'trimmed name' => [['name' => ' Breakfast ']],
+    'auto add needs an amount' => [['default_amount' => null, 'auto_add' => true]],
 ]);
 
 test('the database keeps names unique within a property ignoring case', function () {
@@ -565,4 +566,35 @@ test('creating a per guest item gives every age group the default child price', 
     expect($priced->childPrices()->sole()->only(['pricing', 'value']))->toBe(['pricing' => AgeBandPricing::Percent, 'value' => '100.00'])
         ->and($open->childPrices()->sole()->only(['pricing', 'value']))->toBe(['pricing' => AgeBandPricing::Free, 'value' => null])
         ->and($perItem->childPrices()->count())->toBe(0);
+});
+
+test('an item can be added to every new booking only with a fixed price', function () {
+    $owner = User::factory()->owner()->create();
+    $property = $owner->property;
+    $item = ChargeItem::factory()->for($property)->create(['default_amount' => '20.00', 'charging_unit' => ChargingUnit::PerStay]);
+    $url = route('settings.charge-items.update', [$property->code, $item]);
+
+    $this->actingAs($owner)->put($url, chargeItemPayloadFor($item, ['auto_add' => true]))->assertSessionHasNoErrors();
+
+    expect($item->refresh()->auto_add)->toBeTrue();
+
+    $this->put($url, chargeItemPayloadFor($item, ['default_amount' => '', 'auto_add' => true]))->assertSessionHasErrors('auto_add');
+
+    expect($item->refresh()->auto_add)->toBeTrue();
+});
+
+test('pricing an item when charging turns auto-add off, and a save without the field leaves it', function () {
+    $owner = User::factory()->owner()->create();
+    $property = $owner->property;
+    $item = ChargeItem::factory()->for($property)->create(['default_amount' => '20.00', 'auto_add' => true]);
+    $url = route('settings.charge-items.update', [$property->code, $item]);
+
+    $this->actingAs($owner)->put($url, chargeItemPayloadFor($item, ['active' => false]))->assertSessionHasNoErrors();
+
+    expect($item->refresh()->auto_add)->toBeTrue();
+
+    $this->put($url, chargeItemPayloadFor($item, ['default_amount' => '']))->assertSessionHasNoErrors();
+
+    expect($item->refresh()->auto_add)->toBeFalse()
+        ->and($item->default_amount)->toBeNull();
 });

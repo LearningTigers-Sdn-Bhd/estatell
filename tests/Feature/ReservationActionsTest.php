@@ -2,9 +2,11 @@
 
 use App\Actions\Folio\CreateFolio;
 use App\Enums\BillingMode;
+use App\Enums\ChargingUnit;
 use App\Enums\DefaultRoleEnum;
 use App\Enums\PaymentPurpose;
 use App\Enums\RegistrationCardStatus;
+use App\Enums\StayType;
 use App\Enums\UnitStatus;
 use App\Models\ChargeItem;
 use App\Models\Guest;
@@ -25,6 +27,7 @@ use App\Models\Tax;
 use App\Models\UnitAddOn;
 use App\Models\UnitGuest;
 use App\Models\User;
+use App\Services\Reservations\AutoAddOns;
 use Inertia\Testing\AssertableInertia as Assert;
 use Spatie\Activitylog\Models\Activity;
 use Spatie\Permission\PermissionRegistrar;
@@ -837,4 +840,35 @@ test('guest search results carry the profile a form fills from, with the blackli
             'countryCode' => 'MY',
             'blacklistReason' => 'Damaged room',
         ]);
+});
+
+test('Add unit puts the auto-add charge items on the new unit and names them in the toast', function () {
+    $setup = actionsSetup();
+    $fee = ChargeItem::factory()->create(['property_id' => $setup['property']->id, 'name' => 'Cleaning fee', 'default_amount' => '20.00', 'charging_unit' => ChargingUnit::PerStay, 'auto_add' => true, 'position' => 1]);
+    $nightly = ChargeItem::factory()->create(['property_id' => $setup['property']->id, 'name' => 'Resort fee', 'default_amount' => '5.00', 'charging_unit' => ChargingUnit::PerNight, 'auto_add' => true, 'position' => 2]);
+    ChargeItem::factory()->create(['property_id' => $setup['property']->id, 'default_amount' => '9.00', 'auto_add' => false]);
+    ChargeItem::factory()->inactive()->create(['property_id' => $setup['property']->id, 'default_amount' => '9.00', 'auto_add' => true]);
+    ChargeItem::factory()->create(['default_amount' => '9.00', 'auto_add' => true]);
+
+    $this->actingAs($setup['user'])
+        ->from(actionsRoute($setup, 'reservations.show'))
+        ->post(actionsRoute($setup, 'reservations.units.store'), actionsUnitPayload($setup))
+        ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Unit added with Cleaning fee, Resort fee.']);
+
+    $unit = $setup['reservation']->units()->latest('id')->firstOrFail();
+
+    expect($unit->addOns()->where('charge_item_id', $fee->id)->sole()->unit_amount)->toBe('20.00')
+        ->and($unit->addOns()->where('charge_item_id', $nightly->id)->count())->toBe(2)
+        ->and($unit->addOns()->count())->toBe(3);
+});
+
+test('a day use unit gets only the auto-add items that do not charge by the night', function () {
+    $setup = actionsSetup();
+    $nightly = ChargeItem::factory()->create(['property_id' => $setup['property']->id, 'default_amount' => '5.00', 'charging_unit' => ChargingUnit::PerGuestNight, 'auto_add' => true]);
+    $perStay = ChargeItem::factory()->create(['property_id' => $setup['property']->id, 'default_amount' => '20.00', 'charging_unit' => ChargingUnit::PerStay, 'auto_add' => true]);
+
+    $items = app(AutoAddOns::class)->items($setup['property'], StayType::DayUse);
+
+    expect(array_map(fn (ChargeItem $item): int => $item->id, $items))->toBe([$perStay->id])
+        ->and(array_map(fn (ChargeItem $item): int => $item->id, app(AutoAddOns::class)->items($setup['property'])))->toBe([$nightly->id, $perStay->id]);
 });

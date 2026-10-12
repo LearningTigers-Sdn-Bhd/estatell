@@ -19,6 +19,7 @@ description: string | null,
 defaultAmount: string | null,
 chargingUnit: App.Enums.ChargingUnit,
 allowOverride: boolean,
+autoAdd: boolean,
 needsChildPriceReview: boolean,
 active: boolean,
 taxIds: number[],
@@ -1513,6 +1514,7 @@ chargingUnit: string,
 chargingUnitLabel: string,
 defaultAmount: string | null,
 allowOverride: boolean,
+autoAdd: boolean,
 };
 export type CheckInAllPreviewData = {
 rows: {
@@ -1699,6 +1701,7 @@ stayType: App.Enums.StayType,
 startTime: string | null,
 hours: number | null,
 roomId: number | null,
+declinedAutoAddOns: number[],
 };
 export type NightPriceChangePreviewData = {
 nights: App.Data.Reservations.NightPriceNightData[],

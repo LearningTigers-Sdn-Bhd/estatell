@@ -71,6 +71,8 @@ class StoreBookingRequest extends FormRequest
             'lines.*.override_reason' => ['nullable', 'string', 'max:500'],
             'lines.*.restriction_override_reason' => ['nullable', 'string', 'max:500'],
             'lines.*.add_ons' => ['nullable', 'array', 'max:20'],
+            'lines.*.declined_auto_add_ons' => ['nullable', 'array', 'max:20'],
+            'lines.*.declined_auto_add_ons.*' => ['integer'],
             'lines.*.add_ons.*.charge_item_id' => ['required', 'integer'],
             'lines.*.add_ons.*.quantity' => ['nullable', 'integer', 'min:1', 'max:999'],
             'lines.*.add_ons.*.unit_amount' => ['nullable', 'string', 'regex:/^\d+(\.\d{1,2})?$/'],
@@ -159,6 +161,7 @@ class StoreBookingRequest extends FormRequest
                     unitAmount: $addOn['unit_amount'] ?? null,
                     serviceDate: isset($addOn['service_date']) ? CarbonImmutable::parse($addOn['service_date']) : null,
                 ), $line['add_ons'] ?? []),
+                declinedAutoAddOns: array_map(intval(...), $line['declined_auto_add_ons'] ?? []),
             );
 
             foreach (range(0, $beds - 1) as $bed) {

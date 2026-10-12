@@ -233,6 +233,11 @@ function ChargeItemTable({
                                     <div className="flex min-w-0 flex-col gap-0.5">
                                         <span className="flex items-center gap-2 font-medium">
                                             {chargeItem.name}
+                                            {chargeItem.autoAdd && (
+                                                <Badge variant="outline">
+                                                    Auto
+                                                </Badge>
+                                            )}
                                             {chargeItem.needsChildPriceReview && (
                                                 <Badge variant="outline">
                                                     Check child prices
