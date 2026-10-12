@@ -4,6 +4,7 @@ import { FormOverlay } from '@/components/pms/form-overlay';
 import { useUnitPreview } from '@/components/pms/reservations/use-unit-preview';
 import { KEEP_OPTIONS } from '@/components/pms/use-form-options';
 import { useFreshOnOpen } from '@/components/pms/use-fresh-on-open';
+import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
     Field,
@@ -36,6 +37,7 @@ function CheckInAllForm({ open, onOpenChange, reservation }: Props) {
     const selected = (picked ?? ready.map((row) => row.unitId)).filter((id) =>
         ready.some((row) => row.unitId === id),
     );
+    const nothingToCheckIn = preview !== null && preview.rows.length === 0;
     const noneReady =
         preview !== null && preview.rows.length > 0 && ready.length === 0;
     const needsCard =
@@ -83,6 +85,17 @@ function CheckInAllForm({ open, onOpenChange, reservation }: Props) {
             processing={form.processing}
             submitDisabled={selected.length === 0}
             loading={preview === null}
+            footer={
+                nothingToCheckIn ? (
+                    <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => onOpenChange(false)}
+                    >
+                        Close
+                    </Button>
+                ) : undefined
+            }
         >
             {preview !== null && (
                 <>
@@ -169,7 +182,7 @@ function CheckInAllForm({ open, onOpenChange, reservation }: Props) {
                             </Field>
                         </FieldLabel>
                     )}
-                    {!noneReady && (
+                    {!noneReady && !nothingToCheckIn && (
                         <p className="text-sm text-muted-foreground">
                             Check in all takes no payment. Collect the taxes and
                             the deposit for each unit afterwards.
