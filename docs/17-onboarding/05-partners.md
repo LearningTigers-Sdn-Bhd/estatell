@@ -73,7 +73,7 @@ app.example.com/join/K7Q2MX
 
 - Every partner query is scoped by `properties.partner_id`.
 - Partner writes carry `support.2fa` (does nothing unless `SUPPORT_REQUIRE_2FA` is on).
-- Account pages (`/account`) work for partners like for admins. Staff-only account pages return 404.
+- Account pages (`/account`) work for partners like for admins, inside the partner layout. Staff-only account pages return 404.
 
 ## Admin
 
@@ -150,13 +150,14 @@ Selected (1): [Copy message] [Export ▾ CSV · XLSX · PDF] [Reset temp passwor
 
 - A partner can: list their properties, create a property, share and regenerate their link, and view as staff of their properties during onboarding and after go-live (see [Impersonation](../01-platform/04-impersonation.md)).
 - A partner cannot: suspend a property, toggle features, edit platform settings, manage partners or move properties.
-- A suspended partner cannot sign in (blocked at login and logged out, like deactivated staff). Their properties keep running and stay linked.
+- A suspended partner cannot sign in (blocked at login and logged out, like deactivated staff). `LogoutDeactivatedUsers` signs them out on their next request, with the message "Your partner account is suspended. Contact estatell support." Their properties keep running and stay linked.
 - Sign-in sends partners to `/partner`. Partners get 404 on `/admin` and on `/p/{code}` outside view as.
 
 ## Actions and services
 
 - `InvitePartner`, `ResendPartnerInvitation`, `RevokePartnerInvitation`, `AcceptPartnerInvitation`, `CreatePartnerWithTemporaryPassword`, `BulkCreatePartners`, `ResetPartnerTemporaryPassword`, `SuspendPartner`, `ReactivatePartner`, `RegeneratePartnerSignupCode`, `MovePropertyToPartner` (`app/Actions/Platform/`).
-- Partner creation shares one internal step (partner row, counter row, signup code) so the three ways cannot drift apart.
+- Partner creation shares one internal step, `CreatePartner` (partner row, counter row with `last_number` 10100, signup code), so the three ways cannot drift apart. `PartnerSignupCode` (`app/Services/Platform/`) generates the signup code and retries on a clash.
+- `ResetPartnerTemporaryPassword` is separate from the staff `ResetTemporaryPassword` (no Owner role check). Copy and export reuse `TemporaryPasswordMessage` and `TemporaryPasswordFile`; `TemporaryPasswordSlipData::fromPartner` puts the partner name where staff slips show the property.
 - `IssuePropertyCode` (`app/Actions/Property/`).
 - `PartnerProperties` service: the partner's property list (`app/Services/Platform/`).
 - `PropertyPolicy::viewAs`.
