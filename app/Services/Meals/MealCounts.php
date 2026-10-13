@@ -4,17 +4,20 @@ namespace App\Services\Meals;
 
 use App\Data\Meals\MealInclusionData;
 use App\Enums\UnitStatus;
+use App\Features\Boats;
 use App\Models\MealPeriod;
 use App\Models\Property;
 use App\Models\RatePlanInclusion;
 use App\Models\ReservationUnit;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
+use Laravel\Pennant\Feature;
 
 /**
  * The meals the kitchen must prepare, calculated from the units that are in house, still to arrive or already gone
  * and the meal inclusions of their rate plans. It reads only and stores nothing. A unit counts its adults and
- * children, and `MealEntitlementResolver` says which dates and periods it is owed. Confirmed, Checked-in and
+ * children, and `MealEntitlementResolver` says which dates and periods it is owed. With the Boats feature on, the
+ * unit's arrival and departure times trim the first and last day. Confirmed, Checked-in and
  * Checked-out units count (an early check-out has already moved the departure date); Cancelled and No-show units do not.
  */
 class MealCounts
@@ -48,6 +51,7 @@ class MealCounts
             ->with(['ratePlan.inclusions' => fn ($inclusions) => $inclusions->whereNotNull('meal_period_id')->with('mealPeriod')])
             ->get();
 
+        $trimByTimes = Feature::for($property)->active(Boats::class);
         $first = $from->toDateString();
         $last = $to->toDateString();
 
@@ -62,6 +66,8 @@ class MealCounts
                 CarbonImmutable::parse($unit->departure_date->toDateString()),
                 $unit->adults + $unit->children,
                 $inclusions,
+                $trimByTimes ? $unit->arrival_time : null,
+                $trimByTimes ? $unit->departure_time : null,
             );
 
             foreach ($entitlements as $entitlement) {

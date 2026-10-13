@@ -7,9 +7,9 @@ use App\Enums\InclusionStart;
 use App\Services\Meals\MealEntitlementResolver;
 use Carbon\CarbonImmutable;
 
-function mealInclusion(int $periodId, string $startsAt, InclusionStart $start, InclusionEnd $end): MealInclusionData
+function mealInclusion(int $periodId, string $startsAt, InclusionStart $start, InclusionEnd $end, string $endsAt = '23:00'): MealInclusionData
 {
-    return new MealInclusionData($periodId, $startsAt, $start, $end);
+    return new MealInclusionData($periodId, $startsAt, $endsAt, $start, $end);
 }
 
 function breakfast(): MealInclusionData
@@ -33,13 +33,15 @@ function mealRows(iterable $rows): array
         ->all();
 }
 
-function resolveMeals(string $arrival, string $departure, int $guests, array $inclusions): array
+function resolveMeals(string $arrival, string $departure, int $guests, array $inclusions, ?string $arrivalTime = null, ?string $departureTime = null): array
 {
     return mealRows(app(MealEntitlementResolver::class)->resolve(
         CarbonImmutable::parse($arrival),
         CarbonImmutable::parse($departure),
         $guests,
         $inclusions,
+        $arrivalTime,
+        $departureTime,
     ));
 }
 
@@ -126,4 +128,30 @@ test('arrival and departure times of day are ignored', function () {
         '2026-10-01 #3 x1',
         '2026-10-02 #1 x1',
     ]);
+});
+
+function lunch(): MealInclusionData
+{
+    return mealInclusion(2, '12:00', InclusionStart::ArrivalDay, InclusionEnd::DepartureDay, '14:30');
+}
+
+test('an arrival before the meal ends keeps the meal and an arrival at its end drops it', function () {
+    expect(resolveMeals('2026-10-01', '2026-10-02', 1, [lunch()], '12:45:00', '23:00:00'))->toBe(['2026-10-01 #2 x1', '2026-10-02 #2 x1'])
+        ->and(resolveMeals('2026-10-01', '2026-10-02', 1, [lunch()], '14:30:00', '23:00:00'))->toBe(['2026-10-02 #2 x1']);
+});
+
+test('a departure after the meal starts keeps the meal and a departure at its start drops it', function () {
+    expect(resolveMeals('2026-10-01', '2026-10-02', 1, [lunch()], '08:00:00', '12:30:00'))->toBe(['2026-10-01 #2 x1', '2026-10-02 #2 x1'])
+        ->and(resolveMeals('2026-10-01', '2026-10-02', 1, [lunch()], '08:00:00', '12:00:00'))->toBe(['2026-10-01 #2 x1']);
+});
+
+test('times never trim the days between and never add a meal', function () {
+    expect(resolveMeals('2026-10-01', '2026-10-04', 1, [lunch()], '14:30:00', '12:00:00'))->toBe(['2026-10-02 #2 x1', '2026-10-03 #2 x1'])
+        ->and(resolveMeals('2026-10-01', '2026-10-02', 1, [dinner()], '03:00:00', '23:00:00'))->toBe(['2026-10-01 #3 x1']);
+});
+
+test('a same day stay applies both rules to its one date', function () {
+    expect(resolveMeals('2026-10-01', '2026-10-01', 1, [lunch()], '10:00:00', '13:00:00'))->toBe(['2026-10-01 #2 x1'])
+        ->and(resolveMeals('2026-10-01', '2026-10-01', 1, [lunch()], '10:00:00', '12:00:00'))->toBe([])
+        ->and(resolveMeals('2026-10-01', '2026-10-01', 1, [lunch()], '15:00:00', '16:00:00'))->toBe([]);
 });

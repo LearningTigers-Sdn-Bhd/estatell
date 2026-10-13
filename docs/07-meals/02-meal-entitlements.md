@@ -48,5 +48,6 @@ Only when the [Boats](../24-boats/02-boat-trips.md#meals) feature is on. `MealCo
 - **Arrival day:** a meal counts when `arrival_time` is before the meal's `ends_at`.
 - **Departure day:** a meal counts when `departure_time` is after the meal's `starts_at`.
 - Days in between are not changed.
+- A unit with no boat trip is trimmed too, by its default times (the property's check-in and check-out times).
 
 It only trims what the inclusions already give, and it changes the kitchen counts only, never postings or prices. With the feature off, times of day are ignored as before. wastays did the same for boats with fixed meal flags on each boat schedule.

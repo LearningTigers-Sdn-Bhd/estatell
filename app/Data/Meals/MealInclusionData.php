@@ -13,6 +13,7 @@ class MealInclusionData extends Data
     public function __construct(
         public int $mealPeriodId,
         public string $mealPeriodStartsAt,
+        public string $mealPeriodEndsAt,
         public InclusionStart $startsOn,
         public InclusionEnd $endsOn,
     ) {}
@@ -25,6 +26,7 @@ class MealInclusionData extends Data
         return new self(
             mealPeriodId: $inclusion->meal_period_id,
             mealPeriodStartsAt: $inclusion->mealPeriod->starts_at,
+            mealPeriodEndsAt: $inclusion->mealPeriod->ends_at,
             startsOn: $inclusion->starts_on,
             endsOn: $inclusion->ends_on,
         );

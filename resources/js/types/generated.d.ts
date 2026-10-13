@@ -725,6 +725,7 @@ guests: number,
 export type MealInclusionData = {
 mealPeriodId: number,
 mealPeriodStartsAt: string,
+mealPeriodEndsAt: string,
 startsOn: App.Enums.InclusionStart,
 endsOn: App.Enums.InclusionEnd,
 };

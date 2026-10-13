@@ -4,6 +4,7 @@ use App\Enums\DefaultRoleEnum;
 use App\Enums\InclusionEnd;
 use App\Enums\InclusionStart;
 use App\Enums\ReportKey;
+use App\Features\Boats;
 use App\Models\BusinessDate;
 use App\Models\MealPeriod;
 use App\Models\Property;
@@ -15,6 +16,7 @@ use App\Models\ReservationUnit;
 use App\Models\User;
 use Illuminate\Support\Facades\View;
 use Inertia\Testing\AssertableInertia as Assert;
+use Laravel\Pennant\Feature;
 
 beforeEach(function () {
     $this->travelTo(now()->setDate(2026, 10, 10)->setTime(12, 0));
@@ -172,4 +174,20 @@ test('the PDF and CSV carry only the selected rows and their totals', function (
         ->and($rows[0])->toBe(['Date', 'Meal', 'Adults', 'Children', 'Total'])
         ->and($rows[1])->toBe(['2026-10-09', 'Dinner', '2', '1', '3'])
         ->and(end($rows))->toBe(['Total', '', '4', '2', '6']);
+});
+
+test('with boats on, a late arrival and an early departure trim the dinner and breakfast counts, and with boats off they do not', function () {
+    [$user, $property] = mealCountsSetup();
+    ['plan' => $plan, 'breakfast' => $breakfast, 'dinner' => $dinner] = mealCountsPlan($property);
+    $unit = mealCountsUnit($property, $plan, 'confirmed', '2026-10-11', '2026-10-12', 2);
+    $unit->forceFill(['arrival_time' => '20:30:00', 'departure_time' => '06:30:00'])->save();
+    $url = mealCountsUrl($property, '?from=2026-10-11&to=2026-10-12');
+
+    $this->actingAs($user)->get($url)->assertInertia(fn (Assert $page) => $page
+        ->where('rows.data', fn ($rows) => collect($rows)->pluck('key')->all() === ["2026-10-11:{$dinner->id}", "2026-10-12:{$breakfast->id}"]));
+
+    Feature::for($property)->activate(Boats::class);
+
+    $this->actingAs($user)->get($url)->assertInertia(fn (Assert $page) => $page
+        ->where('rows.data', fn ($rows) => collect($rows)->pluck('key')->all() === []));
 });
