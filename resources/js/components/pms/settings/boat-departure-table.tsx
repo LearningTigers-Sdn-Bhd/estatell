@@ -48,16 +48,16 @@ export function BoatDepartureTable({
 }) {
     return (
         <div className="overflow-auto rounded-lg border">
-            <Table>
+            <Table className="table-fixed">
                 <TableHeader>
                     <TableRow>
-                        <TableHead>Available</TableHead>
-                        <TableHead>Leaves</TableHead>
-                        <TableHead>Arrives</TableHead>
+                        <TableHead className="w-28">Available</TableHead>
+                        <TableHead className="w-24">Leaves</TableHead>
+                        <TableHead className="w-24">Arrives</TableHead>
                         <TableHead>Pick-up point</TableHead>
-                        <TableHead className="text-right">Seats</TableHead>
-                        <TableHead>Fare</TableHead>
-                        <TableHead>
+                        <TableHead className="w-20 text-right">Seats</TableHead>
+                        <TableHead className="w-72">Fare</TableHead>
+                        <TableHead className="w-14">
                             <span className="sr-only">Actions</span>
                         </TableHead>
                     </TableRow>

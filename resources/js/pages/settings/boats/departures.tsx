@@ -137,40 +137,25 @@ export default function BoatDeparturesPage({
                 />
 
                 <BoatSettingsTabs activeTab="departures">
-                    {directions.map((direction) => {
-                        const rows = departures.filter(
-                            (departure) =>
-                                departure.direction === direction.value,
-                        );
+                    <div className="flex flex-col gap-8">
+                        {directions.map((direction) => {
+                            const rows = departures.filter(
+                                (departure) =>
+                                    departure.direction === direction.value,
+                            );
 
-                        return (
-                            <section
-                                key={direction.value}
-                                className="flex flex-col gap-3"
-                            >
-                                <div className="flex items-center justify-between gap-4">
-                                    <h2 className="text-base font-medium">
-                                        {direction.label}
-                                    </h2>
-                                    {rows.length > 0 && (
-                                        <Button
-                                            variant="outline"
-                                            onClick={() =>
-                                                openAdd(direction.value)
-                                            }
-                                        >
-                                            <Plus data-icon="inline-start" />
-                                            Add departure
-                                        </Button>
-                                    )}
-                                </div>
-
-                                {rows.length === 0 ? (
-                                    <EmptyState
-                                        icon={Ship}
-                                        title={`No ${direction.label.toLowerCase()} departures yet.`}
-                                        action={
+                            return (
+                                <section
+                                    key={direction.value}
+                                    className="flex flex-col gap-3"
+                                >
+                                    <div className="flex items-center justify-between gap-4">
+                                        <h2 className="text-base font-medium">
+                                            {direction.label}
+                                        </h2>
+                                        {rows.length > 0 && (
                                             <Button
+                                                variant="outline"
                                                 onClick={() =>
                                                     openAdd(direction.value)
                                                 }
@@ -178,21 +163,38 @@ export default function BoatDeparturesPage({
                                                 <Plus data-icon="inline-start" />
                                                 Add departure
                                             </Button>
-                                        }
-                                    />
-                                ) : (
-                                    <BoatDepartureTable
-                                        departures={rows}
-                                        money={money}
-                                        togglingIds={togglingIds}
-                                        onToggleActive={requestToggle}
-                                        onEdit={openEdit}
-                                        onDelete={setDeleting}
-                                    />
-                                )}
-                            </section>
-                        );
-                    })}
+                                        )}
+                                    </div>
+
+                                    {rows.length === 0 ? (
+                                        <EmptyState
+                                            icon={Ship}
+                                            title={`No ${direction.label.toLowerCase()} departures yet.`}
+                                            action={
+                                                <Button
+                                                    onClick={() =>
+                                                        openAdd(direction.value)
+                                                    }
+                                                >
+                                                    <Plus data-icon="inline-start" />
+                                                    Add departure
+                                                </Button>
+                                            }
+                                        />
+                                    ) : (
+                                        <BoatDepartureTable
+                                            departures={rows}
+                                            money={money}
+                                            togglingIds={togglingIds}
+                                            onToggleActive={requestToggle}
+                                            onEdit={openEdit}
+                                            onDelete={setDeleting}
+                                        />
+                                    )}
+                                </section>
+                            );
+                        })}
+                    </div>
                 </BoatSettingsTabs>
             </div>
 
