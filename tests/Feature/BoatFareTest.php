@@ -317,3 +317,24 @@ test('the charge items page cannot turn off a fare while an available departure 
     'used by an available departure' => [true],
     'used only by an unavailable departure' => [false],
 ]);
+
+test('editing a fare saves its taxes, and a save that leaves out Available is refused', function () {
+    $owner = User::factory()->owner()->create();
+    $property = $owner->property;
+    boatFareEnable($property);
+    $fare = boatFareMake($property);
+    $tax = Tax::factory()->for($property)->create(['name' => 'SST']);
+    $url = route('settings.boats.fares.update', ['property' => $property->code, 'chargeItem' => $fare->id]);
+
+    $this->actingAs($owner)->put($url, boatFarePayload(['tax_ids' => [$tax->id], 'default_amount' => '40.00']))->assertSessionHasNoErrors();
+
+    expect($fare->refresh()->transactionCode->applicableTaxes->pluck('id')->all())->toBe([$tax->id])
+        ->and($fare->default_amount)->toBe('40.00');
+
+    $payload = boatFarePayload(['tax_ids' => []]);
+    unset($payload['active']);
+
+    $this->actingAs($owner)->put($url, $payload)->assertSessionHasErrors('active');
+
+    expect($fare->refresh()->transactionCode->applicableTaxes)->toHaveCount(1);
+});
