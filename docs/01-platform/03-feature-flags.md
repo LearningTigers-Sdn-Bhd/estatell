@@ -23,7 +23,7 @@ Turn optional capabilities on or off per property, without code changes. The fir
 ## Admin UI
 
 - **Features** tab on the admin property page (see [Admin properties](05-admin-properties.md)): one `Switch` per `PlatformFeature`, with an optimistic update that rolls back on failure.
-- `PUT /admin/properties/{code}/features/{feature}` (`admin.properties.features.update`), middleware `auth`, `can:admin`, `admin.2fa`. `{feature}` binds to `PlatformFeature`, so an unknown feature is `404`. Body: `active` (bool).
+- `PUT /admin/properties/{code}/features/{feature}` (`admin.properties.features.update`), middleware `auth`, `can:admin`, `support.2fa`. `{feature}` binds to `PlatformFeature`, so an unknown feature is `404`. Body: `active` (bool).
 - `SetPropertyFeature` Action activates or deactivates and logs `feature.activated` or `feature.deactivated` (subject: property, causer: admin, property `feature`). Setting the same value again does nothing.
 - The tab does not show who changed a flag last. The activity log has it; an Activity tab can show it later.
 

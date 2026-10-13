@@ -23,10 +23,10 @@ platform_settings    id (always 1), require_go_live_approval (bool, default fals
 
 ## Routes and page
 
-| Method + URL          | Name                    | Middleware                 |
-| --------------------- | ----------------------- | -------------------------- |
-| `GET /admin/settings` | `admin.settings.edit`   | auth, can:admin            |
-| `PUT /admin/settings` | `admin.settings.update` | auth, can:admin, admin.2fa |
+| Method + URL          | Name                    | Middleware                   |
+| --------------------- | ----------------------- | ---------------------------- |
+| `GET /admin/settings` | `admin.settings.edit`   | auth, can:admin              |
+| `PUT /admin/settings` | `admin.settings.update` | auth, can:admin, support.2fa |
 
 Page: `pages/admin/settings/edit.tsx`, one form with one Save button, in the admin layout.
 
