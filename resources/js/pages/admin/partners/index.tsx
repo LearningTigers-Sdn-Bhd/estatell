@@ -9,18 +9,27 @@ import {
     ActivePartnerActions,
     SuspendedPartnerActions,
 } from '@/components/pms/partners/partner-row-actions';
-import { PartnerSignInMessageDialog } from '@/components/pms/partners/partner-sign-in-message-dialog';
 import { PageHeader } from '@/components/pms/page-header';
 import { StatusBadge } from '@/components/pms/status-badge';
 import { TabLinks } from '@/components/pms/tab-links';
+import type { EnumOption } from '@/components/pms/enum-select';
+import { ExportTemporaryPasswordsMenu } from '@/components/pms/temporary-passwords/export-temporary-passwords-menu';
+import { ResetTemporaryPassword } from '@/components/pms/temporary-passwords/reset-temporary-password';
+import { TemporaryPasswordMessageDialog } from '@/components/pms/temporary-passwords/temporary-password-message-dialog';
 import { Button } from '@/components/ui/button';
 import { dashboard } from '@/routes/admin';
 import { index, suspended } from '@/routes/admin/partners';
+import {
+    exportMethod,
+    message,
+    reset,
+} from '@/routes/admin/partners/temporary-passwords';
 
 type Row = App.Data.Platform.AdminPartnerRowData;
 
 type Props = {
     tab: 'active' | 'suspended';
+    exportFormats?: EnumOption[];
     partners: Illuminate.LengthAwarePaginator<number, Row>;
 };
 
@@ -90,7 +99,7 @@ const createdColumn = column.accessor('createdAt', {
     cell: (info) => <DateText date={info.getValue()} />,
 });
 
-const activeColumns = [
+const activeColumns = (onShowMessage: (userIds: number[]) => void) => [
     ...columns,
     column.display({
         id: 'status',
@@ -101,7 +110,12 @@ const activeColumns = [
     column.display({
         id: 'actions',
         header: () => <span className="sr-only">Actions</span>,
-        cell: (info) => <ActivePartnerActions partner={info.row.original} />,
+        cell: (info) => (
+            <ActivePartnerActions
+                partner={info.row.original}
+                onShowMessage={onShowMessage}
+            />
+        ),
     }),
 ];
 
@@ -124,9 +138,70 @@ const suspendedColumns = [
     }),
 ];
 
-export default function PartnersIndex({ tab, partners }: Props) {
+function SelectionBar({
+    selected,
+    exportFormats,
+    onShowMessage,
+    onClear,
+}: {
+    selected: number[];
+    exportFormats: EnumOption[];
+    onShowMessage: (userIds: number[]) => void;
+    onClear: () => void;
+}) {
+    return (
+        <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-muted/50 px-3 py-2">
+            <span className="text-sm font-medium">
+                Selected ({selected.length})
+            </span>
+            <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onShowMessage(selected)}
+            >
+                Copy message
+            </Button>
+            <ExportTemporaryPasswordsMenu
+                route={exportMethod()}
+                userIds={selected}
+                formats={exportFormats}
+                size="sm"
+            />
+            <ResetTemporaryPassword
+                route={reset()}
+                skippedNote="Suspended partners are skipped."
+                userIds={selected}
+                target={`${selected.length} partners`}
+                variant="outline"
+                onReset={(userIds) => {
+                    onShowMessage(userIds);
+                    onClear();
+                }}
+            />
+            <Button
+                variant="ghost"
+                size="sm"
+                className="ms-auto"
+                onClick={onClear}
+            >
+                Clear
+            </Button>
+        </div>
+    );
+}
+
+export default function PartnersIndex({
+    tab,
+    partners,
+    exportFormats = [],
+}: Props) {
     const [addOpen, setAddOpen] = useState(false);
-    const [message, setMessage] = useState<string | null>(null);
+    const [messageUserIds, setMessageUserIds] = useState<number[] | null>(null);
+    const [chosen, setChosen] = useState<Set<string>>(new Set());
+    // Partners that left the list (suspended, for example) drop out of the selection.
+    const selected = partners.data
+        .filter((row) => tab === 'active' && chosen.has(String(row.userId)))
+        .map((row) => row.userId);
 
     return (
         <>
@@ -163,12 +238,27 @@ export default function PartnersIndex({ tab, partners }: Props) {
                         },
                     ]}
                 >
+                    {tab === 'active' && selected.length > 0 && (
+                        <SelectionBar
+                            selected={selected}
+                            exportFormats={exportFormats}
+                            onShowMessage={setMessageUserIds}
+                            onClear={() => setChosen(new Set())}
+                        />
+                    )}
                     <DataTable
                         columns={
-                            tab === 'active' ? activeColumns : suspendedColumns
+                            tab === 'active'
+                                ? activeColumns(setMessageUserIds)
+                                : suspendedColumns
                         }
                         data={partners.data}
-                        getRowId={(row) => String(row.id)}
+                        getRowId={(row) => String(row.userId)}
+                        selection={
+                            tab === 'active'
+                                ? { selected: chosen, onChange: setChosen }
+                                : undefined
+                        }
                         sort=""
                         onSortChange={() => {}}
                         pagination={{
@@ -197,11 +287,14 @@ export default function PartnersIndex({ tab, partners }: Props) {
             <AddPartnerDialog
                 open={addOpen}
                 onOpenChange={setAddOpen}
-                onAdded={setMessage}
+                onAdded={(userId) => setMessageUserIds([userId])}
             />
-            <PartnerSignInMessageDialog
-                message={message}
-                onClose={() => setMessage(null)}
+            <TemporaryPasswordMessageDialog
+                route={message()}
+                who="partner"
+                userIds={messageUserIds ?? []}
+                open={messageUserIds !== null}
+                onOpenChange={(open) => !open && setMessageUserIds(null)}
             />
         </>
     );

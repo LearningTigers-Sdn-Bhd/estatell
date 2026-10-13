@@ -11,16 +11,19 @@ import {
 import { Spinner } from '@/components/ui/spinner';
 import { toast } from '@/components/ui/toast';
 import { postDownload } from '@/lib/post-download';
-import { exportMethod } from '@/routes/settings/staff/temp-passwords';
+import type { RouteDefinition } from '@/wayfinder';
 
 /**
- * Downloads the temp passwords of the given staff as CSV, XLSX or PDF slips.
+ * Downloads the temp passwords of the given users as CSV, XLSX or PDF slips.
  */
 export function ExportTemporaryPasswordsMenu({
+    route,
     userIds,
     formats,
     size = 'default',
 }: {
+    /** The route that sends the file, for example `exportMethod()` from the staff or partner temp password routes. */
+    route: RouteDefinition<'post'>;
     userIds: number[];
     formats: EnumOption[];
     size?: 'default' | 'sm';
@@ -29,7 +32,7 @@ export function ExportTemporaryPasswordsMenu({
 
     const download = (format: string) => {
         setBusy(true);
-        postDownload(exportMethod.url(), { user_ids: userIds, format })
+        postDownload(route.url, { user_ids: userIds, format })
             .then((headers) => {
                 const skipped = Number(headers.get('X-Skipped') ?? 0);
 

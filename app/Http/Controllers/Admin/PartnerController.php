@@ -4,12 +4,11 @@ namespace App\Http\Controllers\Admin;
 
 use App\Actions\Platform\CreatePartnerWithTemporaryPassword;
 use App\Data\Platform\AdminPartnerRowData;
-use App\Data\Staff\TemporaryPasswordSlipData;
 use App\Enums\PartnerStatus;
+use App\Enums\TemporaryPasswordExportFormat;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\AddPartnerRequest;
 use App\Services\Platform\PartnerDirectory;
-use App\Services\Staff\TemporaryPasswordMessage;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -25,6 +24,7 @@ class PartnerController extends Controller
     {
         return Inertia::render('admin/partners/index', [
             'tab' => 'active',
+            'exportFormats' => TemporaryPasswordExportFormat::options(),
             'partners' => AdminPartnerRowData::collect($partnerDirectory->paginate(PartnerStatus::Active), PaginatedDataCollection::class),
         ]);
     }
@@ -41,15 +41,15 @@ class PartnerController extends Controller
     }
 
     /**
-     * Add a partner and its login with a temp password. The sign-in message is flashed once, so the page can show
-     * it in a Dialog; the temp password is never a page prop.
+     * Add a partner and its login with a temp password. The new user's id is flashed, so the page can open the
+     * copy message for it; the temp password is never a page prop or in the session.
      */
-    public function store(AddPartnerRequest $request, CreatePartnerWithTemporaryPassword $createPartner, TemporaryPasswordMessage $message): RedirectResponse
+    public function store(AddPartnerRequest $request, CreatePartnerWithTemporaryPassword $createPartner): RedirectResponse
     {
         $user = $createPartner($request->user(), $request->validated());
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __(':name was added.', ['name' => $user->partner->name])]);
-        Inertia::flash('partnerSignInMessage', $message->for(collect([TemporaryPasswordSlipData::fromPartner($user)])));
+        Inertia::flash('partnerAddedId', $user->id);
 
         return to_route('admin.partners.index');
     }

@@ -21,9 +21,9 @@ import type { EnumOption } from '@/components/pms/enum-select';
 import { PageHeader } from '@/components/pms/page-header';
 import { StatusBadge } from '@/components/pms/status-badge';
 import { AddStaffDialog } from '@/components/pms/staff/add-staff-dialog';
-import { ExportTemporaryPasswordsMenu } from '@/components/pms/staff/export-temporary-passwords-menu';
-import { ResetTemporaryPassword } from '@/components/pms/staff/reset-temporary-password';
-import { TemporaryPasswordMessageDialog } from '@/components/pms/staff/temporary-password-message-dialog';
+import { ExportTemporaryPasswordsMenu } from '@/components/pms/temporary-passwords/export-temporary-passwords-menu';
+import { ResetTemporaryPassword } from '@/components/pms/temporary-passwords/reset-temporary-password';
+import { TemporaryPasswordMessageDialog } from '@/components/pms/temporary-passwords/temporary-password-message-dialog';
 import { TabLinks } from '@/components/pms/tab-links';
 import {
     AlertDialog,
@@ -79,6 +79,11 @@ import {
 import { create as bulkCreate } from '@/routes/settings/staff/bulk';
 import { destroy, resend, store } from '@/routes/settings/staff/invitations';
 import { update as roleUpdate } from '@/routes/settings/staff/role';
+import {
+    exportMethod,
+    message,
+    reset,
+} from '@/routes/settings/staff/temp-passwords';
 
 type StaffMember = App.Data.Staff.StaffMemberData;
 type Invitation = App.Data.Staff.StaffInvitationData;
@@ -442,6 +447,8 @@ function ActiveStaffActions({
                 onOpenChange={close}
             />
             <ResetTemporaryPassword
+                route={reset()}
+                skippedNote="Owners and your own account are skipped."
                 userIds={[member.id]}
                 target={member.name}
                 open={dialog === 'reset'}
@@ -542,11 +549,14 @@ function SelectionBar({
                 Copy message
             </Button>
             <ExportTemporaryPasswordsMenu
+                route={exportMethod()}
                 userIds={selected}
                 formats={exportFormats}
                 size="sm"
             />
             <ResetTemporaryPassword
+                route={reset()}
+                skippedNote="Owners and your own account are skipped."
                 userIds={selected}
                 target={`${selected.length} staff`}
                 variant="outline"
@@ -978,6 +988,7 @@ export default function StaffIndex({
 
             {canManage && (
                 <TemporaryPasswordMessageDialog
+                    route={message()}
                     userIds={messageUserIds ?? []}
                     open={messageUserIds !== null}
                     onOpenChange={(open) => !open && setMessageUserIds(null)}

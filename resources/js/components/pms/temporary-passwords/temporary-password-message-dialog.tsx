@@ -1,4 +1,5 @@
 import { useHttp } from '@inertiajs/react';
+import type { RouteDefinition } from '@/wayfinder';
 import { Check, Copy } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -14,7 +15,6 @@ import {
 import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
 import { useClipboard } from '@/hooks/use-clipboard';
-import { message } from '@/routes/settings/staff/temp-passwords';
 
 type MessageData = App.Data.Staff.TemporaryPasswordMessageData;
 
@@ -23,15 +23,21 @@ type MessageData = App.Data.Staff.TemporaryPasswordMessageData;
  * The text is fetched only when the dialog opens, so temp passwords never sit in page props.
  */
 export function TemporaryPasswordMessageDialog({
+    route,
+    who = 'staff member',
     userIds,
     open,
     onOpenChange,
 }: {
+    /** The route that returns the message, for example `message()` from the staff or partner temp password routes. */
+    route: RouteDefinition<'post'>;
+    /** Who gets the message, for the description: "staff member" or "partner". */
+    who?: string;
     userIds: number[];
     open: boolean;
     onOpenChange: (open: boolean) => void;
 }) {
-    const http = useHttp<{ user_ids: number[] }, MessageData>(message(), {
+    const http = useHttp<{ user_ids: number[] }, MessageData>(route, {
         user_ids: userIds,
     });
     const [answer, setAnswer] = useState<MessageData | null>(null);
@@ -61,7 +67,7 @@ export function TemporaryPasswordMessageDialog({
                 <DialogHeader>
                     <DialogTitle>Sign-in message</DialogTitle>
                     <DialogDescription>
-                        Send this to the staff member yourself, for example by
+                        Send this to the {who} yourself, for example by
                         WhatsApp. The temp password works once.
                     </DialogDescription>
                 </DialogHeader>

@@ -24,7 +24,7 @@ import { store } from '@/routes/admin/partners';
 
 /**
  * Adds a partner and its one login with a temp password. The prefix follows the partner name until the admin edits
- * it. On success the server flashes `partnerSignInMessage`, which the caller shows in a Dialog.
+ * it. On success the server flashes `partnerAddedId`, the new user's id, which the caller uses to open the copy message.
  */
 export function AddPartnerDialog({
     open,
@@ -33,7 +33,7 @@ export function AddPartnerDialog({
 }: {
     open: boolean;
     onOpenChange: (open: boolean) => void;
-    onAdded: (message: string) => void;
+    onAdded: (userId: number) => void;
 }) {
     const [partnerName, setPartnerName] = useState('');
     const [prefix, setPrefix] = useState('');
@@ -68,17 +68,17 @@ export function AddPartnerDialog({
                     {...store.form()}
                     options={{ preserveScroll: true }}
                     onSuccess={(page) => {
-                        const message = (
+                        const userId = (
                             page.flash as
-                                | { partnerSignInMessage?: string }
+                                | { partnerAddedId?: number }
                                 | undefined
-                        )?.partnerSignInMessage;
+                        )?.partnerAddedId;
 
                         onOpenChange(false);
                         reset();
 
-                        if (message) {
-                            onAdded(message);
+                        if (userId) {
+                            onAdded(userId);
                         }
                     }}
                     className="flex flex-col gap-4"

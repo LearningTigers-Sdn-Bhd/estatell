@@ -38,7 +38,8 @@ test('add with a temp password creates the partner, its counter and its login', 
     $this->actingAs($this->admin)
         ->post(route('admin.partners.store'), $this->input)
         ->assertRedirect(route('admin.partners.index'))
-        ->assertInertiaFlash('partnerSignInMessage');
+        ->assertInertiaFlash('partnerAddedId', User::query()->where('email', 'ops@andaman.test')->sole()->id)
+        ->assertInertiaFlashMissing('partnerSignInMessage');
 
     $partner = Partner::query()->sole();
     $user = User::query()->where('partner_id', $partner->id)->sole();
@@ -97,6 +98,7 @@ test('the Active tab lists partners with email, property count and temp password
             ->has('partners.data', 1)
             ->where('partners.data.0.name', 'Andaman Stays')
             ->where('partners.data.0.codePrefix', 'AS')
+            ->where('partners.data.0.userId', User::query()->where('email', 'ops@andaman.test')->sole()->id)
             ->where('partners.data.0.email', 'ops@andaman.test')
             ->where('partners.data.0.propertiesCount', 2)
             ->where('partners.data.0.status.value', 'active')

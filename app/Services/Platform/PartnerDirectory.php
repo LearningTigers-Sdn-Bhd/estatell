@@ -24,6 +24,7 @@ class PartnerDirectory
             ->where('status', $status)
             ->withCount('properties')
             ->addSelect([
+                'user_id' => User::query()->select('id')->whereColumn('partner_id', 'partners.id')->orderBy('id')->limit(1),
                 'user_email' => User::query()->select('email')->whereColumn('partner_id', 'partners.id')->orderBy('id')->limit(1),
                 'user_temporary_password_expires_at' => User::query()->select('temporary_password_expires_at')->whereColumn('partner_id', 'partners.id')->orderBy('id')->limit(1),
             ])

@@ -913,6 +913,7 @@ export type AdminPartnerRowData = {
 id: number,
 name: string,
 codePrefix: string,
+userId: number,
 email: string | null,
 propertiesCount: number,
 status: App.Data.Shared.BadgeData,

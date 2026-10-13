@@ -13,8 +13,8 @@ import { EnumSelect } from '@/components/pms/enum-select';
 import type { EnumOption } from '@/components/pms/enum-select';
 import { FormActions } from '@/components/pms/form-actions';
 import { PageHeader } from '@/components/pms/page-header';
-import { ExportTemporaryPasswordsMenu } from '@/components/pms/staff/export-temporary-passwords-menu';
-import { TemporaryPasswordMessageDialog } from '@/components/pms/staff/temporary-password-message-dialog';
+import { ExportTemporaryPasswordsMenu } from '@/components/pms/temporary-passwords/export-temporary-passwords-menu';
+import { TemporaryPasswordMessageDialog } from '@/components/pms/temporary-passwords/temporary-password-message-dialog';
 import { UnsavedChangesDialog } from '@/components/pms/unsaved-changes-dialog';
 import { Button, buttonVariants } from '@/components/ui/button';
 import {
@@ -40,6 +40,7 @@ import {
     create as bulkCreate,
     store as bulkStore,
 } from '@/routes/settings/staff/bulk';
+import { exportMethod, message } from '@/routes/settings/staff/temp-passwords';
 import {
     importMethod as importRoute,
     importTemplate,
@@ -105,6 +106,7 @@ function AddedResult({
                     Copy all
                 </Button>
                 <ExportTemporaryPasswordsMenu
+                    route={exportMethod()}
                     userIds={added.map((person) => person.id)}
                     formats={exportFormats}
                 />
@@ -113,6 +115,7 @@ function AddedResult({
                 </Link>
             </div>
             <TemporaryPasswordMessageDialog
+                route={message()}
                 userIds={added.map((person) => person.id)}
                 open={copying}
                 onOpenChange={setCopying}

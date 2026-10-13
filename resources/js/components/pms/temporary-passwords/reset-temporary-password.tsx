@@ -12,24 +12,30 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
-import { reset } from '@/routes/settings/staff/temp-passwords';
+import type { RouteDefinition } from '@/wayfinder';
 
 /**
- * Replaces the passwords of one or more staff with new temp passwords. They are signed out everywhere.
- * The server skips Owners, deactivated staff and yourself. Pass `open` and `onOpenChange` to open it from a menu;
+ * Replaces the passwords of one or more users with new temp passwords. They are signed out everywhere.
+ * The server skips the users `skippedNote` names. Pass `open` and `onOpenChange` to open it from a menu;
  * otherwise it shows its own Reset password button.
  */
 export function ResetTemporaryPassword({
+    route,
     userIds,
     target,
+    skippedNote,
     variant = 'ghost',
     open: controlledOpen,
     onOpenChange,
     onReset,
 }: {
+    /** The route that resets the passwords, for example `reset()` from the staff or partner temp password routes. */
+    route: RouteDefinition<'post'>;
     userIds: number[];
     /** Who is reset, for the title: a name or "3 staff". */
     target: string;
+    /** Who the server skips, as the end of the description. */
+    skippedNote: string;
     variant?: 'ghost' | 'outline';
     open?: boolean;
     onOpenChange?: (open: boolean) => void;
@@ -58,11 +64,11 @@ export function ResetTemporaryPassword({
                     <AlertDialogDescription>
                         Their current password stops working and they are signed
                         out everywhere. They get a new temp password that works
-                        for 14 days. Owners and your own account are skipped.
+                        for 14 days. {skippedNote}
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <Form
-                    {...reset.form()}
+                    action={route}
                     transform={(data) => ({ ...data, user_ids: userIds })}
                     options={{ preserveScroll: true }}
                     onSuccess={() => {
