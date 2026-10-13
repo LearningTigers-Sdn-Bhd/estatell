@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Reports;
 
 use App\Data\Reports\ReportFilters;
+use App\Enums\BoatDirection;
 use App\Enums\ReportGroup;
 use App\Enums\ReportKey;
 use App\Models\Property;
@@ -55,6 +56,7 @@ class ReportFiltersRequest extends FormRequest
                 'refunds' => ['nullable', 'boolean'],
             ] : []),
             ...($this->reportKey()->hasForeignFilter() ? ['foreign' => ['nullable', 'boolean']] : []),
+            ...($this->reportKey()->hasDirectionFilter() ? ['direction' => ['nullable', Rule::enum(BoatDirection::class)]] : []),
             ...($groups === [] ? [] : ['group' => ['nullable', Rule::in(array_map(fn (ReportGroup $group): string => $group->value, $groups))]]),
         ];
     }
@@ -113,7 +115,7 @@ class ReportFiltersRequest extends FormRequest
             $date = $this->input('date');
             $date = is_string($date) && $date !== '' ? $date : $this->businessDate();
 
-            return new ReportFilters(from: $date, to: $date, group: $this->group(), code: $this->code(), staff: $this->staff(), refundsOnly: $this->refundsOnly(), foreignOnly: $this->foreignOnly());
+            return new ReportFilters(from: $date, to: $date, group: $this->group(), code: $this->code(), staff: $this->staff(), refundsOnly: $this->refundsOnly(), foreignOnly: $this->foreignOnly(), direction: $this->direction());
         }
 
         $from = $this->input('from');
@@ -123,7 +125,20 @@ class ReportFiltersRequest extends FormRequest
         $default = $this->businessDate();
         $defaultFrom = Date::parse($default)->subDays($this->reportKey()->defaultDays() - 1)->toDateString();
 
-        return new ReportFilters(from: $from ?? $to ?? $defaultFrom, to: $to ?? $from ?? $default, group: $this->group(), code: $this->code(), staff: $this->staff(), refundsOnly: $this->refundsOnly(), foreignOnly: $this->foreignOnly());
+        return new ReportFilters(from: $from ?? $to ?? $defaultFrom, to: $to ?? $from ?? $default, group: $this->group(), code: $this->code(), staff: $this->staff(), refundsOnly: $this->refundsOnly(), foreignOnly: $this->foreignOnly(), direction: $this->direction());
+    }
+
+    /**
+     * The direction of the Boat manifest: the `direction` in the URL, or Boat in when none is given. Other reports
+     * ignore it.
+     */
+    private function direction(): ?BoatDirection
+    {
+        if (! $this->reportKey()->hasDirectionFilter()) {
+            return null;
+        }
+
+        return BoatDirection::tryFrom($this->string('direction')->toString()) ?? BoatDirection::In;
     }
 
     /**

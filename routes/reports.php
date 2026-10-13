@@ -2,6 +2,7 @@
 
 use App\Enums\PermissionEnum;
 use App\Http\Controllers\Reports\ArrivalsReportController;
+use App\Http\Controllers\Reports\BoatManifestReportController;
 use App\Http\Controllers\Reports\DeparturesReportController;
 use App\Http\Controllers\Reports\DepositLiabilityReportController;
 use App\Http\Controllers\Reports\FolioLedgerReportController;
@@ -18,9 +19,10 @@ use App\Http\Controllers\Reports\ReportExportController;
 use App\Http\Controllers\Reports\ReportLayoutController;
 use App\Http\Controllers\Reports\RevenueReportController;
 use App\Http\Controllers\Reports\TaxReportController;
+use App\Http\Middleware\EnsureReportIsAvailable;
 use Illuminate\Support\Facades\Route;
 
-Route::prefix('reports')->name('reports.')->middleware('can:'.PermissionEnum::ReportsView->value)->group(function () {
+Route::prefix('reports')->name('reports.')->middleware(['can:'.PermissionEnum::ReportsView->value, EnsureReportIsAvailable::class])->group(function () {
     Route::get('arrivals', ArrivalsReportController::class)->name('arrivals');
     Route::get('departures', DeparturesReportController::class)->name('departures');
     Route::get('in-house', InHouseReportController::class)->name('in-house');
@@ -34,6 +36,7 @@ Route::prefix('reports')->name('reports.')->middleware('can:'.PermissionEnum::Re
     Route::get('deposit-liability', DepositLiabilityReportController::class)->name('deposit-liability');
     Route::get('non-national-guests', NonNationalGuestsReportController::class)->name('non-national-guests');
     Route::get('police-report', PoliceReportController::class)->name('police-report');
+    Route::get('boat-manifest', BoatManifestReportController::class)->name('boat-manifest');
     Route::get('night-audit-history', NightAuditHistoryReportController::class)->name('night-audit-history');
     Route::get('night-audit-history/{date}/packet', NightAuditPacketController::class)->name('night-audit-packet');
 

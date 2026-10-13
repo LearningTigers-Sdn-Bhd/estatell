@@ -86,6 +86,13 @@ type Props<TRow extends { key: number | string }> = {
     breakdown?: App.Data.Reports.ReportBreakdown | null;
     /** The quick dates of a range report, from `ReportKey::datePresets()`. Without it the standard list shows. */
     presets?: App.Enums.ReportDatePreset[];
+    /** The Direction filter of the Boat manifest (`in` or `out`), with its options. */
+    direction?: string | null;
+    directionOptions?: EnumOption[];
+    /** The sections of a report that has them. Such a report keeps its row order, so its headers do not sort. */
+    sections?: App.Data.Reports.ReportSection[] | null;
+    /** An action under the empty state, such as a link to the settings. */
+    emptyAction?: ReactNode;
 };
 
 const MAX_SELECTED = 500;
@@ -125,6 +132,10 @@ export function ReportScreen<TRow extends { key: number | string }>({
     breakdown = null,
     note = null,
     presets,
+    direction = null,
+    directionOptions = [],
+    sections = null,
+    emptyAction = null,
 }: Props<TRow>) {
     const column = useMemo(() => dataTableColumns<TRow>(), []);
     const [draft, setDraft] = useState<Layout | null>(null);
@@ -141,9 +152,61 @@ export function ReportScreen<TRow extends { key: number | string }>({
             ...(staff ? { staff } : {}),
             ...(refundsOnly ? { refunds: '1' } : {}),
             ...(foreignOnly ? { foreign: '1' } : {}),
+            ...(direction ? { direction } : {}),
         }),
-        [isOneDate, from, to, group, code, staff, refundsOnly, foreignOnly],
+        [
+            isOneDate,
+            from,
+            to,
+            group,
+            code,
+            staff,
+            refundsOnly,
+            foreignOnly,
+            direction,
+        ],
     );
+
+    const rowDecorations = useMemo(() => {
+        const decorations: Record<
+            string,
+            { before?: ReactNode; after?: ReactNode }
+        > = {};
+
+        for (const section of sections ?? []) {
+            const keys = section.rowKeys.map(String);
+            const first = keys[0];
+            const last = keys[keys.length - 1];
+
+            if (first === undefined || last === undefined) {
+                continue;
+            }
+
+            decorations[first] = {
+                ...decorations[first],
+                before: section.title,
+            };
+
+            if (section.subtotal) {
+                decorations[last] = {
+                    ...decorations[last],
+                    after: (
+                        <span
+                            className={
+                                section.tone === 'warning'
+                                    ? 'text-warning'
+                                    : undefined
+                            }
+                        >
+                            {section.subtotal}
+                        </span>
+                    ),
+                };
+            }
+        }
+
+        return decorations;
+    }, [sections]);
 
     const visible = useMemo(
         () => active.columns.filter((item) => item.visible),
@@ -176,6 +239,8 @@ export function ReportScreen<TRow extends { key: number | string }>({
                     {
                         id: item.key,
                         header: item.label,
+                        // A report with sections keeps its row order, so its headers do not sort.
+                        enableSorting: !sections,
                         cell: (info) => {
                             const render = cells[item.key];
 
@@ -196,7 +261,7 @@ export function ReportScreen<TRow extends { key: number | string }>({
                     },
                 ),
             ),
-        [column, visible, cells, currency],
+        [column, visible, cells, currency, sections],
     );
 
     const columnAlign = useMemo(
@@ -249,6 +314,7 @@ export function ReportScreen<TRow extends { key: number | string }>({
             staff?: string;
             refundsOnly?: boolean;
             foreignOnly?: boolean;
+            direction?: string;
         }) => {
             const next = {
                 from,
@@ -259,6 +325,7 @@ export function ReportScreen<TRow extends { key: number | string }>({
                 staff: staff ?? '',
                 refundsOnly: refundsOnly ?? false,
                 foreignOnly: foreignOnly ?? false,
+                direction: direction ?? '',
                 ...changes,
             };
 
@@ -269,7 +336,8 @@ export function ReportScreen<TRow extends { key: number | string }>({
                 next.code !== (code ?? '') ||
                 next.staff !== (staff ?? '') ||
                 next.refundsOnly !== (refundsOnly ?? false) ||
-                next.foreignOnly !== (foreignOnly ?? false)
+                next.foreignOnly !== (foreignOnly ?? false) ||
+                next.direction !== (direction ?? '')
             ) {
                 setSelected(new Set());
             }
@@ -285,6 +353,7 @@ export function ReportScreen<TRow extends { key: number | string }>({
                     ...(next.staff ? { staff: next.staff } : {}),
                     ...(next.refundsOnly ? { refunds: '1' } : {}),
                     ...(next.foreignOnly ? { foreign: '1' } : {}),
+                    ...(next.direction ? { direction: next.direction } : {}),
                     ...(next.sort ? { sort: next.sort } : {}),
                 },
                 { preserveState: true, preserveScroll: true, replace: true },
@@ -301,6 +370,7 @@ export function ReportScreen<TRow extends { key: number | string }>({
             staff,
             refundsOnly,
             foreignOnly,
+            direction,
         ],
     );
 
@@ -401,6 +471,15 @@ export function ReportScreen<TRow extends { key: number | string }>({
                             className="w-auto"
                         />
                     )}
+                    {direction && directionOptions.length > 0 && (
+                        <EnumSelect
+                            options={directionOptions}
+                            value={direction}
+                            onValueChange={(next) => visit({ direction: next })}
+                            aria-label="Direction"
+                            className="w-auto"
+                        />
+                    )}
                     {refundsOnly !== undefined ? (
                         <Label className="flex items-center gap-2 text-sm font-normal">
                             <Checkbox
@@ -448,10 +527,15 @@ export function ReportScreen<TRow extends { key: number | string }>({
                     data={rows.data}
                     getRowId={(row) => String(row.key)}
                     sort={sort}
-                    onSortChange={(next) => visit({ sort: next })}
+                    onSortChange={
+                        sections
+                            ? () => undefined
+                            : (next) => visit({ sort: next })
+                    }
                     columnAlign={columnAlign}
                     selection={{ selected, onChange: changeSelection }}
                     footer={footer}
+                    rowDecorations={rowDecorations}
                     pagination={{
                         currentPage: rows.meta.current_page,
                         lastPage: rows.meta.last_page,
@@ -466,6 +550,7 @@ export function ReportScreen<TRow extends { key: number | string }>({
                             icon={emptyIcon}
                             title={emptyTitle}
                             description={emptyDescription}
+                            action={emptyAction}
                         />
                     }
                 />

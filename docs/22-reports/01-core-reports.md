@@ -253,7 +253,7 @@ Arrivals     [ This week ▾ ]   [⚙ Layout]   [ Export ▾ ]
 - **Reset to default** asks first, then calls `ResetReportLayout`, which deletes the layout. This also clears the alignment overrides.
 - Both log `report_layout.updated`.
 - Every report PDF uses one generic view, `pdf/report.blade.php`: the letterhead, the title, the dates and the table. Preview PDF and the exports share it.
-- `ReportPdf` (`app/Services/Reports/`) renders that view. Every row class implements `ReportRow`: `cells()` returns the display text by column key, so the view prints any report without knowing its columns. The preview route reads `from`, `to`, the orientation and the column list from the POST, checks the list with `ReportLayoutResolver::fromDraft()` (the same check as Save) and runs `rows()` on the server. The page gets the CSRF token for the native form from the shared `csrfToken` prop.
+- `ReportPdf` (`app/Services/Reports/`) renders that view. Every row class implements `ReportRow`: `cells()` returns the display text by column key, so the view prints any report without knowing its columns. A report may also implement the optional `HasSections` (beside `HasTotals` and `HasBreakdown`): it returns `ReportSection`s (title, row keys in order, subtotal text, tone, printed by default). The screen draws a heading above and a subtotal below each section, and the PDF prints one table per section with a page break before each one after the first. A section not printed by default is left out of the PDF unless its rows are selected. Rows stay flat, so selection and CSV/Excel do not change. A report with sections keeps its order and its headers do not sort. The Boat manifest is the first. The preview route reads `from`, `to`, the orientation and the column list from the POST, checks the list with `ReportLayoutResolver::fromDraft()` (the same check as Save) and runs `rows()` on the server. The page gets the CSRF token for the native form from the shared `csrfToken` prop.
 
 ## Row selection and export
 
@@ -273,6 +273,10 @@ Arrivals     [ This week ▾ ]   [⚙ Layout]   [ Export ▾ ]  PDF · CSV · Ex
 - The PDF opens in a new tab through a native form POST (`target="_blank"`). The spreadsheet downloads through `postDownload` (`resources/js/lib/post-download.ts`), so a validation error shows as a toast. Neither is an Inertia visit.
 - CSV and Excel use `SpreadsheetFormat` and `spatie/simple-excel`, which is already installed. Money columns are numbers, not formatted text. Each row has `cells()` (display text, for the screen and the PDF) and `values()` (typed values for spreadsheets: numbers for money and counts, `Y-m-d` for dates).
 - The PDF uses the [printing settings](../02-property/05-printing-settings.md) letterhead, font and size, then the report title, the dates and "Selected rows only" when there is a selection. The table header repeats on every page.
+
+## Feature-gated reports
+
+- `ReportKey::feature()` names the Pennant feature a report needs (`Boats` for the Boat manifest), and `isAvailable(Property)` checks it. `ReportsNavigation` leaves out an unavailable report, and the `EnsureReportIsAvailable` middleware on the reports group answers 404 to its page, exports and layout routes.
 
 ## Permissions
 

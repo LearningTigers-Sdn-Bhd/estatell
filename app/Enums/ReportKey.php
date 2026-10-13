@@ -6,14 +6,18 @@ use App\Data\Reports\ReportBreakdown;
 use App\Data\Reports\ReportColumn;
 use App\Data\Reports\ReportFilters;
 use App\Data\Reports\ReportRow;
+use App\Data\Reports\ReportSection;
 use App\Data\Reports\ReportTotals;
+use App\Features\Boats;
 use App\Models\Property;
 use App\Services\Reports\ArrivalsReport;
+use App\Services\Reports\BoatManifestReport;
 use App\Services\Reports\DeparturesReport;
 use App\Services\Reports\DepositLiabilityReport;
 use App\Services\Reports\FolioLedgerReport;
 use App\Services\Reports\HasBreakdown;
 use App\Services\Reports\HasNote;
+use App\Services\Reports\HasSections;
 use App\Services\Reports\HasTotals;
 use App\Services\Reports\HousekeepingTasksReport;
 use App\Services\Reports\InHouseReport;
@@ -27,6 +31,7 @@ use App\Services\Reports\PoliceReport;
 use App\Services\Reports\Report;
 use App\Services\Reports\RevenueReport;
 use App\Services\Reports\TaxReport;
+use Laravel\Pennant\Feature;
 
 /**
  * The reports in the registry. The value is the URL slug (`/p/{code}/reports/arrivals`) and the route name suffix.
@@ -49,6 +54,7 @@ enum ReportKey: string
     case NonNationalGuests = 'non-national-guests';
     case PoliceReport = 'police-report';
     case HousekeepingTasks = 'housekeeping-tasks';
+    case BoatManifest = 'boat-manifest';
 
     public function label(): string
     {
@@ -68,13 +74,14 @@ enum ReportKey: string
             self::NonNationalGuests => __('Non-national guests'),
             self::PoliceReport => __('Police report'),
             self::HousekeepingTasks => __('Housekeeping tasks'),
+            self::BoatManifest => __('Boat manifest'),
         };
     }
 
     public function category(): ReportCategory
     {
         return match ($this) {
-            self::Arrivals, self::Departures, self::InHouse, self::PoliceReport, self::HousekeepingTasks => ReportCategory::FrontDesk,
+            self::Arrivals, self::Departures, self::InHouse, self::PoliceReport, self::HousekeepingTasks, self::BoatManifest => ReportCategory::FrontDesk,
             self::Occupancy, self::Revenue, self::Tax, self::NonNationalGuests => ReportCategory::Revenue,
             self::Payments, self::FolioLedger, self::OutstandingBalance, self::DepositLiability => ReportCategory::Finance,
             self::MealCounts => ReportCategory::Kitchen,
@@ -85,7 +92,7 @@ enum ReportKey: string
     public function defaultOrientation(): PageOrientation
     {
         return match ($this) {
-            self::Arrivals, self::Departures, self::InHouse, self::Occupancy, self::Revenue, self::Payments, self::MealCounts => PageOrientation::Portrait,
+            self::Arrivals, self::Departures, self::InHouse, self::Occupancy, self::Revenue, self::Payments, self::MealCounts, self::BoatManifest => PageOrientation::Portrait,
             self::FolioLedger, self::Tax, self::NightAuditHistory, self::OutstandingBalance, self::DepositLiability, self::NonNationalGuests, self::PoliceReport, self::HousekeepingTasks => PageOrientation::Landscape,
         };
     }
@@ -109,6 +116,7 @@ enum ReportKey: string
             self::DepositLiability, self::NonNationalGuests => 'arrival',
             self::PoliceReport => 'room',
             self::HousekeepingTasks => 'due',
+            self::BoatManifest => 'departure',
         };
     }
 
@@ -119,7 +127,7 @@ enum ReportKey: string
     {
         return match ($this) {
             self::Arrivals, self::Departures, self::FolioLedger, self::MealCounts, self::NonNationalGuests, self::PoliceReport => 31,
-            self::InHouse, self::OutstandingBalance, self::DepositLiability, self::HousekeepingTasks => null,
+            self::InHouse, self::OutstandingBalance, self::DepositLiability, self::HousekeepingTasks, self::BoatManifest => null,
             self::Occupancy, self::Revenue, self::Payments, self::Tax, self::NightAuditHistory => 366,
         };
     }
@@ -149,6 +157,7 @@ enum ReportKey: string
     {
         return match ($this) {
             self::MealCounts => [ReportDatePreset::Today, ReportDatePreset::Tomorrow, ReportDatePreset::Next7Days, ReportDatePreset::ThisWeek, ReportDatePreset::NextWeek],
+            self::BoatManifest => [ReportDatePreset::Today, ReportDatePreset::Tomorrow],
             default => null,
         };
     }
@@ -190,6 +199,47 @@ enum ReportKey: string
     }
 
     /**
+     * Whether the report takes `?direction` (Boat in or Boat out). Other reports ignore it.
+     */
+    public function hasDirectionFilter(): bool
+    {
+        return $this === self::BoatManifest;
+    }
+
+    /**
+     * Whether the rows keep the order `rows()` gives, because sections are read in that order. The page and the
+     * exports do not sort such a report.
+     */
+    public function hasFixedOrder(): bool
+    {
+        return $this === self::BoatManifest;
+    }
+
+    /**
+     * The Pennant feature the report needs, or null when it is always on. While the feature is off the report is not in
+     * the sidebar and its routes return 404.
+     *
+     * @return class-string|null
+     */
+    public function feature(): ?string
+    {
+        return match ($this) {
+            self::BoatManifest => Boats::class,
+            default => null,
+        };
+    }
+
+    /**
+     * Whether the report is on for the property: it needs no feature, or its feature is active for the property.
+     */
+    public function isAvailable(Property $property): bool
+    {
+        $feature = $this->feature();
+
+        return $feature === null || Feature::for($property)->active($feature);
+    }
+
+    /**
      * Whether the report shows ID numbers. The number is masked unless the user has `guests.view-documents`, and an
      * export that holds full numbers is written to the activity log.
      */
@@ -206,6 +256,17 @@ enum ReportKey: string
     public function columns(): array
     {
         return match ($this) {
+            self::BoatManifest => [
+                new ReportColumn('departure', __('Departure'), ColumnAlign::Left, true),
+                new ReportColumn('unit', __('Room'), ColumnAlign::Left, true),
+                new ReportColumn('lead_guest', __('Lead guest'), ColumnAlign::Left, true),
+                new ReportColumn('phone', __('Phone'), ColumnAlign::Left, true),
+                new ReportColumn('adults', __('Adults'), ColumnAlign::Right, true),
+                new ReportColumn('children', __('Children'), ColumnAlign::Right, true),
+                new ReportColumn('total', __('Total'), ColumnAlign::Right, true),
+                new ReportColumn('reservation', __('Reservation no.'), ColumnAlign::Left, false),
+                new ReportColumn('note', __('Note'), ColumnAlign::Left, false),
+            ],
             self::Arrivals => [
                 new ReportColumn('reservation', __('Reservation no.'), ColumnAlign::Left, true),
                 new ReportColumn('guest', __('Guest'), ColumnAlign::Left, true),
@@ -454,6 +515,7 @@ enum ReportKey: string
             self::NonNationalGuests => 'users',
             self::PoliceReport => 'id-card',
             self::HousekeepingTasks => 'bed',
+            self::BoatManifest => 'ship',
         };
     }
 
@@ -475,6 +537,7 @@ enum ReportKey: string
             self::NonNationalGuests => app(NonNationalGuestsReport::class),
             self::PoliceReport => app(PoliceReport::class),
             self::HousekeepingTasks => app(HousekeepingTasksReport::class),
+            self::BoatManifest => app(BoatManifestReport::class),
         };
     }
 
@@ -510,5 +573,18 @@ enum ReportKey: string
         $report = $this->report();
 
         return $report instanceof HasBreakdown ? $report->breakdown($rows, $filters) : null;
+    }
+
+    /**
+     * The sections of the rows given, each with its heading and subtotal, or null when the report has none.
+     *
+     * @param  list<ReportRow>  $rows
+     * @return list<ReportSection>|null
+     */
+    public function sections(array $rows, ReportFilters $filters): ?array
+    {
+        $report = $this->report();
+
+        return $report instanceof HasSections ? $report->sections($rows, $filters) : null;
     }
 }

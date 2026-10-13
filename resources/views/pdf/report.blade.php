@@ -13,6 +13,7 @@
      * @var \App\Data\Reports\ReportTotals|null $totals
      * @var \App\Data\Reports\ReportBreakdown|null $breakdown
      * @var bool $selectedOnly
+     * @var list<array{title: string, subtotal: string|null, warning: bool, rows: list<\App\Data\Reports\ReportRow>}>|null $sections
      */
 @endphp
 
@@ -64,6 +65,7 @@
         @endif
     @endcomponent
 
+    @if ((($sections ?? null)) === null)
     <table class="gap-24 data">
         <thead>
             <tr class="rule">
@@ -97,6 +99,59 @@
             </tfoot>
         @endif
     </table>
+    @else
+        @forelse ($sections as $index => $section)
+            <div @if ($index > 0) style="page-break-before: always" @endif>
+                <div class="gap-24"><strong>{{ $section['title'] }}</strong></div>
+                <table class="data">
+                    <thead>
+                        <tr class="rule">
+                            @foreach ($columns as $column)
+                                <th @class($cellClass($column))>{{ $column->label }}</th>
+                            @endforeach
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach ($section['rows'] as $row)
+                            @php $cells = $row->cells(); @endphp
+                            <tr class="rule">
+                                @foreach ($columns as $column)
+                                    <td @class($cellClass($column))>{{ ($cells[$column->key] ?? '') !== '' ? $cells[$column->key] : '-' }}</td>
+                                @endforeach
+                            </tr>
+                        @endforeach
+                    </tbody>
+                    @if ($section['subtotal'] !== null)
+                        <tfoot>
+                            <tr class="rule">
+                                <td colspan="{{ count($columns) }}" @if ($section['warning']) style="color: #b45309" @endif><strong>{{ $section['subtotal'] }}</strong></td>
+                            </tr>
+                        </tfoot>
+                    @endif
+                </table>
+            </div>
+        @empty
+            <table class="data">
+                <tbody>
+                    <tr>
+                        <td colspan="{{ count($columns) }}" class="muted">{{ __('No rows for these dates.') }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        @endforelse
+        @if ($totals !== null && count($rows) > 0)
+            @php $totalCells = $totals->cellsFor($columns); @endphp
+            <table class="gap-24 data">
+                <tbody>
+                    <tr class="rule">
+                        @foreach ($columns as $column)
+                            <td @class($alignClass($column))><strong>{{ $totalCells[$column->key] }}</strong></td>
+                        @endforeach
+                    </tr>
+                </tbody>
+            </table>
+        @endif
+    @endif
 
     @if ($breakdown !== null && count($breakdown->rows) > 0)
         <div class="gap-24"><strong>{{ $breakdown->title }}</strong></div>

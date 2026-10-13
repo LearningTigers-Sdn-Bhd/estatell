@@ -5,7 +5,9 @@ namespace App\Services\Reports;
 use App\Data\Reports\ReportFilters;
 use App\Data\Reports\ReportLayoutData;
 use App\Data\Reports\ReportRow;
+use App\Data\Reports\ReportSection;
 use App\Enums\ReportKey;
+use App\Enums\Tone;
 use App\Models\Property;
 use App\Services\Property\PrintedPdf;
 use Barryvdh\DomPDF\PDF as DomPdf;
@@ -26,6 +28,13 @@ class ReportPdf
     public function make(Property $property, ReportKey $report, ReportFilters $filters, ReportLayoutData $layout, ?array $rowKeys = null, ?array $rows = null): DomPdf
     {
         $rows ??= $report->report()->rows($property, $filters, $rowKeys);
+        $sections = $report->sections($rows, $filters);
+
+        if ($sections !== null && $rowKeys === null) {
+            $sections = array_values(array_filter($sections, fn (ReportSection $section): bool => $section->printedByDefault));
+            $printedKeys = array_flip(array_merge([], ...array_map(fn (ReportSection $section): array => $section->rowKeys, $sections)));
+            $rows = array_values(array_filter($rows, fn (ReportRow $row): bool => isset($printedKeys[$row->key])));
+        }
 
         return $this->printedPdf->make($property, 'pdf.report', [
             'title' => $report->label(),
@@ -36,6 +45,12 @@ class ReportPdf
             'currency' => $property->loadMissing('settings')->settings?->currency->value ?? '',
             'columns' => $layout->visibleColumns(),
             'rows' => $rows,
+            'sections' => $sections === null ? null : array_map(fn (ReportSection $section): array => [
+                'title' => $section->title,
+                'subtotal' => $section->subtotal,
+                'warning' => $section->tone === Tone::Warning,
+                'rows' => array_values(array_filter($rows, fn (ReportRow $row): bool => in_array($row->key, $section->rowKeys, true))),
+            ], $sections),
             'totals' => $report->totals($rows),
             'breakdown' => $report->breakdown($rows, $filters),
             'selectedOnly' => $rowKeys !== null,

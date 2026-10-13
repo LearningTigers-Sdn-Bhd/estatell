@@ -7,6 +7,7 @@ import {
 } from '@tanstack/react-table';
 import type { ColumnDef, RowData, SortingState } from '@tanstack/react-table';
 import { ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react';
+import { Fragment } from 'react';
 import type { ReactNode } from 'react';
 import { PaginationFooter } from '@/components/pms/pagination-footer';
 import type { PaginationData } from '@/components/pms/pagination-footer';
@@ -77,6 +78,8 @@ type Props<TData extends RowData> = {
     selection?: DataTableSelection;
     /** A total row under the rows: the content of each cell by column id. A column with no entry stays empty. */
     footer?: Record<string, ReactNode>;
+    /** Full-width rows by row id: `before` is drawn above the row (a section heading), `after` below it (a subtotal). */
+    rowDecorations?: Record<string, { before?: ReactNode; after?: ReactNode }>;
     empty: ReactNode;
 };
 
@@ -108,6 +111,7 @@ export function DataTable<TData extends RowData>({
     columnAlign = {},
     selection,
     footer,
+    rowDecorations = {},
     empty,
 }: Props<TData>) {
     const sorting = toSortingState(sort);
@@ -259,51 +263,83 @@ export function DataTable<TData extends RowData>({
                             </TableRow>
                         ) : (
                             rows.map((row) => (
-                                <TableRow
-                                    key={row.id}
-                                    onClick={
-                                        onRowClick
-                                            ? () => onRowClick(row.original)
-                                            : undefined
-                                    }
-                                    className={cn(
-                                        onRowClick &&
-                                            'group/row cursor-pointer',
-                                    )}
-                                >
-                                    {selection && (
-                                        <TableCell
-                                            className="w-8"
-                                            onClick={(event) =>
-                                                event.stopPropagation()
-                                            }
-                                        >
-                                            <Checkbox
-                                                aria-label="Select row"
-                                                checked={selection.selected.has(
-                                                    row.id,
-                                                )}
-                                                onCheckedChange={(checked) =>
-                                                    toggleRow(row.id, checked)
+                                <Fragment key={row.id}>
+                                    {rowDecorations[row.id]?.before && (
+                                        <TableRow className="hover:bg-transparent">
+                                            <TableCell
+                                                colSpan={
+                                                    columns.length +
+                                                    (selection ? 1 : 0)
                                                 }
-                                            />
-                                        </TableCell>
+                                                className="bg-muted/50 font-medium"
+                                            >
+                                                {rowDecorations[row.id]?.before}
+                                            </TableCell>
+                                        </TableRow>
                                     )}
-                                    {row.getAllCells().map((cell) => (
-                                        <TableCell
-                                            key={cell.id}
-                                            className={cn(
-                                                TEXT_ALIGN[
-                                                    columnAlign[
-                                                        cell.column.id
-                                                    ] ?? 'left'
-                                                ],
-                                            )}
-                                        >
-                                            <table.FlexRender cell={cell} />
-                                        </TableCell>
-                                    ))}
-                                </TableRow>
+                                    <TableRow
+                                        onClick={
+                                            onRowClick
+                                                ? () => onRowClick(row.original)
+                                                : undefined
+                                        }
+                                        className={cn(
+                                            onRowClick &&
+                                                'group/row cursor-pointer',
+                                        )}
+                                    >
+                                        {selection && (
+                                            <TableCell
+                                                className="w-8"
+                                                onClick={(event) =>
+                                                    event.stopPropagation()
+                                                }
+                                            >
+                                                <Checkbox
+                                                    aria-label="Select row"
+                                                    checked={selection.selected.has(
+                                                        row.id,
+                                                    )}
+                                                    onCheckedChange={(
+                                                        checked,
+                                                    ) =>
+                                                        toggleRow(
+                                                            row.id,
+                                                            checked,
+                                                        )
+                                                    }
+                                                />
+                                            </TableCell>
+                                        )}
+                                        {row.getAllCells().map((cell) => (
+                                            <TableCell
+                                                key={cell.id}
+                                                className={cn(
+                                                    TEXT_ALIGN[
+                                                        columnAlign[
+                                                            cell.column.id
+                                                        ] ?? 'left'
+                                                    ],
+                                                )}
+                                            >
+                                                <table.FlexRender cell={cell} />
+                                            </TableCell>
+                                        ))}
+                                    </TableRow>
+                                    {rowDecorations[row.id]?.after && (
+                                        <TableRow className="hover:bg-transparent">
+                                            <TableCell
+                                                colSpan={
+                                                    columns.length +
+                                                    (selection ? 1 : 0)
+                                                }
+                                                className="bg-muted/50"
+                                            >
+                                                {rowDecorations[row.id]?.after}
+                                            </TableCell>
+                                        </TableRow>
+                                    )}
+                                </Fragment>
                             ))
                         )}
                     </TableBody>

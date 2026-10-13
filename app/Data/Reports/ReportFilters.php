@@ -2,6 +2,7 @@
 
 namespace App\Data\Reports;
 
+use App\Enums\BoatDirection;
 use App\Enums\ReportGroup;
 use Carbon\CarbonImmutable;
 use Spatie\LaravelData\Data;
@@ -9,7 +10,7 @@ use Spatie\LaravelData\Data;
 /**
  * The checked filters of a report: the first and last date (`Y-m-d`, both included) and the extra filters that only
  * some reports take. `group` is set only for a report that groups its rows (Revenue, Tax) and `code` only for a report
- * that filters by transaction code (Folio ledger). `staff` (a user id) and `refundsOnly` are set only for Payments, and `foreignOnly` only for the Police report.
+ * that filters by transaction code (Folio ledger). `staff` (a user id) and `refundsOnly` are set only for Payments, `foreignOnly` only for the Police report, and `direction` only for the Boat manifest.
  */
 class ReportFilters extends Data
 {
@@ -21,6 +22,7 @@ class ReportFilters extends Data
         public ?int $staff = null,
         public bool $refundsOnly = false,
         public bool $foreignOnly = false,
+        public ?BoatDirection $direction = null,
     ) {}
 
     /**
@@ -46,6 +48,7 @@ class ReportFilters extends Data
             ...($this->staff === null ? [] : ['staff' => (string) $this->staff]),
             ...($this->refundsOnly ? ['refunds' => '1'] : []),
             ...($this->foreignOnly ? ['foreign' => '1'] : []),
+            ...($this->direction === null ? [] : ['direction' => $this->direction->value]),
         ];
     }
 }

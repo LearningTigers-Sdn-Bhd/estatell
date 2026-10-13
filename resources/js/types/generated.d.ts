@@ -1392,6 +1392,20 @@ company: string | null,
 status: App.Data.Shared.BadgeData,
 balance: string,
 };
+export type BoatManifestRow = {
+key: number,
+departure: string,
+unit: string,
+lead_guest: string,
+phone: string | null,
+adults: number,
+children: number,
+total: number,
+reservation: string,
+note: string | null,
+boat_departure_id: number | null,
+seats: number | null,
+};
 export type DepartureRow = {
 key: number,
 reservation: string,
@@ -1614,6 +1628,7 @@ code: string | null,
 staff: number | null,
 refundsOnly: boolean,
 foreignOnly: boolean,
+direction: App.Enums.BoatDirection | null,
 };
 export type ReportLayoutColumnData = {
 key: string,
@@ -1625,6 +1640,13 @@ defaultAlign: App.Enums.ColumnAlign,
 export type ReportLayoutData = {
 orientation: App.Enums.PageOrientation,
 columns: App.Data.Reports.ReportLayoutColumnData[],
+};
+export type ReportSection = {
+title: string,
+rowKeys: (number| string)[],
+subtotal: string | null,
+tone: App.Enums.Tone | null,
+printedByDefault: boolean,
 };
 export type ReportTotals = {
 figures: Record<string, number | string | null>,
@@ -2423,7 +2445,7 @@ export type RegistrationCardStatus = 'draft' | 'signed' | 'void';
 export type ReportCategory = 'front-desk' | 'revenue' | 'finance' | 'kitchen' | 'audit';
 export type ReportDatePreset = 'today' | 'yesterday' | 'tomorrow' | 'next-7-days' | 'this-week' | 'last-week' | 'next-week' | 'this-month' | 'last-month' | 'this-year' | 'last-30-days';
 export type ReportGroup = 'day' | 'month' | 'method' | 'staff';
-export type ReportKey = 'arrivals' | 'departures' | 'in-house' | 'occupancy' | 'revenue' | 'payments' | 'folio-ledger' | 'tax' | 'meal-counts' | 'night-audit-history' | 'outstanding-balance' | 'deposit-liability' | 'non-national-guests' | 'police-report' | 'housekeeping-tasks';
+export type ReportKey = 'arrivals' | 'departures' | 'in-house' | 'occupancy' | 'revenue' | 'payments' | 'folio-ledger' | 'tax' | 'meal-counts' | 'night-audit-history' | 'outstanding-balance' | 'deposit-liability' | 'non-national-guests' | 'police-report' | 'housekeeping-tasks' | 'boat-manifest';
 export type ReservationRoomBoxState = 'assigned' | 'unassigned' | 'auto_assign' | 'cancelled' | 'no_show';
 export type ReservationSource = 'direct' | 'walk_in' | 'phone' | 'channel' | 'portal';
 export type ReservationStatus = 'confirmed' | 'in_house' | 'completed' | 'cancelled';
