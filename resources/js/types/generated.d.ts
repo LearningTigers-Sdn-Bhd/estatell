@@ -917,6 +917,7 @@ email: string | null,
 propertiesCount: number,
 status: App.Data.Shared.BadgeData,
 temporaryPasswordExpiresAt: string | null,
+suspendedAt: string | null,
 createdAt: string,
 };
 export type AdminPropertyData = {

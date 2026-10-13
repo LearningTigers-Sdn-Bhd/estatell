@@ -19,13 +19,24 @@ use Spatie\LaravelData\PaginatedDataCollection;
 class PartnerController extends Controller
 {
     /**
-     * List the Active partners. The Invited and Suspended tabs come with their own pages.
+     * List the Active partners. The Invited tab comes with its own page.
      */
     public function index(Request $request, PartnerDirectory $partnerDirectory): Response
     {
         return Inertia::render('admin/partners/index', [
             'tab' => 'active',
             'partners' => AdminPartnerRowData::collect($partnerDirectory->paginate(PartnerStatus::Active), PaginatedDataCollection::class),
+        ]);
+    }
+
+    /**
+     * List the Suspended partners.
+     */
+    public function suspended(PartnerDirectory $partnerDirectory): Response
+    {
+        return Inertia::render('admin/partners/index', [
+            'tab' => 'suspended',
+            'partners' => AdminPartnerRowData::collect($partnerDirectory->paginate(PartnerStatus::Suspended), PaginatedDataCollection::class),
         ]);
     }
 

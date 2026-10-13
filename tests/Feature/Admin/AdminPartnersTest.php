@@ -9,6 +9,7 @@ use App\Models\User;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Inertia\Testing\AssertableInertia as Assert;
+use Spatie\Activitylog\Models\Activity;
 
 beforeEach(function () {
     $this->admin = User::factory()->admin()->create();
@@ -118,4 +119,93 @@ test('the admin navigation lists Partners', function () {
     $this->actingAs($this->admin)
         ->get(route('admin.dashboard'))
         ->assertInertia(fn (Assert $page) => $page->where('adminNavigation.2.title', 'Partners'));
+});
+
+test('suspending an Active partner is logged and leaves its properties alone', function () {
+    $partner = Partner::factory()->create();
+    $property = Property::factory()->create(['partner_id' => $partner->id]);
+    $user = User::factory()->partner($partner)->create();
+
+    $this->actingAs($this->admin)
+        ->post(route('admin.partners.suspend', $partner))
+        ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Partner suspended.']);
+
+    $activity = Activity::query()->sole();
+
+    expect($partner->refresh()->status)->toBe(PartnerStatus::Suspended)
+        ->and($partner->suspended_at)->not->toBeNull()
+        ->and($activity->event)->toBe('partner.suspended')
+        ->and($activity->causer_id)->toBe($this->admin->id)
+        ->and($activity->subject_id)->toBe($partner->id)
+        ->and($activity->properties->all())->toBe(['from' => 'active', 'to' => 'suspended'])
+        ->and($property->refresh()->partner_id)->toBe($partner->id)
+        ->and($user->refresh()->partner_id)->toBe($partner->id)
+        ->and($user->deactivated_at)->toBeNull();
+});
+
+test('reactivating a Suspended partner clears the date and is logged', function () {
+    $partner = Partner::factory()->suspended()->create();
+
+    $this->actingAs($this->admin)
+        ->post(route('admin.partners.reactivate', $partner))
+        ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Partner reactivated.']);
+
+    $activity = Activity::query()->sole();
+
+    expect($partner->refresh()->status)->toBe(PartnerStatus::Active)
+        ->and($partner->suspended_at)->toBeNull()
+        ->and($activity->event)->toBe('partner.reactivated')
+        ->and($activity->properties->all())->toBe(['from' => 'suspended', 'to' => 'active']);
+});
+
+test('only an Active partner can be suspended and only a Suspended one reactivated', function () {
+    $suspended = Partner::factory()->suspended()->create();
+    $invited = Partner::factory()->create(['status' => PartnerStatus::Invited]);
+    $active = Partner::factory()->create();
+
+    $this->actingAs($this->admin)
+        ->post(route('admin.partners.suspend', $suspended))
+        ->assertInertiaFlash('toast', ['type' => 'error', 'message' => 'This partner cannot be suspended.']);
+    $this->post(route('admin.partners.suspend', $invited))
+        ->assertInertiaFlash('toast', ['type' => 'error', 'message' => 'This partner cannot be suspended.']);
+    $this->post(route('admin.partners.reactivate', $active))
+        ->assertInertiaFlash('toast', ['type' => 'error', 'message' => 'This partner is not suspended.']);
+
+    expect($invited->refresh()->status)->toBe(PartnerStatus::Invited)
+        ->and($suspended->refresh()->status)->toBe(PartnerStatus::Suspended)
+        ->and($active->refresh()->status)->toBe(PartnerStatus::Active)
+        ->and(Activity::query()->count())->toBe(0);
+});
+
+test('non-admins get a 404 on the suspend, reactivate and Suspended tab routes', function () {
+    $partner = Partner::factory()->create();
+
+    foreach ([User::factory()->create(), User::factory()->partner($partner)->create()] as $user) {
+        $this->actingAs($user)->get(route('admin.partners.suspended'))->assertNotFound();
+        $this->post(route('admin.partners.suspend', $partner))->assertNotFound();
+        $this->post(route('admin.partners.reactivate', $partner))->assertNotFound();
+    }
+
+    expect($partner->refresh()->status)->toBe(PartnerStatus::Active);
+});
+
+test('the Suspended tab lists only suspended partners and the Active tab drops them', function () {
+    $suspended = Partner::factory()->suspended()->create(['name' => 'Gone Stays']);
+    Partner::factory()->create(['name' => 'Live Stays']);
+
+    $this->actingAs($this->admin)
+        ->get(route('admin.partners.suspended'))
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('admin/partners/index')
+            ->where('tab', 'suspended')
+            ->has('partners.data', 1)
+            ->where('partners.data.0.id', $suspended->id)
+            ->where('partners.data.0.suspendedAt', $suspended->suspended_at->toDateString())
+        );
+
+    $this->get(route('admin.partners.index'))
+        ->assertInertia(fn (Assert $page) => $page
+            ->has('partners.data', 1)
+            ->where('partners.data.0.name', 'Live Stays')
+        );
 });

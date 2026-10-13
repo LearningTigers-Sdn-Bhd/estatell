@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\OwnerSetupLinkController;
 use App\Http\Controllers\Admin\PartnerController;
+use App\Http\Controllers\Admin\PartnerStatusController;
 use App\Http\Controllers\Admin\PlatformSettingsController;
 use App\Http\Controllers\Admin\PropertyController;
 use App\Http\Controllers\Admin\PropertyFeatureController;
@@ -21,7 +22,10 @@ Route::middleware(['auth', 'can:admin'])->prefix('admin')->name('admin.')->group
     Route::post('properties/{property:code}/reactivate', [PropertyStatusController::class, 'reactivate'])->where(['property' => '[A-Za-z]{2}[0-9]{5,}'])->middleware('support.2fa')->name('properties.reactivate');
     Route::post('properties/{property:code}/owner/setup-link', OwnerSetupLinkController::class)->where(['property' => '[A-Za-z]{2}[0-9]{5,}'])->middleware('support.2fa')->name('properties.owner.setup-link');
     Route::get('partners', [PartnerController::class, 'index'])->name('partners.index');
+    Route::get('partners/suspended', [PartnerController::class, 'suspended'])->name('partners.suspended');
     Route::post('partners', [PartnerController::class, 'store'])->middleware('support.2fa')->name('partners.store');
+    Route::post('partners/{partner}/suspend', [PartnerStatusController::class, 'suspend'])->middleware('support.2fa')->name('partners.suspend');
+    Route::post('partners/{partner}/reactivate', [PartnerStatusController::class, 'reactivate'])->middleware('support.2fa')->name('partners.reactivate');
     Route::get('settings', [PlatformSettingsController::class, 'edit'])->name('settings.edit');
     Route::put('settings', [PlatformSettingsController::class, 'update'])->middleware('support.2fa')->name('settings.update');
 });

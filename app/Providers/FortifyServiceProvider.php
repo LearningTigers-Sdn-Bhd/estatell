@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Actions\Fortify\CreateNewUser;
 use App\Actions\Fortify\ResetUserPassword;
+use App\Enums\PartnerStatus;
 use App\Http\Responses\LoginResponse;
 use App\Http\Responses\TwoFactorLoginResponse;
 use App\Models\User;
@@ -60,6 +61,12 @@ class FortifyServiceProvider extends ServiceProvider
             if ($user->deactivated_at !== null) {
                 throw ValidationException::withMessages([
                     Fortify::username() => __('Your account is deactivated. Ask the property owner to reactivate it.'),
+                ]);
+            }
+
+            if ($user->partner_id !== null && $user->partner?->status === PartnerStatus::Suspended) {
+                throw ValidationException::withMessages([
+                    Fortify::username() => __('Your partner account is suspended. Contact estatell support.'),
                 ]);
             }
 

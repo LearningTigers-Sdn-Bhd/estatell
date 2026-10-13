@@ -17,6 +17,7 @@ class AdminPartnerRowData extends Data
         public int $propertiesCount,
         public BadgeData $status,
         public ?string $temporaryPasswordExpiresAt,
+        public ?string $suspendedAt,
         public string $createdAt,
     ) {}
 
@@ -36,6 +37,7 @@ class AdminPartnerRowData extends Data
             propertiesCount: (int) $partner->getAttribute('properties_count'),
             status: BadgeData::fromPartnerStatus($partner->status),
             temporaryPasswordExpiresAt: $expiresAt === null ? null : Date::parse($expiresAt)->toIso8601String(),
+            suspendedAt: $partner->suspended_at?->toDateString(),
             createdAt: $partner->created_at->toDateString(),
         );
     }

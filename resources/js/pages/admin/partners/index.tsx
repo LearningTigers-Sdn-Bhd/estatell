@@ -1,22 +1,26 @@
 import { Head } from '@inertiajs/react';
-import { Handshake, Plus, Users } from 'lucide-react';
+import { Handshake, Pause, Plus, Users } from 'lucide-react';
 import { useState } from 'react';
 import { DataTable, dataTableColumns } from '@/components/pms/data-table';
 import { DateText } from '@/components/pms/date-text';
 import { EmptyState } from '@/components/pms/empty-state';
 import { AddPartnerDialog } from '@/components/pms/partners/add-partner-dialog';
+import {
+    ActivePartnerActions,
+    SuspendedPartnerActions,
+} from '@/components/pms/partners/partner-row-actions';
 import { PartnerSignInMessageDialog } from '@/components/pms/partners/partner-sign-in-message-dialog';
 import { PageHeader } from '@/components/pms/page-header';
 import { StatusBadge } from '@/components/pms/status-badge';
 import { TabLinks } from '@/components/pms/tab-links';
 import { Button } from '@/components/ui/button';
 import { dashboard } from '@/routes/admin';
-import { index } from '@/routes/admin/partners';
+import { index, suspended } from '@/routes/admin/partners';
 
 type Row = App.Data.Platform.AdminPartnerRowData;
 
 type Props = {
-    tab: 'active';
+    tab: 'active' | 'suspended';
     partners: Illuminate.LengthAwarePaginator<number, Row>;
 };
 
@@ -78,15 +82,45 @@ const columns = [
         enableSorting: false,
         cell: (info) => <span className="tabular-nums">{info.getValue()}</span>,
     }),
+];
+
+const createdColumn = column.accessor('createdAt', {
+    header: 'Created',
+    enableSorting: false,
+    cell: (info) => <DateText date={info.getValue()} />,
+});
+
+const activeColumns = [
+    ...columns,
     column.display({
         id: 'status',
         header: 'Status',
         cell: (info) => <PartnerStatus row={info.row.original} />,
     }),
-    column.accessor('createdAt', {
-        header: 'Created',
+    createdColumn,
+    column.display({
+        id: 'actions',
+        header: () => <span className="sr-only">Actions</span>,
+        cell: (info) => <ActivePartnerActions partner={info.row.original} />,
+    }),
+];
+
+const suspendedColumns = [
+    ...columns,
+    column.accessor('suspendedAt', {
+        header: 'Suspended',
         enableSorting: false,
-        cell: (info) => <DateText date={info.getValue()} />,
+        cell: (info) => {
+            const date = info.getValue();
+
+            return date === null ? '—' : <DateText date={date} />;
+        },
+    }),
+    createdColumn,
+    column.display({
+        id: 'actions',
+        header: () => <span className="sr-only">Actions</span>,
+        cell: (info) => <SuspendedPartnerActions partner={info.row.original} />,
     }),
 ];
 
@@ -121,10 +155,18 @@ export default function PartnersIndex({ tab, partners }: Props) {
                             icon: Users,
                             href: index(),
                         },
+                        {
+                            value: 'suspended',
+                            label: 'Suspended',
+                            icon: Pause,
+                            href: suspended(),
+                        },
                     ]}
                 >
                     <DataTable
-                        columns={columns}
+                        columns={
+                            tab === 'active' ? activeColumns : suspendedColumns
+                        }
                         data={partners.data}
                         getRowId={(row) => String(row.id)}
                         sort=""
@@ -141,7 +183,11 @@ export default function PartnersIndex({ tab, partners }: Props) {
                         empty={
                             <EmptyState
                                 icon={Handshake}
-                                title="No partners yet"
+                                title={
+                                    tab === 'active'
+                                        ? 'No partners yet'
+                                        : 'No suspended partners'
+                                }
                             />
                         }
                     />
