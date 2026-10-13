@@ -155,7 +155,7 @@ Fares                                                               [+ Add fare]
 
 ### Available switch
 
-Same control as on Departures. It sends the fare with the new `active` value to the fare update route, which calls `UpdateChargeItem`, so the fare's transaction code follows as for any charge item.
+Same control as on Departures. It sends the fare with the new `active` value to the fare update route, which calls `UpdateChargeItem`, so the fare's transaction code follows as for any charge item. The fare Sheet leaves `active` out, and the update route then keeps the fare's Available state.
 
 | Action                                   | What happens                                                                                                                                                                     |
 | ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

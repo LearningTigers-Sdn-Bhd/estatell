@@ -25,14 +25,16 @@ class UpdateBoatFare
      * fare. The row lock holds the departures that use it, so a departure cannot switch on in between. Returns false
      * for that refusal (`fare_in_use`).
      *
-     * @param  array<string, mixed>  $attributes  Validated fields: `name`, `default_amount`, `allow_override`, `tax_ids`, `active`, and `child_prices` when sent.
+     * @param  array<string, mixed>  $attributes  Validated fields: `name`, `default_amount`, `allow_override`, `tax_ids`, and `active` and `child_prices` when sent. Without `active` the fare keeps its state.
      */
     public function __invoke(User $actor, ChargeItem $chargeItem, array $attributes): bool
     {
         return DB::transaction(function () use ($actor, $chargeItem, $attributes): bool {
             $chargeItem = ChargeItem::query()->lockForUpdate()->findOrFail($chargeItem->id);
 
-            if (! $attributes['active'] && $this->fareUsage->isUsedByAvailableDeparture($chargeItem, lock: true)) {
+            $active = $attributes['active'] ?? $chargeItem->active;
+
+            if (! $active && $this->fareUsage->isUsedByAvailableDeparture($chargeItem, lock: true)) {
                 return false;
             }
 
@@ -44,7 +46,7 @@ class UpdateBoatFare
                 'default_amount' => $attributes['default_amount'],
                 'charging_unit' => ChargingUnit::PerGuest,
                 'allow_override' => $attributes['allow_override'],
-                'active' => $attributes['active'],
+                'active' => $active,
                 'auto_add' => false,
                 'tax_ids' => $attributes['tax_ids'],
                 'child_prices' => $attributes['child_prices'] ?? null,

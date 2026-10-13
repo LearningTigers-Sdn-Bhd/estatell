@@ -68,7 +68,7 @@ class BoatFareController extends Controller
     }
 
     /**
-     * The Available switch and the fare Sheet both send the fare's values. A refusal (an available departure uses
+     * The Available switch and the fare Sheet both send the fare's values; only the switch sends `active`. A refusal (an available departure uses
      * the fare, on turn-off) flashes an error and saves nothing.
      */
     public function update(BoatFareRequest $request, Property $property, ChargeItem $chargeItem, UpdateBoatFare $updateBoatFare): RedirectResponse
@@ -84,7 +84,7 @@ class BoatFareController extends Controller
         }
 
         $chargeItem->refresh();
-        $isActive = $request->validated('active');
+        $isActive = $request->validated('active', $wasActive);
 
         if ($isActive !== $wasActive) {
             $message = $isActive

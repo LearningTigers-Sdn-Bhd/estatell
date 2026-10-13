@@ -49,7 +49,6 @@ type FormData = {
     code: string;
     default_amount: string;
     allow_override: boolean;
-    active: boolean;
     tax_ids: string[];
     child_prices: ChildPriceValues[];
 };
@@ -61,7 +60,6 @@ function toFormData(fare: Fare | null, ageGroups: AgeGroup[]): FormData {
             code: '',
             default_amount: '',
             allow_override: true,
-            active: true,
             tax_ids: [],
             // A new fare starts as a percentage of its adult price, the default of a priced charge item.
             child_prices: ageGroups.map((group) => ({
@@ -77,7 +75,6 @@ function toFormData(fare: Fare | null, ageGroups: AgeGroup[]): FormData {
         code: fare.code,
         default_amount: fare.amount ?? '',
         allow_override: fare.allowOverride,
-        active: fare.active,
         tax_ids: fare.taxes.map((tax) => String(tax.id)),
         child_prices: fare.childPrices.map((price) => ({
             property_age_group_id: price.ageGroupId,

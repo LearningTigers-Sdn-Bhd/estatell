@@ -318,7 +318,7 @@ test('the charge items page cannot turn off a fare while an available departure 
     'used only by an unavailable departure' => [false],
 ]);
 
-test('editing a fare saves its taxes, and a save that leaves out Available is refused', function () {
+test('editing a fare saves its taxes, and a save that leaves out Available keeps the fare as it was', function () {
     $owner = User::factory()->owner()->create();
     $property = $owner->property;
     boatFareEnable($property);
@@ -331,10 +331,12 @@ test('editing a fare saves its taxes, and a save that leaves out Available is re
     expect($fare->refresh()->transactionCode->applicableTaxes->pluck('id')->all())->toBe([$tax->id])
         ->and($fare->default_amount)->toBe('40.00');
 
+    $fare->forceFill(['active' => false])->save();
     $payload = boatFarePayload(['tax_ids' => []]);
     unset($payload['active']);
 
-    $this->actingAs($owner)->put($url, $payload)->assertSessionHasErrors('active');
+    $this->actingAs($owner)->put($url, $payload)->assertSessionHasNoErrors();
 
-    expect($fare->refresh()->transactionCode->applicableTaxes)->toHaveCount(1);
+    expect($fare->refresh()->active)->toBeFalse()
+        ->and($fare->transactionCode->applicableTaxes)->toHaveCount(0);
 });

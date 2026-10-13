@@ -34,8 +34,9 @@ class BoatFareRequest extends ChargeItemRequest
             unset($rules['active']);
         } else {
             unset($rules['code']);
-            // UpdateBoatFare guards turning off a fare in use under a row lock, and refuses with a toast.
-            $rules['active'] = ['required', 'boolean'];
+            // Only the Available switch sends it. Without it the fare keeps its state. UpdateBoatFare guards turning off a
+            // fare in use under a row lock, and refuses with a toast.
+            $rules['active'] = ['sometimes', 'boolean'];
         }
 
         $rules['default_amount'] = ['required', 'numeric', 'decimal:0,2', 'min:0.01', 'max:9999999999.99'];
