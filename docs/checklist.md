@@ -85,6 +85,7 @@ Needed for go-live.
 - [ ] `feat(front-desk): add the stay view` — Docs: [Stay View](18-front-desk/03-stay-view.md).
 - [ ] `feat(reservations): preview the price in the Add unit Sheet` — reuse the booking form quote route. Docs: [Reservations list and reservation page](12-reservations/06-reservation-page.md#header).
 - [ ] `feat(rates): override the early departure policy per rate plan` — `rate_plans.early_departure_policy` becomes an optional override that follows the property by default. Needs: room revenue policies. Docs: [Rate plans](08-rates/01-rate-plans.md), [Room revenue](06-catalogues/06-room-revenue.md#policies).
+- [ ] `perf(reservations): build scheduled rows once on the folio tab` — the `money` prop (`BookingSummary`, added in `6730a71`) runs on every reservation tab and adds about 25 queries. On the folio tab it also builds `ScheduledFolioRows` a second time after `FolioStatement`, so the tab runs 63 queries (was under 30). Build the scheduled rows once in `renderTab`, pass them to `BookingSummary` and `FolioStatement`, and lower the `FolioTabTest` cap again. The card and PDF must keep the same numbers. Plan first: whether `money` should stay on every tab, be deferred with a skeleton, or read lighter totals. Docs: [Reservation page](12-reservations/06-reservation-page.md#header), [Booking summary](12-reservations/08-booking-summary.md).
 - [ ] `feat(ui): add the command palette` — ⌘K search across contexts; admin search by code, name, city. Docs: [Search patterns](design-system/07-search-patterns.md).
 
 ## Later
