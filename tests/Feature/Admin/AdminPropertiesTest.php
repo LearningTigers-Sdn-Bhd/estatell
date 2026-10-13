@@ -141,13 +141,17 @@ test('unknown sorts and filters are rejected', function (array $query) {
 ]);
 
 test('the list runs a fixed number of queries', function () {
-    Model::preventLazyLoading();
     Property::factory()->count(5)->create()->each(fn (Property $property) => User::factory()->for($property)->create());
 
     $this->actingAs($this->admin);
+    Model::preventLazyLoading();
     DB::enableQueryLog();
 
-    $this->get(route('admin.properties.index'))->assertOk();
+    try {
+        $this->get(route('admin.properties.index'))->assertOk();
+    } finally {
+        Model::preventLazyLoading(false);
+    }
 
     $propertyQueries = collect(DB::getQueryLog())->filter(fn (array $query) => str_contains($query['query'], '"properties"'));
     expect($propertyQueries)->toHaveCount(2);
