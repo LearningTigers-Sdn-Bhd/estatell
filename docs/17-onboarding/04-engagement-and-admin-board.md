@@ -16,7 +16,7 @@ Make owners finish onboarding, and let the platform see who is stuck.
 
 ## Admin board
 
-Lists every onboarding property with current step, completion percentage and last activity. Admins can offer help to stuck properties. Each row has a **[View as]** button (see [Impersonation](../01-platform/04-impersonation.md)), which pre-selects the "Onboarding help" reason.
+Lists every onboarding property with current step, completion percentage and last activity. Admins can offer help to stuck properties. Partners see the same board on their Properties page, limited to their own properties (see [Partners](05-partners.md#partner-portal)). Each row has a **[View as]** button (see [Impersonation](../01-platform/04-impersonation.md)), which pre-selects the "Onboarding help" reason.
 
 ## Analytics
 

@@ -7,23 +7,29 @@ A property is the tenant. Every domain record belongs to exactly one property. w
 ## Data model
 
 ```
-properties    id, code (bigint, unique), document_prefix (unique, nullable), name, type (PropertyType, nullable), status (PropertyStatus),
+properties    id, code (varchar 12, unique), partner_id (nullable), document_prefix (unique, nullable), name, type (PropertyType, nullable), status (PropertyStatus),
               address_line1, address_line2, city, state_code, postal_code, country_code (char 2, nullable),
               contact_email, contact_phone, registration_number, tin,
               onboarding_started_at, went_live_at, suspended_at, suspended_from_status, timestamps
 ```
 
 - `type` and `country_code` are empty after self sign-up. The Basics wizard step fills them (see [Wizard steps](../17-onboarding/02-wizard-steps.md)).
+- `partner_id` is the partner who brought the property (restrict on delete). NULL means a direct customer. Only admins change it (see [Partners](../17-onboarding/05-partners.md)).
 - CHECK constraints keep `type` and `status` to enum values.
 
 ## Property code
 
-- `code` is the public identifier: a plain number, issued in order from the Postgres sequence `property_code_seq` starting at **10101** (column default).
-- Immutable after creation. It is not fillable, so application code cannot set or change it.
-- Used in every staff URL: `app.example.com/p/10142/...` (see [Routing](../routing.md)).
+- `code` is the public identifier: a 2-letter prefix and a number, for example `ES10101` or `AS10101`. CHECK `^[A-Z]{2}[0-9]{5,}$`.
+- `ES` is for direct properties (self sign-up without a partner link, or created by an admin). A partner's properties use the partner's `code_prefix` (see [Partners](../17-onboarding/05-partners.md)).
+- Each prefix has its own counter, starting at **10101**. `ES10101` and `AS10101` can both exist.
+- Counters live in `property_code_counters` (`prefix` char 2 primary key, `last_number`). `IssuePropertyCode` takes the next number with one `INSERT … ON CONFLICT (prefix) DO UPDATE SET last_number = last_number + 1 RETURNING last_number` inside the creating transaction, so two sign-ups never get the same code.
+- Immutable after creation. It is not fillable. Moving a property to another partner keeps its code, so the prefix shows where the property started, not who it belongs to now.
+- Used in every staff URL: `app.example.com/p/ES10142/...` (see [Routing](../routing.md)). The route binding upper-cases the code, so `/p/es10142` also works.
 - Easy to say on the phone. Admin ⌘K searches by code, name or city.
 - Not a secret. Access is always checked by `EnsurePropertyAccess`; a code that does not belong to the user returns `404`.
+- Not the [document prefix](#document-prefix), which is a separate column.
 - `slug` is added later, only when the public booking engine needs it.
+- History: codes were plain numbers from the sequence `property_code_seq` until the partners change. The migration prefixed every existing code with `ES` (10142 → `ES10142`), seeded the `ES` counter with the highest number, and dropped the sequence.
 
 ## Document prefix
 
@@ -93,4 +99,4 @@ The property's identity, edited on the Details page, **Profile** tab (`/p/{code}
 
 - `hotels` had 74 columns mixing identity, tax, AI, training and feature flags. Keep `properties` to identity and address. Operating settings go to [Property settings](02-property-settings.md).
 - Tourism tax existed both as columns on `hotels` and as rows in `hotel_taxes`. Taxes live only in `taxes`.
-- wastays had four identifiers: `unique_id`, `slug`, `public_id` (UUID) and `hotel_prefix` with a prefix history table. `unique_id` was issued with an advisory lock and `MAX + 1`. estatell keeps one `code` from a database sequence.
+- wastays had four identifiers: `unique_id`, `slug`, `public_id` (UUID) and `hotel_prefix` with a prefix history table. `unique_id` was issued with an advisory lock and `MAX + 1`. estatell keeps one `code` from a counter row per prefix.

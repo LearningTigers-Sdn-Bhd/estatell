@@ -2,19 +2,22 @@
 
 ## Purpose
 
-Two ways to create a property. Both end in the same place: an owner in the onboarding wizard.
+Four ways to create a property. All end in the same place: an owner in the onboarding wizard.
 
 ## Paths
 
-| Path          | Flow                                                                                                                                                       |
-| ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Self sign-up  | Fortify register (name, email, password, property name) creates the property and owner > email verified > wizard                                           |
-| Admin creates | Admin enters property name, type, owner name and email > chooses an emailed setup link or an initial password > owner verifies or completes setup > Basics |
+| Path            | Flow                                                                                                                                                                            |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Self sign-up    | Fortify register (name, email, password, property name) creates the property and owner > email verified > wizard                                                                |
+| Admin creates   | Admin enters property name, type, owner name and email > chooses an emailed setup link or an initial password > owner verifies or completes setup > Basics                      |
+| Partner creates | Same form and Action as admin creates, from the partner portal. The property gets the partner's prefix and `partner_id`                                                         |
+| Partner link    | Owner opens `/join/{signupCode}` > the same Fortify register page, with "Joining via {partner}" > property gets the partner's prefix and `partner_id` > email verified > wizard |
 
 ## Actions
 
-- `RegisterPropertyOwner` (self sign-up)
-- `CreatePropertyForOwner` (admin)
+- `RegisterPropertyOwner` (self sign-up and partner link; takes an optional `Partner`)
+- `CreatePropertyForOwner` (admin and partner; takes an optional `Partner`)
+- `IssuePropertyCode` (all paths; next code for `ES` or the partner's prefix, see [Properties](../02-property/01-properties.md#property-code))
 - `CompleteOwnerSetup` (emailed setup link)
 - `SendOwnerSetupLink` (admin resend)
 - `SeedPropertyDefaults` (both, once type and country are known; see [Seed property defaults](../02-property/03-seed-property-defaults.md))
@@ -22,6 +25,7 @@ Two ways to create a property. Both end in the same place: an owner in the onboa
 ## Rules
 
 - `properties.onboarding_started_at` is set on creation.
+- Prefix: `ES` and `partner_id` NULL for self sign-up and admin creates. The partner's `code_prefix` and `partner_id` for partner creates and the partner link. Partner details: [Partners](05-partners.md).
 - `RegisterPropertyOwner` creates the property and the owner in one transaction at registration, so the `users` CHECK (staff always have a property) holds. In the same transaction it seeds the default roles (`SeedDefaultRoles`) and gives the owner the Owner role (`AssignOwnerRole`), so the owner has every permission from the first login. `type` and `country_code` stay empty until the Basics step. The `verified` middleware keeps unverified owners out of the wizard.
 - Properties created before roles existed were backfilled by a migration: default roles seeded, and each property's first user made the Owner.
 - `CreatePropertyForOwner` creates the Malaysia property and owner in one transaction. It seeds property settings and roles, assigns Owner, and logs `property.created` without password data.

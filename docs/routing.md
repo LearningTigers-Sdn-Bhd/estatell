@@ -4,7 +4,7 @@ URL shape, route groups, names and middleware for estatell. Wayfinder generates 
 
 ## Principles
 
-- **Property code in the URL.** Staff routes live under `/p/{property:code}`, for example `app.example.com/p/10142/front-desk/stay-view`.
+- **Property code in the URL.** Staff routes live under `/p/{property:code}`, for example `app.example.com/p/ES10142/front-desk/stay-view`.
 - **One app domain.** Staff app, admin and guest links share `app.example.com`, so impersonation works within one session. The marketing site is `example.com`.
 - **Names match folders.** The URL prefix, route name prefix, page folder and `pms/{feature}` folder use the same word, for example `front-desk`.
 - **Dot names per level.** Resource routes use Laravel's verbs: `index`, `create`, `store`, `show`, `edit`, `update`, `destroy`.
@@ -12,30 +12,32 @@ URL shape, route groups, names and middleware for estatell. Wayfinder generates 
 
 ## Property code
 
-- `properties.code`: bigint, unique, immutable, issued from a Postgres sequence starting at **10101**. See [Properties](02-property/01-properties.md).
+- `properties.code`: a 2-letter prefix and a number (`ES10142`), unique and immutable, from one counter per prefix. See [Properties](02-property/01-properties.md#property-code).
 - Easy to say on the phone and to search in admin ⌘K.
-- The route group is `Route::prefix('p/{property:code}')->whereNumber('property')->middleware([EnsurePropertyAccess::class, 'verified'])`. Use the class, not the `property.access` alias: `wayfinder:generate` only reads `URL::defaults` from middleware it can resolve, and aliases are not resolved in the console.
-- `AppServiceProvider` binds `{property}` by code explicitly (`Route::bind`), because `Route::inertia` routes have no typed parameter for implicit binding. `EnsurePropertyAccess` runs after `SubstituteBindings` (middleware priority).
+- The route group is `Route::prefix('p/{property:code}')->where(['property' => '[A-Za-z]{2}[0-9]{5,}'])->middleware([EnsurePropertyAccess::class, 'verified'])`. Use the class, not the `property.access` alias: `wayfinder:generate` only reads `URL::defaults` from middleware it can resolve, and aliases are not resolved in the console. Admin routes with `{property}` use the same pattern.
+- `AppServiceProvider` binds `{property}` by the upper-cased code explicitly (`Route::bind`), because `Route::inertia` routes have no typed parameter for implicit binding. `EnsurePropertyAccess` runs after `SubstituteBindings` (middleware priority).
 - `EnsurePropertyAccess` sets `URL::defaults(['property' => $property->code])`, so server code never passes the code by hand. Wayfinder then makes `property` optional in the generated functions. `AppLayout` calls Wayfinder's `setUrlDefaults({ property })` from the shared `property` prop during render, so the sidebar and pages call `dashboard()` without the code. Code that runs outside a render (module-level constants, layout callbacks) passes the code explicitly.
 - A code that does not match the user's property returns `404` (never `403`).
 - Company users (`users.is_company_user`) get `404` on every `/p/{code}` route.
+- Partners (`users.partner_id`) reach `/p/{code}` only through view as, and only for their own properties (see [Impersonation](01-platform/04-impersonation.md)).
 
 ## Middleware
 
-| Alias                 | Does                                                                                                                                                                                                                                             | Applies to                         |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------- |
-| `property.access`     | `EnsurePropertyAccess`: authenticates staff for the code, allows impersonation, redirects admins to the view-as page, sets the permission team, URL defaults and Pennant scope. See [Impersonation](01-platform/04-impersonation.md#middleware). | All `/p/{code}` routes             |
-| `web` group           | `LogoutDeactivatedUsers`: signs out users deactivated while signed in. See [Staff and invitations](03-staff/01-staff-and-invitations.md)                                                                                                         | Every web request                  |
-| `web` group           | `AuthenticateSession` (`auth.session`): ends a session when the user's password changes. See [Sessions](#sessions)                                                                                                                               | Every web request                  |
-| `web` group           | `EnsurePasswordChanged`: sends users with `must_change_password` to `/account/set-password`. Exempt: set-password routes and `logout`. See [Temp passwords](03-staff/03-temp-passwords.md)                                                       | Every web request                  |
-| `verified`            | Email verified (starter kit)                                                                                                                                                                                                                     | All `/p/{code}` routes             |
-| `live`                | `EnsurePropertyIsLive`: redirects to onboarding until the property is Live                                                                                                                                                                       | Operational modules                |
-| `block.impersonation` | `BlockDuringImpersonation`                                                                                                                                                                                                                       | Blocked routes (see Impersonation) |
-| `features:…`          | Pennant `EnsureFeaturesAreActive`                                                                                                                                                                                                                | Channels                           |
-| `can:admin`           | Platform admin gate (`users.is_admin`), used with `auth`                                                                                                                                                                                         | `/admin`                           |
-| `admin.2fa`           | `RequireAdminTwoFactor`: admin actions need confirmed 2FA when `ADMIN_REQUIRE_2FA` is true. See [Platform admins](01-platform/01-platform-admins.md#two-factor-for-admins)                                                                       | Locked admin actions               |
-| `portal`              | `EnsurePortalAccess`: the user is a company user with an Active link to a company of the property in the URL, the company has `portal_enabled`, and the property is Live. 404 otherwise. Sets URL defaults for `property`.                       | `/portal/{code}`                   |
-| `signed`              | Temporary signed URLs                                                                                                                                                                                                                            | Guest-facing links                 |
+| Alias                 | Does                                                                                                                                                                                                                                                                        | Applies to                            |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- |
+| `property.access`     | `EnsurePropertyAccess`: authenticates staff for the code, allows impersonation, redirects admins and the property's partner to the view-as page, sets the permission team, URL defaults and Pennant scope. See [Impersonation](01-platform/04-impersonation.md#middleware). | All `/p/{code}` routes                |
+| `web` group           | `LogoutDeactivatedUsers`: signs out users deactivated while signed in. See [Staff and invitations](03-staff/01-staff-and-invitations.md)                                                                                                                                    | Every web request                     |
+| `web` group           | `AuthenticateSession` (`auth.session`): ends a session when the user's password changes. See [Sessions](#sessions)                                                                                                                                                          | Every web request                     |
+| `web` group           | `EnsurePasswordChanged`: sends users with `must_change_password` to `/account/set-password`. Exempt: set-password routes and `logout`. See [Temp passwords](03-staff/03-temp-passwords.md)                                                                                  | Every web request                     |
+| `verified`            | Email verified (starter kit)                                                                                                                                                                                                                                                | All `/p/{code}` routes                |
+| `live`                | `EnsurePropertyIsLive`: redirects to onboarding until the property is Live                                                                                                                                                                                                  | Operational modules                   |
+| `block.impersonation` | `BlockDuringImpersonation`                                                                                                                                                                                                                                                  | Blocked routes (see Impersonation)    |
+| `features:…`          | Pennant `EnsureFeaturesAreActive`                                                                                                                                                                                                                                           | Channels                              |
+| `can:admin`           | Platform admin gate (`users.is_admin`), used with `auth`                                                                                                                                                                                                                    | `/admin`                              |
+| `can:partner`         | Partner gate (`users.partner_id` set and the partner Active), used with `auth`                                                                                                                                                                                              | `/partner`                            |
+| `support.2fa`         | `RequireSupportTwoFactor`: admin and partner actions need confirmed 2FA only when `SUPPORT_REQUIRE_2FA` is true (default false). See [Platform admins](01-platform/01-platform-admins.md#two-factor-for-admins)                                                             | Admin writes, partner writes, view as |
+| `portal`              | `EnsurePortalAccess`: the user is a company user with an Active link to a company of the property in the URL, the company has `portal_enabled`, and the property is Live. 404 otherwise. Sets URL defaults for `property`.                                                  | `/portal/{code}`                      |
+| `signed`              | Temporary signed URLs                                                                                                                                                                                                                                                       | Guest-facing links                    |
 
 ## Route groups
 
@@ -58,14 +60,17 @@ URL shape, route groups, names and middleware for estatell. Wayfinder generates 
 | Property settings  | `/p/{code}/settings`                                                          | `settings.`           | property.access (open before go-live), then page permission                              | `settings.php`     |
 | Account (user)     | `/account` (`profile`, `security`, `password`, `appearance`, `notifications`) | `account.`            | auth (+ verified for security, password, appearance, notifications and profile deletion) | `account.php`      |
 | Impersonation stop | `/impersonation/stop`                                                         | `impersonation.stop`  | web session                                                                              | `web.php`          |
+| View as            | `/view-as/{code}`                                                             | `view-as.`            | auth, policy `viewAs`, support.2fa on POST                                               | `web.php`          |
 | Platform admin     | `/admin`                                                                      | `admin.`              | auth, can:admin                                                                          | `admin.php`        |
+| Partner portal     | `/partner`                                                                    | `partner.`            | auth, can:partner                                                                        | `partner.php`      |
+| Partner signup     | `/join/{signupCode}`                                                          | `join`                | guest                                                                                    | `web.php`          |
 | Company portal     | `/portal`, `/portal/{code}`                                                   | `portal.`             | auth, verified (+ portal under `/portal/{code}`)                                         | `portal.php`       |
 | Guest-facing       | `/g`                                                                          | `guest.`              | signed                                                                                   | `guest.php`        |
 | Webhooks           | `/webhooks`                                                                   | `webhooks.`           | no CSRF, provider signature check                                                        | `webhooks.php`     |
 
 After login, an Owner of a non-live property is redirected to `/p/{their code}/onboarding/basics`. Other staff and live Owners go to the property dashboard.
 
-- Fortify's `home` is `/dashboard` (`home.redirect`, `HomeRedirectController`). It sends admins to `/admin`, company users to `/portal`, non-live Owners to Basics, and other staff to their property dashboard.
+- Fortify's `home` is `/dashboard` (`home.redirect`, `HomeRedirectController`). It sends admins to `/admin`, partners to `/partner`, company users to `/portal`, non-live Owners to Basics, and other staff to their property dashboard.
 - `live` wraps the reservations, front-desk, finance, guests and registration route files. A property in Onboarding is sent to Basics. A property in PendingApproval is sent to the Go live page, which shows a waiting notice. Settings, rates, staff, the dashboard, onboarding and `business-date.show` stay open. The night audit sheet routes add `live` themselves, and `business-date.show` stays open.
 - Go live is `GET` and `POST /p/{code}/onboarding/go-live` (`onboarding.go-live.show` and `.store`). Both need `settings.manage`. `store` takes `opening_date` (`Y-m-d`, not after today in the property time zone).
 - The first Basics route is `/p/{code}/onboarding/basics` (`onboarding.basics.edit` and `.update`). Settings tabs have their own GET routes: `/p/{code}/settings/profile` (`settings.profile`, the first tab, saved by `PUT` to the same URL as `settings.profile.update`), `/p/{code}/settings` (`settings.edit`, General), `/settings/operations`, `/settings/age-groups`, `/settings/meal-periods` and `/settings/support`. Each section saves with `PUT /p/{code}/settings/{section}` (`settings.update`; sections general, operations and support) and redirects to its tab. Age groups saves with `PUT /p/{code}/settings/age-groups` (`settings.age-groups.update`). The registration card has its own pages: `GET /settings/registration-card` (`settings.registration-card.general`, saved by `PUT` to the same URL as `settings.registration-card.update`) and `GET /settings/registration-card/layout` (`settings.registration-card.layout`, saved by `PUT` to the same URL as `settings.registration-card.fields.update`). All four need `settings.manage`. The Terms tab is `GET /settings/registration-card/terms` (`settings.registration-card.terms`, with `?document=` and `?locale=`), with `POST …/terms/documents` (`terms.documents.store`), `DELETE …/terms/documents/{document}` (`terms.documents.destroy`), `POST …/terms/documents/{document}/versions` (`terms.versions.store`) and `POST …/terms/documents/{document}/preset` (`terms.preset.apply`). They need `registration-card.manage-terms`. The Settings page links to Basics until the settings row exists.
@@ -79,30 +84,33 @@ After login, an Owner of a non-live property is redirected to `/p/{their code}/o
 
 ## Examples
 
-| URL                                                              | Name                                  | Page                                            |
-| ---------------------------------------------------------------- | ------------------------------------- | ----------------------------------------------- |
-| `GET /p/10142/front-desk/stay-view`                              | `front-desk.stay-view`                | `pages/front-desk/stay-view.tsx`                |
-| `GET /p/10142/front-desk/stay-view/version`                      | `front-desk.stay-view.version`        | – (JSON)                                        |
-| `GET /p/10142/front-desk/room-blocks`                            | `front-desk.room-blocks.index`        | `pages/front-desk/room-blocks/index.tsx`        |
-| `POST /p/10142/front-desk/room-blocks/{roomBlock}/end`           | `front-desk.room-blocks.end`          | – (Action)                                      |
-| `GET /p/10142/reservations/create`                               | `reservations.create`                 | `pages/reservations/create.tsx`                 |
-| `POST /p/10142/reservations/{reservation}/units/{unit}/check-in` | `reservations.units.check-in`         | – (Action)                                      |
-| `GET /p/10142/finance/folios/{folio}`                            | `finance.folios.show`                 | `pages/finance/folios/show.tsx`                 |
-| `GET /p/10142/finance/city-ledger/companies`                     | `finance.city-ledger.companies.index` | `pages/finance/city-ledger/companies/index.tsx` |
-| `GET /p/10142/finance/city-ledger/aging`                         | `finance.city-ledger.aging`           | `pages/finance/city-ledger/aging.tsx`           |
-| `GET /p/10142/settings/room-types`                               | `settings.room-types.index`           | `pages/settings/room-types/index.tsx`           |
-| `GET /p/10142/onboarding/rooms`                                  | `onboarding.rooms`                    | Onboarding step (reuses the settings form)      |
-| `GET /admin`                                                     | `admin.dashboard`                     | `pages/admin/dashboard.tsx`                     |
-| `GET /admin/settings`                                            | `admin.settings.edit`                 | `pages/admin/settings/edit.tsx`                 |
-| `GET /admin/properties`                                          | `admin.properties.index`              | `pages/admin/properties/index.tsx`              |
-| `POST /admin/properties`                                         | `admin.properties.store`              | –                                               |
-| `GET /admin/properties/10142`                                    | `admin.properties.show`               | `pages/admin/properties/show.tsx`               |
-| `POST /admin/properties/10142/owner/setup-link`                  | `admin.properties.owner.setup-link`   | –                                               |
-| `GET /admin/properties/10142/view-as`                            | `admin.properties.view-as`            | `pages/admin/properties/view-as.tsx`            |
-| `GET /g/cards/5821?expires=…&signature=…`                        | `guest.cards.show`                    | `pages/guest/cards/show.tsx`                    |
-| `GET /g/owners/82/setup?expires=…&signature=…`                   | `guest.owner-setup.show`              | `pages/auth/owner-setup.tsx`                    |
-| `POST /g/owners/82/setup?expires=…&signature=…`                  | `guest.owner-setup.store`             | –                                               |
-| `POST /webhooks/channex`                                         | `webhooks.channex`                    | –                                               |
+| URL                                                                | Name                                  | Page                                            |
+| ------------------------------------------------------------------ | ------------------------------------- | ----------------------------------------------- |
+| `GET /p/ES10142/front-desk/stay-view`                              | `front-desk.stay-view`                | `pages/front-desk/stay-view.tsx`                |
+| `GET /p/ES10142/front-desk/stay-view/version`                      | `front-desk.stay-view.version`        | – (JSON)                                        |
+| `GET /p/ES10142/front-desk/room-blocks`                            | `front-desk.room-blocks.index`        | `pages/front-desk/room-blocks/index.tsx`        |
+| `POST /p/ES10142/front-desk/room-blocks/{roomBlock}/end`           | `front-desk.room-blocks.end`          | – (Action)                                      |
+| `GET /p/ES10142/reservations/create`                               | `reservations.create`                 | `pages/reservations/create.tsx`                 |
+| `POST /p/ES10142/reservations/{reservation}/units/{unit}/check-in` | `reservations.units.check-in`         | – (Action)                                      |
+| `GET /p/ES10142/finance/folios/{folio}`                            | `finance.folios.show`                 | `pages/finance/folios/show.tsx`                 |
+| `GET /p/ES10142/finance/city-ledger/companies`                     | `finance.city-ledger.companies.index` | `pages/finance/city-ledger/companies/index.tsx` |
+| `GET /p/ES10142/finance/city-ledger/aging`                         | `finance.city-ledger.aging`           | `pages/finance/city-ledger/aging.tsx`           |
+| `GET /p/ES10142/settings/room-types`                               | `settings.room-types.index`           | `pages/settings/room-types/index.tsx`           |
+| `GET /p/ES10142/onboarding/rooms`                                  | `onboarding.rooms`                    | Onboarding step (reuses the settings form)      |
+| `GET /admin`                                                       | `admin.dashboard`                     | `pages/admin/dashboard.tsx`                     |
+| `GET /admin/settings`                                              | `admin.settings.edit`                 | `pages/admin/settings/edit.tsx`                 |
+| `GET /admin/properties`                                            | `admin.properties.index`              | `pages/admin/properties/index.tsx`              |
+| `POST /admin/properties`                                           | `admin.properties.store`              | –                                               |
+| `GET /admin/properties/ES10142`                                    | `admin.properties.show`               | `pages/admin/properties/show.tsx`               |
+| `POST /admin/properties/ES10142/owner/setup-link`                  | `admin.properties.owner.setup-link`   | –                                               |
+| `GET /admin/partners`                                              | `admin.partners.index`                | `pages/admin/partners/index.tsx`                |
+| `GET /view-as/ES10142`                                             | `view-as.show`                        | `pages/view-as/show.tsx`                        |
+| `GET /partner`                                                     | `partner.properties.index`            | `pages/partner/properties/index.tsx`            |
+| `GET /join/K7Q2MX`                                                 | `join`                                | Redirects to `/register`                        |
+| `GET /g/cards/5821?expires=…&signature=…`                          | `guest.cards.show`                    | `pages/guest/cards/show.tsx`                    |
+| `GET /g/owners/82/setup?expires=…&signature=…`                     | `guest.owner-setup.show`              | `pages/auth/owner-setup.tsx`                    |
+| `POST /g/owners/82/setup?expires=…&signature=…`                    | `guest.owner-setup.store`             | –                                               |
+| `POST /webhooks/channex`                                           | `webhooks.channex`                    | –                                               |
 
 Frontend import example:
 

@@ -17,7 +17,7 @@ Legend: **Needs** lists items that must be done first.
 
 ## Now
 
-The critical path is done. Housekeeping is done. What is open now is the company portal and boats.
+The critical path is done. Housekeeping and boats are done. Next up is 17 Registration (support 2FA, property codes, partners, view as), then 17 Onboarding.
 
 ### 19 Housekeeping
 
@@ -46,10 +46,23 @@ For island and jetty properties, behind the `Boats` feature. Build in this order
 - [x] `feat(front-desk): show boat times on arrivals and departures` — the Boat column on Arrivals and Departures. Needs: set boat trips. Docs: [Boat trips](24-boats/02-boat-trips.md#front-desk).
 - [x] `feat(boats): show boat in and out on the reservation card` — the boat line on the reservations list card (`ReservationBoatSummary`, `boatIn` and `boatOut` on `ReservationListItemData`), and the card uses tighter padding. Needs: show boat times on arrivals and departures. Docs: [Boat trips](24-boats/02-boat-trips.md#front-desk).
 
+### 17 Registration
+
+Everything that creates a property or lets support in, for admins and partners. Build before 17 Onboarding, in this order. Docs: [Account creation](17-onboarding/01-account-creation.md), [Partners](17-onboarding/05-partners.md).
+
+- [ ] `refactor(platform): make support two-factor optional` — `SUPPORT_REQUIRE_2FA` (default false, replaces `ADMIN_REQUIRE_2FA`), `config('estatell.support_require_two_factor')`, `RequireSupportTwoFactor` and `support.2fa` replace `RequireAdminTwoFactor` and `admin.2fa` on every admin write route, the `supportTwoFactor` prop replaces `adminNeedsTwoFactor`, and the banner is dismissible while the switch is off. Update `.ai/rules/admin.md` (names only) and `AdminTwoFactorTest`. Docs: [Platform admins](01-platform/01-platform-admins.md#two-factor-for-admins).
+- [ ] `refactor(property): prefix property codes with ES` — `code` to varchar with the CHECK, existing codes to `ES` + number, `property_code_counters` seeded from the highest number, drop `property_code_seq`, `IssuePropertyCode` in `RegisterPropertyOwner` and `CreatePropertyForOwner`, the code pattern on the `/p` group and the 8 admin routes (was `whereNumber`), the upper-case `Route::bind`, admin search by code, generated TS `code: string`, tests and seeders. Docs: [Properties](02-property/01-properties.md#property-code), [Routing](routing.md#property-code).
+- [ ] `feat(platform): add partners` — `partners`, `users.partner_id`, `properties.partner_id`, the users CHECK `users_one_kind_check`, `PartnerStatus`, `CreatePartner`, `SuspendPartner`, `ReactivatePartner`, the admin **Partners** item and pages, the `partner` gate, login and `/dashboard` to `/partner`, the partner layout with an empty Properties page, suspended partners blocked at login. Needs: prefix property codes. Docs: [Partners](17-onboarding/05-partners.md#admin).
+- [ ] `feat(onboarding): let partners create a property` — the partner Properties list (`PartnerProperties`) and New property Sheet through `CreatePropertyForOwner` with the partner, the Partner column and filter on the admin properties list. Needs: add partners. Docs: [Partners](17-onboarding/05-partners.md#partner-portal).
+- [ ] `feat(onboarding): register through a partner link` — `/join/{signupCode}`, the "Joining via" note and dead-link notice on `/register`, `RegisterPropertyOwner` with the partner, the Signup link page and `RegeneratePartnerSignupCode`. Needs: add partners. Docs: [Partners](17-onboarding/05-partners.md#signup-link).
+- [ ] `feat(platform): view a property as its staff` — `/view-as/{code}` page, `PropertyPolicy::viewAs` (admins any property, partners their own), `StartImpersonation`, `StopImpersonation`, banner with the partner name, `EnsurePropertyAccess` steps 2 and 3, [View as] on the admin property page and the partner list. Needs: staff, property settings (`allow_support_access`), add partners. Docs: [Impersonation](01-platform/04-impersonation.md).
+- [ ] `feat(platform): block risky actions during impersonation` — `block.impersonation` middleware. Needs: view a property as its staff.
+- [ ] `feat(platform): move a property to another partner` — `MovePropertyToPartner` (code unchanged, logged), **Move to partner** on the admin property page. Needs: add partners. Docs: [Partners](17-onboarding/05-partners.md#admin).
+
 ### 17 Onboarding
 
 - [ ] `feat(onboarding): add the onboarding wizard steps` — Docs: [Wizard steps](17-onboarding/02-wizard-steps.md).
-- [ ] `feat(onboarding): add reminders and the admin onboarding board` — Docs: [Engagement and admin board](17-onboarding/04-engagement-and-admin-board.md).
+- [ ] `feat(onboarding): add reminders and the admin onboarding board` — also the partner's own board on their Properties page. Docs: [Engagement and admin board](17-onboarding/04-engagement-and-admin-board.md).
 
 ### 18 Front desk
 
@@ -100,8 +113,6 @@ Planned after print customer documents (done). Plan first, with the official MyI
 - [ ] `feat(reports): add the activity log page` — the Audit item in the Reports sidebar, reading the existing activity log, scoped by property. Docs: [App shell](design-system/09-app-shell.md).
 - [ ] `feat(registration): sign the card remotely` — `SendRegistrationCardLink`, signed `/g` routes on the step 1b guest screen, ID upload, a QR code of the link on the staff page (the QR package is chosen and approved at this step). Docs: [Signing flow](16-registration/04-signing-flow.md).
 - [ ] Parked: `feat(registration): pair a signing tablet` — pairing code, Send to tablet, polling idle screen, per-property switch. Docs: [Signing tablet (parked)](16-registration/04-signing-flow.md#signing-tablet-parked).
-- [ ] `feat(platform): view a property as its staff` — view-as page, `StartImpersonation`, `StopImpersonation`, banner, `EnsurePropertyAccess` steps 2 and 3. Needs: staff, property settings (`allow_support_access`). Docs: [Impersonation](01-platform/04-impersonation.md).
-- [ ] `feat(platform): block risky actions during impersonation` — `block.impersonation` middleware.
 
 ### WIP: not planned yet
 

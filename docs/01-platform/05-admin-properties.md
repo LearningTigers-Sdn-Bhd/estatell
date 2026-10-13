@@ -14,15 +14,15 @@ One place for platform admins to find any property and see its details. Admin ac
 | Staff tab    | `GET /admin/properties/{code}/staff`    | `admin.properties.staff`    | Detail    |
 | Features tab | `GET /admin/properties/{code}/features` | `admin.properties.features` | Detail    |
 
-- Read routes use `auth` and `can:admin`. Create, send setup email, suspend and reactivate routes also use `admin.2fa`.
+- Read routes use `auth` and `can:admin`. Create, send setup email, suspend and reactivate routes also use `support.2fa`.
 - `{property}` binds by code (see [Routing](../routing.md#property-code)).
 - The admin sidebar has a **Properties** item.
 
 ## List
 
-- Columns: code, name, status, type, city, owner (name and email), created date. A row click opens the show page.
+- Columns: code, name, status, type, city, owner (name and email), partner, created date. A partner filter (`filter[partner]`, including Direct) comes with partners (see [Partners](../17-onboarding/05-partners.md#admin)). A row click opens the show page.
 - Server-side filter, sort and pagination with `spatie/laravel-query-builder`, 25 per page. Filters live in the URL: `?filter[search]=kota&filter[status]=live&filter[type]=hostel&sort=-created_at&page=2`.
-- Search: a number matches `code` exactly. Other text matches `name` or `city`, ignoring case.
+- Search: a code (`ES10142`, any case) matches `code` exactly. Other text matches `name` or `city`, ignoring case.
 - Sorts: `code`, `name`, `created_at`. Default `-code` (newest first).
 - Unknown filters or sorts return `400`.
 - The owner is the first active user with the property's Owner role (the first deactivated one when none is active). `PropertyOwners` (a Staff service) adds `owner_name` and `owner_email` as subqueries, so the list runs a fixed number of queries.

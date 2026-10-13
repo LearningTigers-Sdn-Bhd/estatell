@@ -8,7 +8,7 @@ A full-width navbar on top, the sidebar below it on the left, the page to the ri
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────┐
-│ ☰  ▣ Pulau Inn · ID 10142                                    👤  │  navbar
+│ ☰  ▣ Pulau Inn · ID ES10142                                    👤  │  navbar
 ├────────────────┬─────────────────────────────────────────────────────────┤
 │ OVERVIEW       │ Breadcrumbs                                             │
 │   Dashboard    │                                                         │
@@ -134,7 +134,7 @@ Front desk staff must always know which business date they are posting to. After
 ## Other shell parts
 
 - A ⌘K command palette on every page.
-- During impersonation, a banner that cannot be dismissed shows who is viewed, the time left and a Stop button (see [Impersonation](../01-platform/04-impersonation.md)).
+- During impersonation, a banner that cannot be dismissed shows who is viewed, the partner name for a partner session, the time left and a Stop button (see [Impersonation](../01-platform/04-impersonation.md)).
 - A separate guest-facing layout (`GuestLayout`) for the remote registration card: property logo, larger touch targets, no sidebar.
 
 ## Lessons from wastays

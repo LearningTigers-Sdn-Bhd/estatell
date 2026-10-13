@@ -21,7 +21,7 @@ staff_invitations    id, property_id, email, role_id,
 - An invitation is **open** while it is neither accepted nor revoked (`StaffInvitation::open()`). An open invitation can be expired; resending opens it again.
 
 - A user belongs to one property (`users.property_id`).
-- `users.property_id` is null only for platform admins (`is_admin`) and company users (`is_company_user`). A CHECK enforces exactly one kind: admin, company user or staff. See [Platform admins](../01-platform/01-platform-admins.md).
+- `users.property_id` is null only for platform admins (`is_admin`), partner users (`partner_id`) and company users (`is_company_user`). A CHECK enforces exactly one kind: admin, partner user, company user or staff. See [Platform admins](../01-platform/01-platform-admins.md).
 - Company users (module 23) have no staff role and cannot open `/p/{code}` routes. They join through `company_users`, not `staff_invitations`. See [Company portal](../23-company-portal/01-company-portal.md).
 - The owner is created by Fortify registration or by an admin invite (see [Account creation](../17-onboarding/01-account-creation.md)).
 

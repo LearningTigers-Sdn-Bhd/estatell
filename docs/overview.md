@@ -61,7 +61,7 @@ See [Dependencies](#approved-dependencies) for the full list.
 
 UI decisions (shadcn Nova on Base UI, preset `b3ZzDdiJy4`, component folders, form containers, data loading) are in [design-system.md](design-system.md). The short contract is [DESIGN.md](../DESIGN.md).
 
-URL shape, route groups and middleware are in [routing.md](routing.md). Staff URLs include the property code: `app.example.com/p/10142/...`.
+URL shape, route groups and middleware are in [routing.md](routing.md). Staff URLs include the property code: `app.example.com/p/ES10142/...`.
 
 ## Architecture rules
 
@@ -210,6 +210,8 @@ One word per idea, in docs, code and UI.
 | Company portal    | The pages for company users, at `/portal`                                                                | agent portal                               |
 | Company reference | The company's own voucher or file number (`reservations.external_reference`)                             | agent reference                            |
 | City ledger       | Money owed to the property by companies. UI name; tables keep `ar_*`                                     | receivables (in UI)                        |
+| Partner           | A reseller who brings properties and helps them onboard. Sees only their own properties, at `/partner`   | super agent, agent, reseller (in code)     |
+| Property code     | `ES10142`: a 2-letter prefix (`ES` direct, or the partner's) and a number per prefix                     | unique id, hotel prefix                    |
 
 "Travel agent" appears only as a company type. "Portal" appears in UI labels and in `portal_*` columns.
 
@@ -221,7 +223,7 @@ The build plan, as one commit per item, is in [checklist.md](checklist.md).
 
 | #   | Module                               | Summary                                                                          |
 | --- | ------------------------------------ | -------------------------------------------------------------------------------- |
-| 01  | [Platform](01-platform/)             | Platform admins, platform settings, feature flags                                |
+| 01  | [Platform](01-platform/)             | Platform admins, platform settings, feature flags, impersonation                 |
 | 02  | [Property](02-property/)             | Properties, settings, defaults seeding, age groups, printing settings            |
 | 03  | [Staff](03-staff/)                   | Staff invitations, roles and permissions                                         |
 | 04  | [Notifications](04-notifications/)   | Notification types and opt-out                                                   |
@@ -237,7 +239,7 @@ The build plan, as one commit per item, is in [checklist.md](checklist.md).
 | 14  | [Payments](14-payments/)             | Payments and refunds                                                             |
 | 15  | [City ledger](15-city-ledger/)       | Companies, invoices, payments received, statements, aging                        |
 | 16  | [Registration](16-registration/)     | Registration cards and terms                                                     |
-| 17  | [Onboarding](17-onboarding/)         | Account creation, wizard, go-live                                                |
+| 17  | [Onboarding](17-onboarding/)         | Account creation, partners, wizard, go-live                                      |
 | 18  | [Front desk](18-front-desk/)         | Check-in, check-out, assignment, dashboard, group check-out                      |
 | 19  | [Housekeeping](19-housekeeping/)     | Room status board, printed work sheet and property column layout                 |
 | 20  | [Night audit](20-night-audit/)       | Business dates, readiness, audit run                                             |

@@ -39,7 +39,7 @@ property_settings    property_id (unique), currency, time_zone, default_locale,
 
 ## Support access
 
-`allow_support_access` lets platform support view the property as its owner. The owner can switch it off. See [Impersonation](../01-platform/04-impersonation.md).
+`allow_support_access` lets platform support and the property's partner view the property as its owner. The owner can switch it off. See [Impersonation](../01-platform/04-impersonation.md).
 
 ## Rules
 
