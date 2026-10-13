@@ -142,6 +142,7 @@ Selected (1): [Copy message] [Export ▾ CSV · XLSX · PDF] [Reset temp passwor
 ### Other admin rules
 
 - List columns: partner, prefix, user email, property count, status (with **Temp password · Nd** like staff), created.
+- The Suspended tab has the same columns, with **Suspended** (the date) instead of status. Active rows have ⋯ → **Suspend** with a confirm ("Suspend {name}? They can't sign in. Their properties keep running."). Suspended rows have ⋯ → **Reactivate** without a confirm. Only an Active partner can be suspended; an Invited one is revoked instead.
 - Admin properties list gets a **Partner** column and filter.
 - **Move to partner** on the admin property page: pick a partner or "Direct". `MovePropertyToPartner` changes `partner_id` only. The code stays. The old partner loses view as at once. Logged with the old and new partner.
 - Every admin write carries `support.2fa` and is logged.
