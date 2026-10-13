@@ -342,7 +342,7 @@ test('the profile needs a name, an address line, a city and a valid email', func
 });
 
 /** @return array<string, mixed> */
-function documentPayload(array $overrides = []): array
+function printDocumentsPayload(array $overrides = []): array
 {
     return [
         'show_unit_on_lines' => true, 'nightly_breakdown' => false, 'tax_breakdown' => true,
@@ -369,7 +369,7 @@ test('staff save the document switches and the change logs only the changed fiel
     [$owner, $property] = printingProperty();
 
     $this->actingAs($owner)
-        ->put(printSettingsUrl($property, 'printing/documents'), documentPayload([
+        ->put(printSettingsUrl($property, 'printing/documents'), printDocumentsPayload([
             'nightly_breakdown' => true, 'show_signature_lines' => true, 'bank_details' => "  Maybank 5141 2233 4455\nSandbay Resort  ",
         ]))
         ->assertRedirect()
@@ -390,14 +390,14 @@ test('empty payment details are stored as null and an unchanged save is not logg
     $property->printSetting->update(['bank_details' => 'Maybank 5141']);
 
     $this->actingAs($owner)
-        ->put(printSettingsUrl($property, 'printing/documents'), documentPayload(['bank_details' => '   ']))
+        ->put(printSettingsUrl($property, 'printing/documents'), printDocumentsPayload(['bank_details' => '   ']))
         ->assertSessionHasNoErrors();
 
     expect($property->printSetting->refresh()->bank_details)->toBeNull();
 
     Activity::query()->delete();
 
-    $this->actingAs($owner)->put(printSettingsUrl($property, 'printing/documents'), documentPayload())->assertSessionHasNoErrors();
+    $this->actingAs($owner)->put(printSettingsUrl($property, 'printing/documents'), printDocumentsPayload())->assertSessionHasNoErrors();
 
     expect(Activity::query()->where('event', 'print_settings.updated')->count())->toBe(0);
 });
@@ -415,12 +415,12 @@ test('the documents routes need settings.manage and Basics', function () {
     $frontDesk = User::factory()->withRole(DefaultRoleEnum::FrontDesk)->create(['property_id' => $property->id]);
 
     $this->actingAs($frontDesk)->get(printSettingsUrl($property, 'printing/documents'))->assertForbidden();
-    $this->actingAs($frontDesk)->put(printSettingsUrl($property, 'printing/documents'), documentPayload())->assertForbidden();
+    $this->actingAs($frontDesk)->put(printSettingsUrl($property, 'printing/documents'), printDocumentsPayload())->assertForbidden();
 
     $property->printSetting()->delete();
 
     $this->actingAs($owner)->get(printSettingsUrl($property, 'printing/documents'))->assertRedirect(route('settings.edit', $property->code));
-    $this->actingAs($owner)->put(printSettingsUrl($property->refresh(), 'printing/documents'), documentPayload())->assertNotFound();
+    $this->actingAs($owner)->put(printSettingsUrl($property->refresh(), 'printing/documents'), printDocumentsPayload())->assertNotFound();
 });
 
 test('the documents tab sends the document switches', function () {
