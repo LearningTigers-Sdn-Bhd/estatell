@@ -39,7 +39,7 @@ test('sending is refused without an unverified owner', function (bool $withVerif
 ]);
 
 test('the send endpoint requires an admin with two-factor', function () {
-    config(['estatell.admin_require_two_factor' => true]);
+    config(['estatell.support_require_two_factor' => true]);
     $owner = User::factory()->unverified()->owner()->create();
     $route = route('admin.properties.owner.setup-link', $owner->property->code);
 
@@ -56,7 +56,7 @@ test('the send endpoint requires an admin with two-factor', function () {
 });
 
 test('the send endpoint reports a verified owner without writing activity', function () {
-    config(['estatell.admin_require_two_factor' => false]);
+    config(['estatell.support_require_two_factor' => false]);
     $owner = User::factory()->owner()->create();
 
     $this->actingAs($this->admin)

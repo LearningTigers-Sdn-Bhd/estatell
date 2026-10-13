@@ -105,7 +105,7 @@ test('staff get a 404 on the feature switch', function () {
 });
 
 test('admins without two-factor cannot change features', function () {
-    config(['estatell.admin_require_two_factor' => true]);
+    config(['estatell.support_require_two_factor' => true]);
     $property = Property::factory()->create();
 
     $this->actingAs(User::factory()->admin()->create())

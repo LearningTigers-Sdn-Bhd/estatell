@@ -11,7 +11,7 @@ declare module '@inertiajs/core' {
         sharedPageProps: {
             name: string;
             auth: Auth;
-            adminNeedsTwoFactor: boolean;
+            supportTwoFactor: { required: boolean } | null;
             property: App.Data.Property.PropertySummaryData | null;
             businessDate: App.Data.NightAudit.BusinessDateData | null;
             adminNavigation: App.Data.Navigation.NavItemData[] | null;

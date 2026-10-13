@@ -1,17 +1,49 @@
 import { Link, usePage } from '@inertiajs/react';
-import { ShieldAlert } from 'lucide-react';
-import { buttonVariants } from '@/components/ui/button';
+import { ShieldAlert, X } from 'lucide-react';
+import { useState } from 'react';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { edit } from '@/routes/account/security';
 
+const DISMISSED_KEY = 'estatell.support-2fa-banner-dismissed';
+
+function isDismissed(): boolean {
+    try {
+        return window.localStorage.getItem(DISMISSED_KEY) === '1';
+    } catch {
+        return false;
+    }
+}
+
+function rememberDismissed(): void {
+    try {
+        window.localStorage.setItem(DISMISSED_KEY, '1');
+    } catch {
+        // Browser storage can be blocked. The banner still hides until the page reloads.
+    }
+}
+
 /**
- * Shown to admins who have not confirmed two-factor while admin actions require it.
+ * Shown to admins who have not confirmed two-factor. While the switch requires it, the banner cannot be dismissed.
+ * While it does not, the banner is a reminder that the admin can dismiss for this browser.
  */
 export function AdminTwoFactorBanner() {
-    const { adminNeedsTwoFactor } = usePage().props;
+    const { supportTwoFactor } = usePage().props;
+    const [dismissed, setDismissed] = useState(isDismissed);
 
-    if (!adminNeedsTwoFactor) {
+    if (supportTwoFactor === null) {
         return null;
+    }
+
+    const required = supportTwoFactor.required;
+
+    if (!required && dismissed) {
+        return null;
+    }
+
+    function dismiss(): void {
+        rememberDismissed();
+        setDismissed(true);
     }
 
     return (
@@ -22,7 +54,9 @@ export function AdminTwoFactorBanner() {
             >
                 <ShieldAlert className="size-4 shrink-0 text-warning" />
                 <p className="flex-1 font-medium">
-                    Set up two-factor to use admin actions
+                    {required
+                        ? 'Set up two-factor to use admin actions'
+                        : 'Two-factor is recommended for support access'}
                 </p>
                 <Link
                     href={edit()}
@@ -33,6 +67,16 @@ export function AdminTwoFactorBanner() {
                 >
                     Set up
                 </Link>
+                {!required && (
+                    <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label="Dismiss"
+                        onClick={dismiss}
+                    >
+                        <X />
+                    </Button>
+                )}
             </div>
         </div>
     );

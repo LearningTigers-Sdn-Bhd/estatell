@@ -5,9 +5,9 @@ use Illuminate\Support\Facades\Route;
 use Inertia\Testing\AssertableInertia as Assert;
 
 beforeEach(function () {
-    config(['estatell.admin_require_two_factor' => true]);
+    config(['estatell.support_require_two_factor' => true]);
 
-    Route::middleware(['web', 'auth', 'can:admin', 'admin.2fa'])
+    Route::middleware(['web', 'auth', 'can:admin', 'support.2fa'])
         ->post('/admin/_locked-action', fn () => response('done'));
 });
 
@@ -32,19 +32,22 @@ test('an admin with confirmed two-factor can use admin actions', function () {
 });
 
 test('admin actions stay open when the setting is off', function () {
-    config(['estatell.admin_require_two_factor' => false]);
+    config(['estatell.support_require_two_factor' => false]);
 
     $this->actingAs(User::factory()->admin()->create())
         ->post('/admin/_locked-action')
         ->assertOk();
 });
 
-test('the banner prop is shared only with admins who still need two-factor', function (Closure $user, bool $needsTwoFactor) {
+test('the support prop describes the two-factor reminder for each user', function (Closure $user, bool $requireTwoFactor, ?array $expected) {
+    config(['estatell.support_require_two_factor' => $requireTwoFactor]);
+
     $this->actingAs($user())
         ->get(route('account.profile.edit'))
-        ->assertInertia(fn (Assert $page) => $page->where('adminNeedsTwoFactor', $needsTwoFactor));
+        ->assertInertia(fn (Assert $page) => $page->where('supportTwoFactor', $expected));
 })->with([
-    'admin without two-factor' => [fn () => User::factory()->admin()->create(), true],
-    'admin with two-factor' => [fn () => User::factory()->admin()->withTwoFactor()->create(), false],
-    'staff without two-factor' => [fn () => User::factory()->create(), false],
+    'admin without two-factor, switch on' => [fn () => User::factory()->admin()->create(), true, ['required' => true]],
+    'admin without two-factor, switch off' => [fn () => User::factory()->admin()->create(), false, ['required' => false]],
+    'admin with two-factor, switch on' => [fn () => User::factory()->admin()->withTwoFactor()->create(), true, null],
+    'staff without two-factor, switch on' => [fn () => User::factory()->create(), true, null],
 ]);

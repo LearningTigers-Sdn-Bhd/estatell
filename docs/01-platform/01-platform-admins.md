@@ -58,8 +58,8 @@ Two-factor is **optional by default** for admins and partners. One switch can ma
 
 - Decided 2026-10-14: the business wants 2FA optional for admins too. The switch stays, so turning it on later is one env change.
 - Locked actions when required: view as, platform settings, feature flags, create or suspend a property, partner management, dorm strategy, and partner writes (create a property, regenerate the signup link).
-- Middleware `support.2fa` (`RequireSupportTwoFactor`, replaces `admin.2fa`) guards those routes. It does nothing while the switch is off. When on, it redirects back with the error toast "Two-factor required for this action." and returns `403` to JSON requests.
-- Shared Inertia prop `supportTwoFactor`: `null` when the user has 2FA or is not an admin or partner, otherwise `{ required: bool }`. The banner shows **Set up** (goes to account security). Dismissing it is remembered in `localStorage` per browser; it shows again on a new device.
+- Middleware `support.2fa` (`RequireSupportTwoFactor`, formerly the admin middleware) guards those routes. It does nothing while the switch is off. When on, it redirects back with the error toast "Two-factor required for this action." and returns `403` to JSON requests.
+- Shared Inertia prop `supportTwoFactor`: `null` when the user has 2FA or is not an admin or partner, otherwise `{ required: bool }`. The banner shows **Set up** (goes to account security). Dismissing it is remembered in `localStorage` per browser; it shows again on a new device. When the switch is on, the banner says "Set up two-factor to use admin actions" and cannot be dismissed; when it is off, the dismissal is stored under `estatell.support-2fa-banner-dismissed`.
 - Passkeys (not built yet): enable Fortify `Features::passkeys()`. A confirmed passkey will count as 2FA. Until then, 2FA means `two_factor_confirmed_at` is set. Staff may use passkeys too.
 - Config: `config('estatell.support_require_two_factor')`.
 

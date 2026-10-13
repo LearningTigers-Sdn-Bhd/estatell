@@ -123,7 +123,7 @@ test('an initial password can create an already verified owner without sending v
 });
 
 test('the create endpoint validates input and creates nothing on failure', function (array $changes, string $error) {
-    config(['estatell.admin_require_two_factor' => false]);
+    config(['estatell.support_require_two_factor' => false]);
     User::factory()->create(['email' => 'TAKEN@EXAMPLE.COM']);
     $propertiesBefore = Property::query()->count();
     $usersBefore = User::query()->count();
@@ -157,7 +157,7 @@ test('the create endpoint validates input and creates nothing on failure', funct
 ]);
 
 test('the create endpoint redirects to the new property and exposes form options', function () {
-    config(['estatell.admin_require_two_factor' => false]);
+    config(['estatell.support_require_two_factor' => false]);
 
     $this->actingAs($this->admin)
         ->get(route('admin.properties.index'))
@@ -181,7 +181,7 @@ test('the create endpoint redirects to the new property and exposes form options
 });
 
 test('the create endpoint enforces guest staff and two-factor boundaries', function () {
-    config(['estatell.admin_require_two_factor' => true]);
+    config(['estatell.support_require_two_factor' => true]);
     $payload = [
         'property_name' => 'Seaview Guesthouse',
         'type' => PropertyType::Hotel->value,

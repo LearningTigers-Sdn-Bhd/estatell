@@ -7,7 +7,7 @@ use App\Http\Middleware\EnsurePropertyIsLive;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\LogoutDeactivatedUsers;
-use App\Http\Middleware\RequireAdminTwoFactor;
+use App\Http\Middleware\RequireSupportTwoFactor;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -28,7 +28,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->redirectUsersTo(fn (Request $request): string => $request->user()?->is_admin ? route('admin.dashboard') : route('home.redirect'));
 
         $middleware->alias([
-            'admin.2fa' => RequireAdminTwoFactor::class,
+            'support.2fa' => RequireSupportTwoFactor::class,
             'boats' => EnsureBoatsIsActive::class,
             'live' => EnsurePropertyIsLive::class,
             'property.access' => EnsurePropertyAccess::class,

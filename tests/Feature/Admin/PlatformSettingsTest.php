@@ -42,7 +42,7 @@ test('staff get a 404 on platform settings', function () {
 });
 
 test('admins without two-factor cannot save platform settings', function () {
-    config(['estatell.admin_require_two_factor' => true]);
+    config(['estatell.support_require_two_factor' => true]);
 
     $this->actingAs(User::factory()->admin()->create())
         ->put(route('admin.settings.update'), validPlatformSettings())

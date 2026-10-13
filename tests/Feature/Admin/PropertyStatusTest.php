@@ -97,7 +97,7 @@ test('guests must sign in for admin status actions', function () {
 });
 
 test('two-factor is required for both admin status actions', function (string $action) {
-    config(['estatell.admin_require_two_factor' => true]);
+    config(['estatell.support_require_two_factor' => true]);
     $property = Property::factory()->onboarding()->create();
 
     $this->actingAs(User::factory()->admin()->create())

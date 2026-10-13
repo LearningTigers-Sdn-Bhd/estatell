@@ -49,7 +49,7 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => $request->user(),
             ],
-            'adminNeedsTwoFactor' => RequireAdminTwoFactor::isMissingFor($request->user()),
+            'supportTwoFactor' => RequireSupportTwoFactor::sharedPropFor($request->user()),
             'property' => fn () => $this->currentProperty($request),
             'businessDate' => fn () => $this->businessDate($request),
             'adminNavigation' => fn () => $request->user()?->is_admin ? app(AdminNavigation::class)->items() : null,
