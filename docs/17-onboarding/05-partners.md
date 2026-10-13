@@ -113,7 +113,8 @@ Selected (1): [Copy message] [Export ▾ CSV · XLSX · PDF] [Reset temp passwor
 - Dialog with partner name, prefix, user name and email. `CreatePartnerWithTemporaryPassword` creates the Active partner, counter row, signup code and user in one transaction. A Dialog then shows the copy message with **Copy**.
 - Reuses the staff temp password pieces: the `users` temp columns, `TemporaryPasswordGenerator`, the 14-day expiry, `must_change_password` and `/account/set-password`. See [Temp passwords and bulk staff](../03-staff/03-temp-passwords.md).
 - The expired message reads "This temporary password has expired. Ask estatell support for a new one."
-- **Reset temp password**, **Copy message** and **Export** (CSV, XLSX, PDF) work on selected rows, as on the Staff page.
+- **Reset temp password**, **Copy message** and **Export** (CSV, XLSX, PDF) work on selected rows, as on the Staff page. Selection is on the Active tab only. Reset skips suspended partners (reactivate first) and the toast counts them. The CSV and XLSX name column is headed **Partner**, and the file is `temp-passwords-partners.{csv,xlsx,pdf}`. Copy message and Export also carry `support.2fa`, because they show live credentials.
+- The copy message is fetched when its Dialog opens, also right after adding a partner, so temp passwords never sit in page props or the session. The message, export and reset Dialogs are shared with the Staff page (`components/pms/temporary-passwords/`), which passes its own routes.
 
 ### Bulk add
 
