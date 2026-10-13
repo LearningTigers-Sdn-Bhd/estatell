@@ -1,4 +1,5 @@
-import { Ellipsis } from 'lucide-react';
+import { Ellipsis, Ship } from 'lucide-react';
+import { EmptyState } from '@/components/pms/empty-state';
 import { Button } from '@/components/ui/button';
 import {
     DropdownMenu,
@@ -29,10 +30,12 @@ export function fareLabel(fare: Fare, money: Intl.NumberFormat): string {
 }
 
 /**
- * One boat direction's departures, sorted by the server. Unavailable rows stay in place and are muted.
+ * One boat direction's departures, sorted by the server. Unavailable rows stay in place and are muted. With no
+ * departures the table keeps its header and shows the empty state in one row.
  */
 export function BoatDepartureTable({
     departures,
+    emptyTitle,
     money,
     togglingIds,
     onToggleActive,
@@ -40,6 +43,7 @@ export function BoatDepartureTable({
     onDelete,
 }: {
     departures: Departure[];
+    emptyTitle: string;
     money: Intl.NumberFormat;
     togglingIds: Set<number>;
     onToggleActive: (departure: Departure, active: boolean) => void;
@@ -63,6 +67,13 @@ export function BoatDepartureTable({
                     </TableRow>
                 </TableHeader>
                 <TableBody>
+                    {departures.length === 0 && (
+                        <TableRow className="hover:bg-transparent">
+                            <TableCell colSpan={7}>
+                                <EmptyState icon={Ship} title={emptyTitle} />
+                            </TableCell>
+                        </TableRow>
+                    )}
                     {departures.map((departure) => (
                         <TableRow
                             key={departure.id}

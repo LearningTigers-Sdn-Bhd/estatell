@@ -1,11 +1,10 @@
 import { boats } from '@/routes/settings';
 import { Form, Head, router } from '@inertiajs/react';
-import { Plus, Ship } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { useState } from 'react';
 import { BoatDepartureSheet } from '@/components/pms/settings/boat-departure-sheet';
 import { BoatDepartureTable } from '@/components/pms/settings/boat-departure-table';
 import { BoatSettingsTabs } from '@/components/pms/settings/boat-settings-tabs';
-import { EmptyState } from '@/components/pms/empty-state';
 import { PageHeader } from '@/components/pms/page-header';
 import { Button } from '@/components/ui/button';
 import {
@@ -153,44 +152,26 @@ export default function BoatDeparturesPage({
                                         <h2 className="text-base font-medium">
                                             {direction.label}
                                         </h2>
-                                        {rows.length > 0 && (
-                                            <Button
-                                                variant="outline"
-                                                onClick={() =>
-                                                    openAdd(direction.value)
-                                                }
-                                            >
-                                                <Plus data-icon="inline-start" />
-                                                Add departure
-                                            </Button>
-                                        )}
+                                        <Button
+                                            variant="outline"
+                                            onClick={() =>
+                                                openAdd(direction.value)
+                                            }
+                                        >
+                                            <Plus data-icon="inline-start" />
+                                            Add departure
+                                        </Button>
                                     </div>
 
-                                    {rows.length === 0 ? (
-                                        <EmptyState
-                                            icon={Ship}
-                                            title={`No ${direction.label.toLowerCase()} departures yet.`}
-                                            action={
-                                                <Button
-                                                    onClick={() =>
-                                                        openAdd(direction.value)
-                                                    }
-                                                >
-                                                    <Plus data-icon="inline-start" />
-                                                    Add departure
-                                                </Button>
-                                            }
-                                        />
-                                    ) : (
-                                        <BoatDepartureTable
-                                            departures={rows}
-                                            money={money}
-                                            togglingIds={togglingIds}
-                                            onToggleActive={requestToggle}
-                                            onEdit={openEdit}
-                                            onDelete={setDeleting}
-                                        />
-                                    )}
+                                    <BoatDepartureTable
+                                        departures={rows}
+                                        emptyTitle={`No ${direction.label.toLowerCase()} departures yet.`}
+                                        money={money}
+                                        togglingIds={togglingIds}
+                                        onToggleActive={requestToggle}
+                                        onEdit={openEdit}
+                                        onDelete={setDeleting}
+                                    />
                                 </section>
                             );
                         })}

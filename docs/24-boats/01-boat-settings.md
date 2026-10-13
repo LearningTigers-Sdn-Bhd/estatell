@@ -78,7 +78,7 @@ Boat out                                                  [+ Add departure]
 - Unavailable rows stay in place and are muted. There is no separate inactive list.
 - Seats shows "—" for no limit. Fare shows the fare name and adult price, or "No fare".
 - The **⋯** menu has **Edit** and **Delete**. Delete shows only for a departure that no boat trip has ever used.
-- An empty table shows "No boat in departures yet." (or "boat out") with its Add button.
+- An empty direction keeps its table header and shows "No boat in departures yet." (or "boat out") in one row. The Add departure button is always in the section header.
 
 ### Available switch
 
