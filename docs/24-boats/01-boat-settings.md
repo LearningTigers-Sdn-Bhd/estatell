@@ -151,7 +151,7 @@ Fares                                                               [+ Add fare]
 - **Children** reads "Same as adult" when every age group is Percent 100.
 - **Used by** counts available departures that use the fare.
 - The **⋯** menu has **Edit** (the fare Sheet) and **More settings**, which opens the [charge item page](../06-catalogues/02-charge-items.md#pages) for the description and other fields.
-- Empty state: "No fares yet. A fare is the one-way price per guest for a boat." with the Add button.
+- Empty state: the table keeps its header and shows "No fares yet. A fare is the one-way price per guest for a boat." in one row. The Add fare button is always in the section header.
 
 ### Available switch
 

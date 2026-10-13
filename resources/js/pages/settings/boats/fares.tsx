@@ -1,8 +1,7 @@
 import { boats } from '@/routes/settings';
 import { Head, router } from '@inertiajs/react';
-import { Plus, Ticket } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { useState } from 'react';
-import { EmptyState } from '@/components/pms/empty-state';
 import { PageHeader } from '@/components/pms/page-header';
 import { BoatFareSheet } from '@/components/pms/settings/boat-fare-sheet';
 import { BoatFareTable } from '@/components/pms/settings/boat-fare-table';
@@ -110,37 +109,21 @@ export default function BoatFaresPage({
                     <section className="flex flex-col gap-3">
                         <div className="flex items-center justify-between gap-4">
                             <h2 className="text-base font-medium">Fares</h2>
-                            {fares.length > 0 && (
-                                <Button variant="outline" onClick={openAdd}>
-                                    <Plus data-icon="inline-start" />
-                                    Add fare
-                                </Button>
-                            )}
+                            <Button variant="outline" onClick={openAdd}>
+                                <Plus data-icon="inline-start" />
+                                Add fare
+                            </Button>
                         </div>
 
-                        {fares.length === 0 ? (
-                            <EmptyState
-                                icon={Ticket}
-                                title="No fares yet."
-                                description="A fare is the one-way price per guest for a boat."
-                                action={
-                                    <Button onClick={openAdd}>
-                                        <Plus data-icon="inline-start" />
-                                        Add fare
-                                    </Button>
-                                }
-                            />
-                        ) : (
-                            <BoatFareTable
-                                fares={fares}
-                                money={money}
-                                currency={currency}
-                                chargingUnits={chargingUnits}
-                                togglingIds={togglingIds}
-                                onToggleActive={toggleActive}
-                                onEdit={openEdit}
-                            />
-                        )}
+                        <BoatFareTable
+                            fares={fares}
+                            money={money}
+                            currency={currency}
+                            chargingUnits={chargingUnits}
+                            togglingIds={togglingIds}
+                            onToggleActive={toggleActive}
+                            onEdit={openEdit}
+                        />
                     </section>
                 </BoatSettingsTabs>
             </div>
