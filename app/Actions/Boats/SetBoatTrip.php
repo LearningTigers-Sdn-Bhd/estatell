@@ -10,11 +10,14 @@ use App\Models\Property;
 use App\Models\ReservationUnit;
 use App\Models\UnitBoatTrip;
 use App\Models\User;
+use App\Services\Boats\BoatTripAccess;
 use Illuminate\Support\Facades\DB;
 use Laravel\Pennant\Feature;
 
 class SetBoatTrip
 {
+    public function __construct(private BoatTripAccess $boatTripAccess) {}
+
     /**
      * Set one direction of a unit's boat trip and the unit's expected time that goes with it. A scheduled trip takes the
      * departure's property-side time (`arrives_at` for Boat in, `leaves_at` for Boat out). A charter or own boat trip
@@ -46,8 +49,10 @@ class SetBoatTrip
 
             $locked = ReservationUnit::query()->with('reservation')->lockForUpdate()->findOrFail($unit->id);
 
-            if (! in_array($locked->status, $data->direction->unitStatuses(), true)) {
-                return BoatTripResult::refused(BoatTripResult::REFUSAL_UNIT_NOT_OPEN);
+            $refusal = $this->boatTripAccess->refusalFor($locked, $data->direction);
+
+            if ($refusal !== null) {
+                return BoatTripResult::refused($refusal);
             }
 
             if ($data->mode->needsDeparture() && $departure === null) {

@@ -122,6 +122,7 @@ Route::prefix('reservations')->name('reservations.')->scopeBindings()->group(fun
     Route::middleware('can:'.PermissionEnum::ReservationsManage->value)->prefix('{reservation}')->group(function () {
         Route::put('group', [ReservationGroupController::class, 'update'])->name('group.update');
         Route::put('company', [ReservationCompanyController::class, 'update'])->middleware('can:'.PermissionEnum::CompanyView->value)->name('company.update');
+        Route::middleware('boats')->put('boat-trips', [ReservationBoatTripController::class, 'setMany'])->name('boat-trips.set-many');
         Route::post('cancel/preview', [ReservationUnitStayController::class, 'cancelAllPreview'])->name('cancel-preview');
         Route::post('cancel', [ReservationUnitStayController::class, 'cancelAll'])->name('cancel');
 

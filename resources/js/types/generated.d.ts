@@ -11,6 +11,7 @@ seats: number | null,
 chargeItemId: number | null,
 fare: App.Data.Boats.BoatFareData | null,
 active: boolean,
+upcomingBookings: number,
 };
 export type BoatDepartureOptionData = {
 id: number,
@@ -45,12 +46,35 @@ childrenSummary: string,
 taxes: App.Data.Catalogues.ChargeItemTaxData[],
 childPrices: App.Data.Catalogues.ChargeItemChildPriceData[],
 };
+export type BoatSetupUnitData = {
+id: number,
+label: string,
+status: App.Data.Shared.BadgeData,
+arrival: string,
+departure: string,
+arrivalTime: string,
+departureTime: string,
+canSetBoatIn: boolean,
+canSetBoatOut: boolean,
+boatIn: App.Data.Boats.UnitBoatTripData | null,
+boatOut: App.Data.Boats.UnitBoatTripData | null,
+};
 export type BoatTripData = {
 direction: App.Enums.BoatDirection,
 mode: App.Enums.BoatMode,
 boatDepartureId: number | null,
 time: string | null,
 note: string | null,
+};
+export type UnitBoatTripData = {
+direction: App.Enums.BoatDirection,
+mode: App.Enums.BoatMode,
+modeLabel: string,
+boatDepartureId: number | null,
+departureAvailable: boolean,
+time: string | null,
+note: string | null,
+summary: string,
 };
 }
 namespace Catalogues {
@@ -2073,6 +2097,10 @@ priceOverrideReason: string | null,
 priceOverrideBy: string | null,
 actions: App.Data.Reservations.UnitActionData[],
 canChangePrice: boolean,
+boatIn: App.Data.Boats.UnitBoatTripData | null,
+boatOut: App.Data.Boats.UnitBoatTripData | null,
+canSetBoatIn: boolean,
+canSetBoatOut: boolean,
 };
 export type ReservationUnitOptionData = {
 id: number,

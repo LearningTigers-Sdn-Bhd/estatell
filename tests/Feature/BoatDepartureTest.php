@@ -1,15 +1,20 @@
 <?php
 
 use App\Enums\BoatDirection;
+use App\Enums\BoatMode;
 use App\Enums\ChargingUnit;
 use App\Enums\Currency;
 use App\Enums\DefaultRoleEnum;
 use App\Enums\TransactionCategory;
 use App\Features\Boats;
 use App\Models\BoatDeparture;
+use App\Models\BusinessDate;
 use App\Models\ChargeItem;
 use App\Models\Property;
 use App\Models\PropertySetting;
+use App\Models\Reservation;
+use App\Models\ReservationUnit;
+use App\Models\UnitBoatTrip;
 use App\Models\User;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
@@ -353,4 +358,38 @@ test('the property-side time is the arrival for boat in and the departure for bo
 
     expect(BoatDirection::In->propertyTime($departure))->toBe('09:45:00')
         ->and(BoatDirection::Out->propertyTime($departure))->toBe('09:00:00');
+});
+
+test('a turn-off sent as a form field, with active "0", saves it as unavailable', function () {
+    $owner = User::factory()->owner()->create();
+    $property = $owner->property;
+    boatDepartureEnable($property);
+    $departure = BoatDeparture::factory()->for($property)->create();
+    $url = route('settings.boats.departures.update', ['property' => $property->code, 'boatDeparture' => $departure->id]);
+
+    $this->actingAs($owner)
+        ->put($url, ['direction' => 'in', 'leaves_at' => '09:00', 'arrives_at' => '09:45', 'pickup_point' => '', 'seats' => '20', 'charge_item_id' => '', 'active' => '0'])
+        ->assertInertiaFlash('toast', ['type' => 'success', 'message' => '09:00 boat in is unavailable.']);
+
+    expect($departure->refresh()->active)->toBeFalse();
+});
+
+test('the departures page counts the bookings whose upcoming trips use each departure, once per booking', function () {
+    $owner = User::factory()->owner()->create();
+    $property = $owner->property;
+    boatDepartureEnable($property);
+    BusinessDate::factory()->for($property)->create(['date' => '2026-10-10']);
+    $departure = BoatDeparture::factory()->for($property)->create(['leaves_at' => '09:00', 'arrives_at' => '09:45']);
+    $reservation = Reservation::factory()->create(['property_id' => $property->id]);
+    $unitA = ReservationUnit::factory()->for($reservation)->create(['property_id' => $property->id, 'arrival_date' => '2026-10-20', 'departure_date' => '2026-10-23']);
+    $unitB = ReservationUnit::factory()->for($reservation)->create(['property_id' => $property->id, 'arrival_date' => '2026-10-20', 'departure_date' => '2026-10-23']);
+    $past = ReservationUnit::factory()->for($reservation)->create(['property_id' => $property->id, 'arrival_date' => '2026-10-05', 'departure_date' => '2026-10-08']);
+
+    foreach ([$unitA, $unitB, $past] as $unit) {
+        UnitBoatTrip::factory()->create(['property_id' => $property->id, 'reservation_unit_id' => $unit->id, 'direction' => BoatDirection::In, 'mode' => BoatMode::Scheduled, 'boat_departure_id' => $departure->id]);
+    }
+
+    $this->actingAs($owner)
+        ->get(route('settings.boats.departures.index', ['property' => $property->code]))
+        ->assertInertia(fn (Assert $page) => $page->where('departures.0.upcomingBookings', 1));
 });

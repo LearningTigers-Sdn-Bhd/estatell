@@ -12,6 +12,7 @@ use App\Data\Reservations\ReservationStatusCountData;
 use App\Data\Reservations\ReservationUnitData;
 use App\Data\Reservations\ReservationUnitOptionData;
 use App\Enums\BillingMode;
+use App\Enums\BoatDirection;
 use App\Enums\Gender;
 use App\Enums\Locale;
 use App\Enums\PermissionEnum;
@@ -19,6 +20,7 @@ use App\Enums\ReservationSource;
 use App\Enums\ReservationStatus;
 use App\Enums\TransactionKind;
 use App\Enums\UnitStatus;
+use App\Features\Boats;
 use App\Http\Controllers\Controller;
 use App\Models\ArInvoice;
 use App\Models\FolioLine;
@@ -28,6 +30,7 @@ use App\Models\ReservationUnit;
 use App\Models\UnitAddOn;
 use App\Models\UnitNight;
 use App\Models\User;
+use App\Services\Boats\BoatTripAccess;
 use App\Services\CityLedger\ArInvoiceDetail;
 use App\Services\CityLedger\CompanyOptions;
 use App\Services\Folio\AddOnBilling;
@@ -39,6 +42,7 @@ use App\Services\Guests\CountryOptions;
 use App\Services\Payments\PaymentReceipt;
 use App\Services\Reservations\BookingSummary;
 use App\Services\Reservations\ReservationActivityLog;
+use App\Services\Reservations\ReservationBoatSetup;
 use App\Services\Reservations\ReservationDirectory;
 use App\Services\Reservations\ReservationFormOptions;
 use App\Services\Reservations\ReservationGuestRows;
@@ -49,6 +53,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Inertia\Inertia;
 use Inertia\Response;
+use Laravel\Pennant\Feature;
 use Spatie\LaravelData\PaginatedDataCollection;
 
 class ReservationController extends Controller
@@ -95,7 +100,7 @@ class ReservationController extends Controller
      */
     public function show(Request $request, Property $property, Reservation $reservation, ReservationActivityLog $activityLog, UnitActionMenu $actionMenu): Response
     {
-        return $this->renderTab($request->user(), $property, $reservation, 'units', function (array $units, Collection $unitModels) use ($request, $reservation, $activityLog, $actionMenu): array {
+        return $this->renderTab($request->user(), $property, $reservation, 'units', function (array $units, Collection $unitModels) use ($request, $property, $reservation, $activityLog, $actionMenu): array {
             $unitId = $request->integer('unit');
             $selected = $unitModels->firstWhere('id', $unitId) ?? $unitModels->first();
 
@@ -103,13 +108,13 @@ class ReservationController extends Controller
                 return ['unit' => null];
             }
 
-            $data = $this->unitData($request->user(), $reservation, $selected, $activityLog, $actionMenu);
+            $data = $this->unitData($request->user(), $property, $reservation, $selected, $activityLog, $actionMenu);
             $live = $unitModels->filter(fn (ReservationUnit $unit): bool => $unit->status->holdsInventory());
             $single = $live->count() === 1 ? $live->first() : null;
 
             return [
                 'unit' => $data,
-                'singleUnit' => $single === null ? null : ($single->id === $selected->id ? $data : $this->unitData($request->user(), $reservation, $single, $activityLog, $actionMenu)),
+                'singleUnit' => $single === null ? null : ($single->id === $selected->id ? $data : $this->unitData($request->user(), $property, $reservation, $single, $activityLog, $actionMenu)),
             ];
         });
     }
@@ -207,9 +212,15 @@ class ReservationController extends Controller
     /**
      * The unit as the Units tab shows it, with the actions its status and the user's permissions allow.
      */
-    private function unitData(User $user, Reservation $reservation, ReservationUnit $unit, ReservationActivityLog $activityLog, UnitActionMenu $actionMenu): ReservationUnitData
+    private function unitData(User $user, Property $property, Reservation $reservation, ReservationUnit $unit, ReservationActivityLog $activityLog, UnitActionMenu $actionMenu): ReservationUnitData
     {
         $unit->load(['ratePlan', 'childAges', 'guests.guest', 'nights' => fn ($nights) => $nights->orderBy('date'), 'nights.room', 'nights.bed', 'nights.ratePlan']);
+        $boatsOn = Feature::for($property)->active(Boats::class);
+
+        if ($boatsOn) {
+            $unit->loadMissing('boatTrips.boatDeparture');
+        }
+
         $override = $activityLog->priceOverride($reservation, $unit->id);
 
         $canChangePrice = $user->can(PermissionEnum::ReservationsChangePrice->value)
@@ -220,7 +231,20 @@ class ReservationController extends Controller
             ->map(intval(...))
             ->all();
 
-        return ReservationUnitData::fromModel($unit, $user->can(PermissionEnum::GuestsView->value), $override['reason'] ?? null, $override['by'] ?? null, $actionMenu->for($user, $unit), $canChangePrice, $charged);
+        $boatAccess = app(BoatTripAccess::class);
+        $canManageBoats = $boatsOn && $user->can(PermissionEnum::ReservationsManage->value);
+
+        return ReservationUnitData::fromModel(
+            $unit,
+            $user->can(PermissionEnum::GuestsView->value),
+            $override['reason'] ?? null,
+            $override['by'] ?? null,
+            $actionMenu->for($user, $unit),
+            $canChangePrice,
+            $charged,
+            canSetBoatIn: $canManageBoats && $boatAccess->refusalFor($unit, BoatDirection::In) === null,
+            canSetBoatOut: $canManageBoats && $boatAccess->refusalFor($unit, BoatDirection::Out) === null,
+        );
     }
 
     /**
@@ -229,7 +253,7 @@ class ReservationController extends Controller
      *
      * @param  Collection<int, ReservationUnit>  $units
      */
-    private function singleUnitData(User $user, Reservation $reservation, Collection $units): ?ReservationUnitData
+    private function singleUnitData(User $user, Property $property, Reservation $reservation, Collection $units): ?ReservationUnitData
     {
         $live = $units->filter(fn (ReservationUnit $unit): bool => $unit->status->holdsInventory());
 
@@ -237,7 +261,7 @@ class ReservationController extends Controller
             return null;
         }
 
-        return $this->unitData($user, $reservation, $live->first(), app(ReservationActivityLog::class), app(UnitActionMenu::class));
+        return $this->unitData($user, $property, $reservation, $live->first(), app(ReservationActivityLog::class), app(UnitActionMenu::class));
     }
 
     /**
@@ -254,6 +278,8 @@ class ReservationController extends Controller
         $reservation->load(['booker', 'creator', 'company']);
         $overview = app(ReservationOverview::class)->build($reservation, $canViewGuest);
         $options = app(ReservationFormOptions::class);
+        $hasBoats = Feature::for($property)->active(Boats::class);
+        $canManage = $user->can(PermissionEnum::ReservationsManage->value);
 
         return Inertia::render('reservations/show', [
             'reservation' => $overview['reservation'],
@@ -267,7 +293,8 @@ class ReservationController extends Controller
             'canCheckIn' => $user->can(PermissionEnum::FrontDeskCheckIn->value),
             'canCheckOutAll' => $user->can(PermissionEnum::FrontDeskCheckOut->value) && app(GroupCheckOutPreview::class)->isOffered($overview['models']),
             'receiptPaymentIds' => $user->can(PermissionEnum::PaymentRecord->value) ? app(PaymentReceipt::class)->paymentIdsFor($reservation) : [],
-            'singleUnit' => $tab === 'units' ? null : $this->singleUnitData($user, $reservation, $overview['models']),
+            'singleUnit' => $tab === 'units' ? null : $this->singleUnitData($user, $property, $reservation, $overview['models']),
+            'hasBoats' => $hasBoats,
             'hasUnitToCheckIn' => $overview['models']->contains(fn ($unit): bool => $unit->status === UnitStatus::Confirmed),
             'canCancelReservation' => $user->can(PermissionEnum::ReservationsManage->value) && $overview['models']->contains(fn ($unit): bool => $unit->status === UnitStatus::Confirmed),
             'canWaiveFees' => $user->can(PermissionEnum::FrontDeskWaiveFees->value),
@@ -281,6 +308,8 @@ class ReservationController extends Controller
             'chargeCodes' => Inertia::optional(fn () => $options->chargeCodes($property)),
             'folioDiscounts' => Inertia::optional(fn () => $options->folioDiscounts($property, $user->can(PermissionEnum::FolioDiscountOpen->value))),
             'paymentOptions' => Inertia::optional(fn () => $options->payments($property)),
+            'boatDepartures' => Inertia::optional(fn () => $hasBoats ? $options->boatDepartures($property) : []),
+            'boatSetup' => Inertia::optional(fn () => $hasBoats ? app(ReservationBoatSetup::class)->forUnits($overview['models'], $canManage) : []),
             ...$tabProps($overview['units'], $overview['models']),
         ]);
     }

@@ -14,6 +14,7 @@ use App\Http\Requests\Boats\BoatDepartureRequest;
 use App\Models\BoatDeparture;
 use App\Models\ChargeItem;
 use App\Models\Property;
+use App\Services\Boats\BoatTripUsage;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -33,16 +34,18 @@ class BoatDepartureController extends Controller
     /**
      * Sends every departure in leave-time order, with its fare, and the property's Transport charge items as fare choices.
      */
-    public function index(Property $property): Response
+    public function index(Property $property, BoatTripUsage $boatTripUsage): Response
     {
         abort_if($property->settings === null, 404);
+
+        $upcoming = $boatTripUsage->upcomingBookingCounts($property, $boatTripUsage->businessDate($property));
 
         return Inertia::render('settings/boats/departures', [
             'departures' => $property->boatDepartures()
                 ->with('chargeItem')
                 ->ordered()
                 ->get()
-                ->map(fn (BoatDeparture $boatDeparture): BoatDepartureData => BoatDepartureData::fromModel($boatDeparture))
+                ->map(fn (BoatDeparture $boatDeparture): BoatDepartureData => BoatDepartureData::fromModel($boatDeparture, $upcoming[$boatDeparture->id] ?? 0))
                 ->all(),
             'fares' => $property->chargeItems()
                 ->whereHas('transactionCode', fn ($query) => $query->where('category', TransactionCategory::Transport->value))
@@ -81,7 +84,7 @@ class BoatDepartureController extends Controller
         }
 
         $boatDeparture->refresh();
-        $isActive = $request->validated('active') ?? $wasActive;
+        $isActive = $request->boolean('active', $wasActive);
 
         if ($isActive !== $wasActive) {
             $time = substr($boatDeparture->leaves_at, 0, 5);

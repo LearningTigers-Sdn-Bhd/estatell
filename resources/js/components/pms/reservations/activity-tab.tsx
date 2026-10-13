@@ -7,6 +7,7 @@ import {
     History,
     Pencil,
     Receipt,
+    Ship,
     UserPlus,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
@@ -27,6 +28,8 @@ const kindIcons: Record<string, LucideIcon> = {
     'reservation.add_on_added': Receipt,
     'reservation.add_on_removed': Receipt,
     'reservation.group_updated': Pencil,
+    'reservation.boat_trip_set': Ship,
+    'reservation.boat_trip_cleared': Ship,
 };
 
 function iconFor(kind: string | null): LucideIcon {

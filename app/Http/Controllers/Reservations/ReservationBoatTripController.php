@@ -4,9 +4,11 @@ namespace App\Http\Controllers\Reservations;
 
 use App\Actions\Boats\ClearBoatTrip;
 use App\Actions\Boats\SetBoatTrip;
+use App\Actions\Boats\SetBoatTrips;
 use App\Enums\BoatDirection;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Reservations\BoatTripRequest;
+use App\Http\Requests\Reservations\BoatTripsRequest;
 use App\Models\Property;
 use App\Models\Reservation;
 use App\Models\ReservationUnit;
@@ -33,6 +35,24 @@ class ReservationBoatTripController extends Controller
         }
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Boat trip saved.')]);
+
+        return back(fallback: $page);
+    }
+
+    /**
+     * Set or clear the trips of several units at once, from the Set boats Dialog. One refusal saves nothing and the error
+     * names the unit. Only the units the Dialog sent are changed.
+     */
+    public function setMany(BoatTripsRequest $request, Property $property, Reservation $reservation, SetBoatTrips $setBoatTrips, ReservationRefusals $refusals): RedirectResponse
+    {
+        $page = route('reservations.show', ['property' => $property, 'reservation' => $reservation]);
+        $result = $setBoatTrips($request->user(), $reservation, $request->changes());
+
+        if ($result->isRefused()) {
+            return back(fallback: $page)->withErrors($refusals->boatTripsErrors((string) $result->refusal, (string) $result->unitLabel));
+        }
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Boat trips saved.')]);
 
         return back(fallback: $page);
     }

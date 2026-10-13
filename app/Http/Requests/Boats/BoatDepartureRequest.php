@@ -31,6 +31,7 @@ class BoatDepartureRequest extends FormRequest
             'pickup_point' => filled($this->input('pickup_point')) ? trim((string) $this->input('pickup_point')) : null,
             'seats' => filled($this->input('seats')) ? $this->input('seats') : null,
             'charge_item_id' => filled($this->input('charge_item_id')) ? $this->input('charge_item_id') : null,
+            ...($this->has('active') ? ['active' => $this->boolean('active')] : []),
         ]);
     }
 

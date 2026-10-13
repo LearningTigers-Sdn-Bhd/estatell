@@ -8,11 +8,14 @@ use App\Models\Property;
 use App\Models\ReservationUnit;
 use App\Models\UnitBoatTrip;
 use App\Models\User;
+use App\Services\Boats\BoatTripAccess;
 use Illuminate\Support\Facades\DB;
 use Laravel\Pennant\Feature;
 
 class ClearBoatTrip
 {
+    public function __construct(private BoatTripAccess $boatTripAccess) {}
+
     /**
      * Remove one direction of a unit's boat trip ("Not set"). The unit's expected time stays as it is. A direction with
      * no trip does nothing and logs nothing. Same unit checks as `SetBoatTrip`. See docs/24-boats/02-boat-trips.md.
@@ -28,8 +31,10 @@ class ClearBoatTrip
         return DB::transaction(function () use ($actor, $unit, $direction): BoatTripResult {
             $locked = ReservationUnit::query()->lockForUpdate()->findOrFail($unit->id);
 
-            if (! in_array($locked->status, $direction->unitStatuses(), true)) {
-                return BoatTripResult::refused(BoatTripResult::REFUSAL_UNIT_NOT_OPEN);
+            $refusal = $this->boatTripAccess->refusalFor($locked, $direction);
+
+            if ($refusal !== null) {
+                return BoatTripResult::refused($refusal);
             }
 
             $trip = UnitBoatTrip::query()

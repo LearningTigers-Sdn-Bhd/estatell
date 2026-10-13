@@ -92,6 +92,13 @@ function BoatDepartureForm({
         style: 'currency',
         currency,
     });
+    // Only the property-side time moves the upcoming trips: Arrives for Boat in, Leaves for Boat out.
+    const movesBookings =
+        departure !== null &&
+        departure.upcomingBookings > 0 &&
+        (departure.direction === 'in'
+            ? data.arrives_at !== departure.arrivesAt
+            : data.leaves_at !== departure.leavesAt);
 
     // The current fare stays in the list even when it is unavailable, so an edit keeps it.
     const offeredFares = fares.filter(
@@ -259,6 +266,13 @@ function BoatDepartureForm({
                         {errors.charge_item_id ?? errors.active}
                     </FieldError>
                 </Field>
+                {movesBookings && departure !== null && (
+                    <FieldDescription>
+                        {departure.upcomingBookings === 1
+                            ? 'Updates the time on 1 upcoming booking.'
+                            : `Updates the times on ${departure.upcomingBookings} upcoming bookings.`}
+                    </FieldDescription>
+                )}
             </FieldGroup>
         </FormOverlay>
     );

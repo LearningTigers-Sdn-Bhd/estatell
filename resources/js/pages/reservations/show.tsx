@@ -57,6 +57,9 @@ type Props = {
     chargeCodes?: App.Data.Reservations.ChargeCodeOptionData[];
     folioDiscounts?: App.Data.Folio.FolioDiscountOptionData[];
     paymentOptions?: App.Data.Payments.PaymentFormOptionsData;
+    hasBoats?: boolean;
+    boatDepartures?: App.Data.Boats.BoatDepartureOptionData[];
+    boatSetup?: App.Data.Boats.BoatSetupUnitData[];
     unit?: App.Data.Reservations.ReservationUnitData | null;
     guests?: App.Data.Reservations.ReservationGuestData[];
     canManageGuests?: boolean;
@@ -101,6 +104,9 @@ export default function ReservationShow({
     chargeCodes,
     folioDiscounts,
     paymentOptions,
+    hasBoats = false,
+    boatDepartures,
+    boatSetup,
     unit = null,
     guests = [],
     canManageGuests = false,
@@ -247,6 +253,9 @@ export default function ReservationShow({
                             canWaiveFees={canWaiveFees}
                             canOverrideRestrictions={canOverrideRestrictions}
                             paymentOptions={paymentOptions}
+                            hasBoats={hasBoats}
+                            boatDepartures={boatDepartures}
+                            boatSetup={boatSetup}
                             receiptPaymentIds={receiptPaymentIds}
                             canOverrideCredit={canOverrideCredit}
                             companies={companies}
@@ -335,6 +344,8 @@ export default function ReservationShow({
                                 }
                                 paymentOptions={paymentOptions}
                                 currency={currency}
+                                hasBoats={hasBoats}
+                                boatDepartures={boatDepartures}
                             />
                         )}
                     </ReservationWorkspace>

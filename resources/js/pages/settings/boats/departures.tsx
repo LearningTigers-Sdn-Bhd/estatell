@@ -65,6 +65,7 @@ export default function BoatDeparturesPage({
     });
     const [togglingIds, setTogglingIds] = useState<Set<number>>(new Set());
     const [deleting, setDeleting] = useState<Departure | null>(null);
+    const [turningOff, setTurningOff] = useState<Departure | null>(null);
     const money = new Intl.NumberFormat(undefined, {
         style: 'currency',
         currency,
@@ -112,6 +113,17 @@ export default function BoatDeparturesPage({
                         }),
                 },
             );
+    };
+
+    // Turning off a departure that upcoming bookings use asks first. Everything else toggles at once.
+    const requestToggle = (departure: Departure, active: boolean) => {
+        if (!active && departure.upcomingBookings > 0) {
+            setTurningOff(departure);
+
+            return;
+        }
+
+        toggleActive(departure, active);
     };
 
     return (
@@ -173,7 +185,7 @@ export default function BoatDeparturesPage({
                                         departures={rows}
                                         money={money}
                                         togglingIds={togglingIds}
-                                        onToggleActive={toggleActive}
+                                        onToggleActive={requestToggle}
                                         onEdit={openEdit}
                                         onDelete={setDeleting}
                                     />
@@ -195,6 +207,77 @@ export default function BoatDeparturesPage({
                 fares={fares}
                 currency={currency}
             />
+
+            <AlertDialog
+                open={turningOff !== null}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setTurningOff(null);
+                    }
+                }}
+            >
+                <AlertDialogContent>
+                    {turningOff && (
+                        <Form
+                            {...update.form({ boatDeparture: turningOff.id })}
+                            options={{ preserveScroll: true }}
+                            onSuccess={() => setTurningOff(null)}
+                        >
+                            {({ processing }) => (
+                                <>
+                                    {Object.entries({
+                                        ...formValues(turningOff),
+                                        active: false,
+                                    }).map(([name, value]) => (
+                                        <input
+                                            key={name}
+                                            type="hidden"
+                                            name={name}
+                                            value={String(value)}
+                                        />
+                                    ))}
+                                    <AlertDialogHeader>
+                                        <AlertDialogTitle>
+                                            Turn off {turningOff.leavesAt}{' '}
+                                            {turningOff.direction === 'in'
+                                                ? 'boat in'
+                                                : 'boat out'}
+                                            ?
+                                        </AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                            {turningOff.upcomingBookings === 1
+                                                ? '1 upcoming booking uses'
+                                                : `${turningOff.upcomingBookings} upcoming bookings use`}{' '}
+                                            the {turningOff.leavesAt}{' '}
+                                            {turningOff.direction === 'in'
+                                                ? 'boat in'
+                                                : 'boat out'}
+                                            . They keep it. New bookings cannot
+                                            choose it.
+                                        </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                        <AlertDialogCancel>
+                                            Cancel
+                                        </AlertDialogCancel>
+                                        <Button
+                                            type="submit"
+                                            variant="destructive"
+                                            disabled={processing}
+                                            focusableWhenDisabled
+                                        >
+                                            {processing && (
+                                                <Spinner data-icon="inline-start" />
+                                            )}
+                                            Turn off
+                                        </Button>
+                                    </AlertDialogFooter>
+                                </>
+                            )}
+                        </Form>
+                    )}
+                </AlertDialogContent>
+            </AlertDialog>
 
             <AlertDialog
                 open={deleting !== null}

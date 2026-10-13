@@ -6,7 +6,10 @@ use App\Enums\BoatDirection;
 use App\Models\BoatDeparture;
 use Spatie\LaravelData\Data;
 
-/** One row of the boat departures tables and the departure form. Times are `HH:MM`. */
+/**
+ * One row of the boat departures tables and the departure form. Times are `HH:MM`. `upcomingBookings` counts the bookings
+ * whose upcoming trips use the departure, for the turn-off warning and the edit note.
+ */
 class BoatDepartureData extends Data
 {
     public function __construct(
@@ -19,12 +22,13 @@ class BoatDepartureData extends Data
         public ?int $chargeItemId,
         public ?BoatFareData $fare,
         public bool $active,
+        public int $upcomingBookings = 0,
     ) {}
 
     /**
      * The departure's fare is loaded with `chargeItem`, even when that fare is no longer available.
      */
-    public static function fromModel(BoatDeparture $boatDeparture): self
+    public static function fromModel(BoatDeparture $boatDeparture, int $upcomingBookings = 0): self
     {
         return new self(
             id: $boatDeparture->id,
@@ -36,6 +40,7 @@ class BoatDepartureData extends Data
             chargeItemId: $boatDeparture->charge_item_id,
             fare: $boatDeparture->chargeItem === null ? null : BoatFareData::fromModel($boatDeparture->chargeItem),
             active: $boatDeparture->active,
+            upcomingBookings: $upcomingBookings,
         );
     }
 }

@@ -137,6 +137,14 @@ class ReservationUnit extends Model
     }
 
     /**
+     * @return HasMany<UnitBoatTrip, $this>
+     */
+    public function boatTrips(): HasMany
+    {
+        return $this->hasMany(UnitBoatTrip::class);
+    }
+
+    /**
      * @return HasMany<UnitAddOn, $this>
      */
     public function addOns(): HasMany

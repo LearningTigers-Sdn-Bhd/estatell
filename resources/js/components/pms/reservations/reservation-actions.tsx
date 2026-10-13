@@ -7,6 +7,7 @@ import {
     Plus,
     Printer,
     ReceiptText,
+    Ship,
     XCircle,
 } from 'lucide-react';
 import { Link } from '@inertiajs/react';
@@ -16,6 +17,7 @@ import { AddUnitSheet } from '@/components/pms/reservations/add-unit-sheet';
 import { CheckInAllDialog } from '@/components/pms/reservations/check-in-all-dialog';
 import { CancelReservationDialog } from '@/components/pms/reservations/cancel-reservation-dialog';
 import { ChangeCompanyDialog } from '@/components/pms/reservations/change-company-dialog';
+import { SetBoatsDialog } from '@/components/pms/reservations/set-boats-dialog';
 import { UnitActionDialogs } from '@/components/pms/reservations/unit-actions-menu';
 import { EditGroupDialog } from '@/components/pms/reservations/edit-group-dialog';
 import { Button } from '@/components/ui/button';
@@ -49,6 +51,9 @@ export function ReservationActions({
     canOverrideCredit,
     companies,
     currency,
+    hasBoats,
+    boatSetup,
+    boatDepartures,
 }: {
     canManage: boolean;
     reservation: App.Data.Reservations.ReservationData;
@@ -67,12 +72,16 @@ export function ReservationActions({
     canOverrideCredit: boolean;
     companies?: App.Data.CityLedger.CompanyOptionData[];
     currency: App.Enums.Currency | null;
+    hasBoats: boolean;
+    boatSetup?: App.Data.Boats.BoatSetupUnitData[];
+    boatDepartures?: App.Data.Boats.BoatDepartureOptionData[];
 }) {
     const [addingUnit, setAddingUnit] = useState(false);
     const [editingGroup, setEditingGroup] = useState(false);
     const [changingCompany, setChangingCompany] = useState(false);
     const [checkingInAll, setCheckingInAll] = useState(false);
     const [cancelling, setCancelling] = useState(false);
+    const [settingBoats, setSettingBoats] = useState(false);
     const [unitAction, setUnitAction] = useState<App.Enums.UnitAction | null>(
         null,
     );
@@ -145,6 +154,12 @@ export function ReservationActions({
                         >
                             <LogOut />
                             Check out all
+                        </DropdownMenuItem>
+                    )}
+                    {canManage && hasBoats && !reservation.isClosed && (
+                        <DropdownMenuItem onClick={() => setSettingBoats(true)}>
+                            <Ship />
+                            Set boats
                         </DropdownMenuItem>
                     )}
                     {canManage && canViewCompany && !reservation.isClosed && (
@@ -266,6 +281,15 @@ export function ReservationActions({
                     onOpenChange={setEditingGroup}
                     reservation={reservation}
                     billingModes={billingModes}
+                />
+            )}
+            {canManage && hasBoats && (
+                <SetBoatsDialog
+                    open={settingBoats}
+                    onOpenChange={setSettingBoats}
+                    reservationId={reservation.id}
+                    units={boatSetup}
+                    departures={boatDepartures}
                 />
             )}
             {canManage && canViewCompany && (

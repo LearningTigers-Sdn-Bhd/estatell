@@ -1,7 +1,9 @@
 import { describe, expect, test } from 'vite-plus/test';
 import {
     boatOptions,
+    boatSetPayload,
     boatTripPayload,
+    choiceFromTrip,
     choiceOf,
     departuresFor,
     isScheduled,
@@ -212,5 +214,77 @@ describe('the booking payload', () => {
 
         expect(payload.boat_in).toBeNull();
         expect(payload.boat_out).toBeNull();
+    });
+});
+
+describe('the trip shown on a unit', () => {
+    const scheduled = {
+        direction: 'in',
+        mode: 'scheduled',
+        modeLabel: 'Scheduled boat',
+        boatDepartureId: 7,
+        departureAvailable: true,
+        time: null,
+        note: null,
+        summary: 'Scheduled boat · 09:00 Kuala Besut → 09:45',
+    } as App.Data.Boats.UnitBoatTripData;
+
+    test('no trip is Not set', () => {
+        expect(choiceFromTrip(null)).toEqual({ value: '', note: '' });
+    });
+
+    test('a scheduled trip picks its departure and keeps no note', () => {
+        expect(choiceFromTrip(scheduled)).toEqual({ value: '7', note: '' });
+    });
+
+    test('a charter or own trip picks its mode and keeps its note', () => {
+        expect(
+            choiceFromTrip({
+                ...scheduled,
+                mode: 'own',
+                boatDepartureId: null,
+                note: 'Speedboat',
+            } as App.Data.Boats.UnitBoatTripData),
+        ).toEqual({ value: 'own', note: 'Speedboat' });
+    });
+});
+
+describe('the Set boats request', () => {
+    test('a read only direction is left out, Not set clears, and a trip is sent', () => {
+        const rows = [
+            {
+                unitId: 3,
+                in: null,
+                out: { value: '', note: '' },
+                stayIn: '15:00',
+                stayOut: '11:00',
+            },
+            {
+                unitId: 4,
+                in: { value: '7', note: '' },
+                out: { value: 'charter', note: 'Dock' },
+                stayIn: '10:00',
+                stayOut: '11:30',
+            },
+        ];
+
+        expect(boatSetPayload(rows)).toEqual([
+            { unit_id: 3, out: null },
+            {
+                unit_id: 4,
+                in: {
+                    mode: 'scheduled',
+                    boat_departure_id: 7,
+                    time: null,
+                    note: null,
+                },
+                out: {
+                    mode: 'charter',
+                    boat_departure_id: null,
+                    time: '11:30',
+                    note: 'Dock',
+                },
+            },
+        ]);
     });
 });

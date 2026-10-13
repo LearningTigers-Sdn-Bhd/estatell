@@ -4,22 +4,14 @@ namespace App\Actions\Boats;
 
 use App\Enums\BoatDirection;
 use App\Models\BoatDeparture;
-use App\Models\Property;
 use App\Models\ReservationUnit;
 use App\Models\User;
 use App\Services\Boats\BoatTripUsage;
-use App\Services\NightAudit\CurrentBusinessDate;
-use App\Services\Property\PropertyToday;
-use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 
 class UpdateBoatDeparture
 {
-    public function __construct(
-        private BoatTripUsage $boatTripUsage,
-        private CurrentBusinessDate $currentBusinessDate,
-        private PropertyToday $propertyToday,
-    ) {}
+    public function __construct(private BoatTripUsage $boatTripUsage) {}
 
     /**
      * Save a departure. The departure row is locked first, then the upcoming units of its trips, in id order (the same
@@ -57,7 +49,7 @@ class UpdateBoatDeparture
             $newPropertyTime = substr($boatDeparture->direction->propertyTime($boatDeparture), 0, 5);
 
             if ($newPropertyTime !== $oldPropertyTime) {
-                $units = $this->boatTripUsage->upcomingUnits($boatDeparture, $this->businessDate($boatDeparture->property), lock: true);
+                $units = $this->boatTripUsage->upcomingUnits($boatDeparture, $this->boatTripUsage->businessDate($boatDeparture->property), lock: true);
 
                 if ($units->isNotEmpty()) {
                     $column = $boatDeparture->direction === BoatDirection::In ? 'arrival_time' : 'departure_time';
@@ -84,12 +76,6 @@ class UpdateBoatDeparture
 
             return BoatDepartureResult::done($bookingsChanged);
         });
-    }
-
-    /** The business date the upcoming trips are judged against. */
-    private function businessDate(Property $property): CarbonImmutable
-    {
-        return $this->currentBusinessDate->date($property) ?? $this->propertyToday->date($property);
     }
 
     /** @return array{direction: string, leaves_at: string, arrives_at: string, pickup_point: string|null, seats: int|null, charge_item_id: int|null, active: bool} */

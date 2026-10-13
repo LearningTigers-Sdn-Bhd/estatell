@@ -137,3 +137,52 @@ export function boatTripPayload(
         note,
     };
 }
+
+/** The choice a unit's trip shows in a select: its departure, or Charter or Own boat with its note. Not set when there is none. */
+export function choiceFromTrip(
+    trip: App.Data.Boats.UnitBoatTripData | null,
+): BoatChoice {
+    if (trip === null) {
+        return NOT_SET;
+    }
+
+    if (trip.mode === 'scheduled') {
+        return choiceOf(String(trip.boatDepartureId ?? ''), '');
+    }
+
+    return choiceOf(trip.mode, trip.note ?? '');
+}
+
+/** One unit of the Set boats Dialog: the choices of the directions the staff may change, and each unit's Stay row times. */
+export type BoatSetRow = {
+    unitId: number;
+    in: BoatChoice | null;
+    out: BoatChoice | null;
+    stayIn: string;
+    stayOut: string;
+};
+
+export type BoatSetUnitPayload = { unit_id: number } & {
+    in?: BoatTripPayload | null;
+    out?: BoatTripPayload | null;
+};
+
+/**
+ * The `units` of the Set boats request. A direction that is read only (null choice) is left out, so the server keeps
+ * it. Not set sends null, which clears the trip. Each other direction sends its trip.
+ */
+export function boatSetPayload(rows: BoatSetRow[]): BoatSetUnitPayload[] {
+    return rows.map((row) => {
+        const payload: BoatSetUnitPayload = { unit_id: row.unitId };
+
+        if (row.in !== null) {
+            payload.in = boatTripPayload(row.in, row.stayIn);
+        }
+
+        if (row.out !== null) {
+            payload.out = boatTripPayload(row.out, row.stayOut);
+        }
+
+        return payload;
+    });
+}

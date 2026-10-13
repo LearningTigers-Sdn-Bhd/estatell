@@ -2,7 +2,9 @@
 
 namespace App\Data\Reservations;
 
+use App\Data\Boats\UnitBoatTripData;
 use App\Data\Shared\BadgeData;
+use App\Enums\BoatDirection;
 use App\Enums\StayType;
 use App\Models\ReservationUnit;
 use App\Models\ReservationUnitChild;
@@ -17,6 +19,8 @@ use Spatie\LaravelData\Data;
  * `allNightsAssigned` says whether every night has one. A day use unit has no nights: its `assigned` is its room, `total` is its block
  * price and `stayLabel` reads "Day use · 4h" (`nightCount` is 0); an overnight unit has no `stayLabel`. `actions` is the unit ⋯ menu the user may use.
  * `canChangePrice` shows Change price on the night table, and `chargedNightIds` marks the nights already charged.
+ * `boatIn` and `boatOut` are the boat trips, read when `boatTrips` is loaded (otherwise null), and `canSetBoatIn` and
+ * `canSetBoatOut` say whether the unit panel shows Change for them.
  */
 class ReservationUnitData extends Data
 {
@@ -51,15 +55,20 @@ class ReservationUnitData extends Data
         public ?string $priceOverrideBy,
         public array $actions,
         public bool $canChangePrice,
+        public ?UnitBoatTripData $boatIn = null,
+        public ?UnitBoatTripData $boatOut = null,
+        public bool $canSetBoatIn = false,
+        public bool $canSetBoatOut = false,
     ) {}
 
     /**
      * @param  list<UnitActionData>  $actions
      * @param  list<int>  $chargedNightIds
      */
-    public static function fromModel(ReservationUnit $unit, bool $canViewGuest, ?string $overrideReason, ?string $overrideBy, array $actions = [], bool $canChangePrice = false, array $chargedNightIds = []): self
+    public static function fromModel(ReservationUnit $unit, bool $canViewGuest, ?string $overrideReason, ?string $overrideBy, array $actions = [], bool $canChangePrice = false, array $chargedNightIds = [], bool $canSetBoatIn = false, bool $canSetBoatOut = false): self
     {
         $isDayUse = $unit->stay_type === StayType::DayUse;
+        $trips = $unit->relationLoaded('boatTrips') ? $unit->boatTrips : collect();
         $dayUse = $isDayUse ? $unit->loadMissing('dayUse.room')->dayUse : null;
         $nights = $unit->nights->sortBy('date')->values();
         $assigned = $isDayUse
@@ -92,6 +101,10 @@ class ReservationUnitData extends Data
             priceOverrideBy: $overrideBy,
             actions: $actions,
             canChangePrice: $canChangePrice,
+            boatIn: $isDayUse ? null : UnitBoatTripData::forDirection($trips, BoatDirection::In, $unit),
+            boatOut: $isDayUse ? null : UnitBoatTripData::forDirection($trips, BoatDirection::Out, $unit),
+            canSetBoatIn: $canSetBoatIn,
+            canSetBoatOut: $canSetBoatOut,
         );
     }
 }

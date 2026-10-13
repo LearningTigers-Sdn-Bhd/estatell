@@ -93,10 +93,22 @@ class ReservationRefusals
             BoatTripResult::REFUSAL_UNIT_NOT_OPEN => [self::FORM, __('This unit cannot take a boat trip in its current status.')],
             BoatTripResult::REFUSAL_DEPARTURE_NOT_FOUND => ['boat_departure_id', __('This boat is not available for this direction. Choose another.')],
             BoatTripResult::REFUSAL_TIME_REQUIRED => ['time', __('Enter the time.')],
+            BoatTripResult::REFUSAL_DAY_USE => [self::FORM, __('Day use bookings have no boat trips.')],
             default => [self::FORM, __('This change was refused.')],
         };
 
         return [$field => $message];
+    }
+
+    /**
+     * The error of a refused batch of boat trips, on the form, naming the unit: "Double · 104: This unit cannot take a boat
+     * trip in its current status."
+     *
+     * @return array<string, string>
+     */
+    public function boatTripsErrors(string $code, string $unitLabel): array
+    {
+        return [self::FORM => $unitLabel.': '.current($this->boatTripErrors($code))];
     }
 
     /**

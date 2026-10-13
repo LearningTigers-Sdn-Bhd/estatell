@@ -409,3 +409,17 @@ test('a refused trip route puts the message on its field', function () {
         ->put(route('reservations.units.boat-trips.set', $params), ['mode' => 'scheduled', 'boat_departure_id' => $fixture['out']->id])
         ->assertSessionHasErrors(['boat_departure_id' => 'This boat is not available for this direction. Choose another.']);
 });
+
+test('a day use unit cannot take a boat trip through the trip route, and nothing is written', function () {
+    $fixture = boatTripFixture();
+    $day = ReservationUnit::factory()->for($fixture['reservation'])->dayUse('2026-10-20')->create(['property_id' => $fixture['property']->id]);
+
+    $this->actingAs($fixture['owner'])
+        ->put(route('reservations.units.boat-trips.set', [
+            'property' => $fixture['property']->code, 'reservation' => $fixture['reservation']->id, 'unit' => $day->id, 'direction' => 'in',
+        ]), ['mode' => 'scheduled', 'boat_departure_id' => $fixture['in']->id])
+        ->assertSessionHasErrors(['form' => 'Day use bookings have no boat trips.']);
+
+    expect(UnitBoatTrip::query()->count())->toBe(0)
+        ->and(Activity::query()->where('event', 'reservation.boat_trip_set')->count())->toBe(0);
+});

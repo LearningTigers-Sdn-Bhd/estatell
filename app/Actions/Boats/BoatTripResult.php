@@ -15,6 +15,8 @@ class BoatTripResult
 
     public const REFUSAL_TIME_REQUIRED = 'time_required';
 
+    public const REFUSAL_DAY_USE = 'day_use';
+
     private function __construct(public readonly ?string $refusal) {}
 
     public static function done(): self

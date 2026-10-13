@@ -110,7 +110,8 @@ Fare           [Speedboat · RM35.00       ▾]
 - **Direction** is preset from the section whose Add button was used.
 - A new departure starts available. The Available switch is only on the table, not in the Sheet.
 - **Fare** lists available fares and **No fare**. With no fares: "No fares yet. Add one on the Fares tab." The Sheet cannot open the fare Sheet (one overlay level).
-- When an edit changes **Leaves** or **Arrives** on a departure with upcoming trips, a note shows above the buttons: "Updates the times on 12 upcoming bookings."
+- When an edit changes the property-side time (**Arrives** for Boat in, **Leaves** for Boat out) on a departure with upcoming trips, a note shows above the buttons: "Updates the times on 12 upcoming bookings." ("the time on 1 upcoming booking" for one). The other time moves no booking, so it shows no note.
+- The Departures page gets `upcomingBookings` per departure from one grouped query (`BoatTripUsage::upcomingBookingCounts`). The turn-off AlertDialog posts the row's values with `active` false in a `<Form>`. Turning on, or off with no upcoming bookings, stays the optimistic switch.
 - A change of fare or seats applies to new trips only.
 
 ### Actions

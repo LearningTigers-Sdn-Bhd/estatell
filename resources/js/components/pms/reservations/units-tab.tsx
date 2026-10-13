@@ -1,5 +1,13 @@
 import { Link, router } from '@inertiajs/react';
-import { BedDouble, CalendarDays, Info, Tag, User, Users } from 'lucide-react';
+import {
+    BedDouble,
+    CalendarDays,
+    Info,
+    Ship,
+    Tag,
+    User,
+    Users,
+} from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useState } from 'react';
 import type { ReactNode } from 'react';
@@ -7,6 +15,7 @@ import { DateText } from '@/components/pms/date-text';
 import { EnumSelect } from '@/components/pms/enum-select';
 import { Badge } from '@/components/ui/badge';
 import { MoneyText } from '@/components/pms/money-text';
+import { ChangeBoatTripDialog } from '@/components/pms/reservations/change-boat-trip-dialog';
 import { ChangeNightPriceDialog } from '@/components/pms/reservations/change-night-price-dialog';
 import { UnitActionsMenu } from '@/components/pms/reservations/unit-actions-menu';
 import { StatusBadge } from '@/components/pms/status-badge';
@@ -161,6 +170,8 @@ export function UnitsTab({
     canOverrideRestrictions,
     paymentOptions,
     currency,
+    hasBoats,
+    boatDepartures,
 }: {
     reservationId: number;
     unit: Unit | null;
@@ -169,9 +180,15 @@ export function UnitsTab({
     canOverrideRestrictions: boolean;
     paymentOptions?: App.Data.Payments.PaymentFormOptionsData;
     currency: App.Enums.Currency | null;
+    hasBoats: boolean;
+    boatDepartures?: App.Data.Boats.BoatDepartureOptionData[];
 }) {
     const [ticked, setTicked] = useState<number[]>([]);
     const [changingPrice, setChangingPrice] = useState(false);
+    const [boatChange, setBoatChange] = useState<{
+        direction: App.Enums.BoatDirection;
+        open: boolean;
+    }>({ direction: 'in', open: false });
 
     if (unit === null) {
         return <p className="text-sm text-muted-foreground">No units.</p>;
@@ -226,6 +243,56 @@ export function UnitsTab({
                         </>
                     )}
                 </Detail>
+                {hasBoats && unit.stayType !== 'day_use' && (
+                    <Detail icon={Ship} label="Boat">
+                        <div className="flex flex-col gap-1">
+                            {(['in', 'out'] as const).map((direction) => {
+                                const trip =
+                                    direction === 'in'
+                                        ? unit.boatIn
+                                        : unit.boatOut;
+                                const canSet =
+                                    direction === 'in'
+                                        ? unit.canSetBoatIn
+                                        : unit.canSetBoatOut;
+
+                                return (
+                                    <div
+                                        key={direction}
+                                        className="flex flex-wrap items-center gap-x-3 gap-y-1"
+                                    >
+                                        <span className="text-muted-foreground">
+                                            {direction === 'in' ? 'In' : 'Out'}
+                                        </span>
+                                        <span>
+                                            {trip === null ? (
+                                                <span className="text-muted-foreground">
+                                                    Not set
+                                                </span>
+                                            ) : (
+                                                trip.summary
+                                            )}
+                                        </span>
+                                        {canSet && (
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() =>
+                                                    setBoatChange({
+                                                        direction,
+                                                        open: true,
+                                                    })
+                                                }
+                                            >
+                                                Change
+                                            </Button>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </Detail>
+                )}
                 <div className="flex flex-wrap gap-x-6 gap-y-2">
                     <Detail icon={BedDouble} label="Room">
                         {roomText(unit, autoAssignRooms)}
@@ -372,6 +439,20 @@ export function UnitsTab({
                     </span>
                 </p>
             )}
+            {hasBoats &&
+                unit.stayType !== 'day_use' &&
+                (unit.canSetBoatIn || unit.canSetBoatOut) && (
+                    <ChangeBoatTripDialog
+                        open={boatChange.open}
+                        onOpenChange={(open) =>
+                            setBoatChange((current) => ({ ...current, open }))
+                        }
+                        reservationId={reservationId}
+                        unit={unit}
+                        direction={boatChange.direction}
+                        departures={boatDepartures}
+                    />
+                )}
             {unit.canChangePrice && (
                 <ChangeNightPriceDialog
                     open={changingPrice}

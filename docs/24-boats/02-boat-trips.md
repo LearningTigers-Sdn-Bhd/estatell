@@ -50,6 +50,7 @@ boat_trip_add_ons  id, unit_boat_trip_id → unit_boat_trips (cascade),
 | Check, in order                                                                  | Refusal               |
 | -------------------------------------------------------------------------------- | --------------------- |
 | The `Boats` feature is on for the unit's property                                | `boats_off`           |
+| The unit is not day use ("Day use bookings have no boat trips.")                 | `day_use`             |
 | Boat in: the unit is Confirmed. Boat out: the unit is Confirmed or CheckedIn     | `unit_not_open`       |
 | Scheduled: the departure is available, of the property and of the same direction | `departure_not_found` |
 | Charter and Own: a time is given                                                 | `time_required`       |
@@ -106,9 +107,10 @@ Boat   In   Scheduled · 09:00 Kuala Besut → 09:45            [Change]
        Out  Own boat · 11:30 · Guest's own speedboat           [Change]
 ```
 
-- **Change** opens a Dialog (`FormOverlay`, `md`) for that direction: **Mode** (Not set, Scheduled boat, Charter, Own boat), then **Departure** (with seats) for Scheduled, or **Time** and **Note** for Charter and Own. The button is "Save boat in" or "Save boat out".
-- **Change** shows only while `SetBoatTrip` would accept the unit (Boat in while Confirmed, Boat out while Confirmed or CheckedIn) and the user has `reservations.manage`. Otherwise the row is read only.
-- **⋯ More › Set boats** on the reservation header opens one Dialog with Boat in and Boat out for **every open unit** (Confirmed and CheckedIn). Boat in is read only on a CheckedIn unit. It calls `SetBoatTrip` per unit and direction in one transaction. One refusal saves nothing and names the unit. Afterwards each unit can still differ.
+- **Change** opens a Dialog (`FormOverlay`, `md`) for that direction with the booking form's boat select: one list of Not set, the available departures with seats, Charter and Own boat, then **Time** and **Note** for Charter and Own. The button is "Save boat in" or "Save boat out".
+- **Change** shows only while `SetBoatTrip` would accept the unit (Boat in while Confirmed, Boat out while Confirmed or CheckedIn) and the user has `reservations.manage`. Otherwise the row is read only. The server sends this as `canSetBoatIn` and `canSetBoatOut` (`BoatTripAccess`), and never for a day use unit.
+- A trip on a departure that is now unavailable shows on the row with "unavailable". Change lists only available departures, so staff pick another.
+- **⋯ More › Set boats** on the reservation header opens one Dialog with Boat in and Boat out for **every open unit** (Confirmed and CheckedIn). Boat in is read only on a CheckedIn unit. Day use units are left out. `SetBoatTrips` (`PUT …/reservations/{reservation}/boat-trips`, `reservations.boat-trips.set-many`) locks every departure involved (shared, by id), then the units (by id), and calls `SetBoatTrip` or `ClearBoatTrip` per unit and direction in one transaction. One refusal saves nothing and names the unit ("Double · 104: …"). Afterwards each unit can still differ.
 - Trip changes show on the Activity tab with the `ship` icon.
 
 ## Meals
