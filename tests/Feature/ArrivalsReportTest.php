@@ -249,8 +249,8 @@ test('the arrivals report is in the registry with its columns', function () {
     $keys = array_map(fn ($column): string => $column->key, ReportKey::Arrivals->columns());
     $visible = array_map(fn ($column): string => $column->key, array_filter(ReportKey::Arrivals->columns(), fn ($column): bool => $column->defaultVisible));
 
-    expect($keys)->toBe(['reservation', 'guest', 'phone', 'arrival', 'arrival_time', 'nights', 'unit', 'room_type', 'room', 'guests', 'adults', 'children', 'company', 'status', 'balance'])
-        ->and(array_values($visible))->toBe(['reservation', 'guest', 'arrival', 'arrival_time', 'nights', 'unit', 'status', 'balance'])
+    expect($keys)->toBe(['reservation', 'guest', 'phone', 'arrival', 'arrival_time', 'boat', 'nights', 'unit', 'room_type', 'room', 'guests', 'adults', 'children', 'company', 'status', 'balance'])
+        ->and(array_values($visible))->toBe(['reservation', 'guest', 'arrival', 'arrival_time', 'boat', 'nights', 'unit', 'status', 'balance'])
         ->and(ReportKey::Arrivals->maxRangeDays())->toBe(31)
         ->and(ReportKey::Arrivals->report())->toBeInstanceOf(ArrivalsReport::class);
 });

@@ -132,8 +132,8 @@ When the feature is on, kitchen counts use the unit times on the first and last 
 
 ## Front desk
 
-- **Arrivals and Departures** (reports and dashboard lists) show a **Boat** column: "09:00 boat", "Charter 10:30", "Own 11:30" or "—". It is hidden when the feature is off.
-- Rows sort by expected time, so they come out in boat order.
+- **Arrivals and Departures** (the reports; the dashboard lists follow with the dashboard) show a **Boat** column after the time column: Arrivals reads Boat in, Departures reads Boat out. It shows "09:00 boat", "Charter 10:30", "Own 11:30" or "—" (`BoatTimeLabel`). The time is the unit's expected time. A day use unit shows "—". The column is visible by default and is left out of the layout while the feature is off (`ReportColumn::$feature`).
+- Both reports order rows by date, then expected time, then id, for every property. So they come out in boat order.
 
 ### Dashboard
 

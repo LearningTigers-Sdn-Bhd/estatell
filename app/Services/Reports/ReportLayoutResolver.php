@@ -29,13 +29,13 @@ class ReportLayoutResolver
             ->first();
 
         if ($layout === null) {
-            return $this->defaults($report);
+            return $this->defaults($property, $report);
         }
 
         /** @var array<string, ReportColumn> $byKey */
         $byKey = [];
 
-        foreach ($report->columns() as $column) {
+        foreach ($report->columnsFor($property) as $column) {
             $byKey[$column->key] = $column;
         }
 
@@ -59,25 +59,29 @@ class ReportLayoutResolver
     /**
      * The layout the code defines: the default orientation and the columns in their default order.
      */
-    public function defaults(ReportKey $report): ReportLayoutData
+    public function defaults(Property $property, ReportKey $report): ReportLayoutData
     {
         return new ReportLayoutData(
             $report->defaultOrientation(),
-            array_map(fn (ReportColumn $column): ReportLayoutColumnData => ReportLayoutColumnData::fromColumn($column, $column->defaultVisible), $report->columns()),
+            array_map(fn (ReportColumn $column): ReportLayoutColumnData => ReportLayoutColumnData::fromColumn($column, $column->defaultVisible), $report->columnsFor($property)),
         );
     }
 
     /**
-     * Builds a layout from a draft list, which must hold exactly the columns of the report, each once, with at least one
-     * visible. Used to check a layout before it is saved or previewed.
+     * Builds a layout from a draft list, which must hold exactly the columns of the report that are on for the property,
+     * each once, with at least one visible. A column whose feature is off may be in the draft and is dropped. Used to
+     * check a layout before it is saved or previewed.
      *
      * @param  list<array{key: string, visible: bool, align?: string|null}>  $draft
      *
      * @throws ValidationException
      */
-    public function fromDraft(ReportKey $report, PageOrientation $orientation, array $draft): ReportLayoutData
+    public function fromDraft(Property $property, ReportKey $report, PageOrientation $orientation, array $draft): ReportLayoutData
     {
-        $codeKeys = array_map(fn (ReportColumn $column): string => $column->key, $report->columns());
+        $columns = $report->columnsFor($property);
+        $offKeys = array_diff(array_column($report->columns(), 'key'), array_column($columns, 'key'));
+        $draft = array_values(array_filter($draft, fn (array $item): bool => ! in_array($item['key'], $offKeys, true)));
+        $codeKeys = array_map(fn (ReportColumn $column): string => $column->key, $columns);
         $draftKeys = array_map(fn (array $item): string => $item['key'], $draft);
 
         $sameSet = count($draftKeys) === count($codeKeys)
@@ -94,13 +98,13 @@ class ReportLayoutResolver
 
         $visibility = array_column($draft, 'visible', 'key');
         $alignment = array_column($draft, 'align', 'key');
-        $columns = [];
+        $layoutColumns = [];
 
         foreach ($draftKeys as $key) {
-            $column = collect($report->columns())->firstWhere('key', $key);
-            $columns[] = ReportLayoutColumnData::fromColumn($column, (bool) $visibility[$key], ColumnAlign::tryFrom((string) ($alignment[$key] ?? '')));
+            $column = collect($columns)->firstWhere('key', $key);
+            $layoutColumns[] = ReportLayoutColumnData::fromColumn($column, (bool) $visibility[$key], ColumnAlign::tryFrom((string) ($alignment[$key] ?? '')));
         }
 
-        return new ReportLayoutData($orientation, $columns);
+        return new ReportLayoutData($orientation, $layoutColumns);
     }
 }

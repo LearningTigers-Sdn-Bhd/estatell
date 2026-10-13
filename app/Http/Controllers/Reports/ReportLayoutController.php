@@ -47,7 +47,7 @@ class ReportLayoutController extends Controller
     public function preview(PreviewReportLayoutRequest $request, Property $property, ReportKey $report, ReportLayoutResolver $resolver, ReportPdf $reportPdf, LogIdentityExport $logIdentityExport): Response
     {
         $filters = $request->filters();
-        $layout = $resolver->fromDraft($report, $request->orientation(), $request->layoutColumns());
+        $layout = $resolver->fromDraft($property, $report, $request->orientation(), $request->layoutColumns());
 
         $rows = $report->report()->rows($property, $filters);
         $logIdentityExport($request->user(), $property, $report, $filters, $layout, $rows, null);

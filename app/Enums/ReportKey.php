@@ -249,6 +249,19 @@ enum ReportKey: string
     }
 
     /**
+     * The columns of the report that are on for the property: `columns()` without the ones whose feature is off.
+     *
+     * @return list<ReportColumn>
+     */
+    public function columnsFor(Property $property): array
+    {
+        return array_values(array_filter(
+            $this->columns(),
+            fn (ReportColumn $column): bool => $column->feature === null || Feature::for($property)->active($column->feature),
+        ));
+    }
+
+    /**
      * The columns in their default order.
      *
      * @return list<ReportColumn>
@@ -273,6 +286,7 @@ enum ReportKey: string
                 new ReportColumn('phone', __('Phone'), ColumnAlign::Left, false),
                 new ReportColumn('arrival', __('Arrival'), ColumnAlign::Left, true),
                 new ReportColumn('arrival_time', __('Arrival time'), ColumnAlign::Left, true),
+                new ReportColumn('boat', __('Boat'), ColumnAlign::Left, true, Boats::class),
                 new ReportColumn('nights', __('Nights'), ColumnAlign::Right, true),
                 new ReportColumn('unit', __('Room type / room'), ColumnAlign::Left, true),
                 new ReportColumn('room_type', __('Room type'), ColumnAlign::Left, false),
@@ -290,6 +304,7 @@ enum ReportKey: string
                 new ReportColumn('phone', __('Phone'), ColumnAlign::Left, false),
                 new ReportColumn('departure', __('Departure'), ColumnAlign::Left, true),
                 new ReportColumn('departure_time', __('Departure time'), ColumnAlign::Left, true),
+                new ReportColumn('boat', __('Boat'), ColumnAlign::Left, true, Boats::class),
                 new ReportColumn('nights', __('Nights'), ColumnAlign::Right, true),
                 new ReportColumn('unit', __('Room type / room'), ColumnAlign::Left, true),
                 new ReportColumn('room_type', __('Room type'), ColumnAlign::Left, false),

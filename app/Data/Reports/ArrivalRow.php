@@ -21,6 +21,7 @@ class ArrivalRow extends Data implements ReportRow
         public ?string $phone,
         public string $arrival,
         public string $arrival_time,
+        public ?string $boat,
         public int $nights,
         public ?string $stay_label,
         public string $unit,
@@ -45,6 +46,7 @@ class ArrivalRow extends Data implements ReportRow
             'phone' => $this->phone ?? '',
             'arrival' => CarbonImmutable::parse($this->arrival)->format('j M Y'),
             'arrival_time' => $this->arrival_time,
+            'boat' => $this->boat ?? '',
             'nights' => $this->stay_label ?? (string) $this->nights,
             'unit' => $this->unit,
             'room_type' => $this->room_type,
@@ -69,6 +71,7 @@ class ArrivalRow extends Data implements ReportRow
             'phone' => $this->phone ?? '',
             'arrival' => $this->arrival,
             'arrival_time' => $this->arrival_time,
+            'boat' => $this->boat ?? '',
             'nights' => $this->stay_label ?? $this->nights,
             'unit' => $this->unit,
             'room_type' => $this->room_type,
@@ -83,9 +86,10 @@ class ArrivalRow extends Data implements ReportRow
     }
 
     /**
+     * @param  string|null  $boat  The boat text, or null while the Boats feature is off.
      * @param  string|null  $room  The room number or bed label of the first night, when one is assigned.
      */
-    public static function fromModel(ReservationUnit $unit, ?string $room, string $balance): self
+    public static function fromModel(ReservationUnit $unit, ?string $room, string $balance, ?string $boat = null): self
     {
         $reservation = $unit->reservation;
         $occupant = ($unit->guests->firstWhere('is_primary', true) ?? $unit->guests->first())?->guest ?? $reservation->booker;
@@ -97,6 +101,7 @@ class ArrivalRow extends Data implements ReportRow
             phone: $occupant->phone,
             arrival: $unit->arrival_date->toDateString(),
             arrival_time: substr($unit->arrival_time, 0, 5),
+            boat: $boat,
             nights: (int) $unit->arrival_date->diffInDays($unit->departure_date),
             stay_label: app(StayLabel::class)->hoursForUnit($unit),
             unit: $room === null ? $unit->roomType->name : "{$unit->roomType->name} / {$room}",

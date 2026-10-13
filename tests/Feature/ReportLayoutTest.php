@@ -84,7 +84,7 @@ test('with no stored layout the resolver returns the code defaults', function ()
     $layout = app(ReportLayoutResolver::class)->resolve($property, ReportKey::Arrivals);
 
     expect($layout->orientation)->toBe(PageOrientation::Portrait)
-        ->and(array_column($layout->columns, 'key'))->toBe(array_map(fn ($column): string => $column->key, ReportKey::Arrivals->columns()))
+        ->and(array_column($layout->columns, 'key'))->toBe(array_map(fn ($column): string => $column->key, ReportKey::Arrivals->columnsFor($property)))
         ->and($layout->visibleKeys())->toBe(['reservation', 'guest', 'arrival', 'arrival_time', 'nights', 'unit', 'status', 'balance']);
 });
 
@@ -121,7 +121,7 @@ test('the resolver never reads the layout of another property', function () {
 
 test('UpdateReportLayout saves the orientation and the columns in order and logs it', function () {
     [$user, $property] = layoutSetup();
-    $keys = array_reverse(array_map(fn ($column): string => $column->key, ReportKey::Arrivals->columns()));
+    $keys = array_reverse(array_map(fn ($column): string => $column->key, ReportKey::Arrivals->columnsFor($property)));
 
     app(UpdateReportLayout::class)($user, $property, ReportKey::Arrivals, PageOrientation::Landscape, layoutDraft($keys, ['phone']));
 
@@ -286,7 +286,7 @@ test('the report view prints only the visible columns in layout order', function
     [, $property] = layoutSetup();
     $booking = Reservation::factory()->create(['property_id' => $property->id]);
     ReservationUnit::factory()->for($booking)->create(['arrival_date' => '2026-10-10', 'departure_date' => '2026-10-12']);
-    $layout = app(ReportLayoutResolver::class)->fromDraft(ReportKey::Arrivals, PageOrientation::Landscape, layoutDraft(['balance', 'reservation', ...array_diff(array_map(fn ($column): string => $column->key, ReportKey::Arrivals->columns()), ['balance', 'reservation'])], ['guest', 'phone', 'arrival', 'nights', 'unit', 'guests', 'company', 'status']));
+    $layout = app(ReportLayoutResolver::class)->fromDraft($property, ReportKey::Arrivals, PageOrientation::Landscape, layoutDraft(['balance', 'reservation', ...array_diff(array_map(fn ($column): string => $column->key, ReportKey::Arrivals->columns()), ['balance', 'reservation'])], ['guest', 'phone', 'arrival', 'nights', 'unit', 'guests', 'company', 'status']));
     $filters = new ReportFilters('2026-10-10', '2026-10-10');
     $rows = ReportKey::Arrivals->report()->rows($property, $filters);
 
@@ -358,7 +358,7 @@ test('an unknown alignment is rejected on save and on preview', function () {
 test('the report view aligns the cells as the layout says', function () {
     [, $property] = layoutSetup();
     $draft = array_map(fn (array $item): array => $item['key'] === 'guest' ? [...$item, 'align' => 'center'] : $item, layoutDraft());
-    $layout = app(ReportLayoutResolver::class)->fromDraft(ReportKey::Arrivals, PageOrientation::Portrait, $draft);
+    $layout = app(ReportLayoutResolver::class)->fromDraft($property, ReportKey::Arrivals, PageOrientation::Portrait, $draft);
 
     $html = view('pdf.report', [
         'print' => app(PrintProfile::class)->for($property),

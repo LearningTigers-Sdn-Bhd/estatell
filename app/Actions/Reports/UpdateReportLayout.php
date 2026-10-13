@@ -26,7 +26,7 @@ class UpdateReportLayout
      */
     public function __invoke(User $actor, Property $property, ReportKey $report, PageOrientation $orientation, array $columns): void
     {
-        $layoutData = $this->resolver->fromDraft($report, $orientation, $columns);
+        $layoutData = $this->resolver->fromDraft($property, $report, $orientation, $columns);
 
         DB::transaction(function () use ($actor, $property, $report, $layoutData): void {
             $layout = ReportLayout::query()

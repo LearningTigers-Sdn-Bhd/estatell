@@ -54,6 +54,7 @@ Arrivals lists the reservation units that arrive in the range. The row `key` is 
 | `phone`        | Phone             | left  |                 |
 | `arrival`      | Arrival           | left  | ✓               |
 | `arrival_time` | Arrival time      | left  | ✓               |
+| `boat`         | Boat              | left  | ✓               |
 | `nights`       | Nights            | right | ✓               |
 | `unit`         | Room type / room  | left  | ✓               |
 | `room_type`    | Room type         | left  |                 |
@@ -85,9 +86,10 @@ Each report has a stable column list like Arrivals. Proposed in the overview and
 
 ### Built: Departures and In-house
 
-- **Departures** has the Arrivals columns with `departure` and `departure_time` in place of `arrival` and `arrival_time`, the same status rule, and a default sort of `departure`. **Room type / room** and its split `room` show the room or bed of the last night. **Departure time** is visible by default. Departures has no totals.
+- **Departures** has the Arrivals columns with `departure` and `departure_time` in place of `arrival` and `arrival_time` (and Boat out in place of Boat in), the same status rule, and a default sort of `departure`. **Room type / room** and its split `room` show the room or bed of the last night. **Departure time** is visible by default. Departures has no totals.
 - **In-house** (`room` is the default sort) lists the Checked in and Checked out units with arrival on or before the date and departure after it, so the arrival day counts and the departure day does not. Dates alone are enough: an early check-out moves the departure date and removes the unused nights, so a unit that left early is in-house on the dates it stayed. `unit_nights` is read only for **Room**, the room or bed of that date. Confirmed units are left out: an expected or missed arrival belongs on Arrivals, not In-house. Defaults visible: all columns except Company, the two time columns and the split `adults` and `children`. In-house has a total row that sums `adults` and `children`; `guests` has no figure.
 - **One-date URL.** A report with `maxRangeDays()` of null takes `?date=Y-m-d` (default: the business date) in the page URL, the exports and the layout preview. `ReportFilters` keeps `from` = `to` = that date, and the page props still send `from` and `to`. `from` and `to` are ignored for these reports.
+- **Boat column.** Arrivals and Departures have a `boat` column after the time column, only while the [Boats](../24-boats/02-boat-trips.md#front-desk) feature is on. A `ReportColumn` can name a `feature`; `ReportKey::columnsFor($property)` and `ReportLayoutResolver` leave the column out of the layout while the feature is off, and `fromDraft` drops it from a saved draft. When the feature comes on, the column joins a stored layout at the end with its default visibility. Both reports order rows by date, time and id.
 - Arrivals, Departures and In-house share `UnitReportRows` (the guest, company and balance lookups).
 
 ### Built: Occupancy and Revenue
