@@ -12,12 +12,24 @@ partners                  id, name, code_prefix (char 2, unique), signup_code (c
 users                     + partner_id (nullable, restrict on delete)
 properties                + partner_id (nullable, restrict on delete)
 property_code_counters    prefix (char 2, primary key), last_number (bigint)
+partner_invitations       id, partner_id, email, token_hash, expires_at, last_sent_at,
+                          accepted_at, revoked_at, invited_by, timestamps
+                          UNIQUE (partner_id) WHERE accepted_at IS NULL AND revoked_at IS NULL
+                          CHECK email = lower(email); CHECK accepted_at and revoked_at are not both set
 ```
 
-- `code_prefix`: 2 capital letters, CHECK `^[A-Z]{2}$`. Set by the admin when creating the partner. It never changes. `ES` is reserved for direct properties.
+- `code_prefix`: 2 capital letters, CHECK `^[A-Z]{2}$`. Set by the admin when adding the partner, suggested from the name ("Andaman Stays" → `AS`) and editable. It never changes. `ES` is reserved for direct properties.
 - One login per partner for now: one `users` row with `partner_id`. The table allows a team later.
 - A user is exactly one of admin, staff, partner user or company user (see [Platform admins](../01-platform/01-platform-admins.md#data-model)).
-- `PartnerStatus`: Active, Suspended.
+- `PartnerStatus`: Invited, Active, Suspended.
+
+| From      | Can move to                                                                        |
+| --------- | ---------------------------------------------------------------------------------- |
+| Invited   | Active (invitation accepted), or the row is deleted when the invitation is revoked |
+| Active    | Suspended                                                                          |
+| Suspended | Active                                                                             |
+
+- `partner_invitations` has the same shape and token rules as `staff_invitations` (SHA-256 `token_hash`, valid 7 days), without the property and role. See [Staff and invitations](../03-staff/01-staff-and-invitations.md).
 
 ## Property codes
 
@@ -38,7 +50,7 @@ app.example.com/join/K7Q2MX
 - `signup_code`: 6 characters from `ABCDEFGHJKLMNPQRSTUVWXYZ23456789` (no 0/O, 1/I), random and unique. It is separate from the prefix, so the link is hard to guess.
 - **Regenerate link** (partner or admin) issues a new code. The old link stops working at once.
 - The register page reads the partner from the session, so the link survives validation errors. `CreateNewUser` re-checks that the partner is still Active when it saves. If not, the property registers as `ES`.
-- A suspended partner's link shows the "no longer active" notice.
+- An Invited or Suspended partner's link shows the "no longer active" notice.
 
 ## Partner portal
 
@@ -65,18 +77,71 @@ app.example.com/join/K7Q2MX
 
 ## Admin
 
-The admin sidebar gets one **Partners** item.
+The admin sidebar gets one **Partners** item. Adding a partner works like adding staff, and each partner has one login, so adding a partner also creates its login.
 
-| Page       | URL                                         | Name                              |
-| ---------- | ------------------------------------------- | --------------------------------- |
-| List       | `GET /admin/partners`                       | `admin.partners.index`            |
-| Create     | `POST /admin/partners`                      | `admin.partners.store`            |
-| Suspend    | `POST /admin/partners/{partner}/suspend`    | `admin.partners.suspend`          |
-| Reactivate | `POST /admin/partners/{partner}/reactivate` | `admin.partners.reactivate`       |
-| Move       | `PUT /admin/properties/{code}/partner`      | `admin.properties.partner.update` |
+```
+Partners                                         [Add partner ▾]
+ Active · Invited · Suspended                      ├─ Invite by email
+                                                   ├─ Add with temp password
+                                                   └─ Bulk add
+┌──┬───────────────┬────────┬──────────────────┬────────────┬───────────────────┐
+│☐ │ Partner       │ Prefix │ Email            │ Properties │ Status            │
+│☐ │ Andaman Stays │ AS     │ ops@andaman.my   │ 12         │ Active            │
+│☐ │ Kota Partners │ KP     │ kp@mail.com      │ 0          │ Temp password · 9d│
+└──┴───────────────┴────────┴──────────────────┴────────────┴───────────────────┘
+Selected (1): [Copy message] [Export ▾ CSV · XLSX · PDF] [Reset temp password]
+```
 
-- **Create partner** Sheet: partner name, prefix, user name, email, and an emailed setup link or an initial password (the same choices as an owner). `CreatePartner` creates the partner, its user, its `property_code_counters` row and its signup code in one transaction.
-- List columns: name, prefix, user email, status, property count, created.
+| Staff                                      | Partner                                                         |
+| ------------------------------------------ | --------------------------------------------------------------- |
+| Active, Invited and Deactivated tabs       | Active, Invited and Suspended tabs                              |
+| Invite by email (email, role)              | Invite by email (partner name, prefix, email)                   |
+| Add with temp password (name, email, role) | Add with temp password (partner name, prefix, user name, email) |
+| Bulk add (grid or CSV/XLSX upload)         | Bulk add, with the same four columns                            |
+| Copy message, export, reset temp password  | The same                                                        |
+
+### Invite by email
+
+- `InvitePartner` creates the `partners` row as **Invited** at once, with its `property_code_counters` row and signup code, so the prefix is reserved. Then it creates the invitation and emails the link (`PartnerInvitationNotification`, queued after commit). Logs `partner.invited`.
+- `AcceptPartnerInvitation` (`/partner-invitations/{token}`, guest only, throttled 6 per minute): the person sets their name and password. Creates the user with the email verified, sets the partner Active and closes the invitation. Logs `partner.invitation-accepted`.
+- `ResendPartnerInvitation`: a new token and a new 7-day expiry, so the old link stops working.
+- `RevokePartnerInvitation`: deletes the Invited partner and its counter row, which frees the prefix. Safe because an Invited partner has no user and no properties.
+- Unknown, expired, revoked and accepted links show one notice page, like staff invitations.
+
+### Add with temp password
+
+- Dialog with partner name, prefix, user name and email. `CreatePartnerWithTemporaryPassword` creates the Active partner, counter row, signup code and user in one transaction. A Dialog then shows the copy message with **Copy**.
+- Reuses the staff temp password pieces: the `users` temp columns, `TemporaryPasswordGenerator`, the 14-day expiry, `must_change_password` and `/account/set-password`. See [Temp passwords and bulk staff](../03-staff/03-temp-passwords.md).
+- The expired message reads "This temporary password has expired. Ask estatell support for a new one."
+- **Reset temp password**, **Copy message** and **Export** (CSV, XLSX, PDF) work on selected rows, as on the Staff page.
+
+### Bulk add
+
+- A full page (`/admin/partners/bulk`), grid rows or a CSV/XLSX upload, with the columns partner name, prefix, user name and email. `BulkCreatePartners` saves all rows in one transaction or none.
+- The prefix is suggested per row and editable. Rows fail validation for a prefix that is not 2 letters, is `ES`, is taken, or repeats in the same file, and for an email that has an account.
+- After saving, the page offers the same copy and export for the new partners.
+
+### Routes
+
+| Page or action              | URL                                            | Name                                   |
+| --------------------------- | ---------------------------------------------- | -------------------------------------- |
+| Active tab                  | `GET /admin/partners`                          | `admin.partners.index`                 |
+| Invited tab                 | `GET /admin/partners/invited`                  | `admin.partners.invited`               |
+| Suspended tab               | `GET /admin/partners/suspended`                | `admin.partners.suspended`             |
+| Add with temp password      | `POST /admin/partners`                         | `admin.partners.store`                 |
+| Bulk add                    | `GET`, `POST /admin/partners/bulk`             | `admin.partners.bulk.create`, `.store` |
+| Invite                      | `POST /admin/partners/invitations`             | `admin.partners.invitations.store`     |
+| Resend                      | `POST /admin/partners/invitations/{id}/resend` | `admin.partners.invitations.resend`    |
+| Revoke                      | `DELETE /admin/partners/invitations/{id}`      | `admin.partners.invitations.destroy`   |
+| Copy message, export, reset | `/admin/partners/temporary-passwords/…`        | `admin.partners.temporary-passwords.*` |
+| Suspend                     | `POST /admin/partners/{partner}/suspend`       | `admin.partners.suspend`               |
+| Reactivate                  | `POST /admin/partners/{partner}/reactivate`    | `admin.partners.reactivate`            |
+| Accept page, accept         | `GET`, `POST /partner-invitations/{token}`     | `partner-invitations.show`, `.accept`  |
+| Move a property             | `PUT /admin/properties/{code}/partner`         | `admin.properties.partner.update`      |
+
+### Other admin rules
+
+- List columns: partner, prefix, user email, property count, status (with **Temp password · Nd** like staff), created.
 - Admin properties list gets a **Partner** column and filter.
 - **Move to partner** on the admin property page: pick a partner or "Direct". `MovePropertyToPartner` changes `partner_id` only. The code stays. The old partner loses view as at once. Logged with the old and new partner.
 - Every admin write carries `support.2fa` and is logged.
@@ -90,7 +155,8 @@ The admin sidebar gets one **Partners** item.
 
 ## Actions and services
 
-- `CreatePartner`, `SuspendPartner`, `ReactivatePartner`, `RegeneratePartnerSignupCode`, `MovePropertyToPartner` (`app/Actions/Platform/`).
+- `InvitePartner`, `ResendPartnerInvitation`, `RevokePartnerInvitation`, `AcceptPartnerInvitation`, `CreatePartnerWithTemporaryPassword`, `BulkCreatePartners`, `ResetPartnerTemporaryPassword`, `SuspendPartner`, `ReactivatePartner`, `RegeneratePartnerSignupCode`, `MovePropertyToPartner` (`app/Actions/Platform/`).
+- Partner creation shares one internal step (partner row, counter row, signup code) so the three ways cannot drift apart.
 - `IssuePropertyCode` (`app/Actions/Property/`).
 - `PartnerProperties` service: the partner's property list (`app/Services/Platform/`).
 - `PropertyPolicy::viewAs`.
@@ -102,6 +168,9 @@ The admin sidebar gets one **Partners** item.
 - A partner sees only their properties; another partner's property returns 404.
 - A partner creates a property with their prefix.
 - A suspended partner cannot sign in.
+- Invite reserves the prefix; revoke frees it; accept makes the partner Active; an expired link fails.
+- Add with temp password forces a password change at first sign-in.
+- Bulk add rejects `ES`, a taken prefix and a repeated prefix, and saves nothing on any error.
 
 ## Lessons from wastays
 
