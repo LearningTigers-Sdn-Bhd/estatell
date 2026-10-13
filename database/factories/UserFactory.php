@@ -4,6 +4,7 @@ namespace Database\Factories;
 
 use App\Actions\Staff\SeedDefaultRoles;
 use App\Enums\DefaultRoleEnum;
+use App\Models\Partner;
 use App\Models\Property;
 use App\Models\Role;
 use App\Models\User;
@@ -94,6 +95,17 @@ class UserFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'is_admin' => true,
+            'property_id' => null,
+        ]);
+    }
+
+    /**
+     * Indicate that the user is a partner user: it belongs to a partner and to no property.
+     */
+    public function partner(?Partner $partner = null): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'partner_id' => $partner?->id ?? Partner::factory(),
             'property_id' => null,
         ]);
     }

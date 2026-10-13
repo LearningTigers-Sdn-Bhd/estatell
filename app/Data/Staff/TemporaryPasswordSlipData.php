@@ -22,6 +22,23 @@ class TemporaryPasswordSlipData extends Data
     ) {}
 
     /**
+     * A partner user's sign-in details. The partner name takes the place of the property name. Expects an unexpired
+     * temp password and a loaded or loadable `partner`.
+     */
+    public static function fromPartner(User $user): self
+    {
+        return new self(
+            property: $user->partner->name,
+            name: $user->name,
+            email: $user->email,
+            role: null,
+            temporaryPassword: (string) $user->temporary_password,
+            expiresOn: $user->temporary_password_expires_at->setTimezone(config('app.timezone'))->format('j M Y'),
+            loginUrl: route('login'),
+        );
+    }
+
+    /**
      * Expects `roles` loaded for the property's permission team and an unexpired temp password.
      */
     public static function fromModel(User $user, Property $property): self

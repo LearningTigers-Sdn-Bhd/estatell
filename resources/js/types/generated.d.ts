@@ -909,6 +909,16 @@ error: string | null,
 };
 }
 namespace Platform {
+export type AdminPartnerRowData = {
+id: number,
+name: string,
+codePrefix: string,
+email: string | null,
+propertiesCount: number,
+status: App.Data.Shared.BadgeData,
+temporaryPasswordExpiresAt: string | null,
+createdAt: string,
+};
 export type AdminPropertyData = {
 code: string,
 name: string,
@@ -2426,6 +2436,7 @@ export type OverdueDeparturePolicy = 'extend_one_night' | 'block';
 export type OwnerSetupMethod = 'email_link' | 'initial_password';
 export type PackageUnit = 'per_guest' | 'per_room';
 export type PageOrientation = 'portrait' | 'landscape';
+export type PartnerStatus = 'invited' | 'active' | 'suspended';
 export type PaymentMethodType = 'cash' | 'card' | 'bank_transfer' | 'e_wallet' | 'ota_collected' | 'direct_bill';
 export type PaymentPurpose = 'advance' | 'settlement' | 'security_deposit';
 export type PaymentReportStatus = 'pending' | 'completed' | 'failed' | 'voided';

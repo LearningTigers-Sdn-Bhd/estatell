@@ -31,4 +31,5 @@ Route::prefix('p/{property:code}')->where(['property' => '[A-Za-z]{2}[0-9]{5,}']
 require __DIR__.'/account.php';
 require __DIR__.'/staff.php';
 require __DIR__.'/admin.php';
+require __DIR__.'/partner.php';
 require __DIR__.'/guest.php';

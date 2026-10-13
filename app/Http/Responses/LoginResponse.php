@@ -11,7 +11,7 @@ use Symfony\Component\HttpFoundation\Response;
 class LoginResponse implements LoginResponseContract
 {
     /**
-     * Send admins to /admin and staff to the Fortify home, unless an intended URL was stored.
+     * Send admins to /admin, partners to /partner and staff to the Fortify home, unless an intended URL was stored.
      *
      * @param  Request  $request
      */
@@ -21,7 +21,12 @@ class LoginResponse implements LoginResponseContract
             return $this->jsonResponse();
         }
 
-        $home = $request->user()?->is_admin ? route('admin.dashboard') : Fortify::redirects('login');
+        $user = $request->user();
+        $home = match (true) {
+            $user?->is_admin === true => route('admin.dashboard'),
+            $user?->partner_id !== null => route('partner.properties.index'),
+            default => Fortify::redirects('login'),
+        };
 
         return redirect()->intended($home);
     }

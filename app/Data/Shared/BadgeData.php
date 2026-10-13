@@ -7,6 +7,7 @@ use App\Enums\AuditStatus;
 use App\Enums\CompanyStatus;
 use App\Enums\FolioRowTag;
 use App\Enums\FolioStatus;
+use App\Enums\PartnerStatus;
 use App\Enums\PaymentReportStatus;
 use App\Enums\PropertyStatus;
 use App\Enums\RatePlanStatus;
@@ -60,6 +61,11 @@ class BadgeData extends Data
     public static function fromFolioRowTag(FolioRowTag $tag): self
     {
         return new self($tag->value, $tag->label(), $tag->tone());
+    }
+
+    public static function fromPartnerStatus(PartnerStatus $status): self
+    {
+        return new self($status->value, $status->label(), $status->tone());
     }
 
     public static function fromPaymentReportStatus(PaymentReportStatus $status): self

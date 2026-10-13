@@ -8,6 +8,7 @@ use App\Data\Property\PropertySummaryData;
 use App\Enums\PropertyStatus;
 use App\Models\Property;
 use App\Navigation\AdminNavigation;
+use App\Navigation\PartnerNavigation;
 use App\Navigation\StaffNavigation;
 use App\Services\NightAudit\CurrentBusinessDate;
 use Illuminate\Http\Request;
@@ -53,6 +54,7 @@ class HandleInertiaRequests extends Middleware
             'property' => fn () => $this->currentProperty($request),
             'businessDate' => fn () => $this->businessDate($request),
             'adminNavigation' => fn () => $request->user()?->is_admin ? app(AdminNavigation::class)->items() : null,
+            'partnerNavigation' => fn () => $request->user()?->partner_id !== null ? app(PartnerNavigation::class)->items() : null,
             'navigation' => fn () => $this->staffNavigation($request),
             'csrfToken' => fn () => csrf_token(),
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
@@ -67,7 +69,7 @@ class HandleInertiaRequests extends Middleware
     {
         $user = $request->user();
 
-        if ($user === null || $user->is_admin) {
+        if ($user === null || $user->is_admin || $user->partner_id !== null) {
             return null;
         }
 

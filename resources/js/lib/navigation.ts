@@ -14,6 +14,7 @@ import {
     CreditCard,
     DoorOpen,
     IdCard,
+    Handshake,
     Landmark,
     LayoutGrid,
     Moon,
@@ -34,6 +35,7 @@ import type { NavItem } from '@/types';
 const icons: Record<string, LucideIcon> = {
     'layout-grid': LayoutGrid,
     building: Building2,
+    handshake: Handshake,
     bed: Bed,
     'door-open': DoorOpen,
     'id-card': IdCard,

@@ -357,7 +357,7 @@ export default function PropertiesIndex({
                 index.url({
                     query: {
                         ...(Object.keys(filter).length ? { filter } : {}),
-                        ...(next.sort && next.sort !== '-code'
+                        ...(next.sort && next.sort !== '-created_at'
                             ? { sort: next.sort }
                             : {}),
                     },

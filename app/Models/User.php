@@ -18,6 +18,7 @@ use Spatie\Permission\Traits\HasRoles;
 /**
  * @property int $id
  * @property int|null $property_id
+ * @property int|null $partner_id
  * @property string $name
  * @property string $email
  * @property Carbon|null $email_verified_at
@@ -68,6 +69,16 @@ class User extends Authenticatable implements MustVerifyEmail
     public function property(): BelongsTo
     {
         return $this->belongsTo(Property::class);
+    }
+
+    /**
+     * The partner a partner user signs in for. Null for admins and staff.
+     *
+     * @return BelongsTo<Partner, $this>
+     */
+    public function partner(): BelongsTo
+    {
+        return $this->belongsTo(Partner::class);
     }
 
     /** @return HasMany<UserNotificationPreference, $this> */

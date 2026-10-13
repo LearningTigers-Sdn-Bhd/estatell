@@ -9,6 +9,7 @@ use Database\Factories\PropertyFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -22,6 +23,7 @@ use Spatie\MediaLibrary\InteractsWithMedia;
  * The tenant. `code` is issued by IssuePropertyCode (prefix plus number, for example ES10101) and never changes.
  *
  * @property int $id
+ * @property int|null $partner_id
  * @property string $code
  * @property string|null $document_prefix
  * @property string $name
@@ -69,6 +71,16 @@ class Property extends Model implements FeatureScopeSerializeable, HasMedia
             ->singleFile()
             ->acceptsMimeTypes(self::LOGO_MIME_TYPES)
             ->useDisk(app(PlatformSettings::class)->current()->media_disk->diskName());
+    }
+
+    /**
+     * The partner who brought the property. Null for direct (ES) properties.
+     *
+     * @return BelongsTo<Partner, $this>
+     */
+    public function partner(): BelongsTo
+    {
+        return $this->belongsTo(Partner::class);
     }
 
     /**

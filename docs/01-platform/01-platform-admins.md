@@ -19,7 +19,7 @@ CHECK (num_nonnulls(property_id, partner_id) + is_admin::int = 1)
 - `is_admin` is not fillable. Only `AdminSeeder` (reads `ADMIN_SEED_EMAIL` and `ADMIN_SEED_PASSWORD`) or a console command sets it. Fortify registration cannot.
 - Admins never belong to a property permission team.
 - Emails are unique across all users. An admin who also owns a property needs a second email.
-- Built: `is_admin`, `property_id` (restrict on delete) and the CHECK `users_property_or_admin_check` (replaced by `users_one_kind_check` when partners land). Registration creates the property and the owner together (see [Account creation](../17-onboarding/01-account-creation.md)).
+- Built: `is_admin`, `property_id` and `partner_id` (both restrict on delete) and the CHECK `users_one_kind_check` (it replaced `users_property_or_admin_check`). Registration creates the property and the owner together (see [Account creation](../17-onboarding/01-account-creation.md)).
 
 ## Why one table
 

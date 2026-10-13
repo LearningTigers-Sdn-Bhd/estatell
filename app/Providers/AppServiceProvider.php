@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Enums\PartnerStatus;
 use App\Models\Property;
 use App\Models\User;
 use Carbon\CarbonImmutable;
@@ -91,6 +92,9 @@ class AppServiceProvider extends ServiceProvider
      */
     protected function configureGates(): void
     {
+        Gate::define('partner', fn (User $user): Response => $user->partner_id !== null && $user->partner?->status === PartnerStatus::Active
+            ? Response::allow()
+            : Response::denyAsNotFound());
         Gate::define('admin', fn (User $user): Response => $user->is_admin ? Response::allow() : Response::denyAsNotFound());
     }
 

@@ -44,7 +44,7 @@ test('an admin cannot belong to a property', function () {
     $admin = User::factory()->admin()->create();
 
     expect(fn () => DB::table('users')->where('id', $admin->id)->update(['property_id' => Property::factory()->create()->id]))
-        ->toThrow(QueryException::class, 'users_property_or_admin_check');
+        ->toThrow(QueryException::class, 'users_one_kind_check');
 });
 
 test('a staff user must belong to a property', function () {
@@ -52,7 +52,7 @@ test('a staff user must belong to a property', function () {
 
     expect($staff->property)->toBeInstanceOf(Property::class)
         ->and(fn () => DB::table('users')->where('id', $staff->id)->update(['property_id' => null]))
-        ->toThrow(QueryException::class, 'users_property_or_admin_check');
+        ->toThrow(QueryException::class, 'users_one_kind_check');
 });
 
 test('a property with users cannot be deleted', function () {
