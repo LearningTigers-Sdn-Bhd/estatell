@@ -34,7 +34,7 @@ class ReservationBoatTripController extends Controller
             return back(fallback: $page)->withErrors($refusals->boatTripErrors((string) $result->refusal));
         }
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => __('Boat trip saved.')]);
+        Inertia::flash('toast', $this->savedToast($result->postedFareKept, __('Boat trip saved.')));
 
         return back(fallback: $page);
     }
@@ -52,7 +52,7 @@ class ReservationBoatTripController extends Controller
             return back(fallback: $page)->withErrors($refusals->boatTripsErrors((string) $result->refusal, (string) $result->unitLabel));
         }
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => __('Boat trips saved.')]);
+        Inertia::flash('toast', $this->savedToast($result->postedFareKept, __('Boat trips saved.')));
 
         return back(fallback: $page);
     }
@@ -71,8 +71,22 @@ class ReservationBoatTripController extends Controller
             return back(fallback: $page);
         }
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => __('Boat trip cleared.')]);
+        Inertia::flash('toast', $this->savedToast($result->postedFareKept, __('Boat trip cleared.')));
 
         return back(fallback: $page);
+    }
+
+    /**
+     * The success toast. A posted fare row was kept, so the toast is a warning and names the folio correction.
+     *
+     * @return array{type: string, message: string}
+     */
+    private function savedToast(bool $postedFareKept, string $message): array
+    {
+        if (! $postedFareKept) {
+            return ['type' => 'success', 'message' => $message];
+        }
+
+        return ['type' => 'warning', 'message' => $message.' '.__('The old fare is already posted. Reverse it on the folio if needed.')];
     }
 }

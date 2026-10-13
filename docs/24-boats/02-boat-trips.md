@@ -23,7 +23,7 @@ boat_trip_add_ons  id, unit_boat_trip_id → unit_boat_trips (cascade),
 - **One trip per unit per direction.** Trips are per unit, not per guest. A guest who travels apart from the rest of the room is booked as a separate unit.
 - **No date column.** A Boat in trip is on the unit's arrival date, and a Boat out trip is on its departure date. Changing dates, extending a stay or an early check-out moves the trip with the unit.
 - **No time column.** The time is the unit's `arrival_time` (In) or `departure_time` (Out) ([Expected times](../12-reservations/01-reservation-shape.md#expected-times)). One fact, one place.
-- `boat_trip_add_ons` links a trip to the fare add-on rows it created. A fare with child prices writes several rows (adults, and one per charged age group), so it is a link table, not one column. Boats owns it, so `unit_add_ons` does not change.
+- `boat_trip_add_ons` links a trip to the fare add-on rows it created. A fare with child prices writes several rows (adults, and one per charged age group), so it is a link table, not one column. Boats owns it, so `unit_add_ons` does not change. Like `unit_add_ons`, it has no `property_id`: it is always reached through its trip, which is property scoped (an exception to the models rule).
 - A unit with no trip row means "not set yet".
 
 ## Enums
@@ -54,22 +54,24 @@ boat_trip_add_ons  id, unit_boat_trip_id → unit_boat_trips (cascade),
 | Boat in: the unit is Confirmed. Boat out: the unit is Confirmed or CheckedIn     | `unit_not_open`       |
 | Scheduled: the departure is available, of the property and of the same direction | `departure_not_found` |
 | Charter and Own: a time is given                                                 | `time_required`       |
+| The fare can be added (`AddUnitAddOn` accepts it)                                | `fare_not_found`      |
 
 - Seats are **never** a refusal. A full departure is a warning in the form (see [Seats](#seats)).
 - `ClearBoatTrip` removes the trip ("Not set"), with the same unit checks. It removes the unposted fare rows and leaves the unit time as it is. Logs `reservation.boat_trip_cleared`.
 
 ## Fare
 
-When the trip is Scheduled and its departure has a fare, the trip adds the fare as an add-on through `AddUnitAddOn` and links the rows in `boat_trip_add_ons`.
+When the trip is Scheduled and its departure has a fare, the trip adds the fare as an add-on through `AddUnitAddOn` and links the rows in `boat_trip_add_ons`. `SyncBoatFare` (`app/Actions/Boats/`) does this inside the `SetBoatTrip` or `ClearBoatTrip` transaction. A refused fare refuses the trip (`fare_not_found`, "This boat's fare is not available. Turn it on or change the departure's fare.") and nothing of the trip is saved, so a trip never goes without its fare.
 
 - **One fare per trip.** The fare is one way, per guest: Boat in and Boat out each add their own. "Boat in by speedboat, own boat out" pays one fare.
 - **Undated.** The fare add-on has no `service_date`, so it posts at check-in like other undated add-ons. A Boat out trip set after check-in gets the business date and posts in that night's audit (the existing [add-on rule](../12-reservations/04-add-ons.md#addunitaddon)). A fare dated on the departure day would post after the guest has left.
 - **Child prices** apply: the rows split by age group as for any per-guest item.
-- **Package skip.** No fare is added when the unit's rate plan has an inclusion for the same charge item (an island package that includes the boat). The check reads the plan through a Rates service, not the Rates models.
-- **Changing or clearing a trip** first removes the trip's unposted fare rows with `RemoveUnitAddOn`, then adds the new fare if there is one. A posted fare row is kept. The Dialog then says: "The old fare is already posted. Reverse it on the folio if needed." The fix is `ReverseLine` on the folio. Nothing is reversed automatically.
+- **Package skip.** No fare is added when the unit's rate plan has an inclusion for the same charge item (an island package that includes the boat). The check reads the plan through a Rates service (`RatePlanIncludes::includesChargeItem`), not the Rates models. Any inclusion row counts, whatever its amount or dates. It is read when the trip is set; a later plan change does not re-sync fare rows.
+- **Changing or clearing a trip** first removes the trip's unposted fare rows with `RemoveUnitAddOn`, then adds the new fare if there is one. A posted fare row is kept, and its link stays. The success toast then says, as a warning: "The old fare is already posted. Reverse it on the folio if needed." (the Dialog closes on success; Set boats shows the same). The fix is `ReverseLine` on the folio. Nothing is reversed automatically.
 - **Charter and Own** add nothing. Staff add a charter charge by hand, for example with an Enter when charging item.
 - **Guest counts and stay changes** leave fare rows alone. Guest counts cannot change after booking, and stay changes leave undated rows as they are ([Add-ons rules](../12-reservations/04-add-ons.md#rules)), so fare rows keep their link. A future guest count change must link any new age-group fare row to its trip.
-- Cancel, no-show and reinstate treat fare rows like any add-on: they stay as history and come back on reinstate.
+- Cancel, no-show and reinstate treat fare rows like any add-on: they stay as history and come back on reinstate. With **Also remove add-ons**, unposted fare rows are removed with the others and their links go with them. Reinstate then brings back the trip without its fare; staff add it again with **Change**.
+- A departure's new fare applies to new trips only. Booked trips keep the fare rows they have.
 
 ## Seats
 

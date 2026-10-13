@@ -47,6 +47,7 @@ class SetBoatTrips
             ->all();
 
         DB::beginTransaction();
+        $postedFareKept = false;
 
         try {
             if ($departureIds !== []) {
@@ -78,6 +79,8 @@ class SetBoatTrips
 
                         return BoatTripsResult::refused((string) $result->refusal, $unit->id, $this->label($unit));
                     }
+
+                    $postedFareKept = $postedFareKept || $result->postedFareKept;
                 }
             }
 
@@ -88,7 +91,7 @@ class SetBoatTrips
             throw $exception;
         }
 
-        return BoatTripsResult::done();
+        return BoatTripsResult::done($postedFareKept);
     }
 
     /** "Double · 104", the label of the unit on the reservation page. Read only when a refusal names it. */

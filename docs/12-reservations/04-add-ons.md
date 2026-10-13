@@ -103,7 +103,7 @@ An item with **Add to every new booking** (`charge_items.auto_add`) is added to 
 
 ## Build status
 
-Built: `unit_add_ons` (with its CHECKs), `UnitAddOn`, `NewAddOnData`, `NewUnitData::$addOns`, `AddUnitAddOn`, `RemoveUnitAddOn`, `AddOnResult` and `ChargeQuantityResolver`. `AddUnit` calls `AddUnitAddOn` for each add-on of the line and rolls back its own unit on a refusal. The Add-ons tab and the booking form Extras call them in later items. Posting (`PostScheduledAddOns`, `CheckInUnit`) comes with module 13.
+Built: `unit_add_ons` (with its CHECKs), `UnitAddOn`, `NewAddOnData`, `NewUnitData::$addOns`, `AddUnitAddOn`, `RemoveUnitAddOn`, `AddOnResult` and `ChargeQuantityResolver`. `AddUnit` calls `AddUnitAddOn` for each add-on of the line and rolls back its own unit on a refusal. The Add-ons tab, the booking form Extras and boat trips (`SyncBoatFare`) call them. Posting is built: `CheckInUnit` posts undated add-ons and `PostScheduledAddOns` posts dated ones in the night audit (module 13).
 
 ## Add-ons tab and the folio
 

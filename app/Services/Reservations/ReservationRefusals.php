@@ -94,6 +94,7 @@ class ReservationRefusals
             BoatTripResult::REFUSAL_DEPARTURE_NOT_FOUND => ['boat_departure_id', __('This boat is not available for this direction. Choose another.')],
             BoatTripResult::REFUSAL_TIME_REQUIRED => ['time', __('Enter the time.')],
             BoatTripResult::REFUSAL_DAY_USE => [self::FORM, __('Day use bookings have no boat trips.')],
+            BoatTripResult::REFUSAL_FARE_NOT_FOUND => ['boat_departure_id', __("This boat's fare is not available. Turn it on or change the departure's fare.")],
             default => [self::FORM, __('This change was refused.')],
         };
 

@@ -16,7 +16,10 @@ use Laravel\Pennant\Feature;
 
 class SetBoatTrip
 {
-    public function __construct(private BoatTripAccess $boatTripAccess) {}
+    public function __construct(
+        private BoatTripAccess $boatTripAccess,
+        private SyncBoatFare $syncBoatFare,
+    ) {}
 
     /**
      * Set one direction of a unit's boat trip and the unit's expected time that goes with it. A scheduled trip takes the
@@ -25,8 +28,10 @@ class SetBoatTrip
      *
      * Lock order is the departure (shared), then the unit, the same as `UpdateBoatDeparture` (departure, then units), so
      * the two cannot deadlock. Every check runs before the first write. A set that changes nothing writes and logs nothing.
-     * Seats never refuse. The route checks `reservations.manage` and the `boats` middleware; this checks the feature for
-     * other callers (bookings, Add unit). See docs/24-boats/02-boat-trips.md.
+     * The fare is synced inside the same transaction (`SyncBoatFare`). A fare refusal throws `BoatTripRefused` inside, so
+     * the trip, the time and the fare rows all roll back, and the Action returns the refusal. Seats never refuse. The route
+     * checks `reservations.manage` and the `boats` middleware; this checks the feature for other callers (bookings, Add
+     * unit). See docs/24-boats/02-boat-trips.md.
      */
     public function __invoke(User $actor, ReservationUnit $unit, BoatTripData $data): BoatTripResult
     {
@@ -36,87 +41,93 @@ class SetBoatTrip
             return BoatTripResult::refused(BoatTripResult::REFUSAL_BOATS_OFF);
         }
 
-        return DB::transaction(function () use ($actor, $unit, $data): BoatTripResult {
-            $departure = $data->mode->needsDeparture()
-                ? BoatDeparture::query()
-                    ->whereKey($data->boatDepartureId)
-                    ->where('property_id', $unit->property_id)
-                    ->where('direction', $data->direction->value)
-                    ->where('active', true)
-                    ->sharedLock()
-                    ->first()
-                : null;
-
-            $locked = ReservationUnit::query()->with('reservation')->lockForUpdate()->findOrFail($unit->id);
-
-            $refusal = $this->boatTripAccess->refusalFor($locked, $data->direction);
-
-            if ($refusal !== null) {
-                return BoatTripResult::refused($refusal);
-            }
-
-            if ($data->mode->needsDeparture() && $departure === null) {
-                return BoatTripResult::refused(BoatTripResult::REFUSAL_DEPARTURE_NOT_FOUND);
-            }
-
-            if (! $data->mode->needsDeparture() && blank($data->time)) {
-                return BoatTripResult::refused(BoatTripResult::REFUSAL_TIME_REQUIRED);
-            }
-
-            $time = $data->mode->needsDeparture()
-                ? $data->direction->propertyTime($departure)
-                : substr((string) $data->time, 0, 5).':00';
-            $boatDepartureId = $data->mode->needsDeparture() ? $departure->id : null;
-            $note = filled($data->note) ? trim((string) $data->note) : null;
-            $timeColumn = $data->direction === BoatDirection::In ? 'arrival_time' : 'departure_time';
-
-            $existing = UnitBoatTrip::query()
-                ->where('reservation_unit_id', $locked->id)
-                ->where('direction', $data->direction->value)
-                ->first();
-
-            $unchanged = $existing !== null
-                && $existing->mode === $data->mode
-                && $existing->boat_departure_id === $boatDepartureId
-                && $existing->note === $note
-                && substr($locked->{$timeColumn}, 0, 5) === substr($time, 0, 5);
-
-            if ($unchanged) {
-                return BoatTripResult::done();
-            }
-
-            $trip = UnitBoatTrip::query()->updateOrCreate(
-                ['reservation_unit_id' => $locked->id, 'direction' => $data->direction->value],
-                ['property_id' => $locked->property_id, 'mode' => $data->mode->value, 'boat_departure_id' => $boatDepartureId, 'note' => $note],
-            );
-
-            $locked->update([$timeColumn => $time]);
-
-            $this->syncFare($locked, $trip);
-
-            activity()
-                ->performedOn($locked->reservation)
-                ->causedBy($actor)
-                ->event('reservation.boat_trip_set')
-                ->withProperties([
-                    'property_id' => $locked->property_id,
-                    'reservation_unit_id' => $locked->id,
-                    'direction' => $data->direction->value,
-                    'mode' => $data->mode->value,
-                    'boat_departure_id' => $boatDepartureId,
-                    'boat_time' => substr($departure?->leaves_at ?? $time, 0, 5),
-                    'pickup_point' => $departure?->pickup_point,
-                    'unit_time' => substr($time, 0, 5),
-                    'note' => $note,
-                ])
-                ->log('Boat trip set');
-
-            return BoatTripResult::done();
-        });
+        try {
+            return DB::transaction(fn (): BoatTripResult => $this->save($actor, $unit, $data));
+        } catch (BoatTripRefused $refused) {
+            return BoatTripResult::refused($refused->refusal);
+        }
     }
 
-    /**
-     * Fare rows for the trip go here. The boat fare item fills this in; until then a trip adds nothing.
-     */
-    private function syncFare(ReservationUnit $unit, UnitBoatTrip $trip): void {}
+    private function save(User $actor, ReservationUnit $unit, BoatTripData $data): BoatTripResult
+    {
+        $departure = $data->mode->needsDeparture()
+            ? BoatDeparture::query()
+                ->whereKey($data->boatDepartureId)
+                ->where('property_id', $unit->property_id)
+                ->where('direction', $data->direction->value)
+                ->where('active', true)
+                ->sharedLock()
+                ->first()
+            : null;
+
+        $locked = ReservationUnit::query()->with('reservation')->lockForUpdate()->findOrFail($unit->id);
+
+        $refusal = $this->boatTripAccess->refusalFor($locked, $data->direction);
+
+        if ($refusal !== null) {
+            return BoatTripResult::refused($refusal);
+        }
+
+        if ($data->mode->needsDeparture() && $departure === null) {
+            return BoatTripResult::refused(BoatTripResult::REFUSAL_DEPARTURE_NOT_FOUND);
+        }
+
+        if (! $data->mode->needsDeparture() && blank($data->time)) {
+            return BoatTripResult::refused(BoatTripResult::REFUSAL_TIME_REQUIRED);
+        }
+
+        $time = $data->mode->needsDeparture()
+            ? $data->direction->propertyTime($departure)
+            : substr((string) $data->time, 0, 5).':00';
+        $boatDepartureId = $data->mode->needsDeparture() ? $departure->id : null;
+        $note = filled($data->note) ? trim((string) $data->note) : null;
+        $timeColumn = $data->direction === BoatDirection::In ? 'arrival_time' : 'departure_time';
+
+        $existing = UnitBoatTrip::query()
+            ->where('reservation_unit_id', $locked->id)
+            ->where('direction', $data->direction->value)
+            ->first();
+
+        $unchanged = $existing !== null
+            && $existing->mode === $data->mode
+            && $existing->boat_departure_id === $boatDepartureId
+            && $existing->note === $note
+            && substr($locked->{$timeColumn}, 0, 5) === substr($time, 0, 5);
+
+        if ($unchanged) {
+            return BoatTripResult::done();
+        }
+
+        $trip = UnitBoatTrip::query()->updateOrCreate(
+            ['reservation_unit_id' => $locked->id, 'direction' => $data->direction->value],
+            ['property_id' => $locked->property_id, 'mode' => $data->mode->value, 'boat_departure_id' => $boatDepartureId, 'note' => $note],
+        );
+
+        $locked->update([$timeColumn => $time]);
+
+        $fare = ($this->syncBoatFare)($actor, $locked, $trip, $departure);
+
+        if ($fare->isRefused()) {
+            throw new BoatTripRefused((string) $fare->refusal);
+        }
+
+        activity()
+            ->performedOn($locked->reservation)
+            ->causedBy($actor)
+            ->event('reservation.boat_trip_set')
+            ->withProperties([
+                'property_id' => $locked->property_id,
+                'reservation_unit_id' => $locked->id,
+                'direction' => $data->direction->value,
+                'mode' => $data->mode->value,
+                'boat_departure_id' => $boatDepartureId,
+                'boat_time' => substr($departure?->leaves_at ?? $time, 0, 5),
+                'pickup_point' => $departure?->pickup_point,
+                'unit_time' => substr($time, 0, 5),
+                'note' => $note,
+            ])
+            ->log('Boat trip set');
+
+        return BoatTripResult::done($fare->postedFareKept);
+    }
 }
