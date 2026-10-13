@@ -7,6 +7,7 @@ use App\Services\Staff\PropertyOwners;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Str;
 use Spatie\QueryBuilder\AllowedFilter;
 use Spatie\QueryBuilder\QueryBuilder;
 
@@ -31,7 +32,7 @@ class PropertyDirectory
                 AllowedFilter::exact('type'),
             )
             ->allowedSorts('code', 'name', 'created_at')
-            ->defaultSort('-code')
+            ->defaultSort('-created_at')
             ->select('properties.*')
             ->tap(fn (Builder $query) => $this->propertyOwners->addOwnerColumns($query))
             ->paginate(self::PER_PAGE)
@@ -39,7 +40,7 @@ class PropertyDirectory
     }
 
     /**
-     * A number matches the code exactly; anything else matches the name or city.
+     * A property code (two letters and digits) matches the code exactly; anything else matches the name or city.
      *
      * @param  Builder<Property>  $query
      */
@@ -47,8 +48,8 @@ class PropertyDirectory
     {
         $search = trim($search);
 
-        if (ctype_digit($search)) {
-            $query->where('code', (int) $search);
+        if (preg_match('/^[A-Za-z]{2}[0-9]{5,}$/', $search) === 1) {
+            $query->where('code', Str::upper($search));
 
             return;
         }

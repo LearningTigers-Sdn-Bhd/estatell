@@ -27,9 +27,9 @@ test('guests are sent to login from the admin property list', function () {
     $this->get(route('admin.properties.index'))->assertRedirect(route('login'));
 });
 
-test('admins see properties newest code first with their owner', function () {
-    $older = Property::factory()->onboarding()->create();
-    $newer = Property::factory()->live()->create(['type' => PropertyType::Homestay]);
+test('admins see properties newest first with their owner', function () {
+    $older = Property::factory()->onboarding()->create(['created_at' => now()->subDay()]);
+    $newer = Property::factory()->live()->create(['type' => PropertyType::Homestay, 'created_at' => now()]);
     User::factory()->for($newer)->owner()->deactivated()->create(['name' => 'Former owner']);
     User::factory()->for($newer)->withRole(DefaultRoleEnum::Owner)->create(['name' => 'Aina', 'email' => 'aina@example.com']);
     User::factory()->for($newer)->withRole(DefaultRoleEnum::FrontDesk)->create();
@@ -78,15 +78,30 @@ test('filters by status and type', function () {
         );
 });
 
-test('a numeric search matches the code exactly', function () {
+test('a property code search matches the code exactly, ignoring case', function () {
     $match = Property::factory()->create();
     Property::factory()->create(['name' => "Inn {$match->code}"]);
 
     $this->actingAs($this->admin)
-        ->get(route('admin.properties.index', ['filter' => ['search' => (string) $match->code]]))
+        ->get(route('admin.properties.index', ['filter' => ['search' => strtolower($match->code)]]))
         ->assertInertia(fn (Assert $page) => $page
             ->has('properties.data', 1)
             ->where('properties.data.0.code', $match->code)
+        );
+});
+
+test('the default sort is newest created first', function () {
+    $oldest = Property::factory()->create(['created_at' => now()->subDays(2)]);
+    $newest = Property::factory()->create(['created_at' => now()]);
+    $middle = Property::factory()->create(['created_at' => now()->subDay()]);
+
+    $this->actingAs($this->admin)
+        ->get(route('admin.properties.index'))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('sort', '-created_at')
+            ->where('properties.data.0.code', $newest->code)
+            ->where('properties.data.1.code', $middle->code)
+            ->where('properties.data.2.code', $oldest->code)
         );
 });
 

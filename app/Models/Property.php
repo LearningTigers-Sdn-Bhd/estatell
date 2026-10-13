@@ -19,10 +19,10 @@ use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 
 /**
- * The tenant. `code` comes from the property_code_seq sequence and never changes.
+ * The tenant. `code` is issued by IssuePropertyCode (prefix plus number, for example ES10101) and never changes.
  *
  * @property int $id
- * @property int $code
+ * @property string $code
  * @property string|null $document_prefix
  * @property string $name
  * @property PropertyType|null $type
@@ -79,7 +79,6 @@ class Property extends Model implements FeatureScopeSerializeable, HasMedia
     protected function casts(): array
     {
         return [
-            'code' => 'integer',
             'type' => PropertyType::class,
             'status' => PropertyStatus::class,
             'onboarding_started_at' => 'datetime',

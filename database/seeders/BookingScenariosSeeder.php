@@ -20,6 +20,7 @@ use App\Actions\NightAudit\OpenBusinessDate;
 use App\Actions\NightAudit\RunNightAudit;
 use App\Actions\Payments\RecordPayment;
 use App\Actions\Property\GenerateDocumentPrefix;
+use App\Actions\Property\IssuePropertyCode;
 use App\Actions\Property\SeedPropertyDefaults;
 use App\Actions\Property\UpdatePropertySettings;
 use App\Actions\Rates\CreateDerivedRatePlan;
@@ -245,19 +246,25 @@ class BookingScenariosSeeder extends Seeder
 
     private function createProperty(): Property
     {
-        $property = Property::query()->create([
-            'name' => self::NAME,
-            'type' => PropertyType::Hostel,
-            'status' => PropertyStatus::Onboarding,
-            'address_line1' => 'Jalan Gaya',
-            'city' => 'Kota Kinabalu',
-            'state_code' => 'Sabah',
-            'postal_code' => '88000',
-            'country_code' => 'MY',
-            'contact_email' => 'hello@kinabalu-hostel.test',
-            'contact_phone' => '+6088251234',
-            'onboarding_started_at' => now()->subDays(30),
-        ]);
+        $property = DB::transaction(function (): Property {
+            $property = (new Property)->forceFill([
+                'code' => app(IssuePropertyCode::class)(),
+                'name' => self::NAME,
+                'type' => PropertyType::Hostel,
+                'status' => PropertyStatus::Onboarding,
+                'address_line1' => 'Jalan Gaya',
+                'city' => 'Kota Kinabalu',
+                'state_code' => 'Sabah',
+                'postal_code' => '88000',
+                'country_code' => 'MY',
+                'contact_email' => 'hello@kinabalu-hostel.test',
+                'contact_phone' => '+6088251234',
+                'onboarding_started_at' => now()->subDays(30),
+            ]);
+            $property->save();
+
+            return $property;
+        });
 
         app(GenerateDocumentPrefix::class)($property);
         app(SeedPropertyDefaults::class)($property, PropertyType::Hostel, 'MY');

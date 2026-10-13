@@ -21,6 +21,14 @@ test('staff open their own property dashboard with the property prop', function 
     expect(app(PermissionRegistrar::class)->getPermissionsTeamId())->toBe($property->id);
 });
 
+test('a lower-case property code in the URL resolves', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->get('/p/'.strtolower($user->property->code).'/dashboard')
+        ->assertOk();
+});
+
 test('staff get a 404 on another property', function () {
     $this->actingAs(User::factory()->create())
         ->get(route('dashboard', Property::factory()->create()->code))
@@ -29,7 +37,7 @@ test('staff get a 404 on another property', function () {
 
 test('an unknown property code is a 404', function () {
     $this->actingAs(User::factory()->create())
-        ->get('/p/99999999/dashboard')
+        ->get('/p/ES99999999/dashboard')
         ->assertNotFound();
 });
 

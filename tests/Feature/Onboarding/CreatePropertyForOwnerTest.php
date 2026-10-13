@@ -2,6 +2,7 @@
 
 use App\Actions\Onboarding\CreatePropertyForOwner;
 use App\Actions\Property\GenerateDocumentPrefix;
+use App\Actions\Property\IssuePropertyCode;
 use App\Actions\Property\SeedPropertyDefaults;
 use App\Actions\Staff\AssignOwnerRole;
 use App\Enums\DefaultRoleEnum;
@@ -77,7 +78,7 @@ test('a failure while seeding rolls back the property owner and activity', funct
     $seedPropertyDefaults = Mockery::mock(SeedPropertyDefaults::class);
     $seedPropertyDefaults->shouldReceive('__invoke')->once()->andThrow(new RuntimeException('Seeding failed.'));
     $assignOwnerRole = Mockery::mock(AssignOwnerRole::class);
-    $action = new CreatePropertyForOwner($seedPropertyDefaults, app(GenerateDocumentPrefix::class), $assignOwnerRole);
+    $action = new CreatePropertyForOwner($seedPropertyDefaults, app(GenerateDocumentPrefix::class), app(IssuePropertyCode::class), $assignOwnerRole);
     $propertiesBefore = Property::query()->count();
     $usersBefore = User::query()->count();
 

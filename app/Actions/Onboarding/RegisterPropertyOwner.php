@@ -3,6 +3,7 @@
 namespace App\Actions\Onboarding;
 
 use App\Actions\Property\GenerateDocumentPrefix;
+use App\Actions\Property\IssuePropertyCode;
 use App\Actions\Staff\AssignOwnerRole;
 use App\Actions\Staff\SeedDefaultRoles;
 use App\Enums\PropertyStatus;
@@ -14,6 +15,7 @@ class RegisterPropertyOwner
 {
     public function __construct(
         private GenerateDocumentPrefix $generateDocumentPrefix,
+        private IssuePropertyCode $issuePropertyCode,
         private SeedDefaultRoles $seedDefaultRoles,
         private AssignOwnerRole $assignOwnerRole,
     ) {}
@@ -29,11 +31,13 @@ class RegisterPropertyOwner
     public function __invoke(array $input): User
     {
         return DB::transaction(function () use ($input): User {
-            $property = Property::query()->create([
+            $property = (new Property)->forceFill([
+                'code' => ($this->issuePropertyCode)(),
                 'name' => $input['property_name'],
                 'status' => PropertyStatus::Onboarding,
                 'onboarding_started_at' => now(),
             ]);
+            $property->save();
 
             ($this->generateDocumentPrefix)($property);
 

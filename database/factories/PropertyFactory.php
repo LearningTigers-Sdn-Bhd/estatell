@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use App\Actions\Property\GenerateDocumentPrefix;
+use App\Actions\Property\IssuePropertyCode;
 use App\Enums\PropertyStatus;
 use App\Enums\PropertyType;
 use App\Models\Property;
@@ -21,6 +22,7 @@ class PropertyFactory extends Factory
     public function definition(): array
     {
         return [
+            'code' => fn () => app(IssuePropertyCode::class)(),
             'name' => fake()->company().' Inn',
             'type' => PropertyType::Hotel,
             'status' => PropertyStatus::Live,
@@ -32,7 +34,7 @@ class PropertyFactory extends Factory
     }
 
     /**
-     * Issue the document prefix and load the sequence-issued code after the row is inserted. Every property has its
+     * Issue the document prefix and load the row after it is inserted. Every property has its
      * print settings row, as the back-fill and SeedPropertyDefaults give it.
      */
     public function configure(): static

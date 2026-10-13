@@ -3,6 +3,7 @@
 namespace App\Actions\Onboarding;
 
 use App\Actions\Property\GenerateDocumentPrefix;
+use App\Actions\Property\IssuePropertyCode;
 use App\Actions\Property\SeedPropertyDefaults;
 use App\Actions\Staff\AssignOwnerRole;
 use App\Enums\OwnerSetupMethod;
@@ -21,6 +22,7 @@ class CreatePropertyForOwner
     public function __construct(
         private SeedPropertyDefaults $seedPropertyDefaults,
         private GenerateDocumentPrefix $generateDocumentPrefix,
+        private IssuePropertyCode $issuePropertyCode,
         private AssignOwnerRole $assignOwnerRole,
     ) {}
 
@@ -37,13 +39,15 @@ class CreatePropertyForOwner
             && ($input['verify_owner_email'] ?? false);
 
         [$property, $owner] = DB::transaction(function () use ($admin, $input, $setupMethod, $type, $verifyOwnerEmail): array {
-            $property = Property::query()->create([
+            $property = (new Property)->forceFill([
+                'code' => ($this->issuePropertyCode)(),
                 'name' => $input['property_name'],
                 'type' => $type,
                 'status' => PropertyStatus::Onboarding,
                 'country_code' => 'MY',
                 'onboarding_started_at' => now(),
             ]);
+            $property->save();
 
             ($this->generateDocumentPrefix)($property);
 

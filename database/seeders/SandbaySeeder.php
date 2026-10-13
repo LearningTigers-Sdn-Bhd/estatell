@@ -24,6 +24,7 @@ use App\Actions\NightAudit\OpenBusinessDate;
 use App\Actions\Payments\RecordPayment;
 use App\Actions\Payments\RefundPayment;
 use App\Actions\Property\GenerateDocumentPrefix;
+use App\Actions\Property\IssuePropertyCode;
 use App\Actions\Property\SeedPropertyDefaults;
 use App\Actions\Rates\CreateRatePlan;
 use App\Actions\Rates\SavePackagePricing;
@@ -229,19 +230,25 @@ class SandbaySeeder extends Seeder
 
     private function createProperty(): Property
     {
-        $property = Property::query()->create([
-            'name' => self::NAME,
-            'type' => PropertyType::Resort,
-            'status' => PropertyStatus::Onboarding,
-            'address_line1' => 'Jalan Pantai Bakau',
-            'city' => 'Semporna',
-            'state_code' => 'Sabah',
-            'postal_code' => '91300',
-            'country_code' => 'MY',
-            'contact_email' => 'hello@sandbay.test',
-            'contact_phone' => '+6089781234',
-            'onboarding_started_at' => now()->subDays(14),
-        ]);
+        $property = DB::transaction(function (): Property {
+            $property = (new Property)->forceFill([
+                'code' => app(IssuePropertyCode::class)(),
+                'name' => self::NAME,
+                'type' => PropertyType::Resort,
+                'status' => PropertyStatus::Onboarding,
+                'address_line1' => 'Jalan Pantai Bakau',
+                'city' => 'Semporna',
+                'state_code' => 'Sabah',
+                'postal_code' => '91300',
+                'country_code' => 'MY',
+                'contact_email' => 'hello@sandbay.test',
+                'contact_phone' => '+6089781234',
+                'onboarding_started_at' => now()->subDays(14),
+            ]);
+            $property->save();
+
+            return $property;
+        });
 
         app(GenerateDocumentPrefix::class)($property);
         app(SeedPropertyDefaults::class)($property, PropertyType::Resort, 'MY');

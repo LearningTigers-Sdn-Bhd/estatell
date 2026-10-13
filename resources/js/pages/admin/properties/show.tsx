@@ -125,7 +125,7 @@ function Overview({ property }: { property: Property }) {
     );
 }
 
-function Staff({ code, staff }: { code: number; staff: StaffMember[] }) {
+function Staff({ code, staff }: { code: string; staff: StaffMember[] }) {
     if (staff.length === 0) {
         return <EmptyState icon={Users} title="No staff yet" />;
     }
@@ -213,7 +213,7 @@ function Features({
     code,
     features,
 }: {
-    code: number;
+    code: string;
     features: PropertyFeature[];
 }) {
     const toggle = (feature: PropertyFeature['feature'], active: boolean) => {

@@ -9,7 +9,7 @@ use Spatie\LaravelData\Data;
 class PropertySummaryData extends Data
 {
     public function __construct(
-        public int $code,
+        public string $code,
         public string $name,
         public PropertyStatus $status,
     ) {}

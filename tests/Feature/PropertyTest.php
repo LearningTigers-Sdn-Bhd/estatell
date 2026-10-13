@@ -1,24 +1,42 @@
 <?php
 
+use App\Actions\Property\IssuePropertyCode;
 use App\Models\Property;
 use App\Models\User;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 
-test('property codes come from the sequence in order', function () {
+test('property codes are issued in order with the ES prefix', function () {
     $first = Property::factory()->create();
     $second = Property::factory()->create();
 
-    expect($first->code)->toBeGreaterThanOrEqual(10101)
-        ->and($second->code)->toBe($first->code + 1);
+    expect($first->code)->toBe('ES10101')
+        ->and($second->code)->toBe('ES10102');
+});
+
+test('each prefix has its own counter', function () {
+    Property::factory()->create();
+
+    DB::transaction(function () {
+        expect(app(IssuePropertyCode::class)('AS'))->toBe('AS10101')
+            ->and(app(IssuePropertyCode::class)('AS'))->toBe('AS10102')
+            ->and(app(IssuePropertyCode::class)())->toBe('ES10102');
+    });
+});
+
+test('the database rejects a malformed property code', function () {
+    $property = Property::factory()->create();
+
+    expect(fn () => DB::table('properties')->where('id', $property->id)->update(['code' => 'ES123']))
+        ->toThrow(QueryException::class, 'properties_code_check');
 });
 
 test('the property code cannot be mass assigned', function () {
     $property = Property::factory()->create();
 
-    $property->update(['code' => 99999, 'name' => 'Renamed']);
+    $property->update(['code' => 'XX99999', 'name' => 'Renamed']);
 
-    expect($property->refresh()->code)->not->toBe(99999)
+    expect($property->refresh()->code)->toBe('ES10101')
         ->and($property->name)->toBe('Renamed');
 });
 

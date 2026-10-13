@@ -9,7 +9,7 @@ use Spatie\LaravelData\Data;
 class AdminPropertyRowData extends Data
 {
     public function __construct(
-        public int $code,
+        public string $code,
         public string $name,
         public BadgeData $status,
         public ?string $type,

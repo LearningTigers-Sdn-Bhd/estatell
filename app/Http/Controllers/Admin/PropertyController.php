@@ -37,7 +37,7 @@ class PropertyController extends Controller
                 'status' => $request->string('filter.status')->toString(),
                 'type' => $request->string('filter.type')->toString(),
             ],
-            'sort' => $request->string('sort', '-code')->toString(),
+            'sort' => $request->string('sort', '-created_at')->toString(),
             'statuses' => PropertyStatus::options(),
             'types' => PropertyType::options(),
             'setupMethods' => OwnerSetupMethod::options(),

@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password;
 use Laravel\Pennant\Feature;
 
@@ -59,7 +60,7 @@ class AppServiceProvider extends ServiceProvider
      */
     protected function configureRouteBindings(): void
     {
-        Route::bind('property', fn (string $code): Property => Property::query()->where('code', $code)->firstOrFail());
+        Route::bind('property', fn (string $code): Property => Property::query()->where('code', Str::upper($code))->firstOrFail());
     }
 
     /**

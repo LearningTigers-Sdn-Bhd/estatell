@@ -910,7 +910,7 @@ error: string | null,
 }
 namespace Platform {
 export type AdminPropertyData = {
-code: number,
+code: string,
 name: string,
 status: App.Data.Shared.BadgeData,
 type: string | null,
@@ -932,7 +932,7 @@ ownerName: string | null,
 ownerEmail: string | null,
 };
 export type AdminPropertyRowData = {
-code: number,
+code: string,
 name: string,
 status: App.Data.Shared.BadgeData,
 type: string | null,
@@ -1040,7 +1040,7 @@ allowSupportAccess: boolean,
 currencyAndTimeZoneLocked: boolean,
 };
 export type PropertySummaryData = {
-code: number,
+code: string,
 name: string,
 status: App.Enums.PropertyStatus,
 };
