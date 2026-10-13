@@ -154,3 +154,54 @@ test('a saved layout drops the boat column while boats are off and gets it back 
 
     expect(end($keys))->toBe('boat');
 });
+
+/**
+ * The boat text the reservations list sends for each reservation, by reference.
+ *
+ * @return array<string, array{0: ?string, 1: ?string}>
+ */
+function boatDeskCardTexts(User $user, Property $property): array
+{
+    $texts = [];
+
+    test()->actingAs($user)->get(route('reservations.index', ['property' => $property->code, 'filter' => ['stay' => '2026-10-01,2026-10-31']]))
+        ->assertInertia(function (Assert $page) use (&$texts): void {
+            $texts = collect($page->toArray()['props']['reservations']['data'])
+                ->mapWithKeys(fn (array $row): array => [$row['reference'] => [$row['boatIn'], $row['boatOut']]])
+                ->all();
+        });
+
+    return $texts;
+}
+
+test('the reservations list sends one boat text per side, Mixed for units that differ and nothing for day use or boats off', function () {
+    [$user, $property] = boatDeskSetup();
+
+    $single = boatDeskUnit($property, '09:00:00', '11:30:00', ['arrival_date' => '2026-10-12', 'departure_date' => '2026-10-15']);
+    boatDeskTrip($single, BoatDirection::In);
+    boatDeskTrip($single, BoatDirection::Out, 'own');
+
+    $group = Reservation::factory()->create(['property_id' => $property->id]);
+    $attributes = ['reservation_id' => $group->id, 'arrival_date' => '2026-10-12', 'departure_date' => '2026-10-15', 'arrival_time' => '09:00:00', 'departure_time' => '11:30:00'];
+    $first = ReservationUnit::factory()->create(['property_id' => $property->id, ...$attributes]);
+    $second = ReservationUnit::factory()->create(['property_id' => $property->id, ...$attributes]);
+    boatDeskTrip($first, BoatDirection::In);
+    boatDeskTrip($second, BoatDirection::In);
+    boatDeskTrip($first, BoatDirection::Out, 'own');
+
+    $none = boatDeskUnit($property, '09:00:00', '11:30:00', ['arrival_date' => '2026-10-12', 'departure_date' => '2026-10-15']);
+    $dayUse = boatDeskUnit($property, '09:00:00', '10:00:00', ['stay_type' => StayType::DayUse, 'arrival_date' => '2026-10-12', 'departure_date' => '2026-10-12']);
+
+    $texts = boatDeskCardTexts($user, $property);
+
+    expect($texts[$single->reservation->reference])->toBe(['09:00 boat', 'Own 11:30'])
+        ->and($texts[$group->reference])->toBe(['09:00 boat', 'Mixed'])
+        ->and($texts[$none->reservation->reference])->toBe(['—', '—'])
+        ->and($texts[$dayUse->reservation->reference])->toBe([null, null]);
+
+    Feature::for($property)->deactivate(Boats::class);
+    DB::enableQueryLog();
+
+    expect(boatDeskCardTexts($user, $property)[$single->reservation->reference])->toBe([null, null])
+        ->and(collect(DB::getQueryLog())->contains(fn (array $query): bool => str_contains($query['query'], 'unit_boat_trips')))->toBeFalse();
+});

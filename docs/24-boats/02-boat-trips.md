@@ -133,6 +133,7 @@ When the feature is on, kitchen counts use the unit times on the first and last 
 ## Front desk
 
 - **Arrivals and Departures** (the reports; the dashboard lists follow with the dashboard) show a **Boat** column after the time column: Arrivals reads Boat in, Departures reads Boat out. It shows "09:00 boat", "Charter 10:30", "Own 11:30" or "—" (`BoatTimeLabel`). The time is the unit's expected time. A day use unit shows "—". The column is visible by default and is left out of the layout while the feature is off (`ReportColumn::$feature`).
+- The **reservations list card** shows a boat line under Arrival and Departure when the feature is on: a ship icon (tooltip "Boat in" or "Boat out") and the label. `ReservationBoatSummary` reads the units the card counts, leaves day use out, shows one label when every unit agrees, "Mixed" when they differ and "—" when none has a trip. A day use only reservation has no line. The List view is unchanged.
 - Both reports order rows by date, then expected time, then id, for every property. So they come out in boat order.
 
 ### Dashboard

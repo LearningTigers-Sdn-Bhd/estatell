@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { Link } from '@inertiajs/react';
-import { Baby, Ellipsis, User } from 'lucide-react';
+import { Baby, Ellipsis, Ship, User } from 'lucide-react';
 import { DateText } from '@/components/pms/date-text';
 import { MoneyText } from '@/components/pms/money-text';
 import { StatusBadge } from '@/components/pms/status-badge';
@@ -12,6 +12,11 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { show as showGuest } from '@/routes/guests';
 import { show } from '@/routes/reservations';
@@ -33,8 +38,9 @@ type Item = App.Data.Reservations.ReservationListItemData;
 export function ReservationCard({ reservation }: { reservation: Item }) {
     return (
         <Card
+            size="sm"
             className={cn(
-                'relative h-full',
+                'relative h-full data-[size=sm]:[--card-spacing:--spacing(2.5)]',
                 reservation.isCancelled && 'bg-muted/50 text-muted-foreground',
                 reservation.isBlacklisted &&
                     'bg-muted ring-2 ring-destructive/50',
@@ -102,8 +108,8 @@ export function ReservationCard({ reservation }: { reservation: Item }) {
                     </DropdownMenuContent>
                 </DropdownMenu>
             </CardHeader>
-            <CardContent className="flex flex-1 flex-col gap-3">
-                <dl className="grid grid-cols-3 gap-2 rounded-lg bg-muted px-3 py-2 text-sm">
+            <CardContent className="flex flex-1 flex-col gap-2">
+                <dl className="grid grid-cols-3 gap-2 rounded-lg bg-muted px-2.5 py-1.5 text-sm">
                     <div>
                         <dt className="text-xs text-muted-foreground">
                             Arrival
@@ -111,6 +117,12 @@ export function ReservationCard({ reservation }: { reservation: Item }) {
                         <dd>
                             <DateText date={reservation.firstArrival} />
                         </dd>
+                        {reservation.boatIn !== null && (
+                            <BoatLine
+                                label="Boat in"
+                                value={reservation.boatIn}
+                            />
+                        )}
                     </div>
                     <div className="text-center">
                         <dt className="text-xs text-muted-foreground">Stay</dt>
@@ -126,6 +138,13 @@ export function ReservationCard({ reservation }: { reservation: Item }) {
                         <dd>
                             <DateText date={reservation.lastDeparture} />
                         </dd>
+                        {reservation.boatOut !== null && (
+                            <BoatLine
+                                label="Boat out"
+                                value={reservation.boatOut}
+                                end
+                            />
+                        )}
                     </div>
                 </dl>
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
@@ -232,5 +251,44 @@ function MoneyCell({
             </dd>
             {note && <dd className="text-xs text-muted-foreground">{note}</dd>}
         </div>
+    );
+}
+
+/**
+ * The boat line of the stay strip: a ship icon and the boat text. The icon sits next to the date edge, so Boat out reads
+ * outward to the right. The direction is in the tooltip and the accessible name.
+ */
+function BoatLine({
+    label,
+    value,
+    end = false,
+}: {
+    label: string;
+    value: string;
+    end?: boolean;
+}) {
+    return (
+        <dd
+            className={cn(
+                'mt-0.5 flex items-center gap-1 text-xs text-muted-foreground',
+                end && 'flex-row-reverse',
+            )}
+        >
+            <Tooltip>
+                <TooltipTrigger
+                    render={
+                        <span
+                            role="img"
+                            aria-label={label}
+                            className="shrink-0"
+                        />
+                    }
+                >
+                    <Ship className="size-3.5" />
+                </TooltipTrigger>
+                <TooltipContent>{label}</TooltipContent>
+            </Tooltip>
+            <span className="truncate">{value}</span>
+        </dd>
     );
 }

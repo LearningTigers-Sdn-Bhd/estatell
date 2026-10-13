@@ -8,6 +8,7 @@ use App\Enums\ReservationStatus;
 use App\Enums\SystemTransactionCode;
 use App\Enums\TransactionKind;
 use App\Enums\UnitStatus;
+use App\Features\Boats;
 use App\Models\Guest;
 use App\Models\Property;
 use App\Models\Reservation;
@@ -22,6 +23,7 @@ use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Laravel\Pennant\Feature;
 use Spatie\QueryBuilder\AllowedFilter;
 use Spatie\QueryBuilder\AllowedSort;
 use Spatie\QueryBuilder\QueryBuilder;
@@ -126,6 +128,7 @@ class ReservationDirectory
             ->orderBy('reservations.id')
             ->with('booker')
             ->with(['units' => fn ($units) => $units->orderBy('id'), 'units.roomType', 'units.dayUse'])
+            ->when(Feature::for($property)->active(Boats::class), fn (Builder $query) => $query->with('units.boatTrips'))
             ->paginate(self::PER_PAGE)
             ->withQueryString();
     }

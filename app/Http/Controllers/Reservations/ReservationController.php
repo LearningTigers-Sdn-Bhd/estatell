@@ -31,6 +31,7 @@ use App\Models\UnitAddOn;
 use App\Models\UnitNight;
 use App\Models\User;
 use App\Services\Boats\BoatTripAccess;
+use App\Services\Boats\ReservationBoatSummary;
 use App\Services\CityLedger\ArInvoiceDetail;
 use App\Services\CityLedger\CompanyOptions;
 use App\Services\Folio\AddOnBilling;
@@ -61,7 +62,7 @@ class ReservationController extends Controller
     /**
      * List the property's reservations with status tabs, search, filters and sorting in the URL.
      */
-    public function index(Request $request, Property $property, ReservationDirectory $directory, ReservationRoomBox $roomBox): Response
+    public function index(Request $request, Property $property, ReservationDirectory $directory, ReservationRoomBox $roomBox, ReservationBoatSummary $boatSummary): Response
     {
         $reservations = $directory->paginate($property, $request);
         $page = $reservations->getCollection();
@@ -69,12 +70,14 @@ class ReservationController extends Controller
         $boxes = $roomBox->forReservations($page, (bool) $settings?->auto_assign_rooms);
         $repeats = array_flip($directory->repeatReservationIds($property, $page));
         $canViewGuest = $request->user()->can(PermissionEnum::GuestsView->value);
+        $boats = Feature::for($property)->active(Boats::class) ? $boatSummary->forReservations($page) : [];
 
         $reservations->setCollection($page->map(fn (Reservation $reservation): ReservationListItemData => ReservationListItemData::fromModel(
             $reservation,
             $boxes[$reservation->id],
             isset($repeats[$reservation->id]),
             $canViewGuest,
+            $boats[$reservation->id] ?? null,
         )));
 
         return Inertia::render('reservations/index', [

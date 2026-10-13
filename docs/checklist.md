@@ -44,6 +44,7 @@ For island and jetty properties, behind the `Boats` feature. Build in this order
 - [x] `feat(boats): add the boat manifest` — `ReportKey::BoatManifest`, the `BoatManifest` service, the Direction filter, subtotals per departure, the PDF with a page per departure. Needs: set boat trips. Docs: [Boat manifest](24-boats/03-boat-manifest.md).
 - [x] `feat(meals): count meals by arrival and departure time` — `MealCounts` passes the unit times when the feature is on, and the resolver trims the first and last day. Needs: set boat trips. Docs: [Meal entitlements](07-meals/02-meal-entitlements.md#arrival-and-departure-times).
 - [x] `feat(front-desk): show boat times on arrivals and departures` — the Boat column on Arrivals and Departures. Needs: set boat trips. Docs: [Boat trips](24-boats/02-boat-trips.md#front-desk).
+- [x] `feat(boats): show boat in and out on the reservation card` — the boat line on the reservations list card (`ReservationBoatSummary`, `boatIn` and `boatOut` on `ReservationListItemData`), and the card uses tighter padding. Needs: show boat times on arrivals and departures. Docs: [Boat trips](24-boats/02-boat-trips.md#front-desk).
 
 ### 17 Onboarding
 

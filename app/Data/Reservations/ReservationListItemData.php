@@ -57,12 +57,15 @@ class ReservationListItemData extends Data
         public string $balance,
         public ?BadgeData $depositHeld,
         public ReservationRoomBoxData $roomBox,
+        public ?string $boatIn,
+        public ?string $boatOut,
     ) {}
 
     /**
      * @param  bool  $canViewGuest  Whether the user may open the booker's guest page. Without it the id is left out.
+     * @param  array{in: string, out: string}|null  $boat  The boat text for the card, or null to leave the boat line out.
      */
-    public static function fromModel(Reservation $reservation, ReservationRoomBoxData $roomBox, bool $isRepeat, bool $canViewGuest): self
+    public static function fromModel(Reservation $reservation, ReservationRoomBoxData $roomBox, bool $isRepeat, bool $canViewGuest, ?array $boat = null): self
     {
         $booker = $reservation->booker;
         $liveUnits = (int) $reservation->getAttribute('live_units');
@@ -107,6 +110,8 @@ class ReservationListItemData extends Data
             balance: $balance,
             depositHeld: BigDecimal::of($balance)->isNegative() ? new BadgeData('deposit_held', __('Deposit held'), Tone::Info) : null,
             roomBox: $roomBox,
+            boatIn: $boat['in'] ?? null,
+            boatOut: $boat['out'] ?? null,
         );
     }
 }

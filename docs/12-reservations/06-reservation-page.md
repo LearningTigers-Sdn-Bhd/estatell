@@ -77,7 +77,7 @@ Status tabs, filters, and two views of the same page of results: **Cards** (defa
 
 ### Reservation card
 
-`components/pms/reservations/reservation-card.tsx`, based on the wastays front desk stay card. Grid: 1 column, 2 from `md`, 4 from `xl`.
+`components/pms/reservations/reservation-card.tsx`, based on the wastays front desk stay card. Grid: 1 column, 2 from `md`, 4 from `xl`. The card uses `Card size="sm"` (10px padding and gap).
 
 ```
 ┌─────────────────────────────────────────────┐
@@ -90,6 +90,7 @@ Status tabs, filters, and two views of the same page of results: **Cards** (defa
 │ ┌─────────────────────────────────────────┐ │
 │ │ Arrival    │  Stay     │     Departure  │ │  muted strip
 │ │ 12 Oct     │ 3 nights  │        15 Oct  │ │
+│ │ ⛴ 09:00 boat│           │    Own 11:30 ⛴ │ │  boat line, Boats feature only
 │ └─────────────────────────────────────────┘ │
 │ [●Confirmed] ☎  5 units     👤 6   🧒 2     │  status, source, units (groups), occupancy
 │ Room type               Booked              │

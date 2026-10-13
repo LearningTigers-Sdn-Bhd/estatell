@@ -2058,6 +2058,8 @@ billedToCompany: string,
 balance: string,
 depositHeld: App.Data.Shared.BadgeData | null,
 roomBox: App.Data.Reservations.ReservationRoomBoxData,
+boatIn: string | null,
+boatOut: string | null,
 };
 export type ReservationMoneyData = {
 total: string,
