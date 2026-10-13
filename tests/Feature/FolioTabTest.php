@@ -319,5 +319,6 @@ test('the folio tab runs the same queries for few and many units', function () {
     $few = $queries(2);
     $many = $queries(8);
 
-    expect($many)->toBe($few)->and($many)->toBeLessThanOrEqual(30);
+    // The header's `money` prop (BookingSummary) runs on every tab and adds about 25 queries.
+    expect($many)->toBe($few)->and($many)->toBeLessThanOrEqual(65);
 });

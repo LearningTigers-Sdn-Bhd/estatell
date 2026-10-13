@@ -44,6 +44,7 @@ test('transaction enums expose their labels and options', function () {
         ['value' => 'food_and_beverage', 'label' => 'Food and beverage'],
         ['value' => 'laundry', 'label' => 'Laundry'],
         ['value' => 'minibar', 'label' => 'Minibar'],
+        ['value' => 'transport', 'label' => 'Transport'],
         ['value' => 'fee', 'label' => 'Fee'],
         ['value' => 'tax', 'label' => 'Tax'],
         ['value' => 'discount', 'label' => 'Discount'],

@@ -128,7 +128,7 @@ test('with the breakdown off the nights merge into one row', function () {
     $folio->forceFill(['payer_guest_id' => null, 'payer_company_id' => $setup['company']->id])->save();
 
     foreach ($unit->nights()->orderBy('date')->get() as $night) {
-        FolioLine::factory()->create(['folio_id' => $folio->id, 'transaction_code_id' => $setup['room']->id, 'kind' => TransactionKind::Charge, 'description' => 'Room', 'amount' => '100.00', 'unit_amount' => '100.00', 'posting_date' => $night->date->toDateString(), 'source_type' => $night->getMorphClass(), 'source_id' => $night->id]);
+        FolioLine::factory()->create(['folio_id' => $folio->id, 'transaction_code_id' => $setup['room']->id, 'kind' => TransactionKind::Charge, 'description' => 'Room', 'amount' => '100.00', 'unit_amount' => '100.00', 'posting_date' => $night->date->toDateString(), 'source_type' => $night->getMorphClass(), 'source_id' => $night->id, 'idempotency_key' => 'night:'.$night->id]);
     }
 
     expect(app(SettleToCityLedger::class)($setup['user'], $folio->fresh())->refusal)->toBeNull();
