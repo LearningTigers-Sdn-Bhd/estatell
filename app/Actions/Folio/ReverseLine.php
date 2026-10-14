@@ -7,6 +7,7 @@ use App\Models\Folio;
 use App\Models\FolioLine;
 use App\Models\User;
 use App\Services\NightAudit\CurrentBusinessDate;
+use Brick\Math\BigDecimal;
 use Illuminate\Support\Facades\DB;
 
 class ReverseLine
@@ -121,8 +122,8 @@ class ReverseLine
             'kind' => $line->kind,
             'description' => $line->description,
             'quantity' => $line->quantity,
-            'unit_amount' => bcmul($line->unit_amount, '-1', 2),
-            'amount' => bcmul($line->amount, '-1', 2),
+            'unit_amount' => (string) BigDecimal::of($line->unit_amount)->negated()->toScale(2),
+            'amount' => (string) BigDecimal::of($line->amount)->negated()->toScale(2),
             'source_type' => $line->source_type,
             'source_id' => $line->source_id,
         ]);

@@ -6,6 +6,8 @@ use App\Enums\DiscountType;
 use App\Enums\PermissionEnum;
 use App\Models\Discount;
 use App\Models\Property;
+use Brick\Math\BigDecimal;
+use Brick\Math\RoundingMode;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use LogicException;
@@ -65,7 +67,7 @@ class QuoteFolioDiscountRequest extends FormRequest
         return match ($discount->type) {
             DiscountType::Percent => false,
             DiscountType::Open => true,
-            DiscountType::Fixed => $this->amount() !== null && bccomp($this->amount(), (string) $discount->value, 2) !== 0,
+            DiscountType::Fixed => $this->amount() !== null && ! BigDecimal::of($this->amount())->toScale(2, RoundingMode::Down)->isEqualTo(BigDecimal::of((string) $discount->value)->toScale(2, RoundingMode::Down)),
         };
     }
 

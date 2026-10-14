@@ -7,6 +7,8 @@ use App\Enums\FolioType;
 use App\Enums\PaymentStatus;
 use App\Models\Payment;
 use App\Models\Reservation;
+use Brick\Math\BigDecimal;
+use Brick\Math\RoundingMode;
 
 /**
  * The money held on the active Master folio of a reservation: its Completed payments minus their refunds, as a
@@ -27,7 +29,7 @@ class MasterPaymentsHeld
         $paid = (string) (clone $payments)->whereNull('refund_of_id')->sum('amount');
         $refunded = (string) (clone $payments)->whereNotNull('refund_of_id')->sum('amount');
 
-        return bcsub(bcadd($paid, '0', 2), bcadd($refunded, '0', 2), 2);
+        return (string) BigDecimal::of($paid)->minus($refunded)->toScale(2, RoundingMode::Down);
     }
 
     /**

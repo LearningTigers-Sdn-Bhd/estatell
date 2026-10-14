@@ -10,6 +10,7 @@ use App\Models\ArInvoice;
 use App\Models\Folio;
 use App\Models\Reservation;
 use App\Services\Folio\MasterPaymentsHeld;
+use Brick\Math\BigDecimal;
 
 class FollowCompanyOnMasterFolio
 {
@@ -39,7 +40,7 @@ class FollowCompanyOnMasterFolio
 
         $held = $this->masterPaymentsHeld->forReservation($reservation);
 
-        if (bccomp($held, '0', 2) > 0) {
+        if (BigDecimal::of($held)->isPositive()) {
             return ReservationResult::refused(ReservationResult::REFUSAL_MASTER_HAS_PAYMENTS, detail: $held);
         }
 

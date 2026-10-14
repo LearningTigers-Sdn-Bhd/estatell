@@ -19,22 +19,10 @@ parameters:
 			path: app/Actions/Catalogues/UpdateDiscount.php
 
 		-
-			message: '#^Parameter \#1 \$num1 of function bccomp expects numeric\-string, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Actions/Folio/FollowCompanyOnMasterFolio.php
-
-		-
 			message: '#^Parameter \#1 \$keys of method Illuminate\\Database\\Eloquent\\Collection\<\(int\|string\),App\\Models\\Folio\>\:\:except\(\) expects array\<mixed\>\|null, int given\.$#'
 			identifier: argument.type
 			count: 1
 			path: app/Actions/Folio/MoveCharges.php
-
-		-
-			message: '#^Parameter \#1 \$num1 of function bcmul expects numeric\-string, string given\.$#'
-			identifier: argument.type
-			count: 2
-			path: app/Actions/Folio/ReverseLine.php
 
 		-
 			message: '#^Parameter \#1 \$keys of method Illuminate\\Database\\Eloquent\\Collection\<\(int\|string\),App\\Models\\Folio\>\:\:except\(\) expects array\<mixed\>\|null, int given\.$#'
@@ -463,18 +451,6 @@ parameters:
 			path: app/Http/Controllers/Staff/AcceptInvitationController.php
 
 		-
-			message: '#^Parameter \#1 \$num1 of function bccomp expects numeric\-string, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Http/Requests/Folio/QuoteFolioDiscountRequest.php
-
-		-
-			message: '#^Parameter \#2 \$num2 of function bccomp expects numeric\-string, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Http/Requests/Folio/QuoteFolioDiscountRequest.php
-
-		-
 			message: '#^Method App\\Http\\Requests\\Rates\\CreateRatePlanRequest\:\:ratePlanAttributes\(\) should return array\{name\: string, pricing_basis\: string, fixed_nights\?\: int, package_unit\?\: string, day_use_min_hours\?\: int, day_use_max_hours\?\: int\} but returns array\.$#'
 			identifier: return.type
 			count: 1
@@ -681,12 +657,6 @@ parameters:
 		-
 			message: '#^Offset ''settleCityLedger'' on array\{postCharge\?\: bool, reverse\?\: bool, transfer\?\: bool, discount\?\: bool, close\?\: bool, recordPayment\?\: bool, refund\?\: bool\} on left side of \?\? does not exist\.$#'
 			identifier: nullCoalesce.offset
-			count: 1
-			path: app/Services/Folio/FolioStatement.php
-
-		-
-			message: '#^Parameter \#1 \$num1 of function bccomp expects numeric\-string, string given\.$#'
-			identifier: argument.type
 			count: 1
 			path: app/Services/Folio/FolioStatement.php
 
