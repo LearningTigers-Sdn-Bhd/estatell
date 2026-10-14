@@ -41,6 +41,8 @@ Route::prefix('settings')->name('settings.')->group(function () {
     Route::middleware('can:'.PermissionEnum::SettingsManage->value)->group(function () {
         Route::get('profile', [PropertySettingsController::class, 'profile'])->name('profile');
         Route::put('profile', [PropertySettingsController::class, 'updateProfile'])->name('profile.update');
+        Route::get('business', [PropertySettingsController::class, 'business'])->name('business');
+        Route::put('business', [PropertySettingsController::class, 'updateBusiness'])->name('business.update');
         Route::get('/', [PropertySettingsController::class, 'edit'])->name('edit');
         Route::get('operations', [PropertySettingsController::class, 'operations'])->name('operations');
         Route::get('support', [PropertySettingsController::class, 'support'])->name('support');

@@ -68,18 +68,35 @@ The property's identity, edited on the Details page, **Profile** tab (`/p/{code}
 │ Address     [ Lot 12, Jalan Pantai… ] [ line 2 ]     │
 │             [ Postcode ] [ City ] [ State ▾ ]        │
 │ Phone       [ +60 88 123 456 ]  Email [ stay@… ]     │
-│ Registered name [ Sandbay Resort Sdn Bhd ]           │
-│ SSM registration no. [ 202301012345 ]                │
-│ TIN (LHDN)  [ C1234567890 ]                          │
-│ Licences    (table: issued by, number, expires)      │
 │                                          [ Save ]    │
 └──────────────────────────────────────────────────────┘
 ```
 
-- Fields: name, address, contact phone and email, registered name, registration number, TIN and licences. The name and address use the Basics rules (`SavePropertyBasicsRequest::identityRules()`).
+- Fields: name, address and contact phone and email. The registered name, numbers and licences are on the [Business licence](#business-licence) tab. The name and address use the Basics rules (`SavePropertyBasicsRequest::identityRules()`).
 - Type and country are shown and locked. They seeded the currency, taxes and presets. Before Basics is complete, the tab links to Basics like the other tabs.
 - `UpdatePropertyProfile` (`app/Actions/Property/`) saves the fields and logs `property.updated` with the changed fields. A save that changes nothing is not logged. It does not change `document_prefix`.
 - Printed documents read these values through [Printing settings](05-printing-settings.md). Empty values show "Not set" there with a link back to this tab.
+
+### Business licence
+
+The legal details, on the Details page, **Business licence** tab (`/p/{code}/settings/business`, `settings.manage`). It is the second tab.
+
+```
+┌ Business licence ────────────────────────────────────┐
+│ Registered name [ Sandbay Resort Sdn Bhd ]           │
+│ SSM registration no. [ 202301012345 ]                │
+│ TIN (LHDN)  [ C1234567890 ]                          │
+│ Licences    (table: issued by, number, expires,      │
+│              print)                                  │
+│                                [ Save business ]     │
+└──────────────────────────────────────────────────────┘
+```
+
+- `SavePropertyBusiness` (`app/Actions/Property/`) saves the three fields and replaces the licences list in one transaction. A row with an id keeps it, a row without one is new, and a saved licence missing from the list is deleted. List order becomes `position`. It logs `property.updated` with the changed fields (`licences` for the table). A save that changes nothing is not logged. It returns false, without writing, for an id that is not the property's.
+- Up to 20 licences. Issuer up to 150 and number up to 50 characters, both required. `expires_on` is optional.
+- The empty table shows one row, "No licences yet.", and **Add licence** in the footer.
+- The tab shares the labels of the [country profile](03-seed-property-defaults.md#country-profiles). Basics shows the same fields later as its Business details group.
+- Printed documents read the registered name and the licences marked **Print** through [Printing settings](05-printing-settings.md) (next change).
 
 ### Logo
 
@@ -89,11 +106,12 @@ The property's identity, edited on the Details page, **Profile** tab (`/p/{code}
 - `settings.logo` streams the file to staff with `settings.manage`, for the browser previews. PDFs embed the file as a data URI, read from its disk.
 - The app shell and the guest registration screen can show it later. See [App shell](../design-system/09-app-shell.md).
 
-| Route                                   | Name                                           |
-| --------------------------------------- | ---------------------------------------------- |
-| `GET`, `PUT /p/{code}/settings/profile` | `settings.profile`, `settings.profile.update`  |
-| `POST`, `DELETE …/settings/logo`        | `settings.logo.store`, `settings.logo.destroy` |
-| `GET …/settings/logo`                   | `settings.logo`                                |
+| Route                                    | Name                                            |
+| ---------------------------------------- | ----------------------------------------------- |
+| `GET`, `PUT /p/{code}/settings/profile`  | `settings.profile`, `settings.profile.update`   |
+| `GET`, `PUT /p/{code}/settings/business` | `settings.business`, `settings.business.update` |
+| `POST`, `DELETE …/settings/logo`         | `settings.logo.store`, `settings.logo.destroy`  |
+| `GET …/settings/logo`                    | `settings.logo`                                 |
 
 ## Rules
 

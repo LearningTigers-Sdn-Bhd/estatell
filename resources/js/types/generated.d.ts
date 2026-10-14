@@ -1169,6 +1169,21 @@ city: string | null,
 stateCode: string | null,
 postalCode: string | null,
 };
+export type PropertyBusinessData = {
+legalName: string | null,
+registrationNumber: string | null,
+registrationNumberLabel: string,
+tin: string | null,
+tinLabel: string,
+licences: App.Data.Property.PropertyLicenceData[],
+};
+export type PropertyLicenceData = {
+id: number,
+issuer: string,
+number: string,
+expiresOn: string | null,
+showOnDocuments: boolean,
+};
 export type PropertyProfileData = {
 name: string,
 typeLabel: string | null,

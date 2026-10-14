@@ -1,6 +1,7 @@
 import { Head, Link } from '@inertiajs/react';
 import {
     Baby,
+    BadgeCheck,
     Building2,
     LifeBuoy,
     MoonStar,
@@ -11,6 +12,7 @@ import PropertySettingsController from '@/actions/App/Http/Controllers/Property/
 import Heading from '@/components/heading';
 import type { EnumOption } from '@/components/pms/enum-select';
 import { AgeGroupsForm } from '@/components/pms/settings/age-groups-form';
+import { BusinessLicenceForm } from '@/components/pms/settings/business-licence-form';
 import { MealPeriodsForm } from '@/components/pms/settings/meal-periods-form';
 import { PropertyLogoField } from '@/components/pms/settings/property-logo-field';
 import { SettingsSection } from '@/components/pms/settings-section';
@@ -32,6 +34,7 @@ import { useIsImpersonating } from '@/hooks/use-is-impersonating';
 import { edit as basicsEdit } from '@/routes/onboarding/basics';
 import {
     ageGroups as ageGroupsTab,
+    business as businessTab,
     edit as general,
     mealPeriods as mealPeriodsTab,
     operations,
@@ -41,6 +44,7 @@ import {
 
 type Section =
     | 'profile'
+    | 'business'
     | 'general'
     | 'operations'
     | 'support'
@@ -54,6 +58,8 @@ export default function PropertySettings({
     settings,
     tab,
     profile,
+    business,
+    maxLicences = 20,
     currencies = [],
     locales = [],
     missedArrivalPolicies = [],
@@ -67,6 +73,8 @@ export default function PropertySettings({
     settings: App.Data.Property.PropertySettingsData | null;
     tab: Section;
     profile?: App.Data.Property.PropertyProfileData;
+    business?: App.Data.Property.PropertyBusinessData;
+    maxLicences?: number;
     currencies?: EnumOption[];
     locales?: EnumOption[];
     missedArrivalPolicies?: EnumOption[];
@@ -133,6 +141,12 @@ export default function PropertySettings({
                             href: profileTab(),
                         },
                         {
+                            value: 'business',
+                            label: 'Business licence',
+                            icon: BadgeCheck,
+                            href: businessTab(),
+                        },
+                        {
                             value: 'general',
                             label: 'General',
                             icon: SlidersHorizontal,
@@ -170,7 +184,7 @@ export default function PropertySettings({
                             <SettingsSection
                                 form={PropertySettingsController.updateProfile.form()}
                                 title="Profile"
-                                description={`The name, address and numbers printed on receipts, invoices and reports. ${[profile.typeLabel, profile.countryName].filter(Boolean).join(' · ')}`}
+                                description={`The name, address and contact details printed on receipts, invoices and reports. ${[profile.typeLabel, profile.countryName].filter(Boolean).join(' · ')}`}
                                 submitLabel="Save profile"
                             >
                                 {(errors) => (
@@ -231,22 +245,17 @@ export default function PropertySettings({
                                             value={profile.contactEmail}
                                             error={errors.contact_email}
                                         />
-                                        <SettingsInput
-                                            name="registration_number"
-                                            label={`${profile.registrationNumberLabel} (optional)`}
-                                            value={profile.registrationNumber}
-                                            error={errors.registration_number}
-                                        />
-                                        <SettingsInput
-                                            name="tin"
-                                            label={`${profile.tinLabel} (optional)`}
-                                            value={profile.tin}
-                                            error={errors.tin}
-                                        />
                                     </>
                                 )}
                             </SettingsSection>
                         </div>
+                    )}
+                    {tab === 'business' && business && (
+                        <BusinessLicenceForm
+                            key={JSON.stringify(business)}
+                            business={business}
+                            maxLicences={maxLicences}
+                        />
                     )}
                     {tab === 'general' && (
                         <SettingsSection

@@ -27,7 +27,7 @@ class SettingsNavigation
                     title: __('Details'),
                     href: route('settings.profile', ['property' => $property->code], absolute: false),
                     icon: 'building',
-                    active: request()->routeIs('settings.profile', 'settings.edit', 'settings.operations', 'settings.support', 'settings.age-groups', 'settings.meal-periods'),
+                    active: request()->routeIs('settings.profile', 'settings.business', 'settings.edit', 'settings.operations', 'settings.support', 'settings.age-groups', 'settings.meal-periods'),
                 ) : null,
                 $user->can(PermissionEnum::SettingsManage->value) ? new NavItemData(
                     title: __('Registration card'),

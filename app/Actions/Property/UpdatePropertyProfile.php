@@ -8,7 +8,7 @@ use App\Models\User;
 class UpdatePropertyProfile
 {
     /**
-     * Save the property identity: name, address, contact, registration number and TIN. The document prefix keeps
+     * Save the property identity: name, address and contact details. The document prefix keeps
      * its value when the name changes.
      *
      * @param  array<string, mixed>  $attributes  Validated profile fields.

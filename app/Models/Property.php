@@ -37,6 +37,7 @@ use Spatie\MediaLibrary\InteractsWithMedia;
  * @property string|null $country_code
  * @property string|null $contact_email
  * @property string|null $contact_phone
+ * @property string|null $legal_name
  * @property string|null $registration_number
  * @property string|null $tin
  * @property CarbonImmutable|null $onboarding_started_at
@@ -49,7 +50,7 @@ use Spatie\MediaLibrary\InteractsWithMedia;
 #[Fillable([
     'name', 'type', 'status',
     'address_line1', 'address_line2', 'city', 'state_code', 'postal_code', 'country_code',
-    'contact_email', 'contact_phone', 'registration_number', 'tin',
+    'contact_email', 'contact_phone', 'legal_name', 'registration_number', 'tin',
     'onboarding_started_at', 'went_live_at', 'suspended_at', 'suspended_from_status',
 ])]
 class Property extends Model implements FeatureScopeSerializeable, HasMedia
@@ -172,6 +173,12 @@ class Property extends Model implements FeatureScopeSerializeable, HasMedia
     public function ageGroups(): HasMany
     {
         return $this->hasMany(PropertyAgeGroup::class);
+    }
+
+    /** @return HasMany<PropertyLicence, $this> */
+    public function licences(): HasMany
+    {
+        return $this->hasMany(PropertyLicence::class);
     }
 
     /** @return HasMany<RegistrationCardFieldSetting, $this> */

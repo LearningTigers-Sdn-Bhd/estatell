@@ -15,7 +15,7 @@ class UpdatePropertyProfileRequest extends FormRequest
     }
 
     /**
-     * Type and country are not here: they seeded the currency, taxes and presets at Basics.
+     * The registered name, registration number and TIN are on the Business licence tab. Type and country are not here: they seeded the currency, taxes and presets at Basics.
      *
      * @return array<string, ValidationRule|array<mixed>|string>
      */
@@ -25,8 +25,6 @@ class UpdatePropertyProfileRequest extends FormRequest
             ...SavePropertyBasicsRequest::identityRules(),
             'contact_phone' => ['nullable', 'string', 'max:50'],
             'contact_email' => ['nullable', 'email', 'max:255'],
-            'registration_number' => ['nullable', 'string', 'max:100'],
-            'tin' => ['nullable', 'string', 'max:50'],
         ];
     }
 }

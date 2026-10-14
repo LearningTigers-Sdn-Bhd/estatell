@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers\Property;
 
+use App\Actions\Property\SavePropertyBusiness;
 use App\Actions\Property\UpdatePropertyProfile;
 use App\Actions\Property\UpdatePropertySettings;
 use App\Data\Meals\MealPeriodData;
 use App\Data\Property\PropertyAgeGroupData;
+use App\Data\Property\PropertyBusinessData;
 use App\Data\Property\PropertyProfileData;
 use App\Data\Property\PropertySettingsData;
 use App\Enums\Locale;
@@ -15,6 +17,7 @@ use App\Enums\WeekendNights;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Meals\SaveMealPeriodsRequest;
 use App\Http\Requests\Property\SaveAgeGroupsRequest;
+use App\Http\Requests\Property\SavePropertyBusinessRequest;
 use App\Http\Requests\Property\UpdatePropertyProfileRequest;
 use App\Http\Requests\Property\UpdatePropertySettingsRequest;
 use App\Models\MealPeriod;
@@ -47,6 +50,32 @@ class PropertySettingsController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Property profile saved.')]);
 
         return to_route('settings.profile', ['property' => $property->code]);
+    }
+
+    /**
+     * Settings page, Business licence tab: the registered name, registration number, TIN and licences.
+     */
+    public function business(Property $property, SettingsLock $settingsLock): Response
+    {
+        return $this->renderTab($property, $settingsLock, 'business', [
+            'business' => PropertyBusinessData::fromModel($property),
+            'maxLicences' => SavePropertyBusinessRequest::MAX_LICENCES,
+        ]);
+    }
+
+    public function updateBusiness(SavePropertyBusinessRequest $request, Property $property, SavePropertyBusiness $savePropertyBusiness): RedirectResponse
+    {
+        abort_if($property->settings === null, 404);
+
+        if (! $savePropertyBusiness($request->user(), $property, $request->business(), $request->licences())) {
+            Inertia::flash('toast', ['type' => 'error', 'message' => __('The licences changed. Reload the page and try again.')]);
+
+            return to_route('settings.business', ['property' => $property->code]);
+        }
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Business details saved.')]);
+
+        return to_route('settings.business', ['property' => $property->code]);
     }
 
     /**
@@ -122,7 +151,7 @@ class PropertySettingsController extends Controller
     /**
      * Each tab has its own URL, so the open tab survives a refresh. Only the open tab's options are sent.
      *
-     * @param  'profile'|'general'|'operations'|'support'|'age-groups'|'meal-periods'  $tab
+     * @param  'profile'|'business'|'general'|'operations'|'support'|'age-groups'|'meal-periods'  $tab
      * @param  array<string, mixed>  $tabProps
      */
     private function renderTab(Property $property, SettingsLock $settingsLock, string $tab, array $tabProps = []): Response

@@ -313,8 +313,6 @@ test('staff save the profile and the change is logged', function () {
             'state_code' => null,
             'contact_phone' => '+60 88 123 456',
             'contact_email' => 'hello@example.com',
-            'registration_number' => '202301012345',
-            'tin' => null,
         ])
         ->assertRedirect(route('settings.profile', $property->code))
         ->assertSessionHasNoErrors();
@@ -324,9 +322,9 @@ test('staff save the profile and the change is logged', function () {
 
     expect($property->name)->toBe('Sandbay Beach Resort')
         ->and($property->contact_email)->toBe('hello@example.com')
-        ->and($property->tin)->toBeNull()
+        ->and($property->tin)->toBe('C1234567890')
         ->and($property->document_prefix)->toBe($prefix)
-        ->and($activity->properties['changed'])->toBe(['name', 'contact_email', 'tin']);
+        ->and($activity->properties['changed'])->toBe(['name', 'contact_email']);
 });
 
 test('the profile needs a name, an address line, a city and a valid email', function () {

@@ -42,7 +42,7 @@ test('the details item stays active on every settings tab', function (string $ro
                 'action' => null,
             ])
         );
-})->with(['settings.profile', 'settings.edit', 'settings.operations', 'settings.support']);
+})->with(['settings.profile', 'settings.business', 'settings.edit', 'settings.operations', 'settings.support']);
 
 test('staff keep their property navigation on account pages with no active context', function () {
     $staff = User::factory()->create();
