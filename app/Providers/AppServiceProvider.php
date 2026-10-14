@@ -2,21 +2,31 @@
 
 namespace App\Providers;
 
+use App\Actions\Platform\RecordImpersonationEnd;
 use App\Enums\PartnerStatus;
 use App\Models\Property;
 use App\Models\User;
+use App\Services\Platform\Impersonation;
 use Carbon\CarbonImmutable;
 use Illuminate\Auth\Access\Response;
+use Illuminate\Auth\Events\Logout;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\Middleware\TrustProxies;
+use Illuminate\Routing\Route as RoutingRoute;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password;
+use Inertia\Inertia;
 use Laravel\Pennant\Feature;
+use Spatie\Activitylog\Actions\LogActivityAction;
+use Spatie\Activitylog\Contracts\Activity;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -38,6 +48,7 @@ class AppServiceProvider extends ServiceProvider
         $this->configureGates();
         $this->configureRouteBindings();
         $this->configureFeatures();
+        $this->configureSupportSessions();
     }
 
     /**
@@ -57,11 +68,52 @@ class AppServiceProvider extends ServiceProvider
 
     /**
      * Bind `{property}` by its public code on every route, including `Route::inertia` routes that
-     * have no typed controller parameter for implicit binding.
+     * have no typed controller parameter for implicit binding. An unknown code is a 404, except on the view-as page,
+     * where an admin is told the code was not found (anyone else must not be able to probe codes).
      */
     protected function configureRouteBindings(): void
     {
-        Route::bind('property', fn (string $code): Property => Property::query()->where('code', Str::upper($code))->firstOrFail());
+        Route::bind('property', function (string $code, RoutingRoute $route): Property {
+            $property = Property::query()->where('code', Str::upper($code))->first();
+
+            if ($property !== null) {
+                return $property;
+            }
+
+            if ($route->named('view-as.show') && (app(Impersonation::class)->supportUser() ?? Auth::user())?->is_admin) {
+                Inertia::flash('toast', ['type' => 'error', 'message' => __('Property :code not found.', ['code' => Str::upper($code)])]);
+
+                throw new HttpResponseException(redirect()->route('admin.properties.index'));
+            }
+
+            throw (new ModelNotFoundException)->setModel(Property::class);
+        });
+    }
+
+    /**
+     * While a support user views a property as its staff, every activity log entry written for that staff user is
+     * recorded with the support user as causer and `impersonated_user_id` in its properties. The callback runs for
+     * every entry, before it is saved. See docs/01-platform/04-impersonation.md. The session ends when the user logs
+     * out, so that is logged here too, while the session data is still readable.
+     */
+    protected function configureSupportSessions(): void
+    {
+        LogActivityAction::beforeLogging(function (Activity $activity): void {
+            $impersonation = app(Impersonation::class);
+
+            if (! request()->hasSession() || ! $impersonation->isActive() || $activity->causer_id !== Auth::id() || $activity->causer_type !== (new User)->getMorphClass()) {
+                return;
+            }
+
+            $activity->causer()->associate($impersonation->supportUser());
+            $activity->properties = $activity->properties->put('impersonated_user_id', Auth::id());
+        });
+
+        Event::listen(Logout::class, function (): void {
+            if (app(Impersonation::class)->isActive()) {
+                app(RecordImpersonationEnd::class)();
+            }
+        });
     }
 
     /**

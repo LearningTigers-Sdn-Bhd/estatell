@@ -35,6 +35,7 @@ export default function ViewAsShow({
     opens,
     consent,
     cancelUrl,
+    switchFrom,
 }: {
     staff: Staff[];
     defaultUserId: number | null;
@@ -44,6 +45,7 @@ export default function ViewAsShow({
     opens: string;
     consent: boolean;
     cancelUrl: string;
+    switchFrom: { name: string; code: string } | null;
 }) {
     const { property, supportTwoFactor } = usePage().props;
     const [userId, setUserId] = useState(String(defaultUserId ?? ''));
@@ -75,12 +77,19 @@ export default function ViewAsShow({
                             <>
                                 <CardHeader>
                                     <CardTitle>
-                                        View as {property.name} ({property.code}
-                                        )
+                                        {switchFrom
+                                            ? `Switch to ${property.name} (${property.code})?`
+                                            : `View as ${property.name} (${property.code})`}
                                     </CardTitle>
                                     <CardDescription>
-                                        You are signed in as support. The owner
-                                        is told about this session.
+                                        {switchFrom
+                                            ? `This ends your session with ${switchFrom.name} (${switchFrom.code}). `
+                                            : 'You are signed in as support. '}
+                                        The owner is told about{' '}
+                                        {switchFrom
+                                            ? 'each session'
+                                            : 'this session'}
+                                        .
                                     </CardDescription>
                                 </CardHeader>
 
@@ -200,7 +209,10 @@ export default function ViewAsShow({
                                         {processing && (
                                             <Spinner data-icon="inline-start" />
                                         )}
-                                        View as {chosen?.name ?? 'user'}
+                                        {switchFrom
+                                            ? 'Switch and view'
+                                            : 'View'}{' '}
+                                        as {chosen?.name ?? 'user'}
                                     </Button>
                                 </CardFooter>
                             </>

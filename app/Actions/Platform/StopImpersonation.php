@@ -8,10 +8,11 @@ use Illuminate\Support\Facades\Session;
 
 class StopImpersonation
 {
-    public function __construct(private Impersonation $impersonation) {}
+    public function __construct(private Impersonation $impersonation, private RecordImpersonationEnd $recordEnd) {}
 
     /**
-     * Sign the support user back in and return the path they started from. Returns null when there is no session.
+     * Log the end of the session, tell the owner, sign the support user back in and return the path they started from.
+     * Returns null when there is no session.
      */
     public function __invoke(): ?string
     {
@@ -22,6 +23,8 @@ class StopImpersonation
         }
 
         $returnUrl = $this->impersonation->returnUrl();
+
+        ($this->recordEnd)();
 
         Session::forget(Impersonation::SESSION_KEY);
         Auth::login($supportUser);

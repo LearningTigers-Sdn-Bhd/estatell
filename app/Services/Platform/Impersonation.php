@@ -63,13 +63,63 @@ class Impersonation
     }
 
     /**
-     * Whole minutes since the session started.
+     * Whole minutes since the session started. A session never lasts longer than the limit, so this stops there.
      */
     public function elapsedMinutes(): int
     {
         $startedAt = $this->startedAt();
 
-        return $startedAt === null ? 0 : max(0, (int) floor((now()->getTimestamp() - $startedAt->getTimestamp()) / 60));
+        return $startedAt === null ? 0 : min(self::LIMIT_MINUTES, max(0, (int) floor((now()->getTimestamp() - $startedAt->getTimestamp()) / 60)));
+    }
+
+    /**
+     * Whether the signed-in staff user's session has run past the 30-minute limit.
+     */
+    public function hasExpired(): bool
+    {
+        $startedAt = $this->startedAt();
+
+        return $this->isActive() && $startedAt !== null && now()->getTimestamp() >= $startedAt->addMinutes(self::LIMIT_MINUTES)->getTimestamp();
+    }
+
+    /**
+     * The facts of the open session for the activity log and the owner notification: the support user, their partner,
+     * the staff user, the property, the reason and the note. Empty when no session is open.
+     *
+     * @return array<string, int|string|null>
+     */
+    public function logProperties(): array
+    {
+        $supportUser = $this->supportUser();
+        $user = Auth::user();
+
+        if ($supportUser === null || ! $user instanceof User) {
+            return [];
+        }
+
+        $partner = $supportUser->partner;
+
+        return [
+            'property_id' => $this->session()['property_id'],
+            'support_user_id' => $supportUser->id,
+            'support_user_name' => $supportUser->name,
+            'partner_id' => $partner?->id,
+            'partner_name' => $partner?->name,
+            'impersonated_user_id' => $user->id,
+            'impersonated_user_name' => $user->name,
+            'reason' => $this->session()['reason'],
+            'note' => $this->session()['note'] ?? null,
+        ];
+    }
+
+    /**
+     * When the session started.
+     */
+    public function startedAt(): ?CarbonImmutable
+    {
+        $startedAt = $this->session()['started_at'] ?? null;
+
+        return $startedAt === null ? null : now()->parse($startedAt);
     }
 
     /**
@@ -127,13 +177,6 @@ class Impersonation
         } catch (HttpException) {
             return null;
         }
-    }
-
-    private function startedAt(): ?CarbonImmutable
-    {
-        $startedAt = $this->session()['started_at'] ?? null;
-
-        return $startedAt === null ? null : now()->parse($startedAt);
     }
 
     /**

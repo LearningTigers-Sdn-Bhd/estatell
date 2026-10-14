@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Session;
 
 class StartImpersonation
 {
-    public function __construct(private Impersonation $impersonation) {}
+    public function __construct(private Impersonation $impersonation, private StopImpersonation $stopImpersonation) {}
 
     /**
      * Sign the support user in as one staff user of the property and return the path to open. Returns null, and
@@ -20,6 +20,7 @@ class StartImpersonation
      * the user is not active staff of that property. Two-factor is checked by the `support.2fa` route middleware.
      *
      * `$actor` is the signed-in user. During a session that is the staff user, so the support user behind it is kept.
+     * An open session is ended first (logged, owner told), so switching property logs two events.
      */
     public function __invoke(User $actor, Property $property, User $staff, ImpersonationReason $reason, ?string $note, ?string $to): ?string
     {
@@ -37,6 +38,10 @@ class StartImpersonation
             return null;
         }
 
+        if ($this->impersonation->isActive()) {
+            ($this->stopImpersonation)();
+        }
+
         Session::put(Impersonation::SESSION_KEY, [
             'support_user_id' => $supportUser->id,
             'user_id' => $staff->id,
@@ -50,6 +55,13 @@ class StartImpersonation
         ]);
 
         Auth::login($staff);
+
+        activity()
+            ->performedOn($property)
+            ->causedBy($supportUser)
+            ->event('impersonation.started')
+            ->withProperties($this->impersonation->logProperties())
+            ->log('Support session started');
 
         return $this->impersonation->destination($property, $to);
     }

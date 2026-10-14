@@ -3,11 +3,14 @@
 namespace App\Http\Controllers\Platform;
 
 use App\Actions\Platform\StartImpersonation;
+use App\Data\Navigation\NavItemData;
 use App\Enums\ImpersonationReason;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Platform\StartImpersonationRequest;
 use App\Models\Property;
 use App\Models\User;
+use App\Navigation\AdminNavigation;
+use App\Navigation\PartnerNavigation;
 use App\Services\Platform\Impersonation;
 use App\Services\Platform\ViewAsStaff;
 use Illuminate\Http\RedirectResponse;
@@ -25,8 +28,10 @@ class ViewAsController extends Controller
     {
         Gate::authorize('viewAs', $property);
 
-        if ($impersonation->isActive()) {
-            return $this->whileImpersonating($request, $property, $impersonation);
+        if ($impersonation->forProperty($property)) {
+            $to = $request->query('to');
+
+            return redirect($impersonation->destination($property, is_string($to) ? $to : null));
         }
 
         $to = $request->query('to');
@@ -42,9 +47,9 @@ class ViewAsController extends Controller
             'to' => $to !== null && $impersonation->accepts($property, $to) ? $to : null,
             'opens' => $impersonation->destination($property, $to),
             'consent' => $property->settings?->allow_support_access ?? true,
-            'cancelUrl' => $request->user()->is_admin
-                ? route('admin.properties.show', ['property' => $property->code], absolute: false)
-                : route('partner.properties.show', ['code' => $property->code], absolute: false),
+            'cancelUrl' => $this->cancelUrl($request, $property, $impersonation),
+            'switchFrom' => $this->switchFrom($request, $impersonation),
+            ...$this->supportNavigation($impersonation),
         ]);
     }
 
@@ -72,18 +77,47 @@ class ViewAsController extends Controller
     }
 
     /**
-     * A session is open. The same property opens directly. Another property needs the session ended first.
+     * The open session's property, when the support user is about to switch to another one.
+     *
+     * @return array{name: string, code: string}|null
      */
-    private function whileImpersonating(Request $request, Property $property, Impersonation $impersonation): RedirectResponse
+    private function switchFrom(Request $request, Impersonation $impersonation): ?array
     {
-        if ($impersonation->forProperty($property)) {
-            $to = $request->query('to');
+        $current = $impersonation->isActive() ? $request->user()->property : null;
 
-            return redirect($impersonation->destination($property, is_string($to) ? $to : null));
+        return $current === null ? null : ['name' => $current->name, 'code' => $current->code];
+    }
+
+    /**
+     * Cancel goes back to the page the support user came from. While a session is open that is its dashboard,
+     * because the signed-in user cannot open the admin or partner pages.
+     */
+    private function cancelUrl(Request $request, Property $property, Impersonation $impersonation): string
+    {
+        if ($impersonation->isActive()) {
+            return route('dashboard', ['property' => $request->user()->property->code], absolute: false);
         }
 
-        Inertia::flash('toast', ['type' => 'error', 'message' => __('End your support session before viewing another property.')]);
+        return $request->user()->is_admin
+            ? route('admin.properties.show', ['property' => $property->code], absolute: false)
+            : route('partner.properties.show', ['code' => $property->code], absolute: false);
+    }
 
-        return redirect()->route('dashboard', ['property' => $request->user()->property->code]);
+    /**
+     * While a session is open the shared sidebar items are empty (the signed-in user is staff), so the page brings
+     * the support user's own. They replace the shared props on this page only and make the page choose the admin or
+     * partner layout.
+     *
+     * @return array<string, list<NavItemData>>
+     */
+    private function supportNavigation(Impersonation $impersonation): array
+    {
+        $supportUser = $impersonation->supportUser();
+
+        return match (true) {
+            $supportUser === null => [],
+            $supportUser->is_admin => ['adminNavigation' => app(AdminNavigation::class)->items()],
+            default => ['partnerNavigation' => app(PartnerNavigation::class)->items()],
+        };
     }
 }

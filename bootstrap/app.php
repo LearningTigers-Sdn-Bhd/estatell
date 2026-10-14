@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\EndExpiredImpersonationSession;
 use App\Http\Middleware\EnsureBoatsIsActive;
 use App\Http\Middleware\EnsureEmailIsVerified;
 use App\Http\Middleware\EnsurePasswordChanged;
@@ -46,6 +47,7 @@ return Application::configure(basePath: dirname(__DIR__))
             EnsurePasswordChanged::class,
             HandleAppearance::class,
             HandleInertiaRequests::class,
+            EndExpiredImpersonationSession::class,
             AddLinkHeadersForPreloadedAssets::class,
         ]);
     })

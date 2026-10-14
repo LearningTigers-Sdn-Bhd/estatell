@@ -1,11 +1,16 @@
 <?php
 
 use App\Enums\PartnerStatus;
+use App\Enums\TaxRateType;
 use App\Models\Partner;
 use App\Models\Property;
 use App\Models\PropertySetting;
+use App\Models\Tax;
 use App\Models\User;
+use App\Notifications\SupportAccessUsed;
+use Illuminate\Support\Facades\Notification;
 use Inertia\Testing\AssertableInertia as Assert;
+use Spatie\Activitylog\Models\Activity;
 
 beforeEach(function () {
     $this->property = Property::factory()->create(['code' => 'ES10142']);
@@ -223,7 +228,6 @@ test('an open session opens its own property in any tab and blocks another prope
     $this->get(route('view-as.show', ['property' => 'ES10142', 'to' => '/p/ES10142/settings/profile']))
         ->assertRedirect('/p/ES10142/settings/profile');
 
-    $this->get(route('view-as.show', 'ES10150'))->assertRedirect(route('dashboard', 'ES10142'));
     $this->get('/p/ES10150/dashboard')
         ->assertRedirect(route('view-as.show', ['property' => 'ES10150', 'to' => '/p/ES10150/dashboard']));
     $this->post('/p/ES10150/settings/logo')->assertForbidden();
@@ -237,13 +241,20 @@ test('a staff user without a session cannot reach the view-as flow through a for
         ->assertNotFound();
 });
 
-test('logging out while impersonating ends the whole session', function () {
+test('logging out while impersonating ends the whole session and logs it', function () {
+    Notification::fake();
     $this->actingAs($this->admin)->post(route('view-as.store', 'ES10142'), viewAsInput($this->owner));
+    $this->travel(7)->minutes();
 
     $this->post(route('logout'))->assertRedirect();
 
-    expect(session('impersonation'))->toBeNull();
+    $ended = Activity::query()->where('event', 'impersonation.ended')->sole();
+
+    expect(session('impersonation'))->toBeNull()
+        ->and($ended->causer_id)->toBe($this->admin->id)
+        ->and($ended->properties['duration_minutes'])->toBe(7);
     $this->assertGuest();
+    Notification::assertSentTo($this->owner, SupportAccessUsed::class);
 });
 
 test('the minutes left count down from 30', function () {
@@ -284,3 +295,181 @@ test('a session opens the property for an owner who has not finished signing up'
 
     $this->get(route('dashboard', 'ES10142'))->assertOk();
 })->with(['unverified', 'withTemporaryPassword']);
+
+test('start and stop log the session with its facts and the duration', function () {
+    $partnerUser = User::factory()->partner()->create();
+    $property = Property::factory()->create(['partner_id' => $partnerUser->partner_id]);
+    $owner = User::factory()->owner()->create(['property_id' => $property->id]);
+
+    $this->actingAs($partnerUser)->post(route('view-as.store', $property->code), viewAsInput($owner, ['reason' => 'setup_check', 'note' => 'Rates']));
+    $this->travel(6)->minutes();
+    $this->post(route('impersonation.stop'));
+
+    $started = Activity::query()->where('event', 'impersonation.started')->sole();
+    $ended = Activity::query()->where('event', 'impersonation.ended')->sole();
+
+    expect($started->subject_id)->toBe($property->id)
+        ->and($started->causer_id)->toBe($partnerUser->id)
+        ->and($started->properties->all())->toMatchArray([
+            'property_id' => $property->id,
+            'support_user_id' => $partnerUser->id,
+            'partner_id' => $partnerUser->partner_id,
+            'partner_name' => $partnerUser->partner->name,
+            'impersonated_user_id' => $owner->id,
+            'reason' => 'setup_check',
+            'note' => 'Rates',
+        ])
+        ->and($ended->causer_id)->toBe($partnerUser->id)
+        ->and($ended->properties['duration_minutes'])->toBe(6)
+        ->and($ended->properties['impersonated_user_id'])->toBe($owner->id);
+});
+
+test('stop says how long the session lasted', function () {
+    $this->actingAs($this->admin)->post(route('view-as.store', 'ES10142'), viewAsInput($this->owner));
+    $this->travel(6)->minutes();
+
+    $this->post(route('impersonation.stop'))
+        ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Support session ended (6 min).']);
+});
+
+test('a write during a session records the support user as causer with the impersonated user', function () {
+    $tax = Tax::factory()->for($this->property)->create();
+    $payload = ['name' => 'City levy', 'code' => 'CITY', 'rate_type' => TaxRateType::Flat->value, 'rate' => '3.00', 'is_inclusive' => false, 'foreign_guests_only' => false, 'collect_at_check_in' => false, 'enabled' => true];
+
+    $this->actingAs($this->admin)->post(route('view-as.store', 'ES10142'), viewAsInput($this->owner));
+    $this->put(route('settings.taxes.update', ['ES10142', $tax]), $payload)->assertRedirect();
+
+    $activity = Activity::query()->where('event', 'tax.updated')->sole();
+
+    expect($activity->causer_id)->toBe($this->admin->id)
+        ->and($activity->properties['impersonated_user_id'])->toBe($this->owner->id);
+});
+
+test('a write outside a session keeps its own causer', function () {
+    $tax = Tax::factory()->for($this->property)->create();
+    $payload = ['name' => 'City levy', 'code' => 'CITY', 'rate_type' => TaxRateType::Flat->value, 'rate' => '3.00', 'is_inclusive' => false, 'foreign_guests_only' => false, 'collect_at_check_in' => false, 'enabled' => true];
+
+    $this->actingAs($this->owner)->put(route('settings.taxes.update', ['ES10142', $tax]), $payload);
+
+    $activity = Activity::query()->where('event', 'tax.updated')->sole();
+
+    expect($activity->causer_id)->toBe($this->owner->id)
+        ->and($activity->properties->has('impersonated_user_id'))->toBeFalse();
+});
+
+test('the owner is told when the session ends, with the partner name for a partner', function () {
+    Notification::fake();
+    $partnerUser = User::factory()->partner()->create();
+    $property = Property::factory()->create(['partner_id' => $partnerUser->partner_id]);
+    $owner = User::factory()->owner()->create(['property_id' => $property->id]);
+    $manager = User::factory()->create(['property_id' => $property->id]);
+
+    $this->actingAs($partnerUser)->post(route('view-as.store', $property->code), viewAsInput($owner, ['note' => 'Call']));
+    Notification::assertNothingSent();
+
+    $this->travel(4)->minutes();
+    $this->post(route('impersonation.stop'));
+
+    Notification::assertSentTo($owner, SupportAccessUsed::class, fn (SupportAccessUsed $notification): bool => $notification->supportUserName === $partnerUser->name
+        && $notification->partnerName === $partnerUser->partner->name
+        && $notification->note === 'Call'
+        && $notification->minutes === 4);
+    Notification::assertNotSentTo($manager, SupportAccessUsed::class);
+});
+
+test('the notification follows the owner preferences', function () {
+    $notification = new SupportAccessUsed('Sam', null, 'Support', null, now(), 5);
+
+    expect($notification->via($this->owner))->toBe(['mail', 'database'])
+        ->and($notification->toMail($this->owner)->subject)->toBe('Support viewed your property')
+        ->and($notification->toArray($this->owner)['minutes'])->toBe(5);
+});
+
+test('a session ends on the next request after 30 minutes', function (string $url) {
+    Notification::fake();
+    $this->actingAs($this->admin)->post(route('view-as.store', 'ES10142'), viewAsInput($this->owner));
+    $this->travel(31)->minutes();
+
+    $this->get($url)
+        ->assertRedirect(route('admin.properties.show', 'ES10142', absolute: false))
+        ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Support session ended (30 min).']);
+
+    $ended = Activity::query()->where('event', 'impersonation.ended')->sole();
+
+    expect(session('impersonation'))->toBeNull()
+        ->and(auth()->id())->toBe($this->admin->id)
+        ->and($ended->causer_id)->toBe($this->admin->id)
+        ->and($ended->properties['duration_minutes'])->toBe(30);
+    Notification::assertSentTo($this->owner, SupportAccessUsed::class);
+    $this->get(route('admin.dashboard'))->assertOk();
+})->with([
+    'staff page' => '/p/ES10142/dashboard',
+    'account page' => '/account/profile',
+]);
+
+test('a session still open at 29 minutes is left alone', function () {
+    $this->actingAs($this->admin)->post(route('view-as.store', 'ES10142'), viewAsInput($this->owner));
+    $this->travel(29)->minutes();
+
+    $this->get(route('dashboard', 'ES10142'))->assertOk();
+
+    expect(Activity::query()->where('event', 'impersonation.ended')->exists())->toBeFalse();
+});
+
+test('opening another property during a session asks to switch', function () {
+    Property::factory()->create(['code' => 'ES10150', 'name' => 'KL Backpackers']);
+    $this->actingAs($this->admin)->post(route('view-as.store', 'ES10142'), viewAsInput($this->owner));
+
+    $this->get(route('view-as.show', 'ES10150'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('view-as/show')
+            ->where('switchFrom.code', 'ES10142')
+            ->where('switchFrom.name', $this->property->name)
+            ->where('cancelUrl', route('dashboard', 'ES10142', absolute: false))
+            ->has('adminNavigation')
+            ->where('property.code', 'ES10150'));
+});
+
+test('confirming a switch ends the old session and starts the new one', function () {
+    Notification::fake();
+    $other = Property::factory()->create(['code' => 'ES10150']);
+    $otherOwner = User::factory()->owner()->create(['property_id' => $other->id]);
+    $this->actingAs($this->admin)->post(route('view-as.store', 'ES10142'), viewAsInput($this->owner));
+    $this->travel(3)->minutes();
+
+    $this->post(route('view-as.store', 'ES10150'), viewAsInput($otherOwner))
+        ->assertRedirect(route('dashboard', 'ES10150', absolute: false));
+
+    expect(Activity::query()->orderBy('id')->pluck('event')->all())->toBe(['impersonation.started', 'impersonation.ended', 'impersonation.started'])
+        ->and(Activity::query()->where('event', 'impersonation.ended')->sole()->subject_id)->toBe($this->property->id)
+        ->and(Activity::query()->where('event', 'impersonation.started')->latest('id')->first()->subject_id)->toBe($other->id)
+        ->and(session('impersonation.property_id'))->toBe($other->id)
+        ->and(session('impersonation.support_user_id'))->toBe($this->admin->id);
+    Notification::assertSentTo($this->owner, SupportAccessUsed::class);
+
+    $this->get(route('dashboard', 'ES10150'))->assertOk();
+});
+
+test('a refused switch keeps the old session', function () {
+    $other = Property::factory()->create(['code' => 'ES10150']);
+    PropertySetting::factory()->for($other)->create(['allow_support_access' => false]);
+    $otherOwner = User::factory()->owner()->create(['property_id' => $other->id]);
+    $this->actingAs($this->admin)->post(route('view-as.store', 'ES10142'), viewAsInput($this->owner));
+
+    $this->post(route('view-as.store', 'ES10150'), viewAsInput($otherOwner));
+
+    expect(session('impersonation.property_id'))->toBe($this->property->id)
+        ->and(Activity::query()->where('event', 'impersonation.ended')->exists())->toBeFalse();
+});
+
+test('an admin is told an unknown code was not found, and a partner gets a 404', function () {
+    $this->actingAs($this->admin)
+        ->get(route('view-as.show', 'ZZ99999'))
+        ->assertRedirect(route('admin.properties.index'))
+        ->assertInertiaFlash('toast', ['type' => 'error', 'message' => 'Property ZZ99999 not found.']);
+
+    $this->actingAs(User::factory()->partner()->create())->get('/view-as/ZZ99999')->assertNotFound();
+    $this->actingAs($this->owner)->get('/view-as/ZZ99999')->assertNotFound();
+    $this->actingAs($this->admin)->post('/view-as/ZZ99999')->assertNotFound();
+});

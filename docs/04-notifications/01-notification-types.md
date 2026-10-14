@@ -29,6 +29,8 @@ Define every notification once, with its channels, defaults and recipients.
 | PortalCancellationRequested | On   | On, mandatory | Mail only  | Reservation staff (module 12 permission) |
 | CompanyLinkInvitation       | On   | On, mandatory | Mail only  | The invited company user                 |
 
+`SupportAccessUsed` is sent when a support session ends (Stop, the 30-minute expiry, a switch to another property, or logout), because it names the duration. The recipient is the property's first active Owner. The data is copied into the notification, because the session is gone when the message is built.
+
 ## Base class
 
 `PropertyNotification` extends Laravel `Notification`:
