@@ -15,6 +15,7 @@ property_settings    property_id (unique), currency, time_zone, default_locale,
                      registration_card_scope, card_required_for_check_in,
                      id_document_retention_days, security_deposit_amount,
                      allow_support_access (bool, default true),
+                     allow_support_money_corrections (bool, default true),
                      weekend_nights (WeekendNights, default FriSat),
                      timestamps
 ```
@@ -39,7 +40,7 @@ property_settings    property_id (unique), currency, time_zone, default_locale,
 
 ## Support access
 
-`allow_support_access` lets platform support and the property's partner view the property as its owner. The owner can switch it off. See [Impersonation](../01-platform/04-impersonation.md).
+`allow_support_access` lets platform support and the property's partner view the property as its owner. The owner can switch it off. `allow_support_money_corrections` lets support also refund, void and issue credit notes during a session. Both sit on the Support tab. See [Impersonation](../01-platform/04-impersonation.md#money-corrections).
 
 ## Rules
 
