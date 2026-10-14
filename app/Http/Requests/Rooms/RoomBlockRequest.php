@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Rooms;
 
+use App\Data\Rooms\RoomBlockInputData;
 use App\Enums\RoomBlockReason;
 use App\Models\Property;
 use App\Models\RoomBlock;
@@ -94,14 +95,13 @@ class RoomBlockRequest extends FormRequest
         ];
     }
 
-    /**
-     * The block fields the Actions write.
-     *
-     * @return array{reason: string, starts_on: string, ends_on: string, notes: string|null}
-     */
-    public function blockAttributes(): array
+    public function toRoomBlockData(): RoomBlockInputData
     {
-        /** @var array{reason: string, starts_on: string, ends_on: string, notes: string|null} */
-        return $this->safe()->only(['reason', 'starts_on', 'ends_on', 'notes']);
+        return new RoomBlockInputData(
+            reason: RoomBlockReason::from($this->string('reason')->toString()),
+            startsOn: $this->string('starts_on')->toString(),
+            endsOn: $this->string('ends_on')->toString(),
+            notes: $this->filled('notes') ? $this->string('notes')->toString() : null,
+        );
     }
 }

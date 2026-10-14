@@ -3,6 +3,7 @@
 namespace App\Actions\Rooms;
 
 use App\Actions\Housekeeping\SetNeedsMaintenance;
+use App\Data\Rooms\RoomBlockInputData;
 use App\Models\Bed;
 use App\Models\Room;
 use App\Models\RoomBlock;
@@ -20,22 +21,27 @@ class CreateRoomBlock
      * Returns null when the room or bed is archived, or when an open block already covers any of the nights. A new
      * block answers the room's "needs maintenance" flag, so the flag is cleared.
      *
-     * @param  array{reason: string, starts_on: string, ends_on: string, notes: string|null}  $attributes  Validated block fields.
+     * @param  RoomBlockInputData  $data  The validated block fields.
      */
-    public function __invoke(User $actor, Room $room, ?Bed $bed, array $attributes): ?RoomBlock
+    public function __invoke(User $actor, Room $room, ?Bed $bed, RoomBlockInputData $data): ?RoomBlock
     {
-        return DB::transaction(function () use ($actor, $room, $bed, $attributes): ?RoomBlock {
+        return DB::transaction(function () use ($actor, $room, $bed, $data): ?RoomBlock {
             $room = Room::query()->lockForUpdate()->findOrFail($room->id);
 
             if ($room->archived_at !== null || ($bed !== null && ($bed->room_id !== $room->id || $bed->archived_at !== null))) {
                 return null;
             }
 
-            if ($this->conflicts->exist($room, $bed?->id, $attributes['starts_on'], $attributes['ends_on'])) {
+            if ($this->conflicts->exist($room, $bed?->id, $data->startsOn, $data->endsOn)) {
                 return null;
             }
 
-            $block = new RoomBlock($attributes);
+            $block = new RoomBlock([
+                'reason' => $data->reason,
+                'starts_on' => $data->startsOn,
+                'ends_on' => $data->endsOn,
+                'notes' => $data->notes,
+            ]);
             $block->property_id = $room->property_id;
             $block->room_id = $room->id;
             $block->bed_id = $bed?->id;
@@ -51,8 +57,8 @@ class CreateRoomBlock
                     'room_id' => $room->id,
                     'bed_id' => $bed?->id,
                     'reason' => $block->reason->value,
-                    'starts_on' => $attributes['starts_on'],
-                    'ends_on' => $attributes['ends_on'],
+                    'starts_on' => $data->startsOn,
+                    'ends_on' => $data->endsOn,
                 ])
                 ->log('Room block created');
 

@@ -73,7 +73,7 @@ class RoomBlockController extends Controller
         $room = $property->rooms()->findOrFail($request->integer('room_id'));
         $bed = $request->validated('bed_id') !== null ? $room->beds()->findOrFail($request->integer('bed_id')) : null;
 
-        $block = $createRoomBlock($request->user(), $room, $bed, $request->blockAttributes());
+        $block = $createRoomBlock($request->user(), $room, $bed, $request->toRoomBlockData());
 
         Inertia::flash('toast', $block
             ? ['type' => 'success', 'message' => __(':unit blocked.', ['unit' => $this->unitName($room, $bed)])]
@@ -86,7 +86,7 @@ class RoomBlockController extends Controller
     {
         $unit = $this->unitName($roomBlock->room, $roomBlock->bed);
 
-        Inertia::flash('toast', $updateRoomBlock($request->user(), $roomBlock, $request->blockAttributes())
+        Inertia::flash('toast', $updateRoomBlock($request->user(), $roomBlock, $request->toRoomBlockData())
             ? ['type' => 'success', 'message' => __('Block for :unit saved.', ['unit' => $unit])]
             : ['type' => 'error', 'message' => __('Block for :unit was not saved. It has ended, or another block covers some of these nights.', ['unit' => $unit])]);
 

@@ -2409,6 +2409,12 @@ endsOn: string,
 notes: string | null,
 completedOn: string | null,
 };
+export type RoomBlockInputData = {
+reason: App.Enums.RoomBlockReason,
+startsOn: string,
+endsOn: string,
+notes: string | null,
+};
 export type RoomBlockRoomData = {
 id: number,
 number: string,

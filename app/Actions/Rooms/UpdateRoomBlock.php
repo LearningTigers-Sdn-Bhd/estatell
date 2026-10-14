@@ -2,6 +2,7 @@
 
 namespace App\Actions\Rooms;
 
+use App\Data\Rooms\RoomBlockInputData;
 use App\Models\Room;
 use App\Models\RoomBlock;
 use App\Models\User;
@@ -17,11 +18,11 @@ class UpdateRoomBlock
      *
      * Returns false when the block has ended, or when the new nights clash with another open block.
      *
-     * @param  array{reason: string, starts_on: string, ends_on: string, notes: string|null}  $attributes  Validated block fields.
+     * @param  RoomBlockInputData  $data  The validated block fields.
      */
-    public function __invoke(User $actor, RoomBlock $block, array $attributes): bool
+    public function __invoke(User $actor, RoomBlock $block, RoomBlockInputData $data): bool
     {
-        return DB::transaction(function () use ($actor, $block, $attributes): bool {
+        return DB::transaction(function () use ($actor, $block, $data): bool {
             $room = Room::query()->lockForUpdate()->findOrFail($block->room_id);
             $block = RoomBlock::query()->lockForUpdate()->findOrFail($block->id);
 
@@ -29,11 +30,16 @@ class UpdateRoomBlock
                 return false;
             }
 
-            if ($this->conflicts->exist($room, $block->bed_id, $attributes['starts_on'], $attributes['ends_on'], $block->id)) {
+            if ($this->conflicts->exist($room, $block->bed_id, $data->startsOn, $data->endsOn, $block->id)) {
                 return false;
             }
 
-            $block->fill($attributes);
+            $block->fill([
+                'reason' => $data->reason,
+                'starts_on' => $data->startsOn,
+                'ends_on' => $data->endsOn,
+                'notes' => $data->notes,
+            ]);
             $changes = $block->getDirty();
             $block->save();
 
