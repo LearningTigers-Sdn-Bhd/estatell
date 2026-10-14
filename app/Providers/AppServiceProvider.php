@@ -5,7 +5,6 @@ namespace App\Providers;
 use App\Enums\PartnerStatus;
 use App\Models\Property;
 use App\Models\User;
-use App\Services\Platform\Impersonation;
 use Carbon\CarbonImmutable;
 use Illuminate\Auth\Access\Response;
 use Illuminate\Http\Middleware\TrustProxies;
@@ -89,21 +88,15 @@ class AppServiceProvider extends ServiceProvider
 
     /**
      * Define the platform admin and partner gates. Admins are users with is_admin set. Others get a 404, so /admin
-     * stays hidden (see docs/01-platform/01-platform-admins.md). While impersonating, both gates check the support
-     * user behind the session (see docs/01-platform/04-impersonation.md).
+     * stays hidden (see docs/01-platform/01-platform-admins.md). Both gates check the signed-in user only, so a support
+     * session (signed in as staff) never reaches /admin or /partner.
      */
     protected function configureGates(): void
     {
-        Gate::define('partner', function (User $user): Response {
-            $user = app(Impersonation::class)->supportUser() ?? $user;
-
-            return $user->partner_id !== null && $user->partner?->status === PartnerStatus::Active
-                ? Response::allow()
-                : Response::denyAsNotFound();
-        });
-        Gate::define('admin', fn (User $user): Response => (app(Impersonation::class)->supportUser() ?? $user)->is_admin
+        Gate::define('partner', fn (User $user): Response => $user->partner_id !== null && $user->partner?->status === PartnerStatus::Active
             ? Response::allow()
             : Response::denyAsNotFound());
+        Gate::define('admin', fn (User $user): Response => $user->is_admin ? Response::allow() : Response::denyAsNotFound());
     }
 
     /**

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\EnsureBoatsIsActive;
+use App\Http\Middleware\EnsureEmailIsVerified;
 use App\Http\Middleware\EnsurePasswordChanged;
 use App\Http\Middleware\EnsurePropertyAccess;
 use App\Http\Middleware\EnsurePropertyIsLive;
@@ -32,6 +33,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'boats' => EnsureBoatsIsActive::class,
             'live' => EnsurePropertyIsLive::class,
             'property.access' => EnsurePropertyAccess::class,
+            'verified' => EnsureEmailIsVerified::class,
         ]);
 
         $middleware->appendToPriorityList(SubstituteBindings::class, EnsurePropertyAccess::class);

@@ -138,15 +138,16 @@ Start:  session['impersonation'] = {support_user_id, user_id, property_id, reaso
 Stop:   Auth::login($supportUser); forget the session key; log impersonation.ended
 ```
 
-| Concern                            | Handling                                                                                                                                        |
-| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| Support routes while impersonating | The `admin` and `partner` gates and `viewAs` check `Impersonation::supportUser() ?? auth()->user()`, so the view-as and switch flow still works |
-| Target                             | Must have `property_id` equal to the property (so never an admin or a partner user)                                                             |
-| Audit                              | `CauserResolver::resolveUsing` returns the real support user, with `impersonated_user_id` in the log properties                                 |
-| Staff 2FA                          | Skipped during impersonation (intended). Confirm-password routes are blocked                                                                    |
-| Logout while impersonating         | Ends the whole session and logs `impersonation.ended`                                                                                           |
-| Session ID                         | `Auth::login` regenerates the ID and keeps the session data                                                                                     |
-| Remember-me cookie                 | Stays the support user's. An expired session returns as the support user, never as the staff user                                               |
+| Concern                            | Handling                                                                                                                                                                                                                    |
+| ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Support routes while impersonating | The `admin` and `partner` gates check the signed-in user only, so a support session never reaches `/admin` or `/partner`. `viewAs` checks `Impersonation::supportUser() ?? auth()->user()`, so the view-as flow still works |
+| Unfinished owner sign-up           | `verified` and `EnsurePasswordChanged` are skipped during a session, so support can help an owner who has not verified their email or still has a temp password                                                             |
+| Target                             | Must have `property_id` equal to the property (so never an admin or a partner user)                                                                                                                                         |
+| Audit                              | `CauserResolver::resolveUsing` returns the real support user, with `impersonated_user_id` in the log properties                                                                                                             |
+| Staff 2FA                          | Skipped during impersonation (intended). Confirm-password routes are blocked                                                                                                                                                |
+| Logout while impersonating         | Ends the whole session and logs `impersonation.ended`                                                                                                                                                                       |
+| Session ID                         | `Auth::login` regenerates the ID and keeps the session data                                                                                                                                                                 |
+| Remember-me cookie                 | Stays the support user's. An expired session returns as the support user, never as the staff user                                                                                                                           |
 
 ## `to` validation
 

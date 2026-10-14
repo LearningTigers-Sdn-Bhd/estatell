@@ -259,3 +259,28 @@ test('no impersonation prop for a signed-in admin', function () {
     $this->actingAs($this->admin)->get(route('admin.dashboard'))
         ->assertInertia(fn (Assert $page) => $page->where('impersonation', null));
 });
+
+test('an admin session cannot reach admin pages or actions', function () {
+    $this->actingAs($this->admin)->post(route('view-as.store', 'ES10142'), viewAsInput($this->owner));
+
+    $this->get(route('admin.dashboard'))->assertNotFound();
+    $this->post(route('admin.properties.suspend', 'ES10142'))->assertNotFound();
+});
+
+test('a partner session cannot reach partner pages', function () {
+    $partnerUser = User::factory()->partner()->create();
+    $property = Property::factory()->create(['partner_id' => $partnerUser->partner_id]);
+    $owner = User::factory()->owner()->create(['property_id' => $property->id]);
+
+    $this->actingAs($partnerUser)->post(route('view-as.store', $property->code), viewAsInput($owner));
+
+    $this->get(route('partner.properties.index'))->assertNotFound();
+});
+
+test('a session opens the property for an owner who has not finished signing up', function (string $state) {
+    $owner = User::factory()->owner()->{$state}()->create(['property_id' => $this->property->id]);
+
+    $this->actingAs($this->admin)->post(route('view-as.store', 'ES10142'), viewAsInput($owner));
+
+    $this->get(route('dashboard', 'ES10142'))->assertOk();
+})->with(['unverified', 'withTemporaryPassword']);
