@@ -75,12 +75,12 @@ A user with none of them sees no button row.
 
 Four tiles in the right column of the [bento grid](#bento-grid). Each is a link, and a tile the user may not see is left out.
 
-| Tile           | Shows                                                                                                                                                                     | Link                       | Source                                                                     | Permission          |
-| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------- | -------------------------------------------------------------------------- | ------------------- |
-| **Arrivals**   | "5 to check in" and "of 8": units arriving on the business date, and how many are still Confirmed                                                                         | Arrivals report, today     | `ArrivalsReport`                                                           | `reservations.view` |
-| **Departures** | "3 to check out" and "of 5": units departing on the business date, and how many are still CheckedIn                                                                       | Departures report, today   | `DeparturesReport`                                                         | `reservations.view` |
-| **Tonight**    | Occupancy % and rooms free tonight (beds as well for a property with dorms), then a 7-night mini bar. Tapping or hovering opens a popover by room type: sold, total, left | Rate calendar              | `AvailabilityService::nights()` per room type, as the rate calendar footer | `reservations.view` |
-| **{Month}**    | "MYR 84,200 posted" and "612 nights booked" for the month of the business date                                                                                            | Revenue report, this month | `DailyRevenueQuery`, `unit_nights`                                         | `reports.view`      |
+| Tile           | Shows                                                                                                                                                                     | Link                       | Source                                                         | Permission          |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------- | -------------------------------------------------------------- | ------------------- |
+| **Arrivals**   | "5 to check in" and "of 8": units arriving on the business date, and how many are still Confirmed                                                                         | Arrivals report, today     | `ArrivalsReport`                                               | `reservations.view` |
+| **Departures** | "3 to check out" and "of 5": units departing on the business date, and how many are still CheckedIn                                                                       | Departures report, today   | `DeparturesReport`                                             | `reservations.view` |
+| **Tonight**    | Occupancy % and rooms free tonight (beds as well for a property with dorms), then a 7-night mini bar. Tapping or hovering opens a popover by room type: sold, total, left | Rate calendar              | `AvailabilityService::nightsForRoomTypes()` for all room types | `reservations.view` |
+| **{Month}**    | "MYR 84,200 posted" and "612 nights booked" for the month of the business date                                                                                            | Revenue report, this month | `DailyRevenueQuery`, `unit_nights`                             | `reports.view`      |
 
 **The month tile counts two different things, and says so.**
 
@@ -125,7 +125,7 @@ One list of what is left to act on, with a button on each row.
 - `DashboardController::show` replaces the `Route::inertia` line. Read services in `app/Services/Dashboard/`: `DashboardAlert`, `DashboardTiles`, `DashboardTodo`.
 - The tiles and the list are **deferred props**, each with a skeleton, so the page opens at once and one slow part does not hold the others. The alert and the quick actions come with the page.
 - No polling at first. A reload or a finished Dialog refreshes it.
-- A fixed number of queries, however many units and room types (the reports and `AvailabilityService` already read in grouped queries).
+- A fixed number of queries, however many units and room types (the reports and `AvailabilityService::nightsForRoomTypes()` read in grouped queries).
 
 ## Tests
 

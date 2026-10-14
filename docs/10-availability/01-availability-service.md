@@ -26,8 +26,9 @@ Date overlap uses `spatie/period`.
 - **`available`** never goes below zero. `booked` above the free units is an overbooking, which the night audit readiness panel will flag.
 - **Booked units** are counted by `bookedUnits()`: one `unit_nights` row is one booked unit on that date. One reservation unit is one room or one bed, so the count is the same for Room and Bed room types. The query joins `reservation_units` (scoped by `property_id` and `room_type_id`) and groups by date. Confirmed, CheckedIn and CheckedOut units hold their nights, so past nights stay sold. Cancelled and NoShow units release theirs (`UnitStatus::holdsInventory()`). A unit that leaves early must lose its later `unit_nights` rows, which `ProcessEarlyDeparture` does in module 18.
 - **Not here:** stop-sell and the other restrictions belong to a plan and a room type, so `RestrictionCheck` reports them. Availability counts units per room type.
-- **Queries:** a fixed number, however many rooms, blocks and bookings there are: units, blocks and bookings are one query each.
-- **Used by:** the [rate calendar](../08-rates/02-daily-rates-and-restrictions.md#the-rate-calendar) calls `nights()` once for each room type to show open and sold units and the occupancy rate.
+- **Many room types:** `nightsForRoomTypes($roomTypes, $arrival, $departure)` returns the same rows keyed by room type id. It holds the rules; `nights()` calls it with one room type, so both always agree.
+- **Queries:** a fixed number, however many rooms, room types, blocks and bookings there are: rooms, beds, blocks and bookings are one query each.
+- **Used by:** the [rate calendar](../08-rates/02-daily-rates-and-restrictions.md#the-rate-calendar) calls `nights()` once for each room type to show open and sold units and the occupancy rate. The [dashboard](../18-front-desk/04-dashboard.md#tiles) Tonight tile calls `nightsForRoomTypes()`.
 
 ## Rules
 
