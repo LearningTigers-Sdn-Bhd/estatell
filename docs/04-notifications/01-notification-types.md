@@ -50,7 +50,7 @@ In-app notifications use the framework `notifications` table. Its `data` column 
 
 All existing emails use the shared stationery layout in `resources/views/vendor/notifications/email.blade.php` and the published `laravel-mail` components.
 
-- The header uses a text-only **estatell** wordmark until the brand logo is supplied.
+- The header uses a text-only **Estatell** wordmark matching the supplied reference: heavy sans-serif lettering, a capital E and dark forest green. Email-safe fonts approximate the reference until the exact font or logo asset is supplied.
 - The layout uses an olive canvas, a white body, an emerald top rule and full-width action buttons.
 - Email CSS uses inline, email-safe colour fallbacks and system fonts. It does not depend on Tailwind, web fonts or CSS variables.
 - Property emails name the property in both the HTML and plain-text footer. Partner and platform account emails use estatell alone.
