@@ -32,16 +32,19 @@ A strategy class per country replaces the `$countryCode !== 'MY'` checks in the 
 
 ## Currencies
 
-`Currency` lists every active ISO 4217 currency from ICU (`ICUDATA-curr`), without historical codes.
+The currency list comes from **brick/money** (already a dependency), not from a hand-written enum. `App\Enums\Currency` is removed.
 
-| Rule            | Detail                                                                                                                                                                               |
-| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Label           | ICU display name and code, for example "Thai baht (THB)"                                                                                                                             |
-| `decimals()`    | ICU fraction digits. 0-decimal currencies (JPY, KRW, VND, …) enter and show whole amounts and store `.00`.                                                                           |
-| 3-decimal codes | BHD, IQD, JOD, KWD, LYD, OMR and TND are left out. Money columns store 2 decimals.                                                                                                   |
-| Amount in words | `wordsName()` is the ICU name ("Ringgit Malaysia" for MYR). `minorUnitWords()` has a short map (sen, cents, satang, centavos, …). Other currencies write the minor part as "50/100". |
+| Part               | Design                                                                                                                                                                                                                                                                                                                             |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| List               | `ISOCurrencyProvider::getAvailableCurrencies()` (current ISO 4217, 214 codes in 0.15.1), filtered by `CurrencyOptions` in `app/Services/Property/`                                                                                                                                                                                 |
+| Left out           | More than 2 decimals: BHD, CLF, IQD, JOD, KWD, LYD, OMR, TND, UYW (money columns store 2 decimals). Fund and accounting codes: BOV, CHE, CHW, COU, MXV, USN, XAD.                                                                                                                                                                  |
+| Storage            | `property_settings.currency` stays a 3-letter string. `AsCurrency` cast returns a `Brick\Money\Currency`. Validation: `Rule::in(CurrencyOptions::codes())`.                                                                                                                                                                        |
+| Decimals           | `getDefaultFractionDigits()`. 0-decimal currencies (JPY, KRW, VND, …) enter and show whole amounts and store `.00`.                                                                                                                                                                                                                |
+| To the browser     | `CurrencyData { code, name, decimals }` wherever a page receives the property currency today                                                                                                                                                                                                                                       |
+| Browser formatting | `Intl.NumberFormat` with `style: 'currency'` and the currency code. No fixed 2 decimals in components. Inputs use `decimals` for step and rounding.                                                                                                                                                                                |
+| Amount in words    | `AmountInWords` keeps ICU spellout. It splits major and minor by `decimals`, not ×100. `CurrencyWords` holds the words name ("Ringgit Malaysia" for MYR, the brick name otherwise) and a short minor-unit map (sen, cents, satang, centavos, …). Others write the minor part as "50/100". 0-decimal currencies have no minor part. |
 
-The frontend reads `decimals` from the shared currency prop instead of a fixed 2.
+Not chosen: `kwn/number-to-words`. Its English list has 55 currencies, several defunct, misses THB, SGD and VND, and assumes 100 minor units.
 
 ## Call sites
 

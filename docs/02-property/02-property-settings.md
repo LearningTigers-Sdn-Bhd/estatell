@@ -26,7 +26,7 @@ property_settings    property_id (unique), currency, time_zone, default_locale,
 
 ## Enums
 
-- `Currency`: Myr. More currencies arrive with other countries.
+- Currency: a 3-letter code cast to `Brick\Money\Currency` (`AsCurrency`). See [Currencies](03-seed-property-defaults.md#currencies).
 - `Locale`: English, Malay.
 - `MissedArrivalPolicy`: MarkNoShow, KeepAsLateArrival.
 - `OverdueDeparturePolicy`: ExtendOneNight, Block.
