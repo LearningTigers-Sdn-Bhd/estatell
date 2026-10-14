@@ -26,14 +26,14 @@ class CopyParentStayDiscounts
                 return false;
             }
 
-            $rules = $ratePlan->parent->stayDiscounts()->orderBy('min_nights')->get()
+            $rules = array_values($ratePlan->parent->stayDiscounts()->orderBy('min_nights')->get()
                 ->map(fn (RatePlanStayDiscount $discount): array => [
                     'min_nights' => $discount->min_nights,
                     'discount_type' => $discount->discount_type->value,
                     'value' => $discount->value,
                     'from_night' => $discount->from_night,
                 ])
-                ->all();
+                ->all());
 
             return $rules !== [] && ($this->saveRatePlanStayDiscounts)($actor, $ratePlan, $rules);
         });

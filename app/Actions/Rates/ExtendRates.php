@@ -83,14 +83,14 @@ class ExtendRates
                         'closed_to_departure' => $current->closed_to_departure ?? false,
                         'stop_sell' => $current->stop_sell ?? false,
                     ];
-                    $occupancy[$roomTypeId.'|'.$date->toDateString()] = $source->occupancyPrices
+                    $occupancy[$roomTypeId.'|'.$date->toDateString()] = array_values($source->occupancyPrices
                         ->map(fn ($price): array => ['adults' => $price->adults, 'amount' => $price->amount])
-                        ->all();
+                        ->all());
 
                     if ($source->hourPrices->isNotEmpty()) {
-                        $hours[$roomTypeId.'|'.$date->toDateString()] = $source->hourPrices
+                        $hours[$roomTypeId.'|'.$date->toDateString()] = array_values($source->hourPrices
                             ->map(fn ($price): array => ['hours' => $price->hours, 'amount' => $price->amount])
-                            ->all();
+                            ->all());
                     }
                 }
             }

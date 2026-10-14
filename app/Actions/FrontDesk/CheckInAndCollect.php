@@ -102,6 +102,6 @@ class CheckInAndCollect
         $guest = $primary === null ? $unit->reservation->booker : $primary->guest;
 
         return $guest instanceof Guest
-            && ($this->updateGuest)($actor, $guest, ['nationality_code' => $nationality], $guest->tags()->pluck('name')->all());
+            && ($this->updateGuest)($actor, $guest, ['nationality_code' => $nationality], array_values($guest->tags()->pluck('name')->all()));
     }
 }

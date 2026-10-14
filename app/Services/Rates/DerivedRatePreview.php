@@ -44,7 +44,7 @@ class DerivedRatePreview
                 ->whereNotNull('amount')
                 ->pluck('amount', 'room_type_id');
 
-        return $roomTypes->map(function (RoomType $roomType) use ($rates, $derived, $date, $currency): array {
+        return array_values($roomTypes->map(function (RoomType $roomType) use ($rates, $derived, $date, $currency): array {
             $amount = $rates->get($roomType->id);
 
             if ($amount === null) {
@@ -60,6 +60,6 @@ class DerivedRatePreview
                 'parent_amount' => (string) $night->total()->getAmount(),
                 'derived_amount' => (string) $this->resolver->resolve($night, $derived, 1)->total()->getAmount(),
             ];
-        })->all();
+        })->all());
     }
 }

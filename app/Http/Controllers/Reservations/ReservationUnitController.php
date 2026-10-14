@@ -89,7 +89,7 @@ class ReservationUnitController extends Controller
     {
         $guest = $unit->guests()->where('guest_id', $guestId)->with('guest')->firstOrFail()->guest;
 
-        $saved = $updateGuest($request->user(), $guest, $request->profile(), $guest->tags()->pluck('name')->all());
+        $saved = $updateGuest($request->user(), $guest, $request->profile(), array_values($guest->tags()->pluck('name')->all()));
 
         Inertia::flash('toast', $saved
             ? ['type' => 'success', 'message' => __(':name saved.', ['name' => $request->input('full_name')])]

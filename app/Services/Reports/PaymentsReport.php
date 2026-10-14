@@ -93,14 +93,14 @@ class PaymentsReport implements HasBreakdown, HasTotals, Report
             ->whereBetween('received_on', [$filters->from, $filters->to])
             ->select('received_by');
 
-        return User::query()
+        return array_values(User::query()
             ->where('property_id', $property->id)
             ->whereIn('id', $folio->union($cityLedger))
             ->orderBy('name')
             ->orderBy('id')
             ->get(['id', 'name'])
             ->map(fn (User $user): array => ['value' => (string) $user->id, 'label' => $user->name])
-            ->all();
+            ->all());
     }
 
     /**

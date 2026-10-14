@@ -75,8 +75,8 @@ class PartnerDirectory
      */
     public function moveOptions(): array
     {
-        return Partner::query()->where('status', PartnerStatus::Active)->orderBy('name')->get(['id', 'name', 'code_prefix'])
+        return array_values(Partner::query()->where('status', PartnerStatus::Active)->orderBy('name')->get(['id', 'name', 'code_prefix'])
             ->map(fn (Partner $partner): array => ['value' => (string) $partner->id, 'label' => "{$partner->name} ({$partner->code_prefix})"])
-            ->all();
+            ->all());
     }
 }

@@ -213,12 +213,15 @@ class StoreBookingRequest extends FormRequest
     {
         $trips = [];
 
-        if (is_array($this->validated('boat_in'))) {
-            $trips[] = BoatTripData::fromInput($this->validated('boat_in'), BoatDirection::In);
-        }
-
-        if (is_array($this->validated('boat_out'))) {
-            $trips[] = BoatTripData::fromInput($this->validated('boat_out'), BoatDirection::Out);
+        foreach ([['boat_in', BoatDirection::In], ['boat_out', BoatDirection::Out]] as [$field, $direction]) {
+            if (is_array($this->validated($field))) {
+                $trips[] = BoatTripData::fromInput([
+                    'mode' => $this->string($field.'.mode')->toString(),
+                    'boat_departure_id' => $this->input($field.'.boat_departure_id'),
+                    'time' => $this->input($field.'.time'),
+                    'note' => $this->input($field.'.note'),
+                ], $direction);
+            }
         }
 
         return $trips;

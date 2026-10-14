@@ -130,7 +130,7 @@ class RegistrationCardPageData extends Data
             checklist: $rendered['items'],
             labels: $labels,
             canVoid: $canVoid && $card->status !== RegistrationCardStatus::Void,
-            signedFields: $signed === null ? null : array_map(fn (array $field): array => ['label' => $field['label'], 'value' => $field['value']], $signed['fields']),
+            signedFields: $signed === null ? null : array_values(array_map(fn (array $field): array => ['label' => $field['label'], 'value' => $field['value']], $signed['fields'])),
             signedTicks: $signed === null ? null : array_values(array_map(fn (array $item): int => $item['position'], array_filter($signed['terms']['items'], fn (array $item): bool => $item['ticked_at'] !== null))),
             draftFields: $draftFields === null ? null : array_map(fn (array $field): array => ['label' => $field['label'], 'value' => $field['value']], $draftFields),
             cardDocumentId: $card->identity_document_id,

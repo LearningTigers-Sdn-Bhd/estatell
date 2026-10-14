@@ -38,7 +38,7 @@ class CompanyImportReader
             ->formatHeadersUsing(fn (string $header): string => Str::lower(trim($header)))
             ->trimValues();
 
-        $headers = $reader->getHeaders() ?? [];
+        $headers = array_values($reader->getHeaders() ?? []);
 
         if (! in_array('name', $headers, true)) {
             throw ValidationException::withMessages([
@@ -76,7 +76,7 @@ class CompanyImportReader
 
         return [
             'mode' => CompanyImportMode::forHeaders($headers)->value,
-            'rows' => $rows->map(fn (array $values): array => $this->row($values, $countries))->all(),
+            'rows' => array_values($rows->map(fn (array $values): array => $this->row($values, $countries))->all()),
         ];
     }
 

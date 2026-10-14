@@ -19,24 +19,6 @@ parameters:
 			path: app/Actions/Catalogues/UpdateDiscount.php
 
 		-
-			message: '#^Parameter \#1 \$keys of method Illuminate\\Database\\Eloquent\\Collection\<\(int\|string\),App\\Models\\Folio\>\:\:except\(\) expects array\<mixed\>\|null, int given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Actions/Folio/MoveCharges.php
-
-		-
-			message: '#^Parameter \#1 \$keys of method Illuminate\\Database\\Eloquent\\Collection\<\(int\|string\),App\\Models\\Folio\>\:\:except\(\) expects array\<mixed\>\|null, int given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Actions/Folio/TransferLines.php
-
-		-
-			message: '#^Parameter \#4 \$tagNames of callable App\\Actions\\Guests\\UpdateGuest expects list\<string\>, array\<mixed\> given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Actions/FrontDesk/CheckInAndCollect.php
-
-		-
 			message: '#^Parameter \$note of class App\\Notifications\\SupportAccessUsed constructor expects string\|null, int\|string\|null given\.$#'
 			identifier: argument.type
 			count: 1
@@ -49,42 +31,6 @@ parameters:
 			path: app/Actions/Platform/RecordImpersonationEnd.php
 
 		-
-			message: '#^Parameter \#3 \$discounts of callable App\\Actions\\Rates\\SaveRatePlanStayDiscounts expects list\<array\{min_nights\: int, discount_type\: string, value\: float\|int\|string, from_night\: int\}\>, non\-empty\-array\<int, array\{min_nights\: int, discount_type\: ''amount''\|''percent'', value\: string, from_night\: int\}\> given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Actions/Rates/CopyParentStayDiscounts.php
-
-		-
-			message: '#^Parameter \#3 \$occupancy of callable App\\Actions\\Rates\\UpsertRates expects array\<string, list\<array\{adults\: int, amount\: string\}\>\>, array\<non\-falsy\-string, array\<int, array\{adults\: mixed, amount\: mixed\}\>\> given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Actions/Rates/ExtendRates.php
-
-		-
-			message: '#^Parameter \#4 \$hours of callable App\\Actions\\Rates\\UpsertRates expects array\<string, list\<array\{hours\: int, amount\: string\}\>\>, array\<non\-falsy\-string, array\<int, array\{hours\: mixed, amount\: mixed\}\>\> given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Actions/Rates/ExtendRates.php
-
-		-
-			message: '#^Method App\\Actions\\Rates\\UpsertRates\:\:rateIds\(\) should return Illuminate\\Support\\Collection\<string, int\> but returns Illuminate\\Support\\Collection\<non\-falsy\-string, int\>\.$#'
-			identifier: return.type
-			count: 1
-			path: app/Actions/Rates/UpsertRates.php
-
-		-
-			message: '#^Parameter \#1 \.\.\.\$arg1 of function max expects non\-empty\-array, list\<string\> given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Actions/Rates/UpsertRates.php
-
-		-
-			message: '#^Parameter \#1 \.\.\.\$arg1 of function min expects non\-empty\-array, list\<string\> given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Actions/Rates/UpsertRates.php
-
-		-
 			message: '#^Call to function is_int\(\) with int will always evaluate to true\.$#'
 			identifier: function.alreadyNarrowedType
 			count: 1
@@ -95,12 +41,6 @@ parameters:
 			identifier: function.alreadyNarrowedType
 			count: 1
 			path: app/Actions/Reservations/AddUnit.php
-
-		-
-			message: '#^Parameter \#4 \$tagNames of callable App\\Actions\\Guests\\UpdateGuest expects list\<string\>, array\<mixed\> given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Actions/Reservations/ResolveUnitGuest.php
 
 		-
 			message: '#^Strict comparison using \!\=\= between App\\Services\\CityLedger\\CreditCheckResult and null will always evaluate to true\.$#'
@@ -121,12 +61,6 @@ parameters:
 			path: app/Actions/Staff/AssignStaffRole.php
 
 		-
-			message: '#^Parameter \#1 \$childPrices of static method App\\Data\\Boats\\BoatFareRowData\:\:childrenSummary\(\) expects list\<App\\Data\\Catalogues\\ChargeItemChildPriceData\>, array\<int, App\\Data\\Catalogues\\ChargeItemChildPriceData\> given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Data/Boats/BoatFareRowData.php
-
-		-
 			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$default_role\.$#'
 			identifier: property.notFound
 			count: 1
@@ -145,12 +79,6 @@ parameters:
 			path: app/Data/Rates/StayDiscountPreviewData.php
 
 		-
-			message: '#^Parameter \$signedFields of class App\\Data\\Registration\\RegistrationCardPageData constructor expects list\<array\{label\: string, value\: string\|null\}\>\|null, array\<array\{label\: mixed, value\: mixed\}\>\|null given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Data/Registration/RegistrationCardPageData.php
-
-		-
 			message: '#^Access to an undefined property App\\Models\\TermsDocument\:\:\$room_types_exists\.$#'
 			identifier: property.notFound
 			count: 1
@@ -167,12 +95,6 @@ parameters:
 			identifier: return.type
 			count: 1
 			path: app/Data/Reports/ReportTotals.php
-
-		-
-			message: '#^Parameter \$permissions of class App\\Data\\Staff\\RoleRowData constructor expects list\<string\>, array\<int, mixed\> given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Data/Staff/RoleRowData.php
 
 		-
 			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$default_role\.$#'
@@ -215,42 +137,6 @@ parameters:
 			identifier: argument.type
 			count: 1
 			path: app/Enums/ReportKey.php
-
-		-
-			message: '#^Parameter \#4 \$tagNames of callable App\\Actions\\Guests\\UpdateGuest expects list\<string\>, array\<mixed\> given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Http/Controllers/Reservations/ReservationUnitController.php
-
-		-
-			message: '#^Method App\\Http\\Controllers\\Rooms\\RoomTypeController\:\:termsDocumentOptions\(\) should return list\<array\{value\: int, label\: string\}\> but returns array\<int, array\{value\: mixed, label\: mixed\}\>\.$#'
-			identifier: return.type
-			count: 1
-			path: app/Http/Controllers/Rooms/RoomTypeController.php
-
-		-
-			message: '#^Method App\\Http\\Requests\\Rates\\CreateRatePlanRequest\:\:ratePlanAttributes\(\) should return array\{name\: string, pricing_basis\: string, fixed_nights\?\: int, package_unit\?\: string, day_use_min_hours\?\: int, day_use_max_hours\?\: int\} but returns array\.$#'
-			identifier: return.type
-			count: 1
-			path: app/Http/Requests/Rates/CreateRatePlanRequest.php
-
-		-
-			message: '#^Parameter \#1 \$input of static method App\\Data\\Boats\\BoatTripData\:\:fromInput\(\) expects array\{mode\: string, boat_departure_id\?\: int\|string\|null, time\?\: string\|null, note\?\: string\|null\}, array\<string, mixed\> given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Http/Requests/Reservations/BoatTripRequest.php
-
-		-
-			message: '#^Parameter \#1 \$input of static method App\\Data\\Boats\\BoatTripData\:\:fromInput\(\) expects array\{mode\: string, boat_departure_id\?\: int\|string\|null, time\?\: string\|null, note\?\: string\|null\}, array\<mixed, mixed\> given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Http/Requests/Reservations/BoatTripsRequest.php
-
-		-
-			message: '#^Parameter \#1 \$input of static method App\\Data\\Boats\\BoatTripData\:\:fromInput\(\) expects array\{mode\: string, boat_departure_id\?\: int\|string\|null, time\?\: string\|null, note\?\: string\|null\}, array\<mixed, mixed\> given\.$#'
-			identifier: argument.type
-			count: 2
-			path: app/Http/Requests/Reservations/StoreBookingRequest.php
 
 		-
 			message: '#^Call to function is_string\(\) with string will always evaluate to true\.$#'
@@ -313,28 +199,10 @@ parameters:
 			path: app/Services/Boats/BoatFareUsage.php
 
 		-
-			message: '#^Parameter \#1 \$receipts of static method App\\Services\\CityLedger\\ArInvoiceRefusals\:\:listed\(\) expects list\<string\>, non\-empty\-array\<mixed\> given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Services/CityLedger/ArInvoiceVoidCheck.php
-
-		-
 			message: '#^Method App\\Services\\CityLedger\\CompanyBillTo\:\:lines\(\) should return list\<string\> but returns list\{0\?\: array\|string, 1\?\: array\|string, 2\?\: array\|string, 3\?\: array\|string, 4\?\: array\|string, 5\?\: array\|string, 6\?\: array\|string\}\.$#'
 			identifier: return.type
 			count: 1
 			path: app/Services/CityLedger/CompanyBillTo.php
-
-		-
-			message: '#^Method App\\Services\\CityLedger\\CompanyImportReader\:\:read\(\) should return array\{mode\: string, rows\: list\<array\<string, mixed\>\>\} but returns array\{mode\: ''detailed''\|''simple'', rows\: array\<int, array\<string, mixed\>\>\}\.$#'
-			identifier: return.type
-			count: 1
-			path: app/Services/CityLedger/CompanyImportReader.php
-
-		-
-			message: '#^Parameter \#1 \$headers of static method App\\Enums\\CompanyImportMode\:\:forHeaders\(\) expects list\<string\>, non\-empty\-array given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Services/CityLedger/CompanyImportReader.php
 
 		-
 			message: '#^Binary operation "\." between array\|string and string results in an error\.$#'
@@ -463,12 +331,6 @@ parameters:
 			path: app/Services/Notifications/NotificationPreferences.php
 
 		-
-			message: '#^Parameter \#1 \$liveStatuses of static method App\\Enums\\PaymentStage\:\:forMaster\(\) expects list\<App\\Enums\\UnitStatus\>, array\<mixed\> given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Services/Payments/PaymentPurposeChoices.php
-
-		-
 			message: '#^Cannot cast object\|string\|null to string\.$#'
 			identifier: cast.string
 			count: 1
@@ -479,12 +341,6 @@ parameters:
 			identifier: return.type
 			count: 1
 			path: app/Services/Platform/Impersonation.php
-
-		-
-			message: '#^Method App\\Services\\Platform\\PartnerDirectory\:\:moveOptions\(\) should return list\<array\{value\: string, label\: string\}\> but returns array\<int, array\{value\: decimal\-int\-string, label\: non\-falsy\-string\}\>\.$#'
-			identifier: return.type
-			count: 1
-			path: app/Services/Platform/PartnerDirectory.php
 
 		-
 			message: '#^Parameter \#1 \$query of method App\\Services\\Platform\\PropertyDirectory\:\:partner\(\) expects Illuminate\\Database\\Eloquent\\Builder\<App\\Models\\Property\>, Illuminate\\Database\\Eloquent\\Builder\<Illuminate\\Database\\Eloquent\\Model\> given\.$#'
@@ -529,12 +385,6 @@ parameters:
 			path: app/Services/Rates/DayUseOffers.php
 
 		-
-			message: '#^Method App\\Services\\Rates\\DerivedRatePreview\:\:preview\(\) should return list\<array\{room_type_id\: int, name\: string, parent_amount\: string\|null, derived_amount\: string\|null\}\> but returns array\<int, array\{room_type_id\: int, name\: string, parent_amount\: non\-empty\-string, derived_amount\: non\-empty\-string\}\|array\{room_type_id\: int, name\: string, parent_amount\: null, derived_amount\: null\}\>\.$#'
-			identifier: return.type
-			count: 1
-			path: app/Services/Rates/DerivedRatePreview.php
-
-		-
 			message: '#^Method App\\Services\\Rates\\Pricing\\NightlyPricing\:\:priceStay\(\) should return non\-empty\-list\<App\\Services\\Rates\\Pricing\\NightPrice\> but returns list\<App\\Services\\Rates\\Pricing\\NightPrice\>\.$#'
 			identifier: return.type
 			count: 1
@@ -571,24 +421,6 @@ parameters:
 			path: app/Services/Rates/StayDiscountPreview.php
 
 		-
-			message: '#^Method App\\Services\\Registration\\RegistrationCardDocumentBuilder\:\:signedParts\(\) should return list\<array\{html\: string, items\: list\<array\{text\: string, ticked\: bool\}\>\}\>\|null but returns array\<array\{html\: mixed, items\: array\<array\{text\: mixed, ticked\: bool\}\>\}\>\.$#'
-			identifier: return.type
-			count: 1
-			path: app/Services/Registration/RegistrationCardDocumentBuilder.php
-
-		-
-			message: '#^Parameter \#1 \$fields of method App\\Services\\Registration\\RegistrationCardDocumentBuilder\:\:withoutMarketing\(\) expects list\<array\{field\: string, label\: string, value\: string\}\>, array\<int, array\{field\: mixed, label\: mixed, value\: string\}\> given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Services/Registration/RegistrationCardDocumentBuilder.php
-
-		-
-			message: '#^Parameter \#6 \$items of class App\\Services\\Registration\\RegistrationCardDocument constructor expects list\<array\{text\: string, ticked\: bool\}\>, array\<array\{text\: mixed, ticked\: bool\}\> given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Services/Registration/RegistrationCardDocumentBuilder.php
-
-		-
 			message: '#^Method App\\Services\\Registration\\RegistrationCardSnapshot\:\:guestValues\(\) should return array\<string, string\> but returns array\<string, array\|string\>\.$#'
 			identifier: return.type
 			count: 1
@@ -599,18 +431,6 @@ parameters:
 			identifier: argument.type
 			count: 1
 			path: app/Services/Registration/RegistrationCardStay.php
-
-		-
-			message: '#^Method App\\Services\\Reports\\FolioLedgerReport\:\:codeOptions\(\) should return list\<array\{value\: string, label\: string\}\> but returns array\<int, array\{value\: string, label\: non\-falsy\-string\}\>\.$#'
-			identifier: return.type
-			count: 1
-			path: app/Services/Reports/FolioLedgerReport.php
-
-		-
-			message: '#^Method App\\Services\\Reports\\PaymentsReport\:\:staffOptions\(\) should return list\<array\{value\: string, label\: string\}\> but returns array\<int, array\{value\: decimal\-int\-string, label\: string\}\>\.$#'
-			identifier: return.type
-			count: 1
-			path: app/Services/Reports/PaymentsReport.php
 
 		-
 			message: '#^Method App\\Services\\Reports\\ReportPage\:\:sort\(\) should return array\{list\<TRow of App\\Data\\Reports\\ReportRow&Spatie\\LaravelData\\Data\>, string\} but returns array\{array\<int, App\\Data\\Reports\\ReportRow&Spatie\\LaravelData\\Data\>, string\}\.$#'

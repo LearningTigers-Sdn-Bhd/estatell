@@ -81,7 +81,7 @@ class MoveCharges
 
         $folios = Folio::query()->whereIn('id', [...$found->pluck('folio_id')->unique()->all(), $target->id])->orderBy('id')->lockForUpdate()->get()->keyBy('id');
         $targetFolio = $folios[$target->id];
-        $sources = $folios->except($target->id)->values();
+        $sources = $folios->except([$target->id])->values();
 
         if ($folios->contains(fn (Folio $folio): bool => $folio->reservation_id !== $targetFolio->reservation_id)
             || collect($schedules)->contains(fn (array $schedule): bool => $schedule['unit']->reservation_id !== $targetFolio->reservation_id)) {

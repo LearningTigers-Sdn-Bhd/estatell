@@ -96,12 +96,20 @@ class UpsertRates
      */
     private function rateIds(int $ratePlanId, array $rows): Collection
     {
-        return Rate::query()
+        $dates = collect($rows)->pluck('date');
+        $rateIds = [];
+
+        $rates = Rate::query()
             ->where('rate_plan_id', $ratePlanId)
             ->whereIn('room_type_id', array_unique(array_column($rows, 'room_type_id')))
-            ->whereBetween('date', [min(array_column($rows, 'date')), max(array_column($rows, 'date'))])
-            ->get(['id', 'room_type_id', 'date'])
-            ->mapWithKeys(fn (Rate $rate): array => [$rate->room_type_id.'|'.$rate->date->toDateString() => $rate->id]);
+            ->whereBetween('date', [$dates->min(), $dates->max()])
+            ->get(['id', 'room_type_id', 'date']);
+
+        foreach ($rates as $rate) {
+            $rateIds[$rate->room_type_id.'|'.$rate->date->toDateString()] = $rate->id;
+        }
+
+        return collect($rateIds);
     }
 
     /**

@@ -95,6 +95,6 @@ class RoomTypeController extends Controller
             return [];
         }
 
-        return $documents->map(fn ($document): array => ['value' => $document->id, 'label' => $document->name])->all();
+        return array_values($documents->map(fn ($document): array => ['value' => $document->id, 'label' => $document->name])->all());
     }
 }

@@ -35,10 +35,10 @@ class PaymentPurposeChoices
         }
 
         if ($type === FolioType::Master) {
-            $statuses = $reservation->units()
+            $statuses = array_values($reservation->units()
                 ->whereNotIn('status', [UnitStatus::Cancelled, UnitStatus::NoShow])
                 ->pluck('status')
-                ->all();
+                ->all());
 
             return PaymentPurpose::forStage($type, PaymentStage::forMaster($statuses));
         }

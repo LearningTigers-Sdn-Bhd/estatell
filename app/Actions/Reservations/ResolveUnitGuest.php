@@ -43,7 +43,7 @@ class ResolveUnitGuest
         }
 
         if ($updateProfile && $profile !== []) {
-            $tags = $guest->tags()->pluck('name')->all();
+            $tags = array_values($guest->tags()->pluck('name')->all());
 
             if (! ($this->updateGuest)($actor, $guest, $profile, $tags)) {
                 return AttachGuestResult::refused(AttachGuestResult::REFUSAL_GUEST_NOT_FOUND);

@@ -38,7 +38,7 @@ class RegistrationCardDocumentBuilder
             $card->number,
             $this->translatedFields($locale, $this->withoutMarketing($snapshot['fields'])),
             $snapshot['terms']['html'],
-            array_map(fn (array $item): array => ['text' => $item['text'], 'ticked' => $item['ticked_at'] !== null], $snapshot['terms']['items']),
+            array_values(array_map(fn (array $item): array => ['text' => $item['text'], 'ticked' => $item['ticked_at'] !== null], $snapshot['terms']['items'])),
             $card->signer_name,
             $card->signed_at?->setTimezone($property->settings->time_zone ?? config('app.timezone'))->format('d M Y, H:i'),
             $signature === null ? null : 'data:image/png;base64,'.base64_encode((string) stream_get_contents($signature->stream())),
@@ -63,11 +63,10 @@ class RegistrationCardDocumentBuilder
 
         $rendered = $this->termsRenderer->render($resolved->terms->body, $this->termsRenderer->valuesFor($property));
         $answers = collect($this->snapshot->fields($property, $card, $guest, $card->identityDocument, $this->stay->valuesFor($unitGuest, $property)))->pluck('value', 'field');
-        $fields = $property->registrationCardFields()->ordered()->get()
+        $fields = array_values($property->registrationCardFields()->ordered()->get()
             ->filter(fn ($setting): bool => $setting->visibility !== FieldVisibility::Hidden)
             ->map(fn ($setting): array => ['field' => $setting->field->value, 'label' => $setting->field->label(), 'value' => (string) ($answers[$setting->field->value] ?? '')])
-            ->values()
-            ->all();
+            ->all());
 
         return new RegistrationCardDocument(
             $resolved->locale,
@@ -103,10 +102,10 @@ class RegistrationCardDocumentBuilder
             $items[$item['position']] = ['text' => $item['text'], 'ticked' => $item['ticked_at'] !== null];
         }
 
-        return array_map(
-            fn (array $part): array => ['html' => $part['html'], 'items' => array_map(fn (int $position): array => $items[$position], $part['positions'])],
+        return array_values(array_map(
+            fn (array $part): array => ['html' => $part['html'], 'items' => array_values(array_map(fn (int $position): array => $items[$position], $part['positions']))],
             $terms['parts'],
-        );
+        ));
     }
 
     /**

@@ -43,7 +43,7 @@ class TransferLines
 
             $folios = Folio::query()->whereIn('id', [...$sourceFolioIds, $target->id])->orderBy('id')->lockForUpdate()->get()->keyBy('id');
             $targetFolio = $folios[$target->id];
-            $sourceFolios = $folios->except($target->id);
+            $sourceFolios = $folios->except([$target->id]);
             $businessDate = $this->currentBusinessDate->date($targetFolio->property);
 
             if ($businessDate === null) {

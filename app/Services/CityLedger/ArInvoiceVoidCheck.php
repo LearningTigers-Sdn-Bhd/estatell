@@ -15,7 +15,7 @@ class ArInvoiceVoidCheck
 
     public function blockedBy(ArInvoice $invoice): ?string
     {
-        $notes = $invoice->creditNotes()->where('status', '<>', ArInvoiceStatus::Void)->orderBy('id')->pluck('number')->all();
+        $notes = array_values($invoice->creditNotes()->where('status', '<>', ArInvoiceStatus::Void)->orderBy('id')->pluck('number')->all());
         $receipts = $this->arInvoiceBalance->activeReceiptNumbers($invoice);
         $reasons = [];
 

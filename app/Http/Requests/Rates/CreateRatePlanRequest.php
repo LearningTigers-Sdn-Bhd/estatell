@@ -88,7 +88,16 @@ class CreateRatePlanRequest extends FormRequest
      */
     public function ratePlanAttributes(): array
     {
-        return $this->safe()->only(['name', 'pricing_basis', 'fixed_nights', 'package_unit', 'day_use_min_hours', 'day_use_max_hours']);
+        $safe = $this->safe();
+
+        return [
+            'name' => $this->string('name')->toString(),
+            'pricing_basis' => $this->string('pricing_basis')->toString(),
+            ...($safe->has('fixed_nights') ? ['fixed_nights' => $this->integer('fixed_nights')] : []),
+            ...($safe->has('package_unit') ? ['package_unit' => $this->string('package_unit')->toString()] : []),
+            ...($safe->has('day_use_min_hours') ? ['day_use_min_hours' => $this->integer('day_use_min_hours')] : []),
+            ...($safe->has('day_use_max_hours') ? ['day_use_max_hours' => $this->integer('day_use_max_hours')] : []),
+        ];
     }
 
     /**

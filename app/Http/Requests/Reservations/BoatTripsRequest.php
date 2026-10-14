@@ -9,6 +9,7 @@ use App\Models\Property;
 use App\Models\Reservation;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Arr;
 use Illuminate\Validation\Rule;
 use LogicException;
 
@@ -78,8 +79,15 @@ class BoatTripsRequest extends FormRequest
                     continue;
                 }
 
-                $change[$direction->value] = is_array($row[$direction->value])
-                    ? BoatTripData::fromInput($row[$direction->value], $direction)
+                $trip = $row[$direction->value];
+
+                $change[$direction->value] = is_array($trip)
+                    ? BoatTripData::fromInput([
+                        'mode' => Arr::string($trip, 'mode'),
+                        'boat_departure_id' => $trip['boat_departure_id'] ?? null,
+                        'time' => $trip['time'] ?? null,
+                        'note' => $trip['note'] ?? null,
+                    ], $direction)
                     : null;
             }
 

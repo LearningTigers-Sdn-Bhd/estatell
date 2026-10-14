@@ -50,12 +50,12 @@ class FolioLedgerReport implements HasTotals, Report
      */
     public function codeOptions(Property $property): array
     {
-        return TransactionCode::query()
+        return array_values(TransactionCode::query()
             ->where('property_id', $property->id)
             ->orderBy('code')
             ->get(['code', 'name'])
             ->map(fn (TransactionCode $code): array => ['value' => $code->code, 'label' => "{$code->code} · {$code->name}"])
-            ->all();
+            ->all());
     }
 
     /**

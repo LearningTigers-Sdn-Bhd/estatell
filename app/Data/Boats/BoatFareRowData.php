@@ -48,10 +48,9 @@ class BoatFareRowData extends Data
     public static function fromModel(ChargeItem $chargeItem, int $usedBy, Collection $ageGroups, Currency $currency): self
     {
         $prices = $chargeItem->childPrices->keyBy('property_age_group_id');
-        $childPrices = $ageGroups
+        $childPrices = array_values($ageGroups
             ->map(fn (PropertyAgeGroup $ageGroup): ChargeItemChildPriceData => ChargeItemChildPriceData::forAgeGroup($chargeItem, $ageGroup, $prices->get($ageGroup->id)))
-            ->values()
-            ->all();
+            ->all());
 
         return new self(
             id: $chargeItem->id,
@@ -67,7 +66,7 @@ class BoatFareRowData extends Data
                 ->map(fn (Tax $tax): ChargeItemTaxData => ChargeItemTaxData::fromModel($tax))
                 ->values()
                 ->all()),
-            childPrices: array_values($childPrices),
+            childPrices: $childPrices,
         );
     }
 

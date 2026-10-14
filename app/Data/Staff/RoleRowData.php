@@ -34,7 +34,7 @@ class RoleRowData extends Data
             isDefault: $role->default_role !== null,
             isLocked: $role->default_role === DefaultRoleEnum::Owner,
             staffCount: (int) $role->getAttribute('users_count'),
-            permissions: $role->permissions->pluck('name')->sort()->values()->all(),
+            permissions: array_values($role->permissions->pluck('name')->sort()->all()),
         );
     }
 }
