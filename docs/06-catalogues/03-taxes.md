@@ -37,6 +37,7 @@ Names and short codes are unique within a property, ignoring case. A custom tax 
 - Tax lines are children of the charge line (`parent_line_id`). Reversing a charge reverses its taxes.
 - `collect_at_check_in` (default false) marks a tax that staff ask for when a guest checks in. It does not change posting: the tax is still a child line of each night's room line. It decides which taxes the [check-in form](../18-front-desk/01-check-in-and-check-out.md#collect-now) adds up as one amount to collect. The tax form has a **Collect at check-in** switch.
 - Malaysia presets are seeded disabled and apply to all five room revenue codes: 8% exclusive Service Tax for all guests and RM10 exclusive Tourism tax per room-night for foreign guests, with **Collect at check-in** on. The owner confirms them in onboarding.
+- Properties outside Malaysia get no tax presets. They add their own taxes. "Foreign guests only" compares the guest's nationality with the property's country.
 
 ## Lessons from wastays
 

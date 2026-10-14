@@ -66,6 +66,7 @@ Everything that creates a property or lets support in, for admins and partners. 
 
 ### 17 Onboarding
 
+- [ ] `feat(property): support any country with country profiles` — `CountryProfile`, `MalaysiaProfile`, `GenericProfile`, `CountryProfiles`, seeders take the profile, `Currency` with every active ISO 4217 code (no 3-decimal codes) and `decimals()`, frontend money reads `decimals`, the country, currency and time zone fields on Basics, `SettingsLock` after the first Basics save, foreign-only taxes against the property country. Docs: [Seed property defaults](02-property/03-seed-property-defaults.md#country-profiles).
 - [ ] `feat(onboarding): add the onboarding layout and fence` — the onboarding layout (phase bar, stepper, fixed footer), `OnboardingPhase`, `OnboardingStep`, `StepCheck`, `OnboardingProgress`, `StepForm`, `live` on every PMS route file, `onboarding.only`, the staff waiting page, Basics in the new layout. Docs: [Wizard steps](17-onboarding/02-wizard-steps.md#build-order).
 - [ ] `feat(onboarding): add the rooms sections` — Room types and Rooms. Needs: layout and fence. Docs: [Wizard steps](17-onboarding/02-wizard-steps.md#phases-and-sections).
 - [ ] `feat(onboarding): add the finance sections` — Taxes, Room revenue, Payment methods. Needs: layout and fence. Docs: [Wizard steps](17-onboarding/02-wizard-steps.md#phases-and-sections).

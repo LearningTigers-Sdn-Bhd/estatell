@@ -73,7 +73,7 @@ Key clauses the guest ticks one by one before signing. They live in the terms ma
 
 ## Rules
 
-- Property creation seeds one "Standard" default document, version 1, in English and Bahasa Malaysia, from the preset for the property type. `SeedRegistrationTerms` is idempotent. A migration back-fills existing properties.
+- Property creation seeds one "Standard" default document, version 1, in English and Bahasa Malaysia, from the preset for the property type. `SeedRegistrationTerms` is idempotent. A migration back-fills existing properties. Properties outside Malaysia get the English text only, without the tourism tax and PDPA items ([Country profiles](../02-property/03-seed-property-defaults.md#country-profiles)).
 - Versions are never deleted or edited. Signed cards reference them.
 - Publishing text that is the same as the latest version of that language is refused.
 - A document is deleted only when it is not the default and no room type uses it. The signing flow adds a refusal for signed cards.

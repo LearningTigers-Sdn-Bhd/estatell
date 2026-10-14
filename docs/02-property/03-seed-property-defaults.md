@@ -6,9 +6,42 @@ A new property should work immediately. `SeedPropertyDefaults` creates sensible 
 
 ## Built first slice
 
-`SeedPropertyDefaults(Property $property, PropertyType $type, string $countryCode)` creates the default roles, property settings, [transaction codes](../06-catalogues/01-transaction-codes.md), [payment methods](../06-catalogues/04-payment-methods.md) and [taxes](../06-catalogues/03-taxes.md). Malaysia is the only supported country. Every property type currently shares the same Malaysia preset.
+`SeedPropertyDefaults(Property $property, PropertyType $type, string $countryCode)` creates the default roles, property settings, [transaction codes](../06-catalogues/01-transaction-codes.md), [payment methods](../06-catalogues/04-payment-methods.md) and [taxes](../06-catalogues/03-taxes.md). The presets come from the property's [country profile](#country-profiles). Every property type currently shares the same preset.
 
-`SavePropertyBasics` saves type, name and address, fixes country to Malaysia, and calls `SeedPropertyDefaults` in the same transaction. The action is idempotent. A repeated Basics save keeps edited settings, roles and permissions.
+`SavePropertyBasics` saves type, name, country, address, currency and time zone, and calls `SeedPropertyDefaults` in the same transaction. The action is idempotent. A repeated Basics save keeps edited settings, roles and permissions.
+
+## Country profiles
+
+A strategy class per country replaces the `$countryCode !== 'MY'` checks in the seeders. `CountryProfiles::for(string $countryCode)` returns `MalaysiaProfile` for `MY` and `GenericProfile` for every other country. The seeders take the profile and never throw for a country.
+
+| Area                                                                 | `MalaysiaProfile`                  | `GenericProfile`                                                                                               |
+| -------------------------------------------------------------------- | ---------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| Currency                                                             | MYR, fixed                         | Prefilled from the country (ICU, for example `en_TH` → THB). The owner can change it.                          |
+| Time zone                                                            | `Asia/Kuala_Lumpur`, fixed         | The country's zones (`DateTimeZone::PER_COUNTRY`). Prefilled when there is one, picked when there are several. |
+| Locale                                                               | English, Bahasa Malaysia available | English                                                                                                        |
+| State                                                                | Malaysian state list               | Free text                                                                                                      |
+| Taxes                                                                | SST and Tourism tax presets        | None                                                                                                           |
+| Payment methods                                                      | The six system methods             | Cash, Card and Bank transfer                                                                                   |
+| Transaction codes, charge items, discounts, age groups, meal periods | Malaysian presets                  | Neutral presets: same structure, no Malaysia-specific names                                                    |
+| Identity document types                                              | MyKad and others                   | Passport and national ID                                                                                       |
+| Terms                                                                | English and Bahasa Malaysia        | English                                                                                                        |
+
+- Country options come from `App\Services\Guests\CountryOptions`, with Malaysia first. Basics prefills Malaysia.
+- "Foreign guests only" on a tax means a nationality other than the property's country.
+- Country, currency and time zone lock after the first Basics save, because the presets are seeded then. Basics shows them read-only with "Wrong country? Contact support". See [Property settings](02-property-settings.md).
+
+## Currencies
+
+`Currency` lists every active ISO 4217 currency from ICU (`ICUDATA-curr`), without historical codes.
+
+| Rule            | Detail                                                                                                                                                                               |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Label           | ICU display name and code, for example "Thai baht (THB)"                                                                                                                             |
+| `decimals()`    | ICU fraction digits. 0-decimal currencies (JPY, KRW, VND, …) enter and show whole amounts and store `.00`.                                                                           |
+| 3-decimal codes | BHD, IQD, JOD, KWD, LYD, OMR and TND are left out. Money columns store 2 decimals.                                                                                                   |
+| Amount in words | `wordsName()` is the ICU name ("Ringgit Malaysia" for MYR). `minorUnitWords()` has a short map (sen, cents, satang, centavos, …). Other currencies write the minor part as "50/100". |
+
+The frontend reads `decimals` from the shared currency prop instead of a fixed 2.
 
 ## Call sites
 
@@ -30,9 +63,9 @@ Roles are the exception during self sign-up: `SeedDefaultRoles` runs when the pr
 | Roles                 | Owner, Manager, FrontDesk, Housekeeping, Finance (already seeded)                                                                      | `DefaultRoleEnum`                                      |
 | Meal periods          | Breakfast, Lunch, Dinner                                                                                                               | `DefaultMealPeriod`                                    |
 | Transaction codes     | The complete Malaysia system-code catalogue (already seeded)                                                                           | `SystemTransactionCode`                                |
-| Taxes                 | 8% SST and RM10 Tourism tax on room revenue, disabled until confirmed                                                                  | `SeedTaxes`                                            |
-| Payment methods       | Six system methods; Cash, Card, Bank transfer and E-wallet start active                                                                | `SeedPaymentMethods`                                   |
-| Settings              | Currency, time zone, locale, check-in and check-out times (built), weekend nights FriSat                                               | Country and type                                       |
+| Taxes                 | Malaysia: 8% SST and RM10 Tourism tax on room revenue, disabled until confirmed. Other countries: none.                                | `SeedTaxes`                                            |
+| Payment methods       | Malaysia: six system methods; Cash, Card, Bank transfer and E-wallet start active. Other countries: Cash, Card, Bank transfer.         | `SeedPaymentMethods`                                   |
+| Settings              | Currency, time zone, locale, check-in and check-out times (built), weekend nights FriSat                                               | Country profile and type                               |
 | Room revenue policies | Four rows (no-show, cancellation, early departure, late check-out), all Free, with a short default text in English and Bahasa Malaysia | `SeedRoomRevenuePolicies`                              |
 | Rate plan             | "Basic Rate", an ordinary plan with no prices yet. PerRoom, linked to room-sold room types.                                            | `SeedRatePlans`                                        |
 | Age groups            | Infant 0–3, Child 4–11 (adults from 12)                                                                                                | [Age groups](04-age-groups.md)                         |
