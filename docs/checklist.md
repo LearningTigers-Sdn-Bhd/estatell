@@ -4,7 +4,7 @@ The build plan as a list of commits, in build order. Any agent (Claude Code, Cod
 
 ## How to use
 
-1. Take the **first open item** in **Now**, then **Next**, then **Later**, whose "Needs" items are all done. Do not skip ahead unless the user says so.
+1. Take the **first open item** in **Now**, then **Next**, then **Later**, whose "Needs" items are all done. Do not skip ahead unless the user says so. OpenCode takes items only from **OpenCode**; other agents skip that section.
 2. Read `AGENTS.md`, `.ai/rules/index.md` and the matching rule files, then the linked doc. The doc is the spec. If the doc and the code disagree, stop and ask.
 3. Propose an overview first. Write code only after the user approves.
 4. One item is one commit. Use the commit subject as written. The `commit-msg` hook enforces `type(scope): summary`, 72 characters or fewer, and no trailing period.
@@ -117,7 +117,24 @@ Needed for go-live.
 - [ ] `feat(reservations): preview the price in the Add unit Sheet` — reuse the booking form quote route. Docs: [Reservations list and reservation page](12-reservations/06-reservation-page.md#header).
 - [ ] `feat(rates): override the early departure policy per rate plan` — `rate_plans.early_departure_policy` becomes an optional override that follows the property by default. Needs: room revenue policies. Docs: [Rate plans](08-rates/01-rate-plans.md), [Room revenue](06-catalogues/06-room-revenue.md#policies).
 - [ ] `perf(reservations): build scheduled rows once on the folio tab` — the `money` prop (`BookingSummary`, added in `6730a71`) runs on every reservation tab and adds about 25 queries. On the folio tab it also builds `ScheduledFolioRows` a second time after `FolioStatement`, so the tab runs 63 queries (was under 30). Build the scheduled rows once in `renderTab`, pass them to `BookingSummary` and `FolioStatement`, and lower the `FolioTabTest` cap again. The card and PDF must keep the same numbers. Plan first: whether `money` should stay on every tab, be deferred with a skeleton, or read lighter totals. Docs: [Reservation page](12-reservations/06-reservation-page.md#header), [Booking summary](12-reservations/08-booking-summary.md).
-- [ ] `feat(ui): add the command palette` — ⌘K search across contexts; admin search by code, name, city, with "View as owner" and "View as owner and open" on a property result (`PropertyPolicy::viewAs`, same view-as page and POST). Docs: [Search patterns](design-system/07-search-patterns.md), [Impersonation](01-platform/04-impersonation.md#entry-points).
+- [ ] `feat(platform): redirect the root URL to sign-in` — the app runs at `app.estatell.com` and the landing page is a separate site, so `/` sends guests to login and signed-in users to their home; remove the starter `welcome.tsx` and its Register link; record the domain in `docs/routing.md`. Docs: [Routing](routing.md).
+
+## OpenCode
+
+Low-risk items for OpenCode: presentation, copy and small features with a spec. They do not touch money, the ledger or the onboarding chain, so they can run next to Claude and Codex work.
+
+Brief for every item: read `AGENTS.md`, `.ai/rules/index.md`, the matching rule files and `DESIGN.md`. Do not add dependencies. One item is one commit on main. Run `npm run check`, `npx tsc --noEmit` and `npm run build`; run `vendor/bin/pint --format agent` and the narrow Pest tests when PHP changes.
+
+- [ ] `feat(mail): add the branded email layout` — publish the `laravel-mail` views and theme them with the estatell logo, `DESIGN.md` colours and a footer with the property name. Covers the existing mail notifications and the Fortify reset and verify emails. Check each email at `/mailbox`. Docs: [Notification types](04-notifications/01-notification-types.md).
+- [ ] `docs(mail): tidy subject lines and email copy` — subjects, greetings and button labels of the mail notifications in `app/Notifications`, in plain English. Copy only, no logic changes. Needs: branded email layout.
+- [ ] `feat(ui): add error pages` — 403, 404, 419 ("Page expired, refresh"), 500 and 503 (maintenance) through Inertia v3 custom exception handling in `bootstrap/app.php` and one errors page. Keep `shouldRenderJsonWhen` as it is.
+- [ ] `style(auth): polish the sign-in pages` — login, forgot and reset password, two-factor challenge, set password, owner setup and verify email. Styling and layout only.
+- [ ] `style(pdf): visual pass on printed documents` — fonts, spacing and header alignment in `resources/views/pdf`. Do not change any number, total, query or data passed to the views. Docs: [Accessibility, performance and PDFs](design-system/11-accessibility-performance-pdfs.md).
+- [ ] `feat(reports): add the activity log page` — the Audit item in the Reports sidebar, reading the existing activity log, scoped by property. Review closely. Docs: [App shell](design-system/09-app-shell.md).
+- [ ] `feat(ui): add the command palette` — ⌘K search across contexts; admin search by code, name, city, with "View as owner" and "View as owner and open" on a property result (`PropertyPolicy::viewAs`, same view-as page and POST). Review the view-as part closely. Docs: [Search patterns](design-system/07-search-patterns.md), [Impersonation](01-platform/04-impersonation.md#entry-points).
+- [ ] `style(ui): add the estatell favicon and app icons` — replace `favicon.ico`, `favicon.svg`, `icon.png` and `apple-touch-icon.png` in `public/`. Needs: the logo file from the user.
+- [ ] `chore(ui): block search indexing` — `Disallow: /` in `robots.txt` and a `noindex` meta tag in `app.blade.php`.
+- [ ] `style(housekeeping): mobile pass on the room status board` — the board, bulk bar and status dropdown at 375px wide. Layout only; the board works the same. Docs: [Print, export and layout](19-housekeeping/02-print-and-layout.md).
 
 ## Later
 
@@ -144,9 +161,13 @@ Planned after print customer documents (done). Plan first, with the official MyI
 
 ### Registration and platform
 
-- [ ] `feat(reports): add the activity log page` — the Audit item in the Reports sidebar, reading the existing activity log, scoped by property. Docs: [App shell](design-system/09-app-shell.md).
 - [ ] `feat(registration): sign the card remotely` — `SendRegistrationCardLink`, signed `/g` routes on the step 1b guest screen, ID upload, a QR code of the link on the staff page (the QR package is chosen and approved at this step). Docs: [Signing flow](16-registration/04-signing-flow.md).
 - [ ] Parked: `feat(registration): pair a signing tablet` — pairing code, Send to tablet, polling idle screen, per-property switch. Docs: [Signing tablet (parked)](16-registration/04-signing-flow.md#signing-tablet-parked).
+
+### Translations and accessibility
+
+- [ ] `feat(i18n): fill the Malay translations` — list the UI strings missing from `lang/ms.json` and draft the Malay. A Malay speaker reviews the wording before it ships.
+- [ ] `docs(ui): audit accessibility on the main pages` — labels, focus, contrast and keyboard use in Sheets and Dialogs. A findings list only, no code changes; the user picks the fixes.
 
 ### WIP: not planned yet
 
