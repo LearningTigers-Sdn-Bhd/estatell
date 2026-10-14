@@ -59,6 +59,10 @@ All existing emails use the shared stationery layout in `resources/views/vendor/
 - Support access emails show session details, optional notes and money corrections. They have no action button.
 - Password reset and verification emails use the same layout. Their subjects, expiry rules and links stay unchanged.
 
+Email copy uses short sentences and sentence-case button labels. Invitations use “Hello,” and “Accept invitation”. Owner setup uses a named greeting and “Set up your account”.
+
+Night audit subjects name the business date and result. Their button says “View night audit”. The night audit exception subject also serves as its in-app title. Support email subjects name the property and state that the session ended.
+
 Preview all nine existing email types in the mailbox before signing off the visual review. Rendering tests cover HTML, plain text, footer scope, escaping and authentication links.
 
 ## Viewing mail in development

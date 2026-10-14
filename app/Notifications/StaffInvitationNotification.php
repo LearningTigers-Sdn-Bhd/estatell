@@ -33,14 +33,15 @@ class StaffInvitationNotification extends Notification implements ShouldQueue
         $invitation = $this->invitation->loadMissing('property', 'role', 'inviter');
 
         return (new MailMessage)
-            ->markdown('notifications::email', ['mailTitle' => __('You’re invited to :property', ['property' => $invitation->property->name]), 'propertyName' => $invitation->property->name, 'mailDetails' => [__('Your role') => $invitation->role->name]])
+            ->markdown('notifications::email', ['mailTitle' => __('You are invited to join :property', ['property' => $invitation->property->name]), 'propertyName' => $invitation->property->name, 'mailDetails' => [__('Your role') => $invitation->role->name]])
             ->subject(__('Join :property on :app', ['property' => $invitation->property->name, 'app' => config('app.name')]))
+            ->greeting(__('Hello,'))
             ->line(__(':inviter invited you to join :property as :role.', [
                 'inviter' => $invitation->inviter?->name ?? __('The property owner'),
                 'property' => $invitation->property->name,
                 'role' => $invitation->role->name,
             ]))
             ->action(__('Accept invitation'), route('invitations.show', $this->token))
-            ->line(__('This link expires on :date.', ['date' => $invitation->expires_at->toDayDateTimeString()]));
+            ->line(__('Your invitation link expires on :date.', ['date' => $invitation->expires_at->toDayDateTimeString()]));
     }
 }

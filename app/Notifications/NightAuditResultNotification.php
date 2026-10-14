@@ -29,9 +29,9 @@ abstract class NightAuditResultNotification extends PropertyNotification
         $mail = (new MailMessage)->subject($this->subject($summary));
         $mail->markdown('notifications::email', [
             'mailTitle' => match ($this->type) {
-                NotificationType::NightAuditFailed => __('Audit stopped'),
+                NotificationType::NightAuditFailed => __('Night audit failed'),
                 NotificationType::NightAuditExceptions => trans_choice(':count exception to review|:count exceptions to review', $summary->exceptions->count(), ['count' => $summary->exceptions->count()]),
-                default => __('Completed'),
+                default => __('Night audit completed'),
             },
             'mailEyebrow' => __('Night audit').' · '.$summary->businessDate->toFormattedDateString(),
             'propertyName' => $this->audit->property->name,
@@ -45,7 +45,7 @@ abstract class NightAuditResultNotification extends PropertyNotification
             $mail->line($line);
         }
 
-        return $mail->action(__('Open the night audit'), $this->url());
+        return $mail->action(__('View night audit'), $this->url());
     }
 
     /**
@@ -87,12 +87,12 @@ abstract class NightAuditResultNotification extends PropertyNotification
         }
 
         return [
-            __('Occupancy :occupancy%. ADR :adr. RevPAR :revpar.', [
+            __('Occupancy: :occupancy%. ADR: :adr. RevPAR: :revpar.', [
                 'occupancy' => $statistics->occupancy,
                 'adr' => $this->money($summary, $statistics->adr),
                 'revpar' => $this->money($summary, $statistics->revpar),
             ]),
-            __(':arrivals arrivals, :departures departures, :noShows no-shows, :guests guests in house.', [
+            __('Arrivals: :arrivals. Departures: :departures. No-shows: :noShows. In-house guests: :guests.', [
                 'arrivals' => $statistics->arrivals,
                 'departures' => $statistics->departures,
                 'noShows' => $statistics->no_shows,
@@ -157,7 +157,7 @@ abstract class NightAuditResultNotification extends PropertyNotification
         $advice = app(ReadinessAdvice::class);
 
         return [
-            __('To review:'),
+            __('Exceptions to review:'),
             ...$summary->exceptions->map(fn ($exception): string => '- '.($exception->reservationUnit?->reservation->reference ?? __('Property')).': '.$exception->type->label().'. '.$advice->reason($exception->message))->all(),
         ];
     }

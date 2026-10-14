@@ -18,7 +18,7 @@ class NightAuditExceptions extends NightAuditResultNotification
 
     protected function subject(AuditSummary $summary): string
     {
-        return trans_choice(':count exception to review after the night audit for :date|:count exceptions to review after the night audit for :date', $summary->exceptions->count(), [
+        return trans_choice('Night audit for :date: :count exception to review|Night audit for :date: :count exceptions to review', $summary->exceptions->count(), [
             'date' => $summary->businessDate->toFormattedDateString(),
         ]);
     }

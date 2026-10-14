@@ -29,14 +29,14 @@ class SupportAccessUsed extends PropertyNotification
     {
         $mail = (new MailMessage)
             ->markdown('notifications::email', [
-                'mailTitle' => __('Support session at :property', ['property' => $notifiable->property->name]),
+                'mailTitle' => __('Support session ended at :property', ['property' => $notifiable->property->name]),
                 'propertyName' => $notifiable->property->name,
                 'supportWho' => $this->who(),
                 'mailDetails' => [__('Started') => $this->startedAt->toDayDateTimeString(), __('Duration') => __(':minutes min.', ['minutes' => $this->minutes]), __('Reason') => $this->reason],
                 'supportNote' => $this->note,
                 'supportCorrections' => array_map($this->moneyLine(...), $this->moneyCorrections),
             ])
-            ->subject($this->title())
+            ->subject(__('Support session ended at :property', ['property' => $notifiable->property->name]))
             ->line($this->who())
             ->line(__('Started :time.', ['time' => $this->startedAt->toDayDateTimeString()]))
             ->line(__('Reason: :reason.', ['reason' => $this->reason]))

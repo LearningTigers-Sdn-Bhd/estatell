@@ -33,14 +33,15 @@ class PartnerInvitationNotification extends Notification implements ShouldQueue
         $invitation = $this->invitation->loadMissing('partner', 'inviter');
 
         return (new MailMessage)
-            ->markdown('notifications::email', ['mailTitle' => __('Bring properties to estatell.'), 'mailDetails' => [__('Partner') => $invitation->partner->name]])
+            ->markdown('notifications::email', ['mailTitle' => __('You are invited to join as a partner'), 'mailDetails' => [__('Partner') => $invitation->partner->name]])
             ->subject(__('Join :app as a partner', ['app' => config('app.name')]))
-            ->line(__(':inviter invited you to bring properties to :app as :partner.', [
+            ->greeting(__('Hello,'))
+            ->line(__(':inviter invited you to join :app as a partner for :partner.', [
                 'inviter' => $invitation->inviter?->name ?? __('estatell support'),
                 'app' => config('app.name'),
                 'partner' => $invitation->partner->name,
             ]))
             ->action(__('Accept invitation'), route('partner-invitations.show', $this->token))
-            ->line(__('This link expires on :date.', ['date' => $invitation->expires_at->toDayDateTimeString()]));
+            ->line(__('Your invitation link expires on :date.', ['date' => $invitation->expires_at->toDayDateTimeString()]));
     }
 }

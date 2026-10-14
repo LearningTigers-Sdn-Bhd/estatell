@@ -189,7 +189,7 @@ test('the message carries the figures, revenue, payments, meals and exceptions o
     $array = (new NightAuditExceptions($audit))->toArray($owner);
 
     expect($mailText)->toContain('Occupancy', '62.50%', 'MYR 180.00', 'MYR 112.50')
-        ->toContain('3 arrivals', '1 no-shows', '9 guests in house')
+        ->toContain('Arrivals: 3', 'No-shows: 1', 'In-house guests: 9')
         ->toContain('Room revenue MYR 900.00', 'Laundry MYR 35.50')
         ->not->toContain('777.00')
         ->toContain('Cash MYR 350.00', 'Card MYR 300.00', 'Refunds MYR 20.00')

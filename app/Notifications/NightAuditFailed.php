@@ -27,9 +27,9 @@ class NightAuditFailed extends NightAuditResultNotification
         $step = $this->audit->steps()->where('status', AuditStepStatus::Failed->value)->orderByDesc('id')->first();
 
         return [
-            __('The audit stopped at the step ":step".', ['step' => $step?->step->label() ?? __('Unknown')]),
+            __('The night audit stopped at ":step".', ['step' => $step?->step->label() ?? __('Unknown')]),
             __('Error: :error', ['error' => $step?->error_message ?? __('Unknown')]),
-            __('The date is still open. Run the audit again to resume at this step. Nothing is posted twice.'),
+            __('The business date is still open. Run the night audit again to resume at this step. Nothing is posted twice.'),
         ];
     }
 }
