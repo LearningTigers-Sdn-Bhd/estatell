@@ -32,6 +32,7 @@ export default function ViewAsShow({
     reasons,
     reason: initialReason,
     to,
+    blockedTo,
     opens,
     consent,
     cancelUrl,
@@ -42,6 +43,7 @@ export default function ViewAsShow({
     reasons: Reason[];
     reason: string;
     to: string | null;
+    blockedTo: boolean;
     opens: string;
     consent: boolean;
     cancelUrl: string;
@@ -103,6 +105,33 @@ export default function ViewAsShow({
                                                 <TriangleAlert className="size-4 shrink-0 text-warning" />
                                                 {blocked}
                                             </p>
+                                        )}
+
+                                        {blockedTo && (
+                                            <div
+                                                role="alert"
+                                                className="flex flex-col items-start gap-3 rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-sm"
+                                            >
+                                                <p className="flex items-center gap-2">
+                                                    <TriangleAlert className="size-4 shrink-0 text-warning" />
+                                                    {
+                                                        "This page isn't available during support access"
+                                                    }
+                                                </p>
+                                                <Button
+                                                    type="submit"
+                                                    variant="outline"
+                                                    size="sm"
+                                                    disabled={
+                                                        processing ||
+                                                        !!blocked ||
+                                                        !chosen
+                                                    }
+                                                    focusableWhenDisabled
+                                                >
+                                                    Open dashboard instead
+                                                </Button>
+                                            </div>
                                         )}
 
                                         <Field data-invalid={!!errors.user}>

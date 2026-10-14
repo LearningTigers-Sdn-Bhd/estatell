@@ -36,6 +36,7 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { useUnsavedChanges } from '@/hooks/use-unsaved-changes';
+import { useIsImpersonating } from '@/hooks/use-is-impersonating';
 import {
     create as bulkCreate,
     store as bulkStore,
@@ -133,6 +134,7 @@ export default function StaffBulkAdd({
     maxRows: number;
     exportFormats: EnumOption[];
 }) {
+    const impersonating = useIsImpersonating();
     const form = useForm<{ rows: Row[] }>({ rows: [emptyRow()] });
     const upload = useHttp<{ file: File | null }, { rows: ImportedRow[] }>(
         importRoute(),
@@ -217,6 +219,23 @@ export default function StaffBulkAdd({
         (form.errors as Record<string, string | undefined>)[
             `rows.${index}.${field}`
         ];
+
+    if (impersonating) {
+        return (
+            <>
+                <Head title="Bulk add staff" />
+                <div className="flex flex-1 flex-col gap-6 p-4">
+                    <PageHeader
+                        title="Bulk add staff"
+                        back={{ href: index(), label: 'Staff' }}
+                    />
+                    <p className="text-sm text-muted-foreground">
+                        Not available during support access.
+                    </p>
+                </div>
+            </>
+        );
+    }
 
     if (added !== null) {
         return (

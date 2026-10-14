@@ -31,6 +31,7 @@ import {
 } from '@/components/ui/input-group';
 import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
+import { useIsImpersonating } from '@/hooks/use-is-impersonating';
 import {
     index as reservationsIndex,
     guests as reservationGuests,
@@ -301,6 +302,7 @@ export default function RegistrationCardPage({
     countries: EnumOption[];
 }) {
     const [voiding, setVoiding] = useState(false);
+    const impersonating = useIsImpersonating();
 
     return (
         <>
@@ -318,7 +320,7 @@ export default function RegistrationCardPage({
                     badge={<StatusBadge status={card.status} />}
                     actions={
                         <>
-                            {card.canVoid && (
+                            {card.canVoid && !impersonating && (
                                 <Button
                                     type="button"
                                     variant="outline"

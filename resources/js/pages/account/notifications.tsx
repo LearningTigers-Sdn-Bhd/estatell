@@ -6,6 +6,7 @@ import {
     preferenceKey,
     updatePreferenceMatrix,
 } from '@/components/pms/notification-preference-matrix';
+import { useIsImpersonating } from '@/hooks/use-is-impersonating';
 import { edit, update } from '@/routes/account/notifications';
 
 type Preference = App.Data.Notifications.NotificationPreferenceData;
@@ -17,6 +18,7 @@ export default function AccountNotifications({
     preferences: Preference[];
 }) {
     const [pending, setPending] = useState<Set<string>>(new Set());
+    const impersonating = useIsImpersonating();
 
     const toggle = (
         type: Preference['type'],
@@ -60,11 +62,17 @@ export default function AccountNotifications({
                     title="Notifications"
                     description="Choose how you receive notifications for your property."
                 />
-                <NotificationPreferenceMatrix
-                    preferences={preferences}
-                    pending={pending}
-                    onChange={toggle}
-                />
+                {impersonating ? (
+                    <p className="text-sm text-muted-foreground">
+                        Not available during support access.
+                    </p>
+                ) : (
+                    <NotificationPreferenceMatrix
+                        preferences={preferences}
+                        pending={pending}
+                        onChange={toggle}
+                    />
+                )}
             </div>
         </>
     );

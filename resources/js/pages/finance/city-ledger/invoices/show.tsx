@@ -27,6 +27,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { useIsImpersonating } from '@/hooks/use-is-impersonating';
 import { cn } from '@/lib/utils';
 import { show as showCompany } from '@/routes/finance/city-ledger/companies';
 import {
@@ -108,6 +109,7 @@ export default function InvoiceShow({
     currency: App.Enums.Currency | null;
     openCreditNote: boolean;
 }) {
+    const impersonating = useIsImpersonating();
     const {
         crediting,
         setCrediting,
@@ -163,7 +165,7 @@ export default function InvoiceShow({
                                 <Printer data-icon="inline-start" />
                                 Download PDF
                             </a>
-                            {invoice.canCreditNote && (
+                            {invoice.canCreditNote && !impersonating && (
                                 <Button
                                     variant="outline"
                                     onClick={() => setCrediting(true)}
@@ -172,7 +174,7 @@ export default function InvoiceShow({
                                     Issue credit note
                                 </Button>
                             )}
-                            {invoice.canVoid && (
+                            {invoice.canVoid && !impersonating && (
                                 <VoidAction invoice={invoice} />
                             )}
                         </>
@@ -334,17 +336,20 @@ export default function InvoiceShow({
                                                 )}
                                             </TableCell>
                                             <TableCell>
-                                                {allocation.canReverse && (
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        onClick={() =>
-                                                            reverse(allocation)
-                                                        }
-                                                    >
-                                                        Reverse
-                                                    </Button>
-                                                )}
+                                                {allocation.canReverse &&
+                                                    !impersonating && (
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            onClick={() =>
+                                                                reverse(
+                                                                    allocation,
+                                                                )
+                                                            }
+                                                        >
+                                                            Reverse
+                                                        </Button>
+                                                    )}
                                             </TableCell>
                                         </TableRow>
                                     ))}
@@ -397,7 +402,7 @@ export default function InvoiceShow({
                 currency={currency}
             />
 
-            {invoice.canCreditNote && (
+            {invoice.canCreditNote && !impersonating && (
                 <IssueCreditNoteDialog
                     open={crediting}
                     onOpenChange={setCrediting}

@@ -15,9 +15,15 @@ import {
     DialogTrigger,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import { useIsImpersonating } from '@/hooks/use-is-impersonating';
 
 export default function DeleteUser() {
     const passwordInput = useRef<HTMLInputElement>(null);
+    const impersonating = useIsImpersonating();
+
+    if (impersonating) {
+        return null;
+    }
 
     return (
         <div className="space-y-6">

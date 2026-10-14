@@ -28,6 +28,7 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
+import { useIsImpersonating } from '@/hooks/use-is-impersonating';
 import { edit as basicsEdit } from '@/routes/onboarding/basics';
 import {
     ageGroups as ageGroupsTab,
@@ -76,6 +77,7 @@ export default function PropertySettings({
     mealPeriods?: App.Data.Meals.MealPeriodData[];
     maxMealPeriods?: number;
 }) {
+    const impersonating = useIsImpersonating();
     if (!settings) {
         return (
             <>
@@ -376,24 +378,29 @@ export default function PropertySettings({
                             maxPeriods={maxMealPeriods}
                         />
                     )}
-                    {tab === 'support' && (
-                        <SettingsSection
-                            form={form('support')}
-                            title="Support access"
-                            description="Control whether platform support may view this property when that feature is available."
-                            contentClassName=""
-                        >
-                            {(errors) => (
-                                <SettingsSwitch
-                                    name="allow_support_access"
-                                    label="Allow platform support access"
-                                    description="On: platform support can view this property as its owner to help you. Off: support cannot open this property."
-                                    checked={settings.allowSupportAccess}
-                                    error={errors.allow_support_access}
-                                />
-                            )}
-                        </SettingsSection>
-                    )}
+                    {tab === 'support' &&
+                        (impersonating ? (
+                            <p className="text-sm text-muted-foreground">
+                                Not available during support access.
+                            </p>
+                        ) : (
+                            <SettingsSection
+                                form={form('support')}
+                                title="Support access"
+                                description="Control whether platform support may view this property when that feature is available."
+                                contentClassName=""
+                            >
+                                {(errors) => (
+                                    <SettingsSwitch
+                                        name="allow_support_access"
+                                        label="Allow platform support access"
+                                        description="On: platform support can view this property as its owner to help you. Off: support cannot open this property."
+                                        checked={settings.allowSupportAccess}
+                                        error={errors.allow_support_access}
+                                    />
+                                )}
+                            </SettingsSection>
+                        ))}
                 </TabLinks>
             </div>
         </>

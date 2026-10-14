@@ -39,6 +39,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { useIsImpersonating } from '@/hooks/use-is-impersonating';
 import {
     receipt,
     voidMethod,
@@ -68,6 +69,7 @@ export function ArPaymentsTab({
     const [recording, setRecording] = useState(false);
     const [allocating, setAllocating] = useState<Payment | null>(null);
     const [voiding, setVoiding] = useState<Payment | null>(null);
+    const impersonating = useIsImpersonating();
 
     return (
         <section className="flex flex-col gap-4">
@@ -187,17 +189,20 @@ export function ArPaymentsTab({
                                                     <Printer />
                                                     Receipt
                                                 </DropdownMenuItem>
-                                                {payment.canVoid && (
-                                                    <DropdownMenuItem
-                                                        variant="destructive"
-                                                        onClick={() =>
-                                                            setVoiding(payment)
-                                                        }
-                                                    >
-                                                        <Ban />
-                                                        Void
-                                                    </DropdownMenuItem>
-                                                )}
+                                                {payment.canVoid &&
+                                                    !impersonating && (
+                                                        <DropdownMenuItem
+                                                            variant="destructive"
+                                                            onClick={() =>
+                                                                setVoiding(
+                                                                    payment,
+                                                                )
+                                                            }
+                                                        >
+                                                            <Ban />
+                                                            Void
+                                                        </DropdownMenuItem>
+                                                    )}
                                             </DropdownMenuContent>
                                         </DropdownMenu>
                                     </TableCell>

@@ -6,6 +6,7 @@ import { EmptyState } from '@/components/pms/empty-state';
 import { DocumentSheet } from '@/components/pms/guests/document-sheet';
 import type { DocumentFormOptions } from '@/components/pms/guests/document-sheet';
 import { StatusBadge } from '@/components/pms/status-badge';
+import { useIsImpersonating } from '@/hooks/use-is-impersonating';
 import {
     AlertDialog,
     AlertDialogCancel,
@@ -36,6 +37,7 @@ function RevealNumber({
     document: Document;
 }) {
     const [number, setNumber] = useState<string | null>(null);
+    const impersonating = useIsImpersonating();
     const http = useHttp<Record<string, never>, { number: string }>(
         'post',
         reveal.url({ guest: guest.id, document: document.id }),
@@ -48,26 +50,28 @@ function RevealNumber({
                 {number ?? document.maskedNumber}
             </span>
             {number === null ? (
-                <Button
-                    type="button"
-                    size="xs"
-                    variant="outline"
-                    disabled={http.processing}
-                    focusableWhenDisabled
-                    aria-label={`Reveal ${document.typeLabel} number`}
-                    onClick={() =>
-                        http
-                            .submit()
-                            .then((response) => setNumber(response.number))
-                    }
-                >
-                    {http.processing ? (
-                        <Spinner data-icon="inline-start" />
-                    ) : (
-                        <Eye data-icon="inline-start" />
-                    )}
-                    Reveal
-                </Button>
+                impersonating ? null : (
+                    <Button
+                        type="button"
+                        size="xs"
+                        variant="outline"
+                        disabled={http.processing}
+                        focusableWhenDisabled
+                        aria-label={`Reveal ${document.typeLabel} number`}
+                        onClick={() =>
+                            http
+                                .submit()
+                                .then((response) => setNumber(response.number))
+                        }
+                    >
+                        {http.processing ? (
+                            <Spinner data-icon="inline-start" />
+                        ) : (
+                            <Eye data-icon="inline-start" />
+                        )}
+                        Reveal
+                    </Button>
+                )
             ) : (
                 <Button
                     type="button"
@@ -181,6 +185,7 @@ export function DocumentsTab({
     const [sheetOpen, setSheetOpen] = useState(false);
     const [editing, setEditing] = useState<Document | null>(null);
     const canManage = formOptions !== null;
+    const impersonating = useIsImpersonating();
 
     const openSheet = (document: Document | null) => {
         setEditing(document);
@@ -276,14 +281,15 @@ export function DocumentsTab({
                                     )}
                                 </p>
                                 <div className="flex flex-wrap items-center gap-2">
-                                    {document.hasFrontScan && (
-                                        <ScanLink
-                                            guest={guest}
-                                            document={document}
-                                            side="front"
-                                        />
-                                    )}
-                                    {document.hasBackScan && (
+                                    {document.hasFrontScan &&
+                                        !impersonating && (
+                                            <ScanLink
+                                                guest={guest}
+                                                document={document}
+                                                side="front"
+                                            />
+                                        )}
+                                    {document.hasBackScan && !impersonating && (
                                         <ScanLink
                                             guest={guest}
                                             document={document}
@@ -298,16 +304,18 @@ export function DocumentsTab({
                                         )}
                                     {canManage && (
                                         <span className="ms-auto flex gap-2">
-                                            <Button
-                                                size="sm"
-                                                variant="outline"
-                                                onClick={() =>
-                                                    openSheet(document)
-                                                }
-                                            >
-                                                <Pencil data-icon="inline-start" />
-                                                Edit
-                                            </Button>
+                                            {!impersonating && (
+                                                <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    onClick={() =>
+                                                        openSheet(document)
+                                                    }
+                                                >
+                                                    <Pencil data-icon="inline-start" />
+                                                    Edit
+                                                </Button>
+                                            )}
                                             <RemoveDocument
                                                 guest={guest}
                                                 document={document}

@@ -62,6 +62,7 @@ import {
     TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { KEEP_OPTIONS } from '@/components/pms/use-form-options';
+import { useIsImpersonating } from '@/hooks/use-is-impersonating';
 import { show as showArInvoice } from '@/routes/finance/city-ledger/invoices';
 import { move as moveCharges } from '@/routes/reservations/folio';
 import { invoice, reopen } from '@/routes/reservations/folios';
@@ -124,6 +125,7 @@ export function FolioTab({
     onCorrectPrice?: (row: App.Data.Folio.FolioRowData) => void;
     currency: App.Enums.Currency | null;
 }) {
+    const impersonating = useIsImpersonating();
     const [loadingCredit, setLoadingCredit] = useState(false);
     const [loadingVoid, setLoadingVoid] = useState(false);
     const creditFlow = useCreditNoteFlow(false, (done) =>
@@ -255,19 +257,21 @@ export function FolioTab({
     return (
         <div className="flex flex-col gap-4">
             {routingOverlays}
-            {folio.canVoidAndReopen && folio.arInvoiceNumber && (
-                <VoidInvoiceAndReopenDialog
-                    reservationId={reservationId}
-                    folioId={Number(folio.key)}
-                    invoiceNumber={folio.arInvoiceNumber}
-                    invoice={creditInvoice}
-                    currency={currency}
-                    open={creditFlow.voiding}
-                    onOpenChange={creditFlow.setVoiding}
-                    onReverse={creditFlow.reverseFromVoid}
-                />
-            )}
-            {folio.canCreditArInvoice && creditInvoice && (
+            {!impersonating &&
+                folio.canVoidAndReopen &&
+                folio.arInvoiceNumber && (
+                    <VoidInvoiceAndReopenDialog
+                        reservationId={reservationId}
+                        folioId={Number(folio.key)}
+                        invoiceNumber={folio.arInvoiceNumber}
+                        invoice={creditInvoice}
+                        currency={currency}
+                        open={creditFlow.voiding}
+                        onOpenChange={creditFlow.setVoiding}
+                        onReverse={creditFlow.reverseFromVoid}
+                    />
+                )}
+            {!impersonating && folio.canCreditArInvoice && creditInvoice && (
                 <IssueCreditNoteDialog
                     open={creditFlow.crediting}
                     onOpenChange={creditFlow.setCrediting}
@@ -276,13 +280,14 @@ export function FolioTab({
                     onReverse={creditFlow.reverseFromCredit}
                 />
             )}
-            {(folio.canCreditArInvoice || folio.canVoidAndReopen) && (
-                <ReverseAllocationDialog
-                    allocation={creditFlow.reversing}
-                    onClose={creditFlow.closeReverse}
-                    currency={currency}
-                />
-            )}
+            {!impersonating &&
+                (folio.canCreditArInvoice || folio.canVoidAndReopen) && (
+                    <ReverseAllocationDialog
+                        allocation={creditFlow.reversing}
+                        onClose={creditFlow.closeReverse}
+                        currency={currency}
+                    />
+                )}
             <div className="flex flex-col gap-4">
                 <div className="flex flex-col gap-4">
                     <div className="flex flex-wrap items-center justify-between gap-2 ps-3 pt-2">
@@ -525,47 +530,55 @@ export function FolioTab({
                                                         Open invoice
                                                     </DropdownMenuItem>
                                                 )}
-                                                {folio.canCreditArInvoice && (
-                                                    <DropdownMenuItem
-                                                        disabled={loadingCredit}
-                                                        onClick={startCredit}
-                                                    >
-                                                        {loadingCredit ? (
-                                                            <Spinner />
-                                                        ) : (
-                                                            <ReceiptText />
-                                                        )}
-                                                        Issue credit note
-                                                    </DropdownMenuItem>
-                                                )}
-                                                {folio.canVoidAndReopen && (
-                                                    <>
-                                                        <DropdownMenuSeparator />
+                                                {folio.canCreditArInvoice &&
+                                                    !impersonating && (
                                                         <DropdownMenuItem
                                                             disabled={
-                                                                loadingVoid
+                                                                loadingCredit
                                                             }
-                                                            onClick={startVoid}
+                                                            onClick={
+                                                                startCredit
+                                                            }
                                                         >
-                                                            {loadingVoid ? (
+                                                            {loadingCredit ? (
                                                                 <Spinner />
                                                             ) : (
-                                                                <LockOpen />
+                                                                <ReceiptText />
                                                             )}
-                                                            <span className="flex flex-col">
-                                                                Void invoice and
-                                                                reopen
-                                                                {folio.voidInvoiceBlockedBy && (
-                                                                    <span className="text-xs text-muted-foreground">
-                                                                        {
-                                                                            folio.voidInvoiceBlockedBy
-                                                                        }
-                                                                    </span>
-                                                                )}
-                                                            </span>
+                                                            Issue credit note
                                                         </DropdownMenuItem>
-                                                    </>
-                                                )}
+                                                    )}
+                                                {folio.canVoidAndReopen &&
+                                                    !impersonating && (
+                                                        <>
+                                                            <DropdownMenuSeparator />
+                                                            <DropdownMenuItem
+                                                                disabled={
+                                                                    loadingVoid
+                                                                }
+                                                                onClick={
+                                                                    startVoid
+                                                                }
+                                                            >
+                                                                {loadingVoid ? (
+                                                                    <Spinner />
+                                                                ) : (
+                                                                    <LockOpen />
+                                                                )}
+                                                                <span className="flex flex-col">
+                                                                    Void invoice
+                                                                    and reopen
+                                                                    {folio.voidInvoiceBlockedBy && (
+                                                                        <span className="text-xs text-muted-foreground">
+                                                                            {
+                                                                                folio.voidInvoiceBlockedBy
+                                                                            }
+                                                                        </span>
+                                                                    )}
+                                                                </span>
+                                                            </DropdownMenuItem>
+                                                        </>
+                                                    )}
                                             </DropdownMenuContent>
                                         </DropdownMenu>
                                     ) : (

@@ -69,6 +69,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { useIsImpersonating } from '@/hooks/use-is-impersonating';
 import {
     deactivate,
     deactivated,
@@ -921,6 +922,9 @@ export default function StaffIndex({
     invitations?: Invitation[];
 }) {
     const [messageUserIds, setMessageUserIds] = useState<number[] | null>(null);
+    const impersonating = useIsImpersonating();
+    // Support access cannot add, change or message staff, so the write controls are not rendered.
+    const canManageStaff = canManage && !impersonating;
 
     return (
         <>
@@ -931,7 +935,7 @@ export default function StaffIndex({
                     title="Staff"
                     description="People who can sign in to this property."
                     actions={
-                        canManage && (
+                        canManageStaff && (
                             <AddStaffMenu
                                 roles={roles}
                                 onShowMessage={setMessageUserIds}
@@ -969,24 +973,27 @@ export default function StaffIndex({
                         <ActiveStaff
                             staff={staff}
                             roles={roles}
-                            canManage={canManage}
+                            canManage={canManageStaff}
                             exportFormats={exportFormats}
                             onShowMessage={setMessageUserIds}
                         />
                     )}
                     {tab === 'deactivated' && (
-                        <DeactivatedStaff staff={staff} canManage={canManage} />
+                        <DeactivatedStaff
+                            staff={staff}
+                            canManage={canManageStaff}
+                        />
                     )}
                     {tab === 'invited' && (
                         <Invitations
                             invitations={invitations}
-                            canManage={canManage}
+                            canManage={canManageStaff}
                         />
                     )}
                 </TabLinks>
             </div>
 
-            {canManage && (
+            {canManageStaff && (
                 <TemporaryPasswordMessageDialog
                     route={message()}
                     userIds={messageUserIds ?? []}

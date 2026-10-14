@@ -110,7 +110,7 @@ While impersonating, every page shows a banner that cannot be dismissed:
 
 ### Blocked during impersonation
 
-The `BlockDuringImpersonation` middleware (alias `block.impersonation`) denies these routes, and the UI hides them:
+The `BlockDuringImpersonation` middleware (alias `block.impersonation`) denies these routes, and the UI hides them. The middleware runs in the web group, not on the routes, so the Fortify routes the vendor registers are covered too. The list lives in `Impersonation::isBlockedRoute()`:
 
 | Blocked                         | Route or place                                                                                                                                                                                                                                                  |
 | ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -207,7 +207,7 @@ Then set, from the resolved property:
 
 - View-as page: a small full-screen page with the form above, in the admin layout for admins and the partner layout for partners. It is a page (not a Dialog) because it must work from a pasted URL.
 - Banner: shared Inertia prop `impersonation` (`ImpersonationData`: support user name, partner name or null, user name and role, property name and code, minutes left, stop URL). A partner session reads "… · Pulau Inn (AS10101) · via Andaman Stays · 28 min left". Uses the `warning` status token.
-- Blocked actions are hidden using the same prop.
+- Blocked actions are hidden using the same prop, read through `useIsImpersonating()` (`resources/js/hooks/use-is-impersonating.ts`). Where a whole page is a write form (bulk add staff, notification preferences, the support tab), the page shows one line, "Not available during support access", instead of the form.
 
 ## Build choice
 

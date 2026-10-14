@@ -26,6 +26,48 @@ class Impersonation
     public const int LIMIT_MINUTES = 30;
 
     /**
+     * Route names denied during support access, for any method. Fortify's two-factor and password-confirm routes are
+     * listed by name because the vendor registers them. `two-factor.login` stays open, because it is the sign-in step.
+     *
+     * @var list<string>
+     */
+    private const array BLOCKED_ROUTES = [
+        'account.password.update',
+        'account.security.*',
+        'account.sessions.destroy',
+        'account.set-password.*',
+        'account.profile.destroy',
+        'account.notifications.update',
+        'two-factor.enable',
+        'two-factor.confirm',
+        'two-factor.disable',
+        'two-factor.qr-code',
+        'two-factor.secret-key',
+        'two-factor.recovery-codes',
+        'two-factor.regenerate-recovery-codes',
+        'password.confirm',
+        'password.confirm.store',
+        'guests.documents.scan',
+        'guests.documents.reveal',
+        'reservations.folios.payments.refunds.store',
+        'reservations.folios.void-invoice-and-reopen',
+        'registration.void',
+        'finance.city-ledger.*.void',
+        'finance.city-ledger.invoices.credit-notes.store',
+        'finance.city-ledger.companies.payments.allocations.reverse',
+        'onboarding.go-live.store',
+    ];
+
+    /**
+     * Route names denied for every method except GET and HEAD, so the staff lists stay readable.
+     *
+     * @var list<string>
+     */
+    private const array BLOCKED_NON_GET_ROUTES = [
+        'settings.staff.*',
+    ];
+
+    /**
      * Whether the signed-in user is a staff user being viewed by a support user.
      */
     public function isActive(): bool
@@ -145,12 +187,39 @@ class Impersonation
     }
 
     /**
+     * Whether a route is denied during support access. `$method` matters only for the staff settings routes, where
+     * GET and HEAD stay open.
+     */
+    public function isBlockedRoute(string $routeName, string $method = 'GET'): bool
+    {
+        if (Str::is(self::BLOCKED_ROUTES, $routeName)) {
+            return true;
+        }
+
+        return ! in_array(Str::upper($method), ['GET', 'HEAD'], true) && Str::is(self::BLOCKED_NON_GET_ROUTES, $routeName);
+    }
+
+    /**
+     * Whether `to` is a relative path to a route that is blocked during support access, so the view-as page can warn.
+     */
+    public function isBlockedPath(string $to): bool
+    {
+        if (! $this->isRelativePath($to)) {
+            return false;
+        }
+
+        $route = $this->matchRoute($to);
+
+        return $route !== null && $route->getName() !== null && $this->isBlockedRoute($route->getName());
+    }
+
+    /**
      * Whether `to` may be opened for this property: a relative path (never a full URL), a real staff route, with the
      * property's own code, that is not blocked during support access.
      */
     public function accepts(Property $property, string $to): bool
     {
-        if (! str_starts_with($to, '/') || str_starts_with($to, '//') || str_contains($to, '\\')) {
+        if (! $this->isRelativePath($to)) {
             return false;
         }
 
@@ -159,15 +228,12 @@ class Impersonation
         return $route !== null
             && str_starts_with($route->uri(), 'p/{property')
             && Str::upper((string) $route->parameter('property')) === $property->code
-            && ! $this->isBlocked($route);
+            && ($route->getName() === null || ! $this->isBlockedRoute($route->getName()));
     }
 
-    /**
-     * Routes denied during support access. Nothing is blocked until the BlockDuringImpersonation commit.
-     */
-    private function isBlocked(Route $route): bool
+    private function isRelativePath(string $to): bool
     {
-        return false;
+        return str_starts_with($to, '/') && ! str_starts_with($to, '//') && ! str_contains($to, '\\');
     }
 
     private function matchRoute(string $path): ?Route

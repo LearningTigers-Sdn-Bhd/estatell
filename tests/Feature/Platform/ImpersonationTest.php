@@ -473,3 +473,77 @@ test('an admin is told an unknown code was not found, and a partner gets a 404',
     $this->actingAs($this->owner)->get('/view-as/ZZ99999')->assertNotFound();
     $this->actingAs($this->admin)->post('/view-as/ZZ99999')->assertNotFound();
 });
+
+test('a blocked write during a session is refused with a toast and changes nothing', function () {
+    $this->actingAs($this->admin)->post(route('view-as.store', 'ES10142'), viewAsInput($this->owner))->assertRedirect();
+
+    $this->delete(route('account.profile.destroy'), ['password' => 'password'])
+        ->assertRedirect()
+        ->assertInertiaFlash('toast', ['type' => 'error', 'message' => 'Not available during support access']);
+
+    expect(User::query()->whereKey($this->owner->id)->exists())->toBeTrue();
+});
+
+test('a blocked page still opens outside a session', function () {
+    $this->actingAs($this->owner)->get(route('password.confirm'))->assertOk();
+});
+
+test('a Fortify two-factor route is refused during a session', function () {
+    $this->actingAs($this->admin)->post(route('view-as.store', 'ES10142'), viewAsInput($this->owner))->assertRedirect();
+
+    $this->post(route('two-factor.enable'))
+        ->assertRedirect()
+        ->assertInertiaFlash('toast', ['type' => 'error', 'message' => 'Not available during support access']);
+
+    expect($this->owner->fresh()->two_factor_secret)->toBeNull();
+});
+
+test('staff writes are refused during a session while the staff list still opens', function () {
+    $this->actingAs($this->admin)->post(route('view-as.store', 'ES10142'), viewAsInput($this->owner))->assertRedirect();
+    $usersBefore = User::query()->count();
+
+    $this->post(route('settings.staff.store', 'ES10142'), [])
+        ->assertRedirect()
+        ->assertInertiaFlash('toast', ['type' => 'error', 'message' => 'Not available during support access']);
+
+    expect(User::query()->count())->toBe($usersBefore);
+
+    $this->get(route('settings.staff.index', 'ES10142'))->assertOk();
+});
+
+test('the support access section is refused during a session and other sections still save', function () {
+    PropertySetting::factory()->for($this->property)->create();
+    $this->actingAs($this->admin)->post(route('view-as.store', 'ES10142'), viewAsInput($this->owner))->assertRedirect();
+
+    $this->put(route('settings.update', ['ES10142', 'support']), ['allow_support_access' => '0'])->assertForbidden();
+
+    $this->put(route('settings.update', ['ES10142', 'general']), [
+        'currency' => 'MYR',
+        'time_zone' => 'Asia/Kuala_Lumpur',
+        'default_locale' => 'ms',
+        'check_in_time' => '14:00',
+        'check_out_time' => '12:00',
+        'arrival_grace_minutes' => 30,
+        'auto_assign_rooms' => 'on',
+    ])->assertRedirect()->assertSessionHasNoErrors();
+
+    expect($this->property->settings()->first()->allow_support_access)->toBeTrue();
+});
+
+test('the view-as page warns about a blocked page and opens the dashboard instead', function () {
+    $blockedPath = route('guests.documents.scan', ['property' => 'ES10142', 'guest' => 1, 'document' => 1, 'scan' => 'front'], absolute: false);
+
+    $this->actingAs($this->admin)
+        ->get(route('view-as.show', ['property' => 'ES10142', 'to' => $blockedPath]))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('view-as/show')
+            ->where('blockedTo', true)
+            ->where('to', null)
+            ->where('opens', route('dashboard', 'ES10142', absolute: false))
+        );
+
+    $this->actingAs($this->admin)
+        ->post(route('view-as.store', 'ES10142'), viewAsInput($this->owner))
+        ->assertRedirect(route('dashboard', 'ES10142', absolute: false));
+});

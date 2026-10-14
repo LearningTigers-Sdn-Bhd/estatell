@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/card';
 import { Field, FieldError, FieldLabel } from '@/components/ui/field';
 import { Spinner } from '@/components/ui/spinner';
+import { useIsImpersonating } from '@/hooks/use-is-impersonating';
 import { show as goLiveShow } from '@/routes/onboarding/go-live';
 
 export default function GoLive({
@@ -32,6 +33,7 @@ export default function GoLive({
     today: string;
 }) {
     const [openingDate, setOpeningDate] = useState(today);
+    const impersonating = useIsImpersonating();
 
     return (
         <>
@@ -112,22 +114,24 @@ export default function GoLive({
                                         </FieldError>
                                     </Field>
                                 </CardContent>
-                                <CardFooter className="justify-end">
-                                    <Button
-                                        type="submit"
-                                        disabled={
-                                            processing ||
-                                            !ready ||
-                                            openingDate === ''
-                                        }
-                                        focusableWhenDisabled
-                                    >
-                                        {processing && <Spinner />}
-                                        {requiresApproval
-                                            ? 'Submit for approval'
-                                            : 'Go live'}
-                                    </Button>
-                                </CardFooter>
+                                {!impersonating && (
+                                    <CardFooter className="justify-end">
+                                        <Button
+                                            type="submit"
+                                            disabled={
+                                                processing ||
+                                                !ready ||
+                                                openingDate === ''
+                                            }
+                                            focusableWhenDisabled
+                                        >
+                                            {processing && <Spinner />}
+                                            {requiresApproval
+                                                ? 'Submit for approval'
+                                                : 'Go live'}
+                                        </Button>
+                                    </CardFooter>
+                                )}
                             </Card>
                         )}
                     </Form>

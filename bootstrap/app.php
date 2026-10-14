@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\BlockDuringImpersonation;
 use App\Http\Middleware\EndExpiredImpersonationSession;
 use App\Http\Middleware\EnsureBoatsIsActive;
 use App\Http\Middleware\EnsureEmailIsVerified;
@@ -30,6 +31,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->redirectUsersTo(fn (Request $request): string => $request->user()?->is_admin ? route('admin.dashboard') : route('home.redirect'));
 
         $middleware->alias([
+            'block.impersonation' => BlockDuringImpersonation::class,
             'support.2fa' => RequireSupportTwoFactor::class,
             'boats' => EnsureBoatsIsActive::class,
             'live' => EnsurePropertyIsLive::class,
@@ -48,6 +50,7 @@ return Application::configure(basePath: dirname(__DIR__))
             HandleAppearance::class,
             HandleInertiaRequests::class,
             EndExpiredImpersonationSession::class,
+            BlockDuringImpersonation::class,
             AddLinkHeadersForPreloadedAssets::class,
         ]);
     })

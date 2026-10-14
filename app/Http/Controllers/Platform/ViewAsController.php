@@ -45,6 +45,7 @@ class ViewAsController extends Controller
             'reasons' => ImpersonationReason::options(),
             'reason' => ImpersonationReason::fromLink($request->string('reason')->toString())->value,
             'to' => $to !== null && $impersonation->accepts($property, $to) ? $to : null,
+            'blockedTo' => $to !== null && $impersonation->isBlockedPath($to),
             'opens' => $impersonation->destination($property, $to),
             'consent' => $property->settings?->allow_support_access ?? true,
             'cancelUrl' => $this->cancelUrl($request, $property, $impersonation),

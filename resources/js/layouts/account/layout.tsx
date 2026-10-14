@@ -3,6 +3,7 @@ import type { PropsWithChildren } from 'react';
 import { buttonVariants } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { useCurrentUrl } from '@/hooks/use-current-url';
+import { useIsImpersonating } from '@/hooks/use-is-impersonating';
 import { cn, toUrl } from '@/lib/utils';
 import { edit as editAppearance } from '@/routes/account/appearance';
 import { edit as editNotifications } from '@/routes/account/notifications';
@@ -31,16 +32,20 @@ const baseSidebarNavItems: NavItem[] = [
 export default function AccountLayout({ children }: PropsWithChildren) {
     const { isCurrentOrParentUrl } = useCurrentUrl();
     const { property } = usePage().props;
+    const impersonating = useIsImpersonating();
+    const accountNavItems = impersonating
+        ? baseSidebarNavItems.filter((item) => item.title !== 'Security')
+        : baseSidebarNavItems;
     const sidebarNavItems = property
         ? [
-              ...baseSidebarNavItems,
+              ...accountNavItems,
               {
                   title: 'Notifications',
                   href: editNotifications(),
                   icon: null,
               },
           ]
-        : baseSidebarNavItems;
+        : accountNavItems;
 
     return (
         <div className="px-4 py-6">

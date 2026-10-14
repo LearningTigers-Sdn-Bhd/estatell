@@ -8,6 +8,7 @@ use App\Enums\MissedArrivalPolicy;
 use App\Enums\OverdueDeparturePolicy;
 use App\Enums\WeekendNights;
 use App\Models\Property;
+use App\Services\Platform\Impersonation;
 use App\Services\Property\SettingsLock;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -16,11 +17,12 @@ use Illuminate\Validation\Rule;
 class UpdatePropertySettingsRequest extends FormRequest
 {
     /**
-     * Determine if the user is authorized to make this request.
+     * Determine if the user is authorized to make this request. A support user viewing the property as its staff may
+     * not change the owner's support access setting.
      */
-    public function authorize(): bool
+    public function authorize(Impersonation $impersonation): bool
     {
-        return true;
+        return $this->route('section') !== 'support' || ! $impersonation->isActive();
     }
 
     protected function prepareForValidation(): void
