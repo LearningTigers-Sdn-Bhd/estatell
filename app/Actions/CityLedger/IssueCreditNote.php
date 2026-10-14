@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Services\CityLedger\ArInvoiceBalance;
 use App\Services\NightAudit\CurrentBusinessDate;
 use App\Services\NightAudit\NextDocumentNumber;
+use Brick\Math\BigDecimal;
 use Illuminate\Support\Facades\DB;
 
 class IssueCreditNote
@@ -36,7 +37,7 @@ class IssueCreditNote
                 return ArInvoiceResult::refused(ArInvoiceResult::REFUSAL_NOT_AN_OPEN_INVOICE);
             }
 
-            if (! preg_match('/^\d+(\.\d{1,2})?$/', $amount) || bccomp($amount, '0', 2) <= 0) {
+            if (! preg_match('/^\d+(\.\d{1,2})?$/', $amount) || BigDecimal::of($amount)->isNegativeOrZero()) {
                 return ArInvoiceResult::refused(ArInvoiceResult::REFUSAL_AMOUNT_INVALID);
             }
 
@@ -46,7 +47,7 @@ class IssueCreditNote
 
             $balance = $this->arInvoiceBalance->forInvoice($locked);
 
-            if (bccomp($amount, $balance, 2) > 0) {
+            if (BigDecimal::of($amount)->isGreaterThan($balance)) {
                 return ArInvoiceResult::refused(ArInvoiceResult::REFUSAL_CREDIT_EXCEEDS_BALANCE);
             }
 
@@ -62,7 +63,7 @@ class IssueCreditNote
                 'type' => ArInvoiceType::CreditNote,
                 'number' => ($this->nextDocumentNumber)($locked->property, DocumentType::CreditNote)->reference,
                 'issued_on' => $businessDate,
-                'amount' => '-'.bcadd($amount, '0', 2),
+                'amount' => (string) BigDecimal::of($amount)->negated()->toScale(2),
                 'reason' => trim($reason),
                 'status' => ArInvoiceStatus::Settled,
                 'created_by' => $actor->id,
@@ -70,7 +71,7 @@ class IssueCreditNote
             $note->property_id = $locked->property_id;
             $note->save();
 
-            if (bccomp($this->arInvoiceBalance->forInvoice($locked), '0', 2) === 0) {
+            if (BigDecimal::of($this->arInvoiceBalance->forInvoice($locked))->isZero()) {
                 $locked->update(['status' => ArInvoiceStatus::Settled]);
             }
 

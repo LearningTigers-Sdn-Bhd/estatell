@@ -8,6 +8,7 @@ use App\Models\ArAllocation;
 use App\Models\ArInvoice;
 use App\Models\User;
 use App\Services\CityLedger\ArInvoiceBalance;
+use Brick\Math\BigDecimal;
 use Illuminate\Support\Facades\DB;
 
 class VoidArInvoice
@@ -41,7 +42,7 @@ class VoidArInvoice
             if ($isCreditNote) {
                 $parent = ArInvoice::query()->lockForUpdate()->findOrFail($locked->credit_for_invoice_id);
 
-                if ($parent->status === ArInvoiceStatus::Settled && bccomp($this->arInvoiceBalance->forInvoice($parent), '0', 2) > 0) {
+                if ($parent->status === ArInvoiceStatus::Settled && BigDecimal::of($this->arInvoiceBalance->forInvoice($parent))->isPositive()) {
                     $parent->update(['status' => ArInvoiceStatus::Open]);
                 }
             }

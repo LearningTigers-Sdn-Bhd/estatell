@@ -16,6 +16,7 @@ use App\Services\Folio\FolioBalance;
 use App\Services\Folio\IncomingScheduledCharges;
 use App\Services\Folio\InHouseUnits;
 use App\Services\NightAudit\CurrentBusinessDate;
+use Brick\Math\BigDecimal;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
 
@@ -81,7 +82,7 @@ class SettleToCityLedger
 
             $balance = $this->folioBalance->forFolio($locked);
 
-            if (bccomp($balance, '0', 2) <= 0) {
+            if (BigDecimal::of($balance)->isNegativeOrZero()) {
                 return ArInvoiceResult::refused(ArInvoiceResult::REFUSAL_NOTHING_TO_SETTLE);
             }
 

@@ -10,6 +10,7 @@ use App\Models\ArPayment;
 use App\Models\User;
 use App\Services\CityLedger\ArInvoiceBalance;
 use App\Services\CityLedger\ArPaymentBalance;
+use Brick\Math\BigDecimal;
 use Illuminate\Support\Facades\DB;
 
 class AllocateArPayment
@@ -43,7 +44,7 @@ class AllocateArPayment
 
             ksort($amounts);
             $invoices = ArInvoice::query()->whereIn('id', array_keys($amounts))->orderBy('id')->lockForUpdate()->get()->keyBy('id');
-            $total = '0.00';
+            $total = BigDecimal::zero();
 
             foreach ($amounts as $invoiceId => $amount) {
                 $invoice = $invoices->get($invoiceId);
@@ -56,18 +57,18 @@ class AllocateArPayment
                     return ArPaymentResult::refused(ArPaymentResult::REFUSAL_INVOICE_NOT_ALLOCATABLE);
                 }
 
-                if (! preg_match('/^\d+(\.\d{1,2})?$/', (string) $amount) || bccomp((string) $amount, '0', 2) <= 0) {
+                if (! preg_match('/^\d+(\.\d{1,2})?$/', (string) $amount) || BigDecimal::of((string) $amount)->isNegativeOrZero()) {
                     return ArPaymentResult::refused(ArPaymentResult::REFUSAL_AMOUNT_INVALID);
                 }
 
-                if (bccomp((string) $amount, $this->arInvoiceBalance->forInvoice($invoice), 2) > 0) {
+                if (BigDecimal::of((string) $amount)->isGreaterThan($this->arInvoiceBalance->forInvoice($invoice))) {
                     return ArPaymentResult::refused(ArPaymentResult::REFUSAL_EXCEEDS_INVOICE_BALANCE);
                 }
 
-                $total = bcadd($total, (string) $amount, 2);
+                $total = $total->plus((string) $amount);
             }
 
-            if (bccomp($total, $this->arPaymentBalance->unallocated($locked), 2) > 0) {
+            if ($total->isGreaterThan($this->arPaymentBalance->unallocated($locked))) {
                 return ArPaymentResult::refused(ArPaymentResult::REFUSAL_EXCEEDS_UNALLOCATED);
             }
 
@@ -77,7 +78,7 @@ class AllocateArPayment
                 $allocation = new ArAllocation([
                     'ar_payment_id' => $locked->id,
                     'ar_invoice_id' => $invoiceId,
-                    'amount' => bcadd((string) $amount, '0', 2),
+                    'amount' => (string) BigDecimal::of((string) $amount)->toScale(2),
                     'created_by' => $actor->id,
                 ]);
                 $allocation->save();

@@ -6,6 +6,7 @@ use App\Enums\ArInvoiceStatus;
 use App\Enums\ArInvoiceType;
 use App\Models\ArInvoice;
 use App\Services\CityLedger\ArInvoiceBalance;
+use Brick\Math\BigDecimal;
 
 class SyncArInvoiceStatus
 {
@@ -21,7 +22,7 @@ class SyncArInvoiceStatus
             return;
         }
 
-        $status = bccomp($this->arInvoiceBalance->forInvoice($invoice), '0', 2) > 0 ? ArInvoiceStatus::Open : ArInvoiceStatus::Settled;
+        $status = BigDecimal::of($this->arInvoiceBalance->forInvoice($invoice))->isPositive() ? ArInvoiceStatus::Open : ArInvoiceStatus::Settled;
 
         if ($invoice->status !== $status) {
             $invoice->update(['status' => $status]);

@@ -11,6 +11,7 @@ use App\Models\PaymentMethod;
 use App\Models\User;
 use App\Services\NightAudit\CurrentBusinessDate;
 use App\Services\NightAudit\NextDocumentNumber;
+use Brick\Math\BigDecimal;
 use Illuminate\Support\Facades\DB;
 
 class RecordArPayment
@@ -60,7 +61,7 @@ class RecordArPayment
                 return ArPaymentResult::refused(ArPaymentResult::REFUSAL_METHOD_NOT_AVAILABLE);
             }
 
-            if (! preg_match('/^\d+(\.\d{1,2})?$/', $data->amount) || bccomp($data->amount, '0', 2) <= 0) {
+            if (! preg_match('/^\d+(\.\d{1,2})?$/', $data->amount) || BigDecimal::of($data->amount)->isNegativeOrZero()) {
                 return ArPaymentResult::refused(ArPaymentResult::REFUSAL_AMOUNT_INVALID);
             }
 
@@ -79,7 +80,7 @@ class RecordArPayment
             $payment = new ArPayment([
                 'company_id' => $locked->id,
                 'payment_method_id' => $method->id,
-                'amount' => bcadd($data->amount, '0', 2),
+                'amount' => (string) BigDecimal::of($data->amount)->toScale(2),
                 'received_on' => $receivedOn,
                 'reference' => $reference,
                 'notes' => filled($data->notes) ? trim((string) $data->notes) : null,

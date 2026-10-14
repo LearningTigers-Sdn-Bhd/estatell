@@ -9,6 +9,7 @@ use App\Models\ArPayment;
 use App\Models\User;
 use App\Services\CityLedger\ArInvoiceBalance;
 use App\Services\CityLedger\ArPaymentBalance;
+use Brick\Math\BigDecimal;
 use Illuminate\Support\Facades\DB;
 
 class AutoAllocateArPayment
@@ -33,7 +34,7 @@ class AutoAllocateArPayment
                 return ArPaymentResult::refused(ArPaymentResult::REFUSAL_PAYMENT_NOT_ALLOCATABLE);
             }
 
-            $remaining = $this->arPaymentBalance->unallocated($locked);
+            $remaining = BigDecimal::of($this->arPaymentBalance->unallocated($locked));
             $amounts = [];
 
             $invoices = ArInvoice::query()
@@ -47,19 +48,19 @@ class AutoAllocateArPayment
                 ->get();
 
             foreach ($invoices as $invoice) {
-                if (bccomp($remaining, '0', 2) <= 0) {
+                if ($remaining->isNegativeOrZero()) {
                     break;
                 }
 
                 $balance = $this->arInvoiceBalance->forInvoice($invoice);
 
-                if (bccomp($balance, '0', 2) <= 0) {
+                if (BigDecimal::of($balance)->isNegativeOrZero()) {
                     continue;
                 }
 
-                $amount = bccomp($balance, $remaining, 2) <= 0 ? $balance : $remaining;
-                $amounts[$invoice->id] = $amount;
-                $remaining = bcsub($remaining, $amount, 2);
+                $amount = BigDecimal::min($balance, $remaining);
+                $amounts[$invoice->id] = (string) $amount->toScale(2);
+                $remaining = $remaining->minus($amount);
             }
 
             return $amounts === [] ? ArPaymentResult::done($locked) : ($this->allocateArPayment)($actor, $locked, $amounts);
