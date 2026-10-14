@@ -6,6 +6,7 @@ Part of the [design system](../design-system.md). Short contract: [DESIGN.md](..
 
 - Use only the preset's **semantic tokens**: `background`, `foreground`, `card`, `popover`, `primary`, `secondary`, `muted`, `accent`, `destructive`, `border`, `input`, `ring`, the sidebar tokens and the chart tokens.
 - **Status tokens** are added in `resources/css/app.css`: `success`, `warning`, `info`, each with a `-foreground`, in light and dark.
+- **Auth accent**: `auth-accent` is a faint emerald tint for the auth shell's edge gradient, with separate light and dark values. It is decorative, not a text color. Tailwind exposes it through `--color-auth-accent`.
 - **Grid tokens** are added in `resources/css/app.css` for the date grid engine and the calendars built on it. They are named by role, so the hue can change without touching a component:
 
 | Token                                   | Role                                                                         |

@@ -20,7 +20,8 @@ Every screen uses one archetype.
 
 - Auth pages use `AuthSimpleLayout`, a full-width shell with a fixed `100dvh` height and an inner scroll region.
 - Two horizontal and two vertical dashed lines cross near the edges. Their inset is 24px on mobile and 48px from `sm`.
-- A static dot grid uses the `border` token and fades to transparent toward the center. The frame and dots are decorative and ignore pointer events.
+- The dashed frame and static dot grid use `primary` at 30% opacity. The dots fade to transparent toward the center. Both are decorative and ignore pointer events.
+- A faint emerald gradient uses `auth-accent` around the edges and fades to transparent before the form. It adapts to the theme without animation.
 - The shell keeps content inside the frame with 40px padding on mobile and 80px from `sm`.
 - Content has a `max-w-sm` width and centers when space permits. Long forms and short viewports scroll without hiding the first field or final action.
 - The header shows the text wordmark, a Geist heading and a short description. Forms have no card border, shadow or marketing panel.
