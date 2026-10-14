@@ -28,7 +28,10 @@ channel_connections    id, property_id, provider (ChannelProvider), external_pro
 ## Rules
 
 - The Channex API key lives in platform config, not per property.
-- estatell never stores OTA extranet passwords. OTAs are connected inside Channex.
+- All properties use the platform Channex account. Owners do not need their own channel manager.
+- Owners hand over OTA extranet logins in [onboarding](../17-onboarding/02-wizard-steps.md#channel-manager-table). They are stored in `property_ota_credentials`, encrypted, with no feature gate, because nothing connects from that page.
+- Only admins read the logins: **Reveal** needs `support.2fa` and is logged. No code uses them. The team signs in to the OTA inside Channex by hand and marks the row Processed.
+- `channel_connections` may link to a credential row later. The onboarding form does not change.
 
 ## Driver design
 
@@ -46,4 +49,4 @@ channel_connections    id, property_id, provider (ChannelProvider), external_pro
 
 ## Lessons from wastays
 
-`ChannexAdapter` was 1,464 lines. `hotel_ota_credentials` stored OTA usernames and passwords.
+`ChannexAdapter` was 1,464 lines. `hotel_ota_credentials` stored OTA usernames and passwords. estatell keeps the idea as `property_ota_credentials` (hand-over only), but with encryption, a logged reveal and no use in code.

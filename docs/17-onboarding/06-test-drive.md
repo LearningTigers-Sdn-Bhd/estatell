@@ -8,7 +8,7 @@ Let the owner practise a full stay on the real screens before go-live, then fix 
 
 | Part        | Design                                                                                                                         |
 | ----------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| Unlock      | Every required section is Done. Optional section 12 in [Wizard steps](02-wizard-steps.md).                                     |
+| Unlock      | Every required section is Done. Optional section 13 in [Wizard steps](02-wizard-steps.md).                                     |
 | Start       | Opens a practice business date (today, flagged as practice)                                                                    |
 | Pages       | The real reservation, front desk and folio pages, with a fixed practice banner                                                 |
 | Coach marks | 1 Create a booking → 2 Check in → 3 Post a charge → 4 Check out. shadcn `popover`. **Show tips** brings back a dismissed mark. |
