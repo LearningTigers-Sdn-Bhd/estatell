@@ -1,5 +1,7 @@
 <?php
 
+require_once __DIR__.'/Support/BookingSetup.php';
+
 use App\Enums\DefaultRoleEnum;
 use App\Enums\DiscountScope;
 use App\Models\ChargeItem;

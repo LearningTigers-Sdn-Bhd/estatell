@@ -1,5 +1,7 @@
 <?php
 
+require_once __DIR__.'/Support/BookingSetup.php';
+
 use App\Actions\Reservations\AssignRoom;
 use App\Enums\DefaultRoleEnum;
 use App\Models\ChargeItem;

@@ -1,5 +1,7 @@
 <?php
 
+require_once __DIR__.'/Support/BookingSetup.php';
+
 use App\Actions\Folio\CreateFolio;
 use App\Enums\BillingMode;
 use App\Enums\ChargingUnit;
@@ -30,7 +32,6 @@ use App\Models\User;
 use App\Services\Reservations\AutoAddOns;
 use Inertia\Testing\AssertableInertia as Assert;
 use Spatie\Activitylog\Models\Activity;
-use Spatie\Permission\PermissionRegistrar;
 
 beforeEach(function () {
     $this->travelTo(now()->setDate(2026, 10, 10)->setTime(12, 0));
@@ -65,18 +66,6 @@ function actionsSetup(DefaultRoleEnum $role = DefaultRoleEnum::FrontDesk): array
     ]);
 
     return compact('user', 'property', 'reservation', 'unit', 'roomType', 'plan');
-}
-
-/**
- * @param  list<string>  $permissions
- */
-function actionsRoleWith(User $user, array $permissions): void
-{
-    $role = Role::query()->create(['property_id' => $user->property_id, 'name' => 'Custom']);
-    setPermissionsTeamId($user->property_id);
-    $role->givePermissionTo($permissions);
-    $user->syncRoles([$role]);
-    app(PermissionRegistrar::class)->forgetCachedPermissions();
 }
 
 /**

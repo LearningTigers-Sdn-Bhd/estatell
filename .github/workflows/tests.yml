@@ -105,4 +105,4 @@ jobs:
 
       - name: Tests
         if: ${{ !cancelled() && steps.setup.outcome == 'success' }}
-        run: php artisan test
+        run: php artisan test --parallel

@@ -395,7 +395,7 @@ test('the notification follows the owner preferences', function () {
     $notification = new SupportAccessUsed('Sam', null, 'Support', null, now(), 5);
 
     expect($notification->via($this->owner))->toBe(['mail', 'database'])
-        ->and($notification->toMail($this->owner)->subject)->toBe('Support viewed your property')
+        ->and($notification->toMail($this->owner)->subject)->toBe('Support session ended at '.$this->owner->property->name)
         ->and($notification->toArray($this->owner)['minutes'])->toBe(5);
 });
 
