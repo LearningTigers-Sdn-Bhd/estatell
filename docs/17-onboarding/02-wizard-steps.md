@@ -630,13 +630,12 @@ The only onboarding-specific table. It stores skips of optional steps, and the *
 
 ## Build order
 
-1. Onboarding layout, `OnboardingPhase`, `OnboardingStep`, `OnboardingProgress`, `StepForm`, the fence and the waiting page. Basics moves into the new layout.
-2. Rooms phase (2, 3).
-3. Finance phase (4, 5, 6).
-4. Prices phase (7, 8, 9).
-5. Check-in (10) and Team (11).
-6. Review: the readiness list reads the checks.
-7. [Test drive](06-test-drive.md).
+The commits are listed in [Checklist: 17 Onboarding](../checklist.md#17-onboarding). In short:
+
+1. Property foundations: brick/money currencies, country profiles, registered name and licences.
+2. The onboarding layout and fence, then the Basics country and business details.
+3. Sections: Room types and Rooms, Taxes, Payment methods and Companies, Basic rate, Charge items and Discounts, Check-in essentials, Team.
+4. Review and go live, then [Test drive](06-test-drive.md), then Change country after setup started.
 
 ## Lessons from wastays
 
