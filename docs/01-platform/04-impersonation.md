@@ -153,7 +153,7 @@ Support access
 | On     | The actions run. The activity log records the support user as causer, and the owner's notice lists them.                                                                                  |
 | Off    | The routes are denied with the toast "The owner has not allowed refunds and voids during support access". The check-out requests refuse a refund the same way. The UI hides the controls. |
 
-The list lives in `Impersonation::isMoneyCorrectionRoute()`, next to `isBlockedRoute()`, and the same middleware checks it. Folio line reversals (`reservations.folios.lines.reverse`) are not money corrections. They stay allowed, because fixing charges is setup work.
+The list lives in `Impersonation::isMoneyCorrectionRoute()`, next to `isBlockedRoute()`, and the same middleware checks it. At check-out, the refusal is an error on the refund field rather than the toast, so the form says why. The check-out previews leave out the refund, so the forms never offer one, and the folio row's refund action is hidden. A group move of a folio that holds a deposit needs a refund too, so it is refused the same way. Folio line reversals (`reservations.folios.lines.reverse`) are not money corrections. They stay allowed, because fixing charges is setup work.
 
 When e-invoicing (LHDN) arrives, voiding a submitted e-invoice becomes an external step that cannot be undone. Revisit then whether those voids leave this switch and become always blocked.
 

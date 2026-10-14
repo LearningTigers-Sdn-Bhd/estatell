@@ -41,6 +41,7 @@ use App\Services\Folio\RoutingRuleList;
 use App\Services\FrontDesk\GroupCheckOutPreview;
 use App\Services\Guests\CountryOptions;
 use App\Services\Payments\PaymentReceipt;
+use App\Services\Platform\Impersonation;
 use App\Services\Reservations\BookingSummary;
 use App\Services\Reservations\ReservationActivityLog;
 use App\Services\Reservations\ReservationBoatSetup;
@@ -178,7 +179,7 @@ class ReservationController extends Controller
                 'discount' => $request->user()->can(PermissionEnum::FolioDiscount->value),
                 'close' => $request->user()->can(PermissionEnum::FolioClose->value),
                 'recordPayment' => $request->user()->can(PermissionEnum::PaymentRecord->value),
-                'refund' => $request->user()->can(PermissionEnum::PaymentRefund->value),
+                'refund' => app(Impersonation::class)->mayRefund($request->user()),
                 'printVoucher' => $request->user()->can(PermissionEnum::FolioPrintVoucher->value),
                 'settleCityLedger' => $request->user()->can(PermissionEnum::CityLedgerInvoice->value),
                 'changePrice' => $request->user()->can(PermissionEnum::ReservationsChangePrice->value),

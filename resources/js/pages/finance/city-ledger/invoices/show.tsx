@@ -27,7 +27,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import { useIsImpersonating } from '@/hooks/use-is-impersonating';
+import { useCanCorrectMoney } from '@/hooks/use-is-impersonating';
 import { cn } from '@/lib/utils';
 import { show as showCompany } from '@/routes/finance/city-ledger/companies';
 import {
@@ -109,7 +109,7 @@ export default function InvoiceShow({
     currency: App.Enums.Currency | null;
     openCreditNote: boolean;
 }) {
-    const impersonating = useIsImpersonating();
+    const canCorrectMoney = useCanCorrectMoney();
     const {
         crediting,
         setCrediting,
@@ -165,7 +165,7 @@ export default function InvoiceShow({
                                 <Printer data-icon="inline-start" />
                                 Download PDF
                             </a>
-                            {invoice.canCreditNote && !impersonating && (
+                            {invoice.canCreditNote && canCorrectMoney && (
                                 <Button
                                     variant="outline"
                                     onClick={() => setCrediting(true)}
@@ -174,7 +174,7 @@ export default function InvoiceShow({
                                     Issue credit note
                                 </Button>
                             )}
-                            {invoice.canVoid && !impersonating && (
+                            {invoice.canVoid && canCorrectMoney && (
                                 <VoidAction invoice={invoice} />
                             )}
                         </>
@@ -337,7 +337,7 @@ export default function InvoiceShow({
                                             </TableCell>
                                             <TableCell>
                                                 {allocation.canReverse &&
-                                                    !impersonating && (
+                                                    canCorrectMoney && (
                                                         <Button
                                                             variant="ghost"
                                                             size="sm"
@@ -402,7 +402,7 @@ export default function InvoiceShow({
                 currency={currency}
             />
 
-            {invoice.canCreditNote && !impersonating && (
+            {invoice.canCreditNote && canCorrectMoney && (
                 <IssueCreditNoteDialog
                     open={crediting}
                     onOpenChange={setCrediting}

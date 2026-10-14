@@ -19,6 +19,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { useCanCorrectMoney } from '@/hooks/use-is-impersonating';
 import { folio as folioTab } from '@/routes/reservations';
 
 type Row = App.Data.Reservations.GroupCheckOutRowData;
@@ -182,6 +183,7 @@ function GroupCheckOutRow({
     onePaymentOn: boolean;
     error?: string;
 }) {
+    const canCorrectMoney = useCanCorrectMoney();
     const id = `unit-${row.unitId}`;
     const method = methods.find((one) => String(one.id) === state.methodId);
     const canTick = row.selectable && !row.folioClosed;
@@ -379,37 +381,42 @@ function GroupCheckOutRow({
                                             </FieldContent>
                                         </Field>
                                     )}
-                                    {row.choices.includes('refund') && (
-                                        <Field orientation="horizontal">
-                                            <RadioGroupItem
-                                                id={`${id}-refund`}
-                                                value="refund"
-                                            />
-                                            <FieldContent>
-                                                <FieldLabel
-                                                    htmlFor={`${id}-refund`}
-                                                >
-                                                    Refund deposit
-                                                </FieldLabel>
-                                                {choice === 'refund' && (
-                                                    <div className="w-40">
-                                                        <MoneyInput
-                                                            value={
-                                                                state.refundAmount
-                                                            }
-                                                            onChange={(value) =>
-                                                                onChange({
-                                                                    refundAmount:
-                                                                        value,
-                                                                })
-                                                            }
-                                                            currency={currency}
-                                                        />
-                                                    </div>
-                                                )}
-                                            </FieldContent>
-                                        </Field>
-                                    )}
+                                    {row.choices.includes('refund') &&
+                                        canCorrectMoney && (
+                                            <Field orientation="horizontal">
+                                                <RadioGroupItem
+                                                    id={`${id}-refund`}
+                                                    value="refund"
+                                                />
+                                                <FieldContent>
+                                                    <FieldLabel
+                                                        htmlFor={`${id}-refund`}
+                                                    >
+                                                        Refund deposit
+                                                    </FieldLabel>
+                                                    {choice === 'refund' && (
+                                                        <div className="w-40">
+                                                            <MoneyInput
+                                                                value={
+                                                                    state.refundAmount
+                                                                }
+                                                                onChange={(
+                                                                    value,
+                                                                ) =>
+                                                                    onChange({
+                                                                        refundAmount:
+                                                                            value,
+                                                                    })
+                                                                }
+                                                                currency={
+                                                                    currency
+                                                                }
+                                                            />
+                                                        </div>
+                                                    )}
+                                                </FieldContent>
+                                            </Field>
+                                        )}
                                 </RadioGroup>
                             )}
                         </>

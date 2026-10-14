@@ -45,6 +45,7 @@ use App\Services\FrontDesk\UndoCheckInRule;
 use App\Services\FrontDesk\UndoCheckOutRule;
 use App\Services\Guests\CountryOptions;
 use App\Services\NightAudit\CurrentBusinessDate;
+use App\Services\Platform\Impersonation;
 use App\Services\Rates\RateQuoteRequest;
 use App\Services\Rates\RateQuoteService;
 use App\Services\Rates\RestrictionCheck;
@@ -73,6 +74,7 @@ class UnitActionPreview
         private UnitNationality $unitNationality,
         private CreditCheck $creditCheck,
         private CheckInCollection $checkInCollection,
+        private Impersonation $impersonation,
         private CheckOutSettlement $checkOutSettlement,
         private CountryOptions $countryOptions,
         private FreeUnits $freeUnits,
@@ -256,7 +258,7 @@ class UnitActionPreview
      */
     public function checkOut(ReservationUnit $unit, User $user): UnitCheckOutPreviewData
     {
-        $preview = $this->checkOutSettlement->for($unit, $user->can(PermissionEnum::PaymentRefund->value), $user->can(PermissionEnum::PaymentRecord->value), $user->can(PermissionEnum::FolioTransfer->value));
+        $preview = $this->checkOutSettlement->for($unit, $this->impersonation->mayRefund($user), $user->can(PermissionEnum::PaymentRecord->value), $user->can(PermissionEnum::FolioTransfer->value));
         $businessDate = $this->currentBusinessDate->date($unit->property()->firstOrFail());
 
         if ($unit->status !== UnitStatus::CheckedIn || $businessDate === null || $businessDate->toDateString() >= $unit->departure_date->toDateString()) {

@@ -9,6 +9,7 @@ use App\Enums\PermissionEnum;
 use App\Models\Reservation;
 use App\Models\ReservationUnit;
 use App\Services\FrontDesk\CheckOutSettlement;
+use App\Services\Platform\Impersonation;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Collection;
@@ -92,6 +93,8 @@ class CheckOutGroupRequest extends FormRequest
 
                 if ($choice === 'refund' && ! $user->can(PermissionEnum::PaymentRefund->value)) {
                     $validator->errors()->add($key, __('You may not refund payments.'));
+                } elseif ($choice === 'refund' && ! app(Impersonation::class)->canCorrectMoney()) {
+                    $validator->errors()->add($key, __('The owner has not allowed refunds and voids during support access'));
                 }
 
                 if ($choice === 'move' && ! $user->can(PermissionEnum::FolioTransfer->value)) {
@@ -107,6 +110,8 @@ class CheckOutGroupRequest extends FormRequest
 
                     if ($settlement->heldPayments($folios)->isNotEmpty() && ! $user->can(PermissionEnum::PaymentRefund->value)) {
                         $validator->errors()->add($key, __('This room holds payments that must be refunded to move its charges. You may not refund payments.'));
+                    } elseif ($settlement->heldPayments($folios)->isNotEmpty() && ! app(Impersonation::class)->canCorrectMoney()) {
+                        $validator->errors()->add($key, __('The owner has not allowed refunds and voids during support access'));
                     } elseif ($settlement->holdsUnrefundable($folios)) {
                         $validator->errors()->add($key, __('This room holds a payment that cannot be refunded, so its charges cannot move.'));
                     }

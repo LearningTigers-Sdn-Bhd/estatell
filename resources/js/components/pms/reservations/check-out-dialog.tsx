@@ -24,6 +24,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
+import { useCanCorrectMoney } from '@/hooks/use-is-impersonating';
 import { cn } from '@/lib/utils';
 import { folio } from '@/routes/reservations';
 import { move as moveCharges } from '@/routes/reservations/folio';
@@ -122,7 +123,9 @@ function CheckOutForm({
     const balance = Number(preview?.balance ?? 0) + feeOnFolio;
     const owing = Math.max(balance, 0);
     const canCollect = preview?.canCollect === true;
-    const canRefund = preview?.canRefund === true && held > 0;
+    const canCorrectMoney = useCanCorrectMoney();
+    const canRefund =
+        preview?.canRefund === true && held > 0 && canCorrectMoney;
     const deposit = (data.deposit ||
         (owing > 0 ? 'use' : 'refund')) as DepositChoice;
     const refunding = canRefund && deposit === 'refund';
@@ -491,8 +494,9 @@ function CheckOutForm({
                     )}
                     {held > 0 && !preview.canRefund && (
                         <p className="text-sm text-muted-foreground">
-                            A deposit is held. Ask someone who may refund
-                            payments to give it back first.
+                            {canCorrectMoney
+                                ? 'A deposit is held. Ask someone who may refund payments to give it back first.'
+                                : 'A deposit is held. The owner has not allowed refunds during support access.'}
                         </p>
                     )}
                     {collecting && (

@@ -90,6 +90,7 @@ class HandleInertiaRequests extends Middleware
             propertyCode: $user->property->code,
             minutesLeft: $impersonation->remainingMinutes(),
             stopUrl: route('impersonation.stop', absolute: false),
+            canCorrectMoney: $impersonation->canCorrectMoney(),
         );
     }
 

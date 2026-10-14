@@ -198,3 +198,17 @@ test('the ID document retention is blank or at least one day', function () {
     $this->put($url, [...$payload, 'id_document_retention_days' => ''])->assertSessionHasNoErrors();
     expect($settings->refresh()->id_document_retention_days)->toBeNull();
 });
+
+test('the money corrections switch defaults on and saves on the support section', function () {
+    $staff = User::factory()->owner()->create();
+    $property = $staff->property;
+    $settings = PropertySetting::factory()->for($property)->create();
+
+    expect($settings->refresh()->allow_support_money_corrections)->toBeTrue();
+
+    $this->actingAs($staff)->put(route('settings.update', [$property->code, 'support']), ['allow_support_access' => '1', 'allow_support_money_corrections' => '0'])
+        ->assertSessionHasNoErrors();
+
+    expect($settings->refresh()->allow_support_money_corrections)->toBeFalse()
+        ->and($settings->allow_support_access)->toBeTrue();
+});

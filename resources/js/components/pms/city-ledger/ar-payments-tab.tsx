@@ -39,7 +39,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import { useIsImpersonating } from '@/hooks/use-is-impersonating';
+import { useCanCorrectMoney } from '@/hooks/use-is-impersonating';
 import {
     receipt,
     voidMethod,
@@ -69,7 +69,7 @@ export function ArPaymentsTab({
     const [recording, setRecording] = useState(false);
     const [allocating, setAllocating] = useState<Payment | null>(null);
     const [voiding, setVoiding] = useState<Payment | null>(null);
-    const impersonating = useIsImpersonating();
+    const canCorrectMoney = useCanCorrectMoney();
 
     return (
         <section className="flex flex-col gap-4">
@@ -190,7 +190,7 @@ export function ArPaymentsTab({
                                                     Receipt
                                                 </DropdownMenuItem>
                                                 {payment.canVoid &&
-                                                    !impersonating && (
+                                                    canCorrectMoney && (
                                                         <DropdownMenuItem
                                                             variant="destructive"
                                                             onClick={() =>

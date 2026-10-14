@@ -19,6 +19,8 @@ class SupportAccessUsed extends PropertyNotification
         public ?string $note,
         public CarbonImmutable $startedAt,
         public int $minutes,
+        /** @var list<array{label: string, amount: ?string, reference: ?string}> */
+        public array $moneyCorrections = [],
     ) {
         parent::__construct(NotificationType::SupportAccessUsed);
     }
@@ -34,6 +36,14 @@ class SupportAccessUsed extends PropertyNotification
 
         if ($this->note !== null) {
             $mail->line(__('Note: :note', ['note' => $this->note]));
+        }
+
+        if ($this->moneyCorrections !== []) {
+            $mail->line(__('Money corrections:'));
+
+            foreach ($this->moneyCorrections as $correction) {
+                $mail->line('- '.$this->moneyLine($correction));
+            }
         }
 
         return $mail->line(__('You can switch support access off in your property settings.'));
@@ -54,7 +64,26 @@ class SupportAccessUsed extends PropertyNotification
             'note' => $this->note,
             'started_at' => $this->startedAt->toIso8601String(),
             'minutes' => $this->minutes,
+            ...($this->moneyCorrections === [] ? [] : ['money_corrections' => $this->moneyCorrections]),
         ];
+    }
+
+    /**
+     * @param  array{label: string, amount: ?string, reference: ?string}  $correction
+     */
+    private function moneyLine(array $correction): string
+    {
+        $line = $correction['label'];
+
+        if ($correction['amount'] !== null) {
+            $line .= ' '.$correction['amount'];
+        }
+
+        if ($correction['reference'] !== null) {
+            $line .= ' ('.__('reference :reference', ['reference' => $correction['reference']]).')';
+        }
+
+        return $line;
     }
 
     private function title(): string

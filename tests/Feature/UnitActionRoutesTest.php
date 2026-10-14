@@ -1357,3 +1357,30 @@ test('the single unit carries only the actions the user may use', function () {
     $this->actingAs($viewer)->get(route('reservations.guests', ['property' => $setup['property']->code, 'reservation' => $setup['reservation']->id]))
         ->assertInertia(fn (Assert $page) => $page->where('singleUnit.actions', []));
 });
+
+test('during a support session the owner money switch decides a deposit refund at check-out', function () {
+    $setup = uaDepartingSetup();
+    PropertySetting::query()->where('property_id', $setup['property']->id)->update(['allow_support_money_corrections' => false]);
+    $this->actingAs(User::factory()->admin()->create())
+        ->post(route('view-as.store', $setup['property']->code), ['user' => $setup['user']->id, 'reason' => 'support'])
+        ->assertRedirect();
+
+    $this->postJson(uaUrl($setup, 'check-out-preview'))->assertOk()->assertJsonPath('canRefund', false);
+
+    $this->post(uaUrl($setup, 'check-out'), ['refund_amount' => '100.00', 'idempotency_key' => fake()->uuid()])
+        ->assertSessionHasErrors('refund_amount');
+    expect($setup['unit']->fresh()->status)->toBe(UnitStatus::CheckedIn)
+        ->and(Payment::query()->whereNotNull('refund_of_id')->count())->toBe(0);
+
+});
+
+test('during a support session with the money switch off, a check-out without a refund still saves', function () {
+    $setup = uaDepartingSetup(withDeposit: false);
+    PropertySetting::query()->where('property_id', $setup['property']->id)->update(['allow_support_money_corrections' => false]);
+    $this->actingAs(User::factory()->admin()->create())
+        ->post(route('view-as.store', $setup['property']->code), ['user' => $setup['user']->id, 'reason' => 'support'])
+        ->assertRedirect();
+
+    $this->post(uaUrl($setup, 'check-out'), ['idempotency_key' => fake()->uuid()])->assertSessionHasNoErrors();
+    expect($setup['unit']->fresh()->status)->toBe(UnitStatus::CheckedOut);
+});

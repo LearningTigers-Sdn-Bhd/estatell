@@ -6,11 +6,12 @@ use App\Enums\ImpersonationReason;
 use App\Models\Property;
 use App\Notifications\SupportAccessUsed;
 use App\Services\Platform\Impersonation;
+use App\Services\Platform\SupportMoneyCorrections;
 use App\Services\Staff\PropertyOwners;
 
 class RecordImpersonationEnd
 {
-    public function __construct(private Impersonation $impersonation, private PropertyOwners $owners) {}
+    public function __construct(private Impersonation $impersonation, private PropertyOwners $owners, private SupportMoneyCorrections $moneyCorrections) {}
 
     /**
      * Log `impersonation.ended` with the duration and tell the property's owner, while the session is still open.
@@ -41,6 +42,14 @@ class RecordImpersonationEnd
             return;
         }
 
+        $supportUser = $this->impersonation->supportUser();
+        $moneyCorrections = $supportUser === null ? [] : $this->moneyCorrections->forSession(
+            $property,
+            $supportUser,
+            (int) $details['impersonated_user_id'],
+            $startedAt,
+        );
+
         $owner->notify(new SupportAccessUsed(
             supportUserName: (string) $details['support_user_name'],
             partnerName: $details['partner_name'],
@@ -48,6 +57,7 @@ class RecordImpersonationEnd
             note: $details['note'],
             startedAt: $startedAt,
             minutes: $minutes,
+            moneyCorrections: $moneyCorrections,
         ));
     }
 }

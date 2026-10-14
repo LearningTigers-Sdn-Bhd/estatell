@@ -33,6 +33,7 @@ export default function ViewAsShow({
     reason: initialReason,
     to,
     blockedTo,
+    moneyCorrections,
     opens,
     consent,
     cancelUrl,
@@ -44,6 +45,7 @@ export default function ViewAsShow({
     reason: string;
     to: string | null;
     blockedTo: boolean;
+    moneyCorrections: boolean;
     opens: string;
     consent: boolean;
     cancelUrl: string;
@@ -200,6 +202,15 @@ export default function ViewAsShow({
                                                 {errors.note}
                                             </FieldError>
                                         </Field>
+
+                                        <p className="text-sm text-muted-foreground">
+                                            Money{' '}
+                                            <span className="text-foreground">
+                                                {moneyCorrections
+                                                    ? 'Refunds and voids allowed by the owner'
+                                                    : 'Refunds and voids blocked by the owner'}
+                                            </span>
+                                        </p>
 
                                         {to && (
                                             <input

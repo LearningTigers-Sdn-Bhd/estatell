@@ -2,8 +2,10 @@
 
 namespace App\Services\Platform;
 
+use App\Enums\PermissionEnum;
 use App\Enums\PropertyStatus;
 use App\Models\Property;
+use App\Models\PropertySetting;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
@@ -49,13 +51,23 @@ class Impersonation
         'password.confirm.store',
         'guests.documents.scan',
         'guests.documents.reveal',
+        'onboarding.go-live.store',
+    ];
+
+    /**
+     * Money corrections: refunds, voids, credit notes and allocation reversals. They follow the owner's switch
+     * `allow_support_money_corrections` instead of always being denied. Folio line reversals are not listed: fixing
+     * charges is setup work.
+     *
+     * @var list<string>
+     */
+    private const array MONEY_CORRECTION_ROUTES = [
         'reservations.folios.payments.refunds.store',
         'reservations.folios.void-invoice-and-reopen',
         'registration.void',
         'finance.city-ledger.*.void',
         'finance.city-ledger.invoices.credit-notes.store',
         'finance.city-ledger.companies.payments.allocations.reverse',
-        'onboarding.go-live.store',
     ];
 
     /**
@@ -200,9 +212,47 @@ class Impersonation
     }
 
     /**
-     * Whether `to` is a relative path to a route that is blocked during support access, so the view-as page can warn.
+     * Whether a route is a money correction (refund, void, credit note or allocation reversal).
      */
-    public function isBlockedPath(string $to): bool
+    public function isMoneyCorrectionRoute(string $routeName): bool
+    {
+        return Str::is(self::MONEY_CORRECTION_ROUTES, $routeName);
+    }
+
+    /**
+     * Whether the signed-in support user may refund, void and issue credit notes now: true outside a session, and
+     * during one only when the property's owner allows money corrections.
+     */
+    public function canCorrectMoney(): bool
+    {
+        if (! $this->isActive()) {
+            return true;
+        }
+
+        return $this->allowsMoneyCorrections($this->session()['property_id']);
+    }
+
+    /**
+     * Whether `$user` may refund now: the permission, and during a support session the owner's money switch.
+     */
+    public function mayRefund(User $user): bool
+    {
+        return $user->can(PermissionEnum::PaymentRefund->value) && $this->canCorrectMoney();
+    }
+
+    /**
+     * Whether the property's owner allows support to make money corrections during a session. Defaults to true.
+     */
+    public function allowsMoneyCorrections(int $propertyId): bool
+    {
+        return PropertySetting::query()->where('property_id', $propertyId)->first()?->allow_support_money_corrections ?? true;
+    }
+
+    /**
+     * Whether `to` is a relative path to a route that is blocked for this property during support access, so the
+     * view-as page can warn.
+     */
+    public function isBlockedPath(Property $property, string $to): bool
     {
         if (! $this->isRelativePath($to)) {
             return false;
@@ -210,7 +260,7 @@ class Impersonation
 
         $route = $this->matchRoute($to);
 
-        return $route !== null && $route->getName() !== null && $this->isBlockedRoute($route->getName());
+        return $route !== null && $route->getName() !== null && $this->isBlockedForProperty($property, $route->getName());
     }
 
     /**
@@ -228,7 +278,16 @@ class Impersonation
         return $route !== null
             && str_starts_with($route->uri(), 'p/{property')
             && Str::upper((string) $route->parameter('property')) === $property->code
-            && ($route->getName() === null || ! $this->isBlockedRoute($route->getName()));
+            && ($route->getName() === null || ! $this->isBlockedForProperty($property, $route->getName()));
+    }
+
+    /**
+     * Blocked for this property: always blocked, or a money correction while the owner has switched them off.
+     */
+    private function isBlockedForProperty(Property $property, string $routeName): bool
+    {
+        return $this->isBlockedRoute($routeName)
+            || ($this->isMoneyCorrectionRoute($routeName) && ! $this->allowsMoneyCorrections($property->id));
     }
 
     private function isRelativePath(string $to): bool

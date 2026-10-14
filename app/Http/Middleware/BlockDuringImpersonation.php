@@ -27,15 +27,25 @@ class BlockDuringImpersonation
     {
         $routeName = $request->route()?->getName();
 
-        if ($routeName === null || ! $this->impersonation->isActive() || ! $this->impersonation->isBlockedRoute($routeName, $request->method())) {
+        if ($routeName === null || ! $this->impersonation->isActive()) {
+            return $next($request);
+        }
+
+        $message = match (true) {
+            $this->impersonation->isBlockedRoute($routeName, $request->method()) => __('Not available during support access'),
+            $this->impersonation->isMoneyCorrectionRoute($routeName) && ! $this->impersonation->canCorrectMoney() => __('The owner has not allowed refunds and voids during support access'),
+            default => null,
+        };
+
+        if ($message === null) {
             return $next($request);
         }
 
         if ($request->expectsJson() && ! $request->hasHeader('X-Inertia')) {
-            return response()->json(['message' => __('Not available during support access')], 403);
+            return response()->json(['message' => $message], 403);
         }
 
-        Inertia::flash('toast', ['type' => 'error', 'message' => __('Not available during support access')]);
+        Inertia::flash('toast', ['type' => 'error', 'message' => $message]);
 
         $property = $request->route('property');
         $fallback = $property instanceof Property ? route('dashboard', ['property' => $property->code], absolute: false) : '/';

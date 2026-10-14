@@ -1,11 +1,25 @@
 <?php
 
+use App\Actions\Folio\CreateFolio;
+use App\Actions\Payments\RecordPayment;
+use App\Data\Payments\NewPaymentData;
+use App\Enums\DefaultRoleEnum;
 use App\Enums\PartnerStatus;
+use App\Enums\PaymentMethodType;
+use App\Enums\PaymentPurpose;
+use App\Enums\SystemTransactionCode;
 use App\Enums\TaxRateType;
+use App\Models\BusinessDate;
+use App\Models\Folio;
 use App\Models\Partner;
+use App\Models\Payment;
+use App\Models\PaymentMethod;
 use App\Models\Property;
 use App\Models\PropertySetting;
+use App\Models\Reservation;
+use App\Models\ReservationUnit;
 use App\Models\Tax;
+use App\Models\TransactionCode;
 use App\Models\User;
 use App\Notifications\SupportAccessUsed;
 use Illuminate\Support\Facades\Notification;
@@ -547,3 +561,101 @@ test('the view-as page warns about a blocked page and opens the dashboard instea
         ->post(route('view-as.store', 'ES10142'), viewAsInput($this->owner))
         ->assertRedirect(route('dashboard', 'ES10142', absolute: false));
 });
+
+/**
+ * A live property with an owner, a checked-in unit with its folio, and one cash payment the owner can refund.
+ *
+ * @return array{owner: User, property: Property, reservation: Reservation, folio: Folio, payment: Payment}
+ */
+function moneyFixture(): array
+{
+    $owner = User::factory()->withRole(DefaultRoleEnum::Owner)->create();
+    $property = $owner->property;
+    $property->forceFill(['status' => 'live'])->save();
+    PropertySetting::factory()->for($property)->create();
+    BusinessDate::factory()->create(['property_id' => $property->id]);
+    TransactionCode::factory()->system(SystemTransactionCode::Refund)->create(['property_id' => $property->id]);
+    $reservation = Reservation::factory()->create(['property_id' => $property->id]);
+    $unit = ReservationUnit::factory()->checkedIn()->create(['reservation_id' => $reservation->id]);
+    $folio = app(CreateFolio::class)($reservation, $unit);
+    $cash = PaymentMethod::factory()->create(['property_id' => $property->id, 'type' => PaymentMethodType::Cash, 'requires_reference' => false, 'position' => 1]);
+    $payment = app(RecordPayment::class)($owner, $reservation, $folio, null, NewPaymentData::from([
+        'paymentMethodId' => $cash->id,
+        'purpose' => PaymentPurpose::Settlement,
+        'amount' => '80.00',
+        'reference' => null,
+        'idempotencyKey' => fake()->uuid(),
+    ]))->payment;
+
+    return ['owner' => $owner, 'property' => $property, 'reservation' => $reservation, 'folio' => $folio, 'payment' => $payment];
+}
+
+function setMoneyCorrections(Property $property, bool $allowed): void
+{
+    PropertySetting::query()->where('property_id', $property->id)->update(['allow_support_money_corrections' => $allowed]);
+}
+
+test('with the money switch on, a refund during a session runs and is listed in the owner notice', function () {
+    Notification::fake();
+    $fixture = moneyFixture();
+    $this->actingAs($this->admin)->post(route('view-as.store', $fixture['property']->code), ['user' => $fixture['owner']->id, 'reason' => 'support'])->assertRedirect();
+
+    $this->post(route('reservations.folios.payments.refunds.store', [
+        'property' => $fixture['property']->code,
+        'reservation' => $fixture['reservation']->id,
+        'folio' => $fixture['folio']->id,
+        'payment' => $fixture['payment']->id,
+    ]), ['amount' => '30.00', 'reference' => 'RF-1', 'idempotency_key' => fake()->uuid()])
+        ->assertSessionHasNoErrors()
+        ->assertInertiaFlash('toast.type', 'success');
+
+    expect(Payment::query()->whereNotNull('refund_of_id')->sole()->amount)->toBe('30.00');
+
+    $this->post(route('impersonation.stop'));
+
+    Notification::assertSentTo($fixture['owner'], SupportAccessUsed::class, function (SupportAccessUsed $notification) use ($fixture) {
+        $line = collect($notification->toMail($fixture['owner'])->introLines)->contains(fn (string $text): bool => str_contains($text, 'Refund 30.00'));
+
+        return $notification->moneyCorrections === [['label' => 'Refund', 'amount' => '30.00', 'reference' => null]] && $line;
+    });
+});
+
+test('with the money switch off, a refund during a session is refused with a toast and nothing is refunded', function () {
+    $fixture = moneyFixture();
+    setMoneyCorrections($fixture['property'], false);
+    $this->actingAs($this->admin)->post(route('view-as.store', $fixture['property']->code), ['user' => $fixture['owner']->id, 'reason' => 'support'])->assertRedirect();
+
+    $this->post(route('reservations.folios.payments.refunds.store', [
+        'property' => $fixture['property']->code,
+        'reservation' => $fixture['reservation']->id,
+        'folio' => $fixture['folio']->id,
+        'payment' => $fixture['payment']->id,
+    ]), ['amount' => '30.00', 'idempotency_key' => fake()->uuid()])
+        ->assertRedirect()
+        ->assertInertiaFlash('toast', ['type' => 'error', 'message' => 'The owner has not allowed refunds and voids during support access']);
+
+    expect(Payment::query()->whereNotNull('refund_of_id')->count())->toBe(0);
+});
+
+test('the money switch cannot be changed during a session', function () {
+    $fixture = moneyFixture();
+    $this->actingAs($this->admin)->post(route('view-as.store', $fixture['property']->code), ['user' => $fixture['owner']->id, 'reason' => 'support'])->assertRedirect();
+
+    $this->put(route('settings.update', [$fixture['property']->code, 'support']), ['allow_support_access' => '1', 'allow_support_money_corrections' => '0'])->assertForbidden();
+
+    expect($fixture['property']->settings()->first()->allow_support_money_corrections)->toBeTrue();
+});
+
+test('the view-as page shows the owner money switch', function (bool $allowed, string $line) {
+    $fixture = moneyFixture();
+    setMoneyCorrections($fixture['property'], $allowed);
+
+    $this->actingAs($this->admin)
+        ->get(route('view-as.show', $fixture['property']->code))
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('view-as/show')
+            ->where('moneyCorrections', $allowed));
+})->with([
+    'allowed' => [true, 'Refunds and voids allowed by the owner'],
+    'blocked' => [false, 'Refunds and voids blocked by the owner'],
+]);

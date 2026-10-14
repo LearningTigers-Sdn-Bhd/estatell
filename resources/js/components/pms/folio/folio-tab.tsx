@@ -62,7 +62,7 @@ import {
     TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { KEEP_OPTIONS } from '@/components/pms/use-form-options';
-import { useIsImpersonating } from '@/hooks/use-is-impersonating';
+import { useCanCorrectMoney } from '@/hooks/use-is-impersonating';
 import { show as showArInvoice } from '@/routes/finance/city-ledger/invoices';
 import { move as moveCharges } from '@/routes/reservations/folio';
 import { invoice, reopen } from '@/routes/reservations/folios';
@@ -125,7 +125,7 @@ export function FolioTab({
     onCorrectPrice?: (row: App.Data.Folio.FolioRowData) => void;
     currency: App.Enums.Currency | null;
 }) {
-    const impersonating = useIsImpersonating();
+    const canCorrectMoney = useCanCorrectMoney();
     const [loadingCredit, setLoadingCredit] = useState(false);
     const [loadingVoid, setLoadingVoid] = useState(false);
     const creditFlow = useCreditNoteFlow(false, (done) =>
@@ -257,7 +257,7 @@ export function FolioTab({
     return (
         <div className="flex flex-col gap-4">
             {routingOverlays}
-            {!impersonating &&
+            {canCorrectMoney &&
                 folio.canVoidAndReopen &&
                 folio.arInvoiceNumber && (
                     <VoidInvoiceAndReopenDialog
@@ -271,7 +271,7 @@ export function FolioTab({
                         onReverse={creditFlow.reverseFromVoid}
                     />
                 )}
-            {!impersonating && folio.canCreditArInvoice && creditInvoice && (
+            {canCorrectMoney && folio.canCreditArInvoice && creditInvoice && (
                 <IssueCreditNoteDialog
                     open={creditFlow.crediting}
                     onOpenChange={creditFlow.setCrediting}
@@ -280,7 +280,7 @@ export function FolioTab({
                     onReverse={creditFlow.reverseFromCredit}
                 />
             )}
-            {!impersonating &&
+            {canCorrectMoney &&
                 (folio.canCreditArInvoice || folio.canVoidAndReopen) && (
                     <ReverseAllocationDialog
                         allocation={creditFlow.reversing}
@@ -531,7 +531,7 @@ export function FolioTab({
                                                     </DropdownMenuItem>
                                                 )}
                                                 {folio.canCreditArInvoice &&
-                                                    !impersonating && (
+                                                    canCorrectMoney && (
                                                         <DropdownMenuItem
                                                             disabled={
                                                                 loadingCredit
@@ -549,7 +549,7 @@ export function FolioTab({
                                                         </DropdownMenuItem>
                                                     )}
                                                 {folio.canVoidAndReopen &&
-                                                    !impersonating && (
+                                                    canCorrectMoney && (
                                                         <>
                                                             <DropdownMenuSeparator />
                                                             <DropdownMenuItem

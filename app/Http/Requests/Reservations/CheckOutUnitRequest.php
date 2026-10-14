@@ -4,14 +4,17 @@ namespace App\Http\Requests\Reservations;
 
 use App\Data\Reservations\CheckOutCollectData;
 use App\Enums\PermissionEnum;
+use App\Services\Platform\Impersonation;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Validator;
 
 /**
  * The Check out form, and the early check-out form, which adds the fee choices. Collect balance sends a method, a
  * reference and the amount the form showed. A deposit refund from a user without `payment.refund` is dropped, so is
  * Collect balance from a user without `payment.record`, and so is Do not charge from a user without
- * `front-desk.waive-fees`.
+ * `front-desk.waive-fees`. During a support session a refund needs the owner's money switch, and is refused with an error
+ * on `refund_amount` when it is off.
  */
 class CheckOutUnitRequest extends FormRequest
 {
@@ -40,9 +43,21 @@ class CheckOutUnitRequest extends FormRequest
         ];
     }
 
+    /**
+     * @return array<int, callable(Validator): void>
+     */
+    public function after(): array
+    {
+        return [function (Validator $validator): void {
+            if (filled($this->input('refund_amount')) && ! app(Impersonation::class)->canCorrectMoney()) {
+                $validator->errors()->add('refund_amount', __('The owner has not allowed refunds and voids during support access'));
+            }
+        }];
+    }
+
     public function refundAmount(): ?string
     {
-        return filled($this->input('refund_amount')) && $this->user()->can(PermissionEnum::PaymentRefund->value)
+        return filled($this->input('refund_amount')) && app(Impersonation::class)->mayRefund($this->user())
             ? $this->string('refund_amount')->toString()
             : null;
     }

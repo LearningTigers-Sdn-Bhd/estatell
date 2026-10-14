@@ -30,6 +30,7 @@ use App\Services\Folio\FolioReopenRule;
 use App\Services\Folio\IncomingScheduledCharges;
 use App\Services\Folio\MoveChargesPreview;
 use App\Services\NightAudit\CurrentBusinessDate;
+use App\Services\Platform\Impersonation;
 use Brick\Math\BigDecimal;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
@@ -62,6 +63,7 @@ class GroupCheckOutPreview
         private MoveChargesPreview $moveChargesPreview,
         private FolioReopenRule $folioReopenRule,
         private EarlyCheckOutRule $earlyCheckOutRule,
+        private Impersonation $impersonation,
     ) {}
 
     public static function selectable(string $kind): bool
@@ -215,11 +217,11 @@ class GroupCheckOutPreview
         $canMove = $actionable && $balance->isPositive() && $master !== null && $user->can(PermissionEnum::FolioTransfer->value)
             && $this->checkOutSettlement->movableLines($folios)->isNotEmpty()
             && ! $this->checkOutSettlement->holdsUnrefundable($folios)
-            && ($held->isEmpty() || $user->can(PermissionEnum::PaymentRefund->value));
+            && ($held->isEmpty() || $this->impersonation->mayRefund($user));
         $choices = array_values(array_filter([
             $actionable && $balance->isPositive() && $user->can(PermissionEnum::PaymentRecord->value) ? 'collect' : null,
             $canMove ? 'move' : null,
-            $actionable && $balance->isNegative() && $refundPool->isPositive() && $user->can(PermissionEnum::PaymentRefund->value) ? 'refund' : null,
+            $actionable && $balance->isNegative() && $refundPool->isPositive() && $this->impersonation->mayRefund($user) ? 'refund' : null,
         ]));
         $arrivedToday = $kind === self::KIND_DEPARTS_LATER && $this->earlyCheckOutRule->refusal($unit, $businessDate->toDateString()) === UnitStayResult::REFUSAL_ARRIVED_TODAY;
         $group = match ($kind) {

@@ -985,6 +985,7 @@ propertyName: string,
 propertyCode: string,
 minutesLeft: number,
 stopUrl: string,
+canCorrectMoney: boolean,
 };
 export type PartnerInvitationPreviewData = {
 email: string,
@@ -1088,6 +1089,7 @@ cardRequiredForCheckIn: boolean,
 idDocumentRetentionDays: number | null,
 securityDepositAmount: string,
 allowSupportAccess: boolean,
+allowSupportMoneyCorrections: boolean,
 currencyAndTimeZoneLocked: boolean,
 };
 export type PropertySummaryData = {

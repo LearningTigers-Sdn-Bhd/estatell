@@ -31,6 +31,7 @@ class PropertySettingsData extends Data
         public ?int $idDocumentRetentionDays,
         public string $securityDepositAmount,
         public bool $allowSupportAccess,
+        public bool $allowSupportMoneyCorrections,
         public bool $currencyAndTimeZoneLocked,
     ) {}
 
@@ -54,6 +55,7 @@ class PropertySettingsData extends Data
             idDocumentRetentionDays: $settings->id_document_retention_days,
             securityDepositAmount: $settings->security_deposit_amount,
             allowSupportAccess: $settings->allow_support_access,
+            allowSupportMoneyCorrections: $settings->allow_support_money_corrections,
             currencyAndTimeZoneLocked: $currencyAndTimeZoneLocked,
         );
     }

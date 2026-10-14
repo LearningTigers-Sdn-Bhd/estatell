@@ -97,6 +97,7 @@ class SeedPropertyDefaults
                 'id_document_retention_days' => null,
                 'security_deposit_amount' => '0.00',
                 'allow_support_access' => true,
+                'allow_support_money_corrections' => true,
                 'weekend_nights' => WeekendNights::FriSat,
             ],
         };

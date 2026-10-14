@@ -17,7 +17,7 @@ import { Fragment, useState } from 'react';
 import { DateText } from '@/components/pms/date-text';
 import { MoneyText } from '@/components/pms/money-text';
 import { Button } from '@/components/ui/button';
-import { useIsImpersonating } from '@/hooks/use-is-impersonating';
+import { useCanCorrectMoney } from '@/hooks/use-is-impersonating';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -139,7 +139,7 @@ export function FolioRowsTable({
             | 'correct_price',
     ) => void;
 }) {
-    const impersonating = useIsImpersonating();
+    const canCorrectMoney = useCanCorrectMoney();
     const [scheduledOpen, setScheduledOpen] = useState(true);
     const scheduledCount = rows.filter(
         (row) => row.state === 'scheduled',
@@ -318,7 +318,7 @@ export function FolioRowsTable({
                                                                 Print voucher
                                                             </DropdownMenuItem>
                                                         )}
-                                                        {!impersonating &&
+                                                        {canCorrectMoney &&
                                                             row.actions.includes(
                                                                 'refund',
                                                             ) && (

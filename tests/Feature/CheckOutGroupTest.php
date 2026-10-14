@@ -649,3 +649,18 @@ test('a room that arrived today departs later without a Check out early button',
         ->and($rows[$yesterday->id]['unit']['id'])->toBe($yesterday->id)
         ->and($rows[$yesterday->id]['note'])->toBe('Departs 15 Oct');
 });
+
+test('during a support session the owner money switch refuses a group refund row and a check-out without one still saves', function () {
+    $s = gcSetup(2);
+    gcCharge($s, $s['folios'][0], '45.00');
+    PropertySetting::query()->where('property_id', $s['property']->id)->update(['allow_support_money_corrections' => false]);
+    $this->actingAs(User::factory()->admin()->create())
+        ->post(route('view-as.store', $s['property']->code), ['user' => $s['user']->id, 'reason' => 'support'])
+        ->assertRedirect();
+
+    gcSave($this, $s, [['unit_id' => $s['units'][0]->id, 'choice' => 'refund', 'amount' => '10.00']])->assertSessionHasErrors();
+    expect($s['units'][0]->fresh()->status)->toBe(UnitStatus::CheckedIn);
+
+    gcSave($this, $s, [['unit_id' => $s['units'][1]->id, 'choice' => null]])->assertSessionHasNoErrors();
+    expect($s['units'][1]->fresh()->status)->toBe(UnitStatus::CheckedOut);
+});

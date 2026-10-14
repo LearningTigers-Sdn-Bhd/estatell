@@ -391,13 +391,28 @@ export default function PropertySettings({
                                 contentClassName=""
                             >
                                 {(errors) => (
-                                    <SettingsSwitch
-                                        name="allow_support_access"
-                                        label="Allow platform support access"
-                                        description="On: platform support can view this property as its owner to help you. Off: support cannot open this property."
-                                        checked={settings.allowSupportAccess}
-                                        error={errors.allow_support_access}
-                                    />
+                                    <>
+                                        <SettingsSwitch
+                                            name="allow_support_access"
+                                            label="Allow platform support access"
+                                            description="On: platform support can view this property as its owner to help you. Off: support cannot open this property."
+                                            checked={
+                                                settings.allowSupportAccess
+                                            }
+                                            error={errors.allow_support_access}
+                                        />
+                                        <SettingsSwitch
+                                            name="allow_support_money_corrections"
+                                            label="Allow support to refund, void and issue credit notes"
+                                            description="On: during a support session, platform support can refund, void and issue credit notes, and check out with a deposit refund. Off: those are blocked."
+                                            checked={
+                                                settings.allowSupportMoneyCorrections
+                                            }
+                                            error={
+                                                errors.allow_support_money_corrections
+                                            }
+                                        />
+                                    </>
                                 )}
                             </SettingsSection>
                         ))}
