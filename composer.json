@@ -88,7 +88,7 @@
             "@test"
         ],
         "types:check": [
-            "phpstan analyse"
+            "phpstan analyse --memory-limit=2G"
         ],
         "test": [
             "@php artisan config:clear --ansi",

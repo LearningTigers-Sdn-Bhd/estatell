@@ -1,0 +1,3589 @@
+parameters:
+	ignoreErrors:
+		-
+			message: '#^Using nullsafe property access "\?\-\>leaves_at" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Actions/Boats/SetBoatTrip.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between int and null will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 1
+			path: app/Actions/Boats/SyncBoatFare.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Support\\Collection\<int, App\\Models\\ReservationUnit\>\:\:modelKeys\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Actions/Boats/UpdateBoatDeparture.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Relations\\HasMany\:\:active\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Actions/Catalogues/CreateChargeItem.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Relations\\HasMany\:\:active\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Actions/Catalogues/ReorderChargeItems.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Relations\\HasMany\:\:active\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Actions/Catalogues/SeedChargeItems.php
+
+		-
+			message: '#^Parameter \#1 \$array \(list\<int\>\) of array_values is already a list, call has no effect\.$#'
+			identifier: arrayValues.list
+			count: 1
+			path: app/Actions/Catalogues/UpdateDayUseTaxes.php
+
+		-
+			message: '#^Unable to resolve the template type TKey in call to function collect$#'
+			identifier: argument.templateType
+			count: 1
+			path: app/Actions/Catalogues/UpdateDiscount.php
+
+		-
+			message: '#^Unable to resolve the template type TValue in call to function collect$#'
+			identifier: argument.templateType
+			count: 1
+			path: app/Actions/Catalogues/UpdateDiscount.php
+
+		-
+			message: '#^Parameter \#1 \$num1 of function bcadd expects numeric\-string, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Actions/CityLedger/AllocateArPayment.php
+
+		-
+			message: '#^Parameter \#1 \$num1 of function bccomp expects numeric\-string, non\-empty\-string given\.$#'
+			identifier: argument.type
+			count: 2
+			path: app/Actions/CityLedger/AllocateArPayment.php
+
+		-
+			message: '#^Parameter \#2 \$num2 of function bcadd expects numeric\-string, non\-empty\-string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Actions/CityLedger/AllocateArPayment.php
+
+		-
+			message: '#^Parameter \#2 \$num2 of function bccomp expects numeric\-string, string given\.$#'
+			identifier: argument.type
+			count: 2
+			path: app/Actions/CityLedger/AllocateArPayment.php
+
+		-
+			message: '#^Parameter \#1 \$num1 of function bccomp expects numeric\-string, string given\.$#'
+			identifier: argument.type
+			count: 3
+			path: app/Actions/CityLedger/AutoAllocateArPayment.php
+
+		-
+			message: '#^Parameter \#1 \$num1 of function bcsub expects numeric\-string, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Actions/CityLedger/AutoAllocateArPayment.php
+
+		-
+			message: '#^Parameter \#2 \$num2 of function bccomp expects numeric\-string, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Actions/CityLedger/AutoAllocateArPayment.php
+
+		-
+			message: '#^Parameter \#2 \$num2 of function bcsub expects numeric\-string, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Actions/CityLedger/AutoAllocateArPayment.php
+
+		-
+			message: '#^Parameter \#1 \$num1 of function bcadd expects numeric\-string, non\-empty\-string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Actions/CityLedger/IssueCreditNote.php
+
+		-
+			message: '#^Parameter \#1 \$num1 of function bccomp expects numeric\-string, non\-empty\-string given\.$#'
+			identifier: argument.type
+			count: 2
+			path: app/Actions/CityLedger/IssueCreditNote.php
+
+		-
+			message: '#^Parameter \#1 \$num1 of function bccomp expects numeric\-string, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Actions/CityLedger/IssueCreditNote.php
+
+		-
+			message: '#^Parameter \#2 \$num2 of function bccomp expects numeric\-string, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Actions/CityLedger/IssueCreditNote.php
+
+		-
+			message: '#^Parameter \#1 \$num1 of function bcadd expects numeric\-string, non\-empty\-string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Actions/CityLedger/RecordArPayment.php
+
+		-
+			message: '#^Parameter \#1 \$num1 of function bccomp expects numeric\-string, non\-empty\-string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Actions/CityLedger/RecordArPayment.php
+
+		-
+			message: '#^Parameter \#1 \$num1 of function bccomp expects numeric\-string, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Actions/CityLedger/SettleToCityLedger.php
+
+		-
+			message: '#^Property App\\Models\\FolioLine\:\:\$posting_date \(Illuminate\\Support\\Carbon\) does not accept string\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: app/Actions/CityLedger/SettleToCityLedger.php
+
+		-
+			message: '#^Parameter \#1 \$num1 of function bccomp expects numeric\-string, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Actions/CityLedger/SyncArInvoiceStatus.php
+
+		-
+			message: '#^Parameter \#1 \$num1 of function bccomp expects numeric\-string, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Actions/CityLedger/VoidArInvoice.php
+
+		-
+			message: '#^Property App\\Models\\FolioLine\:\:\$posting_date \(Illuminate\\Support\\Carbon\) does not accept string\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: app/Actions/Folio/ApplyDiscount.php
+
+		-
+			message: '#^Parameter \#1 \$num1 of function bccomp expects numeric\-string, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Actions/Folio/FollowCompanyOnMasterFolio.php
+
+		-
+			message: '#^Parameter \#1 \$keys of method Illuminate\\Database\\Eloquent\\Collection\<\(int\|string\),App\\Models\\Folio\>\:\:except\(\) expects array\<mixed\>\|null, int given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Actions/Folio/MoveCharges.php
+
+		-
+			message: '#^Parameter \#3 \$sources of method App\\Actions\\Folio\\MoveCharges\:\:log\(\) expects list\<App\\Models\\Folio\>, array\<int, App\\Models\\Folio\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Actions/Folio/MoveCharges.php
+
+		-
+			message: '#^Parameter \#4 \$sources of static method App\\Actions\\Folio\\MoveChargesResult\:\:moved\(\) expects list\<App\\Models\\Folio\>, array\<int, App\\Models\\Folio\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Actions/Folio/MoveCharges.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>name" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Actions/Folio/PostCharge.php
+
+		-
+			message: '#^Property App\\Models\\FolioLine\:\:\$posting_date \(Illuminate\\Support\\Carbon\) does not accept string\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: app/Actions/Folio/PostFolioCharge.php
+
+		-
+			message: '#^Parameter \#1 \$num1 of function bcmul expects numeric\-string, string given\.$#'
+			identifier: argument.type
+			count: 2
+			path: app/Actions/Folio/ReverseLine.php
+
+		-
+			message: '#^Property App\\Models\\FolioLine\:\:\$posting_date \(Illuminate\\Support\\Carbon\) does not accept string\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: app/Actions/Folio/ReverseLine.php
+
+		-
+			message: '#^Method App\\Actions\\Folio\\SyncRoutingRules\:\:unitsWithPostedRoomLines\(\) should return list\<int\> but returns array\<int\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Actions/Folio/SyncRoutingRules.php
+
+		-
+			message: '#^Using nullsafe property access on non\-nullable type App\\Models\\Folio\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Actions/Folio/SyncRoutingRules.php
+
+		-
+			message: '#^Parameter \#1 \$keys of method Illuminate\\Database\\Eloquent\\Collection\<\(int\|string\),App\\Models\\Folio\>\:\:except\(\) expects array\<mixed\>\|null, int given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Actions/Folio/TransferLines.php
+
+		-
+			message: '#^Property App\\Models\\FolioLine\:\:\$posting_date \(Illuminate\\Support\\Carbon\) does not accept string\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: app/Actions/Folio/TransferLines.php
+
+		-
+			message: '#^Parameter \#1 \$input of callable App\\Actions\\Onboarding\\RegisterPropertyOwner expects array\{name\: string, email\: string, password\: string, property_name\: string\}, array given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Actions/Fortify/CreateNewUser.php
+
+		-
+			message: '#^Method App\\Actions\\FrontDesk\\AutoAssignRooms\:\:inOrder\(\) should return list\<int\> but returns array\<int\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Actions/FrontDesk/AutoAssignRooms.php
+
+		-
+			message: '#^Parameter \#1 \$num1 of function bccomp expects numeric\-string, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Actions/FrontDesk/CancelUnit.php
+
+		-
+			message: '#^Parameter \#2 \$num2 of function bccomp expects numeric\-string, non\-empty\-string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Actions/FrontDesk/CancelUnit.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>label" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Actions/FrontDesk/CancelUnits.php
+
+		-
+			message: '#^Parameter \#6 \$childAges of class App\\Services\\Rates\\RateQuoteRequest constructor expects list\<int\>, array\<int\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Actions/FrontDesk/ChangeUnitDates.php
+
+		-
+			message: '#^Parameter \#1 \$num1 of function bccomp expects numeric\-string, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Actions/FrontDesk/CheckInAndCollect.php
+
+		-
+			message: '#^Parameter \#4 \$tagNames of callable App\\Actions\\Guests\\UpdateGuest expects list\<string\>, array\<mixed\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Actions/FrontDesk/CheckInAndCollect.php
+
+		-
+			message: '#^Property App\\Models\\ReservationUnit\:\:\$checked_in_at \(Illuminate\\Support\\Carbon\|null\) does not accept Carbon\\CarbonImmutable\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: app/Actions/FrontDesk/CheckInUnit.php
+
+		-
+			message: '#^Parameter \#1 \$num1 of function bccomp expects numeric\-string, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Actions/FrontDesk/CheckOutAndRefund.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Support\\Collection\<int, App\\Models\\Folio\>\:\:modelKeys\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Actions/FrontDesk/CheckOutGroup.php
+
+		-
+			message: '#^Method App\\Actions\\FrontDesk\\CheckOutGroup\:\:paymentIds\(\) should return list\<int\> but returns array\<int\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Actions/FrontDesk/CheckOutGroup.php
+
+		-
+			message: '#^Parameter \#1 \$num1 of function bccomp expects numeric\-string, string given\.$#'
+			identifier: argument.type
+			count: 6
+			path: app/Actions/FrontDesk/CheckOutGroup.php
+
+		-
+			message: '#^Parameter \#2 \$lines of callable App\\Actions\\Folio\\TransferLines expects list\<App\\Models\\FolioLine\>, array\<int, App\\Models\\FolioLine\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Actions/FrontDesk/CheckOutGroup.php
+
+		-
+			message: '#^Parameter \#1 \$num1 of function bccomp expects numeric\-string, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Actions/FrontDesk/CheckOutUnit.php
+
+		-
+			message: '#^Property App\\Models\\ReservationUnit\:\:\$checked_out_at \(Illuminate\\Support\\Carbon\|null\) does not accept Carbon\\CarbonImmutable\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: app/Actions/FrontDesk/CheckOutUnit.php
+
+		-
+			message: '#^Parameter \#1 \$num1 of function bccomp expects numeric\-string, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Actions/FrontDesk/ExtendDepartureTime.php
+
+		-
+			message: '#^Parameter \#2 \$num2 of function bccomp expects numeric\-string, non\-empty\-string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Actions/FrontDesk/ExtendDepartureTime.php
+
+		-
+			message: '#^Parameter \#1 \$num1 of function bccomp expects numeric\-string, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Actions/FrontDesk/MarkNoShow.php
+
+		-
+			message: '#^Parameter \#2 \$num2 of function bccomp expects numeric\-string, non\-empty\-string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Actions/FrontDesk/MarkNoShow.php
+
+		-
+			message: '#^Parameter \#1 \$num1 of function bccomp expects numeric\-string, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Actions/FrontDesk/ProcessEarlyDeparture.php
+
+		-
+			message: '#^Parameter \#2 \$num2 of function bccomp expects numeric\-string, non\-empty\-string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Actions/FrontDesk/ProcessEarlyDeparture.php
+
+		-
+			message: '#^Property App\\Models\\ReservationUnit\:\:\$arrival_date \(Illuminate\\Support\\Carbon\) does not accept Carbon\\CarbonInterface\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: app/Actions/FrontDesk/ProcessEarlyDeparture.php
+
+		-
+			message: '#^Property App\\Models\\ReservationUnit\:\:\$departure_date \(Illuminate\\Support\\Carbon\) does not accept Carbon\\CarbonInterface\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: app/Actions/FrontDesk/ProcessEarlyDeparture.php
+
+		-
+			message: '#^Parameter \#6 \$childAges of class App\\Services\\Rates\\RateQuoteRequest constructor expects list\<int\>, array\<int\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Actions/FrontDesk/ReinstateUnit.php
+
+		-
+			message: '#^Method App\\Actions\\FrontDesk\\ReleaseUnitRooms\:\:__invoke\(\) should return array\{room_ids\: list\<int\>, bed_ids\: list\<int\>\} but returns array\{room_ids\: array\<int, int\>, bed_ids\: array\<int, int\>\}\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Actions/FrontDesk/ReleaseUnitRooms.php
+
+		-
+			message: '#^Property App\\Models\\UnitDayUse\:\:\$released_at \(Illuminate\\Support\\Carbon\|null\) does not accept Carbon\\CarbonImmutable\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: app/Actions/FrontDesk/ReleaseUnitRooms.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Support\\Collection\<int, App\\Models\\Folio\>\:\:modelKeys\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Actions/FrontDesk/UndoCheckOut.php
+
+		-
+			message: '#^Property App\\Models\\Guest\:\:\$blacklisted_at \(Illuminate\\Support\\Carbon\|null\) does not accept Carbon\\CarbonImmutable\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: app/Actions/Guests/BlacklistGuest.php
+
+		-
+			message: '#^Property App\\Models\\NightAuditStep\:\:\$finished_at \(Illuminate\\Support\\Carbon\|null\) does not accept Carbon\\CarbonImmutable\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: app/Actions/NightAudit/ClaimBusinessDate.php
+
+		-
+			message: '#^Property App\\Models\\NightAuditStep\:\:\$started_at \(Illuminate\\Support\\Carbon\|null\) does not accept Carbon\\CarbonImmutable\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: app/Actions/NightAudit/ClaimBusinessDate.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>id" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Actions/NightAudit/ClaimBusinessDate.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>reservation" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Actions/NightAudit/DismissAuditException.php
+
+		-
+			message: '#^Parameter \#8 \$roomDescription of callable App\\Actions\\Folio\\PostNightLines expects string\|null, array\|string\|null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Actions/NightAudit/PostRoomCharges.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\ReservationUnit\|Illuminate\\Database\\Eloquent\\Collection\<\(int\|string\), App\\Models\\ReservationUnit\>\:\:\$property_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Actions/NightAudit/PostScheduledAddOns.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\ReservationUnit\|Illuminate\\Database\\Eloquent\\Collection\<\(int\|string\), App\\Models\\ReservationUnit\>\:\:\$reservation\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Actions/NightAudit/PostScheduledAddOns.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\ReservationUnit\|Illuminate\\Database\\Eloquent\\Collection\<\(int\|string\), App\\Models\\ReservationUnit\>\:\:\$status\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Actions/NightAudit/PostScheduledAddOns.php
+
+		-
+			message: '#^Parameter \#1 \$unit of method App\\Services\\Folio\\FolioRouter\:\:targetFor\(\) expects App\\Models\\ReservationUnit, App\\Models\\ReservationUnit\|Illuminate\\Database\\Eloquent\\Collection\<\(int\|string\), App\\Models\\ReservationUnit\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Actions/NightAudit/PostScheduledAddOns.php
+
+		-
+			message: '#^Parameter \#1 \$unit of method App\\Services\\Reservations\\UnitNationality\:\:for\(\) expects App\\Models\\ReservationUnit, App\\Models\\ReservationUnit\|Illuminate\\Database\\Eloquent\\Collection\<\(int\|string\), App\\Models\\ReservationUnit\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Actions/NightAudit/PostScheduledAddOns.php
+
+		-
+			message: '#^Parameter \#2 \$unit of callable App\\Actions\\Folio\\CreateFolio expects App\\Models\\ReservationUnit\|null, App\\Models\\ReservationUnit\|Illuminate\\Database\\Eloquent\\Collection\<\(int\|string\), App\\Models\\ReservationUnit\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Actions/NightAudit/PostScheduledAddOns.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between App\\Models\\ReservationUnit\|Illuminate\\Database\\Eloquent\\Collection\<\(int\|string\), App\\Models\\ReservationUnit\> and null will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 1
+			path: app/Actions/NightAudit/PostScheduledAddOns.php
+
+		-
+			message: '#^Offset ''password'' might not exist on array\{property_name\: string, type\: string, owner_name\: string, owner_email\: string, setup_method\: string, password\?\: string, verify_owner_email\?\: bool\}\.$#'
+			identifier: offsetAccess.notFound
+			count: 1
+			path: app/Actions/Onboarding/CreatePropertyForOwner.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>code_prefix" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Actions/Onboarding/CreatePropertyForOwner.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>code_prefix" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Actions/Onboarding/RegisterPropertyOwner.php
+
+		-
+			message: '#^Property App\\Models\\FolioLine\:\:\$posting_date \(Illuminate\\Support\\Carbon\) does not accept string\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: app/Actions/Payments/RecordPayment.php
+
+		-
+			message: '#^Property App\\Models\\FolioLine\:\:\$posting_date \(Illuminate\\Support\\Carbon\) does not accept string\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: app/Actions/Payments/RefundPayment.php
+
+		-
+			message: '#^Parameter \$note of class App\\Notifications\\SupportAccessUsed constructor expects string\|null, int\|string\|null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Actions/Platform/RecordImpersonationEnd.php
+
+		-
+			message: '#^Parameter \$partnerName of class App\\Notifications\\SupportAccessUsed constructor expects string\|null, int\|string\|null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Actions/Platform/RecordImpersonationEnd.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>allow_support_access" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Actions/Platform/StartImpersonation.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$default_amount\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Actions/Property/SaveAgeGroups.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:childPrices\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Actions/Property/SaveAgeGroups.php
+
+		-
+			message: '#^Parameter \#3 \$discounts of callable App\\Actions\\Rates\\SaveRatePlanStayDiscounts expects list\<array\{min_nights\: int, discount_type\: string, value\: float\|int\|string, from_night\: int\}\>, non\-empty\-array\<int, array\{min_nights\: int, discount_type\: ''amount''\|''percent'', value\: string, from_night\: int\}\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Actions/Rates/CopyParentStayDiscounts.php
+
+		-
+			message: '#^Parameter \#3 \$occupancy of callable App\\Actions\\Rates\\UpsertRates expects array\<string, list\<array\{adults\: int, amount\: string\}\>\>, array\<non\-falsy\-string, array\<int, array\{adults\: mixed, amount\: mixed\}\>\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Actions/Rates/ExtendRates.php
+
+		-
+			message: '#^Parameter \#4 \$hours of callable App\\Actions\\Rates\\UpsertRates expects array\<string, list\<array\{hours\: int, amount\: string\}\>\>, array\<non\-falsy\-string, array\<int, array\{hours\: mixed, amount\: mixed\}\>\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Actions/Rates/ExtendRates.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>closed_to_arrival" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Actions/Rates/ExtendRates.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>closed_to_departure" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Actions/Rates/ExtendRates.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>stop_sell" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Actions/Rates/ExtendRates.php
+
+		-
+			message: '#^Parameter \#1 \$array \(list\<int\>\) of array_values is already a list, call has no effect\.$#'
+			identifier: arrayValues.list
+			count: 2
+			path: app/Actions/Rates/ReorderRatePlans.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>closed_to_arrival" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Actions/Rates/SaveRates.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>closed_to_departure" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Actions/Rates/SaveRates.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>stop_sell" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Actions/Rates/SaveRates.php
+
+		-
+			message: '#^Method App\\Actions\\Rates\\UpsertRates\:\:rateIds\(\) should return Illuminate\\Support\\Collection\<string, int\> but returns Illuminate\\Support\\Collection\<non\-falsy\-string, int\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Actions/Rates/UpsertRates.php
+
+		-
+			message: '#^Parameter \#1 \.\.\.\$arg1 of function max expects non\-empty\-array, list\<string\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Actions/Rates/UpsertRates.php
+
+		-
+			message: '#^Parameter \#1 \.\.\.\$arg1 of function min expects non\-empty\-array, list\<string\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Actions/Rates/UpsertRates.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>version" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Actions/Registration/ApplyTermsPreset.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>version" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Actions/Registration/PublishRegistrationTerms.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>value" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Actions/Reports/LogIdentityExport.php
+
+		-
+			message: '#^Call to function is_int\(\) with int will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Actions/Reservations/AddDayUseUnit.php
+
+		-
+			message: '#^Parameter \#1 \$array \(list\<int\>\) of array_values is already a list, call has no effect\.$#'
+			identifier: arrayValues.list
+			count: 1
+			path: app/Actions/Reservations/AddDayUseUnit.php
+
+		-
+			message: '#^Call to function is_int\(\) with int will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Actions/Reservations/AddUnit.php
+
+		-
+			message: '#^Parameter \#1 \$array \(list\<int\>\) of array_values is already a list, call has no effect\.$#'
+			identifier: arrayValues.list
+			count: 2
+			path: app/Actions/Reservations/AddUnit.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>arrival_time" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Actions/Reservations/AddUnit.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>check_in_time" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Actions/Reservations/AddUnit.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>check_out_time" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Actions/Reservations/AddUnit.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>departure_time" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Actions/Reservations/AddUnit.php
+
+		-
+			message: '#^Parameter \#2 \$childAges of method App\\Services\\Catalogues\\ChargeChildPrices\:\:split\(\) expects list\<int\>, array\<int\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Actions/Reservations/AddUnitAddOn.php
+
+		-
+			message: '#^Parameter \#4 \$tagNames of callable App\\Actions\\Guests\\UpdateGuest expects list\<string\>, array\<mixed\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Actions/Reservations/ResolveUnitGuest.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between App\\Services\\CityLedger\\CreditCheckResult and null will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 1
+			path: app/Actions/Reservations/UpdateReservationCompany.php
+
+		-
+			message: '#^Parameter \#1 \$num1 of function bccomp expects numeric\-string, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Actions/Reservations/UpdateReservationGroup.php
+
+		-
+			message: '#^Parameter \#1 \$roomIndex of method App\\Services\\Rooms\\BedLabelGenerator\:\:letter\(\) expects int, int\|string\|null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Actions/Rooms/GenerateBeds.php
+
+		-
+			message: '#^Parameter \#1 \$array \(list\<int\>\) of array_values is already a list, call has no effect\.$#'
+			identifier: arrayValues.list
+			count: 2
+			path: app/Actions/Rooms/ReorderRoomGroups.php
+
+		-
+			message: '#^Parameter \#1 \$array \(list\<int\>\) of array_values is already a list, call has no effect\.$#'
+			identifier: arrayValues.list
+			count: 2
+			path: app/Actions/Rooms/ReorderRoomTypes.php
+
+		-
+			message: '#^Called ''first'' on Laravel collection, but could have been retrieved as a query\.$#'
+			identifier: larastan.noUnnecessaryCollectionCall
+			count: 1
+			path: app/Actions/Staff/AssignStaffRole.php
+
+		-
+			message: '#^Parameter \#1 \$childPrices of static method App\\Data\\Boats\\BoatFareRowData\:\:childrenSummary\(\) expects list\<App\\Data\\Catalogues\\ChargeItemChildPriceData\>, array\<int, App\\Data\\Catalogues\\ChargeItemChildPriceData\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Data/Boats/BoatFareRowData.php
+
+		-
+			message: '#^Parameter \$childPrices of class App\\Data\\Boats\\BoatFareRowData constructor expects list\<App\\Data\\Catalogues\\ChargeItemChildPriceData\>, array\<int, App\\Data\\Catalogues\\ChargeItemChildPriceData\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Data/Boats/BoatFareRowData.php
+
+		-
+			message: '#^Parameter \$taxes of class App\\Data\\Boats\\BoatFareRowData constructor expects list\<App\\Data\\Catalogues\\ChargeItemTaxData\>, array\<int, App\\Data\\Catalogues\\ChargeItemTaxData\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Data/Boats/BoatFareRowData.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>pricing" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Data/Catalogues/ChargeItemChildPriceData.php
+
+		-
+			message: '#^Parameter \#1 \$num1 of function bccomp expects numeric\-string, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Data/CityLedger/ArInvoiceRowData.php
+
+		-
+			message: '#^Parameter \#1 \$num1 of function bccomp expects numeric\-string, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Data/CityLedger/ArPaymentRowData.php
+
+		-
+			message: '#^Parameter \$tags of class App\\Data\\Guests\\GuestData constructor expects list\<App\\Data\\Guests\\TagData\>, array\<int, App\\Data\\Guests\\TagData\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Data/Guests/GuestData.php
+
+		-
+			message: '#^Parameter \$tags of class App\\Data\\Guests\\GuestRowData constructor expects list\<string\>, array\<int, string\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Data/Guests/GuestRowData.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>audit_time" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Data/NightAudit/BusinessDateData.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>time_zone" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Data/NightAudit/BusinessDateData.php
+
+		-
+			message: '#^Parameter \$units of class App\\Data\\NightAudit\\NightAuditReservationData constructor expects list\<App\\Data\\Reservations\\ReservationUnitData\>, array\<int, App\\Data\\Reservations\\ReservationUnitData\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Data/NightAudit/NightAuditReservationData.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>nightAudit" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Data/NightAudit/NightAuditSheetData.php
+
+		-
+			message: '#^Parameter \$blockedReason of class App\\Data\\NightAudit\\PackageNightRespreadData constructor expects string\|null, array\|string\|null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Data/NightAudit/PackageNightRespreadData.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>number" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Data/NightAudit/PackageNightRespreadData.php
+
+		-
+			message: '#^Method App\\Data\\Notifications\\NotificationPreferenceData\:\:disabledReason\(\) should return string\|null but returns array\|string\|null\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Data/Notifications/NotificationPreferenceData.php
+
+		-
+			message: '#^Parameter \$disabledReason of class App\\Data\\Notifications\\NotificationChannelPreferenceData constructor expects string\|null, array\|string\|null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Data/Notifications/NotificationPreferenceData.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$default_role\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Data/Platform/AdminPropertyStaffData.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Data/Platform/AdminPropertyStaffData.php
+
+		-
+			message: '#^Parameter \$hours of class App\\Data\\Rates\\RateCalendarCellData constructor expects list\<App\\Data\\Rates\\RateCalendarHourData\>, array\<int, App\\Data\\Rates\\RateCalendarHourData\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Data/Rates/RateCalendarCellData.php
+
+		-
+			message: '#^Parameter \$occupancy of class App\\Data\\Rates\\RateCalendarCellData constructor expects list\<App\\Data\\Rates\\RateCalendarOccupancyData\>, array\<int, App\\Data\\Rates\\RateCalendarOccupancyData\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Data/Rates/RateCalendarCellData.php
+
+		-
+			message: '#^Parameter \$inclusions of class App\\Data\\Rates\\RateCalendarPlanData constructor expects list\<App\\Data\\Rates\\RateCalendarInclusionData\>, array\<int, App\\Data\\Rates\\RateCalendarInclusionData\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Data/Rates/RateCalendarPlanData.php
+
+		-
+			message: '#^Parameter \$roomTypeIds of class App\\Data\\Rates\\RatePlanData constructor expects list\<int\>, array\<mixed\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Data/Rates/RatePlanData.php
+
+		-
+			message: '#^Parameter \$roomTypeNames of class App\\Data\\Rates\\RatePlanData constructor expects list\<string\>, array\<mixed\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Data/Rates/RatePlanData.php
+
+		-
+			message: '#^Parameter \$parents of class App\\Data\\Rates\\RatePlanDerivationData constructor expects list\<App\\Data\\Rates\\RatePlanParentOptionData\>, array\<int, App\\Data\\Rates\\RatePlanParentOptionData\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Data/Rates/RatePlanDerivationData.php
+
+		-
+			message: '#^Parameter \#1 \$callback of function array_map expects \(callable\(array\<string, mixed\>\)\: mixed\)\|null, Closure\(array\{roomType\: App\\Models\\RoomType, adults\: int, children\: int, unit\: string, refusal\: App\\Services\\Rates\\RateQuote\|null, stays\: array\<int, App\\Services\\Rates\\RateQuote\>, nightAmounts\: array\<int, list\<Brick\\Money\\Money\>\>, byNight\: array\{quote\: App\\Services\\Rates\\RateQuote, unitAmounts\: list\<Brick\\Money\\Money\>\}\|null\}\)\: App\\Data\\Rates\\StayDiscountPreviewRowData given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Data/Rates/StayDiscountPreviewData.php
+
+		-
+			message: '#^Parameter \$documents of class App\\Data\\Registration\\RegistrationCardPageData constructor expects list\<array\{id\: int, label\: string\}\>, array\<int, array\{id\: int, label\: string\}\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Data/Registration/RegistrationCardPageData.php
+
+		-
+			message: '#^Parameter \$fields of class App\\Data\\Registration\\RegistrationCardPageData constructor expects list\<array\{field\: string, label\: string, group\: string, visibility\: string, value\: string\|null\}\>, array\<int, array\{field\: string, label\: string, group\: string, visibility\: string, value\: string\|null\}\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Data/Registration/RegistrationCardPageData.php
+
+		-
+			message: '#^Parameter \$signedFields of class App\\Data\\Registration\\RegistrationCardPageData constructor expects list\<array\{label\: string, value\: string\|null\}\>\|null, array\<array\{label\: mixed, value\: mixed\}\>\|null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Data/Registration/RegistrationCardPageData.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\TermsDocument\:\:\$room_types_exists\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Data/Registration/TermsDocumentData.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>body" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Data/Registration/TermsEditorData.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>guest" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Data/Reports/ArrivalRow.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>guest" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Data/Reports/BoatManifestRow.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>guest" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Data/Reports/DepartureRow.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>full_name" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Data/Reports/FolioLedgerRow.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>name" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Data/Reports/FolioLedgerRow.php
+
+		-
+			message: '#^Parameter \#2 \$array of function implode expects array\<string\>, array\<int, array\|string\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Data/Reports/HousekeepingTaskRow.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>guest" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Data/Reports/InHouseRow.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>name" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Data/Reports/NightAuditHistoryRow.php
+
+		-
+			message: '#^Method App\\Data\\Reports\\ReportTotals\:\:valuesFor\(\) should return array\<string, float\|int\|string\> but returns array\<string, array\|float\|int\|string\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Data/Reports/ReportTotals.php
+
+		-
+			message: '#^Parameter \#3 \$roomTypeIds of class App\\Data\\Reservations\\RatePlanOptionData constructor expects list\<int\>, array\<int, int\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Data/Reservations/RatePlanOptionData.php
+
+		-
+			message: '#^Parameter \#5 \$companyIds of class App\\Data\\Reservations\\RatePlanOptionData constructor expects list\<int\>, array\<int, int\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Data/Reservations/RatePlanOptionData.php
+
+		-
+			message: '#^Parameter \$roomTypes of class App\\Data\\Reservations\\ReservationListItemData constructor expects list\<string\>, array\<int, string\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Data/Reservations/ReservationListItemData.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>stay_type" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Data/Reservations/ReservationListItemData.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>number" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Data/Reservations/ReservationNightData.php
+
+		-
+			message: '#^Parameter \$assigned of class App\\Data\\Reservations\\ReservationUnitData constructor expects list\<string\>, array\<int, non\-falsy\-string\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Data/Reservations/ReservationUnitData.php
+
+		-
+			message: '#^Parameter \$childAges of class App\\Data\\Reservations\\ReservationUnitData constructor expects list\<int\>, array\<int, int\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Data/Reservations/ReservationUnitData.php
+
+		-
+			message: '#^Parameter \$nights of class App\\Data\\Reservations\\ReservationUnitData constructor expects list\<App\\Data\\Reservations\\ReservationNightData\>, array\<int, App\\Data\\Reservations\\ReservationNightData\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Data/Reservations/ReservationUnitData.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>amount" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Data/Reservations/ReservationUnitData.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>number" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Data/Reservations/ReservationUnitData.php
+
+		-
+			message: '#^Parameter \$permissions of class App\\Data\\Staff\\RoleRowData constructor expects list\<string\>, array\<int, mixed\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Data/Staff/RoleRowData.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$default_role\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Data/Staff/StaffMemberData.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Data/Staff/StaffMemberData.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Data/Staff/StaffMemberData.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Data/Staff/TemporaryPasswordSlipData.php
+
+		-
+			message: '#^Method App\\Enums\\PricingBasis\:\:channelRefusal\(\) should return string\|null but returns array\|string\|null\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Enums/PricingBasis.php
+
+		-
+			message: '#^Parameter \#1 \$rows of method App\\Services\\Reports\\HasBreakdown\:\:breakdown\(\) expects list\<App\\Data\\Reports\\ReportRow&Spatie\\LaravelData\\Data\>, list\<App\\Data\\Reports\\ReportRow\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Enums/ReportKey.php
+
+		-
+			message: '#^Parameter \#1 \$rows of method App\\Services\\Reports\\HasSections\:\:sections\(\) expects list\<App\\Data\\Reports\\ReportRow&Spatie\\LaravelData\\Data\>, list\<App\\Data\\Reports\\ReportRow\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Enums/ReportKey.php
+
+		-
+			message: '#^Parameter \#1 \$rows of method App\\Services\\Reports\\HasTotals\:\:totals\(\) expects list\<App\\Data\\Reports\\ReportRow&Spatie\\LaravelData\\Data\>, list\<App\\Data\\Reports\\ReportRow\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Enums/ReportKey.php
+
+		-
+			message: '#^Parameter \#2 \$input of callable App\\Actions\\Platform\\CreatePartnerWithTemporaryPassword expects array\{partner_name\: string, code_prefix\: string, name\: string, email\: string\}, array\<string, mixed\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/Admin/PartnerController.php
+
+		-
+			message: '#^Parameter \#2 \$attributes of callable App\\Actions\\Platform\\UpdatePlatformSettings expects array\{require_go_live_approval\: bool, default_dorm_strategy\: string, media_disk\: string\}, array\<string, mixed\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/Admin/PlatformSettingsController.php
+
+		-
+			message: '#^Parameter \#2 \$input of callable App\\Actions\\Onboarding\\CreatePropertyForOwner expects array\{property_name\: string, type\: string, owner_name\: string, owner_email\: string, setup_method\: string, password\?\: string, verify_owner_email\?\: bool\}, array\<string, mixed\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/Admin/PropertyController.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Relations\\HasMany\:\:ordered\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Http/Controllers/Boats/BoatDepartureController.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Relations\\HasMany\:\:ordered\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Http/Controllers/Boats/BoatFareController.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Relations\\HasMany\:\:ordered\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Http/Controllers/Catalogues/ChargeItemController.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Builder\<Illuminate\\Database\\Eloquent\\Model\>\:\:active\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Http/Controllers/Catalogues/PaymentMethodController.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Relations\\HasMany\:\:ordered\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Http/Controllers/Catalogues/PaymentMethodController.php
+
+		-
+			message: '#^Parameter \#1 \$stream of function fclose expects resource, resource\|false given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/CityLedger/AgingController.php
+
+		-
+			message: '#^Parameter \#1 \$stream of function fputcsv expects resource, resource\|false given\.$#'
+			identifier: argument.type
+			count: 2
+			path: app/Http/Controllers/CityLedger/AgingController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\Guests\\GuestController\:\:tags\(\) should return list\<App\\Data\\Guests\\TagData\> but returns array\<int, App\\Data\\Guests\\TagData\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Http/Controllers/Guests/GuestController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\Housekeeping\\HousekeepingBoardController\:\:staff\(\) should return list\<App\\Data\\Housekeeping\\HousekeepingStaffData\> but returns array\<int, App\\Data\\Housekeeping\\HousekeepingStaffData\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Http/Controllers/Housekeeping/HousekeepingBoardController.php
+
+		-
+			message: '#^Parameter \#2 \$input of callable App\\Actions\\Platform\\AcceptPartnerInvitation expects array\{name\: string, password\: string\}, array\<string, mixed\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/Partner/AcceptPartnerInvitationController.php
+
+		-
+			message: '#^Parameter \#2 \$input of callable App\\Actions\\Onboarding\\CreatePropertyForOwner expects array\{property_name\: string, type\: string, owner_name\: string, owner_email\: string, setup_method\: string, password\?\: string, verify_owner_email\?\: bool\}, array\<string, mixed\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/Partner/PartnerPropertyController.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>allow_support_access" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Controllers/Platform/ViewAsController.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>allow_support_money_corrections" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Controllers/Platform/ViewAsController.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>currency" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Controllers/Property/PrintSettingsController.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Relations\\HasMany\:\:ordered\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Http/Controllers/Rates/RatePlanController.php
+
+		-
+			message: '#^Parameter \#3 \$input of callable App\\Actions\\Registration\\SignRegistrationCard expects array\{profile\: array\<string, mixed\>, identity\: array\<string, mixed\>\|null, identity_document_id\: int\|null, vehicle_plate\: string\|null, remarks\: string\|null, marketing_consent\: bool, locale\: App\\Enums\\Locale, ticks\: list\<int\>, \.\.\.\}, array\<string, mixed\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/Registration/GuestCardController.php
+
+		-
+			message: '#^Parameter \#4 \$publishedLocales of static method App\\Data\\Registration\\TermsEditorData\:\:forDocument\(\) expects list\<App\\Enums\\Locale\>, array\<App\\Enums\\Locale\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/Registration/RegistrationTermsController.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>value" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Controllers/Reports/BoatManifestReportController.php
+
+		-
+			message: '#^Parameter \#3 \$departureIds of method App\\Services\\Boats\\BoatSeats\:\:forDate\(\) expects list\<int\>, array\<int\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/Reservations/ReservationBookingController.php
+
+		-
+			message: '#^Parameter \#7 \$childAges of method App\\Services\\Reservations\\BookingQuote\:\:line\(\) expects list\<int\>, array\<int\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/Reservations/ReservationBookingController.php
+
+		-
+			message: '#^Parameter \#8 \$childAges of method App\\Services\\Reservations\\BookingQuote\:\:dayUseLine\(\) expects list\<int\>, array\<int\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/Reservations/ReservationBookingController.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>check_in_time" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Controllers/Reservations/ReservationBookingController.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>check_out_time" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Controllers/Reservations/ReservationBookingController.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>time_zone" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Controllers/Reservations/ReservationBookingController.php
+
+		-
+			message: '#^Parameter \#7 \$chargedNightIds of static method App\\Data\\Reservations\\ReservationUnitData\:\:fromModel\(\) expects list\<int\>, array\<int\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/Reservations/ReservationController.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>reservation_unit_id" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Controllers/Reservations/ReservationFolioController.php
+
+		-
+			message: '#^Parameter \#3 \$lines of callable App\\Actions\\Folio\\MoveCharges expects list\<App\\Models\\FolioLine\>, array\<int, App\\Models\\FolioLine\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/Reservations/ReservationFolioMoveController.php
+
+		-
+			message: '#^Parameter \#4 \$schedules of callable App\\Actions\\Folio\\MoveCharges expects list\<array\{unit\: App\\Models\\ReservationUnit, scope\: string\}\>, array\<int, array\{unit\: App\\Models\\ReservationUnit, scope\: string\}\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/Reservations/ReservationFolioMoveController.php
+
+		-
+			message: '#^Parameter \#5 \$schedules of method App\\Services\\Folio\\MoveChargesPreview\:\:preview\(\) expects list\<array\{unit\: App\\Models\\ReservationUnit, scope\: string\}\>, array\<int, array\{unit\: App\\Models\\ReservationUnit, scope\: string\}\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/Reservations/ReservationFolioMoveController.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>name" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Controllers/Reservations/ReservationGroupCheckOutController.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>full_name" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Controllers/Reservations/ReservationRoutingController.php
+
+		-
+			message: '#^Parameter \#4 \$tagNames of callable App\\Actions\\Guests\\UpdateGuest expects list\<string\>, array\<mixed\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/Reservations/ReservationUnitController.php
+
+		-
+			message: '#^Parameter \#3 \$roomType of callable App\\Actions\\Rooms\\GenerateRooms expects App\\Models\\RoomType, App\\Models\\RoomType\|Illuminate\\Database\\Eloquent\\Collection\<int, App\\Models\\RoomType\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/Rooms/RoomController.php
+
+		-
+			message: '#^Parameter \#4 \$group of callable App\\Actions\\Rooms\\GenerateRooms expects App\\Models\\RoomGroup\|null, App\\Models\\RoomGroup\|Illuminate\\Database\\Eloquent\\Collection\<int, App\\Models\\RoomGroup\>\|null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/Rooms/RoomController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\Rooms\\RoomTypeController\:\:termsDocumentOptions\(\) should return list\<array\{value\: int, label\: string\}\> but returns array\<int, array\{value\: mixed, label\: mixed\}\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Http/Controllers/Rooms/RoomTypeController.php
+
+		-
+			message: '#^Parameter \#2 \$input of callable App\\Actions\\Staff\\AcceptStaffInvitation expects array\{name\: string, password\: string\}, array\<string, mixed\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/Staff/AcceptInvitationController.php
+
+		-
+			message: '#^Parameter \#4 \$role of callable App\\Actions\\Staff\\InviteStaff expects App\\Models\\Role, App\\Models\\Role\|Illuminate\\Database\\Eloquent\\Collection\<\(int\|string\), App\\Models\\Role\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/Staff/StaffInvitationController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Role\|Illuminate\\Database\\Eloquent\\Collection\<\(int\|string\), App\\Models\\Role\>\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Staff/StaffRoleController.php
+
+		-
+			message: '#^Parameter \#3 \$role of callable App\\Actions\\Staff\\AssignStaffRole expects App\\Models\\Role, App\\Models\\Role\|Illuminate\\Database\\Eloquent\\Collection\<\(int\|string\), App\\Models\\Role\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/Staff/StaffRoleController.php
+
+		-
+			message: '#^Parameter \#5 \$role of callable App\\Actions\\Staff\\CreateStaffWithTemporaryPassword expects App\\Models\\Role, App\\Models\\Role\|Illuminate\\Database\\Eloquent\\Collection\<\(int\|string\), App\\Models\\Role\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/Staff/StaffTemporaryPasswordController.php
+
+		-
+			message: '#^Method App\\Http\\Middleware\\EnsureEmailIsVerified\:\:handle\(\) should return Illuminate\\Http\\RedirectResponse\|Illuminate\\Http\\Response\|null but returns Symfony\\Component\\HttpFoundation\\Response\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Http/Middleware/EnsureEmailIsVerified.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Middleware/HandleInertiaRequests.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>active" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Requests/Boats/BoatDepartureRequest.php
+
+		-
+			message: '#^Method App\\Http\\Requests\\CityLedger\\UpdateCompanyRatePlansRequest\:\:ratePlanIds\(\) should return list\<int\> but returns array\<int\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Http/Requests/CityLedger/UpdateCompanyRatePlansRequest.php
+
+		-
+			message: '#^Method App\\Http\\Requests\\Folio\\FolioVoucherRequest\:\:lineIds\(\) should return list\<int\> but returns array\<int\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Http/Requests/Folio/FolioVoucherRequest.php
+
+		-
+			message: '#^Access to an undefined property \(object\|string\)\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Requests/Folio/QuoteFolioDiscountRequest.php
+
+		-
+			message: '#^Parameter \#1 \$num1 of function bccomp expects numeric\-string, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Requests/Folio/QuoteFolioDiscountRequest.php
+
+		-
+			message: '#^Parameter \#2 \$num2 of function bccomp expects numeric\-string, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Requests/Folio/QuoteFolioDiscountRequest.php
+
+		-
+			message: '#^Access to an undefined property \(object\|string\)\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Requests/Housekeeping/AssignHousekeeperRequest.php
+
+		-
+			message: '#^Access to an undefined property \(object\|string\)\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Requests/Housekeeping/BulkUpdateRoomsRequest.php
+
+		-
+			message: '#^Access to an undefined property \(object\|string\)\:\:\$pricing_basis\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Requests/Rates/CreateDerivedRatePlanRequest.php
+
+		-
+			message: '#^Method App\\Http\\Requests\\Rates\\CreateRatePlanRequest\:\:ratePlanAttributes\(\) should return array\{name\: string, pricing_basis\: string, fixed_nights\?\: int, package_unit\?\: string, day_use_min_hours\?\: int, day_use_max_hours\?\: int\} but returns array\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Http/Requests/Rates/CreateRatePlanRequest.php
+
+		-
+			message: '#^Access to an undefined property \(object\|string\)\:\:\$pricing_basis\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Requests/Rates/RatePlanDerivationRequest.php
+
+		-
+			message: '#^Unable to resolve the template type TKey in call to function collect$#'
+			identifier: argument.templateType
+			count: 2
+			path: app/Http/Requests/Rates/RatePlanDiscountsPreviewRequest.php
+
+		-
+			message: '#^Unable to resolve the template type TValue in call to function collect$#'
+			identifier: argument.templateType
+			count: 2
+			path: app/Http/Requests/Rates/RatePlanDiscountsPreviewRequest.php
+
+		-
+			message: '#^Method App\\Http\\Requests\\Reports\\ReportFiltersRequest\:\:property\(\) should return App\\Models\\Property but returns \(object\|string\|null\)\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Http/Requests/Reports/ReportFiltersRequest.php
+
+		-
+			message: '#^Parameter \$childAges of class App\\Data\\Reservations\\NewUnitData constructor expects list\<int\>, array\<int\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Requests/Reservations/AddUnitRequest.php
+
+		-
+			message: '#^Method App\\Http\\Requests\\Reservations\\AttachGuestRequest\:\:after\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Http/Requests/Reservations/AttachGuestRequest.php
+
+		-
+			message: '#^Parameter \#1 \$input of static method App\\Data\\Boats\\BoatTripData\:\:fromInput\(\) expects array\{mode\: string, boat_departure_id\?\: int\|string\|null, time\?\: string\|null, note\?\: string\|null\}, array\<string, mixed\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Requests/Reservations/BoatTripRequest.php
+
+		-
+			message: '#^Parameter \#1 \$input of static method App\\Data\\Boats\\BoatTripData\:\:fromInput\(\) expects array\{mode\: string, boat_departure_id\?\: int\|string\|null, time\?\: string\|null, note\?\: string\|null\}, array\<mixed, mixed\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Requests/Reservations/BoatTripsRequest.php
+
+		-
+			message: '#^Method App\\Http\\Requests\\Reservations\\ChangeNightPriceRequest\:\:nights\(\) should return list\<App\\Models\\UnitNight\> but returns array\<int, App\\Models\\UnitNight\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Http/Requests/Reservations/ChangeNightPriceRequest.php
+
+		-
+			message: '#^Method App\\Http\\Requests\\Reservations\\ChangeNightPriceRequest\:\:unit\(\) should return App\\Models\\ReservationUnit but returns \(object\|string\|null\)\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Http/Requests/Reservations/ChangeNightPriceRequest.php
+
+		-
+			message: '#^Method App\\Http\\Requests\\Reservations\\CheckOutGroupReceiptsRequest\:\:paymentIds\(\) should return list\<int\> but returns array\<int\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Http/Requests/Reservations/CheckOutGroupReceiptsRequest.php
+
+		-
+			message: '#^Method App\\Http\\Requests\\Reservations\\QuoteBookingLineRequest\:\:addOns\(\) should return list\<App\\Data\\Reservations\\NewAddOnData\> but returns array\<App\\Data\\Reservations\\NewAddOnData\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Http/Requests/Reservations/QuoteBookingLineRequest.php
+
+		-
+			message: '#^Method App\\Http\\Requests\\Reservations\\StoreBookingRequest\:\:unitsPerLine\(\) should return list\<int\> but returns array\<int\<1, max\>\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Http/Requests/Reservations/StoreBookingRequest.php
+
+		-
+			message: '#^Parameter \#1 \$input of static method App\\Data\\Boats\\BoatTripData\:\:fromInput\(\) expects array\{mode\: string, boat_departure_id\?\: int\|string\|null, time\?\: string\|null, note\?\: string\|null\}, array\<mixed, mixed\> given\.$#'
+			identifier: argument.type
+			count: 2
+			path: app/Http/Requests/Reservations/StoreBookingRequest.php
+
+		-
+			message: '#^Parameter \$addOns of class App\\Data\\Reservations\\NewUnitData constructor expects list\<App\\Data\\Reservations\\NewAddOnData\>, array\<App\\Data\\Reservations\\NewAddOnData\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Requests/Reservations/StoreBookingRequest.php
+
+		-
+			message: '#^Parameter \$childAges of class App\\Data\\Reservations\\NewUnitData constructor expects list\<int\>, array\<int\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Requests/Reservations/StoreBookingRequest.php
+
+		-
+			message: '#^Parameter \$declinedAutoAddOns of class App\\Data\\Reservations\\NewUnitData constructor expects list\<int\>, array\<int\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Requests/Reservations/StoreBookingRequest.php
+
+		-
+			message: '#^Access to an undefined property \(object\|string\)\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Requests/Rooms/BedRequest.php
+
+		-
+			message: '#^Parameter \#2 \$values of method Illuminate\\Validation\\Rules\\Exists\:\:whereIn\(\) expects array\|BackedEnum\|Illuminate\\Contracts\\Support\\Arrayable, Closure given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Requests/Rooms/GenerateBedsRequest.php
+
+		-
+			message: '#^Access to an undefined property \(object\|string\)\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Requests/Rooms/RoomGroupRequest.php
+
+		-
+			message: '#^Access to an undefined property \(object\|string\)\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Requests/Rooms/RoomRequest.php
+
+		-
+			message: '#^Access to an undefined property \(object\|string\)\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Requests/Rooms/RoomTypeRequest.php
+
+		-
+			message: '#^Unable to resolve the template type TKey in call to function collect$#'
+			identifier: argument.templateType
+			count: 1
+			path: app/Http/Requests/Staff/UpdateRolePermissionsRequest.php
+
+		-
+			message: '#^Unable to resolve the template type TValue in call to function collect$#'
+			identifier: argument.templateType
+			count: 1
+			path: app/Http/Requests/Staff/UpdateRolePermissionsRequest.php
+
+		-
+			message: '#^Call to function is_string\(\) with string will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Models/Casts/AsCurrency.php
+
+		-
+			message: '#^Method App\\Models\\Property\:\:chargeItems\(\) return type with generic class Illuminate\\Database\\Eloquent\\Relations\\HasMany does not specify its types\: TRelatedModel, TDeclaringModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Models/Property.php
+
+		-
+			message: '#^Parameter \#1 \$array \(array\{0\?\: App\\Data\\Navigation\\NavItemData\}\) of array_values is already a list, call has no effect\.$#'
+			identifier: arrayValues.list
+			count: 2
+			path: app/Navigation/FrontDeskNavigation.php
+
+		-
+			message: '#^Parameter \#1 \$array \(array\{0\?\: App\\Data\\Navigation\\NavItemData\}\) of array_values is already a list, call has no effect\.$#'
+			identifier: arrayValues.list
+			count: 2
+			path: app/Navigation/SettingsNavigation.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>error_message" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Notifications/NightAuditFailed.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>name" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Notifications/PartnerInvitationNotification.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>name" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Notifications/StaffInvitationNotification.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$property\.$#'
+			identifier: property.notFound
+			count: 3
+			path: app/Notifications/SupportAccessUsed.php
+
+		-
+			message: '#^Access to an undefined property Spatie\\Activitylog\\Contracts\\Activity\:\:\$causer_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Providers/AppServiceProvider.php
+
+		-
+			message: '#^Access to an undefined property Spatie\\Activitylog\\Contracts\\Activity\:\:\$causer_type\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Providers/AppServiceProvider.php
+
+		-
+			message: '#^Access to an undefined property Spatie\\Activitylog\\Contracts\\Activity\:\:\$properties\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Providers/AppServiceProvider.php
+
+		-
+			message: '#^Parameter \#2 \$roomTypeIds of method App\\Services\\Availability\\AvailabilityService\:\:bookedUnits\(\) expects list\<int\>, array\<int, \(int\|string\)\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/Availability/AvailabilityService.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\UnitNight\:\:\$arrival_time\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/Availability/DayUseAvailability.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\UnitNight\:\:\$departure_time\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/Availability/DayUseAvailability.php
+
+		-
+			message: '#^Method App\\Services\\Availability\\DayUseAvailability\:\:freeRooms\(\) should return list\<App\\Data\\Reservations\\FreeUnitData\> but returns array\<int, App\\Data\\Reservations\\FreeUnitData\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/Availability/DayUseAvailability.php
+
+		-
+			message: '#^Parameter \#2 \$roomIds of method App\\Services\\Availability\\DayUseAvailability\:\:busyRoomIds\(\) expects list\<int\>, array\<int, \(int\|string\)\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/Availability/DayUseAvailability.php
+
+		-
+			message: '#^Method App\\Services\\Availability\\FreeUnits\:\:takenByDayUse\(\) should return array\<int, list\<string\>\> but returns array\<''''\|int, non\-empty\-list\<string\>\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/Availability/FreeUnits.php
+
+		-
+			message: '#^Method App\\Services\\Availability\\FreeUnits\:\:takenNights\(\) should return array\<int, list\<string\>\> but returns array\<''''\|int, list\<string\>\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/Availability/FreeUnits.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>check_in_time" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Services/Availability/FreeUnits.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>check_out_time" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Services/Availability/FreeUnits.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\BoatDeparture\:\:\$departures\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/Boats/BoatFareUsage.php
+
+		-
+			message: '#^Method App\\Services\\Boats\\ReservationBoatSummary\:\:summarise\(\) should return string but returns array\|string\|null\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/Boats/ReservationBoatSummary.php
+
+		-
+			message: '#^Parameter \#6 \$childAges of class App\\Services\\Rates\\RateQuoteRequest constructor expects list\<int\>, array\<int\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/Catalogues/PolicyChargeCalculator.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>applicableTaxes" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Services/Catalogues/RoomRevenueTaxIds.php
+
+		-
+			message: '#^Parameter \#1 \$num1 of function bcadd expects numeric\-string, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/CityLedger/AgingReport.php
+
+		-
+			message: '#^Parameter \#1 \$num1 of function bcsub expects numeric\-string, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/CityLedger/AgingReport.php
+
+		-
+			message: '#^Parameter \#2 \$num2 of function bcadd expects numeric\-string, non\-falsy\-string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/CityLedger/AgingReport.php
+
+		-
+			message: '#^Parameter \#2 \$num2 of function bcadd expects numeric\-string, string given\.$#'
+			identifier: argument.type
+			count: 2
+			path: app/Services/CityLedger/AgingReport.php
+
+		-
+			message: '#^Parameter \#2 \$num2 of function bcsub expects numeric\-string, string given\.$#'
+			identifier: argument.type
+			count: 2
+			path: app/Services/CityLedger/AgingReport.php
+
+		-
+			message: '#^Method App\\Services\\CityLedger\\ArInvoiceBalance\:\:activeReceiptNumbers\(\) should return list\<string\> but returns array\<int, string\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/CityLedger/ArInvoiceBalance.php
+
+		-
+			message: '#^Parameter \#1 \$num1 of function bcadd expects numeric\-string, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/CityLedger/ArInvoiceBalance.php
+
+		-
+			message: '#^Parameter \#2 \$num2 of function bcadd expects numeric\-string, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/CityLedger/ArInvoiceBalance.php
+
+		-
+			message: '#^Parameter \#2 \$num2 of function bcsub expects numeric\-string, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/CityLedger/ArInvoiceBalance.php
+
+		-
+			message: '#^Method App\\Services\\CityLedger\\ArInvoiceDetail\:\:allocations\(\) should return list\<App\\Data\\CityLedger\\ArAllocationRowData\> but returns array\<int, App\\Data\\CityLedger\\ArAllocationRowData\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/CityLedger/ArInvoiceDetail.php
+
+		-
+			message: '#^Method App\\Services\\CityLedger\\ArInvoiceDetail\:\:lines\(\) should return list\<App\\Data\\CityLedger\\ArInvoiceLineData\> but returns array\<int, App\\Data\\CityLedger\\ArInvoiceLineData\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/CityLedger/ArInvoiceDetail.php
+
+		-
+			message: '#^Parameter \#2 \$num2 of function bcadd expects numeric\-string, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/CityLedger/ArInvoiceDetail.php
+
+		-
+			message: '#^Parameter \$creditNotes of class App\\Data\\CityLedger\\ArInvoiceData constructor expects list\<App\\Data\\CityLedger\\ArInvoiceRowData\>, array\<int, App\\Data\\CityLedger\\ArInvoiceRowData\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/CityLedger/ArInvoiceDetail.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Builder\<App\\Models\\ArInvoice\>\:\:allowedFilters\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Services/CityLedger/ArInvoiceDirectory.php
+
+		-
+			message: '#^Parameter \#1 \$num1 of function bcadd expects numeric\-string, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/CityLedger/ArInvoiceDirectory.php
+
+		-
+			message: '#^Parameter \#2 \$num2 of function bcadd expects numeric\-string, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/CityLedger/ArInvoiceDirectory.php
+
+		-
+			message: '#^Parameter \#2 \$num2 of function bcsub expects numeric\-string, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/CityLedger/ArInvoiceDirectory.php
+
+		-
+			message: '#^Method App\\Services\\CityLedger\\ArInvoiceVoidCheck\:\:blockedBy\(\) should return string\|null but returns array\|string\|null\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/CityLedger/ArInvoiceVoidCheck.php
+
+		-
+			message: '#^Parameter \#1 \$receipts of static method App\\Services\\CityLedger\\ArInvoiceRefusals\:\:listed\(\) expects list\<string\>, non\-empty\-array\<mixed\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/CityLedger/ArInvoiceVoidCheck.php
+
+		-
+			message: '#^Parameter \#1 \$num1 of function bcsub expects numeric\-string, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/CityLedger/ArPaymentBalance.php
+
+		-
+			message: '#^Parameter \#2 \$num2 of function bcsub expects numeric\-string, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/CityLedger/ArPaymentBalance.php
+
+		-
+			message: '#^Method App\\Services\\CityLedger\\ArPaymentLedger\:\:methods\(\) should return list\<App\\Data\\CityLedger\\ArPaymentMethodOptionData\> but returns array\<int, App\\Data\\CityLedger\\ArPaymentMethodOptionData\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/CityLedger/ArPaymentLedger.php
+
+		-
+			message: '#^Method App\\Services\\CityLedger\\ArPaymentLedger\:\:openInvoices\(\) should return list\<App\\Data\\CityLedger\\OpenArInvoiceData\> but returns array\<int, App\\Data\\CityLedger\\OpenArInvoiceData\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/CityLedger/ArPaymentLedger.php
+
+		-
+			message: '#^Method App\\Services\\CityLedger\\ArPaymentLedger\:\:payments\(\) should return list\<App\\Data\\CityLedger\\ArPaymentRowData\> but returns array\<int, App\\Data\\CityLedger\\ArPaymentRowData\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/CityLedger/ArPaymentLedger.php
+
+		-
+			message: '#^Parameter \#1 \$num1 of function bcadd expects numeric\-string, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/CityLedger/ArPaymentLedger.php
+
+		-
+			message: '#^Parameter \#1 \$num1 of function bccomp expects numeric\-string, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/CityLedger/ArPaymentLedger.php
+
+		-
+			message: '#^Parameter \#1 \$num1 of function bcsub expects numeric\-string, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/CityLedger/ArPaymentLedger.php
+
+		-
+			message: '#^Parameter \#2 \$num2 of function bcadd expects numeric\-string, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/CityLedger/ArPaymentLedger.php
+
+		-
+			message: '#^Parameter \#2 \$num2 of function bcsub expects numeric\-string, string given\.$#'
+			identifier: argument.type
+			count: 2
+			path: app/Services/CityLedger/ArPaymentLedger.php
+
+		-
+			message: '#^Method App\\Services\\CityLedger\\CompanyBillTo\:\:lines\(\) should return list\<string\> but returns list\{0\?\: array\|string, 1\?\: array\|string, 2\?\: array\|string, 3\?\: array\|string, 4\?\: array\|string, 5\?\: array\|string, 6\?\: array\|string\}\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/CityLedger/CompanyBillTo.php
+
+		-
+			message: '#^Method App\\Services\\CityLedger\\CompanyImportReader\:\:read\(\) should return array\{mode\: string, rows\: list\<array\<string, mixed\>\>\} but returns array\{mode\: ''detailed''\|''simple'', rows\: array\<int, array\<string, mixed\>\>\}\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/CityLedger/CompanyImportReader.php
+
+		-
+			message: '#^Parameter \#1 \$headers of static method App\\Enums\\CompanyImportMode\:\:forHeaders\(\) expects list\<string\>, non\-empty\-array given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/CityLedger/CompanyImportReader.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>value" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Services/CityLedger/CompanyImportReader.php
+
+		-
+			message: '#^Method App\\Services\\CityLedger\\CompanyOptions\:\:active\(\) should return list\<App\\Data\\CityLedger\\CompanyOptionData\> but returns array\<int, App\\Data\\CityLedger\\CompanyOptionData\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/CityLedger/CompanyOptions.php
+
+		-
+			message: '#^Parameter \#1 \$num1 of function bcadd expects numeric\-string, string given\.$#'
+			identifier: argument.type
+			count: 2
+			path: app/Services/CityLedger/CreditCheck.php
+
+		-
+			message: '#^Parameter \#2 \$num2 of function bcsub expects numeric\-string, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/CityLedger/CreditCheck.php
+
+		-
+			message: '#^Parameter \#1 \$companyIds of method App\\Services\\CityLedger\\CreditExposure\:\:inHouse\(\) expects list\<int\>, array\<mixed\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/CityLedger/CreditExposure.php
+
+		-
+			message: '#^Parameter \#1 \$companyIds of method App\\Services\\CityLedger\\CreditExposure\:\:openAr\(\) expects list\<int\>, array\<mixed\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/CityLedger/CreditExposure.php
+
+		-
+			message: '#^Parameter \#1 \$num1 of function bcadd expects numeric\-string, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/CityLedger/CreditExposure.php
+
+		-
+			message: '#^Parameter \#1 \$num1 of function bccomp expects numeric\-string, string given\.$#'
+			identifier: argument.type
+			count: 2
+			path: app/Services/CityLedger/CreditExposure.php
+
+		-
+			message: '#^Parameter \#1 \$num1 of function bcsub expects numeric\-string, string given\.$#'
+			identifier: argument.type
+			count: 2
+			path: app/Services/CityLedger/CreditExposure.php
+
+		-
+			message: '#^Parameter \#2 \$num2 of function bcadd expects numeric\-string, string given\.$#'
+			identifier: argument.type
+			count: 2
+			path: app/Services/CityLedger/CreditExposure.php
+
+		-
+			message: '#^Parameter \#2 \$num2 of function bccomp expects numeric\-string, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/CityLedger/CreditExposure.php
+
+		-
+			message: '#^Parameter \#2 \$num2 of function bcsub expects numeric\-string, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/CityLedger/CreditExposure.php
+
+		-
+			message: '#^Method App\\Services\\CityLedger\\FolioPaymentReferences\:\:arPayments\(\) should return Illuminate\\Support\\Collection\<int, array\{date\: Carbon\\CarbonInterface, order\: int, folio\: string\|null, receipt\: string\}\> but returns Illuminate\\Support\\Collection\<int, array\{date\: Illuminate\\Support\\Carbon, order\: int, folio\: null, receipt\: string\}\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/CityLedger/FolioPaymentReferences.php
+
+		-
+			message: '#^Method App\\Services\\CityLedger\\FolioPaymentReferences\:\:folioPayments\(\) should return Illuminate\\Support\\Collection\<int, array\{date\: Carbon\\CarbonInterface, order\: int, folio\: string\|null, receipt\: string\}\> but returns Illuminate\\Support\\Collection\<int, array\{date\: Illuminate\\Support\\Carbon, order\: int, folio\: string, receipt\: string\}\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/CityLedger/FolioPaymentReferences.php
+
+		-
+			message: '#^Parameter \#1 \$num1 of function bcadd expects numeric\-string, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/CityLedger/StatementBuilder.php
+
+		-
+			message: '#^Parameter \#1 \$num1 of function bcsub expects numeric\-string, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/CityLedger/StatementBuilder.php
+
+		-
+			message: '#^Parameter \#2 \$num2 of function bcadd expects numeric\-string, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/CityLedger/StatementBuilder.php
+
+		-
+			message: '#^Parameter \#2 \$num2 of function bcsub expects numeric\-string, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/CityLedger/StatementBuilder.php
+
+		-
+			message: '#^Parameter \$lines of class App\\Data\\Folio\\DiscountQuoteData constructor expects list\<App\\Data\\Folio\\DiscountQuoteLineData\>, array\<int, App\\Data\\Folio\\DiscountQuoteLineData\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/Folio/DiscountQuote.php
+
+		-
+			message: '#^Method App\\Services\\Folio\\DocumentLines\:\:lines\(\) should return list\<App\\Services\\Folio\\DocumentLineRow\> but returns array\<int, App\\Services\\Folio\\DocumentLineRow\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/Folio/DocumentLines.php
+
+		-
+			message: '#^Binary operation "\." between array\|string and string results in an error\.$#'
+			identifier: binaryOp.invalid
+			count: 1
+			path: app/Services/Folio/FolioDocumentRows.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Support\\Collection\<int, App\\Models\\ReservationUnit\>\:\:modelKeys\(\)\.$#'
+			identifier: method.notFound
+			count: 3
+			path: app/Services/Folio/FolioDocumentRows.php
+
+		-
+			message: '#^Method App\\Services\\Folio\\FolioDocumentRows\:\:places\(\) should return array\<int, array\{place\: string\|null, room\: string, heading\: string\}\> but returns array\<int, array\{place\: array\|string\|null, room\: string, heading\: string\}\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/Folio/FolioDocumentRows.php
+
+		-
+			message: '#^Method App\\Services\\Folio\\FolioDocumentRows\:\:roomLines\(\) should return list\<string\> but returns array\<int, string\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/Folio/FolioDocumentRows.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>name" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Services/Folio/FolioPaymentRows.php
+
+		-
+			message: '#^Binary operation "\." between array\<string\>\|string and '' '' results in an error\.$#'
+			identifier: binaryOp.invalid
+			count: 1
+			path: app/Services/Folio/FolioReopenRule.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>time_zone" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Services/Folio/FolioReopenRule.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>targetFolio" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Services/Folio/FolioRouter.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>target_folio_id" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Services/Folio/FolioRouter.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Support\\Collection\<int, App\\Models\\Folio\>\:\:modelKeys\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Services/Folio/FolioStatement.php
+
+		-
+			message: '#^If condition is always false\.$#'
+			identifier: if.alwaysFalse
+			count: 1
+			path: app/Services/Folio/FolioStatement.php
+
+		-
+			message: '#^Left side of && is always false\.$#'
+			identifier: booleanAnd.leftAlwaysFalse
+			count: 1
+			path: app/Services/Folio/FolioStatement.php
+
+		-
+			message: '#^Method App\\Services\\Folio\\FolioStatement\:\:build\(\) should return array\{folios\: list\<App\\Data\\Folio\\FolioRailItemData\>, folio\: App\\Data\\Folio\\FolioData\|null\} but returns array\{folios\: array\<int, App\\Data\\Folio\\FolioRailItemData\>, folio\: App\\Data\\Folio\\FolioData\|null\}\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/Folio/FolioStatement.php
+
+		-
+			message: '#^Offset ''changePrice'' on array\{postCharge\?\: bool, reverse\?\: bool, transfer\?\: bool, discount\?\: bool, close\?\: bool, recordPayment\?\: bool, refund\?\: bool\} on left side of \?\? does not exist\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Services/Folio/FolioStatement.php
+
+		-
+			message: '#^Offset ''printVoucher'' on array\{postCharge\?\: bool, reverse\?\: bool, transfer\?\: bool, discount\?\: bool, close\?\: bool, recordPayment\?\: bool, refund\?\: bool\} on left side of \?\? does not exist\.$#'
+			identifier: nullCoalesce.offset
+			count: 3
+			path: app/Services/Folio/FolioStatement.php
+
+		-
+			message: '#^Offset ''settleCityLedger'' on array\{postCharge\?\: bool, reverse\?\: bool, transfer\?\: bool, discount\?\: bool, close\?\: bool, recordPayment\?\: bool, refund\?\: bool\} on left side of \?\? does not exist\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Services/Folio/FolioStatement.php
+
+		-
+			message: '#^Parameter \#1 \$num1 of function bccomp expects numeric\-string, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/Folio/FolioStatement.php
+
+		-
+			message: '#^Parameter \#1 \.\.\.\$values of method Illuminate\\Support\\Collection\<int,array\<string, App\\Data\\Folio\\FolioRailItemData\|App\\Models\\Folio\|string\|null\>\>\:\:push\(\) expects array\{key\: string, folio\: App\\Models\\Folio, unit\: null, item\: App\\Data\\Folio\\FolioRailItemData\}, array\{key\: non\-falsy\-string, folio\: null, unit\: mixed, item\: App\\Data\\Folio\\FolioRailItemData\} given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/Folio/FolioStatement.php
+
+		-
+			message: '#^Parameter \#2 \$unitIds of method App\\Services\\Folio\\FolioStatement\:\:payerUnits\(\) expects list\<int\>, array\<int, int\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/Folio/FolioStatement.php
+
+		-
+			message: '#^Parameter \#3 \$entries of method App\\Services\\Folio\\FolioStatement\:\:data\(\) expects Illuminate\\Support\\Collection\<int, array\{key\: string, folio\: App\\Models\\Folio\|null, unit\: int\|null, item\: App\\Data\\Folio\\FolioRailItemData\}\>, Illuminate\\Support\\Collection\<int, array\{key\: string, folio\: App\\Models\\Folio, unit\: null, item\: App\\Data\\Folio\\FolioRailItemData\}\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/Folio/FolioStatement.php
+
+		-
+			message: '#^Parameter \$postRooms of class App\\Data\\Folio\\FolioData constructor expects list\<App\\Data\\Folio\\FolioOptionData\>, array\<int, App\\Data\\Folio\\FolioOptionData\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/Folio/FolioStatement.php
+
+		-
+			message: '#^Parameter \$postUnits of class App\\Data\\Folio\\FolioData constructor expects list\<App\\Data\\Folio\\FolioOptionData\>, array\<int, App\\Data\\Folio\\FolioOptionData\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/Folio/FolioStatement.php
+
+		-
+			message: '#^Parameter \$rows of class App\\Data\\Folio\\FolioData constructor expects list\<App\\Data\\Folio\\FolioRowData\>, array given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/Folio/FolioStatement.php
+
+		-
+			message: '#^Result of && is always false\.$#'
+			identifier: booleanAnd.alwaysFalse
+			count: 3
+			path: app/Services/Folio/FolioStatement.php
+
+		-
+			message: '#^Right side of && is always false\.$#'
+			identifier: booleanAnd.rightAlwaysFalse
+			count: 2
+			path: app/Services/Folio/FolioStatement.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between string and null will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 1
+			path: app/Services/Folio/FolioStatement.php
+
+		-
+			message: '#^Ternary operator condition is always false\.$#'
+			identifier: ternary.alwaysFalse
+			count: 1
+			path: app/Services/Folio/FolioStatement.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>full_name" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 2
+			path: app/Services/Folio/FolioStatement.php
+
+		-
+			message: '#^Using nullsafe property access on non\-nullable type App\\Models\\Folio\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 2
+			path: app/Services/Folio/FolioStatement.php
+
+		-
+			message: '#^Parameter \#2 \$timestamp of function date expects int\|null, int\|false given\.$#'
+			identifier: argument.type
+			count: 3
+			path: app/Services/Folio/FolioVoucher.php
+
+		-
+			message: '#^Method App\\Services\\Folio\\InHouseUnits\:\:roomsFor\(\) should return list\<string\> but returns array\<int, string\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/Folio/InHouseUnits.php
+
+		-
+			message: '#^Parameter \#1 \$unitIds of method App\\Services\\Reservations\\ReservationRoomBox\:\:assignmentsForUnitsOn\(\) expects list\<int\>, array\<int, \(int\|string\)\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/Folio/InHouseUnits.php
+
+		-
+			message: '#^Method App\\Services\\Folio\\IncomingScheduledCharges\:\:for\(\) should return list\<string\> but returns array\<int, non\-falsy\-string\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/Folio/IncomingScheduledCharges.php
+
+		-
+			message: '#^Parameter \#1 \$days of method App\\Services\\Folio\\IncomingScheduledCharges\:\:days\(\) expects list\<string\>, array\<int, mixed\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/Folio/IncomingScheduledCharges.php
+
+		-
+			message: '#^Parameter \#1 \$unitIds of method App\\Services\\Folio\\IncomingScheduledCharges\:\:unitNames\(\) expects list\<int\>, array\<int, \(int\|string\)\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/Folio/IncomingScheduledCharges.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Support\\Collection\<int, App\\Models\\Folio\>\:\:modelKeys\(\)\.$#'
+			identifier: method.notFound
+			count: 3
+			path: app/Services/Folio/MoveChargesPreview.php
+
+		-
+			message: '#^Method App\\Services\\Folio\\MoveChargesPreview\:\:charges\(\) should return Illuminate\\Support\\Collection\<int, array\{lineId\: int, folioId\: int, unitId\: int\|null, isRoom\: bool, total\: string, data\: App\\Data\\Folio\\MoveChargeData\}\> but returns Illuminate\\Support\\Collection\<int, array\{lineId\: int, folioId\: int, unitId\: int\|null, isRoom\: bool, total\: non\-empty\-string, data\: App\\Data\\Folio\\MoveChargeData\}\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/Folio/MoveChargesPreview.php
+
+		-
+			message: '#^Method App\\Services\\Folio\\MoveChargesPreview\:\:unitsWithNightsAfter\(\) should return list\<int\> but returns array\<mixed\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/Folio/MoveChargesPreview.php
+
+		-
+			message: '#^Parameter \#1 \$unitIds of method App\\Services\\Reservations\\ReservationRoomBox\:\:assignmentsForUnits\(\) expects list\<int\>, array\<int, \(int\|string\)\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/Folio/MoveChargesPreview.php
+
+		-
+			message: '#^Parameter \#3 \$schedules of method App\\Services\\Folio\\MoveChargesPreview\:\:proposedRules\(\) expects list\<array\{unit\: App\\Models\\ReservationUnit, scope\: string\}\>, array\<int, array\{unit\: App\\Models\\ReservationUnit, scope\: string\}\> given\.$#'
+			identifier: argument.type
+			count: 2
+			path: app/Services/Folio/MoveChargesPreview.php
+
+		-
+			message: '#^Parameter \#5 \$charges of class App\\Data\\Folio\\MoveFolioData constructor expects list\<App\\Data\\Folio\\MoveChargeData\>, array\<int, mixed\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/Folio/MoveChargesPreview.php
+
+		-
+			message: '#^Parameter \#8 \$children of class App\\Data\\Folio\\MoveChargeData constructor expects list\<App\\Data\\Folio\\MoveChildData\>, array\<App\\Data\\Folio\\MoveChildData\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/Folio/MoveChargesPreview.php
+
+		-
+			message: '#^Parameter \$folios of class App\\Data\\Folio\\MoveChargesPageData constructor expects list\<App\\Data\\Folio\\MoveFolioData\>, array\<int, App\\Data\\Folio\\MoveFolioData\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/Folio/MoveChargesPreview.php
+
+		-
+			message: '#^Parameter \$rules of class App\\Data\\Folio\\RoutingRulesData constructor expects list\<App\\Data\\Folio\\RoutingRuleRowData\>, array\<int, App\\Data\\Folio\\RoutingRuleRowData\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/Folio/RoutingRuleList.php
+
+		-
+			message: '#^Parameter \$targets of class App\\Data\\Folio\\RoutingRulesData constructor expects list\<App\\Data\\Folio\\FolioOptionData\>, array\<int, App\\Data\\Folio\\FolioOptionData\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/Folio/RoutingRuleList.php
+
+		-
+			message: '#^Parameter \#4 \$taxIds of method App\\Services\\FrontDesk\\CheckInCollection\:\:taxSums\(\) expects list\<int\>, array\<mixed\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/FrontDesk/CheckInCollection.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Support\\Collection\<int, App\\Models\\Folio\>\:\:modelKeys\(\)\.$#'
+			identifier: method.notFound
+			count: 6
+			path: app/Services/FrontDesk/CheckOutSettlement.php
+
+		-
+			message: '#^Method App\\Services\\FrontDesk\\CheckOutSettlement\:\:heldDeposits\(\) has parameter \$folios with generic class Illuminate\\Support\\Collection but does not specify its types\: TKey, TValue$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Services/FrontDesk/CheckOutSettlement.php
+
+		-
+			message: '#^Method App\\Services\\FrontDesk\\CheckOutSettlement\:\:incomingScheduled\(\) should return list\<string\> but returns array\<int, string\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/FrontDesk/CheckOutSettlement.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Support\\Collection\<int, App\\Models\\Folio\>\:\:modelKeys\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Services/FrontDesk/GroupCheckOutPreview.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Support\\Collection\<int, App\\Models\\ReservationUnit\>\:\:modelKeys\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Services/FrontDesk/GroupCheckOutPreview.php
+
+		-
+			message: '#^Method App\\Services\\FrontDesk\\GroupCheckOutPreview\:\:methods\(\) should return array\{data\: list\<App\\Data\\Payments\\PaymentMethodOptionData\>, first\: int\|null\} but returns array\{data\: array\<int, App\\Data\\Payments\\PaymentMethodOptionData\>, first\: int\|null\}\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/FrontDesk/GroupCheckOutPreview.php
+
+		-
+			message: '#^Parameter \#1 \$unitIds of method App\\Services\\Folio\\IncomingScheduledCharges\:\:unitNames\(\) expects list\<int\>, array\<int, \(int\|string\)\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/FrontDesk/GroupCheckOutPreview.php
+
+		-
+			message: '#^Parameter \#16 \$moveNote of class App\\Data\\Reservations\\GroupCheckOutRowData constructor expects string\|null, array\|string\|null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/FrontDesk/GroupCheckOutPreview.php
+
+		-
+			message: '#^Parameter \#8 \$note of class App\\Data\\Reservations\\GroupCheckOutRowData constructor expects string\|null, array\|string\|null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/FrontDesk/GroupCheckOutPreview.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>amount" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Services/FrontDesk/GroupCheckOutPreview.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>name" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Services/FrontDesk/GroupCheckOutPreview.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>refundAmount" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Services/FrontDesk/GroupCheckOutPreview.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Support\\Collection\<int, App\\Models\\Folio\>\:\:modelKeys\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Services/FrontDesk/UndoCheckOutRule.php
+
+		-
+			message: '#^Method App\\Services\\Guests\\CountryOptions\:\:name\(\) should return string\|null but returns string\|false\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/Guests/CountryOptions.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Builder\<App\\Models\\Guest\>\:\:allowedSorts\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Services/Guests/GuestDirectory.php
+
+		-
+			message: '#^Parameter \#1 \$query of method App\\Services\\Guests\\GuestDirectory\:\:search\(\) expects Illuminate\\Database\\Eloquent\\Builder\<App\\Models\\Guest\>, Illuminate\\Database\\Eloquent\\Builder\<Illuminate\\Database\\Eloquent\\Model\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/Guests/GuestDirectory.php
+
+		-
+			message: '#^Parameter \#1 \$query of method App\\Services\\Guests\\GuestDirectory\:\:status\(\) expects Illuminate\\Database\\Eloquent\\Builder\<App\\Models\\Guest\>, Illuminate\\Database\\Eloquent\\Builder\<Illuminate\\Database\\Eloquent\\Model\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/Guests/GuestDirectory.php
+
+		-
+			message: '#^Parameter \$idNumbers of method App\\Services\\Guests\\GuestMatcher\:\:find\(\) expects list\<string\>, array\<int, string\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/Guests/GuestMatcher.php
+
+		-
+			message: '#^Parameter \$bedBlocks of static method App\\Data\\Housekeeping\\HousekeepingRoomData\:\:forRoom\(\) expects list\<App\\Data\\Housekeeping\\HousekeepingBedBlockData\>, array\<int, App\\Data\\Housekeeping\\HousekeepingBedBlockData\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/Housekeeping/HousekeepingBoardBuilder.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>room_id" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Services/Housekeeping/HousekeepingBoardBuilder.php
+
+		-
+			message: '#^Method App\\Services\\NightAudit\\AuditReadiness\:\:arrivalsNotCheckedIn\(\) should return list\<App\\Services\\NightAudit\\ReadinessItem\> but returns array\<int, App\\Services\\NightAudit\\ReadinessItem\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/NightAudit/AuditReadiness.php
+
+		-
+			message: '#^Method App\\Services\\NightAudit\\AuditReadiness\:\:carriedExceptions\(\) should return list\<App\\Services\\NightAudit\\ReadinessItem\> but returns array\<int, App\\Services\\NightAudit\\ReadinessItem\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/NightAudit/AuditReadiness.php
+
+		-
+			message: '#^Method App\\Services\\NightAudit\\AuditReadiness\:\:dayUseHours\(\) should return string\|null but returns array\|string\|null\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/NightAudit/AuditReadiness.php
+
+		-
+			message: '#^Method App\\Services\\NightAudit\\AuditReadiness\:\:departuresNotCheckedOut\(\) should return list\<App\\Services\\NightAudit\\ReadinessItem\> but returns array\<int, App\\Services\\NightAudit\\ReadinessItem\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/NightAudit/AuditReadiness.php
+
+		-
+			message: '#^Method App\\Services\\NightAudit\\AuditReadiness\:\:endedDayUseDetail\(\) should return string\|null but returns array\|string\|null\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/NightAudit/AuditReadiness.php
+
+		-
+			message: '#^Method App\\Services\\NightAudit\\AuditReadiness\:\:folioItems\(\) should return list\<App\\Services\\NightAudit\\ReadinessItem\> but returns array\<int, App\\Services\\NightAudit\\ReadinessItem\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/NightAudit/AuditReadiness.php
+
+		-
+			message: '#^Method App\\Services\\NightAudit\\AuditReadiness\:\:foliosOpenAfterCheckOut\(\) should return list\<App\\Services\\NightAudit\\ReadinessItem\> but returns array\<int, App\\Services\\NightAudit\\ReadinessItem\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/NightAudit/AuditReadiness.php
+
+		-
+			message: '#^Method App\\Services\\NightAudit\\AuditReadiness\:\:inHouseWithoutRoom\(\) should return list\<App\\Services\\NightAudit\\ReadinessItem\> but returns array\<int, App\\Services\\NightAudit\\ReadinessItem\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/NightAudit/AuditReadiness.php
+
+		-
+			message: '#^Parameter \#1 \$num1 of function bcadd expects numeric\-string, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/NightAudit/AuditReadiness.php
+
+		-
+			message: '#^Parameter \#1 \$num1 of function bccomp expects numeric\-string, string given\.$#'
+			identifier: argument.type
+			count: 2
+			path: app/Services/NightAudit/AuditReadiness.php
+
+		-
+			message: '#^Parameter \#1 \$num1 of function bcmul expects numeric\-string, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/NightAudit/AuditReadiness.php
+
+		-
+			message: '#^Parameter \#2 \$num2 of function bcadd expects numeric\-string, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/NightAudit/AuditReadiness.php
+
+		-
+			message: '#^Parameter \#5 \$revenue of class App\\Services\\NightAudit\\AuditSummary constructor expects list\<array\{code\: string, name\: string, amount\: Brick\\Money\\Money, lines\: int\}\>, array\<int, array\{code\: string, name\: string, amount\: Brick\\Money\\Money, lines\: int\}\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/NightAudit/AuditResultSummary.php
+
+		-
+			message: '#^Parameter \#6 \$payments of class App\\Services\\NightAudit\\AuditSummary constructor expects list\<array\{name\: string, count\: int, amount\: Brick\\Money\\Money\}\>, array\<int, array\{name\: string, count\: int, amount\: Brick\\Money\\Money\}\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/NightAudit/AuditResultSummary.php
+
+		-
+			message: '#^Parameter \#1 \$nights of class App\\Services\\NightAudit\\PackageNightRespreadResult constructor expects list\<App\\Models\\UnitNight\>, array\<int, App\\Models\\UnitNight\> given\.$#'
+			identifier: argument.type
+			count: 2
+			path: app/Services/NightAudit/PackageNightRespread.php
+
+		-
+			message: '#^Parameter \#2 \$firstNight of method App\\Services\\Rates\\Pricing\\PackagePricing\:\:spreadByInclusions\(\) expects list\<bool\>, array\<int, bool\> given\.$#'
+			identifier: argument.type
+			count: 2
+			path: app/Services/NightAudit/PackageNightRespread.php
+
+		-
+			message: '#^Parameter \#3 \$chargedNights of class App\\Services\\NightAudit\\PackageNightRespreadResult constructor expects list\<App\\Models\\UnitNight\>, array\<int, App\\Models\\UnitNight\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/NightAudit/PackageNightRespread.php
+
+		-
+			message: '#^Parameter \$chargedNightIds of class App\\Services\\NightAudit\\PackageNightRespreadResult constructor expects list\<int\>, array\<int, mixed\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/NightAudit/PackageNightRespread.php
+
+		-
+			message: '#^Method App\\Services\\NightAudit\\ReadinessAdvice\:\:consequence\(\) should return string\|null but returns array\|string\|null\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/NightAudit/ReadinessAdvice.php
+
+		-
+			message: '#^Parameter \#1 \$num of function number_format expects float, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/NightAudit/ReadinessAdvice.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between string and App\\Enums\\NotificationChannel will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 2
+			path: app/Services/Notifications/NotificationPreferences.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between string and App\\Enums\\NotificationType will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 2
+			path: app/Services/Notifications/NotificationPreferences.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>enabled" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 2
+			path: app/Services/Notifications/NotificationPreferences.php
+
+		-
+			message: '#^Parameter \#1 \$liveStatuses of static method App\\Enums\\PaymentStage\:\:forMaster\(\) expects list\<App\\Enums\\UnitStatus\>, array\<mixed\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/Payments/PaymentPurposeChoices.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>reservation_unit_id" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Services/Payments/PaymentPurposeChoices.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>type" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Services/Payments/PaymentPurposeChoices.php
+
+		-
+			message: '#^Method App\\Services\\Payments\\PaymentReceipt\:\:paymentIdsFor\(\) should return list\<int\> but returns array\<int\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/Payments/PaymentReceipt.php
+
+		-
+			message: '#^Cannot cast object\|string\|null to string\.$#'
+			identifier: cast.string
+			count: 1
+			path: app/Services/Platform/Impersonation.php
+
+		-
+			message: '#^Method App\\Services\\Platform\\Impersonation\:\:session\(\) should return array\{support_user_id\: int, user_id\: int, property_id\: int, reason\: string, note\: string\|null, started_at\: string, return_url\: string\}\|null but returns non\-empty\-array\|null\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/Platform/Impersonation.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>allow_support_money_corrections" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Services/Platform/Impersonation.php
+
+		-
+			message: '#^Method App\\Services\\Platform\\PartnerDirectory\:\:moveOptions\(\) should return list\<array\{value\: string, label\: string\}\> but returns array\<int, array\{value\: decimal\-int\-string, label\: non\-falsy\-string\}\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/Platform/PartnerDirectory.php
+
+		-
+			message: '#^Method App\\Services\\Platform\\PartnerImportReader\:\:read\(\) should return list\<array\{partner_name\: string, code_prefix\: string, name\: string, email\: string\}\> but returns array\<int, array\{partner_name\: string, code_prefix\: string, name\: string, email\: string\}\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/Platform/PartnerImportReader.php
+
+		-
+			message: '#^Parameter \#1 \$query of method App\\Services\\Platform\\PropertyDirectory\:\:partner\(\) expects Illuminate\\Database\\Eloquent\\Builder\<App\\Models\\Property\>, Illuminate\\Database\\Eloquent\\Builder\<Illuminate\\Database\\Eloquent\\Model\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/Platform/PropertyDirectory.php
+
+		-
+			message: '#^Parameter \#1 \$query of method App\\Services\\Platform\\PropertyDirectory\:\:search\(\) expects Illuminate\\Database\\Eloquent\\Builder\<App\\Models\\Property\>, Illuminate\\Database\\Eloquent\\Builder\<Illuminate\\Database\\Eloquent\\Model\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/Platform/PropertyDirectory.php
+
+		-
+			message: '#^Match expression does not handle remaining value\: string$#'
+			identifier: match.unhandled
+			count: 1
+			path: app/Services/Platform/SupportMoneyCorrections.php
+
+		-
+			message: '#^Method App\\Services\\Platform\\SupportMoneyCorrections\:\:forSession\(\) should return list\<array\{label\: string, amount\: string\|null, reference\: string\|null\}\> but returns array\<int, array\{label\: string, amount\: string\|null, reference\: string\|null\}\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/Platform/SupportMoneyCorrections.php
+
+		-
+			message: '#^Offset string\|null might not exist on array\{''payment\.refunded''\: null, ''ar_payment\.voided''\: ''receipt_number'', ''ar_invoice\.voided''\: ''number'', ''ar_invoice\.credit_note_issued''\: ''number'', ''ar_allocation\.reversed''\: null, ''registration_card\.voided''\: null\}\.$#'
+			identifier: offsetAccess.notFound
+			count: 1
+			path: app/Services/Platform/SupportMoneyCorrections.php
+
+		-
+			message: '#^Method App\\Services\\Platform\\ViewAsStaff\:\:for\(\) should return list\<App\\Data\\Platform\\ViewAsStaffData\> but returns array\<int, App\\Data\\Platform\\ViewAsStaffData\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/Platform/ViewAsStaff.php
+
+		-
+			message: '#^Class Brick\\Money\\IsoCurrencyProvider referenced with incorrect case\: Brick\\Money\\ISOCurrencyProvider\.$#'
+			identifier: class.nameCase
+			count: 2
+			path: app/Services/Property/CurrencyOptions.php
+
+		-
+			message: '#^Comparison operation "\>\=" between int\<0, max\> and 0 is always true\.$#'
+			identifier: greaterOrEqual.alwaysTrue
+			count: 1
+			path: app/Services/Property/CurrencyOptions.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>time_zone" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Services/Property/PropertyToday.php
+
+		-
+			message: '#^Expression on left side of \?\? is not nullable\.$#'
+			identifier: nullCoalesce.expr
+			count: 1
+			path: app/Services/Rates/DayUseOffers.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Support\\Collection\<int, App\\Models\\RatePlan\>\:\:load\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Services/Rates/DerivedRatePlans.php
+
+		-
+			message: '#^Method App\\Services\\Rates\\DerivedRatePreview\:\:preview\(\) should return list\<array\{room_type_id\: int, name\: string, parent_amount\: string\|null, derived_amount\: string\|null\}\> but returns array\<int, array\{room_type_id\: int, name\: string, parent_amount\: non\-empty\-string, derived_amount\: non\-empty\-string\}\|array\{room_type_id\: int, name\: string, parent_amount\: null, derived_amount\: null\}\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/Rates/DerivedRatePreview.php
+
+		-
+			message: '#^Method App\\Services\\Rates\\Pricing\\NightlyPricing\:\:priceStay\(\) should return non\-empty\-list\<App\\Services\\Rates\\Pricing\\NightPrice\> but returns list\<App\\Services\\Rates\\Pricing\\NightPrice\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/Rates/Pricing/NightlyPricing.php
+
+		-
+			message: '#^Method App\\Services\\Rates\\Pricing\\PackagePricing\:\:priceStay\(\) should return non\-empty\-list\<App\\Services\\Rates\\Pricing\\NightPrice\> but returns list\<App\\Services\\Rates\\Pricing\\NightPrice\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/Rates/Pricing/PackagePricing.php
+
+		-
+			message: '#^Method App\\Services\\Rates\\RateCalendarService\:\:cells\(\) should return list\<App\\Data\\Rates\\RateCalendarCellData\> but returns array\<int, App\\Data\\Rates\\RateCalendarCellData\>\.$#'
+			identifier: return.type
+			count: 2
+			path: app/Services/Rates/RateCalendarService.php
+
+		-
+			message: '#^Method App\\Services\\Rates\\RateCalendarService\:\:ending\(\) should return list\<App\\Data\\Rates\\RateCalendarEndingData\> but returns array\<int, App\\Data\\Rates\\RateCalendarEndingData\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/Rates/RateCalendarService.php
+
+		-
+			message: '#^Parameter \#1 \$ratePlanIds of method App\\Services\\Rates\\RatesEndingCheck\:\:pricedUntilByPlan\(\) expects list\<int\>, array\<int, \(int\|string\)\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/Rates/RateCalendarService.php
+
+		-
+			message: '#^Parameter \#2 \$plans of static method App\\Data\\Rates\\RateCalendarRoomTypeData\:\:fromModel\(\) expects list\<App\\Data\\Rates\\RateCalendarPlanData\>, non\-empty\-array\<int, App\\Data\\Rates\\RateCalendarPlanData\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/Rates/RateCalendarService.php
+
+		-
+			message: '#^Parameter \#2 \$roomTypeNames of static method App\\Data\\Rates\\RateCalendarEndingData\:\:fromModel\(\) expects list\<string\>, non\-empty\-array\<mixed\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/Rates/RateCalendarService.php
+
+		-
+			message: '#^Parameter \$roomTypes of class App\\Data\\Rates\\RateCalendarData constructor expects list\<App\\Data\\Rates\\RateCalendarRoomTypeData\>, array\<int, App\\Data\\Rates\\RateCalendarRoomTypeData\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/Rates/RateCalendarService.php
+
+		-
+			message: '#^Type Illuminate\\Database\\Eloquent\\Collection\<int, App\\Models\\PackagePrice\> in generic type Illuminate\\Database\\Eloquent\\Collection\<string, Illuminate\\Database\\Eloquent\\Collection\<int, App\\Models\\PackagePrice\>\> in PHPDoc tag @param for parameter \$packagePrices is not subtype of template type TModel of Illuminate\\Database\\Eloquent\\Model of class Illuminate\\Database\\Eloquent\\Collection\.$#'
+			identifier: generics.notSubtype
+			count: 1
+			path: app/Services/Rates/RateCalendarService.php
+
+		-
+			message: '#^Type Illuminate\\Database\\Eloquent\\Collection\<int, App\\Models\\Rate\> in generic type Illuminate\\Database\\Eloquent\\Collection\<string, Illuminate\\Database\\Eloquent\\Collection\<int, App\\Models\\Rate\>\> in PHPDoc tag @param for parameter \$rates is not subtype of template type TModel of Illuminate\\Database\\Eloquent\\Model of class Illuminate\\Database\\Eloquent\\Collection\.$#'
+			identifier: generics.notSubtype
+			count: 1
+			path: app/Services/Rates/RateCalendarService.php
+
+		-
+			message: '#^Method App\\Services\\Rates\\RatePlanCoverage\:\:sellableRoomTypeIds\(\) should return list\<int\> but returns array\<mixed\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/Rates/RatePlanCoverage.php
+
+		-
+			message: '#^Parameter \#1 \$nights of static method App\\Services\\Rates\\RateQuote\:\:quoted\(\) expects non\-empty\-list\<App\\Services\\Rates\\Pricing\\NightPrice\>, list\<App\\Services\\Rates\\Pricing\\NightPrice\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/Rates/RateQuoteService.php
+
+		-
+			message: '#^Method App\\Services\\Rates\\StayDiscountPreview\:\:stayLengths\(\) should return list\<int\> but returns array\<int, mixed\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/Rates/StayDiscountPreview.php
+
+		-
+			message: '#^Parameter \#1 \$nights of static method App\\Services\\Rates\\RateQuote\:\:quoted\(\) expects non\-empty\-list\<App\\Services\\Rates\\Pricing\\NightPrice\>, list\<App\\Services\\Rates\\Pricing\\NightPrice\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/Rates/StayDiscountPreview.php
+
+		-
+			message: '#^Method App\\Services\\Registration\\RegistrationCardDocumentBuilder\:\:signedParts\(\) should return list\<array\{html\: string, items\: list\<array\{text\: string, ticked\: bool\}\>\}\>\|null but returns array\<array\{html\: mixed, items\: array\<array\{text\: mixed, ticked\: bool\}\>\}\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/Registration/RegistrationCardDocumentBuilder.php
+
+		-
+			message: '#^Parameter \#1 \$fields of method App\\Services\\Registration\\RegistrationCardDocumentBuilder\:\:withoutMarketing\(\) expects list\<array\{field\: string, label\: string, value\: string\}\>, array\<int, array\{field\: mixed, label\: mixed, value\: string\}\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/Registration/RegistrationCardDocumentBuilder.php
+
+		-
+			message: '#^Parameter \#6 \$items of class App\\Services\\Registration\\RegistrationCardDocument constructor expects list\<array\{text\: string, ticked\: bool\}\>, array\<array\{text\: mixed, ticked\: bool\}\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/Registration/RegistrationCardDocumentBuilder.php
+
+		-
+			message: '#^Method App\\Services\\Registration\\RegistrationCardFieldRules\:\:noteFor\(\) should return string\|null but returns array\|string\|null\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/Registration/RegistrationCardFieldRules.php
+
+		-
+			message: '#^Method App\\Services\\Registration\\RegistrationCardRequirement\:\:signedUnitGuestIds\(\) should return list\<int\> but returns array\<mixed\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/Registration/RegistrationCardRequirement.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>registration_card_scope" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Services/Registration/RegistrationCardRequirement.php
+
+		-
+			message: '#^Method App\\Services\\Registration\\RegistrationCardSnapshot\:\:guestValues\(\) should return array\<string, string\> but returns array\<string, array\|string\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/Registration/RegistrationCardSnapshot.php
+
+		-
+			message: '#^Parameter \#2 \$callback of function array_filter expects \(callable\(array\|string\|null\)\: bool\)\|null, Closure\(string\|null\)\: bool given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/Registration/RegistrationCardSnapshot.php
+
+		-
+			message: '#^Parameter \#1 \$that of method Brick\\Money\\Money\:\:dividedBy\(\) expects Brick\\Math\\BigNumber\|int\|string, float\|int given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/Registration/RegistrationCardStay.php
+
+		-
+			message: '#^Parameter \#1 \$array \(list\<non\-empty\-string\>\) of array_values is already a list, call has no effect\.$#'
+			identifier: arrayValues.list
+			count: 1
+			path: app/Services/Registration/TermsRenderer.php
+
+		-
+			message: '#^Method App\\Services\\Reports\\FolioLedgerReport\:\:codeOptions\(\) should return list\<array\{value\: string, label\: string\}\> but returns array\<int, array\{value\: string, label\: non\-falsy\-string\}\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/Reports/FolioLedgerReport.php
+
+		-
+			message: '#^Method App\\Services\\Reports\\FolioLedgerReport\:\:rows\(\) should return list\<App\\Data\\Reports\\FolioLedgerRow\> but returns array\<int, App\\Data\\Reports\\FolioLedgerRow\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/Reports/FolioLedgerReport.php
+
+		-
+			message: '#^Method App\\Services\\Reports\\FolioReportRows\:\:entries\(\) should return list\<App\\Services\\Reports\\FolioReportEntry\> but returns array\<int, App\\Services\\Reports\\FolioReportEntry\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/Reports/FolioReportRows.php
+
+		-
+			message: '#^Method App\\Services\\Reports\\FolioReportRows\:\:note\(\) should return string\|null but returns array\|string\|null\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/Reports/FolioReportRows.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>full_name" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Services/Reports/FolioReportRows.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>name" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Services/Reports/FolioReportRows.php
+
+		-
+			message: '#^Method App\\Services\\Reports\\MealCountsReport\:\:rows\(\) should return list\<App\\Data\\Reports\\MealCountRow\> but returns array\<int, App\\Data\\Reports\\MealCountRow\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/Reports/MealCountsReport.php
+
+		-
+			message: '#^Method App\\Services\\Reports\\NightAuditHistoryReport\:\:rows\(\) should return list\<App\\Data\\Reports\\NightAuditHistoryRow\> but returns array\<int, App\\Data\\Reports\\NightAuditHistoryRow\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/Reports/NightAuditHistoryReport.php
+
+		-
+			message: '#^Method App\\Services\\Reports\\NonNationalGuestsReport\:\:note\(\) should return string\|null but returns array\|string\|null\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/Reports/NonNationalGuestsReport.php
+
+		-
+			message: '#^Method App\\Services\\Reports\\NonNationalGuestsReport\:\:rows\(\) should return list\<App\\Data\\Reports\\NonNationalGuestRow\> but returns array\<int, App\\Data\\Reports\\NonNationalGuestRow\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/Reports/NonNationalGuestsReport.php
+
+		-
+			message: '#^Parameter \#1 \$guestIds of method App\\Services\\Reports\\GuestIdentities\:\:partsForGuests\(\) expects list\<int\>, array\<mixed\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/Reports/NonNationalGuestsReport.php
+
+		-
+			message: '#^Parameter \#1 \$unitIds of method App\\Services\\Reservations\\ReservationRoomBox\:\:assignmentsForUnits\(\) expects list\<int\>, array\<mixed\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/Reports/NonNationalGuestsReport.php
+
+		-
+			message: '#^Parameter \#3 \$reservationIds of method App\\Services\\Reports\\TourismTaxByUnit\:\:forRange\(\) expects list\<int\>, array\<int, mixed\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/Reports/NonNationalGuestsReport.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>guest" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Services/Reports/NonNationalGuestsReport.php
+
+		-
+			message: '#^Method App\\Services\\Reports\\OccupancyReport\:\:rows\(\) should return list\<App\\Data\\Reports\\OccupancyRow\> but returns array\<int, App\\Data\\Reports\\OccupancyRow\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/Reports/OccupancyReport.php
+
+		-
+			message: '#^Method App\\Services\\Reports\\PaymentsReport\:\:staffOptions\(\) should return list\<array\{value\: string, label\: string\}\> but returns array\<int, array\{value\: decimal\-int\-string, label\: string\}\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/Reports/PaymentsReport.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>time_zone" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Services/Reports/PoliceReport.php
+
+		-
+			message: '#^Method App\\Services\\Reports\\ReportPage\:\:sort\(\) should return array\{list\<TRow of App\\Data\\Reports\\ReportRow&Spatie\\LaravelData\\Data\>, string\} but returns array\{array\<int, App\\Data\\Reports\\ReportRow&Spatie\\LaravelData\\Data\>, string\}\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/Reports/ReportPage.php
+
+		-
+			message: '#^Access to an undefined property App\\Data\\Reports\\ReportRow\:\:\$key\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Services/Reports/ReportPdf.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>code" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Services/Reports/RevenueReport.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>name" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Services/Reports/RevenueReport.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>name" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 2
+			path: app/Services/Reports/TaxReport.php
+
+		-
+			message: '#^Method App\\Services\\Reports\\UnitReportRows\:\:rows\(\) should return list\<TRow\> but returns array\<int, TRow\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/Reports/UnitReportRows.php
+
+		-
+			message: '#^Parameter \#1 \$reservationIds of method App\\Services\\Folio\\FolioBalance\:\:forReservations\(\) expects list\<int\>, array\<int, mixed\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/Reports/UnitReportRows.php
+
+		-
+			message: '#^Parameter \#1 of closure expects list\<int\>, array\<mixed\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/Reports/UnitReportRows.php
+
+		-
+			message: '#^Method App\\Services\\Reservations\\AutoAddOns\:\:items\(\) should return list\<App\\Models\\ChargeItem\> but returns array\<int, App\\Models\\ChargeItem\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/Reservations/AutoAddOns.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Support\\Collection\<int, App\\Models\\Folio\>\:\:modelKeys\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Services/Reservations/BookingSummary.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Support\\Collection\<int, App\\Models\\ReservationUnit\>\:\:modelKeys\(\)\.$#'
+			identifier: method.notFound
+			count: 2
+			path: app/Services/Reservations/BookingSummary.php
+
+		-
+			message: '#^Method App\\Services\\Reservations\\BookingSummary\:\:stamp\(\) should return string\|null but returns array\|string\|null\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/Reservations/BookingSummary.php
+
+		-
+			message: '#^Parameter \$rooms of class App\\Services\\Reservations\\BookingSummaryDocument constructor expects list\<string\>, array\<int, string\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/Reservations/BookingSummary.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>name" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Services/Reservations/BookingSummary.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$override_amount\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/Reservations/NightPriceChangePreview.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Support\\Collection\<int, App\\Models\\UnitNight\>\:\:modelKeys\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Services/Reservations/NightPriceChangePreview.php
+
+		-
+			message: '#^Parameter \#1 \$nights of class App\\Data\\Reservations\\NightPriceChangePreviewData constructor expects list\<App\\Data\\Reservations\\NightPriceNightData\>, array\<int, App\\Data\\Reservations\\NightPriceNightData\> given\.$#'
+			identifier: argument.type
+			count: 3
+			path: app/Services/Reservations/NightPriceChangePreview.php
+
+		-
+			message: '#^Parameter \#1 \$num1 of function bccomp expects numeric\-string, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/Reservations/NightPriceChangePreview.php
+
+		-
+			message: '#^Parameter \#2 \$nightIds of method App\\Services\\Reservations\\NightPriceChangePreview\:\:plan\(\) expects list\<int\>, array\<int, \(int\|string\)\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/Reservations/NightPriceChangePreview.php
+
+		-
+			message: '#^Parameter \#2 \$num2 of function bccomp expects numeric\-string, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/Reservations/NightPriceChangePreview.php
+
+		-
+			message: '#^Parameter \#4 \$liveLines of class App\\Services\\Reservations\\PlannedNightPrice constructor expects list\<App\\Models\\FolioLine\>, array\<int, App\\Models\\FolioLine\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/Reservations/NightPriceChangePreview.php
+
+		-
+			message: '#^Parameter \#4 \$night of method App\\Services\\Folio\\NightChargeQuote\:\:quote\(\) expects App\\Models\\UnitNight, object given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/Reservations/NightPriceChangePreview.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Services/Reservations/ReservationActivityLog.php
+
+		-
+			message: '#^Parameter \#2 \$array of function implode expects array\<string\>, array\<int, array\|string\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/Reservations/ReservationActivityLog.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Support\\Collection\<int, App\\Models\\ReservationUnit\>\:\:loadMissing\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Services/Reservations/ReservationBoatSetup.php
+
+		-
+			message: '#^Method App\\Services\\Reservations\\ReservationBoatSetup\:\:forUnits\(\) should return list\<App\\Data\\Boats\\BoatSetupUnitData\> but returns array\<int, App\\Data\\Boats\\BoatSetupUnitData\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/Reservations/ReservationBoatSetup.php
+
+		-
+			message: '#^Parameter \#1 \$unitIds of method App\\Services\\Reservations\\ReservationRoomBox\:\:assignmentsForUnits\(\) expects list\<int\>, array\<mixed\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/Reservations/ReservationBoatSetup.php
+
+		-
+			message: '#^Method App\\Services\\Reservations\\ReservationDirectory\:\:repeatReservationIds\(\) should return list\<int\> but returns array\<int, mixed\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/Reservations/ReservationDirectory.php
+
+		-
+			message: '#^Offset 1 might not exist on list\{0\: non\-falsy\-string, 1\?\: string, 2\?\: non\-falsy\-string\}\.$#'
+			identifier: offsetAccess.notFound
+			count: 2
+			path: app/Services/Reservations/ReservationDirectory.php
+
+		-
+			message: '#^Parameter \#1 \$query of method App\\Services\\Reservations\\ReservationDirectory\:\:applySearch\(\) expects Illuminate\\Database\\Eloquent\\Builder\<App\\Models\\Reservation\>, Illuminate\\Database\\Eloquent\\Builder\<Illuminate\\Database\\Eloquent\\Model\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/Reservations/ReservationDirectory.php
+
+		-
+			message: '#^Parameter \#1 \$query of method App\\Services\\Reservations\\ReservationDirectory\:\:applySource\(\) expects Illuminate\\Database\\Eloquent\\Builder\<App\\Models\\Reservation\>, Illuminate\\Database\\Eloquent\\Builder\<Illuminate\\Database\\Eloquent\\Model\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/Reservations/ReservationDirectory.php
+
+		-
+			message: '#^Parameter \#1 \$query of method App\\Services\\Reservations\\ReservationDirectory\:\:applyStatus\(\) expects Illuminate\\Database\\Eloquent\\Builder\<App\\Models\\Reservation\>, Illuminate\\Database\\Eloquent\\Builder\<Illuminate\\Database\\Eloquent\\Model\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/Reservations/ReservationDirectory.php
+
+		-
+			message: '#^Method App\\Services\\Reservations\\ReservationFormOptions\:\:boatDepartures\(\) should return list\<App\\Data\\Boats\\BoatDepartureOptionData\> but returns array\<int, App\\Data\\Boats\\BoatDepartureOptionData\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/Reservations/ReservationFormOptions.php
+
+		-
+			message: '#^Method App\\Services\\Reservations\\ReservationFormOptions\:\:chargeCodes\(\) should return list\<App\\Data\\Reservations\\ChargeCodeOptionData\> but returns array\<int, App\\Data\\Reservations\\ChargeCodeOptionData\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/Reservations/ReservationFormOptions.php
+
+		-
+			message: '#^Method App\\Services\\Reservations\\ReservationFormOptions\:\:chargeItems\(\) should return list\<App\\Data\\Reservations\\ChargeItemOptionData\> but returns array\<int, App\\Data\\Reservations\\ChargeItemOptionData\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/Reservations/ReservationFormOptions.php
+
+		-
+			message: '#^Method App\\Services\\Reservations\\ReservationFormOptions\:\:folioDiscounts\(\) should return list\<App\\Data\\Folio\\FolioDiscountOptionData\> but returns array\<int, App\\Data\\Folio\\FolioDiscountOptionData\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/Reservations/ReservationFormOptions.php
+
+		-
+			message: '#^Method App\\Services\\Reservations\\ReservationFormOptions\:\:roomDiscounts\(\) should return list\<App\\Data\\Reservations\\DiscountOptionData\> but returns array\<int, App\\Data\\Reservations\\DiscountOptionData\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/Reservations/ReservationFormOptions.php
+
+		-
+			message: '#^Parameter \#1 \$methods of static method App\\Data\\Payments\\PaymentFormOptionsData\:\:forMethods\(\) expects list\<App\\Data\\Payments\\PaymentMethodOptionData\>, array\<int, App\\Data\\Payments\\PaymentMethodOptionData\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/Reservations/ReservationFormOptions.php
+
+		-
+			message: '#^Parameter \$ratePlans of class App\\Data\\Reservations\\AddUnitOptionsData constructor expects list\<App\\Data\\Reservations\\RatePlanOptionData\>, array\<int, App\\Data\\Reservations\\RatePlanOptionData\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/Reservations/ReservationFormOptions.php
+
+		-
+			message: '#^Parameter \$roomTypes of class App\\Data\\Reservations\\AddUnitOptionsData constructor expects list\<App\\Data\\Reservations\\RoomTypeOptionData\>, array\<int, App\\Data\\Reservations\\RoomTypeOptionData\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/Reservations/ReservationFormOptions.php
+
+		-
+			message: '#^Method App\\Services\\Reservations\\ReservationGuestRows\:\:billing\(\) should return string\|null but returns array\|string\|null\.$#'
+			identifier: return.type
+			count: 2
+			path: app/Services/Reservations/ReservationGuestRows.php
+
+		-
+			message: '#^Parameter \#3 \$ownFolioGuestIds of method App\\Services\\Reservations\\ReservationGuestRows\:\:billable\(\) expects list\<int\>, array\<mixed\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/Reservations/ReservationGuestRows.php
+
+		-
+			message: '#^Parameter \#3 \$ownFolioGuestIds of method App\\Services\\Reservations\\ReservationGuestRows\:\:billing\(\) expects list\<int\>, array\<mixed\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/Reservations/ReservationGuestRows.php
+
+		-
+			message: '#^Parameter \$roles of class App\\Data\\Reservations\\ReservationGuestData constructor expects list\<string\>, list\{0\?\: non\-empty\-array\|non\-falsy\-string, 1\?\: non\-empty\-array\|non\-falsy\-string\} given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/Reservations/ReservationGuestRows.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>full_name" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Services/Reservations/ReservationGuestRows.php
+
+		-
+			message: '#^Method App\\Services\\Reservations\\ReservationOverview\:\:build\(\) should return array\{reservation\: App\\Data\\Reservations\\ReservationData, units\: list\<App\\Data\\Reservations\\ReservationUnitOptionData\>, models\: Illuminate\\Support\\Collection\<int, App\\Models\\ReservationUnit\>\} but returns array\{reservation\: App\\Data\\Reservations\\ReservationData, units\: array\<int, App\\Data\\Reservations\\ReservationUnitOptionData\>, models\: Illuminate\\Database\\Eloquent\\Collection\<int, App\\Models\\ReservationUnit\>\}\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/Reservations/ReservationOverview.php
+
+		-
+			message: '#^Parameter \#1 \$unitIds of method App\\Services\\Reservations\\ReservationRoomBox\:\:assignmentsForUnits\(\) expects list\<int\>, array\<mixed\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/Reservations/ReservationOverview.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>stay_type" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Services/Reservations/ReservationOverview.php
+
+		-
+			message: '#^Parameter \#1 \$unitIds of method App\\Services\\Reservations\\ReservationRoomBox\:\:assignmentsForUnits\(\) expects list\<int\>, array\<mixed\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/Reservations/ReservationRoomBox.php
+
+		-
+			message: '#^Parameter \#3 \$units of method App\\Services\\Reservations\\ReservationRoomBox\:\:iconBox\(\) expects list\<App\\Data\\Reservations\\ReservationRoomBoxUnitData\>, array\<int, App\\Data\\Reservations\\ReservationRoomBoxUnitData\> given\.$#'
+			identifier: argument.type
+			count: 3
+			path: app/Services/Reservations/ReservationRoomBox.php
+
+		-
+			message: '#^Parameter \$numbers of class App\\Data\\Reservations\\ReservationRoomBoxData constructor expects list\<string\>, array\<int, non\-falsy\-string\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/Reservations/ReservationRoomBox.php
+
+		-
+			message: '#^Parameter \$units of class App\\Data\\Reservations\\ReservationRoomBoxData constructor expects list\<App\\Data\\Reservations\\ReservationRoomBoxUnitData\>, array\<int, App\\Data\\Reservations\\ReservationRoomBoxUnitData\> given\.$#'
+			identifier: argument.type
+			count: 3
+			path: app/Services/Reservations/ReservationRoomBox.php
+
+		-
+			message: '#^Parameter \#2 \$num2 of function bcadd expects numeric\-string, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/Reservations/RoutingChangeNotice.php
+
+		-
+			message: '#^Method App\\Services\\Reservations\\UnitActionMenu\:\:for\(\) should return list\<App\\Data\\Reservations\\UnitActionData\> but returns array\<int, App\\Data\\Reservations\\UnitActionData\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/Reservations/UnitActionMenu.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\ReservationUnit\:\:\$unposted_add_ons_count\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/Reservations/UnitActionPreview.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Support\\Collection\<int, App\\Models\\Folio\>\:\:modelKeys\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Services/Reservations/UnitActionPreview.php
+
+		-
+			message: '#^Method App\\Services\\Reservations\\UnitActionPreview\:\:childAges\(\) should return list\<int\> but returns array\<int\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/Reservations/UnitActionPreview.php
+
+		-
+			message: '#^Parameter \#1 \$charges of class App\\Data\\Reservations\\UnitUndoPreviewData constructor expects list\<array\{description\: string, amount\: string\}\>, array\<int, array\{description\: string, amount\: string\}\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/Reservations/UnitActionPreview.php
+
+		-
+			message: '#^Parameter \#1 \$rows of class App\\Data\\Reservations\\CheckInAllPreviewData constructor expects list\<array\{unitId\: int, label\: string, guest\: string\|null, room\: string\|null, cardsMissing\: int, ready\: bool, note\: string\|null\}\>, list\<array\{unitId\: int, label\: string, guest\: string\|null, room\: string\|null, cardsMissing\: int\<0, max\>, ready\: bool, note\: array\|string\|null\}\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/Reservations/UnitActionPreview.php
+
+		-
+			message: '#^Parameter \#1 \$value of static method Brick\\Math\\BigNumber\:\:of\(\) expects Brick\\Math\\BigNumber\|int\|string, float\|int\|string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/Reservations/UnitActionPreview.php
+
+		-
+			message: '#^Parameter \#2 \$reopens of method App\\Services\\Reservations\\UnitActionPreview\:\:undoPreview\(\) expects list\<string\>, array\<int, string\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/Reservations/UnitActionPreview.php
+
+		-
+			message: '#^Parameter \$roomTypes of class App\\Data\\Reservations\\UnitMovePreviewData constructor expects list\<array\{id\: int, name\: string\}\>, array\<int, array\{id\: int, name\: string\}\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/Reservations/UnitActionPreview.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>name" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 2
+			path: app/Services/Reservations/UnitActionPreview.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>number" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 3
+			path: app/Services/Reservations/UnitActionPreview.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Support\\Collection\<int, App\\Models\\ReservationUnit\>\:\:loadMissing\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Services/Reservations/UnitNationality.php
+
+		-
+			message: '#^Parameter \#1 \$key of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:contains\(\) expects \(callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: bool\)\|Illuminate\\Database\\Eloquent\\Model\|int\|string, Closure\(App\\Models\\Role\)\: bool given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/Staff/AssignableRoles.php
+
+		-
+			message: '#^Method App\\Services\\Staff\\StaffImportReader\:\:read\(\) should return list\<array\{name\: string, email\: string, roleId\: int\|null, problem\: string\|null\}\> but returns array\<int, array\{name\: string, email\: string, roleId\: int\|null, problem\: array\|string\|null\}\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/Staff/StaffImportReader.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\ArPayment\|Illuminate\\Database\\Eloquent\\Collection\<\(int\|string\), App\\Models\\ArPayment\>\:\:\$company_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: database/factories/ArAllocationFactory.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\ArPayment\|Illuminate\\Database\\Eloquent\\Collection\<\(int\|string\), App\\Models\\ArPayment\>\:\:\$property_id\.$#'
+			identifier: property.notFound
+			count: 2
+			path: database/factories/ArAllocationFactory.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\ChargeItem\|Illuminate\\Database\\Eloquent\\Collection\<\(int\|string\), App\\Models\\ChargeItem\>\:\:\$property_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: database/factories/ChargeItemChildPriceFactory.php
+
+		-
+			message: '#^Parameter \#1 \$property of callable App\\Services\\NightAudit\\NextDocumentNumber expects App\\Models\\Property, App\\Models\\Property\|Illuminate\\Database\\Eloquent\\Collection\<\(int\|string\), App\\Models\\Property\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: database/factories/FolioFactory.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>id" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: database/factories/FolioFactory.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Folio\|Illuminate\\Database\\Eloquent\\Collection\<\(int\|string\), App\\Models\\Folio\>\:\:\$property_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: database/factories/FolioLineFactory.php
+
+		-
+			message: '#^Parameter \#1 \$num1 of function bcmul expects numeric\-string, string given\.$#'
+			identifier: argument.type
+			count: 2
+			path: database/factories/FolioLineFactory.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Reservation\|Illuminate\\Database\\Eloquent\\Collection\<\(int\|string\), App\\Models\\Reservation\>\:\:\$property_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: database/factories/FolioRoutingRuleFactory.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\NightAudit\|Illuminate\\Database\\Eloquent\\Collection\<\(int\|string\), App\\Models\\NightAudit\>\:\:\$property_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: database/factories/NightAuditExceptionFactory.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\BusinessDate\|Illuminate\\Database\\Eloquent\\Collection\<\(int\|string\), App\\Models\\BusinessDate\>\:\:\$property_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: database/factories/NightAuditFactory.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\NightAudit\|Illuminate\\Database\\Eloquent\\Collection\<\(int\|string\), App\\Models\\NightAudit\>\:\:\$property_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: database/factories/NightAuditStepFactory.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\RatePlan\|Illuminate\\Database\\Eloquent\\Collection\<\(int\|string\), App\\Models\\RatePlan\>\:\:\$property_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: database/factories/PackagePriceFactory.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Folio\|Illuminate\\Database\\Eloquent\\Collection\<\(int\|string\), App\\Models\\Folio\>\:\:\$property_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: database/factories/PaymentFactory.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\PaymentMethod\|Illuminate\\Database\\Eloquent\\Collection\<\(int\|string\), App\\Models\\PaymentMethod\>\:\:\$transaction_code_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: database/factories/PaymentFactory.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\RatePlan\|Illuminate\\Database\\Eloquent\\Collection\<\(int\|string\), App\\Models\\RatePlan\>\:\:\$property_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: database/factories/RatePlanInclusionFactory.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\UnitGuest\|Illuminate\\Database\\Eloquent\\Collection\<\(int\|string\), App\\Models\\UnitGuest\>\:\:\$reservationUnit\.$#'
+			identifier: property.notFound
+			count: 1
+			path: database/factories/RegistrationCardFactory.php
+
+		-
+			message: '#^Parameter \#1 \$property of callable App\\Services\\NightAudit\\NextDocumentNumber expects App\\Models\\Property, App\\Models\\Property\|Illuminate\\Database\\Eloquent\\Collection\<\(int\|string\), App\\Models\\Property\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: database/factories/ReservationFactory.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Reservation\|Illuminate\\Database\\Eloquent\\Collection\<\(int\|string\), App\\Models\\Reservation\>\:\:\$property_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: database/factories/ReservationUnitFactory.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Room\|Illuminate\\Database\\Eloquent\\Collection\<\(int\|string\), App\\Models\\Room\>\:\:\$property_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: database/factories/RoomBlockFactory.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Room\|Illuminate\\Database\\Eloquent\\Collection\<\(int\|string\), App\\Models\\Room\>\:\:\$property_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: database/factories/RoomStatusFactory.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Property\|Illuminate\\Database\\Eloquent\\Collection\<\(int\|string\), App\\Models\\Property\>\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: database/factories/StaffInvitationFactory.php
+
+		-
+			message: '#^Parameter \#1 \$property of callable App\\Actions\\Staff\\SeedDefaultRoles expects App\\Models\\Property, App\\Models\\Property\|Illuminate\\Database\\Eloquent\\Collection\<\(int\|string\), App\\Models\\Property\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: database/factories/StaffInvitationFactory.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\ReservationUnit\|Illuminate\\Database\\Eloquent\\Collection\<\(int\|string\), App\\Models\\ReservationUnit\>\:\:\$property_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: database/factories/UnitAddOnFactory.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>id" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: database/factories/UnitAddOnFactory.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\ReservationUnit\|Illuminate\\Database\\Eloquent\\Collection\<\(int\|string\), App\\Models\\ReservationUnit\>\:\:\$property_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: database/factories/UnitGuestFactory.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\ReservationUnit\|Illuminate\\Database\\Eloquent\\Collection\<\(int\|string\), App\\Models\\ReservationUnit\>\:\:\$rate_plan_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: database/factories/UnitNightFactory.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>id" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: database/factories/UserFactory.php
+
+		-
+			message: '#^Using nullsafe method call on non\-nullable type Illuminate\\Console\\Command\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: database/seeders/AdminSeeder.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Support\\Collection\<int, App\\Models\\ReservationUnit\>\:\:modelKeys\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: database/seeders/BookingScenariosSeeder.php
+
+		-
+			message: '#^Match expression does not handle remaining values\: int\<min, \-1\>\|int\<7, max\>$#'
+			identifier: match.unhandled
+			count: 1
+			path: database/seeders/BookingScenariosSeeder.php
+
+		-
+			message: '#^Offset ''front_desk''\|''manager'' might not exist on non\-empty\-array\{owner\?\: App\\Models\\User, manager\?\: App\\Models\\User, front_desk\?\: App\\Models\\User\}\.$#'
+			identifier: offsetAccess.notFound
+			count: 1
+			path: database/seeders/BookingScenariosSeeder.php
+
+		-
+			message: '#^Offset ''owner'' might not exist on non\-empty\-array\{owner\?\: App\\Models\\User, manager\?\: App\\Models\\User, front_desk\?\: App\\Models\\User\}\.$#'
+			identifier: offsetAccess.notFound
+			count: 1
+			path: database/seeders/BookingScenariosSeeder.php
+
+		-
+			message: '#^Parameter \#1 \$num1 of function bccomp expects numeric\-string, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: database/seeders/BookingScenariosSeeder.php
+
+		-
+			message: '#^Parameter \#2 \$num2 of function bcadd expects numeric\-string, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: database/seeders/BookingScenariosSeeder.php
+
+		-
+			message: '#^Parameter \#3 \$roomIds of callable App\\Actions\\Rooms\\GenerateBeds expects list\<int\>, array\<mixed\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: database/seeders/BookingScenariosSeeder.php
+
+		-
+			message: '#^Parameter \#3 \$taxIds of callable App\\Actions\\Catalogues\\UpdateRoomRevenueTaxes expects list\<int\>, array\<int, \(int\|string\)\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: database/seeders/BookingScenariosSeeder.php
+
+		-
+			message: '#^Property App\\Models\\User\:\:\$email_verified_at \(Illuminate\\Support\\Carbon\|null\) does not accept Carbon\\CarbonImmutable\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: database/seeders/BookingScenariosSeeder.php
+
+		-
+			message: '#^Using nullsafe method call on non\-nullable type Illuminate\\Console\\Command\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 6
+			path: database/seeders/BookingScenariosSeeder.php
+
+		-
+			message: '#^Offset ''front_desk''\|''housekeeping''\|''manager'' might not exist on non\-empty\-array\{owner\?\: App\\Models\\User, manager\?\: App\\Models\\User, front_desk\?\: App\\Models\\User, housekeeping\?\: App\\Models\\User\}\.$#'
+			identifier: offsetAccess.notFound
+			count: 1
+			path: database/seeders/SandbaySeeder.php
+
+		-
+			message: '#^Offset ''owner'' might not exist on non\-empty\-array\{owner\?\: App\\Models\\User, manager\?\: App\\Models\\User, front_desk\?\: App\\Models\\User, housekeeping\?\: App\\Models\\User\}\.$#'
+			identifier: offsetAccess.notFound
+			count: 1
+			path: database/seeders/SandbaySeeder.php
+
+		-
+			message: '#^Parameter \#2 \$num2 of function bcadd expects numeric\-string, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: database/seeders/SandbaySeeder.php
+
+		-
+			message: '#^Parameter \#3 \$unitIds of callable App\\Actions\\FrontDesk\\CheckInAllUnits expects list\<int\>, array\<int, \(int\|string\)\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: database/seeders/SandbaySeeder.php
+
+		-
+			message: '#^Property App\\Models\\User\:\:\$email_verified_at \(Illuminate\\Support\\Carbon\|null\) does not accept Carbon\\CarbonImmutable\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: database/seeders/SandbaySeeder.php
+
+		-
+			message: '#^Using nullsafe method call on non\-nullable type Illuminate\\Console\\Command\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 7
+			path: database/seeders/SandbaySeeder.php
