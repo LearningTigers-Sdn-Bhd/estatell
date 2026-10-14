@@ -47,10 +47,12 @@ test('a non-numeric property code does not match the route', function () {
         ->assertNotFound();
 });
 
-test('admins get a 404 on property pages until view-as exists', function () {
+test('admins are sent to the view-as page from property pages', function () {
+    $property = Property::factory()->create();
+
     $this->actingAs(User::factory()->admin()->create())
-        ->get(route('dashboard', Property::factory()->create()->code))
-        ->assertNotFound();
+        ->get(route('dashboard', $property->code))
+        ->assertRedirect(route('view-as.show', ['property' => $property->code, 'to' => "/p/{$property->code}/dashboard"]));
 });
 
 test('guests are sent to login from property pages', function () {

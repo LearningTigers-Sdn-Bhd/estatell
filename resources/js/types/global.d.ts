@@ -11,6 +11,7 @@ declare module '@inertiajs/core' {
         sharedPageProps: {
             name: string;
             auth: Auth;
+            impersonation: App.Data.Platform.ImpersonationData | null;
             supportTwoFactor: { required: boolean } | null;
             property: App.Data.Property.PropertySummaryData | null;
             businessDate: App.Data.NightAudit.BusinessDateData | null;

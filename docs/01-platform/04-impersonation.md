@@ -21,12 +21,12 @@ Two roles can view as:
 
 ## Entry points
 
-| Entry point          | Where                                                              | Result                                                                |
-| -------------------- | ------------------------------------------------------------------ | --------------------------------------------------------------------- |
-| **[View as]** button | Onboarding board row, admin property page, partner properties list | Opens the view-as page for that property                              |
-| Admin ⌘K             | Type a property code, name, city, or a reservation reference       | "View as owner" / "View as owner and open"                            |
-| Copied link          | "Copy view-as link" next to [View as]                              | `/view-as/{code}?to=…&reason=…`                                       |
-| **Pasted staff URL** | Any `/p/{code}/…` URL opened by a support user who may view it     | Intercepted, redirected to the view-as page with `to` set to that URL |
+| Entry point          | Where                                                                                                | Result                                                                |
+| -------------------- | ---------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| **[View as]** button | Admin property page, partner properties list, onboarding board row (comes with the onboarding board) | Opens the view-as page for that property                              |
+| Admin ⌘K             | Type a property code, name, city, or a reservation reference                                         | "View as owner" / "View as owner and open"                            |
+| Copied link          | "Copy view-as link" next to [View as]                                                                | `/view-as/{code}?to=…&reason=…`                                       |
+| **Pasted staff URL** | Any `/p/{code}/…` URL opened by a support user who may view it                                       | Intercepted, redirected to the view-as page with `to` set to that URL |
 
 Admin ⌘K and the copied link are parked. They come in a later commit, after ⌘K exists.
 
@@ -66,7 +66,8 @@ app.example.com/p/ES10142/reservations/881   with the support banner
 
 - **User**: the Owner is pre-selected. Other active staff of the property can be chosen.
 - **Reason**: chips, one pre-selected by entry point (onboarding board → Onboarding help, everywhere else → Support, or `?reason=`). Note is optional.
-- **Opens**: from `to`. Without `to`, the property dashboard (or onboarding, if not live).
+- **Opens**: the path from `to`. Without a valid `to`, the property dashboard (or Basics, while the property is in Onboarding).
+- **Cancel** and ✕ go to the admin or partner property page.
 
 While impersonating, every page shows a banner that cannot be dismissed:
 
@@ -76,23 +77,23 @@ While impersonating, every page shows a banner that cannot be dismissed:
 └──────────────────────────────────────────────────────────────────────┘
 ```
 
-**Stop** ends the session and returns to the admin or partner page the support user started from, with a toast "Support session ended (6 min)".
+**Stop** ends the session and returns to the admin or partner property page, with a toast "Support session ended (6 min)". The banner sticks to the top of the staff content area. Minutes left refresh on each page load.
 
 ## Cases
 
-| Support user's state when opening `/p/{code}/…`    | Result                                                                                                                                                                                 |
-| -------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Not impersonating                                  | View-as page for that property, then the requested page                                                                                                                                |
-| Already impersonating the **same** property        | Opens directly, in any tab                                                                                                                                                             |
-| Impersonating **another** property                 | View-as page reads "Switch to Pulau Inn (ES10142)? This ends your session with KL Backpackers (ES10150)." Confirming stops the old session and starts the new one (two logged events). |
-| Requested page is blocked during support access    | Warning "This page isn't available during support access", with **Open dashboard instead**                                                                                             |
-| Owner disabled support access                      | "Owner has disabled support access". Start button disabled.                                                                                                                            |
-| No confirmed 2FA while `SUPPORT_REQUIRE_2FA` is on | "Set up two-factor to view properties as their owner". Start button disabled                                                                                                           |
-| Code does not exist                                | "Property ES10142 not found" (admins only)                                                                                                                                             |
-| Non-GET request without a staff session            | `403`. Writes are never replayed after confirming.                                                                                                                                     |
-| Link opened after the 30-minute session ended      | View-as page again. New session, new log entry.                                                                                                                                        |
-| Unknown `reason` in the link                       | First chip is used                                                                                                                                                                     |
-| Link opened by someone who may not view it         | `404`, so other partners cannot tell the code exists                                                                                                                                   |
+| Support user's state when opening `/p/{code}/…`    | Result                                                                                                                                                                                                                                                                                                                                    |
+| -------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Not impersonating                                  | View-as page for that property, then the requested page                                                                                                                                                                                                                                                                                   |
+| Already impersonating the **same** property        | Opens directly, in any tab                                                                                                                                                                                                                                                                                                                |
+| Impersonating **another** property                 | View-as page reads "Switch to Pulau Inn (ES10142)? This ends your session with KL Backpackers (ES10150)." Confirming stops the old session and starts the new one (two logged events). Until the logging commit: a toast "End your support session before viewing another property." and a redirect to the dashboard of the open session. |
+| Requested page is blocked during support access    | Warning "This page isn't available during support access", with **Open dashboard instead**                                                                                                                                                                                                                                                |
+| Owner disabled support access                      | "Owner has disabled support access". Start button disabled.                                                                                                                                                                                                                                                                               |
+| No confirmed 2FA while `SUPPORT_REQUIRE_2FA` is on | "Set up two-factor to view properties as their owner". Start button disabled                                                                                                                                                                                                                                                              |
+| Code does not exist                                | `404` (the "not found" message for admins comes later)                                                                                                                                                                                                                                                                                    |
+| Non-GET request without a staff session            | `403`. Writes are never replayed after confirming.                                                                                                                                                                                                                                                                                        |
+| Link opened after the 30-minute session ended      | View-as page again. New session, new log entry.                                                                                                                                                                                                                                                                                           |
+| Unknown `reason` in the link                       | First chip is used                                                                                                                                                                                                                                                                                                                        |
+| Link opened by someone who may not view it         | `404`, so other partners cannot tell the code exists                                                                                                                                                                                                                                                                                      |
 
 ## Guardrails
 
@@ -132,7 +133,7 @@ Everything else is allowed, including fixing setup (rooms, rates, taxes, terms),
 Admins, partner users and staff share the `web` guard (see [Platform admins](01-platform-admins.md#why-one-table)). Impersonation swaps the signed-in user in the same session:
 
 ```
-Start:  session['impersonation'] = {support_user_id, user_id, property_id, reason, started_at, return_url}
+Start:  session['impersonation'] = {support_user_id, user_id, property_id, reason, note, started_at, return_url}
         Auth::login($staff)
 Stop:   Auth::login($supportUser); forget the session key; log impersonation.ended
 ```
@@ -177,8 +178,8 @@ Then set, from the resolved property:
 
 ## Services and Actions
 
-- `Impersonation` service: reads the session (support user id, user id, property id, reason, started at, return URL) and answers `isActive()`, `forProperty()`, `remainingMinutes()`.
-- `StartImpersonation`: checks `viewAs`, 2FA (when required) and consent, stores the session, calls `Auth::login($staff)` on the web guard, logs `impersonation.started`, notifies the owner, redirects to `to`.
+- `Impersonation` service (an injected instance, not static): reads the session and answers `isActive()` (the signed-in user must be the session's user), `forProperty()`, `supportUser()`, `remainingMinutes()`, `elapsedMinutes()`, `returnUrl()`, `accepts()` (the `to` rules) and `destination()` (`to` or the start page).
+- `StartImpersonation`: checks `viewAs`, consent and that the target is active staff of the property (2FA is the route middleware), stores the session, calls `Auth::login($staff)` on the web guard, logs `impersonation.started`, notifies the owner, returns the path to open. It returns null when refused. The return URL is the admin property page for an admin and the partner property page for a partner.
 - `StopImpersonation`: calls `Auth::login($supportUser)` with the stored support user id, forgets the session key, logs `impersonation.ended` with duration, redirects to the stored return URL.
 - `EndExpiredImpersonation`: runs from the middleware when the 30 minutes have passed.
 
@@ -200,19 +201,21 @@ Then set, from the resolved property:
 ## UI
 
 - View-as page: a small full-screen page with the form above, in the admin layout for admins and the partner layout for partners. It is a page (not a Dialog) because it must work from a pasted URL.
-- Banner: shared Inertia prop `impersonation` (support user name, partner name or null, user, property, minutes left, stop URL). A partner session reads "… · Pulau Inn (AS10101) · via Andaman Stays · 28 min left". Uses the `warning` status token.
+- Banner: shared Inertia prop `impersonation` (`ImpersonationData`: support user name, partner name or null, user name and role, property name and code, minutes left, stop URL). A partner session reads "… · Pulau Inn (AS10101) · via Andaman Stays · 28 min left". Uses the `warning` status token.
 - Blocked actions are hidden using the same prop.
 
 ## Build choice
 
 Custom, about four small classes. `lab404/laravel-impersonate` (v1.7.8 supports Laravel 13) was considered. It saves little, because consent, reasons, blocking, the URL interstitial and auditing still need writing.
 
-| Piece            | Location                                                                                              |
-| ---------------- | ----------------------------------------------------------------------------------------------------- |
-| `PropertyPolicy` | `app/Policies/PropertyPolicy.php` (the first policy in the app)                                       |
-| `Impersonation`  | `app/Services/Platform/Impersonation.php`                                                             |
-| Actions          | `app/Actions/Platform/StartImpersonation.php`, `StopImpersonation.php`, `EndExpiredImpersonation.php` |
-| Blocking         | `app/Http/Middleware/BlockDuringImpersonation.php`                                                    |
+| Piece            | Location                                                                                                    |
+| ---------------- | ----------------------------------------------------------------------------------------------------------- |
+| `PropertyPolicy` | `app/Policies/PropertyPolicy.php` (the first policy in the app)                                             |
+| Controllers      | `app/Http/Controllers/Platform/ViewAsController.php` (show, store), `ImpersonationController.php` (stop)    |
+| View-as page     | `ViewAsStaff` lists the staff, `ImpersonationReason` holds the chips, `StartImpersonationRequest` validates |
+| `Impersonation`  | `app/Services/Platform/Impersonation.php`                                                                   |
+| Actions          | `app/Actions/Platform/StartImpersonation.php`, `StopImpersonation.php`, `EndExpiredImpersonation.php`       |
+| Blocking         | `app/Http/Middleware/BlockDuringImpersonation.php`                                                          |
 
 Built in three commits: view as (start, stop, banner, entry points), then logging and limits (audit causer, log events, `SupportAccessUsed`, 30-minute expiry, switching properties), then blocking.
 

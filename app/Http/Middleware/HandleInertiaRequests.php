@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use App\Data\Navigation\StaffNavigationData;
 use App\Data\NightAudit\BusinessDateData;
+use App\Data\Platform\ImpersonationData;
 use App\Data\Property\PropertySummaryData;
 use App\Enums\PropertyStatus;
 use App\Models\Property;
@@ -11,6 +12,7 @@ use App\Navigation\AdminNavigation;
 use App\Navigation\PartnerNavigation;
 use App\Navigation\StaffNavigation;
 use App\Services\NightAudit\CurrentBusinessDate;
+use App\Services\Platform\Impersonation;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -50,6 +52,7 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => $request->user(),
             ],
+            'impersonation' => fn () => $this->impersonation($request),
             'supportTwoFactor' => RequireSupportTwoFactor::sharedPropFor($request->user()),
             'property' => fn () => $this->currentProperty($request),
             'businessDate' => fn () => $this->businessDate($request),
@@ -59,6 +62,35 @@ class HandleInertiaRequests extends Middleware
             'csrfToken' => fn () => csrf_token(),
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];
+    }
+
+    /**
+     * The support banner data while an admin or partner user views a property as its staff, otherwise null.
+     */
+    private function impersonation(Request $request): ?ImpersonationData
+    {
+        $impersonation = app(Impersonation::class);
+        $supportUser = $impersonation->supportUser();
+        $user = $request->user();
+
+        if ($supportUser === null || $user === null || $user->property === null) {
+            return null;
+        }
+
+        if (getPermissionsTeamId() === null) {
+            setPermissionsTeamId($user->property_id);
+        }
+
+        return new ImpersonationData(
+            supportUserName: $supportUser->name,
+            partnerName: $supportUser->partner?->name,
+            userName: $user->name,
+            userRole: $user->roles->first()?->name,
+            propertyName: $user->property->name,
+            propertyCode: $user->property->code,
+            minutesLeft: $impersonation->remainingMinutes(),
+            stopUrl: route('impersonation.stop', absolute: false),
+        );
     }
 
     /**

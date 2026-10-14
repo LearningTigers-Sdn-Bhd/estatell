@@ -29,6 +29,9 @@ void createInertiaApp({
                 return AdminLayout;
             case name.startsWith('partner/'):
                 return PartnerLayout;
+            case name === 'view-as/show':
+                // A support user sees the page in the layout they came from.
+                return page.props.adminNavigation ? AdminLayout : PartnerLayout;
             case name.startsWith('account/'):
                 // Admins and partners keep their own sidebar on their account pages.
                 return [

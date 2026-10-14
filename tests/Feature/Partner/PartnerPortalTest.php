@@ -29,9 +29,9 @@ test('the portal shows an empty Properties page with the partner navigation', fu
         );
 });
 
-test('a partner gets a 404 on /admin and on a property', function () {
+test('a partner gets a 404 on /admin and on a property that is not theirs', function () {
     $partner = User::factory()->partner()->create();
-    $property = Property::factory()->create(['partner_id' => $partner->partner_id]);
+    $property = Property::factory()->create();
 
     $this->actingAs($partner)->get('/admin')->assertNotFound();
     $this->get(route('dashboard', $property->code))->assertNotFound();

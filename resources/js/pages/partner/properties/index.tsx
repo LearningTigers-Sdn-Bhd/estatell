@@ -1,4 +1,4 @@
-import { Head, router } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import { Building2 } from 'lucide-react';
 import { DataTable, dataTableColumns } from '@/components/pms/data-table';
 import { DateText } from '@/components/pms/date-text';
@@ -9,7 +9,9 @@ import { PageHeader } from '@/components/pms/page-header';
 import { CreatePropertySheet } from '@/components/pms/properties/create-property-sheet';
 import type { SetupMethod } from '@/components/pms/properties/create-property-sheet';
 import { StatusBadge } from '@/components/pms/status-badge';
+import { buttonVariants } from '@/components/ui/button';
 import { index, show, store } from '@/routes/partner/properties';
+import { show as viewAs } from '@/routes/view-as';
 
 type Row = App.Data.Platform.PartnerPropertyRowData;
 
@@ -45,6 +47,26 @@ const columns = [
         header: 'Created',
         enableSorting: false,
         cell: (info) => <DateText date={info.getValue()} />,
+    }),
+    column.display({
+        id: 'actions',
+        header: () => <span className="sr-only">Actions</span>,
+        cell: (info) => (
+            <span
+                className="flex justify-end"
+                onClick={(event) => event.stopPropagation()}
+            >
+                <Link
+                    href={viewAs(info.row.original.code)}
+                    className={buttonVariants({
+                        variant: 'outline',
+                        size: 'sm',
+                    })}
+                >
+                    View as
+                </Link>
+            </span>
+        ),
     }),
 ];
 

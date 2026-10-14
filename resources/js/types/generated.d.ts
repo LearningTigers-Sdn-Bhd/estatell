@@ -976,6 +976,16 @@ deactivated: boolean,
 canSendSetupLink: boolean,
 createdAt: string,
 };
+export type ImpersonationData = {
+supportUserName: string,
+partnerName: string | null,
+userName: string,
+userRole: string | null,
+propertyName: string,
+propertyCode: string,
+minutesLeft: number,
+stopUrl: string,
+};
 export type PartnerInvitationPreviewData = {
 email: string,
 partnerName: string,
@@ -996,6 +1006,12 @@ feature: App.Enums.PlatformFeature,
 label: string,
 description: string,
 active: boolean,
+};
+export type ViewAsStaffData = {
+id: number,
+name: string,
+role: string | null,
+isOwner: boolean,
 };
 }
 namespace Property {
@@ -2449,6 +2465,7 @@ export type HousekeepingReason = 'departed' | 'stay_over';
 export type HousekeepingRefusal = 'out_of_service' | 'invalid_transition';
 export type HousekeepingStatus = 'clean' | 'dirty' | 'inspected';
 export type IdentityDocumentType = 'mykad' | 'passport' | 'other';
+export type ImpersonationReason = 'onboarding_help' | 'support' | 'setup_check';
 export type InclusionEnd = 'departure_day' | 'night_before_departure';
 export type InclusionStart = 'arrival_day' | 'day_after_arrival';
 export type Locale = 'en' | 'ms';

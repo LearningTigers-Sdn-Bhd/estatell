@@ -1,4 +1,5 @@
 import { AppContent } from '@/components/app-content';
+import { ImpersonationBanner } from '@/components/impersonation-banner';
 import { AppNavbar } from '@/components/app-navbar';
 import { AppShell } from '@/components/app-shell';
 import { AppSidebar } from '@/components/app-sidebar';
@@ -26,6 +27,7 @@ export default function AppSidebarLayout({
                                 : 'overflow-x-clip overflow-y-auto',
                         )}
                     >
+                        <ImpersonationBanner />
                         <AppSidebarHeader
                             breadcrumbs={breadcrumbs}
                             showTrigger={false}
