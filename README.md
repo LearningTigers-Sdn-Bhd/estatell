@@ -30,7 +30,9 @@ It is a focused rebuild of the PMS core of wastays, with a normalized database, 
 - PHP 8.4
 - Composer
 - Node.js and npm
-- PostgreSQL 16 or later
+- PHP extensions: `pdo_pgsql`, `intl`, `bcmath`, `sodium`, `gd`, `redis`
+- PostgreSQL 16 or later, with the contrib extensions (`btree_gist`). Postgres.app, DBngin, Homebrew and the official Docker image include them.
+- A database user that may create databases (`CREATEDB`). Parallel tests create one database per process.
 - Redis (cache, sessions and queues)
 
 ## Onboarding
@@ -71,7 +73,7 @@ It is a focused rebuild of the PMS core of wastays, with a normalized database, 
 6. Check that the tests pass:
 
     ```bash
-    php artisan test --compact
+    php artisan test --parallel --recreate-databases
     ```
 
 ### Local mail (Mailbox)
@@ -110,20 +112,22 @@ To change the guidelines, edit `.ai/guidelines/estatell.md`, then run `php artis
 | `db_estatell_test`        | Tests (set in `phpunit.xml`)  | `php artisan db:create-test` |
 | `db_estatell_test_test_N` | `php artisan test --parallel` | Laravel, automatically       |
 
+Parallel runs start one process per CPU core. Always pass `--recreate-databases`: it drops and recreates each process database, which is fast. Without it, each process drops about 100 leftover tables at once, and a default Postgres runs out of locks on machines with many cores.
+
 You never migrate the test database yourself. `RefreshDatabase` rebuilds its schema on each test run. Never point `phpunit.xml` at your dev database, because tests wipe it.
 
 ## Common commands
 
-| Task                     | Command                                                    |
-| ------------------------ | ---------------------------------------------------------- |
-| Run tests                | `php artisan test --compact`                               |
-| Run one test file        | `php artisan test --compact tests/Feature/ExampleTest.php` |
-| Format PHP               | `vendor/bin/pint --dirty`                                  |
-| Static analysis          | `composer run types:check`                                 |
-| Frontend lint and format | `npm run check`                                            |
-| TypeScript check         | `npm run types:check`                                      |
-| Full CI check            | `composer run ci:check`                                    |
-| Build frontend           | `npm run build`                                            |
+| Task                     | Command                                                 |
+| ------------------------ | ------------------------------------------------------- |
+| Run all tests            | `php artisan test --parallel --recreate-databases`      |
+| Run one test file        | `php artisan test --compact tests/Feature/RoomTest.php` |
+| Format PHP               | `vendor/bin/pint --dirty`                               |
+| Static analysis          | `composer run types:check`                              |
+| Frontend lint and format | `npm run check`                                         |
+| TypeScript check         | `npm run types:check`                                   |
+| Full CI check            | `composer run ci:check`                                 |
+| Build frontend           | `npm run build`                                         |
 
 ## Project structure
 
