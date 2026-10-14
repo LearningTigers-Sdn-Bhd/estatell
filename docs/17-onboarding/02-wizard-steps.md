@@ -18,37 +18,37 @@ The first release has only the Basics page. It uses the current staff layout. Ba
 
 ## Phases and sections
 
-| #   | Phase      | Section                                                                                                                                                                                                                                                                                                   | Required | Locked until              |
-| --- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ------------------------- |
-| 1   | Property   | Basics: property type cards, name, country (prefilled Malaysia), address. Another country shows currency and time zone. Editable until another section starts, then **Change country** (room types and rooms kept). See [Changing country](../02-property/03-seed-property-defaults.md#changing-country). | Yes      | –                         |
-| 2   | Rooms      | Room types: an editable table, sold by room only. See [Room types table](#room-types-table).                                                                                                                                                                                                              | Yes      | Basics                    |
-| 3   |            | Rooms: number ranges per room type, optional room groups. See [Rooms table](#rooms-table).                                                                                                                                                                                                                | Yes      | Room types                |
-| 4   | Finance    | Taxes: Malaysia confirms the seeded presets and enters registration numbers. Other countries add their own taxes or tick **We don't charge tax**.                                                                                                                                                         | Yes      | Basics                    |
-| 5   |            | Room revenue: taxes on the room charge                                                                                                                                                                                                                                                                    | Yes      | Taxes                     |
-| 6   |            | Payment methods: toggle the seeded presets                                                                                                                                                                                                                                                                | Yes      | Basics                    |
-| 7   | Prices     | Basic rate: weekday and weekend price per room-sold room type. `SetBasePrices` fills 365 days of rates. It does not create a plan.                                                                                                                                                                        | Yes      | Room types + Room revenue |
-| 8   |            | Charge items                                                                                                                                                                                                                                                                                              | No       | Taxes                     |
-| 9   |            | Discounts                                                                                                                                                                                                                                                                                                 | No       | Basic rate                |
-| 10  | Check-in   | Check-in essentials: check-in and check-out times, ID requirement, terms preset preview                                                                                                                                                                                                                   | Yes      | Basics                    |
-| 11  | Team       | Roles and staff: invite staff and choose roles                                                                                                                                                                                                                                                            | No       | Basics                    |
-| 12  | Test drive | Practice mode. See [Test drive](06-test-drive.md).                                                                                                                                                                                                                                                        | No       | All required Done         |
-| 13  | Review     | Readiness list and go live. See [Go live](03-go-live.md).                                                                                                                                                                                                                                                 | –        | All required Done         |
+| #   | Phase      | Section                                                                                                                                                                                                                                                                                                   | Required | Locked until       |
+| --- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ------------------ |
+| 1   | Property   | Basics: property type cards, name, country (prefilled Malaysia), address. Another country shows currency and time zone. Editable until another section starts, then **Change country** (room types and rooms kept). See [Changing country](../02-property/03-seed-property-defaults.md#changing-country). | Yes      | –                  |
+| 2   | Rooms      | Room types: an editable table, sold by room only. See [Room types table](#room-types-table).                                                                                                                                                                                                              | Yes      | Basics             |
+| 3   |            | Rooms: number ranges per room type, optional room groups. See [Rooms table](#rooms-table).                                                                                                                                                                                                                | Yes      | Room types         |
+| 4   | Finance    | Taxes, including which taxes apply to rooms (room revenue). See [Taxes table](#taxes-table).                                                                                                                                                                                                              | Yes      | Basics             |
+| 5   |            | Payment methods: toggle the seeded presets                                                                                                                                                                                                                                                                | Yes      | Basics             |
+| 6   | Prices     | Basic rate: weekday and weekend price per room-sold room type. `SetBasePrices` fills 365 days of rates. It does not create a plan.                                                                                                                                                                        | Yes      | Room types + Taxes |
+| 7   |            | Charge items                                                                                                                                                                                                                                                                                              | No       | Taxes              |
+| 8   |            | Discounts                                                                                                                                                                                                                                                                                                 | No       | Basic rate         |
+| 9   | Check-in   | Check-in essentials: check-in and check-out times, ID requirement, terms preset preview                                                                                                                                                                                                                   | Yes      | Basics             |
+| 10  | Team       | Roles and staff: invite staff and choose roles                                                                                                                                                                                                                                                            | No       | Basics             |
+| 11  | Test drive | Practice mode. See [Test drive](06-test-drive.md).                                                                                                                                                                                                                                                        | No       | All required Done  |
+| 12  | Review     | Readiness list and go live. See [Go live](03-go-live.md).                                                                                                                                                                                                                                                 | –        | All required Done  |
 
 ```
-                    1 Basics*
-   ┌──────────┬────────┼───────────┬────────────┐
-   ▼          ▼        ▼           ▼            ▼
- 2 Room     4 Taxes*  6 Payment  10 Check-in  11 Team
-   types*   │     │     methods*                (opt)
-   │  │     ▼     ▼
-   ▼  │   5 Room  8 Charge
- 3 Rooms* revenue*  items (opt)
-      │     │
-      ▼     ▼
-     7 Basic rate* ──▶ 9 Discounts (opt)
+                       1 Basics*
+   ┌───────────┬──────────┼────────────┬────────────┐
+   ▼           ▼          ▼            ▼            ▼
+ 2 Room      4 Taxes*   5 Payment    9 Check-in   10 Team
+   types*    │     │      methods*                  (opt)
+   │   │     │     ▼
+   ▼   │     │   7 Charge items (opt)
+ 3 Rooms*    │
+       ▼     ▼
+     6 Basic rate* ──▶ 8 Discounts (opt)
 
- all * Done ──▶ 12 Test drive (opt) ──▶ 13 Review / Go live
+ all * Done ──▶ 11 Test drive (opt) ──▶ 12 Review / Go live
 ```
+
+Room revenue is not a separate section. Its taxes are the **Applies to rooms** column in Taxes. The no-show, cancellation, early departure and late check-out policies stay Free (seeded) and are on the Recommended checklist after go-live.
 
 - **Next** follows the numbers. The phase bar lets the owner jump to any unlocked section.
 - Optional sections show **Skip** in the footer.
@@ -133,6 +133,47 @@ The first release has only the Basics page. It uses the current staff layout. Ba
 - At phone width each row stacks into a card, with the Group menu on its own line.
 - Check: Done when every room-sold room type has at least one room.
 
+## Taxes table
+
+```
+ ┌────┬──────────────────┬────────────────┬──────────────┬──────────┬────────────────┬──┐
+ │ On │ Name             │ Rate           │ In price     │ Applies  │ Reg. no.       │  │
+ │    │                  │                │              │ to rooms │                │  │
+ ├────┼──────────────────┼────────────────┼──────────────┼──────────┼────────────────┼──┤
+ │[●] │[ SST           ] │[ 8    ][ % ▾]  │[Added on ▾]  │   [x]    │[ W10-1808-32 ] │⌄ │
+ │[●] │[ Tourism tax   ] │[ 10.00][RM ▾]  │[Added on ▾]  │   [x]    │[             ] │⌃ │
+ │    │  per night · [x] Foreign guests only · [x] Collect at check-in              │  │
+ │[●] │[ Service charge] │[ 10   ][ % ▾]  │[Added on ▾]  │   [ ]    │[             ] │⌄🗑│
+ │    │  ℹ Not applied to rooms. Link it to extras in Charge items.                 │  │
+ ├────┴──────────────────┴────────────────┴──────────────┴──────────┴────────────────┴──┤
+ │ [+ Add tax]                                                                          │
+ └──────────────────────────────────────────────────────────────────────────────────────┘
+ What a guest pays for 1 night at RM 100.00
+ ┌──────────────┬─────────────┬───────────────┐
+ │              │ Local guest │ Foreign guest │
+ │ Room         │     100.00  │       100.00  │
+ │ SST 8%       │       8.00  │         8.00  │
+ │ Tourism tax  │          –  │        10.00  │
+ │ Total        │     108.00  │       118.00  │
+ └──────────────┴─────────────┴───────────────┘
+ [ ] We don't charge tax
+ ℹ No-show and cancellation charges are free for now. Set them after go-live.
+```
+
+- Malaysia starts with the seeded SST and Tourism tax rows ("Your Malaysian taxes are ready. Turn on what you charge."). Other countries start with one empty row ("Add the taxes you charge guests.").
+- Columns: **On** (`enabled`), **Name**, **Rate** (amount and a % or currency menu = `rate_type`), **In price** (**Added on top** or **Included** = `is_inclusive`), **Applies to rooms**, **Reg. no.** (`registration_number`).
+- ⌄ opens row details: **Foreign guests only** ("not {country}") and **Collect at check-in**. A flat rate shows "per night" only when it applies to rooms. Otherwise the quantity comes from the charge item.
+- The short code is not shown. It is derived from the name (VAT → `TAX_VAT`, a number added when taken) and editable in settings. To verify that `TaxRequest` accepts a derived code.
+- Preset rows have no remove button. They are turned off instead, because they own system posting codes. Custom rows can be removed. The last row stays while no taxes exist.
+- **Applies to rooms** saves through `UpdateRoomRevenueTaxes`, which links ROOM and every policy code that follows the Taxes tab. The header tooltip says "Also used for no-show, cancellation, early departure and late check-out charges."
+- A tax that does not apply to rooms is allowed (for example a service charge on food only). Its row says "Not applied to rooms. Link it to extras in Charge items." Charge items list it in each item's tax menu.
+- When no enabled tax applies to rooms, the example shows a warning: "Room nights have no tax. Tick **Applies to rooms** on a tax if they should."
+- The example is a sample night of 100 in the property currency, or the cheapest Basic rate once prices exist. The server calculates it with `RoomRevenuePreview` for a local and a foreign guest, as on the settings Taxes tab. The browser never calculates tax.
+- **We don't charge tax** greys out the table and turns every tax off. It is stored as an `onboarding_skips` row for Taxes. Unticking it removes the row.
+- At phone width each row stacks into a card, with `[x] Applies to rooms` and ⌄ More options.
+- Check: Done when at least one tax is enabled (anywhere), or **We don't charge tax** is ticked.
+- Review shows "Applies to rooms: {taxes}" (or "Room nights: no tax") as info, and warns with **Fix →** when an enabled tax applies to no charge at all. Neither blocks go-live.
+
 ## Section states
 
 | State           | Meaning                                                                           |
@@ -159,9 +200,9 @@ Editing an earlier section never resets a later one. A later section only shows 
 ├──────────────────────────────────────────────────────────────────────┤
 │ ✓ Property ▸ ✓ Rooms ▸ ● Finance ▸ 🔒 Prices ▸ Check-in ▸ Team ▸ …    │ phase bar
 ├──────────────────────────────────────────────────────────────────────┤
-│ Finance:  ✓ Taxes · ● Room revenue · ○ Payment methods               │ stepper
+│ Finance:  ✓ Taxes · ● Payment methods                                │ stepper
 ├──────────────────────────────────────────────────────────────────────┤
-│ Room revenue                                              ~2 min     │
+│ Payment methods                                           ~1 min     │
 │ ...section form...                                                   │ scrolls
 ├──────────────────────────────────────────────────────────────────────┤
 │ [← Back]                                     [Save & continue →]     │ fixed footer
@@ -201,7 +242,7 @@ When a field is added to a settings form, decide in the same change whether the 
 onboarding_skips    property_id, step (OnboardingStep), skipped_by, skipped_at
 ```
 
-The only onboarding-specific table. It stores skips of optional steps.
+The only onboarding-specific table. It stores skips of optional steps, and the **We don't charge tax** answer for Taxes, the one required step that accepts a "none" answer.
 
 ## Enums and services
 
@@ -219,9 +260,9 @@ The only onboarding-specific table. It stores skips of optional steps.
 
 1. Onboarding layout, `OnboardingPhase`, `OnboardingStep`, `OnboardingProgress`, `StepForm`, the fence and the waiting page. Basics moves into the new layout.
 2. Rooms phase (2, 3).
-3. Finance phase (4, 5, 6).
-4. Prices phase (7, 8, 9).
-5. Check-in (10) and Team (11).
+3. Finance phase (4, 5).
+4. Prices phase (6, 7, 8).
+5. Check-in (9) and Team (10).
 6. Review: the readiness list reads the checks.
 7. [Test drive](06-test-drive.md).
 

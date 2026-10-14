@@ -4,6 +4,8 @@
 
 Choose the taxes on room revenue in one place, show what a guest pays for a sample room night, and set the charge and the text for no-show, cancellation, early departure and late check-out.
 
+Onboarding sets the room revenue taxes through the **Applies to rooms** column of the Taxes section ([Taxes table](../17-onboarding/02-wizard-steps.md#taxes-table)), with the same `UpdateRoomRevenueTaxes`. The policies stay Free until the owner sets them after go-live.
+
 ## Room revenue codes
 
 One set of taxes covers all five room revenue codes (`SystemTransactionCode::roomRevenueCases()`) by default. A policy can have its own taxes instead, see [Own taxes](#own-taxes):
