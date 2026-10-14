@@ -1,14 +1,14 @@
 <?php
 
+require_once __DIR__.'/../Support/ReportSetup.php';
+
 use App\Enums\DefaultRoleEnum;
 use App\Enums\TransactionKind;
-use App\Models\BusinessDate;
 use App\Models\Company;
 use App\Models\Folio;
 use App\Models\FolioLine;
 use App\Models\Guest;
 use App\Models\Property;
-use App\Models\PropertySetting;
 use App\Models\TransactionCode;
 use App\Models\User;
 use Illuminate\Support\Facades\View;
@@ -17,20 +17,6 @@ use Inertia\Testing\AssertableInertia as Assert;
 beforeEach(function () {
     $this->travelTo(now()->setDate(2026, 10, 10)->setTime(12, 0));
 });
-
-/**
- * @return array{0: User, 1: Property}
- */
-function ledgerSetup(DefaultRoleEnum $role = DefaultRoleEnum::Manager): array
-{
-    $user = User::factory()->withRole($role)->create();
-    $property = $user->property;
-    $property->forceFill(['status' => 'live'])->save();
-    PropertySetting::factory()->for($property)->create();
-    BusinessDate::factory()->create(['property_id' => $property->id, 'date' => '2026-10-10']);
-
-    return [$user, $property];
-}
 
 function ledgerUrl(Property $property, string $query = ''): string
 {
@@ -78,9 +64,9 @@ function ledgerData(Property $property): array
 }
 
 test('the page needs reports.view and is scoped to the property', function () {
-    [$front, $frontProperty] = ledgerSetup(DefaultRoleEnum::FrontDesk);
-    [$manager, $own] = ledgerSetup();
-    [, $other] = ledgerSetup();
+    [$front, $frontProperty] = reportSetup(DefaultRoleEnum::FrontDesk);
+    [$manager, $own] = reportSetup();
+    [, $other] = reportSetup();
     ledgerData($own);
     ledgerData($other);
 
@@ -97,13 +83,13 @@ test('the page needs reports.view and is scoped to the property', function () {
 });
 
 test('a range longer than 31 days is refused', function () {
-    [$user, $property] = ledgerSetup();
+    [$user, $property] = reportSetup();
 
     $this->actingAs($user)->get(ledgerUrl($property, '?from=2026-09-01&to=2026-10-10'))->assertSessionHasErrors('to');
 });
 
 test('every kind is listed with its signed amount, folio, reservation, payer and staff', function () {
-    [$user, $property] = ledgerSetup();
+    [$user, $property] = reportSetup();
     $data = ledgerData($property);
     $company = Company::factory()->create(['property_id' => $property->id]);
     $guest = Guest::factory()->create(['property_id' => $property->id]);
@@ -127,7 +113,7 @@ test('every kind is listed with its signed amount, folio, reservation, payer and
 });
 
 test('the code filter keeps one code, lists the property codes and is kept in the page', function () {
-    [$user, $property] = ledgerSetup();
+    [$user, $property] = reportSetup();
     ledgerData($property);
 
     $this->actingAs($user)->get(ledgerUrl($property, '?from=2026-10-01&to=2026-10-10&code=ROOM'))->assertInertia(fn (Assert $page) => $page
@@ -139,8 +125,8 @@ test('the code filter keeps one code, lists the property codes and is kept in th
 });
 
 test('the code must be a code of this property', function () {
-    [$user, $property] = ledgerSetup();
-    [, $other] = ledgerSetup();
+    [$user, $property] = reportSetup();
+    [, $other] = reportSetup();
     TransactionCode::factory()->for($other)->create(['code' => 'OTHERONLY']);
     ledgerData($property);
 
@@ -150,14 +136,14 @@ test('the code must be a code of this property', function () {
 });
 
 test('other reports ignore the code', function () {
-    [$user, $property] = ledgerSetup();
+    [$user, $property] = reportSetup();
 
     $this->actingAs($user)->get("/p/{$property->code}/reports/in-house?code=NOPE")->assertOk();
     $this->actingAs($user)->get("/p/{$property->code}/reports/revenue?code=NOPE")->assertOk();
 });
 
 test('the PDF and CSV keep the code and sum only the selected rows', function () {
-    [$user, $property] = ledgerSetup();
+    [$user, $property] = reportSetup();
     $lines = ledgerData($property)['lines'];
     $base = ['from' => '2026-10-01', 'to' => '2026-10-10', 'code' => 'ROOM', 'rowKeys' => [$lines['room1']->id, $lines['meal']->id, $lines['cash']->id]];
     $captured = new stdClass;
@@ -178,7 +164,7 @@ test('the PDF and CSV keep the code and sum only the selected rows', function ()
 });
 
 test('the revenue drill-down link covers the day, or the month cut to the range', function () {
-    [$user, $property] = ledgerSetup();
+    [$user, $property] = reportSetup();
     ledgerData($property);
 
     $this->actingAs($user)->get("/p/{$property->code}/reports/revenue?from=2026-10-08&to=2026-10-09")->assertInertia(fn (Assert $page) => $page

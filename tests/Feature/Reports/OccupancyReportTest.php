@@ -1,39 +1,24 @@
 <?php
 
+require_once __DIR__.'/../Support/ReportSetup.php';
+
 use App\Enums\DefaultRoleEnum;
 use App\Enums\SystemTransactionCode;
-use App\Models\BusinessDate;
 use App\Models\DailyStatistic;
 use App\Models\Folio;
 use App\Models\FolioLine;
 use App\Models\Property;
-use App\Models\PropertySetting;
 use App\Models\Reservation;
 use App\Models\ReservationUnit;
 use App\Models\Room;
 use App\Models\RoomType;
 use App\Models\TransactionCode;
-use App\Models\User;
 use Illuminate\Support\Facades\View;
 use Inertia\Testing\AssertableInertia as Assert;
 
 beforeEach(function () {
     $this->travelTo(now()->setDate(2026, 10, 10)->setTime(12, 0));
 });
-
-/**
- * @return array{0: User, 1: Property}
- */
-function occupancySetup(DefaultRoleEnum $role = DefaultRoleEnum::Manager): array
-{
-    $user = User::factory()->withRole($role)->create();
-    $property = $user->property;
-    $property->forceFill(['status' => 'live'])->save();
-    PropertySetting::factory()->for($property)->create();
-    BusinessDate::factory()->create(['property_id' => $property->id, 'date' => '2026-10-10']);
-
-    return [$user, $property];
-}
 
 /**
  * @param  array<string, mixed>  $attributes
@@ -49,9 +34,9 @@ function occupancyUrl(Property $property, string $query = ''): string
 }
 
 test('the page needs reports.view and is scoped to the property', function () {
-    [$front, $frontProperty] = occupancySetup(DefaultRoleEnum::FrontDesk);
-    [$manager, $own] = occupancySetup();
-    [, $other] = occupancySetup();
+    [$front, $frontProperty] = reportSetup(DefaultRoleEnum::FrontDesk);
+    [$manager, $own] = reportSetup();
+    [, $other] = reportSetup();
     occupancySnapshot($own, '2026-10-09');
     occupancySnapshot($other, '2026-10-08');
 
@@ -67,7 +52,7 @@ test('the page needs reports.view and is scoped to the property', function () {
 });
 
 test('closed dates read the snapshot with the room revenue of the ledger, bed and room units together', function () {
-    [$user, $property] = occupancySetup();
+    [$user, $property] = reportSetup();
     occupancySnapshot($property, '2026-10-08', ['rooms_available' => 8, 'rooms_sold' => 3, 'beds_available' => 4, 'beds_sold' => 1, 'occupancy' => '33.33', 'adr' => '75.00', 'revpar' => '25.00', 'arrivals' => 2, 'departures' => 1, 'no_shows' => 1, 'in_house_guests' => 5]);
     $room = TransactionCode::factory()->for($property)->system(SystemTransactionCode::RoomRevenue)->create();
     $folio = Folio::factory()->create(['property_id' => $property->id]);
@@ -89,7 +74,7 @@ test('closed dates read the snapshot with the room revenue of the ledger, bed an
 });
 
 test('the open date is worked out live and flagged, and later dates are left out', function () {
-    [$user, $property] = occupancySetup();
+    [$user, $property] = reportSetup();
     $roomType = RoomType::factory()->for($property)->create();
     Room::factory()->count(4)->for($property)->create(['room_type_id' => $roomType->id]);
     $unit = ReservationUnit::factory()
@@ -113,7 +98,7 @@ test('the open date is worked out live and flagged, and later dates are left out
 });
 
 test('a closed date without a snapshot is left out', function () {
-    [$user, $property] = occupancySetup();
+    [$user, $property] = reportSetup();
     occupancySnapshot($property, '2026-10-07');
 
     $this->actingAs($user)->get(occupancyUrl($property, '?from=2026-10-05&to=2026-10-08'))->assertInertia(fn (Assert $page) => $page
@@ -122,7 +107,7 @@ test('a closed date without a snapshot is left out', function () {
 });
 
 test('the totals add the counts and work the ratios out again from the sums', function () {
-    [$user, $property] = occupancySetup();
+    [$user, $property] = reportSetup();
     $room = TransactionCode::factory()->for($property)->system(SystemTransactionCode::RoomRevenue)->create();
     $folio = Folio::factory()->create(['property_id' => $property->id]);
     occupancySnapshot($property, '2026-10-07', ['rooms_available' => 10, 'rooms_sold' => 10, 'arrivals' => 4, 'departures' => 1, 'no_shows' => 1]);
@@ -144,7 +129,7 @@ test('the totals add the counts and work the ratios out again from the sums', fu
 });
 
 test('day use is shown apart and summed, and occupancy, ADR and RevPAR ignore it', function () {
-    [$user, $property] = occupancySetup();
+    [$user, $property] = reportSetup();
     occupancySnapshot($property, '2026-10-08', ['rooms_available' => 10, 'rooms_sold' => 5, 'occupancy' => '50.00', 'adr' => '100.00', 'day_use_sold' => 2, 'day_use_revenue' => '190.00']);
     occupancySnapshot($property, '2026-10-09', ['rooms_available' => 10, 'rooms_sold' => 0, 'occupancy' => '0.00', 'adr' => '0.00', 'day_use_sold' => 1, 'day_use_revenue' => '60.50']);
 
@@ -158,7 +143,7 @@ test('day use is shown apart and summed, and occupancy, ADR and RevPAR ignore it
 });
 
 test('the PDF and CSV end with the total row, and the selection totals only the selected dates', function () {
-    [$user, $property] = occupancySetup();
+    [$user, $property] = reportSetup();
     occupancySnapshot($property, '2026-10-07', ['rooms_available' => 10, 'rooms_sold' => 5, 'arrivals' => 2]);
     occupancySnapshot($property, '2026-10-08', ['rooms_available' => 10, 'rooms_sold' => 10, 'arrivals' => 3]);
     $base = ['from' => '2026-10-07', 'to' => '2026-10-08', 'rowKeys' => ['2026-10-08']];

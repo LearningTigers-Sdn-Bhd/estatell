@@ -1,5 +1,7 @@
 <?php
 
+require_once __DIR__.'/../Support/ReportSetup.php';
+
 use App\Data\Reports\NonNationalGuestRow;
 use App\Data\Reports\PoliceReportRow;
 use App\Data\Reports\ReportFilters;
@@ -8,13 +10,11 @@ use App\Enums\ReportKey;
 use App\Enums\StayType;
 use App\Enums\TransactionKind;
 use App\Enums\UnitStatus;
-use App\Models\BusinessDate;
 use App\Models\Folio;
 use App\Models\FolioLine;
 use App\Models\Guest;
 use App\Models\GuestIdentityDocument;
 use App\Models\Property;
-use App\Models\PropertySetting;
 use App\Models\Reservation;
 use App\Models\ReservationUnit;
 use App\Models\Tax;
@@ -32,20 +32,6 @@ use Spatie\Activitylog\Models\Activity;
 beforeEach(function () {
     $this->travelTo(now()->setDate(2026, 10, 10)->setTime(12, 0));
 });
-
-/**
- * @return array{0: User, 1: Property}
- */
-function registerSetup(DefaultRoleEnum $role = DefaultRoleEnum::Manager): array
-{
-    $user = User::factory()->withRole($role)->create();
-    $property = $user->property;
-    $property->forceFill(['status' => 'live'])->save();
-    PropertySetting::factory()->for($property)->create(['time_zone' => 'Asia/Kuala_Lumpur']);
-    BusinessDate::factory()->create(['property_id' => $property->id, 'date' => '2026-10-10']);
-
-    return [$user, $property];
-}
 
 /**
  * A checked-in unit whose booker has the given nationality.
@@ -172,9 +158,9 @@ function registerCsv(mixed $test, User $user, Property $property, string $slug, 
 }
 
 test('both pages need reports.view and are scoped to the property', function () {
-    [$front, $frontProperty] = registerSetup(DefaultRoleEnum::FrontDesk);
-    [$manager, $own] = registerSetup();
-    [, $other] = registerSetup();
+    [$front, $frontProperty] = reportSetup(DefaultRoleEnum::FrontDesk, ['time_zone' => 'Asia/Kuala_Lumpur']);
+    [$manager, $own] = reportSetup(settings: ['time_zone' => 'Asia/Kuala_Lumpur']);
+    [, $other] = reportSetup(settings: ['time_zone' => 'Asia/Kuala_Lumpur']);
     $mine = registerUnit($own, '2026-10-09', '2026-10-12');
     registerUnit($other, '2026-10-09', '2026-10-12');
 
@@ -195,7 +181,7 @@ test('both pages need reports.view and are scoped to the property', function () 
 });
 
 test('a unit is foreign when its nationality is set and is not MY', function () {
-    [$user, $property] = registerSetup();
+    [$user, $property] = reportSetup(settings: ['time_zone' => 'Asia/Kuala_Lumpur']);
     $foreign = registerUnit($property, '2026-10-09', '2026-10-12', 'SG');
     registerUnit($property, '2026-10-09', '2026-10-12', 'MY');
     registerUnit($property, '2026-10-09', '2026-10-12', null);
@@ -213,7 +199,7 @@ test('a unit is foreign when its nationality is set and is not MY', function () 
 });
 
 test('the unit nationality is the primary guest, with the booker as the fallback', function () {
-    [, $property] = registerSetup();
+    [, $property] = reportSetup(settings: ['time_zone' => 'Asia/Kuala_Lumpur']);
     $byPrimary = registerUnit($property, '2026-10-09', '2026-10-12', 'MY');
     registerGuest($byPrimary, ['nationality_code' => 'JP'], primary: true);
     registerGuest($byPrimary, ['nationality_code' => 'MY']);
@@ -233,7 +219,7 @@ test('the unit nationality is the primary guest, with the booker as the fallback
 });
 
 test('only checked-in and checked-out units that overlap the dates are listed', function () {
-    [, $property] = registerSetup();
+    [, $property] = reportSetup(settings: ['time_zone' => 'Asia/Kuala_Lumpur']);
     $in = registerUnit($property, '2026-10-09', '2026-10-12');
     $out = registerUnit($property, '2026-10-05', '2026-10-08', 'SG', ['status' => UnitStatus::CheckedOut, 'checked_out_at' => now()]);
     registerUnit($property, '2026-10-09', '2026-10-12', 'SG', ['status' => UnitStatus::Confirmed, 'checked_in_at' => null]);
@@ -250,7 +236,7 @@ test('only checked-in and checked-out units that overlap the dates are listed', 
 });
 
 test('a day use unit is listed on its date and in no other range', function () {
-    [, $property] = registerSetup();
+    [, $property] = reportSetup(settings: ['time_zone' => 'Asia/Kuala_Lumpur']);
     $dayUse = registerUnit($property, '2026-10-10', '2026-10-10', 'SG', ['stay_type' => StayType::DayUse, 'status' => UnitStatus::CheckedOut, 'checked_out_at' => now()]);
 
     $inRange = new ReportFilters('2026-10-08', '2026-10-12');
@@ -262,7 +248,7 @@ test('a day use unit is listed on its date and in no other range', function () {
 });
 
 test('nights count only the nights of the stay inside the dates, and the totals sum them', function () {
-    [$user, $property] = registerSetup();
+    [$user, $property] = reportSetup(settings: ['time_zone' => 'Asia/Kuala_Lumpur']);
     $inside = registerUnit($property, '2026-10-10', '2026-10-13');
     $startsBefore = registerUnit($property, '2026-09-28', '2026-10-03');
     $endsAfter = registerUnit($property, '2026-10-29', '2026-11-04');
@@ -284,7 +270,7 @@ test('nights count only the nights of the stay inside the dates, and the totals 
 });
 
 test('tourism tax is summed for each unit for the dates only, with reversals and unit night sources', function () {
-    [, $property] = registerSetup();
+    [, $property] = reportSetup(settings: ['time_zone' => 'Asia/Kuala_Lumpur']);
     $unit = registerUnit($property, '2026-10-02', '2026-10-06');
     $other = registerUnit($property, '2026-10-02', '2026-10-06');
     $tax = foreignTax($property);
@@ -316,8 +302,8 @@ test('tourism tax is summed for each unit for the dates only, with reversals and
 });
 
 test('tourism tax of another property is not counted', function () {
-    [, $property] = registerSetup();
-    [, $other] = registerSetup();
+    [, $property] = reportSetup(settings: ['time_zone' => 'Asia/Kuala_Lumpur']);
+    [, $other] = reportSetup(settings: ['time_zone' => 'Asia/Kuala_Lumpur']);
     $unit = registerUnit($property, '2026-10-02', '2026-10-06');
     $foreignUnit = registerUnit($other, '2026-10-02', '2026-10-06');
     registerTourismTax($foreignUnit, foreignTax($other), '99.00', '2026-10-03');
@@ -330,7 +316,7 @@ test('tourism tax of another property is not counted', function () {
 });
 
 test('the note counts the units with no nationality and is empty when there are none', function () {
-    [$user, $property] = registerSetup();
+    [$user, $property] = reportSetup(settings: ['time_zone' => 'Asia/Kuala_Lumpur']);
     registerUnit($property, '2026-10-09', '2026-10-12', 'SG');
     $first = registerUnit($property, '2026-10-09', '2026-10-12', null);
     $report = app(NonNationalGuestsReport::class);
@@ -354,7 +340,7 @@ test('the note counts the units with no nationality and is empty when there are 
 });
 
 test('the police report has one row for each attached guest and the booker when none is attached', function () {
-    [, $property] = registerSetup();
+    [, $property] = reportSetup(settings: ['time_zone' => 'Asia/Kuala_Lumpur']);
     $family = registerUnit($property, '2026-10-09', '2026-10-12', 'SG');
     $primary = registerGuest($family, ['nationality_code' => 'SG'], primary: true);
     $second = registerGuest($family, ['nationality_code' => 'MY']);
@@ -374,7 +360,7 @@ test('the police report has one row for each attached guest and the booker when 
 });
 
 test('the police report lists every nationality and the foreign only filter keeps foreign guests', function () {
-    [$user, $property] = registerSetup();
+    [$user, $property] = reportSetup(settings: ['time_zone' => 'Asia/Kuala_Lumpur']);
     $unit = registerUnit($property, '2026-10-09', '2026-10-12', 'MY');
     $local = registerGuest($unit, ['nationality_code' => 'MY'], primary: true);
     $abroad = registerGuest($unit, ['nationality_code' => 'GB']);
@@ -404,7 +390,7 @@ test('the police report lists every nationality and the foreign only filter keep
 });
 
 test('the foreign filter is only accepted by the police report', function () {
-    [$user, $property] = registerSetup();
+    [$user, $property] = reportSetup(settings: ['time_zone' => 'Asia/Kuala_Lumpur']);
     $unit = registerUnit($property, '2026-10-09', '2026-10-12', 'MY');
     registerGuest($unit, ['nationality_code' => 'MY'], primary: true);
 
@@ -417,7 +403,7 @@ test('the foreign filter is only accepted by the police report', function () {
 });
 
 test('the police report shows the details of the guest and the times in the property time zone', function () {
-    [$user, $property] = registerSetup();
+    [$user, $property] = reportSetup(settings: ['time_zone' => 'Asia/Kuala_Lumpur']);
     $unit = registerUnit($property, '2026-10-09', '2026-10-12', 'SG', [
         'status' => UnitStatus::CheckedOut,
         'checked_in_at' => '2026-10-09 06:30:00',
@@ -445,7 +431,7 @@ test('the police report shows the details of the guest and the times in the prop
 });
 
 test('the ID is the latest document with a passport before any other type', function () {
-    [$manager, $property] = registerSetup();
+    [$manager, $property] = reportSetup(settings: ['time_zone' => 'Asia/Kuala_Lumpur']);
     $this->actingAs($manager);
     setPermissionsTeamId($property->id);
     $unit = registerUnit($property, '2026-10-09', '2026-10-12', 'SG');
@@ -470,7 +456,7 @@ test('the ID is the latest document with a passport before any other type', func
 });
 
 test('a user without guests.view-documents sees masked numbers on the page, in the PDF and in the spreadsheet', function () {
-    [$finance, $property] = registerSetup(DefaultRoleEnum::Finance);
+    [$finance, $property] = reportSetup(DefaultRoleEnum::Finance, ['time_zone' => 'Asia/Kuala_Lumpur']);
     $unit = registerUnit($property, '2026-10-09', '2026-10-12', 'SG');
     registerDocument(registerGuest($unit, ['nationality_code' => 'SG'], primary: true), 'passport', 'A1234567');
     $range = '?from=2026-10-01&to=2026-10-31';
@@ -493,7 +479,7 @@ test('a user without guests.view-documents sees masked numbers on the page, in t
 });
 
 test('a user with guests.view-documents sees full numbers and each full export is logged', function () {
-    [$manager, $property] = registerSetup();
+    [$manager, $property] = reportSetup(settings: ['time_zone' => 'Asia/Kuala_Lumpur']);
     $unit = registerUnit($property, '2026-10-09', '2026-10-12', 'SG');
     registerDocument(registerGuest($unit, ['nationality_code' => 'SG'], primary: true), 'passport', 'A1234567');
     $range = '?from=2026-10-01&to=2026-10-31';
@@ -526,7 +512,7 @@ test('a user with guests.view-documents sees full numbers and each full export i
 });
 
 test('an export without any ID number or with the ID column hidden is not logged', function () {
-    [$manager, $property] = registerSetup();
+    [$manager, $property] = reportSetup(settings: ['time_zone' => 'Asia/Kuala_Lumpur']);
     $unit = registerUnit($property, '2026-10-09', '2026-10-12', 'SG');
     registerGuest($unit, ['nationality_code' => 'SG'], primary: true);
 
@@ -543,7 +529,7 @@ test('an export without any ID number or with the ID column hidden is not logged
 });
 
 test('the layout preview PDF with full numbers is logged too', function () {
-    [$manager, $property] = registerSetup();
+    [$manager, $property] = reportSetup(settings: ['time_zone' => 'Asia/Kuala_Lumpur']);
     $unit = registerUnit($property, '2026-10-09', '2026-10-12', 'SG');
     registerDocument(registerGuest($unit, ['nationality_code' => 'SG'], primary: true), 'passport', 'A1234567');
 
@@ -557,7 +543,7 @@ test('the layout preview PDF with full numbers is logged too', function () {
 });
 
 test('the exports use country names and a selected-row export holds only the selected rows', function () {
-    [$manager, $property] = registerSetup();
+    [$manager, $property] = reportSetup(settings: ['time_zone' => 'Asia/Kuala_Lumpur']);
     $first = registerUnit($property, '2026-10-09', '2026-10-12', 'SG');
     $firstGuest = registerGuest($first, ['nationality_code' => 'SG', 'country_code' => 'SG', 'address_line1' => '1 Road'], primary: true);
     $second = registerUnit($property, '2026-10-09', '2026-10-12', 'JP');
@@ -582,7 +568,7 @@ test('the exports use country names and a selected-row export holds only the sel
 });
 
 test('the report only returns the requested row keys and is in the registry', function () {
-    [, $property] = registerSetup();
+    [, $property] = reportSetup(settings: ['time_zone' => 'Asia/Kuala_Lumpur']);
     $unit = registerUnit($property, '2026-10-09', '2026-10-12', 'SG');
     $guest = registerGuest($unit, ['nationality_code' => 'SG'], primary: true);
     registerGuest($unit, ['nationality_code' => 'SG']);
@@ -599,7 +585,7 @@ test('the report only returns the requested row keys and is in the registry', fu
 });
 
 test('a range longer than 31 days is refused', function () {
-    [$user, $property] = registerSetup();
+    [$user, $property] = reportSetup(settings: ['time_zone' => 'Asia/Kuala_Lumpur']);
 
     $this->actingAs($user)->get(nonNationalUrl($property, '?from=2026-10-01&to=2026-11-01'))->assertSessionHasErrors('to');
     $this->actingAs($user)->get(policeUrl($property, '?from=2026-10-01&to=2026-11-01'))->assertSessionHasErrors('to');
@@ -607,7 +593,7 @@ test('a range longer than 31 days is refused', function () {
 });
 
 test('the reports are listed in the sidebar and read in a fixed number of queries', function () {
-    [$user, $property] = registerSetup();
+    [$user, $property] = reportSetup(settings: ['time_zone' => 'Asia/Kuala_Lumpur']);
     $build = function (int $units) use ($property): void {
         $tax = foreignTax($property);
 
@@ -642,7 +628,7 @@ test('the reports are listed in the sidebar and read in a fixed number of querie
 });
 
 test('the non-national guests split columns, time columns and totals', function () {
-    [$user, $property] = registerSetup();
+    [$user, $property] = reportSetup(settings: ['time_zone' => 'Asia/Kuala_Lumpur']);
     $first = registerUnit($property, '2026-10-09', '2026-10-12', 'SG', ['adults' => 2, 'children' => 1, 'arrival_time' => '14:00:00', 'departure_time' => '12:00:00']);
     registerUnit($property, '2026-10-09', '2026-10-12', 'SG', ['adults' => 1, 'children' => 2]);
     registerDocument($first->reservation->booker, 'passport', 'A1234567');
@@ -664,7 +650,7 @@ test('the non-national guests split columns, time columns and totals', function 
 });
 
 test('the police report split columns hold the ID parts and the dates and times in the property time zone', function () {
-    [$user, $property] = registerSetup();
+    [$user, $property] = reportSetup(settings: ['time_zone' => 'Asia/Kuala_Lumpur']);
     $unit = registerUnit($property, '2026-10-09', '2026-10-12', 'SG', [
         'status' => UnitStatus::CheckedOut,
         'checked_in_at' => '2026-10-09 06:30:00',
@@ -692,7 +678,7 @@ test('the police report split columns hold the ID parts and the dates and times 
 });
 
 test('the ID type and number are split, and the number is masked for a user without guests.view-documents', function () {
-    [$finance, $property] = registerSetup(DefaultRoleEnum::Finance);
+    [$finance, $property] = reportSetup(DefaultRoleEnum::Finance, ['time_zone' => 'Asia/Kuala_Lumpur']);
     $unit = registerUnit($property, '2026-10-09', '2026-10-12', 'SG');
     registerDocument(registerGuest($unit, ['nationality_code' => 'SG'], primary: true), 'passport', 'A1234567');
     $range = '?from=2026-10-01&to=2026-10-31';
@@ -703,7 +689,7 @@ test('the ID type and number are split, and the number is masked for a user with
             ->where('rows.data.0.id_number', '•••• 4567'));
     }
 
-    [$manager, $managerProperty] = registerSetup();
+    [$manager, $managerProperty] = reportSetup(settings: ['time_zone' => 'Asia/Kuala_Lumpur']);
     $managerUnit = registerUnit($managerProperty, '2026-10-09', '2026-10-12', 'SG');
     registerDocument(registerGuest($managerUnit, ['nationality_code' => 'SG'], primary: true), 'passport', 'A1234567');
 
@@ -712,7 +698,7 @@ test('the ID type and number are split, and the number is masked for a user with
 });
 
 test('the identity export is logged when only the ID number column is visible and not when both are hidden', function () {
-    [$manager, $property] = registerSetup();
+    [$manager, $property] = reportSetup(settings: ['time_zone' => 'Asia/Kuala_Lumpur']);
     $unit = registerUnit($property, '2026-10-09', '2026-10-12', 'SG');
     registerDocument(registerGuest($unit, ['nationality_code' => 'SG'], primary: true), 'passport', 'A1234567');
     $layout = fn (array $visible): array => ['orientation' => 'landscape', 'columns' => array_map(fn ($column): array => ['key' => $column->key, 'visible' => in_array($column->key, $visible, true)], ReportKey::PoliceReport->columns())];

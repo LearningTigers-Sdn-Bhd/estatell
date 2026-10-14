@@ -1,23 +1,22 @@
 <?php
 
+require_once __DIR__.'/../Support/ReportSetup.php';
+
 use App\Data\Reports\InHouseRow;
 use App\Data\Reports\ReportFilters;
 use App\Enums\DefaultRoleEnum;
 use App\Enums\ReportKey;
 use App\Enums\StayType;
 use App\Enums\UnitStatus;
-use App\Models\BusinessDate;
 use App\Models\Company;
 use App\Models\Folio;
 use App\Models\FolioLine;
 use App\Models\Property;
-use App\Models\PropertySetting;
 use App\Models\Reservation;
 use App\Models\ReservationUnit;
 use App\Models\Room;
 use App\Models\UnitDayUse;
 use App\Models\UnitNight;
-use App\Models\User;
 use App\Services\Reports\InHouseReport;
 use Illuminate\Support\Facades\View;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -25,20 +24,6 @@ use Inertia\Testing\AssertableInertia as Assert;
 beforeEach(function () {
     $this->travelTo(now()->setDate(2026, 10, 10)->setTime(12, 0));
 });
-
-/**
- * @return array{0: User, 1: Property}
- */
-function inHouseSetup(DefaultRoleEnum $role = DefaultRoleEnum::Manager): array
-{
-    $user = User::factory()->withRole($role)->create();
-    $property = $user->property;
-    $property->forceFill(['status' => 'live'])->save();
-    PropertySetting::factory()->for($property)->create();
-    BusinessDate::factory()->create(['property_id' => $property->id, 'date' => '2026-10-10']);
-
-    return [$user, $property];
-}
 
 /**
  * @param  array<string, mixed>  $attributes
@@ -63,9 +48,9 @@ function inHouseUrl(Property $property, string $query = ''): string
 }
 
 test('the page needs reports.view and is scoped to the property', function () {
-    [$front, $frontProperty] = inHouseSetup(DefaultRoleEnum::FrontDesk);
-    [$manager, $own] = inHouseSetup();
-    [, $other] = inHouseSetup();
+    [$front, $frontProperty] = reportSetup(DefaultRoleEnum::FrontDesk);
+    [$manager, $own] = reportSetup();
+    [, $other] = reportSetup();
     $mine = stayingUnit($own, '2026-10-09', '2026-10-12');
     stayingUnit($other, '2026-10-09', '2026-10-12');
 
@@ -78,7 +63,7 @@ test('the page needs reports.view and is scoped to the property', function () {
 });
 
 test('the page opens on the business date and a date in the URL replaces it', function () {
-    [$user, $property] = inHouseSetup();
+    [$user, $property] = reportSetup();
     stayingUnit($property, '2026-10-10', '2026-10-12');
     stayingUnit($property, '2026-10-14', '2026-10-15');
 
@@ -97,7 +82,7 @@ test('the page opens on the business date and a date in the URL replaces it', fu
 });
 
 test('the arrival day counts and the departure day does not', function () {
-    [$user, $property] = inHouseSetup();
+    [$user, $property] = reportSetup();
     $arriving = stayingUnit($property, '2026-10-10', '2026-10-12');
     $staying = stayingUnit($property, '2026-10-08', '2026-10-11');
     stayingUnit($property, '2026-10-08', '2026-10-10');
@@ -109,7 +94,7 @@ test('the arrival day counts and the departure day does not', function () {
 });
 
 test('only checked-in and checked-out units stay, and an early check-out leaves the later dates', function () {
-    [$user, $property] = inHouseSetup();
+    [$user, $property] = reportSetup();
     stayingUnit($property, '2026-10-09', '2026-10-12', ['status' => UnitStatus::Confirmed, 'checked_in_at' => null]);
     stayingUnit($property, '2026-10-09', '2026-10-12', ['status' => UnitStatus::Cancelled]);
     stayingUnit($property, '2026-10-09', '2026-10-12', ['status' => UnitStatus::NoShow]);
@@ -124,7 +109,7 @@ test('only checked-in and checked-out units stay, and an early check-out leaves 
 });
 
 test('each row shows the room of that night, the company and the balance', function () {
-    [$user, $property] = inHouseSetup();
+    [$user, $property] = reportSetup();
     $company = Company::factory()->for($property)->create(['name' => 'Borneo Travel']);
     $unit = stayingUnit($property, '2026-10-09', '2026-10-12', ['adults' => 2, 'children' => 1], ['company_id' => $company->id]);
     $first = Room::factory()->for($property)->create(['room_type_id' => $unit->room_type_id, 'number' => '101']);
@@ -146,7 +131,7 @@ test('each row shows the room of that night, the company and the balance', funct
 });
 
 test('the date param is checked and from and to are ignored', function () {
-    [$user, $property] = inHouseSetup();
+    [$user, $property] = reportSetup();
     stayingUnit($property, '2026-10-10', '2026-10-12');
 
     $this->actingAs($user)->get(inHouseUrl($property, '?date=10-10-2026'))->assertSessionHasErrors('date');
@@ -156,7 +141,7 @@ test('the date param is checked and from and to are ignored', function () {
 });
 
 test('a day use unit is in-house on its date with its hours as the stay, and not on other dates', function () {
-    [, $property] = inHouseSetup();
+    [, $property] = reportSetup();
     $room = Room::factory()->for($property)->create();
     $dayUse = stayingUnit($property, '2026-10-10', '2026-10-10', ['stay_type' => StayType::DayUse, 'arrival_time' => '10:00', 'departure_time' => '14:00']);
     UnitDayUse::factory()->create(['reservation_unit_id' => $dayUse->id, 'date' => '2026-10-10', 'room_id' => $room->id, 'starts_at' => '10:00', 'ends_at' => '14:00']);
@@ -177,7 +162,7 @@ test('a day use unit is in-house on its date with its hours as the stay, and not
 });
 
 test('the report returns only the requested row keys and is in the registry', function () {
-    [, $property] = inHouseSetup();
+    [, $property] = reportSetup();
     $first = stayingUnit($property, '2026-10-09', '2026-10-12');
     stayingUnit($property, '2026-10-09', '2026-10-12');
     $report = app(InHouseReport::class);
@@ -191,7 +176,7 @@ test('the report returns only the requested row keys and is in the registry', fu
 });
 
 test('the PDF and the CSV export the date and the layout preview accepts it', function () {
-    [$user, $property] = inHouseSetup();
+    [$user, $property] = reportSetup();
     stayingUnit($property, '2026-10-09', '2026-10-12');
     stayingUnit($property, '2026-10-14', '2026-10-15');
     $captured = new stdClass;
@@ -216,7 +201,7 @@ test('the PDF and the CSV export the date and the layout preview accepts it', fu
 });
 
 test('the split columns and the totals count adults and children, and the time columns are hidden by default', function () {
-    [$user, $property] = inHouseSetup();
+    [$user, $property] = reportSetup();
     stayingUnit($property, '2026-10-09', '2026-10-12', ['adults' => 2, 'children' => 1, 'arrival_time' => '13:00:00', 'departure_time' => '11:30:00']);
     stayingUnit($property, '2026-10-09', '2026-10-12', ['adults' => 3, 'children' => 0]);
     $rows = app(InHouseReport::class)->rows($property, new ReportFilters('2026-10-10', '2026-10-10'));

@@ -1,19 +1,18 @@
 <?php
 
+require_once __DIR__.'/../Support/ReportSetup.php';
+
 use App\Enums\DefaultRoleEnum;
 use App\Enums\InclusionEnd;
 use App\Enums\InclusionStart;
 use App\Enums\ReportKey;
 use App\Features\Boats;
-use App\Models\BusinessDate;
 use App\Models\MealPeriod;
 use App\Models\Property;
-use App\Models\PropertySetting;
 use App\Models\RatePlan;
 use App\Models\RatePlanInclusion;
 use App\Models\Reservation;
 use App\Models\ReservationUnit;
-use App\Models\User;
 use Illuminate\Support\Facades\View;
 use Inertia\Testing\AssertableInertia as Assert;
 use Laravel\Pennant\Feature;
@@ -21,20 +20,6 @@ use Laravel\Pennant\Feature;
 beforeEach(function () {
     $this->travelTo(now()->setDate(2026, 10, 10)->setTime(12, 0));
 });
-
-/**
- * @return array{0: User, 1: Property}
- */
-function mealCountsSetup(DefaultRoleEnum $role = DefaultRoleEnum::Manager): array
-{
-    $user = User::factory()->withRole($role)->create();
-    $property = $user->property;
-    $property->forceFill(['status' => 'live'])->save();
-    PropertySetting::factory()->for($property)->create();
-    BusinessDate::factory()->create(['property_id' => $property->id, 'date' => '2026-10-10']);
-
-    return [$user, $property];
-}
 
 function mealCountsUrl(Property $property, string $query = ''): string
 {
@@ -84,9 +69,9 @@ function mealCountsData(Property $property): array
 }
 
 test('the page needs reports.view, is scoped to the property and sends its layout and presets', function () {
-    [$front, $frontProperty] = mealCountsSetup(DefaultRoleEnum::FrontDesk);
-    [$manager, $own] = mealCountsSetup();
-    [, $other] = mealCountsSetup();
+    [$front, $frontProperty] = reportSetup(DefaultRoleEnum::FrontDesk);
+    [$manager, $own] = reportSetup();
+    [, $other] = reportSetup();
     mealCountsData($own);
 
     $this->actingAs($front)->get(mealCountsUrl($frontProperty))->assertForbidden();
@@ -104,7 +89,7 @@ test('the page needs reports.view, is scoped to the property and sends its layou
 });
 
 test('rows split adults and children, count each period once and keep the meal start order within a date', function () {
-    [$user, $property] = mealCountsSetup();
+    [$user, $property] = reportSetup();
     ['breakfast' => $breakfast, 'dinner' => $dinner] = mealCountsData($property);
 
     $this->actingAs($user)->get(mealCountsUrl($property, '?from=2026-10-09&to=2026-10-10'))->assertInertia(fn (Assert $page) => $page
@@ -117,7 +102,7 @@ test('rows split adults and children, count each period once and keep the meal s
 });
 
 test('checked-out stays count on past dates and cancelled and no-show stays never count', function () {
-    [$user, $property] = mealCountsSetup();
+    [$user, $property] = reportSetup();
     ['dinner' => $dinner] = mealCountsData($property);
 
     $this->actingAs($user)->get(mealCountsUrl($property, '?from=2026-10-08&to=2026-10-08'))->assertInertia(fn (Assert $page) => $page
@@ -128,7 +113,7 @@ test('checked-out stays count on past dates and cancelled and no-show stays neve
 });
 
 test('future dates are counted and the totals row sums adults, children and guests', function () {
-    [$user, $property] = mealCountsSetup();
+    [$user, $property] = reportSetup();
     mealCountsData($property);
 
     $this->actingAs($user)->get(mealCountsUrl($property, '?from=2026-10-09&to=2026-10-12'))->assertInertia(fn (Assert $page) => $page
@@ -137,8 +122,8 @@ test('future dates are counted and the totals row sums adults, children and gues
 });
 
 test('another property sees none of these meals and is told when no plan includes meals', function () {
-    [$user, $property] = mealCountsSetup();
-    [$otherUser, $other] = mealCountsSetup();
+    [$user, $property] = reportSetup();
+    [$otherUser, $other] = reportSetup();
     mealCountsData($property);
 
     $this->actingAs($otherUser)->get(mealCountsUrl($other, '?from=2026-10-08&to=2026-10-12'))->assertInertia(fn (Assert $page) => $page
@@ -148,14 +133,14 @@ test('another property sees none of these meals and is told when no plan include
 });
 
 test('a range of more than 31 days is refused', function () {
-    [$user, $property] = mealCountsSetup();
+    [$user, $property] = reportSetup();
 
     $this->actingAs($user)->get(mealCountsUrl($property, '?from=2026-10-01&to=2026-11-01'))->assertSessionHasErrors('to');
     $this->actingAs($user)->get(mealCountsUrl($property, '?from=2026-10-01&to=2026-10-31'))->assertSessionHasNoErrors();
 });
 
 test('the PDF and CSV carry only the selected rows and their totals', function () {
-    [$user, $property] = mealCountsSetup();
+    [$user, $property] = reportSetup();
     ['breakfast' => $breakfast, 'dinner' => $dinner] = mealCountsData($property);
     $base = ['from' => '2026-10-09', 'to' => '2026-10-10', 'rowKeys' => ["2026-10-09:{$dinner->id}", "2026-10-10:{$breakfast->id}"]];
     $captured = new stdClass;
@@ -177,7 +162,7 @@ test('the PDF and CSV carry only the selected rows and their totals', function (
 });
 
 test('with boats on, a late arrival and an early departure trim the dinner and breakfast counts, and with boats off they do not', function () {
-    [$user, $property] = mealCountsSetup();
+    [$user, $property] = reportSetup();
     ['plan' => $plan, 'breakfast' => $breakfast, 'dinner' => $dinner] = mealCountsPlan($property);
     $unit = mealCountsUnit($property, $plan, 'confirmed', '2026-10-11', '2026-10-12', 2);
     $unit->forceFill(['arrival_time' => '20:30:00', 'departure_time' => '06:30:00'])->save();

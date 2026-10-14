@@ -1,5 +1,7 @@
 <?php
 
+require_once __DIR__.'/../Support/ReportSetup.php';
+
 use App\Data\Reports\ReportFilters;
 use App\Enums\DefaultRoleEnum;
 use App\Enums\FolioStatus;
@@ -7,17 +9,14 @@ use App\Enums\PaymentPurpose;
 use App\Enums\ReportKey;
 use App\Enums\TransactionKind;
 use App\Enums\UnitStatus;
-use App\Models\BusinessDate;
 use App\Models\Company;
 use App\Models\Folio;
 use App\Models\FolioLine;
 use App\Models\Payment;
 use App\Models\PaymentMethod;
 use App\Models\Property;
-use App\Models\PropertySetting;
 use App\Models\Reservation;
 use App\Models\ReservationUnit;
-use App\Models\User;
 use App\Services\Reports\DepositLiabilityReport;
 use App\Services\Reports\FolioBalancesOnDate;
 use App\Services\Reports\OutstandingBalanceReport;
@@ -28,20 +27,6 @@ use Inertia\Testing\AssertableInertia as Assert;
 beforeEach(function () {
     $this->travelTo(now()->setDate(2026, 10, 10)->setTime(12, 0));
 });
-
-/**
- * @return array{0: User, 1: Property}
- */
-function balanceSetup(DefaultRoleEnum $role = DefaultRoleEnum::Manager): array
-{
-    $user = User::factory()->withRole($role)->create();
-    $property = $user->property;
-    $property->forceFill(['status' => 'live'])->save();
-    PropertySetting::factory()->for($property)->create();
-    BusinessDate::factory()->create(['property_id' => $property->id, 'date' => '2026-10-10']);
-
-    return [$user, $property];
-}
 
 function balanceUrl(Property $property, string $report, string $query = ''): string
 {
@@ -99,7 +84,7 @@ function balancePayment(Folio $folio, string $amount, string $date = '2026-10-08
 }
 
 test('the balance on a past date ignores the lines posted after it', function () {
-    [, $property] = balanceSetup();
+    [, $property] = reportSetup();
     $folio = balanceFolio($property);
     balanceLine($folio, '300.00', '2026-10-08');
     balancePayment($folio, '100.00', '2026-10-09');
@@ -114,7 +99,7 @@ test('the balance on a past date ignores the lines posted after it', function ()
 });
 
 test('voided folios, settled folios and zero balances are in neither report', function () {
-    [, $property] = balanceSetup();
+    [, $property] = reportSetup();
     $voided = balanceFolio($property, folio: ['status' => FolioStatus::Voided]);
     balanceLine($voided, '80.00');
     $settled = balanceFolio($property, folio: ['status' => FolioStatus::Closed]);
@@ -131,7 +116,7 @@ test('voided folios, settled folios and zero balances are in neither report', fu
 });
 
 test('a debit balance is outstanding and a credit balance is a deposit liability', function () {
-    [$user, $property] = balanceSetup();
+    [$user, $property] = reportSetup();
     $owes = balanceFolio($property);
     balanceLine($owes, '200.00');
     $credit = balanceFolio($property, '2026-10-20', '2026-10-22');
@@ -148,7 +133,7 @@ test('a debit balance is outstanding and a credit balance is a deposit liability
 });
 
 test('payments are negative in outstanding balance and charges plus payments equal the balance', function () {
-    [$user, $property] = balanceSetup();
+    [$user, $property] = reportSetup();
     $folio = balanceFolio($property);
     balanceLine($folio, '500.00');
     balanceLine($folio, '20.00', kind: TransactionKind::Tax);
@@ -162,7 +147,7 @@ test('payments are negative in outstanding balance and charges plus payments equ
 });
 
 test('deposit liability counts refunds as refunded, not received, and holds the security deposit net of refunds', function () {
-    [$user, $property] = balanceSetup();
+    [$user, $property] = reportSetup();
     $folio = balanceFolio($property, '2026-10-10', '2026-10-12');
     $advance = balancePayment($folio, '300.00', purpose: PaymentPurpose::Advance);
     $deposit = balancePayment($folio, '200.00', purpose: PaymentPurpose::SecurityDeposit);
@@ -182,7 +167,7 @@ test('deposit liability counts refunds as refunded, not received, and holds the 
 });
 
 test('days since departure sorts newest debt first with blanks last, and the totals add up', function () {
-    [$user, $property] = balanceSetup();
+    [$user, $property] = reportSetup();
     $old = balanceFolio($property, '2026-10-01', '2026-10-03');
     balanceLine($old, '100.00', '2026-10-01');
     $recent = balanceFolio($property, '2026-10-05', '2026-10-09');
@@ -203,7 +188,7 @@ test('days since departure sorts newest debt first with blanks last, and the tot
 });
 
 test('deposit liability sorts by arrival and totals every money column', function () {
-    [$user, $property] = balanceSetup();
+    [$user, $property] = reportSetup();
     $later = balanceFolio($property, '2026-10-20', '2026-10-22');
     balancePayment($later, '100.00');
     $sooner = balanceFolio($property, '2026-10-12', '2026-10-13');
@@ -221,7 +206,7 @@ test('deposit liability sorts by arrival and totals every money column', functio
 });
 
 test('each row shows the payer, the dates and today status of the unit or the reservation', function () {
-    [$user, $property] = balanceSetup();
+    [$user, $property] = reportSetup();
     $company = Company::factory()->for($property)->create(['name' => 'Borneo Travel']);
     $master = balanceFolio($property, '2026-10-08', '2026-10-09', ['payer_company_id' => $company->id]);
     ReservationUnit::factory()->for($master->reservation)->create(['arrival_date' => '2026-10-07', 'departure_date' => '2026-10-11']);
@@ -241,8 +226,8 @@ test('each row shows the payer, the dates and today status of the unit or the re
 });
 
 test('another property is not in the report and its URL is a 404', function () {
-    [$user, $property] = balanceSetup();
-    [, $other] = balanceSetup();
+    [$user, $property] = reportSetup();
+    [, $other] = reportSetup();
     $mine = balanceFolio($property);
     balanceLine($mine, '10.00');
     balanceLine(balanceFolio($other), '99.00');
@@ -254,14 +239,14 @@ test('another property is not in the report and its URL is a 404', function () {
 });
 
 test('the pages need reports.view', function () {
-    [$front, $property] = balanceSetup(DefaultRoleEnum::FrontDesk);
+    [$front, $property] = reportSetup(DefaultRoleEnum::FrontDesk);
 
     $this->actingAs($front)->get(balanceUrl($property, 'outstanding-balance'))->assertForbidden();
     $this->actingAs($front)->get(balanceUrl($property, 'deposit-liability'))->assertForbidden();
 });
 
 test('the date opens on the business date and a date in the URL replaces it', function () {
-    [$user, $property] = balanceSetup();
+    [$user, $property] = reportSetup();
     $folio = balanceFolio($property);
     balanceLine($folio, '100.00', '2026-10-08');
     balanceLine($folio, '-100.00', '2026-10-10', TransactionKind::Payment);
@@ -278,7 +263,7 @@ test('the date opens on the business date and a date in the URL replaces it', fu
 });
 
 test('the status note shows only when the date is not the business date', function () {
-    [$user, $property] = balanceSetup();
+    [$user, $property] = reportSetup();
     balanceLine(balanceFolio($property), '10.00');
 
     foreach (['outstanding-balance', 'deposit-liability'] as $report) {
@@ -300,7 +285,7 @@ test('the registry lists both reports as one-date landscape finance reports', fu
 });
 
 test('the PDF and the spreadsheet export only the selected rows and the PDF carries the note', function () {
-    [$user, $property] = balanceSetup();
+    [$user, $property] = reportSetup();
     $first = balanceFolio($property);
     balanceLine($first, '10.00');
     $second = balanceFolio($property);
@@ -323,7 +308,7 @@ test('the PDF and the spreadsheet export only the selected rows and the PDF carr
 });
 
 test('more folios add no queries', function () {
-    [$user, $property] = balanceSetup();
+    [$user, $property] = reportSetup();
     $make = function () use ($property): void {
         $debit = balanceFolio($property);
         balanceLine($debit, '10.00');

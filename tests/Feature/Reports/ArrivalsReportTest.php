@@ -1,5 +1,7 @@
 <?php
 
+require_once __DIR__.'/../Support/ReportSetup.php';
+
 use App\Data\Reports\ArrivalRow;
 use App\Data\Reports\ReportFilters;
 use App\Enums\DefaultRoleEnum;
@@ -7,42 +9,23 @@ use App\Enums\PermissionEnum;
 use App\Enums\ReportKey;
 use App\Enums\StayType;
 use App\Enums\UnitStatus;
-use App\Models\BusinessDate;
 use App\Models\Company;
 use App\Models\Folio;
 use App\Models\FolioLine;
 use App\Models\Guest;
 use App\Models\Property;
-use App\Models\PropertySetting;
 use App\Models\Reservation;
 use App\Models\ReservationUnit;
 use App\Models\Room;
 use App\Models\UnitDayUse;
 use App\Models\UnitGuest;
 use App\Models\UnitNight;
-use App\Models\User;
 use App\Services\Reports\ArrivalsReport;
 use Inertia\Testing\AssertableInertia as Assert;
 
 beforeEach(function () {
     $this->travelTo(now()->setDate(2026, 10, 10)->setTime(12, 0));
 });
-
-/**
- * A live property with the open business date 2026-10-10, and a user with the role.
- *
- * @return array{0: User, 1: Property}
- */
-function arrivalsSetup(DefaultRoleEnum $role = DefaultRoleEnum::Manager): array
-{
-    $user = User::factory()->withRole($role)->create();
-    $property = $user->property;
-    $property->forceFill(['status' => 'live'])->save();
-    PropertySetting::factory()->for($property)->create();
-    BusinessDate::factory()->create(['property_id' => $property->id, 'date' => '2026-10-10']);
-
-    return [$user, $property];
-}
 
 /**
  * @param  array<string, mixed>  $attributes  Unit attributes.
@@ -64,19 +47,19 @@ function arrivalsUrl(Property $property, string $query = ''): string
 }
 
 test('a user without reports.view gets 403 and another property returns 404', function () {
-    [$front, $property] = arrivalsSetup(DefaultRoleEnum::FrontDesk);
+    [$front, $property] = reportSetup(DefaultRoleEnum::FrontDesk);
 
     $this->actingAs($front)->get(arrivalsUrl($property))->assertForbidden();
 
-    [$manager, $own] = arrivalsSetup();
-    [, $other] = arrivalsSetup();
+    [$manager, $own] = reportSetup();
+    [, $other] = reportSetup();
 
     $this->actingAs($manager)->get(arrivalsUrl($own))->assertOk();
     $this->actingAs($manager)->get(arrivalsUrl($other))->assertNotFound();
 });
 
 test('the page opens on the business date and lists the units that arrive', function () {
-    [$user, $property] = arrivalsSetup();
+    [$user, $property] = reportSetup();
     arrivingUnit($property, '2026-10-10');
     arrivingUnit($property, '2026-10-11');
 
@@ -96,7 +79,7 @@ test('the page opens on the business date and lists the units that arrive', func
 });
 
 test('a day use unit shows its hours in place of the nights', function () {
-    [, $property] = arrivalsSetup();
+    [, $property] = reportSetup();
     $unit = arrivingUnit($property, '2026-10-10', ['stay_type' => StayType::DayUse, 'departure_date' => '2026-10-10', 'arrival_time' => '10:00', 'departure_time' => '14:00']);
     UnitDayUse::factory()->create(['reservation_unit_id' => $unit->id, 'date' => '2026-10-10', 'starts_at' => '10:00', 'ends_at' => '14:00']);
     $overnight = arrivingUnit($property, '2026-10-10');
@@ -108,7 +91,7 @@ test('a day use unit shows its hours in place of the nights', function () {
 });
 
 test('a single date in the URL is used for both ends', function () {
-    [$user, $property] = arrivalsSetup();
+    [$user, $property] = reportSetup();
     arrivingUnit($property, '2026-10-12');
 
     $this->actingAs($user)->get(arrivalsUrl($property, '?from=2026-10-12'))->assertInertia(fn (Assert $page) => $page
@@ -117,7 +100,7 @@ test('a single date in the URL is used for both ends', function () {
 });
 
 test('each row shows the guest, room, company and balance of the unit', function () {
-    [$user, $property] = arrivalsSetup();
+    [$user, $property] = reportSetup();
     $company = Company::factory()->for($property)->create(['name' => 'Borneo Travel']);
     $unit = arrivingUnit($property, '2026-10-10', ['adults' => 2, 'children' => 1], ['company_id' => $company->id]);
     $guest = Guest::factory()->create(['property_id' => $property->id, 'full_name' => 'Tan Wei Ming', 'phone' => '+60123456789']);
@@ -145,8 +128,8 @@ test('each row shows the guest, room, company and balance of the unit', function
 });
 
 test('only the units of this property appear', function () {
-    [$user, $property] = arrivalsSetup();
-    [, $other] = arrivalsSetup();
+    [$user, $property] = reportSetup();
+    [, $other] = reportSetup();
     $own = arrivingUnit($property);
     arrivingUnit($other);
 
@@ -156,7 +139,7 @@ test('only the units of this property appear', function () {
 });
 
 test('cancelled and no-show units are left out and checked in units stay', function () {
-    [$user, $property] = arrivalsSetup();
+    [$user, $property] = reportSetup();
     arrivingUnit($property, '2026-10-10', ['status' => UnitStatus::Cancelled]);
     arrivingUnit($property, '2026-10-10', ['status' => UnitStatus::NoShow]);
     arrivingUnit($property, '2026-10-10', ['status' => UnitStatus::CheckedIn, 'checked_in_at' => now()]);
@@ -168,14 +151,14 @@ test('cancelled and no-show units are left out and checked in units stay', funct
 });
 
 test('a range with the end before the start is rejected', function () {
-    [$user, $property] = arrivalsSetup();
+    [$user, $property] = reportSetup();
 
     $this->actingAs($user)->get(arrivalsUrl($property, '?from=2026-10-12&to=2026-10-10'))
         ->assertSessionHasErrors('to');
 });
 
 test('a range longer than 31 days is rejected and 31 days is allowed', function () {
-    [$user, $property] = arrivalsSetup();
+    [$user, $property] = reportSetup();
 
     $this->actingAs($user)->get(arrivalsUrl($property, '?from=2026-10-01&to=2026-11-01'))
         ->assertSessionHasErrors('to');
@@ -184,14 +167,14 @@ test('a range longer than 31 days is rejected and 31 days is allowed', function 
 });
 
 test('a date in the wrong format is rejected', function () {
-    [$user, $property] = arrivalsSetup();
+    [$user, $property] = reportSetup();
 
     $this->actingAs($user)->get(arrivalsUrl($property, '?from=10-10-2026'))
         ->assertSessionHasErrors('from');
 });
 
 test('the report returns only the requested row keys', function () {
-    [, $property] = arrivalsSetup();
+    [, $property] = reportSetup();
     $first = arrivingUnit($property);
     $second = arrivingUnit($property);
     arrivingUnit($property);
@@ -204,8 +187,8 @@ test('the report returns only the requested row keys', function () {
 });
 
 test('a row key outside the property or the dates is ignored', function () {
-    [, $property] = arrivalsSetup();
-    [, $other] = arrivalsSetup();
+    [, $property] = reportSetup();
+    [, $other] = reportSetup();
     $foreign = arrivingUnit($other);
     $later = arrivingUnit($property, '2026-10-20');
 
@@ -213,7 +196,7 @@ test('a row key outside the property or the dates is ignored', function () {
 });
 
 test('rows are sorted and paged on the server', function () {
-    [$user, $property] = arrivalsSetup();
+    [$user, $property] = reportSetup();
 
     foreach (range(1, 26) as $number) {
         $unit = arrivingUnit($property);
@@ -235,7 +218,7 @@ test('rows are sorted and paged on the server', function () {
 });
 
 test('an unknown sort falls back to the arrival date', function () {
-    [$user, $property] = arrivalsSetup();
+    [$user, $property] = reportSetup();
     arrivingUnit($property, '2026-10-12');
     arrivingUnit($property, '2026-10-11');
 
@@ -264,8 +247,8 @@ test('the default roles that get reports.view', function () {
 });
 
 test('the Reports navigation groups the reports by category and needs reports.view', function () {
-    [$manager, $property] = arrivalsSetup();
-    [$front, $frontProperty] = arrivalsSetup(DefaultRoleEnum::FrontDesk);
+    [$manager, $property] = reportSetup();
+    [$front, $frontProperty] = reportSetup(DefaultRoleEnum::FrontDesk);
 
     $this->actingAs($manager)->get(arrivalsUrl($property))->assertInertia(fn (Assert $page) => $page
         ->where('navigation.active', 'reports')
@@ -322,7 +305,7 @@ test('the Reports navigation groups the reports by category and needs reports.vi
 });
 
 test('the split columns hold the room type, the room, the guest counts and the arrival time, and are hidden by default', function () {
-    [, $property] = arrivalsSetup();
+    [, $property] = reportSetup();
     $assigned = arrivingUnit($property, '2026-10-10', ['adults' => 2, 'children' => 1, 'arrival_time' => '14:30:00']);
     $room = Room::factory()->for($property)->create(['room_type_id' => $assigned->room_type_id, 'number' => '204']);
     UnitNight::factory()->create(['reservation_unit_id' => $assigned->id, 'date' => '2026-10-10', 'room_id' => $room->id]);

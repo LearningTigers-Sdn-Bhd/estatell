@@ -1,20 +1,19 @@
 <?php
 
+require_once __DIR__.'/../Support/ReportSetup.php';
+
 use App\Data\Reports\DepartureRow;
 use App\Data\Reports\ReportFilters;
 use App\Enums\DefaultRoleEnum;
 use App\Enums\ReportKey;
 use App\Enums\UnitStatus;
-use App\Models\BusinessDate;
 use App\Models\Guest;
 use App\Models\Property;
-use App\Models\PropertySetting;
 use App\Models\Reservation;
 use App\Models\ReservationUnit;
 use App\Models\Room;
 use App\Models\UnitGuest;
 use App\Models\UnitNight;
-use App\Models\User;
 use App\Services\Reports\DeparturesReport;
 use Illuminate\Support\Facades\View;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -22,20 +21,6 @@ use Inertia\Testing\AssertableInertia as Assert;
 beforeEach(function () {
     $this->travelTo(now()->setDate(2026, 10, 10)->setTime(12, 0));
 });
-
-/**
- * @return array{0: User, 1: Property}
- */
-function departuresSetup(DefaultRoleEnum $role = DefaultRoleEnum::Manager): array
-{
-    $user = User::factory()->withRole($role)->create();
-    $property = $user->property;
-    $property->forceFill(['status' => 'live'])->save();
-    PropertySetting::factory()->for($property)->create();
-    BusinessDate::factory()->create(['property_id' => $property->id, 'date' => '2026-10-10']);
-
-    return [$user, $property];
-}
 
 /**
  * @param  array<string, mixed>  $attributes
@@ -57,9 +42,9 @@ function departuresUrl(Property $property, string $query = ''): string
 }
 
 test('the page needs reports.view and is scoped to the property', function () {
-    [$front, $frontProperty] = departuresSetup(DefaultRoleEnum::FrontDesk);
-    [$manager, $own] = departuresSetup();
-    [, $other] = departuresSetup();
+    [$front, $frontProperty] = reportSetup(DefaultRoleEnum::FrontDesk);
+    [$manager, $own] = reportSetup();
+    [, $other] = reportSetup();
     $mine = departingUnit($own);
     departingUnit($other);
 
@@ -72,7 +57,7 @@ test('the page needs reports.view and is scoped to the property', function () {
 });
 
 test('the page opens on the business date with the departure columns and sort', function () {
-    [$user, $property] = departuresSetup();
+    [$user, $property] = reportSetup();
     departingUnit($property, '2026-10-10');
     departingUnit($property, '2026-10-11');
 
@@ -88,7 +73,7 @@ test('the page opens on the business date with the departure columns and sort', 
 });
 
 test('only units that hold inventory depart', function () {
-    [$user, $property] = departuresSetup();
+    [$user, $property] = reportSetup();
     departingUnit($property, '2026-10-10', ['status' => UnitStatus::Cancelled]);
     departingUnit($property, '2026-10-10', ['status' => UnitStatus::NoShow]);
     departingUnit($property, '2026-10-10', ['status' => UnitStatus::CheckedIn, 'checked_in_at' => now()]);
@@ -100,7 +85,7 @@ test('only units that hold inventory depart', function () {
 });
 
 test('the room is the room of the last night', function () {
-    [$user, $property] = departuresSetup();
+    [$user, $property] = reportSetup();
     $unit = departingUnit($property, '2026-10-10');
     $guest = Guest::factory()->create(['property_id' => $property->id, 'full_name' => 'Aisyah Rahman']);
     UnitGuest::factory()->primary()->create(['reservation_unit_id' => $unit->id, 'guest_id' => $guest->id]);
@@ -115,14 +100,14 @@ test('the room is the room of the last night', function () {
 });
 
 test('a range is allowed up to 31 days and checked like Arrivals', function () {
-    [$user, $property] = departuresSetup();
+    [$user, $property] = reportSetup();
 
     $this->actingAs($user)->get(departuresUrl($property, '?from=2026-10-01&to=2026-11-01'))->assertSessionHasErrors('to');
     $this->actingAs($user)->get(departuresUrl($property, '?from=2026-10-01&to=2026-10-31'))->assertSessionDoesntHaveErrors();
 });
 
 test('the report returns only the requested row keys', function () {
-    [, $property] = departuresSetup();
+    [, $property] = reportSetup();
     $first = departingUnit($property);
     departingUnit($property);
     $report = app(DeparturesReport::class);
@@ -134,7 +119,7 @@ test('the report returns only the requested row keys', function () {
 });
 
 test('the PDF and the CSV export the departures', function () {
-    [$user, $property] = departuresSetup();
+    [$user, $property] = reportSetup();
     departingUnit($property);
     departingUnit($property, '2026-10-20');
     $captured = new stdClass;
@@ -155,7 +140,7 @@ test('the PDF and the CSV export the departures', function () {
 });
 
 test('the split columns hold the room type, the room of the last night, the guest counts and the departure time', function () {
-    [, $property] = departuresSetup();
+    [, $property] = reportSetup();
     $unit = departingUnit($property, '2026-10-10', ['adults' => 2, 'children' => 3, 'departure_time' => '10:45:00']);
     $room = Room::factory()->for($property)->create(['room_type_id' => $unit->room_type_id, 'number' => '202']);
     UnitNight::factory()->create(['reservation_unit_id' => $unit->id, 'date' => '2026-10-09', 'room_id' => $room->id]);

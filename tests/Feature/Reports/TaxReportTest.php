@@ -1,34 +1,19 @@
 <?php
 
+require_once __DIR__.'/../Support/ReportSetup.php';
+
 use App\Enums\DefaultRoleEnum;
 use App\Enums\TransactionKind;
-use App\Models\BusinessDate;
 use App\Models\Folio;
 use App\Models\FolioLine;
 use App\Models\Property;
-use App\Models\PropertySetting;
 use App\Models\Tax;
-use App\Models\User;
 use Illuminate\Support\Facades\View;
 use Inertia\Testing\AssertableInertia as Assert;
 
 beforeEach(function () {
     $this->travelTo(now()->setDate(2026, 10, 10)->setTime(12, 0));
 });
-
-/**
- * @return array{0: User, 1: Property}
- */
-function taxSetup(DefaultRoleEnum $role = DefaultRoleEnum::Manager): array
-{
-    $user = User::factory()->withRole($role)->create();
-    $property = $user->property;
-    $property->forceFill(['status' => 'live'])->save();
-    PropertySetting::factory()->for($property)->create();
-    BusinessDate::factory()->create(['property_id' => $property->id, 'date' => '2026-10-10']);
-
-    return [$user, $property];
-}
 
 function taxUrl(Property $property, string $query = ''): string
 {
@@ -69,9 +54,9 @@ function taxData(Property $property): array
 }
 
 test('the page needs reports.view and is scoped to the property', function () {
-    [$front, $frontProperty] = taxSetup(DefaultRoleEnum::FrontDesk);
-    [$manager, $own] = taxSetup();
-    [, $other] = taxSetup();
+    [$front, $frontProperty] = reportSetup(DefaultRoleEnum::FrontDesk);
+    [$manager, $own] = reportSetup();
+    [, $other] = reportSetup();
     taxData($own);
     taxData($other);
 
@@ -88,7 +73,7 @@ test('the page needs reports.view and is scoped to the property', function () {
 });
 
 test('days list each tax with its tax lines only, reversals included', function () {
-    [$user, $property] = taxSetup();
+    [$user, $property] = reportSetup();
     ['sst' => $sst, 'tourism' => $tourism] = taxData($property);
 
     $this->actingAs($user)->get(taxUrl($property, '?from=2026-10-09&to=2026-10-10&sort=amount'))->assertInertia(fn (Assert $page) => $page
@@ -102,7 +87,7 @@ test('days list each tax with its tax lines only, reversals included', function 
 });
 
 test('a month groups its days by tax and keeps only the dates in the range', function () {
-    [$user, $property] = taxSetup();
+    [$user, $property] = reportSetup();
     ['sst' => $sst, 'tourism' => $tourism] = taxData($property);
 
     $this->actingAs($user)->get(taxUrl($property, '?from=2026-09-01&to=2026-10-31&group=month'))->assertInertia(fn (Assert $page) => $page
@@ -119,13 +104,13 @@ test('a month groups its days by tax and keeps only the dates in the range', fun
 });
 
 test('the group must be day or month', function () {
-    [$user, $property] = taxSetup();
+    [$user, $property] = reportSetup();
 
     $this->actingAs($user)->get(taxUrl($property, '?group=week'))->assertSessionHasErrors('group');
 });
 
 test('the PDF and CSV keep the group and total only the selected rows', function () {
-    [$user, $property] = taxSetup();
+    [$user, $property] = reportSetup();
     ['sst' => $sst] = taxData($property);
     $base = ['from' => '2026-09-01', 'to' => '2026-10-31', 'group' => 'month', 'rowKeys' => ["2026-09:{$sst->transaction_code_id}", "2026-10:{$sst->transaction_code_id}"]];
     $captured = new stdClass;

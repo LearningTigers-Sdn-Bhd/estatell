@@ -1,17 +1,17 @@
 <?php
 
+require_once __DIR__.'/../Support/ReportSetup.php';
+
 use App\Data\Reports\ReportFilters;
 use App\Enums\DefaultRoleEnum;
 use App\Enums\PaymentStatus;
 use App\Enums\TransactionKind;
 use App\Models\ArPayment;
-use App\Models\BusinessDate;
 use App\Models\Folio;
 use App\Models\FolioLine;
 use App\Models\Payment;
 use App\Models\PaymentMethod;
 use App\Models\Property;
-use App\Models\PropertySetting;
 use App\Models\User;
 use App\Services\Reports\PaymentsReport;
 use Illuminate\Support\Facades\DB;
@@ -21,20 +21,6 @@ use Inertia\Testing\AssertableInertia as Assert;
 beforeEach(function () {
     $this->travelTo(now()->setDate(2026, 10, 10)->setTime(12, 0));
 });
-
-/**
- * @return array{0: User, 1: Property}
- */
-function paymentsSetup(DefaultRoleEnum $role = DefaultRoleEnum::Manager): array
-{
-    $user = User::factory()->withRole($role)->create();
-    $property = $user->property;
-    $property->forceFill(['status' => 'live'])->save();
-    PropertySetting::factory()->for($property)->create();
-    BusinessDate::factory()->create(['property_id' => $property->id, 'date' => '2026-10-10']);
-
-    return [$user, $property];
-}
 
 function paymentsUrl(Property $property, string $query = ''): string
 {
@@ -96,9 +82,9 @@ function paymentsData(Property $property): array
 }
 
 test('the page needs reports.view and is scoped to the property', function () {
-    [$front, $frontProperty] = paymentsSetup(DefaultRoleEnum::FrontDesk);
-    [$manager, $own] = paymentsSetup();
-    [, $other] = paymentsSetup();
+    [$front, $frontProperty] = reportSetup(DefaultRoleEnum::FrontDesk);
+    [$manager, $own] = reportSetup();
+    [, $other] = reportSetup();
     paymentsData($own);
     paymentsData($other);
 
@@ -113,7 +99,7 @@ test('the page needs reports.view and is scoped to the property', function () {
 });
 
 test('rows use the business date, signed amounts, the city ledger and a Voided status', function () {
-    [$user, $property] = paymentsSetup();
+    [$user, $property] = reportSetup();
     $data = paymentsData($property);
     $rows = $data['rows'];
 
@@ -130,7 +116,7 @@ test('rows use the business date, signed amounts, the city ledger and a Voided s
 });
 
 test('only Completed payments count in the totals, and a refund subtracts', function () {
-    [$user, $property] = paymentsSetup();
+    [$user, $property] = reportSetup();
     paymentsData($property);
 
     $this->actingAs($user)->get(paymentsUrl($property, '?from=2026-10-08&to=2026-10-10'))->assertInertia(fn (Assert $page) => $page
@@ -142,7 +128,7 @@ test('only Completed payments count in the totals, and a refund subtracts', func
 });
 
 test('the totals for each method count only Completed rows', function () {
-    [$user, $property] = paymentsSetup();
+    [$user, $property] = reportSetup();
     paymentsData($property);
 
     $this->actingAs($user)->get(paymentsUrl($property, '?from=2026-10-08&to=2026-10-10'))->assertInertia(fn (Assert $page) => $page
@@ -154,7 +140,7 @@ test('the totals for each method count only Completed rows', function () {
 });
 
 test('the payer is the reservation number or the company, and the staff and reference show', function () {
-    [$user, $property] = paymentsSetup();
+    [$user, $property] = reportSetup();
     $data = paymentsData($property);
     $paid = $data['rows']['paid'];
     $paid->load('folio.reservation', 'receiver');
@@ -173,7 +159,7 @@ test('the payer is the reservation number or the company, and the staff and refe
 });
 
 test('the PDF of selected rows has its own totals and the totals for each method', function () {
-    [$user, $property] = paymentsSetup();
+    [$user, $property] = reportSetup();
     $rows = paymentsData($property)['rows'];
     $captured = new stdClass;
     View::composer('pdf.report', function ($view) use ($captured): void {
@@ -193,7 +179,7 @@ test('the PDF of selected rows has its own totals and the totals for each method
 });
 
 test('the spreadsheet of selected rows has the total row and no summary table', function () {
-    [$user, $property] = paymentsSetup();
+    [$user, $property] = reportSetup();
     $rows = paymentsData($property)['rows'];
 
     $response = $this->actingAs($user)->post("/p/{$property->code}/reports/payments/spreadsheet", [
@@ -212,7 +198,7 @@ test('the spreadsheet of selected rows has the total row and no summary table', 
 });
 
 test('the sidebar lists the finance reports under the Finance category', function () {
-    [$user, $property] = paymentsSetup();
+    [$user, $property] = reportSetup();
 
     $this->actingAs($user)->get(paymentsUrl($property))->assertInertia(fn (Assert $page) => $page
         ->where('navigation.contexts.2.groups', fn ($groups) => collect(collect($groups)->firstWhere('label', 'Finance')['items'])->pluck('title')->all() === ['Payments', 'Folio ledger', 'Outstanding balance', 'Deposit liability']));
@@ -245,7 +231,7 @@ function cashUpData(Property $property): array
 }
 
 test('the cash-up has In, Out and Net for each staff member and method, with subtotals and a grand total', function () {
-    [$user, $property] = paymentsSetup();
+    [$user, $property] = reportSetup();
     cashUpData($property);
 
     $this->actingAs($user)->get(paymentsUrl($property, '?from=2026-10-08&to=2026-10-10&group=staff'))->assertInertia(fn (Assert $page) => $page
@@ -265,7 +251,7 @@ test('the cash-up has In, Out and Net for each staff member and method, with sub
 });
 
 test('the Staff group sorts by staff and keeps date order inside each staff member', function () {
-    [$user, $property] = paymentsSetup();
+    [$user, $property] = reportSetup();
     $rows = cashUpData($property)['rows'];
 
     $this->actingAs($user)->get(paymentsUrl($property, '?from=2026-10-08&to=2026-10-10&group=staff'))->assertInertia(fn (Assert $page) => $page
@@ -283,7 +269,7 @@ test('the Staff group sorts by staff and keeps date order inside each staff memb
 });
 
 test('an invalid group is refused, and Revenue does not take the staff group', function () {
-    [$user, $property] = paymentsSetup();
+    [$user, $property] = reportSetup();
 
     $this->actingAs($user)->get(paymentsUrl($property, '?group=month'))->assertSessionHasErrors('group');
     $this->actingAs($user)->get("/p/{$property->code}/reports/revenue?group=staff")->assertSessionHasErrors('group');
@@ -291,7 +277,7 @@ test('an invalid group is refused, and Revenue does not take the staff group', f
 });
 
 test('the Staff filter narrows the rows, the totals and both summaries', function () {
-    [$user, $property] = paymentsSetup();
+    [$user, $property] = reportSetup();
     $data = cashUpData($property);
     $query = '?from=2026-10-08&to=2026-10-10&staff='.$data['alice']->id;
 
@@ -308,8 +294,8 @@ test('the Staff filter narrows the rows, the totals and both summaries', functio
 });
 
 test('the Staff filter refuses a user of another property and lists the staff who took payments in the range', function () {
-    [$user, $property] = paymentsSetup();
-    [, $other] = paymentsSetup();
+    [$user, $property] = reportSetup();
+    [, $other] = reportSetup();
     $data = cashUpData($property);
     $foreign = User::factory()->create(['property_id' => $other->id]);
     User::factory()->create(['property_id' => $property->id, 'name' => 'Idle Staff']);
@@ -329,7 +315,7 @@ test('the Staff filter refuses a user of another property and lists the staff wh
 });
 
 test('Refunds only shows the refunds, leaves out city ledger rows and shows the original receipt', function () {
-    [$user, $property] = paymentsSetup();
+    [$user, $property] = reportSetup();
     $rows = cashUpData($property)['rows'];
 
     $this->actingAs($user)->get(paymentsUrl($property, '?from=2026-10-08&to=2026-10-10&refunds=1'))->assertInertia(fn (Assert $page) => $page
@@ -345,7 +331,7 @@ test('Refunds only shows the refunds, leaves out city ledger rows and shows the 
 });
 
 test('refund_of is hidden by default and loads without extra queries per row', function () {
-    [$user, $property] = paymentsSetup();
+    [$user, $property] = reportSetup();
     cashUpData($property);
 
     $this->actingAs($user)->get(paymentsUrl($property))->assertInertia(fn (Assert $page) => $page
@@ -368,7 +354,7 @@ test('refund_of is hidden by default and loads without extra queries per row', f
 });
 
 test('the exports and the layout preview carry staff, refunds and group', function () {
-    [$user, $property] = paymentsSetup();
+    [$user, $property] = reportSetup();
     $data = cashUpData($property);
     $captured = new stdClass;
     View::composer('pdf.report', function ($view) use ($captured): void {
@@ -412,7 +398,7 @@ test('the exports and the layout preview carry staff, refunds and group', functi
 });
 
 test('the PDF prints the cash-up table with its subtotal rows in bold', function () {
-    [$user, $property] = paymentsSetup();
+    [$user, $property] = reportSetup();
     cashUpData($property);
     $captured = new stdClass;
     View::composer('pdf.report', function ($view) use ($captured): void {
