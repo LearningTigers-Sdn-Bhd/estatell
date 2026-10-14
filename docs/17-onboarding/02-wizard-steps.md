@@ -21,12 +21,12 @@ The first release has only the Basics page. It uses the current staff layout. Ba
 | #   | Phase      | Section                                                                                                                                                                                                                                                                                                   | Required | Locked until              |
 | --- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ------------------------- |
 | 1   | Property   | Basics: property type cards, name, country (prefilled Malaysia), address. Another country shows currency and time zone. Editable until another section starts, then **Change country** (room types and rooms kept). See [Changing country](../02-property/03-seed-property-defaults.md#changing-country). | Yes      | –                         |
-| 2   | Rooms      | Room types: suggested room types, beds for dorms                                                                                                                                                                                                                                                          | Yes      | Basics                    |
-| 3   |            | Rooms: `GenerateRooms` number patterns                                                                                                                                                                                                                                                                    | Yes      | Room types                |
+| 2   | Rooms      | Room types: an editable table, sold by room only. See [Room types table](#room-types-table).                                                                                                                                                                                                              | Yes      | Basics                    |
+| 3   |            | Rooms: `GenerateRooms` number patterns, no beds                                                                                                                                                                                                                                                           | Yes      | Room types                |
 | 4   | Finance    | Taxes: Malaysia confirms the seeded presets and enters registration numbers. Other countries add their own taxes or tick **We don't charge tax**.                                                                                                                                                         | Yes      | Basics                    |
 | 5   |            | Room revenue: taxes on the room charge                                                                                                                                                                                                                                                                    | Yes      | Taxes                     |
 | 6   |            | Payment methods: toggle the seeded presets                                                                                                                                                                                                                                                                | Yes      | Basics                    |
-| 7   | Prices     | Basic rate: weekday and weekend price per room type. `SetBasePrices` fills 365 days of rates. It does not create a plan.                                                                                                                                                                                  | Yes      | Room types + Room revenue |
+| 7   | Prices     | Basic rate: weekday and weekend price per room-sold room type. `SetBasePrices` fills 365 days of rates. It does not create a plan.                                                                                                                                                                        | Yes      | Room types + Room revenue |
 | 8   |            | Charge items                                                                                                                                                                                                                                                                                              | No       | Taxes                     |
 | 9   |            | Discounts                                                                                                                                                                                                                                                                                                 | No       | Basic rate                |
 | 10  | Check-in   | Check-in essentials: check-in and check-out times, ID requirement, terms preset preview                                                                                                                                                                                                                   | Yes      | Basics                    |
@@ -53,6 +53,31 @@ The first release has only the Basics page. It uses the current staff layout. Ba
 - **Next** follows the numbers. The phase bar lets the owner jump to any unlocked section.
 - Optional sections show **Skip** in the footer.
 - Not in onboarding: photos, packages and meals, companies and city ledger, channel manager. They are in the Recommended checklist after go-live.
+
+## Room types table
+
+```
+ What kinds of rooms do you sell?
+ ┌────────────────────────────────┬─────────────┬──────────────┬────┐
+ │ Name                           │ Max adults  │ Max children │    │
+ ├────────────────────────────────┼─────────────┼──────────────┼────┤
+ │ [ Standard Double            ] │ [ 2 ]       │ [ 1 ]        │ 🗑 │
+ │ [                            ] │ [ 2 ]       │ [ 0 ]        │ 🗑 │
+ ├────────────────────────────────┴─────────────┴──────────────┴────┤
+ │ [+ Add room type]                                                │
+ └──────────────────────────────────────────────────────────────────┘
+```
+
+- Follows the settings age groups form: shadcn `table`, a remove button per row, **Add room type** in the `TableFooter`.
+- With no room types, the table starts with one empty row. Saved room types load as rows.
+- The last row cannot be removed: its remove button is disabled (`focusableWhenDisabled`, tooltip "At least one room type").
+- New rows default to 2 adults and 0 children.
+- Columns: name, max adults, max children. No sell unit: onboarding always creates `SellUnit::Room`. `base_occupancy` defaults to max adults (to verify against pricing). Description, smoking, pets and terms stay in settings.
+- One submit saves the table in one transaction: new rows create, changed rows update, removed rows delete, through the room type Actions used by settings. Errors show per row (`rows.{n}.name`). A small onboarding request takes `rows` and reuses the `RoomTypeRequest` rules per row.
+- Removing a saved room type that has rooms follows the settings rule (to verify).
+- At phone width each row stacks into a card.
+- Dorm beds (`SellUnit::Bed`) are not offered. A hostel sees "Selling dorm beds? Add them in Settings → Room types after setup." A bed-sold type made in settings shows read-only with "Sold by bed. Edit in settings." and counts toward Done. Basic rate leaves it out ("Price beds in Rates").
+- Check: Done with at least one room type.
 
 ## Section states
 
