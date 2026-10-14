@@ -29,7 +29,7 @@ The first release has only the Basics page. It uses the current staff layout. Ba
 | 7   | Prices     | Basic rate: weekday and weekend price per room-sold room type, priced by room or by guest, plus optional more rates. See [Basic rate table](#basic-rate-table).                                                                                                                                           | Yes      | Room types + Taxes |
 | 8   |            | Charge items: starter items and extras with price, unit and taxes. See [Charge items table](#charge-items-table).                                                                                                                                                                                         | No       | Taxes              |
 | 9   |            | Discounts: the starter discount and more, with type, value and what they apply to. See [Discounts table](#discounts-table).                                                                                                                                                                               | No       | Basics             |
-| 10  | Check-in   | Check-in essentials: check-in and check-out times, ID requirement, terms preset preview                                                                                                                                                                                                                   | Yes      | Basics             |
+| 10  | Check-in   | Check-in essentials: times, registration card, security deposit and house terms. See [Check-in essentials form](#check-in-essentials-form).                                                                                                                                                               | Yes      | Basics             |
 | 11  | Team       | Roles and staff: invite staff and choose roles                                                                                                                                                                                                                                                            | No       | Basics             |
 | 12  | Test drive | Practice mode. See [Test drive](06-test-drive.md).                                                                                                                                                                                                                                                        | No       | All required Done  |
 | 13  | Review     | Readiness list and go live. See [Go live](03-go-live.md).                                                                                                                                                                                                                                                 | –        | All required Done  |
@@ -389,6 +389,57 @@ A rate plan has one pricing basis, so the rows map to one plan per basis used:
 - One submit, one transaction, through the discount Actions used by settings.
 - At phone width each row stacks into a card with ⌄ More options.
 - Check: optional, never blocks. Done when at least one discount is active, or Skipped. The starter is active, so this usually shows Done.
+
+## Check-in essentials form
+
+```
+ Times
+   Check-in from   [ 15:00 ▾ ]        Check-out by   [ 11:00 ▾ ]
+
+ Registration card
+   Who fills in a card    [● Main guest only | Every adult ]
+   [x] Guests must sign the card before check-in
+   Keep ID photos for  ⓘ  [ 365 ] days      (empty = keep them)
+   Collect a security deposit   [● on ]
+   Amount                       RM [ 100.00 ]
+
+ House terms              Template [ Homestay ▾ ]   Language [ English ▾ ]
+ ┌──────────────────────────────────────┬───────────────────────────┐
+ │ Editor (after Edit terms)            │ Preview                   │
+ │ 2. A security deposit of             │ 2. A security deposit of  │
+ │    {security_deposit} is collected…  │    RM 100.00 is collected…│
+ └──────────────────────────────────────┴───────────────────────────┘
+ Templates are a starting point, not legal advice.
+```
+
+Not a table: three groups on one page.
+
+**Times**
+
+- Check-in and check-out time menus in 30-minute steps (`H:i`). They save through the property settings Action, general section, with only these two fields. Arrival grace and auto-assign rooms stay in settings.
+
+**Registration card**
+
+- **Who fills in a card**: a `toggle-group` for `registration_card_scope` (Main guest only = PrimaryOnly, Every adult = EveryAdult).
+- **Guests must sign the card before check-in**: `card_required_for_check_in`.
+- **Keep ID photos for** {n} days: `id_document_retention_days`, 1 to 3650, empty keeps them. An ⓘ button opens a Popover (works on tap and keyboard): "Photos of a guest's IC or passport, taken at check-in. After this many days they are deleted automatically. The ID number stays on the guest record, so you can still search for it. A shorter time keeps less personal data." This matches `PurgeExpiredIdentityScans`, which deletes scan files only.
+- **Collect a security deposit**: a switch, not stored. It is on when `security_deposit_amount` is more than 0. On shows **Amount** (required, more than 0, currency decimals, prefilled with the saved amount). Off hides it and saves 0, so no deposit is asked at check-in. Off then on again shows the last amount typed on the page.
+- When the switch is off and the terms text uses `{security_deposit}`, a hint says: "Your house terms mention a deposit. Edit them if you don't collect one."
+
+**House terms**
+
+- The property's default terms document (seeded by `SeedRegistrationTerms` from the property type's preset), in the selected language. Language lists the property locales (English and Bahasa Malaysia for Malaysia, English elsewhere).
+- Default view: a read-only preview with placeholders filled by the server, and **Edit terms**.
+- **Edit terms** opens the settings editor and preview (markdown editor and the in-app renderer, no new package) side by side. At phone width they become **Edit** and **Preview** tabs. **Discard changes** restores the published text. Empty text is refused: "House terms can't be empty."
+- **Save & continue** publishes a new version (`PublishRegistrationTerms`) only for languages whose text changed. With only one language edited, a line says: "Bahasa Malaysia still uses the template text."
+- **Template**: choosing another preset opens an AlertDialog ("This replaces your house terms with the Resort template. Your edits stay in version history.") and saves it with `ApplyTermsPreset` as a new version when confirmed.
+- Version history, extra documents and card fields stay in settings: "After you go live, you can see past versions and add terms per room type in Settings, under Registration card."
+- Needs `registration-card.manage-terms` (the Owner has it).
+
+**Save and check**
+
+- One submit, one transaction: one onboarding request validates both groups and calls the property settings and registration card settings Actions, then publishes changed terms.
+- Check: required. Done when check-in and check-out times are set and a published terms document exists. Both are seeded, so it shows Done before the owner opens it. **Next** still visits it, and Review lists "Check-in 15:00 · Check-out 11:00 · Deposit RM 100.00".
 
 ## Section states
 
