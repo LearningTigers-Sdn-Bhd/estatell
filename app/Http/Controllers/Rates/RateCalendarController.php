@@ -87,7 +87,7 @@ class RateCalendarController extends Controller
     {
         $from = $request->string('from')->toString();
         $to = $request->string('to')->toString();
-        $written = $saveRates($request->user(), $ratePlan, $from, $to, $request->roomTypes(), $request->restrictions());
+        $written = $saveRates($request->user(), $ratePlan, $from, $to, $request->roomTypes(), $request->toRestrictionsData());
 
         if ($written === false) {
             Inertia::flash('toast', ['type' => 'error', 'message' => __('The rate plan or room types changed. Reload the page and try again.')]);
@@ -107,7 +107,7 @@ class RateCalendarController extends Controller
      */
     public function update(SaveRatesRequest $request, Property $property, RatePlan $ratePlan, SaveRates $saveRates): RedirectResponse
     {
-        $written = $saveRates($request->user(), $ratePlan, $request->string('from')->toString(), $request->string('to')->toString(), $request->roomTypes(), $request->restrictions());
+        $written = $saveRates($request->user(), $ratePlan, $request->string('from')->toString(), $request->string('to')->toString(), $request->roomTypes(), $request->toRestrictionsData());
 
         Inertia::flash('toast', $written === false
             ? ['type' => 'error', 'message' => __('The rate plan or room types changed. Reload the page and try again.')]

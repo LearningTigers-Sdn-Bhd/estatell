@@ -7,6 +7,7 @@ use App\Actions\Rates\RestoreRatePlan;
 use App\Actions\Rates\SaveRatePlanDerivation;
 use App\Actions\Rates\SaveRates;
 use App\Actions\Rates\SyncRatePlanRoomTypes;
+use App\Data\Rates\RateRestrictionsData;
 use App\Enums\PricingBasis;
 use App\Enums\RateDerivation;
 use App\Enums\StayDiscountType;
@@ -275,7 +276,7 @@ test('a derived plan takes restrictions but no prices', function () {
     $days = array_fill(1, 7, ['amount' => '100', 'occupancy' => []]);
 
     expect(app(SaveRates::class)($owner, $child, '2026-11-02', '2026-11-03', [['room_type_id' => $roomType->id, 'days' => $days]]))->toBeFalse()
-        ->and(app(SaveRates::class)($owner, $child, '2026-11-02', '2026-11-03', [['room_type_id' => $roomType->id, 'days' => []]], ['min_stay' => 2]))->toBe(2)
+        ->and(app(SaveRates::class)($owner, $child, '2026-11-02', '2026-11-03', [['room_type_id' => $roomType->id, 'days' => []]], new RateRestrictionsData(minStay: 2)))->toBe(2)
         ->and(Rate::query()->where('rate_plan_id', $child->id)->whereNotNull('amount')->count())->toBe(0)
         ->and(app(ExtendRates::class)($owner, $child, Date::parse('2026-11-01')))->toBeFalse();
 });

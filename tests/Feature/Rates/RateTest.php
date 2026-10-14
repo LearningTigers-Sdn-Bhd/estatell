@@ -2,6 +2,7 @@
 
 use App\Actions\Rates\ExtendRates;
 use App\Actions\Rates\SaveRates;
+use App\Data\Rates\RateRestrictionsData;
 use App\Enums\DefaultRoleEnum;
 use App\Enums\PermissionEnum;
 use App\Models\Property;
@@ -134,6 +135,26 @@ test('occupancy prices are replaced with the ones sent', function () {
     expect($rate->occupancyPrices()->get()->map(fn ($price) => [$price->adults, $price->amount])->all())->toBe([[2, '200.50']]);
 });
 
+test('a restriction that is not sent keeps its column, and a null one clears it', function () {
+    [$owner, , $plan, $roomType] = ratesSetup();
+    Rate::factory()->create(['room_type_id' => $roomType->id, 'rate_plan_id' => $plan->id, 'date' => '2026-10-05', 'min_stay' => 3, 'max_stay' => 5]);
+    $roomTypes = [['room_type_id' => $roomType->id, 'days' => []]];
+
+    expect(app(SaveRates::class)($owner, $plan, '2026-10-05', '2026-10-05', $roomTypes, new RateRestrictionsData(stopSell: true)))->toBe(1);
+
+    expect(Rate::query()->sole())
+        ->stop_sell->toBeTrue()
+        ->min_stay->toBe(3)
+        ->max_stay->toBe(5);
+
+    app(SaveRates::class)($owner, $plan, '2026-10-05', '2026-10-05', $roomTypes, new RateRestrictionsData(minStay: null));
+
+    expect(Rate::query()->sole())
+        ->min_stay->toBeNull()
+        ->max_stay->toBe(5)
+        ->stop_sell->toBeTrue();
+});
+
 test('restrictions apply to the whole range and create rows without a price', function () {
     [$owner, $property, $plan, $roomType] = ratesSetup();
     $input = pricingInput($roomType, ['restrictions' => ['min_stay' => 2, 'stop_sell' => true]]);
@@ -173,7 +194,7 @@ test('the action refuses an archived plan and a merged min stay above the max st
     $roomTypes = [['room_type_id' => $roomType->id, 'days' => $days]];
     Rate::factory()->create(['room_type_id' => $roomType->id, 'rate_plan_id' => $plan->id, 'date' => '2026-10-05', 'max_stay' => 2]);
 
-    expect(app(SaveRates::class)($owner, $plan, '2026-10-05', '2026-10-05', $roomTypes, ['min_stay' => 4]))->toBeFalse()
+    expect(app(SaveRates::class)($owner, $plan, '2026-10-05', '2026-10-05', $roomTypes, new RateRestrictionsData(minStay: 4)))->toBeFalse()
         ->and(Rate::query()->sole()->min_stay)->toBeNull();
 
     $plan->update(['archived_at' => now()]);

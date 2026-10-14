@@ -400,7 +400,7 @@ class RatePlanController extends Controller
     {
         abort_if($ratePlan->pricing_basis === PricingBasis::Package, 404);
 
-        $written = $saveRates($request->user(), $ratePlan, $request->string('from')->toString(), $request->string('to')->toString(), $request->roomTypes(), $request->restrictions());
+        $written = $saveRates($request->user(), $ratePlan, $request->string('from')->toString(), $request->string('to')->toString(), $request->roomTypes(), $request->toRestrictionsData());
 
         Inertia::flash('toast', $written === false
             ? ['type' => 'error', 'message' => __('The rate plan or room types changed. Reload the page and try again.')]

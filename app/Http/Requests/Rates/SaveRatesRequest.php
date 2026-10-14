@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Rates;
 
+use App\Data\Rates\RateRestrictionsData;
 use App\Enums\PricingBasis;
 use App\Models\RatePlan;
 use App\Models\RoomType;
@@ -9,12 +10,11 @@ use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Date;
+use Spatie\LaravelData\Optional;
 
 class SaveRatesRequest extends FormRequest
 {
     public const MAX_DAYS = 731;
-
-    private const RESTRICTION_KEYS = ['min_stay', 'max_stay', 'closed_to_arrival', 'closed_to_departure', 'stop_sell'];
 
     /**
      * The route middleware authorizes this request: `can:settings.manage` on the plan editor and `can:rates.manage`
@@ -176,25 +176,26 @@ class SaveRatesRequest extends FormRequest
     }
 
     /**
-     * Only the restriction columns the form sent.
-     *
-     * @return array{min_stay?: int|null, max_stay?: int|null, closed_to_arrival?: bool, closed_to_departure?: bool, stop_sell?: bool}
+     * Only the restriction columns the form sent. A column that was not sent stays Optional, so it is left alone.
      */
-    public function restrictions(): array
+    public function toRestrictionsData(): RateRestrictionsData
     {
-        $restrictions = [];
+        return new RateRestrictionsData(
+            minStay: $this->has('restrictions.min_stay') ? $this->nullableInt('restrictions.min_stay') : new Optional,
+            maxStay: $this->has('restrictions.max_stay') ? $this->nullableInt('restrictions.max_stay') : new Optional,
+            closedToArrival: $this->has('restrictions.closed_to_arrival') ? (bool) $this->input('restrictions.closed_to_arrival') : new Optional,
+            closedToDeparture: $this->has('restrictions.closed_to_departure') ? (bool) $this->input('restrictions.closed_to_departure') : new Optional,
+            stopSell: $this->has('restrictions.stop_sell') ? (bool) $this->input('restrictions.stop_sell') : new Optional,
+        );
+    }
 
-        foreach (self::RESTRICTION_KEYS as $key) {
-            if (! $this->has('restrictions.'.$key)) {
-                continue;
-            }
+    /**
+     * A blank or null value is null, which clears the column. Anything else is read as a whole number.
+     */
+    private function nullableInt(string $key): ?int
+    {
+        $value = $this->input($key);
 
-            $value = $this->input('restrictions.'.$key);
-            $restrictions[$key] = in_array($key, ['min_stay', 'max_stay'], true)
-                ? ($value === null || $value === '' ? null : (int) $value)
-                : (bool) $value;
-        }
-
-        return $restrictions;
+        return $value === null || $value === '' ? null : (int) $value;
     }
 }

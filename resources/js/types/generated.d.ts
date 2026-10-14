@@ -1356,6 +1356,13 @@ maxAdults: number,
 pricedUntil: string | null,
 ending: boolean,
 };
+export type RateRestrictionsData = {
+minStay?: number | null,
+maxStay?: number | null,
+closedToArrival?: boolean,
+closedToDeparture?: boolean,
+stopSell?: boolean,
+};
 export type StayDiscountPreviewByNightData = {
 nights: App.Data.Rates.StayDiscountPreviewNightData[],
 total: string,

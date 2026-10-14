@@ -2,6 +2,7 @@
 
 namespace App\Actions\Rates;
 
+use App\Data\Rates\RateRestrictionsData;
 use App\Enums\PricingBasis;
 use App\Models\Rate;
 use App\Models\RatePlan;
@@ -27,11 +28,13 @@ class SaveRates
      * an amount on a package plan or a derived plan, hour prices on any other plan, an amount on a Day use plan, or a range or restriction set that would leave a min stay above a max stay.
      *
      * @param  list<array{room_type_id: int, days: array<int, array{amount: string|null, hours?: list<array{hours: int, amount: string}>, occupancy: list<array{adults: int, amount: string}>}>}>  $roomTypes
-     * @param  array{min_stay?: int|null, max_stay?: int|null, closed_to_arrival?: bool, closed_to_departure?: bool, stop_sell?: bool}  $restrictions
+     * @param  RateRestrictionsData  $restrictions  Only the columns sent on it are changed.
      */
-    public function __invoke(User $actor, RatePlan $ratePlan, string $from, string $to, array $roomTypes, array $restrictions = []): int|false
+    public function __invoke(User $actor, RatePlan $ratePlan, string $from, string $to, array $roomTypes, RateRestrictionsData $restrictions = new RateRestrictionsData): int|false
     {
-        return DB::transaction(function () use ($actor, $ratePlan, $from, $to, $roomTypes, $restrictions): int|false {
+        $columns = $restrictions->columns();
+
+        return DB::transaction(function () use ($actor, $ratePlan, $from, $to, $roomTypes, $columns): int|false {
             $ratePlan = RatePlan::query()->lockForUpdate()->findOrFail($ratePlan->id);
             $first = Date::parse($from)->startOfDay();
             $last = Date::parse($to)->startOfDay();
@@ -69,7 +72,7 @@ class SaveRates
                         return false;
                     }
 
-                    if ($amount === null && $dayHours === [] && $restrictions === []) {
+                    if ($amount === null && $dayHours === [] && $columns === []) {
                         continue;
                     }
 
@@ -90,7 +93,7 @@ class SaveRates
                         'closed_to_departure' => $current->closed_to_departure ?? false,
                         'stop_sell' => $current->stop_sell ?? false,
                     ];
-                    $row = array_merge($row, $restrictions);
+                    $row = array_merge($row, $columns);
 
                     if ($row['min_stay'] !== null && $row['max_stay'] !== null && $row['max_stay'] < $row['min_stay']) {
                         return false;
