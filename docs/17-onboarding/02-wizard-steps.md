@@ -68,6 +68,19 @@ Room revenue is not a separate section. Its taxes are the **Applies to rooms** c
  City            [ Kota Kinabalu ]   State [ Sabah      ▾ ]
  Postcode        [ 88000 ]
  ┌ ℹ Malaysia: MYR · Asia/Kuala_Lumpur · SST, tourism tax and local payment presets ┐
+
+ Business details (optional)  ⓘ
+   Registered business name   [ Seaview Hospitality Sdn Bhd ]
+   SSM registration no.       [ 202301012345               ]
+   TIN (LHDN)                 [ C1234567890                ]
+   Licences
+   ┌──────────────────────────────────────┬──────────────────────┬──────────────┬────┐
+   │ Issued by                            │ Licence no.          │ Expires      │    │
+   ├──────────────────────────────────────┼──────────────────────┼──────────────┼────┤
+   │[ Dewan Bandaraya Kota Kinabalu     ] │[ DBKK/LP/2025/01234] │[ 31/12/2026 ]│ 🗑 │
+   ├──────────────────────────────────────┴──────────────────────┴──────────────┴────┤
+   │ [+ Add licence]                                                                 │
+   └─────────────────────────────────────────────────────────────────────────────────┘
 ```
 
 Another country:
@@ -98,6 +111,13 @@ Setup started (another section is no longer Not started):
 | Time zone                                  | Malaysia: not shown, `Asia/Kuala_Lumpur`. Others: required, one of the country's zones (`DateTimeZone::PER_COUNTRY`), prefilled when there is one                      |
 
 - The info or warning box under the form follows the country profile.
+
+**Business details (optional)**
+
+- **Registered business name** (`properties.legal_name`), the registration number and TIN (`registration_number`, `tin`), labelled by the country profile ("SSM registration no." and "TIN (LHDN)" for Malaysia, "Business registration no." and "Tax ID (TIN)" otherwise). They save with the Profile tab rules.
+- **Licences**: a table of `property_licences` rows (issued by, licence no., optional expiry), for example the local council licence from Dewan Bandaraya Kota Kinabalu or a MOTAC registration. Issuer is free text with the placeholder "e.g. Dewan Bandaraya Kota Kinabalu". Licence no. is required when the row has an issuer. No starting rows: "No licences yet" with **Add licence** in the `TableFooter`. 🗑 deletes a row.
+- ⓘ opens a Popover: "These can appear on invoices, receipts and the registration card. After you go live, you can choose which ones to show in Settings, under Printing."
+- All optional. They never block Basics.
 - Admin- and partner-created properties arrive with type and country filled ([Account creation](01-account-creation.md)). The owner can still change them here.
 
 **Changing country**

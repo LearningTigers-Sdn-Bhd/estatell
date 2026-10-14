@@ -23,6 +23,7 @@ A strategy class per country replaces the `$countryCode !== 'MY'` checks in the 
 | Taxes                                                                | SST and Tourism tax presets        | None                                                                                                           |
 | Payment methods                                                      | The six system methods             | Cash, Card, Bank transfer and City ledger (off)                                                                |
 | Transaction codes, charge items, discounts, age groups, meal periods | Malaysian presets                  | Neutral presets: same structure, no Malaysia-specific names                                                    |
+| Business number labels                                               | SSM registration no., TIN (LHDN)   | Business registration no., Tax ID (TIN)                                                                        |
 | Identity document types                                              | MyKad and others                   | Passport and national ID                                                                                       |
 | Terms                                                                | English and Bahasa Malaysia        | English                                                                                                        |
 

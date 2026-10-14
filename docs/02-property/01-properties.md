@@ -9,13 +9,19 @@ A property is the tenant. Every domain record belongs to exactly one property. w
 ```
 properties    id, code (varchar 12, unique), partner_id (nullable), document_prefix (unique, nullable), name, type (PropertyType, nullable), status (PropertyStatus),
               address_line1, address_line2, city, state_code, postal_code, country_code (char 2, nullable),
-              contact_email, contact_phone, registration_number, tin,
+              contact_email, contact_phone, legal_name (nullable), registration_number, tin,
               onboarding_started_at, went_live_at, suspended_at, suspended_from_status, timestamps
+property_licences  id, property_id, issuer, number, expires_on (nullable), show_on_documents (default false),
+              position, timestamps
+              CHECK issuer and number are not blank
 ```
 
 - `type` and `country_code` are empty after self sign-up. The Basics wizard step fills them (see [Wizard steps](../17-onboarding/02-wizard-steps.md)).
 - `partner_id` is the partner who brought the property (restrict on delete). NULL means a direct customer. Only admins change it (see [Partners](../17-onboarding/05-partners.md)).
 - CHECK constraints keep `type` and `status` to enum values.
+- `legal_name` is the registered business name (for example "Seaview Hospitality Sdn Bhd") when it differs from the trading `name`. Empty text is stored as null.
+- `property_licences` holds licences such as a local council business licence (for example Dewan Bandaraya Kota Kinabalu), MOTAC registration or a fire certificate. `issuer` and `number` are free text (at most 150 and 50 characters). `expires_on` is optional and can drive an expiry reminder later. Rows are ordered by `position` and can be deleted.
+- The labels of `registration_number` and `tin` come from the [country profile](03-seed-property-defaults.md#country-profiles): "SSM registration no." and "TIN (LHDN)" for Malaysia, "Business registration no." and "Tax ID (TIN)" otherwise.
 
 ## Property code
 
@@ -62,13 +68,15 @@ The property's identity, edited on the Details page, **Profile** tab (`/p/{code}
 │ Address     [ Lot 12, Jalan Pantai… ] [ line 2 ]     │
 │             [ Postcode ] [ City ] [ State ▾ ]        │
 │ Phone       [ +60 88 123 456 ]  Email [ stay@… ]     │
-│ Business registration no. [ 202301012345 ]           │
-│ TIN         [ C1234567890 ]                          │
+│ Registered name [ Sandbay Resort Sdn Bhd ]           │
+│ SSM registration no. [ 202301012345 ]                │
+│ TIN (LHDN)  [ C1234567890 ]                          │
+│ Licences    (table: issued by, number, expires)      │
 │                                          [ Save ]    │
 └──────────────────────────────────────────────────────┘
 ```
 
-- Fields: name, address, contact phone and email, registration number and TIN. The name and address use the Basics rules (`SavePropertyBasicsRequest::identityRules()`).
+- Fields: name, address, contact phone and email, registered name, registration number, TIN and licences. The name and address use the Basics rules (`SavePropertyBasicsRequest::identityRules()`).
 - Type and country are shown and locked. They seeded the currency, taxes and presets. Before Basics is complete, the tab links to Basics like the other tabs.
 - `UpdatePropertyProfile` (`app/Actions/Property/`) saves the fields and logs `property.updated` with the changed fields. A save that changes nothing is not logged. It does not change `document_prefix`.
 - Printed documents read these values through [Printing settings](05-printing-settings.md). Empty values show "Not set" there with a link back to this tab.
