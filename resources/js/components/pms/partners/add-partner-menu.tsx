@@ -1,4 +1,5 @@
-import { ChevronDown, KeyRound, Mail } from 'lucide-react';
+import { Link } from '@inertiajs/react';
+import { ChevronDown, KeyRound, ListPlus, Mail } from 'lucide-react';
 import { useState } from 'react';
 import { AddPartnerDialog } from '@/components/pms/partners/add-partner-dialog';
 import { InvitePartnerDialog } from '@/components/pms/partners/invite-partner-dialog';
@@ -9,6 +10,7 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { create as bulkCreate } from '@/routes/admin/partners/bulk';
 
 /**
  * The Add partner menu on the Partners page. `onAdded` gets the new login's id after Add with temp password, so the
@@ -37,6 +39,10 @@ export function AddPartnerMenu({
                     <DropdownMenuItem onClick={() => setAdding(true)}>
                         <KeyRound />
                         Add with temp password
+                    </DropdownMenuItem>
+                    <DropdownMenuItem render={<Link href={bulkCreate()} />}>
+                        <ListPlus />
+                        Bulk add
                     </DropdownMenuItem>
                 </DropdownMenuContent>
             </DropdownMenu>
