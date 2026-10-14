@@ -101,11 +101,12 @@ class PropertyController extends Controller
      */
     private function renderTab(Property $property, string $tab, array $tabProps = []): Response
     {
-        $property->loadCount('users');
+        $property->loadCount('users')->load('partner');
 
         return Inertia::render('admin/properties/show', [
             'property' => AdminPropertyData::fromModel($property, app(PropertyOwners::class)->firstFor($property)),
             'tab' => $tab,
+            'partnerOptions' => $property->partner_id === null ? app(PartnerDirectory::class)->moveOptions() : [],
             ...$tabProps,
         ]);
     }

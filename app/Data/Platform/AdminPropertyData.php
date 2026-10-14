@@ -30,10 +30,12 @@ class AdminPropertyData extends Data
         public int $staffCount,
         public ?string $ownerName,
         public ?string $ownerEmail,
+        public ?int $partnerId,
+        public ?string $partnerName,
     ) {}
 
     /**
-     * Expects `users_count` from `loadCount('users')`.
+     * Expects `users_count` from `loadCount('users')`. Loads the partner for its name.
      */
     public static function fromModel(Property $property, ?User $owner): self
     {
@@ -58,6 +60,8 @@ class AdminPropertyData extends Data
             staffCount: (int) $property->getAttribute('users_count'),
             ownerName: $owner?->name,
             ownerEmail: $owner?->email,
+            partnerId: $property->partner_id,
+            partnerName: $property->partner?->name,
         );
     }
 }

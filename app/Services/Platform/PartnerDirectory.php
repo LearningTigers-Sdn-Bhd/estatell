@@ -67,4 +67,16 @@ class PartnerDirectory
                 ->all(),
         ];
     }
+
+    /**
+     * The Active partners a direct property can move to.
+     *
+     * @return list<array{value: string, label: string}>
+     */
+    public function moveOptions(): array
+    {
+        return Partner::query()->where('status', PartnerStatus::Active)->orderBy('name')->get(['id', 'name', 'code_prefix'])
+            ->map(fn (Partner $partner): array => ['value' => (string) $partner->id, 'label' => "{$partner->name} ({$partner->code_prefix})"])
+            ->all();
+    }
 }

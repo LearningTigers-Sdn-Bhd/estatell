@@ -103,7 +103,7 @@ class PartnerPropertyController extends Controller
      */
     private function renderTab(Property $property, string $tab, array $tabProps = []): Response
     {
-        $property->loadCount('users');
+        $property->loadCount('users')->load('partner');
 
         return Inertia::render('partner/properties/show', [
             'property' => AdminPropertyData::fromModel($property, app(PropertyOwners::class)->firstFor($property)),

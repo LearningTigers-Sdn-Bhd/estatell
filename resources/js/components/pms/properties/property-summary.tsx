@@ -22,7 +22,13 @@ function SummaryRow({
 /**
  * The summary card body, shared by the admin and partner property pages.
  */
-export function PropertySummary({ property }: { property: Property }) {
+export function PropertySummary({
+    property,
+    showPartner = false,
+}: {
+    property: Property;
+    showPartner?: boolean;
+}) {
     return (
         <dl className="flex flex-col gap-3">
             <SummaryRow label="Code">
@@ -40,6 +46,11 @@ export function PropertySummary({ property }: { property: Property }) {
                     <span className="text-muted-foreground">No owner</span>
                 )}
             </SummaryRow>
+            {showPartner && (
+                <SummaryRow label="Partner">
+                    {property.partnerName ?? 'Direct'}
+                </SummaryRow>
+            )}
             <SummaryRow label="Status">
                 <StatusBadge status={property.status} />
             </SummaryRow>

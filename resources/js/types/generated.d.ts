@@ -954,6 +954,8 @@ suspendedAt: string | null,
 staffCount: number,
 ownerName: string | null,
 ownerEmail: string | null,
+partnerId: number | null,
+partnerName: string | null,
 };
 export type AdminPropertyRowData = {
 code: string,

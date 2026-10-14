@@ -2,7 +2,9 @@ import { Form, Head, Link } from '@inertiajs/react';
 import { Info, ToggleRight, Users } from 'lucide-react';
 import { useState } from 'react';
 import { DetailLayout } from '@/components/pms/detail-layout';
+import type { EnumOption } from '@/components/pms/enum-select';
 import { PageHeader } from '@/components/pms/page-header';
+import { MovePropertyPartner } from '@/components/pms/properties/move-property-partner';
 import { PropertyFeatures } from '@/components/pms/properties/property-features';
 import { PropertyOverview } from '@/components/pms/properties/property-overview';
 import { PropertyStaff } from '@/components/pms/properties/property-staff';
@@ -41,11 +43,13 @@ export default function PropertyShow({
     tab,
     staff = [],
     features = [],
+    partnerOptions,
 }: {
     property: Property;
     tab: Tab;
     staff?: StaffMember[];
     features?: PropertyFeature[];
+    partnerOptions: EnumOption[];
 }) {
     const [suspendOpen, setSuspendOpen] = useState(false);
 
@@ -68,6 +72,10 @@ export default function PropertyShow({
                             >
                                 View as
                             </Link>
+                            <MovePropertyPartner
+                                property={property}
+                                partnerOptions={partnerOptions}
+                            />
                             {property.status.value === 'suspended' ? (
                                 <Form
                                     {...reactivate.form(property.code)}
@@ -165,7 +173,9 @@ export default function PropertyShow({
                             href: featuresTab(property.code),
                         },
                     ]}
-                    summary={<PropertySummary property={property} />}
+                    summary={
+                        <PropertySummary property={property} showPartner />
+                    }
                 >
                     {tab === 'overview' && (
                         <PropertyOverview property={property} />
