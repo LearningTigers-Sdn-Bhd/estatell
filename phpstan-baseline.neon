@@ -739,30 +739,6 @@ parameters:
 			path: app/Services/NightAudit/AuditReadiness.php
 
 		-
-			message: '#^Parameter \#1 \$num1 of function bcadd expects numeric\-string, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Services/NightAudit/AuditReadiness.php
-
-		-
-			message: '#^Parameter \#1 \$num1 of function bccomp expects numeric\-string, string given\.$#'
-			identifier: argument.type
-			count: 2
-			path: app/Services/NightAudit/AuditReadiness.php
-
-		-
-			message: '#^Parameter \#1 \$num1 of function bcmul expects numeric\-string, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Services/NightAudit/AuditReadiness.php
-
-		-
-			message: '#^Parameter \#2 \$num2 of function bcadd expects numeric\-string, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Services/NightAudit/AuditReadiness.php
-
-		-
 			message: '#^Parameter \$chargedNightIds of class App\\Services\\NightAudit\\PackageNightRespreadResult constructor expects list\<int\>, array\<int, mixed\> given\.$#'
 			identifier: argument.type
 			count: 1

@@ -17,6 +17,7 @@ use App\Models\Property;
 use App\Models\ReservationUnit;
 use App\Services\Packages\InclusionSplit;
 use App\Services\Property\PropertyToday;
+use Brick\Math\BigDecimal;
 use Carbon\CarbonImmutable;
 use Closure;
 use Illuminate\Database\Eloquent\Builder;
@@ -168,7 +169,7 @@ class AuditReadiness
             ->whereHas('reservation.units', fn (Builder $units) => $units->where('status', UnitStatus::CheckedOut->value))
             ->whereDoesntHave('reservation.units', fn (Builder $units) => $units->whereIn('status', [UnitStatus::CheckedIn->value, UnitStatus::Confirmed->value]))
             ->get()
-            ->filter(fn (Folio $folio): bool => bccomp($this->balance($folio), '0', 2) > 0);
+            ->filter(fn (Folio $folio): bool => BigDecimal::of($this->balance($folio))->isPositive());
 
         return $this->folioItems(AuditCheck::MasterNotBilled, $property, $folios, fn (string $amount): string => __(':amount owed', ['amount' => $amount]));
     }
@@ -194,7 +195,7 @@ class AuditReadiness
         return $this->folioItems(
             AuditCheck::MoneyHeldOnClosedBooking,
             $property,
-            $unitFolios->concat($bookingFolios)->unique('id')->filter(fn (Folio $folio): bool => bccomp($this->balance($folio), '0', 2) < 0)->sortBy('id'),
+            $unitFolios->concat($bookingFolios)->unique('id')->filter(fn (Folio $folio): bool => BigDecimal::of($this->balance($folio))->isNegative())->sortBy('id'),
             fn (string $amount): string => __(':amount to refund', ['amount' => $amount]),
             credit: true,
         );
@@ -219,7 +220,7 @@ class AuditReadiness
 
     private function balance(Folio $folio): string
     {
-        return bcadd((string) ($folio->lines_sum_amount ?? '0'), '0', 2);
+        return (string) BigDecimal::of((string) ($folio->lines_sum_amount ?? '0'))->toScale(2);
     }
 
     /**
@@ -236,7 +237,7 @@ class AuditReadiness
 
         return array_values($folios->groupBy('reservation_id')->map(function (Collection $group) use ($check, $currency, $phrase, $credit): ReadinessItem {
             $first = $group->first();
-            $total = $group->reduce(fn (string $sum, Folio $folio): string => bcadd($sum, $credit ? bcmul($this->balance($folio), '-1', 2) : $this->balance($folio), 2), '0.00');
+            $total = (string) $group->reduce(fn (BigDecimal $sum, Folio $folio): BigDecimal => $sum->plus($credit ? BigDecimal::of($this->balance($folio))->negated() : $this->balance($folio)), BigDecimal::zero())->toScale(2);
             $amount = trim($currency.' '.number_format((float) $total, 2));
             $names = match (true) {
                 $group->count() > 1 => __(':count folios', ['count' => $group->count()]),
