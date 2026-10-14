@@ -4,13 +4,13 @@ namespace App\Models;
 
 use App\Enums\PaymentPurpose;
 use App\Enums\PaymentStatus;
+use Carbon\CarbonImmutable;
 use Database\Factories\PaymentFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Support\Carbon;
 
 /**
  * Money received on a folio, or given back (a refund, with `refund_of_id`). `amount` is always positive: for a
@@ -31,9 +31,9 @@ use Illuminate\Support\Carbon;
  * @property int $folio_line_id
  * @property int|null $surcharge_line_id
  * @property int $received_by
- * @property Carbon $received_at
- * @property Carbon|null $created_at
- * @property Carbon|null $updated_at
+ * @property CarbonImmutable $received_at
+ * @property CarbonImmutable|null $created_at
+ * @property CarbonImmutable|null $updated_at
  */
 #[Fillable([
     'folio_id', 'payment_method_id', 'amount', 'purpose', 'status', 'reference', 'refund_of_id', 'receipt_number',

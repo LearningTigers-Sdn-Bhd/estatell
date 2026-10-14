@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Carbon\CarbonImmutable;
 use Database\Factories\RateFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
@@ -9,7 +10,6 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Support\Carbon;
 
 /**
  * The price and selling restrictions of one room type and rate plan for one date.
@@ -17,15 +17,15 @@ use Illuminate\Support\Carbon;
  * @property int $id
  * @property int $room_type_id
  * @property int $rate_plan_id
- * @property Carbon $date
+ * @property CarbonImmutable $date
  * @property string|null $amount
  * @property int|null $min_stay
  * @property int|null $max_stay
  * @property bool $closed_to_arrival
  * @property bool $closed_to_departure
  * @property bool $stop_sell
- * @property Carbon|null $created_at
- * @property Carbon|null $updated_at
+ * @property CarbonImmutable|null $created_at
+ * @property CarbonImmutable|null $updated_at
  */
 #[Fillable([
     'room_type_id', 'rate_plan_id', 'date', 'amount', 'min_stay', 'max_stay',

@@ -2,13 +2,13 @@
 
 namespace App\Models;
 
+use Carbon\CarbonImmutable;
 use Database\Factories\TermsDocumentFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Support\Carbon;
 
 /**
  * A named set of registration terms. Its text lives in versions, one line per language.
@@ -17,8 +17,8 @@ use Illuminate\Support\Carbon;
  * @property int $property_id
  * @property string $name
  * @property bool $is_default
- * @property Carbon|null $created_at
- * @property Carbon|null $updated_at
+ * @property CarbonImmutable|null $created_at
+ * @property CarbonImmutable|null $updated_at
  */
 #[Fillable(['name', 'is_default'])]
 class TermsDocument extends Model

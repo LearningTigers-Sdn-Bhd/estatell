@@ -3,13 +3,13 @@
 namespace App\Models;
 
 use App\Enums\BoatDirection;
+use Carbon\CarbonImmutable;
 use Database\Factories\BoatDepartureFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Support\Carbon;
 
 /**
  * One boat that runs every day at the same time, in one direction.
@@ -23,8 +23,8 @@ use Illuminate\Support\Carbon;
  * @property int|null $seats
  * @property int|null $charge_item_id The fare.
  * @property bool $active
- * @property Carbon|null $created_at
- * @property Carbon|null $updated_at
+ * @property CarbonImmutable|null $created_at
+ * @property CarbonImmutable|null $updated_at
  */
 #[Fillable(['direction', 'leaves_at', 'arrives_at', 'pickup_point', 'seats', 'charge_item_id', 'active'])]
 class BoatDeparture extends Model

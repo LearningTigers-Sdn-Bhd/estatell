@@ -2,12 +2,12 @@
 
 namespace App\Models;
 
+use Carbon\CarbonImmutable;
 use Database\Factories\UnitDayUseFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Support\Carbon;
 
 /**
  * The room, the hours and the price of a day use unit. It is the day use counterpart of `unit_nights`.
@@ -16,15 +16,15 @@ use Illuminate\Support\Carbon;
  *
  * @property int $id
  * @property int $reservation_unit_id
- * @property Carbon $date
+ * @property CarbonImmutable $date
  * @property int|null $room_id
  * @property string $starts_at
  * @property string $ends_at
  * @property int $hours
  * @property string $amount
- * @property Carbon|null $released_at
- * @property Carbon|null $created_at
- * @property Carbon|null $updated_at
+ * @property CarbonImmutable|null $released_at
+ * @property CarbonImmutable|null $created_at
+ * @property CarbonImmutable|null $updated_at
  */
 #[Fillable(['date', 'room_id', 'starts_at', 'ends_at', 'hours', 'amount', 'released_at'])]
 class UnitDayUse extends Model

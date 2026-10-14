@@ -2,12 +2,12 @@
 
 namespace App\Models;
 
+use Carbon\CarbonImmutable;
 use Database\Factories\DailyRevenueFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Support\Carbon;
 
 /**
  * The folio lines of one closed business date for one transaction code, summed by the night audit. A copy of
@@ -15,12 +15,12 @@ use Illuminate\Support\Carbon;
  *
  * @property int $id
  * @property int $property_id
- * @property Carbon $business_date
+ * @property CarbonImmutable $business_date
  * @property int $transaction_code_id
  * @property string $amount
  * @property int $line_count
- * @property Carbon|null $created_at
- * @property Carbon|null $updated_at
+ * @property CarbonImmutable|null $created_at
+ * @property CarbonImmutable|null $updated_at
  */
 #[Fillable(['business_date', 'transaction_code_id', 'amount', 'line_count'])]
 class DailyRevenue extends Model

@@ -5,12 +5,12 @@ namespace App\Models;
 use App\Enums\ChargingUnit;
 use App\Enums\InclusionEnd;
 use App\Enums\InclusionStart;
+use Carbon\CarbonImmutable;
 use Database\Factories\RatePlanInclusionFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Support\Carbon;
 
 /**
  * One thing a rate plan includes in its price: a meal, transfer or activity. `allocated_amount` is the revenue
@@ -26,8 +26,8 @@ use Illuminate\Support\Carbon;
  * @property InclusionStart $starts_on
  * @property InclusionEnd $ends_on
  * @property int $position
- * @property Carbon|null $created_at
- * @property Carbon|null $updated_at
+ * @property CarbonImmutable|null $created_at
+ * @property CarbonImmutable|null $updated_at
  */
 #[Fillable([
     'charge_item_id', 'meal_period_id', 'charging_unit', 'quantity', 'allocated_amount',

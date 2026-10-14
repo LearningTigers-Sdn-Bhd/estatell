@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\ChargingUnit;
+use Carbon\CarbonImmutable;
 use Database\Factories\ChargeItemFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
@@ -10,7 +11,6 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Support\Carbon;
 
 /**
  * A property-configured product or service that staff may post as a charge.
@@ -27,8 +27,8 @@ use Illuminate\Support\Carbon;
  * @property bool $needs_child_price_review
  * @property int $position
  * @property bool $active
- * @property Carbon|null $created_at
- * @property Carbon|null $updated_at
+ * @property CarbonImmutable|null $created_at
+ * @property CarbonImmutable|null $updated_at
  */
 #[Fillable([
     'transaction_code_id', 'name', 'description', 'default_amount', 'charging_unit',

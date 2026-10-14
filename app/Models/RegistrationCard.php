@@ -3,12 +3,12 @@
 namespace App\Models;
 
 use App\Enums\RegistrationCardStatus;
+use Carbon\CarbonImmutable;
 use Database\Factories\RegistrationCardFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Support\Carbon;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 
@@ -24,13 +24,13 @@ use Spatie\MediaLibrary\InteractsWithMedia;
  * @property int|null $terms_id
  * @property string|null $vehicle_plate
  * @property string|null $remarks
- * @property Carbon|null $signed_at
+ * @property CarbonImmutable|null $signed_at
  * @property string|null $signer_name
  * @property string|null $void_reason
- * @property Carbon|null $voided_at
+ * @property CarbonImmutable|null $voided_at
  * @property array<string, mixed>|null $snapshot
- * @property Carbon|null $created_at
- * @property Carbon|null $updated_at
+ * @property CarbonImmutable|null $created_at
+ * @property CarbonImmutable|null $updated_at
  */
 #[Fillable(['vehicle_plate', 'remarks'])]
 class RegistrationCard extends Model implements HasMedia

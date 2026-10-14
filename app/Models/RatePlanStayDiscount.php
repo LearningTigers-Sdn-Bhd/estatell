@@ -3,12 +3,12 @@
 namespace App\Models;
 
 use App\Enums\StayDiscountType;
+use Carbon\CarbonImmutable;
 use Database\Factories\RatePlanStayDiscountFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Support\Carbon;
 
 /**
  * "Stay at least N nights, get X off" on one rate plan. `from_night` 1 discounts every night, 2 keeps the first night at full price.
@@ -19,8 +19,8 @@ use Illuminate\Support\Carbon;
  * @property StayDiscountType $discount_type
  * @property string $value
  * @property int $from_night
- * @property Carbon|null $created_at
- * @property Carbon|null $updated_at
+ * @property CarbonImmutable|null $created_at
+ * @property CarbonImmutable|null $updated_at
  */
 #[Fillable(['min_nights', 'discount_type', 'value', 'from_night'])]
 class RatePlanStayDiscount extends Model

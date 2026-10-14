@@ -4,13 +4,13 @@ namespace App\Models;
 
 use App\Enums\PageOrientation;
 use App\Enums\ReportKey;
+use Carbon\CarbonImmutable;
 use Database\Factories\ReportLayoutFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Support\Carbon;
 
 /**
  * The orientation and column order of one report for one property, shared by every user. No row means the code
@@ -20,8 +20,8 @@ use Illuminate\Support\Carbon;
  * @property int $property_id
  * @property ReportKey $report_key
  * @property PageOrientation $orientation
- * @property Carbon|null $created_at
- * @property Carbon|null $updated_at
+ * @property CarbonImmutable|null $created_at
+ * @property CarbonImmutable|null $updated_at
  */
 #[Fillable(['report_key', 'orientation'])]
 class ReportLayout extends Model

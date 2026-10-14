@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\DiscountScope;
 use App\Enums\DiscountType;
+use Carbon\CarbonImmutable;
 use Database\Factories\DiscountFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
@@ -11,7 +12,6 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use Illuminate\Support\Carbon;
 
 /**
  * A property-configured discount that staff may apply on a folio or at booking.
@@ -26,8 +26,8 @@ use Illuminate\Support\Carbon;
  * @property DiscountScope $scope
  * @property int $position
  * @property bool $active
- * @property Carbon|null $created_at
- * @property Carbon|null $updated_at
+ * @property CarbonImmutable|null $created_at
+ * @property CarbonImmutable|null $updated_at
  */
 #[Fillable(['name', 'type', 'value', 'allow_override', 'scope', 'position', 'active'])]
 class Discount extends Model

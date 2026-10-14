@@ -3,12 +3,12 @@
 namespace App\Models;
 
 use App\Enums\AgeBandPricing;
+use Carbon\CarbonImmutable;
 use Database\Factories\RatePlanChildPriceFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Support\Carbon;
 
 /**
  * What a per-guest rate plan charges for one age group. A percent is of the plan's 1-adult price for the night.
@@ -18,8 +18,8 @@ use Illuminate\Support\Carbon;
  * @property int $property_age_group_id
  * @property AgeBandPricing $pricing
  * @property string|null $value
- * @property Carbon|null $created_at
- * @property Carbon|null $updated_at
+ * @property CarbonImmutable|null $created_at
+ * @property CarbonImmutable|null $updated_at
  */
 #[Fillable(['property_age_group_id', 'pricing', 'value'])]
 class RatePlanChildPrice extends Model

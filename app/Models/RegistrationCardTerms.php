@@ -4,13 +4,13 @@ namespace App\Models;
 
 use App\Enums\Locale;
 use App\Enums\TermsPreset;
+use Carbon\CarbonImmutable;
 use Database\Factories\RegistrationCardTermsFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Support\Carbon;
 
 /**
  * One published version of a terms document in one language. It is never edited after publishing.
@@ -22,7 +22,7 @@ use Illuminate\Support\Carbon;
  * @property string $body
  * @property TermsPreset|null $preset
  * @property int|null $preset_version
- * @property Carbon $published_at
+ * @property CarbonImmutable $published_at
  * @property int|null $published_by
  */
 #[Fillable(['terms_document_id', 'locale', 'version', 'body', 'preset', 'preset_version', 'published_at', 'published_by'])]

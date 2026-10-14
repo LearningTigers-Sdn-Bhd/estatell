@@ -4,13 +4,13 @@ namespace App\Models;
 
 use App\Enums\BoatDirection;
 use App\Enums\BoatMode;
+use Carbon\CarbonImmutable;
 use Database\Factories\UnitBoatTripFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Support\Carbon;
 
 /**
  * How one unit goes in or out by boat. One row per unit and direction. A scheduled trip points at a departure.
@@ -22,8 +22,8 @@ use Illuminate\Support\Carbon;
  * @property BoatMode $mode
  * @property int|null $boat_departure_id
  * @property string|null $note
- * @property Carbon|null $created_at
- * @property Carbon|null $updated_at
+ * @property CarbonImmutable|null $created_at
+ * @property CarbonImmutable|null $updated_at
  */
 #[Fillable(['property_id', 'reservation_unit_id', 'direction', 'mode', 'boat_departure_id', 'note'])]
 class UnitBoatTrip extends Model

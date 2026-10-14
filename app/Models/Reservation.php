@@ -5,13 +5,13 @@ namespace App\Models;
 use App\Enums\BillingMode;
 use App\Enums\ReservationSource;
 use App\Enums\ReservationStatus;
+use Carbon\CarbonImmutable;
 use Database\Factories\ReservationFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Support\Carbon;
 
 /**
  * One booking of a property: one or more units (a room or a bed each). A group is a reservation with `group_name` set.
@@ -30,10 +30,10 @@ use Illuminate\Support\Carbon;
  * @property string|null $external_reference
  * @property string|null $notes
  * @property int $created_by
- * @property Carbon|null $cancellation_requested_at
+ * @property CarbonImmutable|null $cancellation_requested_at
  * @property int|null $cancellation_requested_by
- * @property Carbon|null $created_at
- * @property Carbon|null $updated_at
+ * @property CarbonImmutable|null $created_at
+ * @property CarbonImmutable|null $updated_at
  */
 #[Fillable([
     'booker_guest_id', 'company_id', 'group_name', 'billing_mode', 'source', 'channel_name', 'external_reference', 'notes',

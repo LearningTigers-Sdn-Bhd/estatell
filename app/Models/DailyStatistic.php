@@ -2,12 +2,12 @@
 
 namespace App\Models;
 
+use Carbon\CarbonImmutable;
 use Database\Factories\DailyStatisticFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Support\Carbon;
 
 /**
  * The statistics of one closed business date, written once by the night audit. Occupancy, ADR and RevPAR count a
@@ -15,7 +15,7 @@ use Illuminate\Support\Carbon;
  *
  * @property int $id
  * @property int $property_id
- * @property Carbon $business_date
+ * @property CarbonImmutable $business_date
  * @property int $rooms_available
  * @property int $rooms_sold
  * @property int $beds_available
@@ -29,8 +29,8 @@ use Illuminate\Support\Carbon;
  * @property int $in_house_guests
  * @property int $day_use_sold
  * @property string $day_use_revenue
- * @property Carbon|null $created_at
- * @property Carbon|null $updated_at
+ * @property CarbonImmutable|null $created_at
+ * @property CarbonImmutable|null $updated_at
  */
 #[Fillable([
     'business_date', 'rooms_available', 'rooms_sold', 'beds_available', 'beds_sold', 'occupancy', 'adr', 'revpar',

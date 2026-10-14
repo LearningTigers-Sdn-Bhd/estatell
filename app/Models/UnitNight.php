@@ -2,12 +2,12 @@
 
 namespace App\Models;
 
+use Carbon\CarbonImmutable;
 use Database\Factories\UnitNightFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Support\Carbon;
 
 /**
  * One night of a unit: the quoted amounts at booking and the room or bed assigned for that night.
@@ -15,7 +15,7 @@ use Illuminate\Support\Carbon;
  *
  * @property int $id
  * @property int $reservation_unit_id
- * @property Carbon $date
+ * @property CarbonImmutable $date
  * @property int $rate_plan_id
  * @property int|null $room_id
  * @property int|null $bed_id

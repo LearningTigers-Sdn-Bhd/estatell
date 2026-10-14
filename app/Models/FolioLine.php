@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\TransactionKind;
+use Carbon\CarbonImmutable;
 use Database\Factories\FolioLineFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -10,7 +11,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
-use Illuminate\Support\Carbon;
 
 /**
  * One line of the immutable folio ledger. `amount` is signed: charges and taxes are positive, payments negative.
@@ -26,7 +26,8 @@ use Illuminate\Support\Carbon;
  * @property int $quantity
  * @property string $unit_amount
  * @property string $amount
- * @property Carbon $posting_date
+ * @property-read CarbonImmutable $posting_date
+ * @property-write CarbonImmutable|string $posting_date
  * @property string|null $source_type
  * @property int|null $source_id
  * @property int|null $parent_line_id
@@ -34,7 +35,7 @@ use Illuminate\Support\Carbon;
  * @property string|null $transfer_group_id
  * @property string $idempotency_key
  * @property int|null $user_id
- * @property Carbon|null $created_at
+ * @property CarbonImmutable|null $created_at
  */
 #[Fillable([
     'folio_id', 'transaction_code_id', 'kind', 'description', 'quantity', 'unit_amount', 'amount', 'posting_date',

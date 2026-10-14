@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\PropertyStatus;
 use App\Enums\PropertyType;
 use App\Services\Platform\PlatformSettings;
+use Carbon\CarbonImmutable;
 use Database\Factories\PropertyFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -13,7 +14,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\Relations\HasOne;
-use Illuminate\Support\Carbon;
 use Laravel\Pennant\Concerns\HasFeatures;
 use Laravel\Pennant\Contracts\FeatureScopeSerializeable;
 use Spatie\MediaLibrary\HasMedia;
@@ -39,12 +39,12 @@ use Spatie\MediaLibrary\InteractsWithMedia;
  * @property string|null $contact_phone
  * @property string|null $registration_number
  * @property string|null $tin
- * @property Carbon|null $onboarding_started_at
- * @property Carbon|null $went_live_at
- * @property Carbon|null $suspended_at
+ * @property CarbonImmutable|null $onboarding_started_at
+ * @property CarbonImmutable|null $went_live_at
+ * @property CarbonImmutable|null $suspended_at
  * @property PropertyStatus|null $suspended_from_status
- * @property Carbon|null $created_at
- * @property Carbon|null $updated_at
+ * @property CarbonImmutable|null $created_at
+ * @property CarbonImmutable|null $updated_at
  */
 #[Fillable([
     'name', 'type', 'status',

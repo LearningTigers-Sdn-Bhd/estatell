@@ -145,12 +145,6 @@ parameters:
 			path: app/Actions/CityLedger/SettleToCityLedger.php
 
 		-
-			message: '#^Property App\\Models\\FolioLine\:\:\$posting_date \(Illuminate\\Support\\Carbon\) does not accept string\.$#'
-			identifier: assign.propertyType
-			count: 1
-			path: app/Actions/CityLedger/SettleToCityLedger.php
-
-		-
 			message: '#^Parameter \#1 \$num1 of function bccomp expects numeric\-string, string given\.$#'
 			identifier: argument.type
 			count: 1
@@ -161,12 +155,6 @@ parameters:
 			identifier: argument.type
 			count: 1
 			path: app/Actions/CityLedger/VoidArInvoice.php
-
-		-
-			message: '#^Property App\\Models\\FolioLine\:\:\$posting_date \(Illuminate\\Support\\Carbon\) does not accept string\.$#'
-			identifier: assign.propertyType
-			count: 1
-			path: app/Actions/Folio/ApplyDiscount.php
 
 		-
 			message: '#^Parameter \#1 \$num1 of function bccomp expects numeric\-string, string given\.$#'
@@ -199,21 +187,9 @@ parameters:
 			path: app/Actions/Folio/PostCharge.php
 
 		-
-			message: '#^Property App\\Models\\FolioLine\:\:\$posting_date \(Illuminate\\Support\\Carbon\) does not accept string\.$#'
-			identifier: assign.propertyType
-			count: 1
-			path: app/Actions/Folio/PostFolioCharge.php
-
-		-
 			message: '#^Parameter \#1 \$num1 of function bcmul expects numeric\-string, string given\.$#'
 			identifier: argument.type
 			count: 2
-			path: app/Actions/Folio/ReverseLine.php
-
-		-
-			message: '#^Property App\\Models\\FolioLine\:\:\$posting_date \(Illuminate\\Support\\Carbon\) does not accept string\.$#'
-			identifier: assign.propertyType
-			count: 1
 			path: app/Actions/Folio/ReverseLine.php
 
 		-
@@ -231,12 +207,6 @@ parameters:
 		-
 			message: '#^Parameter \#1 \$keys of method Illuminate\\Database\\Eloquent\\Collection\<\(int\|string\),App\\Models\\Folio\>\:\:except\(\) expects array\<mixed\>\|null, int given\.$#'
 			identifier: argument.type
-			count: 1
-			path: app/Actions/Folio/TransferLines.php
-
-		-
-			message: '#^Property App\\Models\\FolioLine\:\:\$posting_date \(Illuminate\\Support\\Carbon\) does not accept string\.$#'
-			identifier: assign.propertyType
 			count: 1
 			path: app/Actions/Folio/TransferLines.php
 
@@ -289,12 +259,6 @@ parameters:
 			path: app/Actions/FrontDesk/CheckInAndCollect.php
 
 		-
-			message: '#^Property App\\Models\\ReservationUnit\:\:\$checked_in_at \(Illuminate\\Support\\Carbon\|null\) does not accept Carbon\\CarbonImmutable\.$#'
-			identifier: assign.propertyType
-			count: 1
-			path: app/Actions/FrontDesk/CheckInUnit.php
-
-		-
 			message: '#^Parameter \#1 \$num1 of function bccomp expects numeric\-string, string given\.$#'
 			identifier: argument.type
 			count: 1
@@ -331,12 +295,6 @@ parameters:
 			path: app/Actions/FrontDesk/CheckOutUnit.php
 
 		-
-			message: '#^Property App\\Models\\ReservationUnit\:\:\$checked_out_at \(Illuminate\\Support\\Carbon\|null\) does not accept Carbon\\CarbonImmutable\.$#'
-			identifier: assign.propertyType
-			count: 1
-			path: app/Actions/FrontDesk/CheckOutUnit.php
-
-		-
 			message: '#^Parameter \#1 \$num1 of function bccomp expects numeric\-string, string given\.$#'
 			identifier: argument.type
 			count: 1
@@ -369,18 +327,6 @@ parameters:
 		-
 			message: '#^Parameter \#2 \$num2 of function bccomp expects numeric\-string, non\-empty\-string given\.$#'
 			identifier: argument.type
-			count: 1
-			path: app/Actions/FrontDesk/ProcessEarlyDeparture.php
-
-		-
-			message: '#^Property App\\Models\\ReservationUnit\:\:\$arrival_date \(Illuminate\\Support\\Carbon\) does not accept Carbon\\CarbonInterface\.$#'
-			identifier: assign.propertyType
-			count: 1
-			path: app/Actions/FrontDesk/ProcessEarlyDeparture.php
-
-		-
-			message: '#^Property App\\Models\\ReservationUnit\:\:\$departure_date \(Illuminate\\Support\\Carbon\) does not accept Carbon\\CarbonInterface\.$#'
-			identifier: assign.propertyType
 			count: 1
 			path: app/Actions/FrontDesk/ProcessEarlyDeparture.php
 
@@ -397,34 +343,10 @@ parameters:
 			path: app/Actions/FrontDesk/ReleaseUnitRooms.php
 
 		-
-			message: '#^Property App\\Models\\UnitDayUse\:\:\$released_at \(Illuminate\\Support\\Carbon\|null\) does not accept Carbon\\CarbonImmutable\.$#'
-			identifier: assign.propertyType
-			count: 1
-			path: app/Actions/FrontDesk/ReleaseUnitRooms.php
-
-		-
 			message: '#^Call to an undefined method Illuminate\\Support\\Collection\<int, App\\Models\\Folio\>\:\:modelKeys\(\)\.$#'
 			identifier: method.notFound
 			count: 1
 			path: app/Actions/FrontDesk/UndoCheckOut.php
-
-		-
-			message: '#^Property App\\Models\\Guest\:\:\$blacklisted_at \(Illuminate\\Support\\Carbon\|null\) does not accept Carbon\\CarbonImmutable\.$#'
-			identifier: assign.propertyType
-			count: 1
-			path: app/Actions/Guests/BlacklistGuest.php
-
-		-
-			message: '#^Property App\\Models\\NightAuditStep\:\:\$finished_at \(Illuminate\\Support\\Carbon\|null\) does not accept Carbon\\CarbonImmutable\.$#'
-			identifier: assign.propertyType
-			count: 1
-			path: app/Actions/NightAudit/ClaimBusinessDate.php
-
-		-
-			message: '#^Property App\\Models\\NightAuditStep\:\:\$started_at \(Illuminate\\Support\\Carbon\|null\) does not accept Carbon\\CarbonImmutable\.$#'
-			identifier: assign.propertyType
-			count: 1
-			path: app/Actions/NightAudit/ClaimBusinessDate.php
 
 		-
 			message: '#^Using nullsafe property access "\?\-\>id" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
@@ -503,18 +425,6 @@ parameters:
 			identifier: nullsafe.neverNull
 			count: 1
 			path: app/Actions/Onboarding/RegisterPropertyOwner.php
-
-		-
-			message: '#^Property App\\Models\\FolioLine\:\:\$posting_date \(Illuminate\\Support\\Carbon\) does not accept string\.$#'
-			identifier: assign.propertyType
-			count: 1
-			path: app/Actions/Payments/RecordPayment.php
-
-		-
-			message: '#^Property App\\Models\\FolioLine\:\:\$posting_date \(Illuminate\\Support\\Carbon\) does not accept string\.$#'
-			identifier: assign.propertyType
-			count: 1
-			path: app/Actions/Payments/RefundPayment.php
 
 		-
 			message: '#^Parameter \$note of class App\\Notifications\\SupportAccessUsed constructor expects string\|null, int\|string\|null given\.$#'
@@ -1967,18 +1877,6 @@ parameters:
 			identifier: argument.type
 			count: 1
 			path: app/Services/CityLedger/CreditExposure.php
-
-		-
-			message: '#^Method App\\Services\\CityLedger\\FolioPaymentReferences\:\:arPayments\(\) should return Illuminate\\Support\\Collection\<int, array\{date\: Carbon\\CarbonInterface, order\: int, folio\: string\|null, receipt\: string\}\> but returns Illuminate\\Support\\Collection\<int, array\{date\: Illuminate\\Support\\Carbon, order\: int, folio\: null, receipt\: string\}\>\.$#'
-			identifier: return.type
-			count: 1
-			path: app/Services/CityLedger/FolioPaymentReferences.php
-
-		-
-			message: '#^Method App\\Services\\CityLedger\\FolioPaymentReferences\:\:folioPayments\(\) should return Illuminate\\Support\\Collection\<int, array\{date\: Carbon\\CarbonInterface, order\: int, folio\: string\|null, receipt\: string\}\> but returns Illuminate\\Support\\Collection\<int, array\{date\: Illuminate\\Support\\Carbon, order\: int, folio\: string, receipt\: string\}\>\.$#'
-			identifier: return.type
-			count: 1
-			path: app/Services/CityLedger/FolioPaymentReferences.php
 
 		-
 			message: '#^Parameter \#1 \$num1 of function bcadd expects numeric\-string, string given\.$#'
@@ -3541,12 +3439,6 @@ parameters:
 			path: database/seeders/BookingScenariosSeeder.php
 
 		-
-			message: '#^Property App\\Models\\User\:\:\$email_verified_at \(Illuminate\\Support\\Carbon\|null\) does not accept Carbon\\CarbonImmutable\.$#'
-			identifier: assign.propertyType
-			count: 1
-			path: database/seeders/BookingScenariosSeeder.php
-
-		-
 			message: '#^Using nullsafe method call on non\-nullable type Illuminate\\Console\\Command\. Use \-\> instead\.$#'
 			identifier: nullsafe.neverNull
 			count: 6
@@ -3573,12 +3465,6 @@ parameters:
 		-
 			message: '#^Parameter \#3 \$unitIds of callable App\\Actions\\FrontDesk\\CheckInAllUnits expects list\<int\>, array\<int, \(int\|string\)\> given\.$#'
 			identifier: argument.type
-			count: 1
-			path: database/seeders/SandbaySeeder.php
-
-		-
-			message: '#^Property App\\Models\\User\:\:\$email_verified_at \(Illuminate\\Support\\Carbon\|null\) does not accept Carbon\\CarbonImmutable\.$#'
-			identifier: assign.propertyType
 			count: 1
 			path: database/seeders/SandbaySeeder.php
 

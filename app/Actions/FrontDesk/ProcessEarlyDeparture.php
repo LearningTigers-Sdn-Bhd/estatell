@@ -10,6 +10,7 @@ use App\Models\UnitAddOn;
 use App\Models\User;
 use App\Services\Catalogues\PolicyChargeCalculator;
 use App\Services\NightAudit\CurrentBusinessDate;
+use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\DB;
 
@@ -38,7 +39,7 @@ class ProcessEarlyDeparture
      * it (other items, whose date may be the departure date). A posted add-on stays.
      * See docs/18-front-desk/01-check-in-and-check-out.md.
      */
-    public function __invoke(?User $actor, ReservationUnit $unit, CarbonInterface $newDeparture, bool $doNotCharge = false, ?string $reason = null, ?string $expectedFee = null, bool $applyPolicy = true, ?CarbonInterface $newArrival = null): StayDatesResult
+    public function __invoke(?User $actor, ReservationUnit $unit, CarbonImmutable $newDeparture, bool $doNotCharge = false, ?string $reason = null, ?string $expectedFee = null, bool $applyPolicy = true, ?CarbonImmutable $newArrival = null): StayDatesResult
     {
         return DB::transaction(function () use ($actor, $unit, $newDeparture, $doNotCharge, $reason, $expectedFee, $applyPolicy, $newArrival): StayDatesResult {
             $businessDate = $this->currentBusinessDate->date($unit->property);

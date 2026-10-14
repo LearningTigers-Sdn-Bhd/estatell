@@ -2,13 +2,13 @@
 
 namespace App\Models;
 
+use Carbon\CarbonImmutable;
 use Database\Factories\MealPeriodFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Support\Carbon;
 
 /**
  * One property-defined window in which a meal is served.
@@ -19,8 +19,8 @@ use Illuminate\Support\Carbon;
  * @property string $starts_at Time of day, HH:MM:SS.
  * @property string $ends_at Time of day, HH:MM:SS.
  * @property bool $active
- * @property Carbon|null $created_at
- * @property Carbon|null $updated_at
+ * @property CarbonImmutable|null $created_at
+ * @property CarbonImmutable|null $updated_at
  */
 #[Fillable(['name', 'starts_at', 'ends_at', 'active'])]
 class MealPeriod extends Model

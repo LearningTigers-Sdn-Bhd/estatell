@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\BusinessDateStatus;
+use Carbon\CarbonImmutable;
 use Database\Factories\BusinessDateFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
@@ -10,7 +11,6 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
-use Illuminate\Support\Carbon;
 
 /**
  * One trading day of a property. Postings belong to a business date, not the calendar date.
@@ -18,13 +18,13 @@ use Illuminate\Support\Carbon;
  *
  * @property int $id
  * @property int $property_id
- * @property Carbon $date
+ * @property CarbonImmutable $date
  * @property BusinessDateStatus $status
- * @property Carbon $opened_at
- * @property Carbon|null $closed_at
+ * @property CarbonImmutable $opened_at
+ * @property CarbonImmutable|null $closed_at
  * @property int|null $closed_by
- * @property Carbon|null $created_at
- * @property Carbon|null $updated_at
+ * @property CarbonImmutable|null $created_at
+ * @property CarbonImmutable|null $updated_at
  */
 #[Fillable(['date', 'status', 'opened_at', 'closed_at', 'closed_by'])]
 class BusinessDate extends Model

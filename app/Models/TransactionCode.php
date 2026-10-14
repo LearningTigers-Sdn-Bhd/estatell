@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\TransactionCategory;
 use App\Enums\TransactionKind;
+use Carbon\CarbonImmutable;
 use Database\Factories\TransactionCodeFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
@@ -12,7 +13,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
-use Illuminate\Support\Carbon;
 
 /**
  * Classifies a money line for reporting, tax rules and accounting exports.
@@ -27,8 +27,8 @@ use Illuminate\Support\Carbon;
  * @property string|null $gl_account_code
  * @property bool $is_system
  * @property bool $active
- * @property Carbon|null $created_at
- * @property Carbon|null $updated_at
+ * @property CarbonImmutable|null $created_at
+ * @property CarbonImmutable|null $updated_at
  */
 #[Fillable(['system_key', 'code', 'name', 'kind', 'category', 'gl_account_code', 'is_system', 'active'])]
 class TransactionCode extends Model

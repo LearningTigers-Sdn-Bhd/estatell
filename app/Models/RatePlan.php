@@ -6,6 +6,7 @@ use App\Enums\EarlyDeparturePolicy;
 use App\Enums\PackageUnit;
 use App\Enums\PricingBasis;
 use App\Enums\RateDerivation;
+use Carbon\CarbonImmutable;
 use Database\Factories\RatePlanFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
@@ -14,7 +15,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Support\Carbon;
 
 /**
  * How room types are priced and sold, such as Basic Rate or Breakfast. It holds no prices; those live in daily rates.
@@ -39,9 +39,9 @@ use Illuminate\Support\Carbon;
  * @property EarlyDeparturePolicy $early_departure_policy
  * @property bool $needs_child_price_review
  * @property int $position
- * @property Carbon|null $archived_at
- * @property Carbon|null $created_at
- * @property Carbon|null $updated_at
+ * @property CarbonImmutable|null $archived_at
+ * @property CarbonImmutable|null $created_at
+ * @property CarbonImmutable|null $updated_at
  */
 #[Fillable([
     'name', 'description', 'pricing_basis', 'fixed_nights', 'package_unit', 'day_use_min_hours', 'day_use_max_hours', 'day_use_from', 'day_use_until', 'extra_adult_amount', 'extra_child_amount', 'single_supplement',

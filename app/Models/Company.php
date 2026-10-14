@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\CompanyStatus;
 use App\Enums\CompanyType;
+use Carbon\CarbonImmutable;
 use Database\Factories\CompanyFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
@@ -12,7 +13,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Support\Carbon;
 
 /**
  * A corporate, travel agent or government body that stays now and pays later through the city ledger.
@@ -40,8 +40,8 @@ use Illuminate\Support\Carbon;
  * @property int|null $portal_cancel_cutoff_days
  * @property bool $profile_managed_by_company Set by the company in the portal: hotel staff may no longer edit the tax numbers and billing address.
  * @property CompanyStatus $status
- * @property Carbon|null $created_at
- * @property Carbon|null $updated_at
+ * @property CarbonImmutable|null $created_at
+ * @property CarbonImmutable|null $updated_at
  */
 #[Fillable([
     'name', 'type', 'brn', 'tin', 'sst_registration_number', 'contact_email', 'contact_phone',

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\TaxRateType;
+use Carbon\CarbonImmutable;
 use Database\Factories\TaxFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
@@ -10,7 +11,6 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use Illuminate\Support\Carbon;
 
 /**
  * A property tax rule and its posting identity.
@@ -27,8 +27,8 @@ use Illuminate\Support\Carbon;
  * @property bool $collect_at_check_in
  * @property string|null $registration_number
  * @property bool $enabled
- * @property Carbon|null $created_at
- * @property Carbon|null $updated_at
+ * @property CarbonImmutable|null $created_at
+ * @property CarbonImmutable|null $updated_at
  */
 #[Fillable([
     'transaction_code_id', 'name', 'code', 'rate_type', 'rate', 'is_inclusive',

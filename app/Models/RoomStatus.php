@@ -3,12 +3,12 @@
 namespace App\Models;
 
 use App\Enums\HousekeepingStatus;
+use Carbon\CarbonImmutable;
 use Database\Factories\RoomStatusFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Support\Carbon;
 
 /**
  * The housekeeping state of one room. Every room has exactly one row, created with the room.
@@ -21,12 +21,12 @@ use Illuminate\Support\Carbon;
  * @property string|null $priority_note
  * @property string|null $remark
  * @property bool $needs_maintenance
- * @property Carbon|null $do_not_disturb_on
+ * @property CarbonImmutable|null $do_not_disturb_on
  * @property int|null $assigned_to
  * @property int|null $last_changed_by
- * @property Carbon|null $last_changed_at
- * @property Carbon|null $created_at
- * @property Carbon|null $updated_at
+ * @property CarbonImmutable|null $last_changed_at
+ * @property CarbonImmutable|null $created_at
+ * @property CarbonImmutable|null $updated_at
  */
 #[Fillable(['status', 'is_priority', 'priority_note', 'remark', 'needs_maintenance', 'do_not_disturb_on', 'assigned_to', 'last_changed_by', 'last_changed_at'])]
 class RoomStatus extends Model

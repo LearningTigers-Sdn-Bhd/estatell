@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\StayType;
 use App\Enums\UnitStatus;
+use Carbon\CarbonImmutable;
 use Database\Factories\ReservationUnitFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -11,7 +12,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
-use Illuminate\Support\Carbon;
 
 /**
  * One sellable room or bed in a reservation, with its own dates, plan, occupants and status.
@@ -22,8 +22,8 @@ use Illuminate\Support\Carbon;
  * @property int $property_id
  * @property int $room_type_id
  * @property int $rate_plan_id
- * @property Carbon $arrival_date
- * @property Carbon $departure_date
+ * @property CarbonImmutable $arrival_date
+ * @property CarbonImmutable $departure_date
  * @property string $arrival_time `H:i:s`, the expected arrival
  * @property string $departure_time `H:i:s`, the expected departure
  * @property int $adults
@@ -32,10 +32,10 @@ use Illuminate\Support\Carbon;
  * @property StayType $stay_type
  * @property int|null $discount_id
  * @property bool $late_arrival_expected
- * @property Carbon|null $checked_in_at
- * @property Carbon|null $checked_out_at
- * @property Carbon|null $created_at
- * @property Carbon|null $updated_at
+ * @property CarbonImmutable|null $checked_in_at
+ * @property CarbonImmutable|null $checked_out_at
+ * @property CarbonImmutable|null $created_at
+ * @property CarbonImmutable|null $updated_at
  */
 #[Fillable([
     'room_type_id', 'rate_plan_id', 'arrival_date', 'departure_date', 'arrival_time', 'departure_time', 'adults', 'children', 'discount_id',

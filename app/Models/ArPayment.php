@@ -2,13 +2,13 @@
 
 namespace App\Models;
 
+use Carbon\CarbonImmutable;
 use Database\Factories\ArPaymentFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Support\Carbon;
 
 /**
  * Money a company paid against its city ledger. It is matched to invoices by allocations, and what is not allocated
@@ -20,16 +20,16 @@ use Illuminate\Support\Carbon;
  * @property int $company_id
  * @property int $payment_method_id
  * @property string $amount
- * @property Carbon $received_on
+ * @property CarbonImmutable $received_on
  * @property string|null $reference
  * @property string|null $notes
  * @property string $receipt_number
  * @property string $idempotency_key
  * @property int $received_by
- * @property Carbon|null $voided_at
+ * @property CarbonImmutable|null $voided_at
  * @property int|null $voided_by
- * @property Carbon|null $created_at
- * @property Carbon|null $updated_at
+ * @property CarbonImmutable|null $created_at
+ * @property CarbonImmutable|null $updated_at
  */
 #[Fillable([
     'company_id', 'payment_method_id', 'amount', 'received_on', 'reference', 'notes', 'receipt_number',

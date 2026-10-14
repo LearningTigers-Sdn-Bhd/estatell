@@ -4,12 +4,12 @@ namespace App\Models;
 
 use App\Enums\RoutingRuleSource;
 use App\Enums\TransactionCategory;
+use Carbon\CarbonImmutable;
 use Database\Factories\FolioRoutingRuleFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Support\Carbon;
 
 /**
  * Sends the charges that match it to another folio of the same reservation. A null selector matches all. The table
@@ -22,8 +22,8 @@ use Illuminate\Support\Carbon;
  * @property int|null $transaction_code_id
  * @property int $target_folio_id
  * @property RoutingRuleSource $source
- * @property Carbon|null $created_at
- * @property Carbon|null $updated_at
+ * @property CarbonImmutable|null $created_at
+ * @property CarbonImmutable|null $updated_at
  */
 #[Fillable(['reservation_id', 'reservation_unit_id', 'category', 'transaction_code_id', 'target_folio_id', 'source'])]
 class FolioRoutingRule extends Model

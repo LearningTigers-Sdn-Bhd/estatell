@@ -6,7 +6,7 @@ use App\Enums\PaymentStatus;
 use App\Models\ArPayment;
 use App\Models\Company;
 use App\Models\Payment;
-use Carbon\CarbonInterface;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 
 /**
@@ -49,7 +49,7 @@ class FolioPaymentReferences
     }
 
     /**
-     * @return Collection<int, array{date: CarbonInterface, order: int, folio: string|null, receipt: string}>
+     * @return Collection<int, array{date: CarbonImmutable, order: int, folio: string, receipt: string}>
      */
     private function folioPayments(Company $company, string $reference): Collection
     {
@@ -72,7 +72,7 @@ class FolioPaymentReferences
     }
 
     /**
-     * @return Collection<int, array{date: CarbonInterface, order: int, folio: string|null, receipt: string}>
+     * @return Collection<int, array{date: CarbonImmutable, order: int, folio: null, receipt: string}>
      */
     private function arPayments(Company $company, string $reference): Collection
     {

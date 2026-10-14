@@ -4,12 +4,12 @@ namespace App\Models;
 
 use App\Enums\AuditStep;
 use App\Enums\AuditStepStatus;
+use Carbon\CarbonImmutable;
 use Database\Factories\NightAuditStepFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Support\Carbon;
 
 /**
  * The record of one step of a night audit. A Completed row is skipped when the audit is resumed.
@@ -21,11 +21,11 @@ use Illuminate\Support\Carbon;
  * @property AuditStepStatus $status
  * @property int $processed_count
  * @property int $failed_count
- * @property Carbon|null $started_at
- * @property Carbon|null $finished_at
+ * @property CarbonImmutable|null $started_at
+ * @property CarbonImmutable|null $finished_at
  * @property string|null $error_message
- * @property Carbon|null $created_at
- * @property Carbon|null $updated_at
+ * @property CarbonImmutable|null $created_at
+ * @property CarbonImmutable|null $updated_at
  */
 #[Fillable(['step', 'status', 'processed_count', 'failed_count', 'started_at', 'finished_at', 'error_message'])]
 class NightAuditStep extends Model

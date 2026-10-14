@@ -2,13 +2,13 @@
 
 namespace App\Models;
 
+use Carbon\CarbonImmutable;
 use Database\Factories\ArAllocationFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Support\Carbon;
 
 /**
  * Part of an AR payment matched to an invoice. Never edited: a mistake is reversed, which sets `reversed_at`,
@@ -20,11 +20,11 @@ use Illuminate\Support\Carbon;
  * @property int $ar_invoice_id
  * @property string $amount
  * @property int $created_by
- * @property Carbon|null $reversed_at
+ * @property CarbonImmutable|null $reversed_at
  * @property int|null $reversed_by
  * @property string|null $reversal_reason
- * @property Carbon|null $created_at
- * @property Carbon|null $updated_at
+ * @property CarbonImmutable|null $created_at
+ * @property CarbonImmutable|null $updated_at
  */
 #[Fillable(['ar_payment_id', 'ar_invoice_id', 'amount', 'created_by', 'reversed_at', 'reversed_by', 'reversal_reason'])]
 class ArAllocation extends Model

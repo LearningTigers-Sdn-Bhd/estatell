@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\RoomBlockReason;
+use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Database\Factories\RoomBlockFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -10,7 +11,6 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Support\Carbon;
 
 /**
  * Takes a room, or one bed of it, out of sale from `starts_on` to `ends_on` (both nights included).
@@ -21,13 +21,13 @@ use Illuminate\Support\Carbon;
  * @property int $room_id
  * @property int|null $bed_id
  * @property RoomBlockReason $reason
- * @property Carbon $starts_on
- * @property Carbon $ends_on
+ * @property CarbonImmutable $starts_on
+ * @property CarbonImmutable $ends_on
  * @property string|null $notes
  * @property int $created_by
- * @property Carbon|null $completed_at
- * @property Carbon|null $created_at
- * @property Carbon|null $updated_at
+ * @property CarbonImmutable|null $completed_at
+ * @property CarbonImmutable|null $created_at
+ * @property CarbonImmutable|null $updated_at
  */
 #[Fillable(['reason', 'starts_on', 'ends_on', 'notes'])]
 class RoomBlock extends Model

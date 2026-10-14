@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\Gender;
 use App\Enums\Locale;
+use Carbon\CarbonImmutable;
 use Database\Factories\GuestFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
@@ -12,7 +13,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Support\Carbon;
 
 /**
  * A guest of one property. Guests are never shared across properties.
@@ -24,7 +24,7 @@ use Illuminate\Support\Carbon;
  * @property string|null $email
  * @property string|null $phone
  * @property string|null $nationality_code
- * @property Carbon|null $date_of_birth
+ * @property CarbonImmutable|null $date_of_birth
  * @property Gender|null $gender
  * @property Locale|null $preferred_locale
  * @property string|null $address_line1
@@ -34,13 +34,13 @@ use Illuminate\Support\Carbon;
  * @property string|null $postal_code
  * @property string|null $country_code
  * @property bool $is_vip
- * @property Carbon|null $blacklisted_at
+ * @property CarbonImmutable|null $blacklisted_at
  * @property string|null $blacklist_reason
- * @property Carbon|null $marketing_consent_at
+ * @property CarbonImmutable|null $marketing_consent_at
  * @property int|null $merged_into_id
- * @property Carbon|null $anonymized_at
- * @property Carbon|null $created_at
- * @property Carbon|null $updated_at
+ * @property CarbonImmutable|null $anonymized_at
+ * @property CarbonImmutable|null $created_at
+ * @property CarbonImmutable|null $updated_at
  */
 #[Fillable([
     'full_name', 'email', 'phone', 'nationality_code', 'date_of_birth', 'gender', 'preferred_locale',

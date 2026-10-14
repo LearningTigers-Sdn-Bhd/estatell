@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\SellUnit;
+use Carbon\CarbonImmutable;
 use Database\Factories\RoomTypeFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
@@ -11,7 +12,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Support\Carbon;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 
@@ -30,9 +30,9 @@ use Spatie\MediaLibrary\InteractsWithMedia;
  * @property bool $pets_allowed
  * @property int|null $terms_document_id
  * @property int $position
- * @property Carbon|null $archived_at
- * @property Carbon|null $created_at
- * @property Carbon|null $updated_at
+ * @property CarbonImmutable|null $archived_at
+ * @property CarbonImmutable|null $created_at
+ * @property CarbonImmutable|null $updated_at
  */
 #[Fillable([
     'name', 'description', 'sell_unit', 'max_adults', 'max_children', 'base_occupancy',

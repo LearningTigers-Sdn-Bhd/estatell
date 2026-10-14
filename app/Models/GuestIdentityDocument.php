@@ -5,12 +5,12 @@ namespace App\Models;
 use App\Enums\IdentityDocumentType;
 use App\Services\Guests\IdentityNumber;
 use App\Services\Platform\PlatformSettings;
+use Carbon\CarbonImmutable;
 use Database\Factories\GuestIdentityDocumentFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Support\Carbon;
 use ParagonIE\CipherSweet\BlindIndex;
 use ParagonIE\CipherSweet\EncryptedRow;
 use ParagonIE\CipherSweet\Transformation\AlphaNumericCharactersOnly;
@@ -29,9 +29,9 @@ use Spatie\MediaLibrary\InteractsWithMedia;
  * @property IdentityDocumentType $type
  * @property string $number
  * @property string|null $issuing_country_code
- * @property Carbon|null $expires_on
- * @property Carbon|null $created_at
- * @property Carbon|null $updated_at
+ * @property CarbonImmutable|null $expires_on
+ * @property CarbonImmutable|null $created_at
+ * @property CarbonImmutable|null $updated_at
  */
 #[Fillable(['type', 'number', 'issuing_country_code', 'expires_on'])]
 class GuestIdentityDocument extends Model implements CipherSweetEncrypted, HasMedia

@@ -5,13 +5,13 @@ namespace App\Models;
 use App\Enums\AuditExceptionType;
 use App\Enums\AuditStep;
 use App\Enums\UnitStatus;
+use Carbon\CarbonImmutable;
 use Database\Factories\NightAuditExceptionFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Support\Carbon;
 
 /**
  * One unit or add-on a night audit could not resolve. Open rows carry to the next day's readiness panel.
@@ -23,10 +23,10 @@ use Illuminate\Support\Carbon;
  * @property int|null $reservation_unit_id
  * @property AuditExceptionType $type
  * @property string $message
- * @property Carbon|null $resolved_at
+ * @property CarbonImmutable|null $resolved_at
  * @property int|null $resolved_by
- * @property Carbon|null $created_at
- * @property Carbon|null $updated_at
+ * @property CarbonImmutable|null $created_at
+ * @property CarbonImmutable|null $updated_at
  */
 #[Fillable(['step', 'reservation_unit_id', 'type', 'message', 'resolved_at', 'resolved_by'])]
 class NightAuditException extends Model

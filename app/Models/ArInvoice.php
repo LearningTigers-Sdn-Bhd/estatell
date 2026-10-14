@@ -4,13 +4,13 @@ namespace App\Models;
 
 use App\Enums\ArInvoiceStatus;
 use App\Enums\ArInvoiceType;
+use Carbon\CarbonImmutable;
 use Database\Factories\ArInvoiceFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Support\Carbon;
 
 /**
  * What a company owes (an invoice, positive) or a correction of it (a credit note, negative, with
@@ -24,14 +24,14 @@ use Illuminate\Support\Carbon;
  * @property int|null $credit_for_invoice_id
  * @property ArInvoiceType $type
  * @property string $number
- * @property Carbon $issued_on
- * @property Carbon|null $due_on
+ * @property CarbonImmutable $issued_on
+ * @property CarbonImmutable|null $due_on
  * @property string $amount
  * @property string|null $reason
  * @property ArInvoiceStatus $status
  * @property int $created_by
- * @property Carbon|null $created_at
- * @property Carbon|null $updated_at
+ * @property CarbonImmutable|null $created_at
+ * @property CarbonImmutable|null $updated_at
  */
 #[Fillable([
     'company_id', 'folio_id', 'credit_for_invoice_id', 'type', 'number', 'issued_on', 'due_on', 'amount', 'reason',

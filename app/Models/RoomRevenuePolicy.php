@@ -6,12 +6,12 @@ use App\Enums\PolicyChargeMode;
 use App\Enums\PolicyRateBasis;
 use App\Enums\PolicyScope;
 use App\Enums\SystemTransactionCode;
+use Carbon\CarbonImmutable;
 use Database\Factories\RoomRevenuePolicyFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Support\Carbon;
 
 /**
  * What a property charges for a no-show, a cancellation, an early departure or a late check-out.
@@ -28,8 +28,8 @@ use Illuminate\Support\Carbon;
  * @property bool $own_taxes True when the policy code keeps its own taxes instead of following the Taxes tab.
  * @property string $text_en
  * @property string $text_ms
- * @property Carbon|null $created_at
- * @property Carbon|null $updated_at
+ * @property CarbonImmutable|null $created_at
+ * @property CarbonImmutable|null $updated_at
  */
 #[Fillable([
     'code', 'charge_mode', 'amount', 'percent', 'percent_basis', 'applies_to',

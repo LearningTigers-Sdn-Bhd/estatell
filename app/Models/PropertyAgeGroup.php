@@ -2,13 +2,13 @@
 
 namespace App\Models;
 
+use Carbon\CarbonImmutable;
 use Database\Factories\PropertyAgeGroupFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Support\Carbon;
 
 /**
  * One property-defined age band, such as Infant 0-3 or Child 4-11.
@@ -18,8 +18,8 @@ use Illuminate\Support\Carbon;
  * @property string $label
  * @property int $min_age
  * @property int $max_age
- * @property Carbon|null $created_at
- * @property Carbon|null $updated_at
+ * @property CarbonImmutable|null $created_at
+ * @property CarbonImmutable|null $updated_at
  */
 #[Fillable(['label', 'min_age', 'max_age'])]
 class PropertyAgeGroup extends Model

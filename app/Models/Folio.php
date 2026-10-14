@@ -4,13 +4,13 @@ namespace App\Models;
 
 use App\Enums\FolioStatus;
 use App\Enums\FolioType;
+use Carbon\CarbonImmutable;
 use Database\Factories\FolioFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Support\Carbon;
 
 /**
  * The bill for a reservation or one of its units. The balance is `SUM(folio_lines.amount)` and is never stored
@@ -26,10 +26,10 @@ use Illuminate\Support\Carbon;
  * @property int|null $payer_guest_id
  * @property int|null $payer_company_id The company that pays this folio.
  * @property string|null $invoice_number
- * @property Carbon|null $closed_at
+ * @property CarbonImmutable|null $closed_at
  * @property int|null $closed_by
- * @property Carbon|null $created_at
- * @property Carbon|null $updated_at
+ * @property CarbonImmutable|null $created_at
+ * @property CarbonImmutable|null $updated_at
  */
 #[Fillable([
     'reservation_id', 'reservation_unit_id', 'number', 'type', 'status', 'payer_guest_id', 'payer_company_id',

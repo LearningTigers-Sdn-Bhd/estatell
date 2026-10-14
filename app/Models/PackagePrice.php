@@ -2,12 +2,12 @@
 
 namespace App\Models;
 
+use Carbon\CarbonImmutable;
 use Database\Factories\PackagePriceFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Support\Carbon;
 
 /**
  * The price of the whole stay of a package for one room type, for guests who arrive from `arrival_from` to `arrival_to`.
@@ -15,11 +15,11 @@ use Illuminate\Support\Carbon;
  * @property int $id
  * @property int $rate_plan_id
  * @property int $room_type_id
- * @property Carbon $arrival_from
- * @property Carbon $arrival_to
+ * @property CarbonImmutable $arrival_from
+ * @property CarbonImmutable $arrival_to
  * @property string $amount
- * @property Carbon|null $created_at
- * @property Carbon|null $updated_at
+ * @property CarbonImmutable|null $created_at
+ * @property CarbonImmutable|null $updated_at
  */
 #[Fillable(['room_type_id', 'arrival_from', 'arrival_to', 'amount'])]
 class PackagePrice extends Model

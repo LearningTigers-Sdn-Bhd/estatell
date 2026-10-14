@@ -2,12 +2,12 @@
 
 namespace App\Models;
 
+use Carbon\CarbonImmutable;
 use Database\Factories\UnitAddOnFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Support\Carbon;
 
 /**
  * An extra sold with one unit. Nightly charge items have one row per night. The total is `quantity × unit_amount`
@@ -19,11 +19,11 @@ use Illuminate\Support\Carbon;
  * @property int $charge_item_id
  * @property int $quantity
  * @property string $unit_amount
- * @property Carbon|null $service_date
+ * @property CarbonImmutable|null $service_date
  * @property int|null $property_age_group_id The age group of a child price row. Null for the adult price.
  * @property int|null $folio_line_id The charge line that posted this add-on. Null while it is only scheduled.
- * @property Carbon|null $created_at
- * @property Carbon|null $updated_at
+ * @property CarbonImmutable|null $created_at
+ * @property CarbonImmutable|null $updated_at
  */
 #[Fillable(['charge_item_id', 'quantity', 'unit_amount', 'service_date', 'property_age_group_id'])]
 class UnitAddOn extends Model

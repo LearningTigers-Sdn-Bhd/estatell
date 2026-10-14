@@ -3,12 +3,12 @@
 namespace App\Models;
 
 use App\Enums\PartnerStatus;
+use Carbon\CarbonImmutable;
 use Database\Factories\PartnerFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Support\Carbon;
 
 /**
  * A reseller or consultant who brings properties to estatell. `code_prefix` and `signup_code` are set by
@@ -20,9 +20,9 @@ use Illuminate\Support\Carbon;
  * @property string $signup_code
  * @property PartnerStatus $status
  * @property bool $can_create_properties
- * @property Carbon|null $suspended_at
- * @property Carbon|null $created_at
- * @property Carbon|null $updated_at
+ * @property CarbonImmutable|null $suspended_at
+ * @property CarbonImmutable|null $created_at
+ * @property CarbonImmutable|null $updated_at
  */
 #[Fillable(['name', 'status', 'can_create_properties', 'suspended_at'])]
 class Partner extends Model

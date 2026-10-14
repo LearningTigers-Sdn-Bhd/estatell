@@ -3,8 +3,8 @@
 namespace App\Models;
 
 use App\Enums\DefaultRoleEnum;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Support\Carbon;
 use Spatie\Permission\Models\Role as SpatieRole;
 
 /**
@@ -15,8 +15,8 @@ use Spatie\Permission\Models\Role as SpatieRole;
  * @property string $name
  * @property string $guard_name
  * @property DefaultRoleEnum|null $default_role
- * @property Carbon|null $created_at
- * @property Carbon|null $updated_at
+ * @property CarbonImmutable|null $created_at
+ * @property CarbonImmutable|null $updated_at
  */
 class Role extends SpatieRole
 {

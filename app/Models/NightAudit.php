@@ -4,13 +4,13 @@ namespace App\Models;
 
 use App\Enums\AuditStatus;
 use App\Enums\AuditTrigger;
+use Carbon\CarbonImmutable;
 use Database\Factories\NightAuditFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Support\Carbon;
 
 /**
  * One run of the night audit for one business date. A failed run is resumed on the same row.
@@ -20,13 +20,13 @@ use Illuminate\Support\Carbon;
  * @property int $business_date_id
  * @property AuditTrigger $trigger
  * @property AuditStatus $status
- * @property Carbon $started_at
- * @property Carbon|null $completed_at
+ * @property CarbonImmutable $started_at
+ * @property CarbonImmutable|null $completed_at
  * @property int|null $run_by
  * @property bool $forced
  * @property string|null $force_reason
- * @property Carbon|null $created_at
- * @property Carbon|null $updated_at
+ * @property CarbonImmutable|null $created_at
+ * @property CarbonImmutable|null $updated_at
  */
 #[Fillable(['business_date_id', 'trigger', 'status', 'started_at', 'completed_at', 'run_by', 'forced', 'force_reason'])]
 class NightAudit extends Model
