@@ -12,13 +12,14 @@ partners                  id, name, code_prefix (char 2, unique), signup_code (c
 users                     + partner_id (nullable, restrict on delete)
 properties                + partner_id (nullable, restrict on delete)
 property_code_counters    prefix (char 2, primary key), last_number (bigint)
-partner_invitations       id, partner_id, email, token_hash, expires_at, last_sent_at,
-                          accepted_at, revoked_at, invited_by, timestamps
+partner_invitations       id, partner_id (cascade on delete), email, token_hash (unique), expires_at,
+                          last_sent_at, accepted_at, revoked_at, invited_by, timestamps
                           UNIQUE (partner_id) WHERE accepted_at IS NULL AND revoked_at IS NULL
+                          UNIQUE (email) WHERE accepted_at IS NULL AND revoked_at IS NULL
                           CHECK email = lower(email); CHECK accepted_at and revoked_at are not both set
 ```
 
-- `code_prefix`: 2 capital letters, CHECK `^[A-Z]{2}$`. Set by the admin when adding the partner, suggested from the name ("Andaman Stays" → `AS`) and editable. It never changes. `ES` is reserved for direct properties.
+- `code_prefix`: 2 capital letters. The CHECK `partners_code_prefix_check` refuses anything but `^[A-Z]{2}$` and refuses `ES`, which is reserved for direct properties. Set by the admin when adding the partner, suggested from the name ("Andaman Stays" → `AS`) and editable. It never changes.
 - One login per partner for now: one `users` row with `partner_id`. The table allows a team later.
 - A user is exactly one of admin, staff, partner user or company user (see [Platform admins](../01-platform/01-platform-admins.md#data-model)).
 - `PartnerStatus`: Invited, Active, Suspended.
@@ -29,7 +30,10 @@ partner_invitations       id, partner_id, email, token_hash, expires_at, last_se
 | Active    | Suspended                                                                          |
 | Suspended | Active                                                                             |
 
-- `partner_invitations` has the same shape and token rules as `staff_invitations` (SHA-256 `token_hash`, valid 7 days), without the property and role. See [Staff and invitations](../03-staff/01-staff-and-invitations.md).
+- `partner_invitations` has the same shape and token rules as `staff_invitations` (SHA-256 `token_hash`, unique, valid 7 days), without the property and role. See [Staff and invitations](../03-staff/01-staff-and-invitations.md).
+- `partner_invitations.partner_id` cascades on delete, so revoking (which deletes the Invited partner) removes its invitation rows. The activity log on the partner keeps the history.
+- One email can hold only one open invitation, across all partners. A second accept would always fail, so it is refused at invite time.
+- `partners` is a platform table, so it has no `property_id`. Every partner query is scoped by `partner_id` instead.
 
 ## Property codes
 
@@ -102,11 +106,15 @@ Selected (1): [Copy message] [Export ▾ CSV · XLSX · PDF] [Reset temp passwor
 
 ### Invite by email
 
-- `InvitePartner` creates the `partners` row as **Invited** at once, with its `property_code_counters` row and signup code, so the prefix is reserved. Then it creates the invitation and emails the link (`PartnerInvitationNotification`, queued after commit). Logs `partner.invited`.
-- `AcceptPartnerInvitation` (`/partner-invitations/{token}`, guest only, throttled 6 per minute): the person sets their name and password. Creates the user with the email verified, sets the partner Active and closes the invitation. Logs `partner.invitation-accepted`.
-- `ResendPartnerInvitation`: a new token and a new 7-day expiry, so the old link stops working.
-- `RevokePartnerInvitation`: deletes the Invited partner and its counter row, which frees the prefix. Safe because an Invited partner has no user and no properties.
-- Unknown, expired, revoked and accepted links show one notice page, like staff invitations.
+- **Invite by email** opens a Dialog with partner name, prefix (suggested from the name, editable) and email.
+- `InvitePartner` creates the `partners` row as **Invited** at once through `CreatePartner`, with its `property_code_counters` row and signup code, so the prefix is reserved. Then it creates the invitation and emails the link (`PartnerInvitationNotification`, queued after commit). Logs `partner.invited`. Redirects to the Invited tab.
+- `AcceptPartnerInvitation` (`/partner-invitations/{token}`, guest only, throttled 6 per minute): the person sets their name and password. Creates the user with the email verified, sets the partner Active and closes the invitation, then signs them in to `/partner`. Refused when the invitation is closed or expired, the partner is no longer Invited, or the email now has an account. Logs `partner.invitation-accepted`.
+- `ResendPartnerInvitation`: a new token and a new 7-day expiry, so the old link stops working. Logs `partner.invitation-resent`.
+- `RevokePartnerInvitation`: logs `partner.invitation-revoked`, then deletes the Invited partner and its counter row, which frees the prefix. Safe because an Invited partner has no user and no properties.
+- An expired invitation keeps its prefix reserved until the admin resends or revokes it.
+- Unknown, expired, revoked and accepted links show one notice page (`pages/partner-invitations/accept.tsx`, separate from the staff page): "This link has expired, was replaced by a newer one, or was already used. Ask estatell support for a new invitation."
+- The Invited tab lists open invitations: Partner, Prefix, Email, Invited by, Sent, Expires (or **Expired**). Rows have ⋯ → **Resend** (no confirm) and **Revoke** (confirm: "Revoke the invitation to {email}? The link stops working. The prefix {prefix} is free for another partner."). No selection on this tab.
+- Every action that refuses (closed, expired, not Invited) returns false and logs nothing.
 
 ### Add with temp password
 
@@ -118,27 +126,31 @@ Selected (1): [Copy message] [Export ▾ CSV · XLSX · PDF] [Reset temp passwor
 
 ### Bulk add
 
-- A full page (`/admin/partners/bulk`), grid rows or a CSV/XLSX upload, with the columns partner name, prefix, user name and email. `BulkCreatePartners` saves all rows in one transaction or none.
-- The prefix is suggested per row and editable. Rows fail validation for a prefix that is not 2 letters, is `ES`, is taken, or repeats in the same file, and for an email that has an account.
-- After saving, the page offers the same copy and export for the new partners.
+- A full page (`/admin/partners/bulk`), grid rows or a CSV/XLSX upload, with the columns partner name, prefix, user name and email. `BulkCreatePartners` saves all rows in one transaction or none, calling `CreatePartnerWithTemporaryPassword` per row. Each partner is logged on its own; there is no batch log.
+- Upload headings are `partner_name`, `prefix`, `user_name`, `email`. Case and spaces are ignored ("Partner name" works). Up to 200 rows; blank lines are skipped. **Template** downloads the empty file as CSV or Excel. Uploaded rows are added to the grid.
+- The prefix is suggested per row in the browser (the same suggestion as the Add dialog) while the row's prefix is untouched, and stays editable. The server does not suggest.
+- Rows fail validation for a prefix that is not 2 letters, is `ES`, is taken, or repeats in the list, and for an email that has an account, has an open partner invitation, or repeats in the list. Errors show on their rows after **Create**.
+- If another admin takes a prefix or email while saving, nothing is saved and the page shows "A prefix or email was taken while you saved. Nothing was saved."
+- After saving, the page shows the new partners with **Copy all**, **Export** and **Done**, using the same message and export Dialogs. Only user ids, names and emails come back; the message is fetched when its Dialog opens. The Dialog says "partner", not "staff member".
 
 ### Routes
 
-| Page or action              | URL                                            | Name                                   |
-| --------------------------- | ---------------------------------------------- | -------------------------------------- |
-| Active tab                  | `GET /admin/partners`                          | `admin.partners.index`                 |
-| Invited tab                 | `GET /admin/partners/invited`                  | `admin.partners.invited`               |
-| Suspended tab               | `GET /admin/partners/suspended`                | `admin.partners.suspended`             |
-| Add with temp password      | `POST /admin/partners`                         | `admin.partners.store`                 |
-| Bulk add                    | `GET`, `POST /admin/partners/bulk`             | `admin.partners.bulk.create`, `.store` |
-| Invite                      | `POST /admin/partners/invitations`             | `admin.partners.invitations.store`     |
-| Resend                      | `POST /admin/partners/invitations/{id}/resend` | `admin.partners.invitations.resend`    |
-| Revoke                      | `DELETE /admin/partners/invitations/{id}`      | `admin.partners.invitations.destroy`   |
-| Copy message, export, reset | `/admin/partners/temporary-passwords/…`        | `admin.partners.temporary-passwords.*` |
-| Suspend                     | `POST /admin/partners/{partner}/suspend`       | `admin.partners.suspend`               |
-| Reactivate                  | `POST /admin/partners/{partner}/reactivate`    | `admin.partners.reactivate`            |
-| Accept page, accept         | `GET`, `POST /partner-invitations/{token}`     | `partner-invitations.show`, `.accept`  |
-| Move a property             | `PUT /admin/properties/{code}/partner`         | `admin.properties.partner.update`      |
+| Page or action              | URL                                                                                       | Name                                             |
+| --------------------------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------ |
+| Active tab                  | `GET /admin/partners`                                                                     | `admin.partners.index`                           |
+| Invited tab                 | `GET /admin/partners/invited`                                                             | `admin.partners.invited`                         |
+| Suspended tab               | `GET /admin/partners/suspended`                                                           | `admin.partners.suspended`                       |
+| Add with temp password      | `POST /admin/partners`                                                                    | `admin.partners.store`                           |
+| Bulk add                    | `GET`, `POST /admin/partners/bulk`                                                        | `admin.partners.bulk.create`, `.store`           |
+| Bulk upload, template       | `POST /admin/partners/bulk/import`, `GET /admin/partners/bulk/import-template.{csv,xlsx}` | `admin.partners.bulk.import`, `.import-template` |
+| Invite                      | `POST /admin/partners/invitations`                                                        | `admin.partners.invitations.store`               |
+| Resend                      | `POST /admin/partners/invitations/{id}/resend`                                            | `admin.partners.invitations.resend`              |
+| Revoke                      | `DELETE /admin/partners/invitations/{id}`                                                 | `admin.partners.invitations.destroy`             |
+| Copy message, export, reset | `/admin/partners/temporary-passwords/…`                                                   | `admin.partners.temporary-passwords.*`           |
+| Suspend                     | `POST /admin/partners/{partner}/suspend`                                                  | `admin.partners.suspend`                         |
+| Reactivate                  | `POST /admin/partners/{partner}/reactivate`                                               | `admin.partners.reactivate`                      |
+| Accept page, accept         | `GET`, `POST /partner-invitations/{token}`                                                | `partner-invitations.show`, `.accept`            |
+| Move a property             | `PUT /admin/properties/{code}/partner`                                                    | `admin.properties.partner.update`                |
 
 ### Other admin rules
 
@@ -146,7 +158,9 @@ Selected (1): [Copy message] [Export ▾ CSV · XLSX · PDF] [Reset temp passwor
 - The Suspended tab has the same columns, with **Suspended** (the date) instead of status. Active rows have ⋯ → **Suspend** with a confirm ("Suspend {name}? They can't sign in. Their properties keep running."). Suspended rows have ⋯ → **Reactivate** without a confirm. Only an Active partner can be suspended; an Invited one is revoked instead.
 - Admin properties list gets a **Partner** column and filter.
 - **Move to partner** on the admin property page: pick a partner or "Direct". `MovePropertyToPartner` changes `partner_id` only. The code stays. The old partner loses view as at once. Logged with the old and new partner.
-- Every admin write carries `support.2fa` and is logged.
+- Every admin write carries `support.2fa` and is logged. Reading an upload writes nothing, so it does not.
+- Add, Invite and Bulk add share one set of prefix and email rules (`App\Concerns\PartnerValidationRules`): emails are compared in lower case, and an email with an account or an open partner invitation is refused.
+- The **Add partner** menu lives in `components/pms/partners/add-partner-menu.tsx`.
 
 ## Rules
 
@@ -172,8 +186,10 @@ Selected (1): [Copy message] [Export ▾ CSV · XLSX · PDF] [Reset temp passwor
 - A partner creates a property with their prefix.
 - A suspended partner cannot sign in.
 - Invite reserves the prefix; revoke frees it; accept makes the partner Active; an expired link fails.
+- Invite refuses an email with an account or an open invitation for any partner; accept fails when the email got an account after the invite.
 - Add with temp password forces a password change at first sign-in.
 - Bulk add rejects `ES`, a taken prefix and a repeated prefix, and saves nothing on any error.
+- Bulk add rejects an email with an account, an open invitation or a repeat in the list; upload reads CSV and XLSX and refuses a wrong heading; the result never carries a temp password.
 
 ## Lessons from wastays
 

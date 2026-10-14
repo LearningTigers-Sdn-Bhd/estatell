@@ -104,6 +104,9 @@ After login, an Owner of a non-live property is redirected to `/p/{their code}/o
 | `GET /admin/properties/ES10142`                                    | `admin.properties.show`               | `pages/admin/properties/show.tsx`               |
 | `POST /admin/properties/ES10142/owner/setup-link`                  | `admin.properties.owner.setup-link`   | –                                               |
 | `GET /admin/partners`                                              | `admin.partners.index`                | `pages/admin/partners/index.tsx`                |
+| `GET /admin/partners/invited`                                      | `admin.partners.invited`              | `pages/admin/partners/index.tsx`                |
+| `GET /admin/partners/bulk`                                         | `admin.partners.bulk.create`          | `pages/admin/partners/bulk.tsx`                 |
+| `GET /partner-invitations/{token}`                                 | `partner-invitations.show`            | `pages/partner-invitations/accept.tsx`          |
 | `GET /view-as/ES10142`                                             | `view-as.show`                        | `pages/view-as/show.tsx`                        |
 | `GET /partner`                                                     | `partner.properties.index`            | `pages/partner/properties/index.tsx`            |
 | `GET /join/K7Q2MX`                                                 | `join`                                | Redirects to `/register`                        |
@@ -124,7 +127,7 @@ import { stayView } from '@/routes/front-desk';
 - **Daily operations** live under module prefixes: front desk, reservations, guests, housekeeping, night audit, finance (folios, payments, city ledger), reports, channels.
 - **Exception:** the rate calendar is used daily, so it lives at `/p/{code}/rates/calendar` (`rates.calendar`, with `rates.calendar.bulk` for bulk edit).
 - Onboarding steps render the same settings forms in the wizard layout.
-- Guest links outside `/p`: staff invitations at `/invitations/{token}` (`invitations.*`, `routes/staff.php`, guest only). See [Staff and invitations](03-staff/01-staff-and-invitations.md).
+- Guest links outside `/p`: staff invitations at `/invitations/{token}` (`invitations.*`, `routes/staff.php`, guest only). See [Staff and invitations](03-staff/01-staff-and-invitations.md). Partner invitations at `/partner-invitations/{token}` (`partner-invitations.*`, `routes/partner.php`, guest only, accept throttled 6 per minute). See [Partners](17-onboarding/05-partners.md#invite-by-email).
 - Owner setup uses signed guest GET and POST routes under `/g/owners/{user}/setup`. Both are guest-only. The POST is throttled, and the GET supplies the exact signed POST URL because the browser must not reconstruct its signature. Links expire after seven days.
 - Each settings page group carries its own `can:` permission middleware (property details: `settings.manage`; staff: `staff.view`, invitations: `staff.manage`), because staff and roles pages under `settings.*` need other permissions. Staff without it get 403.
 
