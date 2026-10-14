@@ -6,7 +6,7 @@ How guests and companies pay.
 
 ## Built first slice
 
-Every Malaysian property receives six system-backed payment methods through `SeedPaymentMethods`. Properties in other countries receive Cash, Card and Bank transfer ([Country profiles](../02-property/03-seed-property-defaults.md#country-profiles)). Cash, Card, Bank transfer and E-wallet start active. OTA collected and City ledger start inactive. Repeated seeding restores missing methods and preserves property changes.
+Every Malaysian property receives six system-backed payment methods through `SeedPaymentMethods`. Properties in other countries receive Cash, Card, Bank transfer and City ledger (off) ([Country profiles](../02-property/03-seed-property-defaults.md#country-profiles)). Cash, Card, Bank transfer and E-wallet start active. OTA collected and City ledger start inactive. Repeated seeding restores missing methods and preserves property changes.
 
 Staff with `settings.manage` can rename, activate, configure and reorder every method. The six seeded methods keep their type and system code.
 

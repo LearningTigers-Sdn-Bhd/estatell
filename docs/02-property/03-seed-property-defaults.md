@@ -21,7 +21,7 @@ A strategy class per country replaces the `$countryCode !== 'MY'` checks in the 
 | Locale                                                               | English, Bahasa Malaysia available | English                                                                                                        |
 | State                                                                | Malaysian state list               | Free text                                                                                                      |
 | Taxes                                                                | SST and Tourism tax presets        | None                                                                                                           |
-| Payment methods                                                      | The six system methods             | Cash, Card and Bank transfer                                                                                   |
+| Payment methods                                                      | The six system methods             | Cash, Card, Bank transfer and City ledger (off)                                                                |
 | Transaction codes, charge items, discounts, age groups, meal periods | Malaysian presets                  | Neutral presets: same structure, no Malaysia-specific names                                                    |
 | Identity document types                                              | MyKad and others                   | Passport and national ID                                                                                       |
 | Terms                                                                | English and Bahasa Malaysia        | English                                                                                                        |
@@ -92,20 +92,20 @@ Roles are the exception during self sign-up: `SeedDefaultRoles` runs when the pr
 
 ## Planned defaults
 
-| Area                  | Seeded data                                                                                                                            | Source                                                 |
-| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------ |
-| Roles                 | Owner, Manager, FrontDesk, Housekeeping, Finance (already seeded)                                                                      | `DefaultRoleEnum`                                      |
-| Meal periods          | Breakfast, Lunch, Dinner                                                                                                               | `DefaultMealPeriod`                                    |
-| Transaction codes     | The complete Malaysia system-code catalogue (already seeded)                                                                           | `SystemTransactionCode`                                |
-| Taxes                 | Malaysia: 8% SST and RM10 Tourism tax on room revenue, disabled until confirmed. Other countries: none.                                | `SeedTaxes`                                            |
-| Payment methods       | Malaysia: six system methods; Cash, Card, Bank transfer and E-wallet start active. Other countries: Cash, Card, Bank transfer.         | `SeedPaymentMethods`                                   |
-| Settings              | Currency, time zone, locale, check-in and check-out times (built), weekend nights FriSat                                               | Country profile and type                               |
-| Room revenue policies | Four rows (no-show, cancellation, early departure, late check-out), all Free, with a short default text in English and Bahasa Malaysia | `SeedRoomRevenuePolicies`                              |
-| Rate plan             | "Basic Rate", an ordinary plan with no prices yet. PerRoom, linked to room-sold room types.                                            | `SeedRatePlans`                                        |
-| Age groups            | Infant 0–3, Child 4–11 (adults from 12)                                                                                                | [Age groups](04-age-groups.md)                         |
-| Registration card     | 18 field rows, Full name locked, prices hidden                                                                                         | `SeedRegistrationCardFields`                           |
-| Print settings        | One `print_settings` row: Office font style, Medium size, logo, address, contact and registration number on, TIN off, no tax numbers   | [Printing settings](05-printing-settings.md)           |
-| Terms                 | Default terms document, version 1, English and Bahasa Malaysia                                                                         | `SeedRegistrationTerms` and `TermsPreset` for the type |
+| Area                  | Seeded data                                                                                                                                          | Source                                                 |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------ |
+| Roles                 | Owner, Manager, FrontDesk, Housekeeping, Finance (already seeded)                                                                                    | `DefaultRoleEnum`                                      |
+| Meal periods          | Breakfast, Lunch, Dinner                                                                                                                             | `DefaultMealPeriod`                                    |
+| Transaction codes     | The complete Malaysia system-code catalogue (already seeded)                                                                                         | `SystemTransactionCode`                                |
+| Taxes                 | Malaysia: 8% SST and RM10 Tourism tax on room revenue, disabled until confirmed. Other countries: none.                                              | `SeedTaxes`                                            |
+| Payment methods       | Malaysia: six system methods; Cash, Card, Bank transfer and E-wallet start active. Other countries: Cash, Card, Bank transfer and City ledger (off). | `SeedPaymentMethods`                                   |
+| Settings              | Currency, time zone, locale, check-in and check-out times (built), weekend nights FriSat                                                             | Country profile and type                               |
+| Room revenue policies | Four rows (no-show, cancellation, early departure, late check-out), all Free, with a short default text in English and Bahasa Malaysia               | `SeedRoomRevenuePolicies`                              |
+| Rate plan             | "Basic Rate", an ordinary plan with no prices yet. PerRoom, linked to room-sold room types.                                                          | `SeedRatePlans`                                        |
+| Age groups            | Infant 0–3, Child 4–11 (adults from 12)                                                                                                              | [Age groups](04-age-groups.md)                         |
+| Registration card     | 18 field rows, Full name locked, prices hidden                                                                                                       | `SeedRegistrationCardFields`                           |
+| Print settings        | One `print_settings` row: Office font style, Medium size, logo, address, contact and registration number on, TIN off, no tax numbers                 | [Printing settings](05-printing-settings.md)           |
+| Terms                 | Default terms document, version 1, English and Bahasa Malaysia                                                                                       | `SeedRegistrationTerms` and `TermsPreset` for the type |
 
 ## Rules
 

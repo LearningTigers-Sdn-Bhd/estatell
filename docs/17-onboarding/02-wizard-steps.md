@@ -24,28 +24,29 @@ The first release has only the Basics page. It uses the current staff layout. Ba
 | 2   | Rooms      | Room types: an editable table, sold by room only. See [Room types table](#room-types-table).                                                                                                                                                                                                              | Yes      | Basics             |
 | 3   |            | Rooms: number ranges per room type, optional room groups. See [Rooms table](#rooms-table).                                                                                                                                                                                                                | Yes      | Room types         |
 | 4   | Finance    | Taxes, including which taxes apply to rooms (room revenue). See [Taxes table](#taxes-table).                                                                                                                                                                                                              | Yes      | Basics             |
-| 5   |            | Payment methods: toggle the seeded presets                                                                                                                                                                                                                                                                | Yes      | Basics             |
-| 6   | Prices     | Basic rate: weekday and weekend price per room-sold room type. `SetBasePrices` fills 365 days of rates. It does not create a plan.                                                                                                                                                                        | Yes      | Room types + Taxes |
-| 7   |            | Charge items                                                                                                                                                                                                                                                                                              | No       | Taxes              |
-| 8   |            | Discounts                                                                                                                                                                                                                                                                                                 | No       | Basic rate         |
-| 9   | Check-in   | Check-in essentials: check-in and check-out times, ID requirement, terms preset preview                                                                                                                                                                                                                   | Yes      | Basics             |
-| 10  | Team       | Roles and staff: invite staff and choose roles                                                                                                                                                                                                                                                            | No       | Basics             |
-| 11  | Test drive | Practice mode. See [Test drive](06-test-drive.md).                                                                                                                                                                                                                                                        | No       | All required Done  |
-| 12  | Review     | Readiness list and go live. See [Go live](03-go-live.md).                                                                                                                                                                                                                                                 | –        | All required Done  |
+| 5   |            | Payment methods: turn seeded methods on or off, add more. See [Payment methods table](#payment-methods-table).                                                                                                                                                                                            | Yes      | Basics             |
+| 6   |            | Companies: city ledger companies and their portal users. See [Companies table](#companies-table).                                                                                                                                                                                                         | No       | Basics             |
+| 7   | Prices     | Basic rate: weekday and weekend price per room-sold room type. `SetBasePrices` fills 365 days of rates. It does not create a plan.                                                                                                                                                                        | Yes      | Room types + Taxes |
+| 8   |            | Charge items                                                                                                                                                                                                                                                                                              | No       | Taxes              |
+| 9   |            | Discounts                                                                                                                                                                                                                                                                                                 | No       | Basic rate         |
+| 10  | Check-in   | Check-in essentials: check-in and check-out times, ID requirement, terms preset preview                                                                                                                                                                                                                   | Yes      | Basics             |
+| 11  | Team       | Roles and staff: invite staff and choose roles                                                                                                                                                                                                                                                            | No       | Basics             |
+| 12  | Test drive | Practice mode. See [Test drive](06-test-drive.md).                                                                                                                                                                                                                                                        | No       | All required Done  |
+| 13  | Review     | Readiness list and go live. See [Go live](03-go-live.md).                                                                                                                                                                                                                                                 | –        | All required Done  |
 
 ```
-                       1 Basics*
-   ┌───────────┬──────────┼────────────┬────────────┐
-   ▼           ▼          ▼            ▼            ▼
- 2 Room      4 Taxes*   5 Payment    9 Check-in   10 Team
-   types*    │     │      methods*                  (opt)
-   │   │     │     ▼
-   ▼   │     │   7 Charge items (opt)
- 3 Rooms*    │
-       ▼     ▼
-     6 Basic rate* ──▶ 8 Discounts (opt)
+                         1 Basics*
+   ┌─────────┬─────────┬─────┴─────┬───────────┬────────────┐
+   ▼         ▼         ▼           ▼           ▼            ▼
+ 2 Room    4 Taxes*  5 Payment   6 Companies  10 Check-in  11 Team
+   types*  │     │     methods*    (opt)                     (opt)
+   │   │   │     ▼
+   ▼   │   │   8 Charge items (opt)
+ 3 Rooms*  │
+       ▼   ▼
+     7 Basic rate* ──▶ 9 Discounts (opt)
 
- all * Done ──▶ 11 Test drive (opt) ──▶ 12 Review / Go live
+ all * Done ──▶ 12 Test drive (opt) ──▶ 13 Review / Go live
 ```
 
 Room revenue is not a separate section. Its taxes are the **Applies to rooms** column in Taxes. The no-show, cancellation, early departure and late check-out policies stay Free (seeded) and are on the Recommended checklist after go-live.
@@ -174,6 +175,71 @@ Room revenue is not a separate section. Its taxes are the **Applies to rooms** c
 - Check: Done when at least one tax is enabled (anywhere), or **We don't charge tax** is ticked.
 - Review shows "Applies to rooms: {taxes}" (or "Room nights: no tax") as info, and warns with **Fix →** when an enabled tax applies to no charge at all. Neither blocks go-live.
 
+## Payment methods table
+
+```
+ ┌────┬──────────────────────────┬──────────────────┬───────────────┬────┐
+ │ On │ Name                     │ Type             │ Ask for ref.  │    │
+ │    │                          │                  │ no.           │    │
+ ├────┼──────────────────────────┼──────────────────┼───────────────┼────┤
+ │[●] │[ Cash                  ] │ Cash             │     [ ]       │    │
+ │[●] │[ Card                  ] │ Card             │     [x]       │    │
+ │[●] │[ Bank transfer         ] │ Bank transfer    │     [x]       │    │
+ │[●] │[ E-wallet              ] │ E-wallet         │     [x]       │    │
+ │[○] │[ City ledger           ] │ City ledger      │      –        │    │
+ │    │  ℹ Bill stays to companies. Add them in the next section.    │    │
+ │[●] │[ DuitNow QR            ] │[ E-wallet     ▾] │     [x]       │ 🗑 │
+ ├────┴──────────────────────────┴──────────────────┴───────────────┴────┤
+ │ [+ Add payment method]                                                │
+ └───────────────────────────────────────────────────────────────────────┘
+ Card fees (surcharges) and ordering: later in Settings → Payment methods.
+```
+
+- Rows: the seeded methods of the addable types (Cash, Card, Bank transfer, E-wallet) and City ledger. OTA collected is hidden (channels come after go-live).
+- **On** is `active`. Methods are never deleted, so a saved method is turned off instead. 🗑 only on unsaved rows.
+- **Name** is editable (renames its transaction code, existing rule). **Type** is read-only for saved methods and a menu of the addable types for new rows. **Ask for ref. no.** is `requires_reference`, starting from the type default. City ledger shows "–".
+- A new method's transaction code is derived from the name (DuitNow QR → `DUITNOW_QR`, at most 20 characters, a number added when taken) and editable in settings.
+- Surcharges are hidden. Every method saves as `None`, because a fee needs a charge item (section 8). "Add a card fee" is on the Recommended checklist.
+- Order is table order. New rows go last.
+- One submit, one transaction, through the payment method Actions used by settings.
+- Check: Done when at least one addable method is active. The seeded methods start active, so this shows Done before the owner opens it. **Next** still visits it, and Review lists the active methods.
+
+## Companies table
+
+```
+ ┌──────────────────────┬──────────────┬───────────────────────┬────────┬──────────────┬───────┬────┐
+ │ Name                 │ Type         │ Contact email         │ Direct │ Credit limit │ Terms │    │
+ │                      │              │                       │ bill   │              │ days  │    │
+ ├──────────────────────┼──────────────┼───────────────────────┼────────┼──────────────┼───────┼────┤
+ │[ Petronas Carigali ] │[Corporate  ▾]│[ travel@petronas.my ] │  [x]   │ RM[20000.00] │ [30]  │ ⌃  │
+ │   BRN [ 201901234567 ]  TIN [ C2584563200 ]  SST no. [ W10-… ]  Phone [ +60 88 … ]     │    │
+ │   Portal users                                                                         │    │
+ │   [ Aina Rahman     ] [ aina@petronas.my     ]  Temp password · 12d  [Copy message]    │    │
+ │   [ +Add portal user ]                                                                 │    │
+ │[ Borneo Tours      ] │[Travel agt ▾]│[ ops@borneotours.my ] │  [x]   │ RM[        ] │ [14]  │ ⌄🗑│
+ ├──────────────────────┴──────────────┴───────────────────────┴────────┴──────────────┴───────┴────┤
+ │ [+ Add company]   [Import from file]                                                             │
+ └──────────────────────────────────────────────────────────────────────────────────────────────────┘
+ Empty credit limit = no limit. Negotiated rates: after go-live.
+```
+
+- Optional. No rows to start: the empty state offers **Add company** and **Import from file** (the existing `BulkCreateCompanies` import and template).
+- Columns from `CompanyRules`: name, type (new rows Corporate), contact email, **Direct bill** (new rows ticked), credit limit (property currency, empty = no limit), terms days.
+- ⌄ row details: BRN, TIN, SST no., contact phone, and the portal users. The billing address stays on the company Details tab.
+- Companies are never deleted. 🗑 only on unsaved rows. A saved company shows "Suspend in settings".
+- Saving a company with **Direct bill** turns on the City ledger payment method, with the toast "City ledger turned on in Payment methods".
+- Name is unique per property, ignoring case. Errors show per row.
+- One submit, one transaction, through `CreateCompany` and `UpdateCompany`.
+- Check: Done with at least one company, or Skipped.
+
+**Portal users**
+
+- No email invitations in onboarding. Each portal user (name, email) is created with `CreateCompanyUserWithTemporaryPassword` and an Active link. Adding the first one sets the company's `portal_enabled`.
+- An email that already belongs to a company user follows the existing rule (Pending link, in-app).
+- The row shows **Temp password · Nd** with **Copy message**, as on the staff list. The page never receives temp passwords as props.
+- The portal opens only when the property is Live (`portal` middleware). Owners hand out the sign-in details after go-live.
+- Temp passwords expire after 14 days. Review lists portal users with **Export sign-in slips** (PDF), and expired ones with **Reset temp password**.
+
 ## Section states
 
 | State           | Meaning                                                                           |
@@ -200,7 +266,7 @@ Editing an earlier section never resets a later one. A later section only shows 
 ├──────────────────────────────────────────────────────────────────────┤
 │ ✓ Property ▸ ✓ Rooms ▸ ● Finance ▸ 🔒 Prices ▸ Check-in ▸ Team ▸ …    │ phase bar
 ├──────────────────────────────────────────────────────────────────────┤
-│ Finance:  ✓ Taxes · ● Payment methods                                │ stepper
+│ Finance:  ✓ Taxes · ● Payment methods · ○ Companies                  │ stepper
 ├──────────────────────────────────────────────────────────────────────┤
 │ Payment methods                                           ~1 min     │
 │ ...section form...                                                   │ scrolls
@@ -260,9 +326,9 @@ The only onboarding-specific table. It stores skips of optional steps, and the *
 
 1. Onboarding layout, `OnboardingPhase`, `OnboardingStep`, `OnboardingProgress`, `StepForm`, the fence and the waiting page. Basics moves into the new layout.
 2. Rooms phase (2, 3).
-3. Finance phase (4, 5).
-4. Prices phase (6, 7, 8).
-5. Check-in (9) and Team (10).
+3. Finance phase (4, 5, 6).
+4. Prices phase (7, 8, 9).
+5. Check-in (10) and Team (11).
 6. Review: the readiness list reads the checks.
 7. [Test drive](06-test-drive.md).
 
