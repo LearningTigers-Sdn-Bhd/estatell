@@ -566,6 +566,9 @@ export function PricingForm({
                                                             </InputGroup>
                                                             <PerPersonHint
                                                                 basis={basis}
+                                                                decimals={
+                                                                    currency.decimals
+                                                                }
                                                                 row={row}
                                                                 value={cellValue(
                                                                     row,
@@ -700,10 +703,12 @@ function AutoFill({
  */
 function PerPersonHint({
     basis,
+    decimals,
     row,
     value,
 }: {
     basis: App.Enums.PricingBasis;
+    decimals: number;
     row: PricingRow;
     value: string;
 }) {
@@ -719,8 +724,8 @@ function PerPersonHint({
     return (
         <p className="mt-1 text-xs text-muted-foreground tabular-nums">
             {share.toLocaleString(undefined, {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2,
+                minimumFractionDigits: decimals,
+                maximumFractionDigits: decimals,
             })}{' '}
             each
         </p>

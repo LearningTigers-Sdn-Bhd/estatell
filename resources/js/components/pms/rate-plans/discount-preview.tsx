@@ -234,8 +234,8 @@ export function DiscountPreview({
         currency: currency.code,
     });
     const number = new Intl.NumberFormat(undefined, {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
+        minimumFractionDigits: currency.decimals,
+        maximumFractionDigits: currency.decimals,
     });
     const columnCount =
         view === 'night' ? preview.nights + 1 : preview.stayLengths.length;
