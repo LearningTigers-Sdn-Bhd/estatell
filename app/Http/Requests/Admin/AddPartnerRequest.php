@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Admin;
 
 use App\Concerns\PartnerValidationRules;
+use App\Data\Platform\NewPartnerData;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Str;
@@ -49,5 +50,15 @@ class AddPartnerRequest extends FormRequest
     public function messages(): array
     {
         return $this->partnerPrefixMessages('code_prefix');
+    }
+
+    public function toNewPartnerData(): NewPartnerData
+    {
+        return new NewPartnerData(
+            partnerName: $this->string('partner_name')->toString(),
+            codePrefix: $this->string('code_prefix')->toString(),
+            name: $this->string('name')->toString(),
+            email: $this->string('email')->toString(),
+        );
     }
 }

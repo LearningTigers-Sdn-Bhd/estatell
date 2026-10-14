@@ -58,7 +58,7 @@ class PartnerController extends Controller
      */
     public function store(AddPartnerRequest $request, CreatePartnerWithTemporaryPassword $createPartner): RedirectResponse
     {
-        $user = $createPartner($request->user(), $request->validated());
+        $user = $createPartner($request->user(), $request->toNewPartnerData());
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __(':name was added.', ['name' => $user->partner->name])]);
         Inertia::flash('partnerAddedId', $user->id);

@@ -2,6 +2,7 @@
 
 namespace App\Actions\Platform;
 
+use App\Data\Platform\PlatformSettingsInputData;
 use App\Models\PlatformSetting;
 use App\Models\User;
 use App\Services\Platform\PlatformSettings;
@@ -13,14 +14,16 @@ class UpdatePlatformSettings
 {
     /**
      * Save the platform settings and log what changed.
-     *
-     * @param  array{require_go_live_approval: bool, default_dorm_strategy: string, media_disk: string}  $attributes
      */
-    public function __invoke(User $admin, array $attributes): PlatformSetting
+    public function __invoke(User $admin, PlatformSettingsInputData $data): PlatformSetting
     {
-        $settings = DB::transaction(function () use ($admin, $attributes): PlatformSetting {
+        $settings = DB::transaction(function () use ($admin, $data): PlatformSetting {
             $settings = PlatformSetting::query()->lockForUpdate()->findOrFail(1);
-            $settings->fill($attributes);
+            $settings->fill([
+                'require_go_live_approval' => $data->requireGoLiveApproval,
+                'default_dorm_strategy' => $data->defaultDormStrategy,
+                'media_disk' => $data->mediaDisk,
+            ]);
 
             $changed = Arr::except($settings->getDirty(), ['updated_at']);
 

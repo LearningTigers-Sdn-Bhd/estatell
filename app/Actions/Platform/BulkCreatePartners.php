@@ -2,6 +2,7 @@
 
 namespace App\Actions\Platform;
 
+use App\Data\Platform\NewPartnerData;
 use App\Models\User;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -16,11 +17,11 @@ class BulkCreatePartners
      *
      * The request has already checked every row (prefix free, email free, no repeats in the batch).
      *
-     * @param  list<array{partner_name: string, code_prefix: string, name: string, email: string}>  $rows
+     * @param  list<NewPartnerData>  $rows
      * @return Collection<int, User>
      */
     public function __invoke(User $admin, array $rows): Collection
     {
-        return DB::transaction(fn (): Collection => collect($rows)->map(fn (array $row): User => ($this->createPartner)($admin, $row)));
+        return DB::transaction(fn (): Collection => collect($rows)->map(fn (NewPartnerData $row): User => ($this->createPartner)($admin, $row)));
     }
 }

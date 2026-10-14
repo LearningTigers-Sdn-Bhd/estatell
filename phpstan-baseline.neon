@@ -319,28 +319,10 @@ parameters:
 			path: app/Enums/ReportKey.php
 
 		-
-			message: '#^Parameter \#2 \$input of callable App\\Actions\\Platform\\CreatePartnerWithTemporaryPassword expects array\{partner_name\: string, code_prefix\: string, name\: string, email\: string\}, array\<string, mixed\> given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Http/Controllers/Admin/PartnerController.php
-
-		-
-			message: '#^Parameter \#2 \$attributes of callable App\\Actions\\Platform\\UpdatePlatformSettings expects array\{require_go_live_approval\: bool, default_dorm_strategy\: string, media_disk\: string\}, array\<string, mixed\> given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Http/Controllers/Admin/PlatformSettingsController.php
-
-		-
 			message: '#^Parameter \#2 \$input of callable App\\Actions\\Onboarding\\CreatePropertyForOwner expects array\{property_name\: string, type\: string, owner_name\: string, owner_email\: string, setup_method\: string, password\?\: string, verify_owner_email\?\: bool\}, array\<string, mixed\> given\.$#'
 			identifier: argument.type
 			count: 1
 			path: app/Http/Controllers/Admin/PropertyController.php
-
-		-
-			message: '#^Parameter \#2 \$input of callable App\\Actions\\Platform\\AcceptPartnerInvitation expects array\{name\: string, password\: string\}, array\<string, mixed\> given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Http/Controllers/Partner/AcceptPartnerInvitationController.php
 
 		-
 			message: '#^Parameter \#2 \$input of callable App\\Actions\\Onboarding\\CreatePropertyForOwner expects array\{property_name\: string, type\: string, owner_name\: string, owner_email\: string, setup_method\: string, password\?\: string, verify_owner_email\?\: bool\}, array\<string, mixed\> given\.$#'

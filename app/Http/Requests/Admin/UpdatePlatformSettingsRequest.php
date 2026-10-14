@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Admin;
 
+use App\Data\Platform\PlatformSettingsInputData;
 use App\Enums\DormStrategy;
 use App\Enums\MediaDisk;
 use Illuminate\Contracts\Validation\ValidationRule;
@@ -32,6 +33,15 @@ class UpdatePlatformSettingsRequest extends FormRequest
             'default_dorm_strategy' => ['required', Rule::enum(DormStrategy::class)],
             'media_disk' => ['required', Rule::enum(MediaDisk::class)->only(MediaDisk::configured())],
         ];
+    }
+
+    public function toPlatformSettingsData(): PlatformSettingsInputData
+    {
+        return new PlatformSettingsInputData(
+            requireGoLiveApproval: $this->boolean('require_go_live_approval'),
+            defaultDormStrategy: DormStrategy::from($this->string('default_dorm_strategy')->toString()),
+            mediaDisk: MediaDisk::from($this->string('media_disk')->toString()),
+        );
     }
 
     /**

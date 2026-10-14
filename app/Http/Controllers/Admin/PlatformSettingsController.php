@@ -32,7 +32,7 @@ class PlatformSettingsController extends Controller
      */
     public function update(UpdatePlatformSettingsRequest $request, UpdatePlatformSettings $updatePlatformSettings): RedirectResponse
     {
-        $updatePlatformSettings($request->user(), $request->validated());
+        $updatePlatformSettings($request->user(), $request->toPlatformSettingsData());
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Platform settings saved.')]);
 

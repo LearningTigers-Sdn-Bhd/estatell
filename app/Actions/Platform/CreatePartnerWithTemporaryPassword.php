@@ -3,6 +3,7 @@
 namespace App\Actions\Platform;
 
 use App\Actions\Staff\CreateStaffWithTemporaryPassword;
+use App\Data\Platform\NewPartnerData;
 use App\Enums\PartnerStatus;
 use App\Models\User;
 use App\Services\Staff\TemporaryPasswordGenerator;
@@ -20,16 +21,14 @@ class CreatePartnerWithTemporaryPassword
      * Create an Active partner and its one login, which signs in with a generated temp password and must then set
      * its own. The admin vouches for the person, so the email is marked verified. The request has already checked
      * the prefix and that the email has no account.
-     *
-     * @param  array{partner_name: string, code_prefix: string, name: string, email: string}  $input
      */
-    public function __invoke(User $admin, array $input): User
+    public function __invoke(User $admin, NewPartnerData $data): User
     {
-        return DB::transaction(function () use ($admin, $input): User {
-            $partner = ($this->createPartner)($input['partner_name'], $input['code_prefix'], PartnerStatus::Active);
+        return DB::transaction(function () use ($admin, $data): User {
+            $partner = ($this->createPartner)($data->partnerName, $data->codePrefix, PartnerStatus::Active);
             $temporaryPassword = $this->generator->generate();
 
-            $user = new User(['name' => $input['name'], 'email' => Str::lower(trim($input['email'])), 'password' => $temporaryPassword]);
+            $user = new User(['name' => $data->name, 'email' => Str::lower(trim($data->email)), 'password' => $temporaryPassword]);
             $user->forceFill([
                 'partner_id' => $partner->id,
                 'email_verified_at' => now(),

@@ -30,7 +30,7 @@ class AcceptPartnerInvitationController extends Controller
     public function store(AcceptPartnerInvitationRequest $request, string $token, AcceptPartnerInvitation $acceptPartnerInvitation): RedirectResponse
     {
         $invitation = $this->openInvitation($token);
-        $user = $invitation === null ? false : $acceptPartnerInvitation($invitation, $request->validated());
+        $user = $invitation === null ? false : $acceptPartnerInvitation($invitation, $request->toAcceptPartnerInvitationData());
 
         if ($user === false) {
             Inertia::flash('toast', ['type' => 'error', 'message' => __('This invitation link is no longer valid.')]);

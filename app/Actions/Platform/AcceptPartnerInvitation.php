@@ -2,6 +2,7 @@
 
 namespace App\Actions\Platform;
 
+use App\Data\Platform\AcceptPartnerInvitationData;
 use App\Enums\PartnerStatus;
 use App\Models\Partner;
 use App\Models\PartnerInvitation;
@@ -15,12 +16,10 @@ class AcceptPartnerInvitation
      *
      * Accepting proves the email, so it is marked verified. Returns false when the invitation is closed or expired,
      * the partner is no longer Invited, or the email got an account after the invitation was sent.
-     *
-     * @param  array{name: string, password: string}  $input
      */
-    public function __invoke(PartnerInvitation $invitation, array $input): User|false
+    public function __invoke(PartnerInvitation $invitation, AcceptPartnerInvitationData $data): User|false
     {
-        return DB::transaction(function () use ($invitation, $input): User|false {
+        return DB::transaction(function () use ($invitation, $data): User|false {
             $partner = Partner::query()->lockForUpdate()->find($invitation->partner_id);
             $open = PartnerInvitation::query()->open()->lockForUpdate()->find($invitation->id);
 
@@ -32,7 +31,7 @@ class AcceptPartnerInvitation
                 return false;
             }
 
-            $user = new User(['name' => $input['name'], 'email' => $open->email, 'password' => $input['password']]);
+            $user = new User(['name' => $data->name, 'email' => $open->email, 'password' => $data->password]);
             $user->forceFill(['partner_id' => $partner->id, 'email_verified_at' => now()])->save();
 
             $partner->update(['status' => PartnerStatus::Active]);

@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Admin;
 
 use App\Concerns\PartnerValidationRules;
+use App\Data\Platform\NewPartnerData;
 use App\Services\Platform\PartnerImportReader;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -79,17 +80,17 @@ class BulkAddPartnersRequest extends FormRequest
     }
 
     /**
-     * @return list<array{partner_name: string, code_prefix: string, name: string, email: string}>
+     * @return list<NewPartnerData>
      */
-    public function rows(): array
+    public function toPartnerRows(): array
     {
         return array_map(
-            fn (array $row): array => [
-                'partner_name' => $row['partner_name'],
-                'code_prefix' => $row['code_prefix'],
-                'name' => $row['name'],
-                'email' => $row['email'],
-            ],
+            fn (array $row): NewPartnerData => new NewPartnerData(
+                partnerName: $row['partner_name'],
+                codePrefix: $row['code_prefix'],
+                name: $row['name'],
+                email: $row['email'],
+            ),
             array_values($this->validated('rows')),
         );
     }

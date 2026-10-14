@@ -38,7 +38,7 @@ class PartnerBulkAddController extends Controller
     public function store(BulkAddPartnersRequest $request, BulkCreatePartners $bulkCreatePartners): RedirectResponse
     {
         try {
-            $users = $bulkCreatePartners($request->user(), $request->rows());
+            $users = $bulkCreatePartners($request->user(), $request->toPartnerRows());
         } catch (UniqueConstraintViolationException) {
             return back()->withErrors([
                 'rows' => __('A prefix or email was taken while you saved. Nothing was saved.'),

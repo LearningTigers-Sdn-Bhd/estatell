@@ -977,6 +977,10 @@ error: string | null,
 };
 }
 namespace Platform {
+export type AcceptPartnerInvitationData = {
+name: string,
+password: string,
+};
 export type AdminPartnerInvitationRowData = {
 id: number,
 partnerName: string,
@@ -1057,6 +1061,12 @@ minutesLeft: number,
 stopUrl: string,
 canCorrectMoney: boolean,
 };
+export type NewPartnerData = {
+partnerName: string,
+codePrefix: string,
+name: string,
+email: string,
+};
 export type PartnerInvitationPreviewData = {
 email: string,
 partnerName: string,
@@ -1068,6 +1078,11 @@ status: App.Data.Shared.BadgeData,
 createdAt: string,
 };
 export type PlatformSettingsData = {
+requireGoLiveApproval: boolean,
+defaultDormStrategy: App.Enums.DormStrategy,
+mediaDisk: App.Enums.MediaDisk,
+};
+export type PlatformSettingsInputData = {
 requireGoLiveApproval: boolean,
 defaultDormStrategy: App.Enums.DormStrategy,
 mediaDisk: App.Enums.MediaDisk,
