@@ -28,7 +28,30 @@ A strategy class per country replaces the `$countryCode !== 'MY'` checks in the 
 
 - Country options come from `App\Services\Guests\CountryOptions`, with Malaysia first. Basics prefills Malaysia.
 - "Foreign guests only" on a tax means a nationality other than the property's country.
-- Country, currency and time zone lock after the first Basics save, because the presets are seeded then. Basics shows them read-only with "Wrong country? Contact support". See [Property settings](02-property-settings.md).
+- Country, currency and time zone can change until go-live. See [Changing country](#changing-country).
+
+## Changing country
+
+| Stage                                                    | How                                                           | Confirm                                                       |
+| -------------------------------------------------------- | ------------------------------------------------------------- | ------------------------------------------------------------- |
+| Basics saved, every other onboarding section Not started | Edit country, currency or time zone on Basics                 | No. Only untouched presets change.                            |
+| Another section started, before go-live                  | Basics shows them read-only with **Change country**           | Yes. The dialog lists what is reset, with server-sent counts. |
+| Live                                                     | Not possible. Settings shows them read-only (`SettingsLock`). | –                                                             |
+
+"Not started" comes from `OnboardingProgress`. There is no extra flag.
+
+`ChangePropertyCountry` handles both cases in one transaction: it resets the country-bound data below and runs `SeedPropertyDefaults` with the new profile. Presets are matched by system key, so keys shared by both profiles stay.
+
+| Kept (not country-bound)                               | Reset to the new profile (country- or currency-bound)                             |
+| ------------------------------------------------------ | --------------------------------------------------------------------------------- |
+| Type, name, address                                    | Currency, time zone, locale                                                       |
+| Room types, rooms, room groups                         | Taxes, and the tax links on room revenue and charge items                         |
+| Rate plans (the plans themselves)                      | Rates: prices are cleared, so Basic rate becomes Not started                      |
+| Roles, staff, invitations                              | Payment methods, charge items, discounts (fixed amounts are in the old currency)  |
+| Check-in and check-out times, registration card fields | Security deposit amount, terms (room types lose a link to a reset terms document) |
+| Age groups and meal periods the owner edited           | Untouched age groups and meal periods, practice data (`ClearPracticeData`)        |
+
+Guard test: after `ChangePropertyCountry` from Malaysia to another country, no Malaysian preset key, tax link or old-currency amount is left for the property.
 
 ## Currencies
 
