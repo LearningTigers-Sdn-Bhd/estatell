@@ -27,7 +27,7 @@ The first release has only the Basics page. It uses the current staff layout. Ba
 | 5   |            | Payment methods: turn seeded methods on or off, add more. See [Payment methods table](#payment-methods-table).                                                                                                                                                                                            | Yes      | Basics             |
 | 6   |            | Companies: city ledger companies and their portal users. See [Companies table](#companies-table).                                                                                                                                                                                                         | No       | Basics             |
 | 7   | Prices     | Basic rate: weekday and weekend price per room-sold room type, priced by room or by guest, plus optional more rates. See [Basic rate table](#basic-rate-table).                                                                                                                                           | Yes      | Room types + Taxes |
-| 8   |            | Charge items                                                                                                                                                                                                                                                                                              | No       | Taxes              |
+| 8   |            | Charge items: starter items and extras with price, unit and taxes. See [Charge items table](#charge-items-table).                                                                                                                                                                                         | No       | Taxes              |
 | 9   |            | Discounts                                                                                                                                                                                                                                                                                                 | No       | Basic rate         |
 | 10  | Check-in   | Check-in essentials: check-in and check-out times, ID requirement, terms preset preview                                                                                                                                                                                                                   | Yes      | Basics             |
 | 11  | Team       | Roles and staff: invite staff and choose roles                                                                                                                                                                                                                                                            | No       | Basics             |
@@ -321,6 +321,44 @@ A rate plan has one pricing basis, so the rows map to one plan per basis used:
 - One submit, one transaction: plan bases and names, room type links, `SaveRates` per own-price plan from today to today + 364 (property time zone), then the more rates. Re-saving replaces the amounts in that range. That is safe before go-live, because the rate calendar is behind the fence.
 - At phone width each row stacks into a card.
 - Check: every room-sold room type has prices for the next 30 days on its Basic Rate plan. More rates never block.
+
+## Charge items table
+
+```
+ ┌────┬────────────────────┬──────────────────┬────────────────┬───────────────────┬────────────────┬────┐
+ │ On │ Name               │ Category         │ Price          │ Charged           │ Taxes          │    │
+ ├────┼────────────────────┼──────────────────┼────────────────┼───────────────────┼────────────────┼────┤
+ │[●] │[ Food and beverage]│ Food & beverage  │ RM [         ] │[ Per item      ▾] │[ SST        ▾] │ ⌄  │
+ │[●] │[ Laundry          ]│ Laundry          │ RM [         ] │[ Per item      ▾] │[ SST        ▾] │ ⌄  │
+ │[●] │[ Breakfast        ]│[Food & bev.   ▾] │ RM [  25.00 ]  │[ Per guest-night▾]│[ SST        ▾] │⌃🗑 │
+ │    ├──────────────────────────────────────────────────────────────────────────────────────────────┤    │
+ │    │ Price when charging   [x] Staff can change the price                                         │    │
+ │    │ Children              Pay the same as adults. After you go live, you can set child           │    │
+ │    │                       prices in Settings, under Charge items.                                │    │
+ │    │ Code                  BREAKFAST  (made from the name)                                        │    │
+ │    └──────────────────────────────────────────────────────────────────────────────────────────────┘    │
+ ├────┴────────────────────┴──────────────────┴────────────────┴───────────────────┴────────────────┴────┤
+ │ [+ Add item]                                                                                         │
+ └──────────────────────────────────────────────────────────────────────────────────────────────────────┘
+ Empty price = staff enter the amount each time.
+```
+
+- Optional. Starts with the starter items from `SeedChargeItems` (Malaysia: Food and beverage, Laundry, Minibar, General fee, all without a price). No empty row.
+- **On** is `active`. Items are never deleted: a saved item is turned off. 🗑 only on unsaved rows.
+- **Name** is editable and unique (renames the code, existing rule).
+- **Category** is read-only for starter items. New rows pick from `TransactionCategory::chargeItemCases()` without Transport (boat fares have their own settings tab), default Other.
+- **Price** is `default_amount`: positive, or empty for "Enter when charging", in the currency's decimals.
+- **Charged** is `charging_unit` (Per item, Per night, Per stay, Per guest-night, Per guest).
+- **Taxes** is a multi-select of the taxes enabled in section 4, saved through the item's tax links as in settings. For new rows and for starter items without taxes, the form preselects the enabled **percentage taxes for all guests** (for example SST, service charge). Flat and foreign-only taxes (tourism tax) are not preselected. Nothing is saved until **Save**.
+- ⌄ **More options**, a full-width strip under the row:
+    - **Staff can change the price** (`allow_override`, on by default). Locked on when the price is empty (database CHECK).
+    - **Children** note, only for Per guest and Per guest-night: the existing default Percent 100, with "After you go live, you can set child prices in Settings, under Charge items."
+    - **Code**: read-only. A new item shows the code made from the name (Extra bed → `EXTRA_BED`, a number added when taken), updating as the name is typed. Starter items show "fixed".
+- Not in onboarding: auto add, description, child prices, Transport items.
+- Arriving from the Taxes hint **Charge items →** highlights the Taxes column.
+- One submit, one transaction, through the charge item Actions used by settings.
+- At phone width each row stacks into a card with ⌄ More options.
+- Check: optional, never blocks. Done when at least one active item has a price or a tax, or Skipped.
 
 ## Section states
 
