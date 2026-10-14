@@ -67,7 +67,7 @@ class CheckOutAndRefund
             }
         }
 
-        if ($refundAmount !== null && bccomp($refundAmount, '0', 2) > 0) {
+        if ($refundAmount !== null && BigDecimal::of($refundAmount)->isPositive()) {
             $left = BigDecimal::of($refundAmount);
             $deposits = $this->checkOutSettlement->heldDeposits($this->checkOutSettlement->folios($unit));
             $held = $deposits->reduce(fn (BigDecimal $sum, $payment): BigDecimal => $sum->plus($this->checkOutSettlement->refundable($payment)), BigDecimal::zero());

@@ -18,6 +18,7 @@ use App\Models\User;
 use App\Services\Folio\FolioBalance;
 use App\Services\FrontDesk\CheckOutSettlement;
 use App\Services\NightAudit\CurrentBusinessDate;
+use Brick\Math\BigDecimal;
 use Illuminate\Support\Facades\DB;
 
 class CheckOutUnit
@@ -79,7 +80,7 @@ class CheckOutUnit
                 return UnitStayResult::refused(UnitStayResult::REFUSAL_RECEIVES_SCHEDULED_CHARGES, $incoming);
             }
 
-            $unsettled = $folios->contains(fn (Folio $folio): bool => bccomp($this->folioBalance->forFolio($folio), '0', 2) !== 0);
+            $unsettled = $folios->contains(fn (Folio $folio): bool => ! BigDecimal::of($this->folioBalance->forFolio($folio))->isZero());
 
             if ($unsettled) {
                 return UnitStayResult::refused(UnitStayResult::REFUSAL_BALANCE_NOT_SETTLED, $this->checkOutSettlement->heldForOtherRooms($locked, $folios));

@@ -13,6 +13,7 @@ use App\Models\ReservationUnit;
 use App\Models\User;
 use App\Services\FrontDesk\CheckInCollection;
 use App\Services\Reservations\UnitNationality;
+use Brick\Math\BigDecimal;
 use Illuminate\Support\Facades\DB;
 
 class CheckInAndCollect
@@ -64,7 +65,7 @@ class CheckInAndCollect
         $offer = $this->checkInCollection->for($unit);
         $payments = [];
         $amounts = [
-            'taxes' => $collect->taxes && ! $offer->taxesHidden && bccomp($offer->taxesTotal, '0', 2) > 0 ? $offer->taxesTotal : null,
+            'taxes' => $collect->taxes && ! $offer->taxesHidden && BigDecimal::of($offer->taxesTotal)->isPositive() ? $offer->taxesTotal : null,
             'deposit' => $collect->deposit ? $offer->deposit : null,
         ];
 

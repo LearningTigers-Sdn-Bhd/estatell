@@ -10,6 +10,7 @@ use App\Models\UnitAddOn;
 use App\Models\User;
 use App\Services\Catalogues\PolicyChargeCalculator;
 use App\Services\NightAudit\CurrentBusinessDate;
+use Brick\Math\BigDecimal;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\DB;
@@ -74,7 +75,7 @@ class ProcessEarlyDeparture
                 $fee = (string) $charge->amount->getAmount();
                 $postsFee = ! $doNotCharge && ! $charge->isFree();
 
-                if ($postsFee && $expectedFee !== null && bccomp($expectedFee, $fee, 2) !== 0) {
+                if ($postsFee && $expectedFee !== null && ! BigDecimal::of($expectedFee)->isEqualTo($fee)) {
                     return StayDatesResult::refused(UnitStayResult::REFUSAL_FEE_CHANGED);
                 }
 

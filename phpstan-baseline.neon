@@ -37,82 +37,10 @@ parameters:
 			path: app/Actions/Fortify/CreateNewUser.php
 
 		-
-			message: '#^Parameter \#1 \$num1 of function bccomp expects numeric\-string, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Actions/FrontDesk/CancelUnit.php
-
-		-
-			message: '#^Parameter \#2 \$num2 of function bccomp expects numeric\-string, non\-empty\-string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Actions/FrontDesk/CancelUnit.php
-
-		-
-			message: '#^Parameter \#1 \$num1 of function bccomp expects numeric\-string, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Actions/FrontDesk/CheckInAndCollect.php
-
-		-
 			message: '#^Parameter \#4 \$tagNames of callable App\\Actions\\Guests\\UpdateGuest expects list\<string\>, array\<mixed\> given\.$#'
 			identifier: argument.type
 			count: 1
 			path: app/Actions/FrontDesk/CheckInAndCollect.php
-
-		-
-			message: '#^Parameter \#1 \$num1 of function bccomp expects numeric\-string, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Actions/FrontDesk/CheckOutAndRefund.php
-
-		-
-			message: '#^Parameter \#1 \$num1 of function bccomp expects numeric\-string, string given\.$#'
-			identifier: argument.type
-			count: 6
-			path: app/Actions/FrontDesk/CheckOutGroup.php
-
-		-
-			message: '#^Parameter \#1 \$num1 of function bccomp expects numeric\-string, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Actions/FrontDesk/CheckOutUnit.php
-
-		-
-			message: '#^Parameter \#1 \$num1 of function bccomp expects numeric\-string, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Actions/FrontDesk/ExtendDepartureTime.php
-
-		-
-			message: '#^Parameter \#2 \$num2 of function bccomp expects numeric\-string, non\-empty\-string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Actions/FrontDesk/ExtendDepartureTime.php
-
-		-
-			message: '#^Parameter \#1 \$num1 of function bccomp expects numeric\-string, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Actions/FrontDesk/MarkNoShow.php
-
-		-
-			message: '#^Parameter \#2 \$num2 of function bccomp expects numeric\-string, non\-empty\-string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Actions/FrontDesk/MarkNoShow.php
-
-		-
-			message: '#^Parameter \#1 \$num1 of function bccomp expects numeric\-string, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Actions/FrontDesk/ProcessEarlyDeparture.php
-
-		-
-			message: '#^Parameter \#2 \$num2 of function bccomp expects numeric\-string, non\-empty\-string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Actions/FrontDesk/ProcessEarlyDeparture.php
 
 		-
 			message: '#^Method App\\Actions\\FrontDesk\\ReleaseUnitRooms\:\:__invoke\(\) should return array\{room_ids\: list\<int\>, bed_ids\: list\<int\>\} but returns array\{room_ids\: array\<int, int\>, bed_ids\: array\<int, int\>\}\.$#'

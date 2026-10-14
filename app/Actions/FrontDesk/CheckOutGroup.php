@@ -233,7 +233,7 @@ class CheckOutGroup
         $lines = $this->checkOutSettlement->movableLines($folios);
 
         if ($lines->isEmpty()) {
-            $balanced = ! $folios->contains(fn (Folio $folio): bool => bccomp($this->folioBalance->forFolio($folio), '0', 2) !== 0);
+            $balanced = ! $folios->contains(fn (Folio $folio): bool => ! BigDecimal::of($this->folioBalance->forFolio($folio))->isZero());
 
             return ['refusal' => $balanced ? null : CheckOutGroupResult::REFUSAL_NOTHING_TO_MOVE, 'moved' => $none, 'refunded' => $none];
         }
@@ -341,7 +341,7 @@ class CheckOutGroup
             }
         }
 
-        if ($refundAmount !== null && bccomp($refundAmount, '0', 2) > 0) {
+        if ($refundAmount !== null && BigDecimal::of($refundAmount)->isPositive()) {
             $refusal = $this->refundHeld($actor, $unit, $refundAmount, $row->idempotencyKey, $totals);
 
             if ($refusal !== null) {
@@ -351,7 +351,7 @@ class CheckOutGroup
             $touched = true;
         }
 
-        if ($touched && $this->checkOutSettlement->folios($unit)->contains(fn (Folio $folio): bool => bccomp($this->folioBalance->forFolio($folio), '0', 2) !== 0)) {
+        if ($touched && $this->checkOutSettlement->folios($unit)->contains(fn (Folio $folio): bool => ! BigDecimal::of($this->folioBalance->forFolio($folio))->isZero())) {
             return UnitStayResult::REFUSAL_BALANCE_NOT_SETTLED;
         }
 
@@ -451,7 +451,7 @@ class CheckOutGroup
     private function log(User $actor, Reservation $reservation, CheckOutGroupResult $result, bool $onePayment, string $businessDate): void
     {
         $changed = $result->checkedOutUnitIds !== [] || $result->invoice !== null
-            || bccomp($result->collected, '0', 2) > 0 || bccomp($result->refunded, '0', 2) > 0 || bccomp($result->movedToMaster, '0', 2) > 0;
+            || BigDecimal::of($result->collected)->isPositive() || BigDecimal::of($result->refunded)->isPositive() || BigDecimal::of($result->movedToMaster)->isPositive();
 
         if (! $changed) {
             return;
