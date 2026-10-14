@@ -30,7 +30,7 @@ The first release has only the Basics page. It uses the current staff layout. Ba
 | 8   |            | Charge items: starter items and extras with price, unit and taxes. See [Charge items table](#charge-items-table).                                                                                                                                                                                         | No       | Taxes              |
 | 9   |            | Discounts: the starter discount and more, with type, value and what they apply to. See [Discounts table](#discounts-table).                                                                                                                                                                               | No       | Basics             |
 | 10  | Check-in   | Check-in essentials: times, registration card, security deposit and house terms. See [Check-in essentials form](#check-in-essentials-form).                                                                                                                                                               | Yes      | Basics             |
-| 11  | Team       | Roles and staff: invite staff and choose roles                                                                                                                                                                                                                                                            | No       | Basics             |
+| 11  | Team       | Team: staff with temp passwords and a role. See [Team table](#team-table).                                                                                                                                                                                                                                | No       | Basics             |
 | 12  | Test drive | Practice mode. See [Test drive](06-test-drive.md).                                                                                                                                                                                                                                                        | No       | All required Done  |
 | 13  | Review     | Readiness list and go live. See [Go live](03-go-live.md).                                                                                                                                                                                                                                                 | –        | All required Done  |
 
@@ -441,6 +441,33 @@ Not a table: three groups on one page.
 - One submit, one transaction: one onboarding request validates both groups and calls the property settings and registration card settings Actions, then publishes changed terms.
 - Check: required. Done when check-in and check-out times are set and a published terms document exists. Both are seeded, so it shows Done before the owner opens it. **Next** still visits it, and Review lists "Check-in 15:00 · Check-out 11:00 · Deposit RM 100.00".
 
+## Team table
+
+```
+ ┌──────────────────────┬────────────────────────┬────────────────┬──────────────────────────────┬────┐
+ │ Name                 │ Email                  │ Role  ⓘ        │ Sign-in                      │    │
+ ├──────────────────────┼────────────────────────┼────────────────┼──────────────────────────────┼────┤
+ │ Nurul Hafizah (you)  │ nurul@seaview.my       │ Owner          │ Active                       │    │
+ │[ Aina Rahman       ] │[ aina@seaview.my     ] │[Front desk  ▾] │ Temp password · 12d  [Copy]  │ ⋯  │
+ │[                   ] │[                     ] │[Front desk  ▾] │ Created when you save        │ 🗑 │
+ ├──────────────────────┴────────────────────────┴────────────────┴──────────────────────────────┴────┤
+ │ [+ Add person]   [Import from file]                                                                │
+ └────────────────────────────────────────────────────────────────────────────────────────────────────┘
+ After you go live, you can invite staff by email and make custom roles in
+ Settings, under Staff and Roles.
+```
+
+- Optional. Starts with the owner (read-only, "(you)") and one empty row.
+- Temp passwords only, no email invitations in onboarding. Each new row (name, email, role) is created on save by the bulk add Action (`BulkAddStaffRequest` rules: email required and unique against users and open invitations, errors per row).
+- **Role** offers Manager, Front desk, Housekeeping and Finance (not Owner). New rows default to Front desk. An ⓘ Popover lists one line per role, built on the server from the role's permissions. To verify that each default role has a short description.
+- **Sign-in** is read-only: "Created when you save" for new rows, "Temp password · Nd" with **Copy** (the copy message) for saved rows, "Active" once the person changed the password. The page never receives temp passwords as props.
+- ⋯ on saved rows: Copy message, Reset temp password. Removing someone is in settings. 🗑 only on unsaved rows.
+- **Import from file** opens the existing bulk add (grid or CSV/XLSX), then returns here.
+- Staff who sign in before go-live see the waiting page ([The fence](#the-fence)).
+- Temp passwords expire after 14 days. Review lists staff and company portal users together with **Export sign-in slips** (PDF) and **Reset temp password** for expired ones.
+- At phone width each row stacks into a card.
+- Check: optional, never blocks. Done with at least one person besides the owner, or Skipped.
+
 ## Section states
 
 | State           | Meaning                                                                           |
@@ -501,7 +528,7 @@ When a field is added to a settings form, decide in the same change whether the 
 | PendingApproval | Review and Go live only (waiting notice)                | Redirect to Go live                                                                                                 |
 | Live            | Redirect to the dashboard                               | Open                                                                                                                |
 
-- The waiting page says "Your property is still being set up. Ask {Owner name}." Staff can be invited early so their accounts are ready on day one.
+- The waiting page says "Your property is still being set up. Ask {Owner name}." Staff can be added early (Team) so their accounts are ready on day one.
 - After go-live, settings is the only place to edit setup data.
 
 ## Data model
