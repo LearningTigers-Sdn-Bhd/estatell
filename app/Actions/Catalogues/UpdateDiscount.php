@@ -31,7 +31,8 @@ class UpdateDiscount
                 $attributes['value'] = null;
             }
 
-            $selectedCodeIds = collect($attributes['scope'] === DiscountScope::Selected->value ? $attributes['transaction_code_ids'] : [])
+            $requestedCodeIds = $attributes['scope'] === DiscountScope::Selected->value ? $attributes['transaction_code_ids'] : [];
+            $selectedCodeIds = collect(is_array($requestedCodeIds) ? $requestedCodeIds : [])
                 ->map(fn (mixed $id): int => (int) $id)
                 ->sort()
                 ->values()

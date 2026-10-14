@@ -43,7 +43,9 @@ class CountryOptions
             return null;
         }
 
-        return Locale::getDisplayRegion('-'.$code, app()->getLocale());
+        $name = Locale::getDisplayRegion('-'.$code, app()->getLocale());
+
+        return $name === false ? null : $name;
     }
 
     /**

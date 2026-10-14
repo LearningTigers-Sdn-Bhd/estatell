@@ -10,7 +10,7 @@ use InvalidArgumentException;
 /**
  * A 3-letter currency code column read as a `Brick\Money\Currency`. See docs/02-property/03-seed-property-defaults.md.
  *
- * @implements CastsAttributes<Currency, Currency|string>
+ * @implements CastsAttributes<Currency, mixed>
  */
 class AsCurrency implements CastsAttributes
 {

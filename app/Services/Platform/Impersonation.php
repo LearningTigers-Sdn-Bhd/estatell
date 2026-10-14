@@ -312,12 +312,24 @@ class Impersonation
     /**
      * The session data when complete, or null.
      *
-     * @return array{support_user_id: int, user_id: int, property_id: int, reason: string, note: string|null, started_at: string, return_url: string}|null
+     * @return array{support_user_id: int, user_id: int, property_id: int, reason: string|null, note: string|null, started_at: string, return_url: string|null}|null
      */
     private function session(): ?array
     {
         $session = Session::get(self::SESSION_KEY);
 
-        return is_array($session) && isset($session['support_user_id'], $session['user_id'], $session['property_id'], $session['started_at']) ? $session : null;
+        if (! is_array($session) || ! isset($session['support_user_id'], $session['user_id'], $session['property_id'], $session['started_at'])) {
+            return null;
+        }
+
+        return [
+            'support_user_id' => (int) $session['support_user_id'],
+            'user_id' => (int) $session['user_id'],
+            'property_id' => (int) $session['property_id'],
+            'reason' => isset($session['reason']) ? (string) $session['reason'] : null,
+            'note' => isset($session['note']) ? (string) $session['note'] : null,
+            'started_at' => (string) $session['started_at'],
+            'return_url' => isset($session['return_url']) ? (string) $session['return_url'] : null,
+        ];
     }
 }

@@ -123,6 +123,10 @@ class StayDiscountPreview
             $stayOf = function (int $length) use ($rules, $priced, $divisor): array {
                 $discounted = $this->stayDiscount->apply($rules, array_slice($priced->nights, 0, $length), $priced->discountUnits);
 
+                if ($discounted === []) {
+                    return [RateQuote::refused(RateQuote::REFUSAL_INVALID_STAY), []];
+                }
+
                 return [
                     RateQuote::quoted($discounted),
                     array_map(fn (NightPrice $night): Money => $night->net()->dividedBy($divisor, RoundingMode::HalfUp), $discounted),

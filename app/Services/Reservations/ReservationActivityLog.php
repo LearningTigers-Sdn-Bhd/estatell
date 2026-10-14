@@ -10,6 +10,8 @@ use App\Models\ChargeItem;
 use App\Models\Guest;
 use App\Models\Reservation;
 use App\Models\RoomType;
+use App\Models\User;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Spatie\Activitylog\Models\Activity;
@@ -67,7 +69,7 @@ class ReservationActivityLog
             ->first();
         $reason = $activity?->properties->get($activity->event === 'reservation.unit_added' ? 'override_reason' : 'reason');
 
-        return $reason === null ? null : ['reason' => (string) $reason, 'by' => $activity->causer?->name];
+        return $reason === null ? null : ['reason' => (string) $reason, 'by' => $this->causerName($activity->causer)];
     }
 
     /**
@@ -122,7 +124,7 @@ class ReservationActivityLog
             kind: $activity->event,
             text: $text,
             reason: $reason,
-            causerName: $activity->causer?->name,
+            causerName: $this->causerName($activity->causer),
             createdAt: $activity->created_at->toIso8601String(),
         );
     }
@@ -208,5 +210,13 @@ class ReservationActivityLog
             ->whereIn('id', $ids)
             ->pluck($column, 'id')
             ->all();
+    }
+
+    /**
+     * The name of the staff user who caused the entry. Any other causer has no name here.
+     */
+    private function causerName(?Model $causer): ?string
+    {
+        return $causer instanceof User ? $causer->name : null;
     }
 }

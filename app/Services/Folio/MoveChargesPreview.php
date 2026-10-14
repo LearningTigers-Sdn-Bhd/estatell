@@ -192,7 +192,7 @@ class MoveChargesPreview
      * Everything read once per request: the folios and their names, the balances, the movable charges and the
      * Scheduled blocks.
      *
-     * @return array{labels: array<int, string>, openFolios: EloquentCollection<int, Folio>, balances: array<int, string>, charges: Collection<int, array{lineId: int, folioId: int, unitId: int|null, isRoom: bool, total: string, data: MoveChargeData}>, blocks: list<array{target: int|null, unit: int, date: string, code: TransactionCode, rows: list<FolioRowData>}>, unitLabels: array<int, string>, units: EloquentCollection<int, ReservationUnit>}
+     * @return array{labels: array<int, string>, openFolios: EloquentCollection<int, Folio>, balances: array<int, string>, charges: Collection<int, array{lineId: int, folioId: int, unitId: int|null, isRoom: bool, total: non-empty-string, data: MoveChargeData}>, blocks: list<array{target: int|null, unit: int, date: string, code: TransactionCode, rows: list<FolioRowData>}>, unitLabels: array<int, string>, units: EloquentCollection<int, ReservationUnit>}
      */
     private function state(Property $property, Reservation $reservation): array
     {
@@ -252,7 +252,7 @@ class MoveChargesPreview
      *
      * @param  EloquentCollection<int, Folio>  $folios
      * @param  array<int, string>  $unitLabels
-     * @return Collection<int, array{lineId: int, folioId: int, unitId: int|null, isRoom: bool, total: string, data: MoveChargeData}>
+     * @return Collection<int, array{lineId: int, folioId: int, unitId: int|null, isRoom: bool, total: non-empty-string, data: MoveChargeData}>
      */
     private function charges(Collection $folios, array $unitLabels): Collection
     {
@@ -310,7 +310,7 @@ class MoveChargesPreview
     /**
      * @param  list<int>  $lineIds
      * @param  list<array{unit: ReservationUnit, scope: string}>  $schedules
-     * @param  array<string, mixed>  $state
+     * @param  array{labels: array<int, string>, openFolios: EloquentCollection<int, Folio>, balances: array<int, string>, charges: Collection<int, array{lineId: int, folioId: int, unitId: int|null, isRoom: bool, total: non-empty-string, data: MoveChargeData}>, blocks: list<array{target: int|null, unit: int, date: string, code: TransactionCode, rows: list<FolioRowData>}>, unitLabels: array<int, string>, units: EloquentCollection<int, ReservationUnit>}  $state
      */
     private function compute(Property $property, Reservation $reservation, Folio $target, array $lineIds, array $schedules, array $state): MovePreviewData
     {
@@ -318,7 +318,6 @@ class MoveChargesPreview
         $labels = $state['labels'];
         /** @var array<int, string> $unitLabels */
         $unitLabels = $state['unitLabels'];
-        /** @var Collection<int, array{lineId: int, folioId: int, unitId: int|null, isRoom: bool, total: string, data: MoveChargeData}> $charges */
         $charges = $state['charges'];
         $currency = (string) $property->settings?->currency->getCurrencyCode();
         $money = fn (string $amount): string => trim($currency.' '.number_format((float) $amount, 2));
@@ -365,7 +364,7 @@ class MoveChargesPreview
      * and the sum of the Scheduled rows the target would hold after the move.
      *
      * @param  list<array{unit: ReservationUnit, scope: string}>  $schedules
-     * @param  Collection<int, array{lineId: int, folioId: int, unitId: int|null, isRoom: bool, total: string, data: MoveChargeData}>  $ticked
+     * @param  Collection<int, array{lineId: int, folioId: int, unitId: int|null, isRoom: bool, total: non-empty-string, data: MoveChargeData}>  $ticked
      * @param  array<string, mixed>  $state
      * @param  array<int, string>  $labels
      * @param  array<int, string>  $unitLabels

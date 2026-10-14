@@ -135,7 +135,7 @@ class AddUnit
             return $refuse(ReservationResult::REFUSAL_ADULTS_REQUIRED);
         }
 
-        if (array_any($data->childAges, fn (mixed $age): bool => ! is_int($age) || $age < 0 || $age > 17)) {
+        if (array_any($data->childAges, fn (int $age): bool => $age < 0 || $age > 17)) {
             return $refuse(ReservationResult::REFUSAL_CHILD_AGE_INVALID);
         }
 

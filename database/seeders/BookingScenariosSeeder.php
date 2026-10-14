@@ -287,23 +287,7 @@ class BookingScenariosSeeder extends Seeder
      */
     private function createStaff(): User
     {
-        $accounts = [
-            [DefaultRoleEnum::Owner, 'Rahim Owner', 'owner@kinabalu-hostel.test'],
-            [DefaultRoleEnum::Manager, 'Angela Manager', 'manager@kinabalu-hostel.test'],
-            [DefaultRoleEnum::FrontDesk, 'Joseph Front Desk', 'frontdesk@kinabalu-hostel.test'],
-        ];
-
-        $users = [];
-
-        foreach ($accounts as [$role, $name, $email]) {
-            $user = new User(['name' => $name, 'email' => $email, 'password' => self::STAFF_PASSWORD]);
-            $user->property_id = $this->property->id;
-            $user->email_verified_at = now();
-            $user->save();
-            $users[$role->value] = $user;
-            $this->credentials[] = [$role->label(), $name, $email, self::STAFF_PASSWORD];
-        }
-
+        $users = $this->createStaffUsers();
         $owner = $users[DefaultRoleEnum::Owner->value];
         app(AssignOwnerRole::class)($this->property, $owner);
 
@@ -316,6 +300,29 @@ class BookingScenariosSeeder extends Seeder
         }
 
         return $owner;
+    }
+
+    /**
+     * @return array{owner: User, manager: User, front_desk: User}
+     */
+    private function createStaffUsers(): array
+    {
+        return [
+            DefaultRoleEnum::Owner->value => $this->createStaffUser(DefaultRoleEnum::Owner, 'Rahim Owner', 'owner@kinabalu-hostel.test'),
+            DefaultRoleEnum::Manager->value => $this->createStaffUser(DefaultRoleEnum::Manager, 'Angela Manager', 'manager@kinabalu-hostel.test'),
+            DefaultRoleEnum::FrontDesk->value => $this->createStaffUser(DefaultRoleEnum::FrontDesk, 'Joseph Front Desk', 'frontdesk@kinabalu-hostel.test'),
+        ];
+    }
+
+    private function createStaffUser(DefaultRoleEnum $role, string $name, string $email): User
+    {
+        $user = new User(['name' => $name, 'email' => $email, 'password' => self::STAFF_PASSWORD]);
+        $user->property_id = $this->property->id;
+        $user->email_verified_at = now();
+        $user->save();
+        $this->credentials[] = [$role->label(), $name, $email, self::STAFF_PASSWORD];
+
+        return $user;
     }
 
     /**

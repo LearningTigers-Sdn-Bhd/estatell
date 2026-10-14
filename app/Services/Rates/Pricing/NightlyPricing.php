@@ -37,6 +37,10 @@ abstract class NightlyPricing implements StayPricing
             $nights[] = $this->priceNight($stay, $rate);
         }
 
+        if ($nights === []) {
+            throw new QuoteRefused(RateQuote::REFUSAL_INVALID_STAY);
+        }
+
         return $nights;
     }
 

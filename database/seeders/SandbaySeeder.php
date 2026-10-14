@@ -267,24 +267,7 @@ class SandbaySeeder extends Seeder
      */
     private function createStaff(Property $property): User
     {
-        $accounts = [
-            [DefaultRoleEnum::Owner, 'Siti Aminah Owner', 'owner@sandbay.test'],
-            [DefaultRoleEnum::Manager, 'Jason Manager', 'manager@sandbay.test'],
-            [DefaultRoleEnum::FrontDesk, 'Farah Front Desk', 'frontdesk@sandbay.test'],
-            [DefaultRoleEnum::Housekeeping, 'Mary Housekeeping', 'housekeeping@sandbay.test'],
-        ];
-
-        $users = [];
-
-        foreach ($accounts as [$role, $name, $email]) {
-            $user = new User(['name' => $name, 'email' => $email, 'password' => self::STAFF_PASSWORD]);
-            $user->property_id = $property->id;
-            $user->email_verified_at = now();
-            $user->save();
-            $users[$role->value] = $user;
-            $this->credentials[] = [$role->label(), $name, $email, self::STAFF_PASSWORD];
-        }
-
+        $users = $this->createStaffUsers($property);
         $owner = $users[DefaultRoleEnum::Owner->value];
         app(AssignOwnerRole::class)($property, $owner);
 
@@ -297,6 +280,30 @@ class SandbaySeeder extends Seeder
         }
 
         return $owner;
+    }
+
+    /**
+     * @return array{owner: User, manager: User, front_desk: User, housekeeping: User}
+     */
+    private function createStaffUsers(Property $property): array
+    {
+        return [
+            DefaultRoleEnum::Owner->value => $this->createStaffUser($property, DefaultRoleEnum::Owner, 'Siti Aminah Owner', 'owner@sandbay.test'),
+            DefaultRoleEnum::Manager->value => $this->createStaffUser($property, DefaultRoleEnum::Manager, 'Jason Manager', 'manager@sandbay.test'),
+            DefaultRoleEnum::FrontDesk->value => $this->createStaffUser($property, DefaultRoleEnum::FrontDesk, 'Farah Front Desk', 'frontdesk@sandbay.test'),
+            DefaultRoleEnum::Housekeeping->value => $this->createStaffUser($property, DefaultRoleEnum::Housekeeping, 'Mary Housekeeping', 'housekeeping@sandbay.test'),
+        ];
+    }
+
+    private function createStaffUser(Property $property, DefaultRoleEnum $role, string $name, string $email): User
+    {
+        $user = new User(['name' => $name, 'email' => $email, 'password' => self::STAFF_PASSWORD]);
+        $user->property_id = $property->id;
+        $user->email_verified_at = now();
+        $user->save();
+        $this->credentials[] = [$role->label(), $name, $email, self::STAFF_PASSWORD];
+
+        return $user;
     }
 
     /**

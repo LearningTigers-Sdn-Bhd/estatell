@@ -30,6 +30,7 @@ use Inertia\Inertia;
 use Laravel\Pennant\Feature;
 use Spatie\Activitylog\Actions\LogActivityAction;
 use Spatie\Activitylog\Contracts\Activity;
+use Spatie\Activitylog\Models\Activity as ActivityModel;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -127,7 +128,7 @@ class AppServiceProvider extends ServiceProvider
         LogActivityAction::beforeLogging(function (Activity $activity): void {
             $impersonation = app(Impersonation::class);
 
-            if (! request()->hasSession() || ! $impersonation->isActive() || $activity->causer_id !== Auth::id() || $activity->causer_type !== (new User)->getMorphClass()) {
+            if (! $activity instanceof ActivityModel || ! request()->hasSession() || ! $impersonation->isActive() || $activity->causer_id !== Auth::id() || $activity->causer_type !== (new User)->getMorphClass()) {
                 return;
             }
 

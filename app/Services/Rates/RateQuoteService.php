@@ -32,7 +32,13 @@ class RateQuoteService
 
         $request->ratePlan->loadMissing('stayDiscounts');
 
-        return RateQuote::quoted($this->stayDiscount->apply($request->ratePlan->stayDiscounts, $priced->nights, $priced->discountUnits));
+        $nights = $this->stayDiscount->apply($request->ratePlan->stayDiscounts, $priced->nights, $priced->discountUnits);
+
+        if ($nights === []) {
+            return RateQuote::refused(RateQuote::REFUSAL_INVALID_STAY);
+        }
+
+        return RateQuote::quoted($nights);
     }
 
     /**

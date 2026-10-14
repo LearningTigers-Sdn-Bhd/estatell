@@ -43,7 +43,7 @@ class GuestDirectory
         return QueryBuilder::for(Guest::query()->where('guests.property_id', $property->id)->notMerged(), $request)
             ->allowedFilters(
                 AllowedFilter::callback('search', fn (Builder $query, string $search) => $this->search($query, $search, $searchIdNumbers)),
-                AllowedFilter::callback('status', fn (Builder $query, string $status) => $this->status($query, $status)),
+                AllowedFilter::callback('status', $this->status(...)),
                 AllowedFilter::callback('tag', fn (Builder $query, string $tag) => $query->whereHas(
                     'tags',
                     fn (Builder $tags) => $tags->where('tags.id', (int) $tag)->where('tags.property_id', $property->id),

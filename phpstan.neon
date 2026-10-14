@@ -23,4 +23,6 @@ parameters:
 
         # Laravel types __() as array|string|null. The app only translates string keys that resolve to strings.
         -
-            message: '#array\|string\|null#'
+            message: '#array(?:<string>)?\|(?:float\|int\|)?string#'
+        -
+            message: '#non-empty-array\|non-falsy-string#'

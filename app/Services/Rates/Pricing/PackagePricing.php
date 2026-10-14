@@ -57,10 +57,16 @@ class PackagePricing implements StayPricing
         $extras = $extra->allocate($ratios, AllocationMode::FloorToFirst);
         $zero = Money::zero($base->getCurrency());
 
-        return array_map(
+        $prices = array_map(
             fn (int $index): NightPrice => NightPrice::of($arrival->addDays($index), $bases[$index], $extras[$index], $zero),
             array_keys($bases),
         );
+
+        if ($prices === []) {
+            throw new QuoteRefused(RateQuote::REFUSAL_INVALID_STAY);
+        }
+
+        return $prices;
     }
 
     /**
