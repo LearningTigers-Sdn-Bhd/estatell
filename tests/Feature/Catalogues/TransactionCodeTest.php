@@ -6,6 +6,7 @@ use App\Enums\TransactionCategory;
 use App\Enums\TransactionKind;
 use App\Models\Property;
 use App\Models\TransactionCode;
+use App\Services\Property\CountryProfiles;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 
@@ -138,7 +139,7 @@ test('the database rejects invalid transaction code values', function (array $at
 test('Malaysia properties receive every system transaction code', function () {
     $property = Property::factory()->create(['country_code' => 'MY']);
 
-    app(SeedTransactionCodes::class)($property, 'MY');
+    app(SeedTransactionCodes::class)($property, CountryProfiles::for('MY'));
 
     expect($property->transactionCodes()->count())->toBe(count(SystemTransactionCode::cases()))
         ->and($property->transactionCodes()->where('is_system', true)->count())->toBe(count(SystemTransactionCode::cases()))
@@ -159,8 +160,8 @@ test('seeding again preserves existing system transaction codes', function () {
         'active' => false,
     ]);
 
-    app(SeedTransactionCodes::class)($property, 'MY');
-    app(SeedTransactionCodes::class)($property, 'MY');
+    app(SeedTransactionCodes::class)($property, CountryProfiles::for('MY'));
+    app(SeedTransactionCodes::class)($property, CountryProfiles::for('MY'));
 
     expect($property->transactionCodes()->count())->toBe(count(SystemTransactionCode::cases()))
         ->and($room->refresh()->only(['code', 'name', 'gl_account_code', 'active']))->toBe([
@@ -177,18 +178,9 @@ test('system codes use the next suffix when custom codes occupy their canonical 
     TransactionCode::factory()->for($property)->create(['code' => 'ROOM']);
     TransactionCode::factory()->for($property)->create(['code' => 'ROOM_2']);
 
-    app(SeedTransactionCodes::class)($property, 'MY');
+    app(SeedTransactionCodes::class)($property, CountryProfiles::for('MY'));
 
     expect($property->transactionCodes()->where('system_key', SystemTransactionCode::RoomRevenue->value)->value('code'))
         ->toBe('ROOM_3')
         ->and($property->transactionCodes()->whereNull('system_key')->whereIn('code', ['ROOM', 'ROOM_2'])->count())->toBe(2);
-});
-
-test('unsupported countries create no transaction codes', function () {
-    $property = Property::factory()->create();
-
-    expect(fn () => app(SeedTransactionCodes::class)($property, 'my'))
-        ->toThrow(InvalidArgumentException::class);
-
-    expect($property->transactionCodes()->count())->toBe(0);
 });

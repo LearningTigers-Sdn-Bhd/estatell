@@ -6,13 +6,15 @@ A new property should work immediately. `SeedPropertyDefaults` creates sensible 
 
 ## Built first slice
 
-`SeedPropertyDefaults(Property $property, PropertyType $type, string $countryCode)` creates the default roles, property settings, [transaction codes](../06-catalogues/01-transaction-codes.md), [payment methods](../06-catalogues/04-payment-methods.md) and [taxes](../06-catalogues/03-taxes.md). The presets come from the property's [country profile](#country-profiles). Every property type currently shares the same preset.
+`SeedPropertyDefaults(Property $property, PropertyType $type, string $countryCode)` creates the default roles, property settings, charge items, discounts, meal periods, age groups, rate plan, registration card fields, terms, [transaction codes](../06-catalogues/01-transaction-codes.md), [payment methods](../06-catalogues/04-payment-methods.md) and [taxes](../06-catalogues/03-taxes.md). The presets come from the property's [country profile](#country-profiles). Every property type currently shares the same preset.
 
 `SavePropertyBasics` saves type, name, country, address, currency and time zone, and calls `SeedPropertyDefaults` in the same transaction. The action is idempotent. A repeated Basics save keeps edited settings, roles and permissions.
 
 ## Country profiles
 
-A strategy class per country replaces the `$countryCode !== 'MY'` checks in the seeders. `CountryProfiles::for(string $countryCode)` returns `MalaysiaProfile` for `MY` and `GenericProfile` for every other country. The seeders take the profile and never throw for a country.
+A strategy class per country replaces the `$countryCode !== 'MY'` checks in the seeders. `CountryProfiles::for(string $countryCode)` (in `app/Services/Property/`) returns `MalaysiaProfile` for `MY` and `GenericProfile` for every other country. `SeedPropertyDefaults` resolves the profile once. The transaction code, tax, payment method and terms seeders take it. The charge item, discount, age group and meal period seeders have no country differences yet, so they take no profile. No seeder throws for a country.
+
+**Built so far:** the profile classes and the seeders above. Generic transaction codes leave out the SST and Tourism tax codes. Generic prefills currency from ICU (USD when ICU has none) and the first time zone of the country (UTC when there is none). Terms are seeded for the profile's languages. **Not built yet:** Basics accepting other countries (it stays Malaysia only), the state list, business number labels, identity document types and `ChangePropertyCountry`.
 
 | Area                                                                 | `MalaysiaProfile`                  | `GenericProfile`                                                                                               |
 | -------------------------------------------------------------------- | ---------------------------------- | -------------------------------------------------------------------------------------------------------------- |

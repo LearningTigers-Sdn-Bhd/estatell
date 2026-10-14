@@ -10,14 +10,15 @@ use App\Models\PropertySetting;
 use App\Models\Tax;
 use App\Models\TransactionCode;
 use App\Models\User;
+use App\Services\Property\CountryProfiles;
 use Inertia\Testing\AssertableInertia as Assert;
 use Spatie\Activitylog\Models\Activity;
 
 function seedRoomRevenueProperty(Property $property): void
 {
     PropertySetting::factory()->for($property)->create(['currency' => 'MYR']);
-    app(SeedTransactionCodes::class)($property, 'MY');
-    app(SeedTaxes::class)($property, 'MY');
+    app(SeedTransactionCodes::class)($property, CountryProfiles::for('MY'));
+    app(SeedTaxes::class)($property, CountryProfiles::for('MY'));
 }
 
 test('the page shows the room revenue taxes and a preview for local and foreign guests', function () {

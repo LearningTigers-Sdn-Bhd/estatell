@@ -12,6 +12,7 @@ use App\Models\Property;
 use App\Models\PropertySetting;
 use App\Models\Tax;
 use App\Models\User;
+use App\Services\Property\CountryProfiles;
 use Illuminate\Support\Facades\DB;
 
 /** @return array{0: User, 1: Property} */
@@ -20,8 +21,8 @@ function dayUseTaxSetup(): array
     $owner = User::factory()->owner()->create();
     $property = $owner->property;
     PropertySetting::factory()->for($property)->create();
-    app(SeedTransactionCodes::class)($property, 'MY');
-    app(SeedTaxes::class)($property, 'MY');
+    app(SeedTransactionCodes::class)($property, CountryProfiles::for('MY'));
+    app(SeedTaxes::class)($property, CountryProfiles::for('MY'));
     $property->taxes()->update(['enabled' => true]);
     $taxes = $property->taxes()->pluck('id')->all();
     app(UpdateRoomRevenueTaxes::class)($property, $owner, $taxes);
@@ -36,8 +37,8 @@ function dayUseTaxIds(Property $property): array
 
 test('seeding creates DAY_USE as a Room charge and is safe to run again', function () {
     $property = Property::factory()->create();
-    app(SeedTransactionCodes::class)($property, 'MY');
-    app(SeedTransactionCodes::class)($property, 'MY');
+    app(SeedTransactionCodes::class)($property, CountryProfiles::for('MY'));
+    app(SeedTransactionCodes::class)($property, CountryProfiles::for('MY'));
 
     $code = $property->transactionCodes()->where('system_key', 'day_use_revenue')->sole();
 
@@ -51,7 +52,7 @@ test('seeding creates DAY_USE as a Room charge and is safe to run again', functi
 
 test('the backfill migration adds DAY_USE to properties that lack it and leaves the rest alone', function () {
     $property = Property::factory()->create(['country_code' => 'MY']);
-    app(SeedTransactionCodes::class)($property, 'MY');
+    app(SeedTransactionCodes::class)($property, CountryProfiles::for('MY'));
     $property->transactionCodes()->where('system_key', 'day_use_revenue')->delete();
     $before = $property->transactionCodes()->count();
 

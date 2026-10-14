@@ -18,6 +18,7 @@ use App\Models\PropertySetting;
 use App\Models\Tax;
 use App\Models\TransactionCode;
 use App\Models\User;
+use App\Services\Property\CountryProfiles;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -182,12 +183,12 @@ test('items priced when charging always allow the amount to be entered', functio
 
 test('Malaysia properties receive starter charge items that own the general charge codes', function () {
     $property = Property::factory()->create(['country_code' => 'MY']);
-    app(SeedTransactionCodes::class)($property, 'MY');
+    app(SeedTransactionCodes::class)($property, CountryProfiles::for('MY'));
 
-    app(SeedChargeItems::class)($property, 'MY');
+    app(SeedChargeItems::class)($property);
     $laundry = $property->chargeItems()->where('name', 'Laundry')->sole();
     $laundry->update(['name' => 'Laundry service', 'default_amount' => '15.00', 'active' => false]);
-    app(SeedChargeItems::class)($property, 'MY');
+    app(SeedChargeItems::class)($property);
 
     $items = $property->chargeItems()->with('transactionCode')->ordered()->get();
 
@@ -201,8 +202,6 @@ test('Malaysia properties receive starter charge items that own the general char
         ->and($items->every(fn (ChargeItem $item): bool => $item->allow_override))->toBeTrue()
         ->and($laundry->refresh()->name)->toBe('Laundry service')
         ->and($laundry->active)->toBeFalse();
-
-    expect(fn () => app(SeedChargeItems::class)($property, 'SG'))->toThrow(InvalidArgumentException::class);
 });
 
 test('starter items keep their system code and category but follow the item name and status', function () {

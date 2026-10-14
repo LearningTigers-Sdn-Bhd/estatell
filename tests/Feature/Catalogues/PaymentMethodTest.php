@@ -14,6 +14,7 @@ use App\Models\Property;
 use App\Models\PropertySetting;
 use App\Models\TransactionCode;
 use App\Models\User;
+use App\Services\Property\CountryProfiles;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -53,9 +54,9 @@ test('payment method and surcharge types expose their labels and options', funct
 
 test('Malaysia properties receive six payment methods idempotently', function () {
     $property = Property::factory()->create(['country_code' => 'MY']);
-    app(SeedTransactionCodes::class)($property, 'MY');
+    app(SeedTransactionCodes::class)($property, CountryProfiles::for('MY'));
 
-    app(SeedPaymentMethods::class)($property, 'MY');
+    app(SeedPaymentMethods::class)($property, CountryProfiles::for('MY'));
     $card = $property->paymentMethods()->where('type', PaymentMethodType::Card)->sole();
     $card->update([
         'name' => 'Front desk terminal',
@@ -63,7 +64,7 @@ test('Malaysia properties receive six payment methods idempotently', function ()
         'active' => false,
         'position' => 9,
     ]);
-    app(SeedPaymentMethods::class)($property, 'MY');
+    app(SeedPaymentMethods::class)($property, CountryProfiles::for('MY'));
 
     $methods = $property->paymentMethods()->ordered()->get();
     expect($methods)->toHaveCount(6)
@@ -83,21 +84,12 @@ test('Malaysia properties receive six payment methods idempotently', function ()
         ->and($methods->firstWhere('type', PaymentMethodType::DirectBill)->active)->toBeFalse();
 });
 
-test('unsupported countries receive no payment method presets', function () {
-    $property = Property::factory()->create();
-
-    expect(fn () => app(SeedPaymentMethods::class)($property, 'SG'))
-        ->toThrow(InvalidArgumentException::class);
-
-    expect($property->paymentMethods()->count())->toBe(0);
-});
-
 test('the page loads the bounded catalogue and surcharge picker data', function () {
     $owner = User::factory()->owner()->create();
     $property = $owner->property;
     PropertySetting::factory()->for($property)->create(['currency' => 'MYR']);
-    app(SeedTransactionCodes::class)($property, 'MY');
-    app(SeedPaymentMethods::class)($property, 'MY');
+    app(SeedTransactionCodes::class)($property, CountryProfiles::for('MY'));
+    app(SeedPaymentMethods::class)($property, CountryProfiles::for('MY'));
     $activeChargeItem = ChargeItem::factory()->for($property)->create(['name' => 'Card fee']);
     $inactiveChargeItem = ChargeItem::factory()->for($property)->inactive()->create(['name' => 'Old fee']);
     $card = $property->paymentMethods()->where('type', PaymentMethodType::Card)->sole();
@@ -129,8 +121,8 @@ test('the page loads the bounded catalogue and surcharge picker data', function 
 test('owners update payment settings and synchronize the transaction code name', function () {
     $owner = User::factory()->owner()->create();
     $property = $owner->property;
-    app(SeedTransactionCodes::class)($property, 'MY');
-    app(SeedPaymentMethods::class)($property, 'MY');
+    app(SeedTransactionCodes::class)($property, CountryProfiles::for('MY'));
+    app(SeedPaymentMethods::class)($property, CountryProfiles::for('MY'));
     $card = $property->paymentMethods()->where('type', PaymentMethodType::Card)->sole();
     $chargeItem = ChargeItem::factory()->for($property)->create();
 

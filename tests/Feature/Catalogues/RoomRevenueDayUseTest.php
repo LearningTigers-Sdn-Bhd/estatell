@@ -10,6 +10,7 @@ use App\Models\PropertySetting;
 use App\Models\RatePlan;
 use App\Models\Tax;
 use App\Models\User;
+use App\Services\Property\CountryProfiles;
 use Inertia\Testing\AssertableInertia as Assert;
 use Spatie\Activitylog\Models\Activity;
 
@@ -19,8 +20,8 @@ function dayUseRevenueSetup(bool $withPlan = true): array
     $owner = User::factory()->owner()->create();
     $property = $owner->property;
     PropertySetting::factory()->for($property)->create();
-    app(SeedTransactionCodes::class)($property, 'MY');
-    app(SeedTaxes::class)($property, 'MY');
+    app(SeedTransactionCodes::class)($property, CountryProfiles::for('MY'));
+    app(SeedTaxes::class)($property, CountryProfiles::for('MY'));
     app(SeedRoomRevenuePolicies::class)($property);
     $property->taxes()->update(['enabled' => true]);
 

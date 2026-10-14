@@ -3,6 +3,7 @@
 use App\Actions\Catalogues\SeedTransactionCodes;
 use App\Enums\SystemTransactionCode;
 use App\Models\Property;
+use App\Services\Property\MalaysiaProfile;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
 
@@ -15,7 +16,7 @@ return new class extends Migration
     {
         $seed = app(SeedTransactionCodes::class);
 
-        Property::query()->where('country_code', 'MY')->lazyById()->each(fn (Property $property) => $seed($property, 'MY'));
+        Property::query()->where('country_code', 'MY')->lazyById()->each(fn (Property $property) => $seed($property, new MalaysiaProfile));
     }
 
     /**

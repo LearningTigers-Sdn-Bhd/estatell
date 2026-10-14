@@ -15,6 +15,7 @@ use App\Models\RatePlan;
 use App\Models\Room;
 use App\Models\RoomType;
 use App\Models\User;
+use App\Services\Property\CountryProfiles;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
@@ -65,8 +66,8 @@ function dayUseSetup(int $rooms = 2, ?User $owner = null): array
  */
 function seedDayUseCodes(Property $property): void
 {
-    app(SeedTransactionCodes::class)($property, 'MY');
-    app(SeedTaxes::class)($property, 'MY');
+    app(SeedTransactionCodes::class)($property, CountryProfiles::for('MY'));
+    app(SeedTaxes::class)($property, CountryProfiles::for('MY'));
 }
 
 /**

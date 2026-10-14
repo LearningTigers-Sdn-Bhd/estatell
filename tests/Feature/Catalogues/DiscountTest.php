@@ -16,6 +16,7 @@ use App\Models\PropertySetting;
 use App\Models\Tax;
 use App\Models\TransactionCode;
 use App\Models\User;
+use App\Services\Property\CountryProfiles;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -163,12 +164,12 @@ test('selected discounts target charge codes and other scopes clear them', funct
 
 test('Malaysia properties receive a starter discount that owns the DISCOUNT code', function () {
     $property = Property::factory()->create(['country_code' => 'MY']);
-    app(SeedTransactionCodes::class)($property, 'MY');
+    app(SeedTransactionCodes::class)($property, CountryProfiles::for('MY'));
 
-    app(SeedDiscounts::class)($property, 'MY');
+    app(SeedDiscounts::class)($property);
     $discount = $property->discounts()->sole();
     $discount->update(['name' => 'Manager discount', 'active' => false]);
-    app(SeedDiscounts::class)($property, 'MY');
+    app(SeedDiscounts::class)($property);
 
     expect($property->discounts()->count())->toBe(1)
         ->and($discount->refresh()->name)->toBe('Manager discount')
@@ -176,8 +177,6 @@ test('Malaysia properties receive a starter discount that owns the DISCOUNT code
         ->and($discount->type)->toBe(DiscountType::Open)
         ->and($discount->scope)->toBe(DiscountScope::AllCharges)
         ->and($discount->transactionCode->system_key)->toBe(SystemTransactionCode::Discount->value);
-
-    expect(fn () => app(SeedDiscounts::class)($property, 'SG'))->toThrow(InvalidArgumentException::class);
 });
 
 test('the starter discount keeps its system code but follows the discount name and status', function () {

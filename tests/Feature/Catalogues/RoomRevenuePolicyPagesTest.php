@@ -11,14 +11,15 @@ use App\Models\Property;
 use App\Models\PropertySetting;
 use App\Models\Tax;
 use App\Models\User;
+use App\Services\Property\CountryProfiles;
 use Inertia\Testing\AssertableInertia as Assert;
 
 function policyProperty(User $owner): Property
 {
     $property = $owner->property;
     PropertySetting::factory()->for($property)->create(['currency' => 'MYR']);
-    app(SeedTransactionCodes::class)($property, 'MY');
-    app(SeedTaxes::class)($property, 'MY');
+    app(SeedTransactionCodes::class)($property, CountryProfiles::for('MY'));
+    app(SeedTaxes::class)($property, CountryProfiles::for('MY'));
     app(SeedRoomRevenuePolicies::class)($property);
     $property->taxes()->where('code', 'SST')->update(['enabled' => true]);
     $property->taxes()->where('code', 'TTX')->update(['enabled' => false]);

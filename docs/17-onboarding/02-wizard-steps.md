@@ -14,7 +14,7 @@ Get a property from sign-up to its first booking in about 15 minutes, without co
 6. Each section has its **own onboarding form** (guided copy, suggested defaults, one decision per screen). It saves through the **same Actions and Data classes** as settings.
 7. The owner stays inside onboarding until the property is Live (see [The fence](#the-fence)).
 
-The first release has only the Basics page. It uses the current staff layout. Basics currently accepts Malaysia only and seeds roles, property settings, transaction codes, taxes and payment methods. It does not create terms yet. Other countries arrive with [country profiles](../02-property/03-seed-property-defaults.md#country-profiles).
+The first release has only the Basics page. It uses the current staff layout. Basics currently accepts Malaysia only. `SeedPropertyDefaults` already seeds the [country profiles](../02-property/03-seed-property-defaults.md#country-profiles) for other countries, but the Basics form does not offer them yet.
 
 ## Phases and sections
 

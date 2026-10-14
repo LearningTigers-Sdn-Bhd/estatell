@@ -34,21 +34,14 @@ function ageGroupRows(Property $property): array
 test('Malaysia properties receive Infant and Child idempotently', function () {
     $property = Property::factory()->create(['country_code' => 'MY']);
 
-    app(SeedAgeGroups::class)($property, 'MY');
+    app(SeedAgeGroups::class)($property);
     $property->ageGroups()->where('label', 'Child')->update(['label' => 'Kid', 'max_age' => 9]);
-    app(SeedAgeGroups::class)($property, 'MY');
+    app(SeedAgeGroups::class)($property);
 
     expect(ageGroupRows($property))->toBe([
         ['label' => 'Infant', 'min' => 0, 'max' => 3],
         ['label' => 'Kid', 'min' => 4, 'max' => 9],
     ]);
-});
-
-test('unsupported countries receive no age group presets', function () {
-    $property = Property::factory()->create();
-
-    expect(fn () => app(SeedAgeGroups::class)($property, 'SG'))->toThrow(InvalidArgumentException::class);
-    expect($property->ageGroups()->count())->toBe(0);
 });
 
 test('the page lists this property\'s groups by minimum age and opens under the property settings navigation entry', function () {

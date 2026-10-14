@@ -13,6 +13,7 @@ use App\Models\PropertySetting;
 use App\Models\Tax;
 use App\Models\TransactionCode;
 use App\Models\User;
+use App\Services\Property\CountryProfiles;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -43,12 +44,12 @@ test('tax rate types expose labels and options', function () {
 
 test('Malaysia properties receive disabled tax presets idempotently', function () {
     $property = Property::factory()->create(['country_code' => 'MY']);
-    app(SeedTransactionCodes::class)($property, 'MY');
+    app(SeedTransactionCodes::class)($property, CountryProfiles::for('MY'));
 
-    app(SeedTaxes::class)($property, 'MY');
+    app(SeedTaxes::class)($property, CountryProfiles::for('MY'));
     $sst = $property->taxes()->where('code', 'SST')->sole();
     $sst->update(['name' => 'Accommodation SST', 'rate' => '9.00', 'enabled' => true]);
-    app(SeedTaxes::class)($property, 'MY');
+    app(SeedTaxes::class)($property, CountryProfiles::for('MY'));
 
     expect($property->taxes()->count())->toBe(2)
         ->and($sst->refresh()->name)->toBe('Accommodation SST')
@@ -64,15 +65,6 @@ test('Malaysia properties receive disabled tax presets idempotently', function (
         ->and($tourism->foreign_guests_only)->toBeTrue()
         ->and($tourism->collect_at_check_in)->toBeTrue()
         ->and($tourism->enabled)->toBeFalse();
-});
-
-test('unsupported countries receive no tax presets', function () {
-    $property = Property::factory()->create();
-
-    expect(fn () => app(SeedTaxes::class)($property, 'SG'))
-        ->toThrow(InvalidArgumentException::class);
-
-    expect($property->taxes()->count())->toBe(0);
 });
 
 test('the page loads the bounded catalogue with what each tax applies to', function () {

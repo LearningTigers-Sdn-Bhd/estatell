@@ -161,7 +161,7 @@ test('creating a plan with room types that changed under it is refused without w
 
 test('a new per-guest plan starts with the youngest age group free and the others at 50%', function () {
     [$owner, $property] = ratePlanOwner();
-    app(SeedAgeGroups::class)($property, 'MY');
+    app(SeedAgeGroups::class)($property);
 
     $this->actingAs($owner)
         ->post(route('settings.rate-plans.store', $property->code), ['name' => 'Full Board', 'pricing_basis' => 'per_guest']);
@@ -208,7 +208,7 @@ test('an archived plan\'s name can be reused', function () {
 
 test('each editor tab is its own page and loads only its own data', function () {
     [$owner, $property] = ratePlanOwner();
-    app(SeedAgeGroups::class)($property, 'MY');
+    app(SeedAgeGroups::class)($property);
     $room = RoomType::factory()->for($property)->create(['name' => 'Deluxe']);
     RoomType::factory()->for($property)->bed()->create(['name' => 'Dorm']);
     RoomType::factory()->for($property)->archived()->create(['name' => 'Gone']);
@@ -360,7 +360,7 @@ test('a plan cannot sell a room type of the wrong family, another property\'s, o
 
 test('child prices are saved for every age group and clear the review flag', function () {
     [$owner, $property] = ratePlanOwner();
-    app(SeedAgeGroups::class)($property, 'MY');
+    app(SeedAgeGroups::class)($property);
     [$infant, $child] = $property->ageGroups()->ordered()->get();
     $plan = RatePlan::factory()->for($property)->perGuest()->create(['needs_child_price_review' => true]);
     $plan->childPrices()->create(['property_age_group_id' => $infant->id, 'pricing' => AgeBandPricing::Free]);
@@ -384,7 +384,7 @@ test('child prices are saved for every age group and clear the review flag', fun
 
 test('child prices are validated', function (array $row, string $field) {
     [$owner, $property] = ratePlanOwner();
-    app(SeedAgeGroups::class)($property, 'MY');
+    app(SeedAgeGroups::class)($property);
     [$infant, $child] = $property->ageGroups()->ordered()->get();
     $plan = RatePlan::factory()->for($property)->perGuest()->create();
     $free = ['age_group_id' => $infant->id, 'pricing' => 'free', 'value' => null];
@@ -404,7 +404,7 @@ test('child prices are validated', function (array $row, string $field) {
 
 test('child prices must cover exactly the property\'s age groups and only per-guest plans have them', function () {
     [$owner, $property] = ratePlanOwner();
-    app(SeedAgeGroups::class)($property, 'MY');
+    app(SeedAgeGroups::class)($property);
     [$infant] = $property->ageGroups()->ordered()->get();
     $perGuest = RatePlan::factory()->for($property)->perGuest()->create();
     $perRoom = RatePlan::factory()->for($property)->create();
@@ -424,7 +424,7 @@ test('child prices must cover exactly the property\'s age groups and only per-gu
 
 test('a new age group gets a free child price on every per-guest plan and flags them for review', function () {
     [$owner, $property] = ratePlanOwner();
-    app(SeedAgeGroups::class)($property, 'MY');
+    app(SeedAgeGroups::class)($property);
     [$infant, $child] = $property->ageGroups()->ordered()->get();
     $perGuest = RatePlan::factory()->for($property)->perGuest()->create();
     $perRoom = RatePlan::factory()->for($property)->create();
@@ -446,7 +446,7 @@ test('a new age group gets a free child price on every per-guest plan and flags 
 
 test('removing an age group removes its child prices', function () {
     [$owner, $property] = ratePlanOwner();
-    app(SeedAgeGroups::class)($property, 'MY');
+    app(SeedAgeGroups::class)($property);
     [$infant, $child] = $property->ageGroups()->ordered()->get();
     $plan = RatePlan::factory()->for($property)->perGuest()->create();
     $plan->childPrices()->create(['property_age_group_id' => $infant->id, 'pricing' => AgeBandPricing::Free]);

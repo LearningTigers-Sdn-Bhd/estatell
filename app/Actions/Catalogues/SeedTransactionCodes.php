@@ -2,11 +2,10 @@
 
 namespace App\Actions\Catalogues;
 
-use App\Enums\SystemTransactionCode;
 use App\Models\Property;
+use App\Services\Property\CountryProfile;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
-use InvalidArgumentException;
 
 class SeedTransactionCodes
 {
@@ -14,18 +13,14 @@ class SeedTransactionCodes
      * Create the system transaction codes available for a property's country.
      * Existing system codes keep every property-owned value when this runs again.
      */
-    public function __invoke(Property $property, string $countryCode): void
+    public function __invoke(Property $property, CountryProfile $profile): void
     {
-        if ($countryCode !== 'MY') {
-            throw new InvalidArgumentException("Transaction codes are not available for country [{$countryCode}].");
-        }
-
-        DB::transaction(function () use ($property): void {
+        DB::transaction(function () use ($property, $profile): void {
             $existingCodes = $property->transactionCodes()
                 ->pluck('code')
                 ->map(fn (mixed $code): string => (string) $code);
 
-            foreach (SystemTransactionCode::cases() as $systemCode) {
+            foreach ($profile->transactionCodes() as $systemCode) {
                 if ($property->transactionCodes()->where('system_key', $systemCode->value)->exists()) {
                     continue;
                 }

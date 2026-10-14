@@ -80,16 +80,3 @@ test('seeding again preserves edited settings and roles', function () {
         ->and($card->refresh()->name)->toBe('Front desk terminal')
         ->and($card->requires_reference)->toBeFalse();
 });
-
-test('unsupported countries create no defaults', function () {
-    $property = Property::factory()->create();
-
-    expect(fn () => app(SeedPropertyDefaults::class)($property, $property->type, 'my'))
-        ->toThrow(InvalidArgumentException::class);
-
-    expect($property->roles()->count())->toBe(0)
-        ->and($property->settings()->count())->toBe(0)
-        ->and($property->transactionCodes()->count())->toBe(0)
-        ->and($property->chargeItems()->count())->toBe(0)
-        ->and($property->paymentMethods()->count())->toBe(0);
-});

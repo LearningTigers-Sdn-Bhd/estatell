@@ -3,33 +3,24 @@
 namespace App\Actions\Catalogues;
 
 use App\Enums\SystemTransactionCode;
-use App\Enums\TaxRateType;
 use App\Models\Property;
 use App\Models\Tax;
+use App\Services\Property\CountryProfile;
 use Illuminate\Support\Facades\DB;
-use InvalidArgumentException;
 
 class SeedTaxes
 {
     /** Create disabled country presets while preserving property-owned changes. */
-    public function __invoke(Property $property, string $countryCode): void
+    public function __invoke(Property $property, CountryProfile $profile): void
     {
-        if ($countryCode !== 'MY') {
-            throw new InvalidArgumentException("Tax presets are not available for country [{$countryCode}].");
-        }
-
-        DB::transaction(function () use ($property): void {
+        DB::transaction(function () use ($property, $profile): void {
             $roomRevenueCodeIds = $property->transactionCodes()
                 ->whereIn('system_key', SystemTransactionCode::roomRevenueKeys())
                 ->pluck('id')
                 ->all();
-            $presets = [
-                ['system_key' => SystemTransactionCode::SstTax->value, 'name' => 'Service Tax (SST)', 'code' => 'SST', 'rate_type' => TaxRateType::Percent, 'rate' => '8.00', 'foreign_guests_only' => false, 'collect_at_check_in' => true],
-                ['system_key' => SystemTransactionCode::TourismTax->value, 'name' => 'Tourism tax', 'code' => 'TTX', 'rate_type' => TaxRateType::Flat, 'rate' => '10.00', 'foreign_guests_only' => true, 'collect_at_check_in' => true],
-            ];
 
-            foreach ($presets as $preset) {
-                $postingCode = $property->transactionCodes()->where('system_key', $preset['system_key'])->firstOrFail();
+            foreach ($profile->taxPresets() as $preset) {
+                $postingCode = $property->transactionCodes()->where('system_key', $preset['systemCode']->value)->firstOrFail();
                 $tax = $property->taxes()->whereBelongsTo($postingCode, 'transactionCode')->first();
 
                 if ($tax instanceof Tax) {
@@ -40,11 +31,11 @@ class SeedTaxes
                     'transaction_code_id' => $postingCode->id,
                     'name' => $preset['name'],
                     'code' => $preset['code'],
-                    'rate_type' => $preset['rate_type'],
+                    'rate_type' => $preset['rateType'],
                     'rate' => $preset['rate'],
                     'is_inclusive' => false,
-                    'foreign_guests_only' => $preset['foreign_guests_only'],
-                    'collect_at_check_in' => $preset['collect_at_check_in'],
+                    'foreign_guests_only' => $preset['foreignGuestsOnly'],
+                    'collect_at_check_in' => true,
                     'registration_number' => null,
                     'enabled' => false,
                 ]);

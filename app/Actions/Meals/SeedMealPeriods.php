@@ -5,7 +5,6 @@ namespace App\Actions\Meals;
 use App\Enums\DefaultMealPeriod;
 use App\Models\Property;
 use Illuminate\Support\Facades\DB;
-use InvalidArgumentException;
 
 class SeedMealPeriods
 {
@@ -13,12 +12,8 @@ class SeedMealPeriods
      * Create Breakfast, Lunch and Dinner when the property has no meal periods yet.
      * A property that already has periods keeps every property-owned change.
      */
-    public function __invoke(Property $property, string $countryCode): void
+    public function __invoke(Property $property): void
     {
-        if ($countryCode !== 'MY') {
-            throw new InvalidArgumentException("Meal-period presets are not available for country [{$countryCode}].");
-        }
-
         DB::transaction(function () use ($property): void {
             $property = Property::query()->lockForUpdate()->findOrFail($property->id);
 

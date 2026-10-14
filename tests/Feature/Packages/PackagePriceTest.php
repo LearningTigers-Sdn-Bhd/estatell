@@ -312,7 +312,7 @@ test('the package details hold the nights, and a per-room package charges extra 
 
 test('a per-guest package has a children tab and starts with child prices, a per-room package does not', function () {
     [$owner, $property, $perGuest] = packageSetup();
-    app(SeedAgeGroups::class)($property, 'MY');
+    app(SeedAgeGroups::class)($property);
     $perRoom = RatePlan::factory()->for($property)->package(PackageUnit::PerRoom)->create();
 
     $this->actingAs($owner)
@@ -326,7 +326,7 @@ test('a per-guest package has a children tab and starts with child prices, a per
 
 test('a new age group adds a child price to per-guest packages only', function () {
     [$owner, $property, $perGuest] = packageSetup();
-    app(SeedAgeGroups::class)($property, 'MY');
+    app(SeedAgeGroups::class)($property);
     $perRoom = RatePlan::factory()->for($property)->package(PackageUnit::PerRoom)->create();
     [$infant, $child] = $property->ageGroups()->ordered()->get();
 

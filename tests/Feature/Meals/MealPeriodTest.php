@@ -60,24 +60,15 @@ test('default meal periods expose their names and times', function () {
 test('Malaysia properties receive three meal periods idempotently', function () {
     $property = Property::factory()->create(['country_code' => 'MY']);
 
-    app(SeedMealPeriods::class)($property, 'MY');
+    app(SeedMealPeriods::class)($property);
     $property->mealPeriods()->where('name', 'Lunch')->update(['name' => 'Midday meal', 'active' => false]);
-    app(SeedMealPeriods::class)($property, 'MY');
+    app(SeedMealPeriods::class)($property);
 
     $periods = $property->mealPeriods()->ordered()->get();
     expect($periods->pluck('name')->all())->toBe(['Breakfast', 'Midday meal', 'Dinner'])
         ->and($periods->pluck('starts_at')->all())->toBe(['07:00:00', '12:00:00', '19:00:00'])
         ->and($periods->pluck('ends_at')->all())->toBe(['10:00:00', '14:30:00', '22:00:00'])
         ->and($periods->firstWhere('name', 'Midday meal')->active)->toBeFalse();
-});
-
-test('unsupported countries receive no meal period presets', function () {
-    $property = Property::factory()->create();
-
-    expect(fn () => app(SeedMealPeriods::class)($property, 'SG'))
-        ->toThrow(InvalidArgumentException::class);
-
-    expect($property->mealPeriods()->count())->toBe(0);
 });
 
 test('the tab lists this property\'s periods by start time and opens under the property settings navigation entry', function () {

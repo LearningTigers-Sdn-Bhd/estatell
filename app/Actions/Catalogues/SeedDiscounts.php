@@ -8,7 +8,6 @@ use App\Enums\SystemTransactionCode;
 use App\Models\Discount;
 use App\Models\Property;
 use Illuminate\Support\Facades\DB;
-use InvalidArgumentException;
 
 class SeedDiscounts
 {
@@ -16,12 +15,8 @@ class SeedDiscounts
      * Create the starter discount that owns the DISCOUNT system code.
      * An existing starter discount keeps every property-owned value when this runs again.
      */
-    public function __invoke(Property $property, string $countryCode): void
+    public function __invoke(Property $property): void
     {
-        if ($countryCode !== 'MY') {
-            throw new InvalidArgumentException("Discount presets are not available for country [{$countryCode}].");
-        }
-
         DB::transaction(function () use ($property): void {
             $transactionCode = $property->transactionCodes()
                 ->where('system_key', SystemTransactionCode::Discount->value)
