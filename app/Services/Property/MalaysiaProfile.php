@@ -24,6 +24,21 @@ class MalaysiaProfile extends CountryProfile
         return 'Asia/Kuala_Lumpur';
     }
 
+    public function registrationNumberLabel(): string
+    {
+        return __('SSM registration no.');
+    }
+
+    public function tinLabel(): string
+    {
+        return __('TIN (LHDN)');
+    }
+
+    public function usesMalaysianTermsItems(): bool
+    {
+        return true;
+    }
+
     public function locales(): array
     {
         return [Locale::English, Locale::Malay];

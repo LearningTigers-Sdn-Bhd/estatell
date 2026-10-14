@@ -55,7 +55,7 @@ class TaxCalculator
         $nationalityCode = filled($guestNationalityCode) ? mb_strtoupper(trim((string) $guestNationalityCode)) : null;
         $taxes = $taxes
             ->filter(fn (Tax $tax): bool => $tax->enabled)
-            ->reject(fn (Tax $tax): bool => $tax->foreign_guests_only && $nationalityCode === 'MY')
+            ->reject(fn (Tax $tax): bool => $tax->foreign_guests_only && $nationalityCode === mb_strtoupper((string) $property->country_code))
             ->sortBy('id')
             ->values();
 

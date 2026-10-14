@@ -40,7 +40,7 @@ class NonNationalGuestsReport implements HasNote, HasTotals, Report
     {
         $units = $this->stays->between($property, $filters, $rowKeys === null ? null : array_map('intval', $rowKeys));
         $nationalities = $this->unitNationality->forUnits($units);
-        $foreign = $units->filter(fn (ReservationUnit $unit): bool => UnitNationality::isForeign($nationalities[$unit->id]))->values();
+        $foreign = $units->filter(fn (ReservationUnit $unit): bool => UnitNationality::isForeign($nationalities[$unit->id], $property->country_code))->values();
 
         if ($foreign->isEmpty()) {
             return [];

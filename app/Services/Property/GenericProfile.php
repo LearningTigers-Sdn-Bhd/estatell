@@ -38,6 +38,21 @@ class GenericProfile extends CountryProfile
         return DateTimeZone::listIdentifiers(DateTimeZone::PER_COUNTRY, $this->countryCode)[0] ?? self::FALLBACK_TIME_ZONE;
     }
 
+    public function registrationNumberLabel(): string
+    {
+        return __('Business registration no.');
+    }
+
+    public function tinLabel(): string
+    {
+        return __('Tax ID (TIN)');
+    }
+
+    public function usesMalaysianTermsItems(): bool
+    {
+        return false;
+    }
+
     public function locales(): array
     {
         return [Locale::English];

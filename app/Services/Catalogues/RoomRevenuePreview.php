@@ -10,8 +10,10 @@ class RoomRevenuePreview
     /** The room-night price the preview uses. */
     public const SAMPLE_AMOUNT = '100.00';
 
-    /** Any non-Malaysian nationality; foreign-only taxes apply to it. */
+    /** A nationality for the foreign guest sample. It is never the property's country. */
     private const FOREIGN_NATIONALITY = 'SG';
+
+    private const FOREIGN_NATIONALITY_FOR_SINGAPORE = 'MY';
 
     public function __construct(private TaxCalculator $taxCalculator) {}
 
@@ -30,7 +32,14 @@ class RoomRevenuePreview
         return [
             'sampleAmount' => $sampleAmount,
             'localGuest' => $this->taxCalculator->calculateWithTaxes($property, $taxes, $sampleAmount, '1', $property->country_code),
-            'foreignGuest' => $this->taxCalculator->calculateWithTaxes($property, $taxes, $sampleAmount, '1', self::FOREIGN_NATIONALITY),
+            'foreignGuest' => $this->taxCalculator->calculateWithTaxes($property, $taxes, $sampleAmount, '1', $this->foreignNationality($property)),
         ];
+    }
+
+    private function foreignNationality(Property $property): string
+    {
+        return mb_strtoupper((string) $property->country_code) === self::FOREIGN_NATIONALITY
+            ? self::FOREIGN_NATIONALITY_FOR_SINGAPORE
+            : self::FOREIGN_NATIONALITY;
     }
 }

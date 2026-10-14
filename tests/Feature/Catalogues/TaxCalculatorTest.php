@@ -96,6 +96,18 @@ test('foreign-only taxes refuse unknown nationality skip Malaysians and apply to
         ->and($foreign->grossAmount->isEqualTo(Money::of('110.00', 'MYR')))->toBeTrue();
 });
 
+test('foreign-only taxes follow the property country', function () {
+    [$property, $sourceCode, $calculator] = taxCalculatorContext();
+    $property->update(['country_code' => 'TH']);
+    calculatorTax($property, $sourceCode, ['name' => 'Tourism fee', 'code' => 'TFEE', 'rate_type' => TaxRateType::Flat, 'rate' => '10.00', 'foreign_guests_only' => true]);
+
+    $local = $calculator->calculate($property->refresh(), $sourceCode, Money::of('100.00', 'MYR'), '1', 'th');
+    $malaysian = $calculator->calculate($property, $sourceCode, Money::of('100.00', 'MYR'), '1', 'MY');
+
+    expect($local->taxes)->toBe([])
+        ->and($malaysian->taxes)->toHaveCount(1);
+});
+
 test('disabled and non-matching taxes do not apply', function () {
     [$property, $sourceCode, $calculator] = taxCalculatorContext();
     calculatorTax($property, $sourceCode, ['name' => 'Disabled', 'code' => 'DISABLED', 'enabled' => false]);

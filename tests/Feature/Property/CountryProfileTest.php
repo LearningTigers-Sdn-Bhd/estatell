@@ -84,3 +84,33 @@ test('seeding the generic defaults twice creates nothing new', function () {
         ->and($property->paymentMethods()->count())->toBe(4)
         ->and($property->settings()->count())->toBe(1);
 });
+
+test('a property outside Malaysia gets terms without the Malaysian items', function (PropertyType $type) {
+    $property = Property::factory()->create(['type' => $type, 'country_code' => 'TH']);
+
+    app(SeedPropertyDefaults::class)($property, $type, 'TH');
+
+    $body = $property->termsDocuments()->where('is_default', true)->firstOrFail()->versions()->firstOrFail()->body;
+
+    expect($body)->not->toContain('Tourism tax')
+        ->and($body)->not->toContain('Personal Data Protection Act')
+        ->and($body)->toContain('We collect and use your personal data to manage your stay and meet legal duties.');
+})->with(PropertyType::cases());
+
+test('a Malaysian property keeps the Malaysian items in its terms', function () {
+    $property = Property::factory()->create(['type' => PropertyType::Hotel, 'country_code' => 'MY']);
+
+    app(SeedPropertyDefaults::class)($property, PropertyType::Hotel, 'MY');
+
+    $body = $property->termsDocuments()->where('is_default', true)->firstOrFail()->versions()->where('locale', Locale::English)->firstOrFail()->body;
+
+    expect($body)->toContain('Tourism tax of')
+        ->and($body)->toContain('Personal Data Protection Act 2010');
+});
+
+test('the business number labels follow the country', function () {
+    expect(CountryProfiles::for('MY')->registrationNumberLabel())->toBe('SSM registration no.')
+        ->and(CountryProfiles::for('MY')->tinLabel())->toBe('TIN (LHDN)')
+        ->and(CountryProfiles::for('TH')->registrationNumberLabel())->toBe('Business registration no.')
+        ->and(CountryProfiles::for('TH')->tinLabel())->toBe('Tax ID (TIN)');
+});

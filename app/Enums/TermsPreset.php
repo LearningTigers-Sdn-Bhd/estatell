@@ -60,10 +60,21 @@ enum TermsPreset: string
         return $this->read($locale)['version'];
     }
 
-    /** The template text without the version lines. */
-    public function body(Locale $locale): string
+    /**
+     * The template text without the version lines.
+     * The English text can leave out its Malaysian items, for a property in another country.
+     */
+    public function body(Locale $locale, bool $withMalaysianItems = true): string
     {
-        return $this->read($locale)['body'];
+        $body = $this->read($locale)['body'];
+
+        if ($withMalaysianItems || $locale !== Locale::English) {
+            return $body;
+        }
+
+        $body = preg_replace('/^- Tourism tax of \{\{tourism_tax_rate\}\}.*\n/m', '', $body) ?? $body;
+
+        return str_replace(', under the Personal Data Protection Act 2010', '', $body);
     }
 
     /**

@@ -186,11 +186,13 @@ test('a unit is foreign when its nationality is set and is not MY', function () 
     registerUnit($property, '2026-10-09', '2026-10-12', 'MY');
     registerUnit($property, '2026-10-09', '2026-10-12', null);
 
-    expect(UnitNationality::isForeign('SG'))->toBeTrue()
-        ->and(UnitNationality::isForeign('my'))->toBeFalse()
-        ->and(UnitNationality::isForeign(' MY '))->toBeFalse()
-        ->and(UnitNationality::isForeign(''))->toBeFalse()
-        ->and(UnitNationality::isForeign(null))->toBeFalse();
+    expect(UnitNationality::isForeign('SG', 'MY'))->toBeTrue()
+        ->and(UnitNationality::isForeign('my', 'MY'))->toBeFalse()
+        ->and(UnitNationality::isForeign(' MY ', 'my'))->toBeFalse()
+        ->and(UnitNationality::isForeign('', 'MY'))->toBeFalse()
+        ->and(UnitNationality::isForeign(null, 'MY'))->toBeFalse()
+        ->and(UnitNationality::isForeign('MY', 'TH'))->toBeTrue()
+        ->and(UnitNationality::isForeign('th', 'TH'))->toBeFalse();
 
     $this->actingAs($user)->get(nonNationalUrl($property, '?from=2026-10-01&to=2026-10-31'))->assertInertia(fn (Assert $page) => $page
         ->where('rows.meta.total', 1)

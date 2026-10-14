@@ -233,13 +233,13 @@ export default function PropertySettings({
                                         />
                                         <SettingsInput
                                             name="registration_number"
-                                            label="Business registration no. (optional)"
+                                            label={`${profile.registrationNumberLabel} (optional)`}
                                             value={profile.registrationNumber}
                                             error={errors.registration_number}
                                         />
                                         <SettingsInput
                                             name="tin"
-                                            label="TIN (optional)"
+                                            label={`${profile.tinLabel} (optional)`}
                                             value={profile.tin}
                                             error={errors.tin}
                                         />

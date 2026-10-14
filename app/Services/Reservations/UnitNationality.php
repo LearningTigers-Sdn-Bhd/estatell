@@ -41,10 +41,10 @@ class UnitNationality
     }
 
     /**
-     * Whether a code is foreign: it is set and is not `MY`. This is the rule of `TaxCalculator` for a foreign-only tax.
+     * Whether a code is foreign: it is set and is not the property's country. This is the rule of `TaxCalculator` for a foreign-only tax.
      */
-    public static function isForeign(?string $code): bool
+    public static function isForeign(?string $code, ?string $propertyCountryCode): bool
     {
-        return filled($code) && mb_strtoupper(trim((string) $code)) !== 'MY';
+        return filled($code) && mb_strtoupper(trim((string) $code)) !== mb_strtoupper((string) $propertyCountryCode);
     }
 }

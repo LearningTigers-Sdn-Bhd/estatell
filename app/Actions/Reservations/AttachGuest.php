@@ -84,9 +84,10 @@ class AttachGuest
         }
 
         $booker = $unit->reservation->booker;
+        $country = $unit->property->country_code;
 
         if (blank($guest->nationality_code) || blank($booker->nationality_code)
-            || UnitNationality::isForeign($guest->nationality_code) === UnitNationality::isForeign($booker->nationality_code)) {
+            || UnitNationality::isForeign($guest->nationality_code, $country) === UnitNationality::isForeign($booker->nationality_code, $country)) {
             return null;
         }
 

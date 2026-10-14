@@ -24,6 +24,15 @@ abstract class CountryProfile
     /** @return list<Locale> The languages the property's documents are seeded in. The first is the default. */
     abstract public function locales(): array;
 
+    /** The label of the business registration number field. */
+    abstract public function registrationNumberLabel(): string;
+
+    /** The label of the tax identification number field. */
+    abstract public function tinLabel(): string;
+
+    /** Whether the terms templates keep their Malaysian items: the tourism tax line and the Personal Data Protection Act. */
+    abstract public function usesMalaysianTermsItems(): bool;
+
     /** @return list<SystemTransactionCode> */
     abstract public function transactionCodes(): array;
 

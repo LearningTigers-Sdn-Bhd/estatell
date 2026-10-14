@@ -1181,7 +1181,9 @@ postalCode: string | null,
 contactPhone: string | null,
 contactEmail: string | null,
 registrationNumber: string | null,
+registrationNumberLabel: string,
 tin: string | null,
+tinLabel: string,
 logoUrl: string | null,
 };
 export type PropertySettingsData = {

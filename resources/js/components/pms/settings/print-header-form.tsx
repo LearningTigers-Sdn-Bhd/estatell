@@ -138,7 +138,7 @@ export function PrintHeaderForm({
                     />
                     <LineSwitch
                         id="show_registration_number"
-                        label="Business registration no."
+                        label={profile.registrationNumberLabel}
                         value={profile.registrationNumber}
                         checked={value.showRegistrationNumber}
                         missing={notSet}
@@ -146,7 +146,7 @@ export function PrintHeaderForm({
                     />
                     <LineSwitch
                         id="show_tin"
-                        label="TIN"
+                        label={profile.tinLabel}
                         value={profile.tin}
                         checked={value.showTin}
                         missing={notSet}

@@ -44,7 +44,7 @@ class PoliceReport implements Report
             foreach ($this->guestsOf($unit) as $guest) {
                 $isWanted = $wanted === null || in_array($unit->id.':'.$guest->id, $wanted, true);
 
-                if ($isWanted && (! $filters->foreignOnly || UnitNationality::isForeign($guest->nationality_code))) {
+                if ($isWanted && (! $filters->foreignOnly || UnitNationality::isForeign($guest->nationality_code, $property->country_code))) {
                     $pairs[] = [$unit, $guest];
                 }
             }

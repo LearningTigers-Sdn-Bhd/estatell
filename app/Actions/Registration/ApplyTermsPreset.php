@@ -9,6 +9,7 @@ use App\Models\Property;
 use App\Models\RegistrationCardTerms;
 use App\Models\TermsDocument;
 use App\Models\User;
+use App\Services\Property\CountryProfiles;
 use Illuminate\Support\Facades\DB;
 
 class ApplyTermsPreset
@@ -25,7 +26,7 @@ class ApplyTermsPreset
             $document = TermsDocument::query()->lockForUpdate()->findOrFail($document->id);
             $property = Property::query()->findOrFail($document->property_id);
             $preset ??= TermsPreset::forPropertyType($property->type ?? PropertyType::Hotel);
-            $body = $preset->body($locale);
+            $body = $preset->body($locale, CountryProfiles::for((string) $property->country_code)->usesMalaysianTermsItems());
 
             $latest = $document->versions()->forLocale($locale)->orderByDesc('version')->first();
 
