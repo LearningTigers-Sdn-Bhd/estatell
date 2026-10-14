@@ -239,7 +239,7 @@ The build plan, as one commit per item, is in [checklist.md](checklist.md).
 | 14  | [Payments](14-payments/)             | Payments and refunds                                                             |
 | 15  | [City ledger](15-city-ledger/)       | Companies, invoices, payments received, statements, aging                        |
 | 16  | [Registration](16-registration/)     | Registration cards and terms                                                     |
-| 17  | [Onboarding](17-onboarding/)         | Account creation, partners, wizard, go-live                                      |
+| 17  | [Onboarding](17-onboarding/)         | Account creation, partners, wizard, go-live, test drive                          |
 | 18  | [Front desk](18-front-desk/)         | Check-in, check-out, assignment, dashboard, group check-out                      |
 | 19  | [Housekeeping](19-housekeeping/)     | Room status board, printed work sheet and property column layout                 |
 | 20  | [Night audit](20-night-audit/)       | Business dates, readiness, audit run                                             |

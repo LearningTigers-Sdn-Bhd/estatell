@@ -66,7 +66,13 @@ Everything that creates a property or lets support in, for admins and partners. 
 
 ### 17 Onboarding
 
-- [ ] `feat(onboarding): add the onboarding wizard steps` — Docs: [Wizard steps](17-onboarding/02-wizard-steps.md).
+- [ ] `feat(onboarding): add the onboarding layout and fence` — the onboarding layout (phase bar, stepper, fixed footer), `OnboardingPhase`, `OnboardingStep`, `StepCheck`, `OnboardingProgress`, `StepForm`, `live` on every PMS route file, `onboarding.only`, the staff waiting page, Basics in the new layout. Docs: [Wizard steps](17-onboarding/02-wizard-steps.md#build-order).
+- [ ] `feat(onboarding): add the rooms sections` — Room types and Rooms. Needs: layout and fence. Docs: [Wizard steps](17-onboarding/02-wizard-steps.md#phases-and-sections).
+- [ ] `feat(onboarding): add the finance sections` — Taxes, Room revenue, Payment methods. Needs: layout and fence. Docs: [Wizard steps](17-onboarding/02-wizard-steps.md#phases-and-sections).
+- [ ] `feat(onboarding): add the prices sections` — Basic rate (`SetBasePrices`), Charge items, Discounts, `onboarding_skips`. Needs: rooms and finance sections. Docs: [Wizard steps](17-onboarding/02-wizard-steps.md#phases-and-sections).
+- [ ] `feat(onboarding): add check-in essentials and team` — Needs: layout and fence. Docs: [Wizard steps](17-onboarding/02-wizard-steps.md#phases-and-sections).
+- [ ] `feat(onboarding): fill the go-live readiness list` — Review reads the checks. Needs: all required sections. Docs: [Go live](17-onboarding/03-go-live.md).
+- [ ] `feat(onboarding): add test drive` — practice business date, the practice route exception, banner, coach marks, `ClearPracticeData` (Reset practice and `GoLive`), the guard test. Needs: readiness list. Docs: [Test drive](17-onboarding/06-test-drive.md).
 - [ ] `feat(onboarding): add reminders and the admin onboarding board` — also the partner's own board on their Properties page. Docs: [Engagement and admin board](17-onboarding/04-engagement-and-admin-board.md).
 
 ### 18 Front desk

@@ -92,7 +92,7 @@ The property's identity, edited on the Details page, **Profile** tab (`/p/{code}
 - Every domain table has `property_id`, and every query is scoped by it.
 - The current property is resolved from the `{property:code}` route parameter by `EnsurePropertyAccess`, and must match `$user->property` (or an active impersonation session).
 - `PropertyType` drives defaults (see [Seed property defaults](03-seed-property-defaults.md)).
-- Operational routes require `Live` (see `EnsurePropertyIsLive` in [Wizard steps](../17-onboarding/02-wizard-steps.md)).
+- PMS routes require `Live` (see [The fence](../17-onboarding/02-wizard-steps.md#the-fence)).
 - Suspended staff are redirected from property routes to `/p/{code}/suspended`, a read-only notice. Personal account routes remain available. After reactivation, the notice route redirects to the dashboard.
 
 ## Lessons from wastays
