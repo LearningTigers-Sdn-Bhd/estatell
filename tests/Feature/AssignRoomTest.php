@@ -5,67 +5,11 @@ use App\Actions\Reservations\AssignmentResult;
 use App\Actions\Reservations\AssignRoom;
 use App\Enums\UnitStatus;
 use App\Models\Bed;
-use App\Models\Property;
-use App\Models\PropertySetting;
-use App\Models\Reservation;
-use App\Models\ReservationUnit;
 use App\Models\Room;
 use App\Models\RoomBlock;
 use App\Models\RoomType;
 use App\Models\UnitNight;
-use App\Models\User;
 use Spatie\Activitylog\Models\Activity;
-
-/**
- * A property with a Room room type of two rooms and a Bed room type with one room of two beds, a user, and a
- * Confirmed unit of each type from 2026-10-20 to 2026-10-22.
- *
- * @return array{user: User, property: Property, roomType: RoomType, rooms: list<Room>, dorm: RoomType, dormRoom: Room, beds: list<Bed>, unit: ReservationUnit, bedUnit: ReservationUnit}
- */
-function assignSetup(): array
-{
-    $user = User::factory()->create();
-    $property = $user->property;
-    PropertySetting::factory()->for($property)->create();
-    $roomType = RoomType::factory()->for($property)->create();
-    $rooms = [
-        Room::factory()->for($property)->create(['room_type_id' => $roomType->id, 'number' => '101']),
-        Room::factory()->for($property)->create(['room_type_id' => $roomType->id, 'number' => '102']),
-    ];
-    $dorm = RoomType::factory()->bed()->for($property)->create();
-    $dormRoom = Room::factory()->for($property)->create(['room_type_id' => $dorm->id, 'number' => 'D1']);
-    $beds = [
-        Bed::factory()->create(['room_id' => $dormRoom->id, 'label' => 'Bed 1']),
-        Bed::factory()->create(['room_id' => $dormRoom->id, 'label' => 'Bed 2']),
-    ];
-
-    return [
-        'user' => $user,
-        'property' => $property,
-        'roomType' => $roomType,
-        'rooms' => $rooms,
-        'dorm' => $dorm,
-        'dormRoom' => $dormRoom,
-        'beds' => $beds,
-        'unit' => assignUnit($property, $roomType),
-        'bedUnit' => assignUnit($property, $dorm),
-    ];
-}
-
-/**
- * @param  array<string, mixed>  $attributes
- */
-function assignUnit(Property $property, RoomType $roomType, array $attributes = []): ReservationUnit
-{
-    $reservation = Reservation::factory()->create(['property_id' => $property->id]);
-
-    return ReservationUnit::factory()->for($reservation)->withNights()->create([
-        'room_type_id' => $roomType->id,
-        'arrival_date' => '2026-10-20',
-        'departure_date' => '2026-10-22',
-        ...$attributes,
-    ]);
-}
 
 test('a room is assigned to every night of the unit and the assignment is logged', function () {
     $setup = assignSetup();
