@@ -23,12 +23,12 @@ class ArAllocationFactory extends Factory
         return [
             'ar_payment_id' => ArPayment::factory(),
             'ar_invoice_id' => fn (array $attributes): int => ArInvoice::factory()->create([
-                'property_id' => ArPayment::query()->findOrFail($attributes['ar_payment_id'])->property_id,
-                'company_id' => ArPayment::query()->findOrFail($attributes['ar_payment_id'])->company_id,
+                'property_id' => ArPayment::query()->findOrFail((int) $attributes['ar_payment_id'])->property_id,
+                'company_id' => ArPayment::query()->findOrFail((int) $attributes['ar_payment_id'])->company_id,
             ])->id,
             'amount' => '100.00',
             'created_by' => fn (array $attributes): int => User::factory()->create([
-                'property_id' => ArPayment::query()->findOrFail($attributes['ar_payment_id'])->property_id,
+                'property_id' => ArPayment::query()->findOrFail((int) $attributes['ar_payment_id'])->property_id,
             ])->id,
         ];
     }

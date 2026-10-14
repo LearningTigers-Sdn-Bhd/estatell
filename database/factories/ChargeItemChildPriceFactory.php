@@ -23,7 +23,7 @@ class ChargeItemChildPriceFactory extends Factory
         return [
             'charge_item_id' => ChargeItem::factory(),
             'property_age_group_id' => fn (array $attributes): int => PropertyAgeGroup::factory()->create([
-                'property_id' => ChargeItem::query()->findOrFail($attributes['charge_item_id'])->property_id,
+                'property_id' => ChargeItem::query()->findOrFail((int) $attributes['charge_item_id'])->property_id,
             ])->id,
             'pricing' => AgeBandPricing::Percent,
             'value' => '100.00',

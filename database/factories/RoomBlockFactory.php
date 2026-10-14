@@ -22,7 +22,7 @@ class RoomBlockFactory extends Factory
     {
         return [
             'room_id' => Room::factory(),
-            'property_id' => fn (array $attributes) => Room::query()->findOrFail($attributes['room_id'])->property_id,
+            'property_id' => fn (array $attributes) => Room::query()->findOrFail((int) $attributes['room_id'])->property_id,
             'reason' => RoomBlockReason::Maintenance,
             'starts_on' => now()->addDay()->toDateString(),
             'ends_on' => now()->addDays(3)->toDateString(),

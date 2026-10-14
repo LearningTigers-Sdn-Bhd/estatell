@@ -25,7 +25,7 @@ class StaffInvitationFactory extends Factory
             'property_id' => Property::factory(),
             'email' => fake()->unique()->safeEmail(),
             'role_id' => function (array $attributes): int {
-                $property = Property::query()->findOrFail($attributes['property_id']);
+                $property = Property::query()->findOrFail((int) $attributes['property_id']);
                 app(SeedDefaultRoles::class)($property);
 
                 return Role::query()->where('property_id', $property->id)->where('default_role', DefaultRoleEnum::FrontDesk)->value('id');

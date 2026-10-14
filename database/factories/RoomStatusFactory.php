@@ -21,7 +21,7 @@ class RoomStatusFactory extends Factory
     {
         return [
             'room_id' => Room::factory(),
-            'property_id' => fn (array $attributes) => Room::query()->findOrFail($attributes['room_id'])->property_id,
+            'property_id' => fn (array $attributes) => Room::query()->findOrFail((int) $attributes['room_id'])->property_id,
             'status' => HousekeepingStatus::Clean,
         ];
     }

@@ -24,7 +24,7 @@ class FolioLineFactory extends Factory
         return [
             'folio_id' => Folio::factory(),
             'transaction_code_id' => fn (array $attributes): int => TransactionCode::factory()->create([
-                'property_id' => Folio::query()->findOrFail($attributes['folio_id'])->property_id,
+                'property_id' => Folio::query()->findOrFail((int) $attributes['folio_id'])->property_id,
             ])->id,
             'kind' => TransactionKind::Charge,
             'description' => 'Room charge',

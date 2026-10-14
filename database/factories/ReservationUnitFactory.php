@@ -25,7 +25,7 @@ class ReservationUnitFactory extends Factory
     {
         return [
             'reservation_id' => Reservation::factory(),
-            'property_id' => fn (array $attributes): int => Reservation::query()->findOrFail($attributes['reservation_id'])->property_id,
+            'property_id' => fn (array $attributes): int => Reservation::query()->findOrFail((int) $attributes['reservation_id'])->property_id,
             'room_type_id' => fn (array $attributes): int => RoomType::factory()->create(['property_id' => $attributes['property_id']])->id,
             'rate_plan_id' => fn (array $attributes): int => RatePlan::factory()->create(['property_id' => $attributes['property_id']])->id,
             'arrival_date' => '2026-11-02',

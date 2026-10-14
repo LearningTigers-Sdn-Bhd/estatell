@@ -23,7 +23,7 @@ class UnitAddOnFactory extends Factory
         return [
             'reservation_unit_id' => ReservationUnit::factory(),
             'charge_item_id' => fn (array $attributes): int => ChargeItem::factory()->create([
-                'property_id' => ReservationUnit::query()->findOrFail($attributes['reservation_unit_id'])->property_id,
+                'property_id' => ReservationUnit::query()->findOrFail((int) $attributes['reservation_unit_id'])->property_id,
             ])->id,
             'quantity' => 1,
             'unit_amount' => '25.00',

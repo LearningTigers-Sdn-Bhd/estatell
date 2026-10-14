@@ -31,7 +31,7 @@ class FolioRoutingRuleFactory extends Factory
             'transaction_code_id' => null,
             'target_folio_id' => fn (array $attributes): int => Folio::factory()->create([
                 'reservation_id' => $attributes['reservation_id'],
-                'property_id' => Reservation::query()->findOrFail($attributes['reservation_id'])->property_id,
+                'property_id' => Reservation::query()->findOrFail((int) $attributes['reservation_id'])->property_id,
             ])->id,
             'source' => RoutingRuleSource::Manual,
         ];

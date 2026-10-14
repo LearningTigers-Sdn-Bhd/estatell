@@ -26,7 +26,7 @@ class PaymentFactory extends Factory
     {
         return [
             'folio_id' => Folio::factory(),
-            'property_id' => fn (array $attributes): int => Folio::query()->findOrFail($attributes['folio_id'])->property_id,
+            'property_id' => fn (array $attributes): int => Folio::query()->findOrFail((int) $attributes['folio_id'])->property_id,
             'payment_method_id' => fn (array $attributes): int => PaymentMethod::factory()->create(['property_id' => $attributes['property_id']])->id,
             'amount' => '100.00',
             'purpose' => PaymentPurpose::Settlement,
@@ -36,7 +36,7 @@ class PaymentFactory extends Factory
             'receipt_number' => fn (): string => 'R-'.fake()->unique()->numerify('######'),
             'folio_line_id' => fn (array $attributes): int => FolioLine::factory()->payment($attributes['amount'])->create([
                 'folio_id' => $attributes['folio_id'],
-                'transaction_code_id' => PaymentMethod::query()->findOrFail($attributes['payment_method_id'])->transaction_code_id,
+                'transaction_code_id' => PaymentMethod::query()->findOrFail((int) $attributes['payment_method_id'])->transaction_code_id,
             ])->id,
             'surcharge_line_id' => null,
             'received_by' => fn (array $attributes): int => User::factory()->create(['property_id' => $attributes['property_id']])->id,

@@ -21,7 +21,7 @@ class UnitNightFactory extends Factory
         return [
             'reservation_unit_id' => ReservationUnit::factory(),
             'date' => '2026-11-02',
-            'rate_plan_id' => fn (array $attributes): int => ReservationUnit::query()->findOrFail($attributes['reservation_unit_id'])->rate_plan_id,
+            'rate_plan_id' => fn (array $attributes): int => ReservationUnit::query()->findOrFail((int) $attributes['reservation_unit_id'])->rate_plan_id,
             'base_amount' => '100.00',
             'extra_amount' => '0.00',
             'supplement_amount' => '0.00',

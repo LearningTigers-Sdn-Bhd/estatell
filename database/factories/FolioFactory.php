@@ -32,7 +32,7 @@ class FolioFactory extends Factory
             'reservation_id' => fn (array $attributes): int => Reservation::factory()->create(['property_id' => $attributes['property_id']])->id,
             'reservation_unit_id' => null,
             'number' => fn (array $attributes): string => app(NextDocumentNumber::class)(
-                Property::query()->findOrFail($attributes['property_id']),
+                Property::query()->findOrFail((int) $attributes['property_id']),
                 DocumentType::Folio,
             )->reference,
             'type' => FolioType::Master,

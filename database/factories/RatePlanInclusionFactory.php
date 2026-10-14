@@ -25,7 +25,7 @@ class RatePlanInclusionFactory extends Factory
         return [
             'rate_plan_id' => RatePlan::factory(),
             'charge_item_id' => fn (array $attributes) => ChargeItem::factory()->create([
-                'property_id' => RatePlan::query()->findOrFail($attributes['rate_plan_id'])->property_id,
+                'property_id' => RatePlan::query()->findOrFail((int) $attributes['rate_plan_id'])->property_id,
             ])->id,
             'meal_period_id' => null,
             'charging_unit' => ChargingUnit::PerGuestNight,

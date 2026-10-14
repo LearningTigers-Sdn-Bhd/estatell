@@ -21,7 +21,7 @@ class RegistrationCardFactory extends Factory
     {
         return [
             'unit_guest_id' => UnitGuest::factory(),
-            'property_id' => fn (array $attributes): int => UnitGuest::query()->findOrFail($attributes['unit_guest_id'])->reservationUnit->property_id,
+            'property_id' => fn (array $attributes): int => UnitGuest::query()->findOrFail((int) $attributes['unit_guest_id'])->reservationUnit->property_id,
             'status' => RegistrationCardStatus::Draft,
         ];
     }

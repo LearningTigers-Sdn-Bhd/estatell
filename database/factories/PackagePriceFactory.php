@@ -22,7 +22,7 @@ class PackagePriceFactory extends Factory
         return [
             'rate_plan_id' => RatePlan::factory()->package(),
             'room_type_id' => fn (array $attributes) => RoomType::factory()->create([
-                'property_id' => RatePlan::query()->findOrFail($attributes['rate_plan_id'])->property_id,
+                'property_id' => RatePlan::query()->findOrFail((int) $attributes['rate_plan_id'])->property_id,
             ])->id,
             'arrival_from' => '2026-06-01',
             'arrival_to' => '2026-06-30',

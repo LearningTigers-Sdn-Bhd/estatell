@@ -22,7 +22,7 @@ class UnitGuestFactory extends Factory
         return [
             'reservation_unit_id' => ReservationUnit::factory(),
             'guest_id' => fn (array $attributes): int => Guest::factory()->create([
-                'property_id' => ReservationUnit::query()->findOrFail($attributes['reservation_unit_id'])->property_id,
+                'property_id' => ReservationUnit::query()->findOrFail((int) $attributes['reservation_unit_id'])->property_id,
             ])->id,
             'is_primary' => false,
         ];

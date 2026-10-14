@@ -28,7 +28,7 @@ class ReservationFactory extends Factory
         return [
             'property_id' => Property::factory(),
             'reference' => fn (array $attributes): string => app(NextDocumentNumber::class)(
-                Property::query()->findOrFail($attributes['property_id']),
+                Property::query()->findOrFail((int) $attributes['property_id']),
                 DocumentType::Reservation,
             )->reference,
             'status' => ReservationStatus::Confirmed,

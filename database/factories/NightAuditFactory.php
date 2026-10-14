@@ -19,7 +19,7 @@ class NightAuditFactory extends Factory
     public function definition(): array
     {
         return [
-            'property_id' => fn (array $attributes) => BusinessDate::query()->findOrFail($attributes['business_date_id'])->property_id,
+            'property_id' => fn (array $attributes) => BusinessDate::query()->findOrFail((int) $attributes['business_date_id'])->property_id,
             'business_date_id' => BusinessDate::factory()->auditing(),
             'trigger' => AuditTrigger::Manual,
             'status' => AuditStatus::Running,
