@@ -1,6 +1,6 @@
 <?php
 
-require_once __DIR__.'/Support/BookingSetup.php';
+require_once __DIR__.'/../Support/BookingSetup.php';
 
 use App\Actions\Folio\CreateFolio;
 use App\Enums\BillingMode;

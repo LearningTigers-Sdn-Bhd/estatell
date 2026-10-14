@@ -19,3 +19,6 @@ tests/TestCase.php freezes time at 2026-10-14 12:00 UTC for every feature test. 
 
 ## Shared helpers live in Support files
 A helper function used by more than one test file goes in `tests/Feature/Support/*.php`, and every file that calls it adds `require_once __DIR__.'/Support/{File}.php';`. A helper defined in one test file and called from another works in a serial run only by luck and fails in parallel.
+
+## One folder per module
+Feature tests live in `tests/Feature/{Module}/`, named after the `app/Actions` or `app/Services` module of the class under test (Folio, Reservations, NightAudit, ...). Report pages go in `Reports/`, seeder tests in `Seeders/`. Do not add test files to the root of `tests/Feature/`. Run one module with `php artisan test --compact tests/Feature/Folio`.

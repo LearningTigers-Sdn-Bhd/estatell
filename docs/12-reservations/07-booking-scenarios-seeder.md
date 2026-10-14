@@ -119,7 +119,7 @@ Counted with every unit the seeder books (G9's third unit too), before cancellat
 
 ## Tests
 
-`tests/Feature/BookingScenariosSeederTest.php`:
+`tests/Feature/Seeders/BookingScenariosSeederTest.php`:
 
 - The seeder builds a live property: 21 rooms, 6 beds, 4 plans, 28 reservations, 60 units (G9 gains one on D2), 7 Closed dates and today Open.
 - Each scenario code reaches the status in the tables above, with the unit statuses of G6 and B2.

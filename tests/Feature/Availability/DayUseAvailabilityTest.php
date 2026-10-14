@@ -1,6 +1,6 @@
 <?php
 
-require_once __DIR__.'/Support/DayUseSetup.php';
+require_once __DIR__.'/../Support/DayUseSetup.php';
 
 use App\Enums\SellUnit;
 use App\Enums\StayType;

@@ -118,17 +118,17 @@ You never migrate the test database yourself. `RefreshDatabase` rebuilds its sch
 
 ## Common commands
 
-| Task                      | Command                                                 |
-| ------------------------- | ------------------------------------------------------- |
-| Lint, types and all tests | `composer test`                                         |
-| All tests only            | `php artisan test --parallel --recreate-databases`      |
-| Run one test file         | `php artisan test --compact tests/Feature/RoomTest.php` |
-| Format PHP                | `vendor/bin/pint --dirty`                               |
-| Static analysis           | `composer run types:check`                              |
-| Frontend lint and format  | `npm run check`                                         |
-| TypeScript check          | `npm run types:check`                                   |
-| Full CI check             | `composer run ci:check`                                 |
-| Build frontend            | `npm run build`                                         |
+| Task                      | Command                                                       |
+| ------------------------- | ------------------------------------------------------------- |
+| Lint, types and all tests | `composer test`                                               |
+| All tests only            | `php artisan test --parallel --recreate-databases`            |
+| Run one test file         | `php artisan test --compact tests/Feature/Rooms/RoomTest.php` |
+| Format PHP                | `vendor/bin/pint --dirty`                                     |
+| Static analysis           | `composer run types:check`                                    |
+| Frontend lint and format  | `npm run check`                                               |
+| TypeScript check          | `npm run types:check`                                         |
+| Full CI check             | `composer run ci:check`                                       |
+| Build frontend            | `npm run build`                                               |
 
 ## Project structure
 
