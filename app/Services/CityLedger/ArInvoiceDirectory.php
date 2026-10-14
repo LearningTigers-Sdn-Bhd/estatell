@@ -25,7 +25,7 @@ class ArInvoiceDirectory
 {
     public const int PER_PAGE = 25;
 
-    public function __construct(private CurrentBusinessDate $currentBusinessDate, private PropertyToday $propertyToday) {}
+    public function __construct(private CurrentBusinessDate $currentBusinessDate, private PropertyToday $propertyToday, private ArInvoiceBalance $arInvoiceBalance) {}
 
     /**
      * The business date as `Y-m-d`, which decides what is overdue.
@@ -73,7 +73,7 @@ class ArInvoiceDirectory
             ->withQueryString()
             ->through(fn (ArInvoice $invoice): ArInvoiceRowData => ArInvoiceRowData::fromModel(
                 $invoice,
-                bcsub(bcadd((string) $invoice->amount, (string) $invoice->getAttribute('credited'), 2), (string) $invoice->getAttribute('allocated'), 2),
+                $this->arInvoiceBalance->fromFigures((string) $invoice->amount, (string) $invoice->getAttribute('credited'), (string) $invoice->getAttribute('allocated')),
                 $today,
             ));
     }

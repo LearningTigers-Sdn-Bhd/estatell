@@ -3,6 +3,7 @@
 namespace App\Data\CityLedger;
 
 use App\Models\ArPayment;
+use Brick\Math\BigDecimal;
 use Spatie\LaravelData\Data;
 
 /**
@@ -43,7 +44,7 @@ class ArPaymentRowData extends Data
             amount: $payment->amount,
             unallocated: $unallocated,
             isVoided: $isVoided,
-            canAllocate: $mayAllocate && ! $isVoided && bccomp($unallocated, '0', 2) > 0,
+            canAllocate: $mayAllocate && ! $isVoided && BigDecimal::of($unallocated)->isPositive(),
             canVoid: $mayVoid && ! $isVoided && ! $hasAllocations,
         );
     }

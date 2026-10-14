@@ -3,6 +3,7 @@
 namespace App\Services\CityLedger;
 
 use App\Models\Company;
+use Brick\Math\BigDecimal;
 
 /**
  * Asks whether an action keeps a company under its credit limit. A company with no limit always passes. It writes
@@ -19,15 +20,15 @@ class CreditCheck
     public function check(Company $company, string $additional = '0.00'): CreditCheckResult
     {
         $figures = $this->creditExposure->forCompany($company);
-        $additional = bcadd($additional, '0', 2);
+        $additional = (string) BigDecimal::of($additional)->toScale(2);
 
         if ($figures['limit'] === null) {
             return new CreditCheckResult(true, $figures['exposure'], null, $additional, '0.00');
         }
 
-        $over = bcsub(bcadd($figures['exposure'], $additional, 2), $figures['limit'], 2);
-        $allowed = bccomp($over, '0', 2) <= 0;
+        $over = BigDecimal::of($figures['exposure'])->plus($additional)->minus($figures['limit']);
+        $allowed = $over->isNegativeOrZero();
 
-        return new CreditCheckResult($allowed, $figures['exposure'], $figures['limit'], $additional, $allowed ? '0.00' : $over);
+        return new CreditCheckResult($allowed, $figures['exposure'], $figures['limit'], $additional, $allowed ? '0.00' : (string) $over->toScale(2));
     }
 }

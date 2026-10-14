@@ -385,18 +385,6 @@ parameters:
 			path: app/Data/Boats/BoatFareRowData.php
 
 		-
-			message: '#^Parameter \#1 \$num1 of function bccomp expects numeric\-string, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Data/CityLedger/ArInvoiceRowData.php
-
-		-
-			message: '#^Parameter \#1 \$num1 of function bccomp expects numeric\-string, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Data/CityLedger/ArPaymentRowData.php
-
-		-
 			message: '#^Parameter \$blockedReason of class App\\Data\\NightAudit\\PackageNightRespreadData constructor expects string\|null, array\|string\|null given\.$#'
 			identifier: argument.type
 			count: 1
@@ -691,78 +679,6 @@ parameters:
 			path: app/Services/Boats/ReservationBoatSummary.php
 
 		-
-			message: '#^Parameter \#1 \$num1 of function bcadd expects numeric\-string, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Services/CityLedger/AgingReport.php
-
-		-
-			message: '#^Parameter \#1 \$num1 of function bcsub expects numeric\-string, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Services/CityLedger/AgingReport.php
-
-		-
-			message: '#^Parameter \#2 \$num2 of function bcadd expects numeric\-string, non\-falsy\-string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Services/CityLedger/AgingReport.php
-
-		-
-			message: '#^Parameter \#2 \$num2 of function bcadd expects numeric\-string, string given\.$#'
-			identifier: argument.type
-			count: 2
-			path: app/Services/CityLedger/AgingReport.php
-
-		-
-			message: '#^Parameter \#2 \$num2 of function bcsub expects numeric\-string, string given\.$#'
-			identifier: argument.type
-			count: 2
-			path: app/Services/CityLedger/AgingReport.php
-
-		-
-			message: '#^Parameter \#1 \$num1 of function bcadd expects numeric\-string, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Services/CityLedger/ArInvoiceBalance.php
-
-		-
-			message: '#^Parameter \#2 \$num2 of function bcadd expects numeric\-string, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Services/CityLedger/ArInvoiceBalance.php
-
-		-
-			message: '#^Parameter \#2 \$num2 of function bcsub expects numeric\-string, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Services/CityLedger/ArInvoiceBalance.php
-
-		-
-			message: '#^Parameter \#2 \$num2 of function bcadd expects numeric\-string, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Services/CityLedger/ArInvoiceDetail.php
-
-		-
-			message: '#^Parameter \#1 \$num1 of function bcadd expects numeric\-string, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Services/CityLedger/ArInvoiceDirectory.php
-
-		-
-			message: '#^Parameter \#2 \$num2 of function bcadd expects numeric\-string, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Services/CityLedger/ArInvoiceDirectory.php
-
-		-
-			message: '#^Parameter \#2 \$num2 of function bcsub expects numeric\-string, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Services/CityLedger/ArInvoiceDirectory.php
-
-		-
 			message: '#^Method App\\Services\\CityLedger\\ArInvoiceVoidCheck\:\:blockedBy\(\) should return string\|null but returns array\|string\|null\.$#'
 			identifier: return.type
 			count: 1
@@ -773,48 +689,6 @@ parameters:
 			identifier: argument.type
 			count: 1
 			path: app/Services/CityLedger/ArInvoiceVoidCheck.php
-
-		-
-			message: '#^Parameter \#1 \$num1 of function bcsub expects numeric\-string, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Services/CityLedger/ArPaymentBalance.php
-
-		-
-			message: '#^Parameter \#2 \$num2 of function bcsub expects numeric\-string, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Services/CityLedger/ArPaymentBalance.php
-
-		-
-			message: '#^Parameter \#1 \$num1 of function bcadd expects numeric\-string, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Services/CityLedger/ArPaymentLedger.php
-
-		-
-			message: '#^Parameter \#1 \$num1 of function bccomp expects numeric\-string, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Services/CityLedger/ArPaymentLedger.php
-
-		-
-			message: '#^Parameter \#1 \$num1 of function bcsub expects numeric\-string, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Services/CityLedger/ArPaymentLedger.php
-
-		-
-			message: '#^Parameter \#2 \$num2 of function bcadd expects numeric\-string, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Services/CityLedger/ArPaymentLedger.php
-
-		-
-			message: '#^Parameter \#2 \$num2 of function bcsub expects numeric\-string, string given\.$#'
-			identifier: argument.type
-			count: 2
-			path: app/Services/CityLedger/ArPaymentLedger.php
 
 		-
 			message: '#^Method App\\Services\\CityLedger\\CompanyBillTo\:\:lines\(\) should return list\<string\> but returns list\{0\?\: array\|string, 1\?\: array\|string, 2\?\: array\|string, 3\?\: array\|string, 4\?\: array\|string, 5\?\: array\|string, 6\?\: array\|string\}\.$#'
@@ -835,18 +709,6 @@ parameters:
 			path: app/Services/CityLedger/CompanyImportReader.php
 
 		-
-			message: '#^Parameter \#1 \$num1 of function bcadd expects numeric\-string, string given\.$#'
-			identifier: argument.type
-			count: 2
-			path: app/Services/CityLedger/CreditCheck.php
-
-		-
-			message: '#^Parameter \#2 \$num2 of function bcsub expects numeric\-string, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Services/CityLedger/CreditCheck.php
-
-		-
 			message: '#^Parameter \#1 \$companyIds of method App\\Services\\CityLedger\\CreditExposure\:\:inHouse\(\) expects list\<int\>, array\<mixed\> given\.$#'
 			identifier: argument.type
 			count: 1
@@ -857,66 +719,6 @@ parameters:
 			identifier: argument.type
 			count: 1
 			path: app/Services/CityLedger/CreditExposure.php
-
-		-
-			message: '#^Parameter \#1 \$num1 of function bcadd expects numeric\-string, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Services/CityLedger/CreditExposure.php
-
-		-
-			message: '#^Parameter \#1 \$num1 of function bccomp expects numeric\-string, string given\.$#'
-			identifier: argument.type
-			count: 2
-			path: app/Services/CityLedger/CreditExposure.php
-
-		-
-			message: '#^Parameter \#1 \$num1 of function bcsub expects numeric\-string, string given\.$#'
-			identifier: argument.type
-			count: 2
-			path: app/Services/CityLedger/CreditExposure.php
-
-		-
-			message: '#^Parameter \#2 \$num2 of function bcadd expects numeric\-string, string given\.$#'
-			identifier: argument.type
-			count: 2
-			path: app/Services/CityLedger/CreditExposure.php
-
-		-
-			message: '#^Parameter \#2 \$num2 of function bccomp expects numeric\-string, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Services/CityLedger/CreditExposure.php
-
-		-
-			message: '#^Parameter \#2 \$num2 of function bcsub expects numeric\-string, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Services/CityLedger/CreditExposure.php
-
-		-
-			message: '#^Parameter \#1 \$num1 of function bcadd expects numeric\-string, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Services/CityLedger/StatementBuilder.php
-
-		-
-			message: '#^Parameter \#1 \$num1 of function bcsub expects numeric\-string, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Services/CityLedger/StatementBuilder.php
-
-		-
-			message: '#^Parameter \#2 \$num2 of function bcadd expects numeric\-string, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Services/CityLedger/StatementBuilder.php
-
-		-
-			message: '#^Parameter \#2 \$num2 of function bcsub expects numeric\-string, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Services/CityLedger/StatementBuilder.php
 
 		-
 			message: '#^Binary operation "\." between array\|string and string results in an error\.$#'

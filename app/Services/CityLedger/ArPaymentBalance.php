@@ -4,6 +4,7 @@ namespace App\Services\CityLedger;
 
 use App\Models\ArAllocation;
 use App\Models\ArPayment;
+use Brick\Math\BigDecimal;
 
 /**
  * What an AR payment still has to allocate: its amount minus its active allocations, and 0 once it is voided.
@@ -23,6 +24,6 @@ class ArPaymentBalance
             ->selectRaw('COALESCE(SUM(amount), 0)::numeric(14, 2) AS allocated')
             ->value('allocated');
 
-        return bcsub((string) $payment->amount, $allocated, 2);
+        return (string) BigDecimal::of((string) $payment->amount)->minus($allocated)->toScale(2);
     }
 }

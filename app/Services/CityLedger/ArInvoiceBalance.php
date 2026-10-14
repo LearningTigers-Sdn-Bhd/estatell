@@ -5,6 +5,7 @@ namespace App\Services\CityLedger;
 use App\Enums\ArInvoiceStatus;
 use App\Models\ArAllocation;
 use App\Models\ArInvoice;
+use Brick\Math\BigDecimal;
 
 /**
  * Calculates what an AR invoice still owes: its amount plus its credit notes that are not Void (negative), minus the
@@ -33,7 +34,16 @@ class ArInvoiceBalance
             ->selectRaw('COALESCE(SUM(amount), 0)::numeric(14, 2) AS allocated')
             ->value('allocated');
 
-        return bcsub(bcadd((string) $invoice->amount, $credits, 2), $allocated, 2);
+        return $this->fromFigures((string) $invoice->amount, $credits, $allocated);
+    }
+
+    /**
+     * The balance from its three figures: the invoice amount plus its credit notes (negative) minus its allocations,
+     * as a decimal string with two places.
+     */
+    public function fromFigures(string $amount, string $credited, string $allocated): string
+    {
+        return (string) BigDecimal::of($amount)->plus($credited)->minus($allocated)->toScale(2);
     }
 
     /**

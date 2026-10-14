@@ -11,6 +11,7 @@ use App\Models\ArInvoice;
 use App\Models\ArPayment;
 use App\Models\Company;
 use App\Models\Property;
+use Brick\Math\BigDecimal;
 use Carbon\CarbonImmutable;
 
 /**
@@ -24,16 +25,22 @@ class AgingReport
 {
     private const array BUCKETS = ['current', 'days1to30', 'days31to60', 'days61to90', 'over90'];
 
+    public function __construct(private ArInvoiceBalance $arInvoiceBalance) {}
+
     public function build(Property $property, CarbonImmutable $asAt): AgingReportData
     {
         $rows = $this->rows($property, $asAt, null);
-        $totals = array_fill_keys([...self::BUCKETS, 'credit', 'total'], '0.00');
+        $sums = array_fill_keys([...self::BUCKETS, 'credit', 'total'], BigDecimal::zero());
 
         foreach ($rows as $row) {
-            foreach (array_keys($totals) as $key) {
-                $totals[$key] = bcadd($totals[$key], $row->{$key}, 2);
+            $figures = ['current' => $row->current, 'days1to30' => $row->days1to30, 'days31to60' => $row->days31to60, 'days61to90' => $row->days61to90, 'over90' => $row->over90, 'credit' => $row->credit, 'total' => $row->total];
+
+            foreach ($figures as $key => $figure) {
+                $sums[$key] = $sums[$key]->plus($figure);
             }
         }
+
+        $totals = array_map(fn (BigDecimal $sum): string => (string) $sum->toScale(2), $sums);
 
         return new AgingReportData(
             asAt: $asAt->toDateString(),
@@ -82,14 +89,14 @@ class AgingReport
             ->get();
 
         foreach ($invoices as $invoice) {
-            $balance = bcsub(bcadd((string) $invoice->amount, (string) $invoice->getAttribute('credited'), 2), (string) $invoice->getAttribute('allocated'), 2);
+            $balance = $this->arInvoiceBalance->fromFigures((string) $invoice->amount, (string) $invoice->getAttribute('credited'), (string) $invoice->getAttribute('allocated'));
 
-            if (bccomp($balance, '0', 2) <= 0) {
+            if (BigDecimal::of($balance)->isNegativeOrZero()) {
                 continue;
             }
 
             $bucket = $this->bucket($invoice->due_on === null ? 0 : (int) $invoice->due_on->startOfDay()->diffInDays($asAt->startOfDay(), false));
-            $buckets[$invoice->company_id][$bucket] = bcadd($buckets[$invoice->company_id][$bucket] ?? '0.00', $balance, 2);
+            $buckets[$invoice->company_id][$bucket] = (string) BigDecimal::of($buckets[$invoice->company_id][$bucket] ?? '0.00')->plus($balance)->toScale(2);
         }
 
         $credits = $this->credits($property, $company);
@@ -98,9 +105,8 @@ class AgingReport
 
         $rows = array_map(function (int $id) use ($buckets, $credits, $names): AgingRowData {
             $owed = $buckets[$id] ?? [];
-            $credit = '-'.($credits[$id] ?? '0.00');
-            $credit = $credit === '-0.00' ? '0.00' : $credit;
-            $total = bcadd(array_reduce(self::BUCKETS, fn (string $sum, string $key): string => bcadd($sum, $owed[$key] ?? '0.00', 2), '0.00'), $credit, 2);
+            $credit = BigDecimal::of($credits[$id] ?? '0.00')->negated();
+            $total = array_reduce(self::BUCKETS, fn (BigDecimal $sum, string $key): BigDecimal => $sum->plus($owed[$key] ?? '0.00'), $credit);
 
             return new AgingRowData(
                 $id,
@@ -110,8 +116,8 @@ class AgingReport
                 $owed['days31to60'] ?? '0.00',
                 $owed['days61to90'] ?? '0.00',
                 $owed['over90'] ?? '0.00',
-                $credit,
-                $total,
+                (string) $credit->toScale(2),
+                (string) $total->toScale(2),
             );
         }, $companyIds);
 
@@ -162,10 +168,10 @@ class AgingReport
         $credits = [];
 
         foreach ($payments as $companyId => $total) {
-            $left = bcsub((string) $total, (string) ($allocated[$companyId] ?? '0'), 2);
+            $left = BigDecimal::of((string) $total)->minus((string) ($allocated[$companyId] ?? '0'));
 
-            if (bccomp($left, '0', 2) > 0) {
-                $credits[(int) $companyId] = $left;
+            if ($left->isPositive()) {
+                $credits[(int) $companyId] = (string) $left->toScale(2);
             }
         }
 

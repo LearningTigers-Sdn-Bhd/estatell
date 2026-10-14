@@ -9,6 +9,7 @@ use App\Enums\ArInvoiceType;
 use App\Models\ArInvoice;
 use App\Models\ArPayment;
 use App\Models\Company;
+use Brick\Math\BigDecimal;
 use Carbon\CarbonImmutable;
 
 /**
@@ -64,7 +65,7 @@ class StatementBuilder
                 'label' => __('Payment'),
                 'number' => $payment->receipt_number,
                 'description' => trim($payment->paymentMethod->name.' '.($payment->reference ?? '')),
-                'amount' => '-'.$payment->amount,
+                'amount' => (string) BigDecimal::of((string) $payment->amount)->negated()->toScale(2),
             ];
         }
 
@@ -74,7 +75,7 @@ class StatementBuilder
         $lines = [];
 
         foreach ($entries as $entry) {
-            $balance = bcadd($balance, $entry['amount'], 2);
+            $balance = (string) BigDecimal::of($balance)->plus($entry['amount'])->toScale(2);
             $lines[] = new StatementLineData($entry['date'], $entry['kind'], $entry['label'], $entry['number'], $entry['description'], $entry['amount'], $balance);
         }
 
@@ -107,6 +108,6 @@ class StatementBuilder
             ->selectRaw('COALESCE(SUM(amount), 0)::numeric(14, 2) AS total')
             ->value('total');
 
-        return bcsub($documents, $payments, 2);
+        return (string) BigDecimal::of($documents)->minus($payments)->toScale(2);
     }
 }

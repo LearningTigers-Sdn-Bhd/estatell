@@ -6,6 +6,7 @@ use App\Data\Shared\BadgeData;
 use App\Enums\ArInvoiceStatus;
 use App\Enums\ArInvoiceType;
 use App\Models\ArInvoice;
+use Brick\Math\BigDecimal;
 use Spatie\LaravelData\Data;
 
 /**
@@ -52,7 +53,7 @@ class ArInvoiceRowData extends Data
             overdue: $isInvoice
                 && $invoice->status === ArInvoiceStatus::Open
                 && $balance !== null
-                && bccomp($balance, '0', 2) > 0
+                && BigDecimal::of($balance)->isPositive()
                 && $invoice->due_on !== null
                 && $invoice->due_on->toDateString() < $today,
         );

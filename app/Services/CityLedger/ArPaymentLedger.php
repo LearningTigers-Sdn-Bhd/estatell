@@ -15,6 +15,7 @@ use App\Models\ArPayment;
 use App\Models\Company;
 use App\Models\PaymentMethod;
 use App\Models\User;
+use Brick\Math\BigDecimal;
 
 /**
  * Reads the Payments tab of a company: its payments newest first with what is left to allocate, the invoices that
@@ -24,6 +25,8 @@ use App\Models\User;
  */
 class ArPaymentLedger
 {
+    public function __construct(private ArInvoiceBalance $arInvoiceBalance) {}
+
     /**
      * @return list<ArPaymentRowData>
      */
@@ -48,9 +51,9 @@ class ArPaymentLedger
 
         return array_values($payments->map(function (ArPayment $payment) use ($allocated, $mayAllocate, $mayVoid): ArPaymentRowData {
             $used = (string) ($allocated[$payment->id] ?? '0');
-            $unallocated = $payment->voided_at !== null ? '0.00' : bcsub((string) $payment->amount, $used, 2);
+            $unallocated = $payment->voided_at !== null ? '0.00' : (string) BigDecimal::of((string) $payment->amount)->minus($used)->toScale(2);
 
-            return ArPaymentRowData::fromModel($payment, $unallocated, bccomp($used, '0', 2) > 0, $mayAllocate, $mayVoid);
+            return ArPaymentRowData::fromModel($payment, $unallocated, BigDecimal::of($used)->isPositive(), $mayAllocate, $mayVoid);
         })->all());
     }
 
@@ -84,8 +87,8 @@ class ArPaymentLedger
             ->orderBy('due_on')
             ->orderBy('id')
             ->get()
-            ->map(fn (ArInvoice $invoice): array => [$invoice, bcsub(bcadd((string) $invoice->amount, (string) $invoice->getAttribute('credited'), 2), (string) $invoice->getAttribute('allocated'), 2)])
-            ->filter(fn (array $pair): bool => bccomp($pair[1], '0', 2) > 0)
+            ->map(fn (ArInvoice $invoice): array => [$invoice, $this->arInvoiceBalance->fromFigures((string) $invoice->amount, (string) $invoice->getAttribute('credited'), (string) $invoice->getAttribute('allocated'))])
+            ->filter(fn (array $pair): bool => BigDecimal::of($pair[1])->isPositive())
             ->map(fn (array $pair): OpenArInvoiceData => OpenArInvoiceData::fromModel($pair[0], $pair[1]))
             ->values()
             ->all());

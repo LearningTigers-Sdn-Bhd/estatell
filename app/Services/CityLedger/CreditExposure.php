@@ -7,6 +7,7 @@ use App\Enums\FolioStatus;
 use App\Models\ArInvoice;
 use App\Models\ArPayment;
 use App\Models\Company;
+use Brick\Math\BigDecimal;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -42,15 +43,15 @@ class CreditExposure
         $figures = [];
 
         foreach ($companies as $company) {
-            $exposure = bcadd($openAr[$company->id], $inHouse[$company->id], 2);
+            $exposure = BigDecimal::of($openAr[$company->id])->plus($inHouse[$company->id]);
             $limit = $company->credit_limit === null ? null : (string) $company->credit_limit;
 
             $figures[$company->id] = [
                 'openAr' => $openAr[$company->id],
                 'inHouse' => $inHouse[$company->id],
-                'exposure' => $exposure,
+                'exposure' => (string) $exposure->toScale(2),
                 'limit' => $limit,
-                'headroom' => $limit === null ? null : bcsub($limit, $exposure, 2),
+                'headroom' => $limit === null ? null : (string) BigDecimal::of($limit)->minus($exposure)->toScale(2),
             ];
         }
 
@@ -64,7 +65,7 @@ class CreditExposure
      */
     public function isOverLimit(array $figures): bool
     {
-        return $figures['limit'] !== null && bccomp($figures['exposure'], $figures['limit'], 2) > 0;
+        return $figures['limit'] !== null && BigDecimal::of($figures['exposure'])->isGreaterThan($figures['limit']);
     }
 
     /**
@@ -93,8 +94,8 @@ class CreditExposure
         $balances = [];
 
         foreach ($companyIds as $id) {
-            $balance = bcsub((string) ($documents[$id] ?? '0'), (string) ($payments[$id] ?? '0'), 2);
-            $balances[$id] = bccomp($balance, '0', 2) > 0 ? $balance : '0.00';
+            $balance = BigDecimal::of((string) ($documents[$id] ?? '0'))->minus((string) ($payments[$id] ?? '0'));
+            $balances[$id] = $balance->isPositive() ? (string) $balance->toScale(2) : '0.00';
         }
 
         return $balances;
@@ -121,8 +122,8 @@ class CreditExposure
         $totals = array_fill_keys($companyIds, '0.00');
 
         foreach ($folios as $folio) {
-            if (bccomp((string) $folio->balance, '0', 2) > 0) {
-                $totals[(int) $folio->company_id] = bcadd($totals[(int) $folio->company_id], (string) $folio->balance, 2);
+            if (BigDecimal::of((string) $folio->balance)->isPositive()) {
+                $totals[(int) $folio->company_id] = (string) BigDecimal::of($totals[(int) $folio->company_id])->plus((string) $folio->balance)->toScale(2);
             }
         }
 

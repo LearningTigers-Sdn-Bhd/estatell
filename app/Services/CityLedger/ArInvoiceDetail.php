@@ -15,6 +15,7 @@ use App\Models\ArInvoice;
 use App\Models\FolioLine;
 use App\Models\TransactionCode;
 use App\Models\User;
+use Brick\Math\BigDecimal;
 
 /**
  * Reads one invoice or credit note for its page: the row, its origin, its credit notes and the folio lines it was
@@ -31,7 +32,8 @@ class ArInvoiceDetail
         $isInvoice = $invoice->type === ArInvoiceType::Invoice;
         $balance = $this->arInvoiceBalance->forInvoice($invoice);
         $notes = $invoice->creditNotes->sortBy('id')->values();
-        $credited = $notes->where('status', '<>', ArInvoiceStatus::Void)->reduce(fn (string $sum, ArInvoice $note): string => bcadd($sum, (string) $note->amount, 2), '0.00');
+        $creditedTotal = $notes->where('status', '<>', ArInvoiceStatus::Void)->reduce(fn (BigDecimal $sum, ArInvoice $note): BigDecimal => $sum->plus((string) $note->amount), BigDecimal::zero());
+        $credited = (string) $creditedTotal->toScale(2);
 
         $allocations = $isInvoice ? $this->allocations($invoice, $user) : [];
 
