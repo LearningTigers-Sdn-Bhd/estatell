@@ -14,6 +14,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\CreatePropertyForOwnerRequest;
 use App\Models\Property;
 use App\Models\User;
+use App\Services\Platform\PartnerDirectory;
 use App\Services\Platform\PropertyDirectory;
 use App\Services\Staff\PropertyOwners;
 use Illuminate\Http\RedirectResponse;
@@ -28,7 +29,7 @@ class PropertyController extends Controller
     /**
      * List every property with search, filters and sorting in the URL.
      */
-    public function index(Request $request, PropertyDirectory $propertyDirectory): Response
+    public function index(Request $request, PropertyDirectory $propertyDirectory, PartnerDirectory $partnerDirectory): Response
     {
         return Inertia::render('admin/properties/index', [
             'properties' => AdminPropertyRowData::collect($propertyDirectory->paginate($request), PaginatedDataCollection::class),
@@ -36,10 +37,12 @@ class PropertyController extends Controller
                 'search' => $request->string('filter.search')->toString(),
                 'status' => $request->string('filter.status')->toString(),
                 'type' => $request->string('filter.type')->toString(),
+                'partner' => $request->string('filter.partner')->toString(),
             ],
             'sort' => $request->string('sort', '-created_at')->toString(),
             'statuses' => PropertyStatus::options(),
             'types' => PropertyType::options(),
+            'partners' => $partnerDirectory->filterOptions(),
             'setupMethods' => OwnerSetupMethod::options(),
             'passwordRules' => Password::defaults()->toPasswordRulesString(),
         ]);

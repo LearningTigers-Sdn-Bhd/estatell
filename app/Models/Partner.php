@@ -19,11 +19,12 @@ use Illuminate\Support\Carbon;
  * @property string $code_prefix
  * @property string $signup_code
  * @property PartnerStatus $status
+ * @property bool $can_create_properties
  * @property Carbon|null $suspended_at
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-#[Fillable(['name', 'status', 'suspended_at'])]
+#[Fillable(['name', 'status', 'can_create_properties', 'suspended_at'])]
 class Partner extends Model
 {
     /** @use HasFactory<PartnerFactory> */
@@ -38,6 +39,7 @@ class Partner extends Model
     {
         return [
             'status' => PartnerStatus::class,
+            'can_create_properties' => 'boolean',
             'suspended_at' => 'datetime',
         ];
     }

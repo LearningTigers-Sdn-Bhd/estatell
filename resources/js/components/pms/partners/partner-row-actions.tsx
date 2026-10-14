@@ -1,5 +1,14 @@
 import { Form, router } from '@inertiajs/react';
-import { Ban, Copy, Ellipsis, KeyRound, Pause, Play, Send } from 'lucide-react';
+import {
+    Ban,
+    Copy,
+    Ellipsis,
+    KeyRound,
+    Link2,
+    Pause,
+    Play,
+    Send,
+} from 'lucide-react';
 import { useState } from 'react';
 import {
     AlertDialog,
@@ -20,6 +29,7 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Spinner } from '@/components/ui/spinner';
+import { useClipboard } from '@/hooks/use-clipboard';
 import { reactivate, suspend } from '@/routes/admin/partners';
 import {
     destroy as revokeInvitation,
@@ -29,7 +39,7 @@ import { reset } from '@/routes/admin/partners/temporary-passwords';
 
 type Partner = Pick<
     App.Data.Platform.AdminPartnerRowData,
-    'id' | 'name' | 'userId' | 'temporaryPasswordExpiresAt'
+    'id' | 'name' | 'userId' | 'temporaryPasswordExpiresAt' | 'signupUrl'
 >;
 
 function RowActionsTrigger({ name }: { name: string }) {
@@ -51,6 +61,7 @@ export function ActivePartnerActions({
     onShowMessage: (userIds: number[]) => void;
 }) {
     const [dialog, setDialog] = useState<'reset' | 'suspend' | null>(null);
+    const [, copy] = useClipboard();
     const canCopy =
         partner.temporaryPasswordExpiresAt !== null &&
         new Date(partner.temporaryPasswordExpiresAt).getTime() > Date.now();
@@ -68,6 +79,10 @@ export function ActivePartnerActions({
                             Copy message
                         </DropdownMenuItem>
                     )}
+                    <DropdownMenuItem onClick={() => copy(partner.signupUrl)}>
+                        <Link2 />
+                        Copy signup link
+                    </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => setDialog('reset')}>
                         <KeyRound />
                         Reset temp password

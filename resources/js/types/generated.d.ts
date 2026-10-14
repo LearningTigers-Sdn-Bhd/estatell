@@ -926,6 +926,8 @@ codePrefix: string,
 userId: number,
 email: string | null,
 propertiesCount: number,
+canCreateProperties: boolean,
+signupUrl: string,
 status: App.Data.Shared.BadgeData,
 temporaryPasswordExpiresAt: string | null,
 suspendedAt: string | null,
@@ -961,6 +963,7 @@ type: string | null,
 city: string | null,
 ownerName: string | null,
 ownerEmail: string | null,
+partnerName: string | null,
 createdAt: string,
 };
 export type AdminPropertyStaffData = {
@@ -976,6 +979,12 @@ createdAt: string,
 export type PartnerInvitationPreviewData = {
 email: string,
 partnerName: string,
+};
+export type PartnerPropertyRowData = {
+code: string,
+name: string,
+status: App.Data.Shared.BadgeData,
+createdAt: string,
 };
 export type PlatformSettingsData = {
 requireGoLiveApproval: boolean,

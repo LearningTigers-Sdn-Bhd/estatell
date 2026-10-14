@@ -1,4 +1,4 @@
-import { Head } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
 import { Handshake, Mail, Pause, Users } from 'lucide-react';
 import { useState } from 'react';
 import { DataTable, dataTableColumns } from '@/components/pms/data-table';
@@ -18,8 +18,10 @@ import { ExportTemporaryPasswordsMenu } from '@/components/pms/temporary-passwor
 import { ResetTemporaryPassword } from '@/components/pms/temporary-passwords/reset-temporary-password';
 import { TemporaryPasswordMessageDialog } from '@/components/pms/temporary-passwords/temporary-password-message-dialog';
 import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
 import { dashboard } from '@/routes/admin';
 import { index, invited, suspended } from '@/routes/admin/partners';
+import { update as updateCanCreateProperties } from '@/routes/admin/partners/can-create-properties';
 import {
     exportMethod,
     message,
@@ -102,8 +104,45 @@ const createdColumn = column.accessor('createdAt', {
     cell: (info) => <DateText date={info.getValue()} />,
 });
 
+/**
+ * Turn "Can create properties" on or off for an Active partner. The row flips at once and rolls back if the save fails.
+ */
+function toggleCanCreateProperties(partnerId: number, allowed: boolean) {
+    router
+        .optimistic<{
+            partners: Illuminate.LengthAwarePaginator<number, Row>;
+        }>((props) => ({
+            partners: {
+                ...props.partners,
+                data: props.partners.data.map((row) =>
+                    row.id === partnerId
+                        ? { ...row, canCreateProperties: allowed }
+                        : row,
+                ),
+            },
+        }))
+        .put(
+            updateCanCreateProperties.url({ partner: partnerId }),
+            { allowed },
+            { preserveScroll: true },
+        );
+}
+
 const activeColumns = (onShowMessage: (userIds: number[]) => void) => [
     ...columns,
+    column.display({
+        id: 'canCreateProperties',
+        header: 'Can create properties',
+        cell: (info) => (
+            <Switch
+                checked={info.row.original.canCreateProperties}
+                aria-label={`${info.row.original.name} can create properties`}
+                onCheckedChange={(allowed) =>
+                    toggleCanCreateProperties(info.row.original.id, allowed)
+                }
+            />
+        ),
+    }),
     column.display({
         id: 'status',
         header: 'Status',

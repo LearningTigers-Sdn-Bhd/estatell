@@ -16,11 +16,12 @@ class AdminPropertyRowData extends Data
         public ?string $city,
         public ?string $ownerName,
         public ?string $ownerEmail,
+        public ?string $partnerName,
         public string $createdAt,
     ) {}
 
     /**
-     * Expects `owner_name` and `owner_email` from `PropertyOwners::addOwnerColumns()`.
+     * Expects `owner_name` and `owner_email` from `PropertyOwners::addOwnerColumns()` and the `partner` relation loaded.
      */
     public static function fromModel(Property $property): self
     {
@@ -32,6 +33,7 @@ class AdminPropertyRowData extends Data
             city: $property->city,
             ownerName: $property->getAttribute('owner_name'),
             ownerEmail: $property->getAttribute('owner_email'),
+            partnerName: $property->partner?->name,
             createdAt: $property->created_at->toDateString(),
         );
     }

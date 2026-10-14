@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\OwnerSetupLinkController;
 use App\Http\Controllers\Admin\PartnerBulkAddController;
+use App\Http\Controllers\Admin\PartnerCanCreatePropertiesController;
 use App\Http\Controllers\Admin\PartnerController;
 use App\Http\Controllers\Admin\PartnerInvitationController;
 use App\Http\Controllers\Admin\PartnerStatusController;
@@ -36,6 +37,7 @@ Route::middleware(['auth', 'can:admin'])->prefix('admin')->name('admin.')->group
     Route::post('partners/temporary-passwords/reset', [PartnerTemporaryPasswordController::class, 'reset'])->middleware('support.2fa')->name('partners.temporary-passwords.reset');
     Route::post('partners/{partner}/suspend', [PartnerStatusController::class, 'suspend'])->middleware('support.2fa')->name('partners.suspend');
     Route::post('partners/{partner}/reactivate', [PartnerStatusController::class, 'reactivate'])->middleware('support.2fa')->name('partners.reactivate');
+    Route::put('partners/{partner}/can-create-properties', [PartnerCanCreatePropertiesController::class, 'update'])->middleware('support.2fa')->name('partners.can-create-properties.update');
     Route::get('partners/invited', [PartnerController::class, 'invited'])->name('partners.invited');
     Route::post('partners/invitations', [PartnerInvitationController::class, 'store'])->middleware('support.2fa')->name('partners.invitations.store');
     Route::post('partners/invitations/{partnerInvitation}/resend', [PartnerInvitationController::class, 'resend'])->middleware('support.2fa')->name('partners.invitations.resend');

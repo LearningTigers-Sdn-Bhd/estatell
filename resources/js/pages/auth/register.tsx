@@ -11,9 +11,15 @@ import { store } from '@/routes/register';
 
 type Props = {
     passwordRules: string;
+    partnerName: string | null;
+    notice: string | null;
 };
 
-export default function Register({ passwordRules }: Props) {
+export default function Register({
+    passwordRules,
+    partnerName,
+    notice,
+}: Props) {
     return (
         <>
             <Head title="Register" />
@@ -25,6 +31,19 @@ export default function Register({ passwordRules }: Props) {
             >
                 {({ processing, errors }) => (
                     <>
+                        {partnerName && (
+                            <p className="text-center text-sm text-muted-foreground">
+                                Joining via {partnerName}
+                            </p>
+                        )}
+                        {notice && (
+                            <p
+                                role="status"
+                                className="text-center text-sm text-muted-foreground"
+                            >
+                                {notice}
+                            </p>
+                        )}
                         <div className="grid gap-6">
                             <div className="grid gap-2">
                                 <Label htmlFor="name">Name</Label>

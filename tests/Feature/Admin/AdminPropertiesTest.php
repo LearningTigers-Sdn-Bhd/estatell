@@ -3,6 +3,7 @@
 use App\Enums\DefaultRoleEnum;
 use App\Enums\PropertyStatus;
 use App\Enums\PropertyType;
+use App\Models\Partner;
 use App\Models\Property;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
@@ -220,4 +221,41 @@ test('an unknown property code is a 404 for admins', function () {
     $this->actingAs($this->admin)
         ->get('/admin/properties/99999999')
         ->assertNotFound();
+});
+
+test('the list shows each property\'s partner and filters by partner or Direct', function () {
+    $partner = Partner::factory()->create(['name' => 'Andaman Stays']);
+    $other = Partner::factory()->create();
+    $brought = Property::factory()->create(['partner_id' => $partner->id, 'created_at' => now()->subDays(3)]);
+    $otherBrought = Property::factory()->create(['partner_id' => $other->id, 'created_at' => now()->subDays(2)]);
+    $direct = Property::factory()->create(['created_at' => now()->subDay()]);
+
+    $this->actingAs($this->admin)
+        ->get(route('admin.properties.index'))
+        ->assertInertia(fn (Assert $page) => $page
+            ->has('properties.data', 3)
+            ->where('properties.data.2.partnerName', 'Andaman Stays')
+            ->where('properties.data.0.partnerName', null)
+            ->where('properties.data.0.code', $direct->code)
+            ->where('partners.0', ['value' => 'direct', 'label' => 'Direct'])
+            ->where('partners.1.value', (string) $partner->id)
+        );
+
+    $this->get(route('admin.properties.index', ['filter' => ['partner' => (string) $partner->id]]))
+        ->assertInertia(fn (Assert $page) => $page
+            ->has('properties.data', 1)
+            ->where('properties.data.0.code', $brought->code)
+            ->where('filters.partner', (string) $partner->id)
+        );
+
+    $this->get(route('admin.properties.index', ['filter' => ['partner' => 'direct']]))
+        ->assertInertia(fn (Assert $page) => $page
+            ->has('properties.data', 1)
+            ->where('properties.data.0.code', $direct->code)
+        );
+
+    $this->get(route('admin.properties.index', ['filter' => ['partner' => 'nonsense']]))
+        ->assertInertia(fn (Assert $page) => $page->has('properties.data', 0));
+
+    expect($otherBrought->partner_id)->toBe($other->id);
 });

@@ -26,6 +26,7 @@ class PartnerFactory extends Factory
             'code_prefix' => fn (): string => $this->freshPrefix(),
             'signup_code' => fn (): string => app(PartnerSignupCode::class)->generate(),
             'status' => PartnerStatus::Active,
+            'can_create_properties' => false,
         ];
     }
 
@@ -37,6 +38,11 @@ class PartnerFactory extends Factory
         return $this->afterCreating(function (Partner $partner): void {
             DB::table('property_code_counters')->insertOrIgnore(['prefix' => $partner->code_prefix, 'last_number' => 10100]);
         });
+    }
+
+    public function canCreateProperties(): static
+    {
+        return $this->state(fn (array $attributes) => ['can_create_properties' => true]);
     }
 
     public function invited(): static

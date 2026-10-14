@@ -18,6 +18,8 @@ class PropertyDirectory
 {
     public const int PER_PAGE = 25;
 
+    public const string DIRECT = 'direct';
+
     public function __construct(private PropertyOwners $propertyOwners) {}
 
     /**
@@ -30,13 +32,31 @@ class PropertyDirectory
                 AllowedFilter::callback('search', fn (Builder $query, string $search) => $this->search($query, $search)),
                 AllowedFilter::exact('status'),
                 AllowedFilter::exact('type'),
+                AllowedFilter::callback('partner', fn (Builder $query, string $partner) => $this->partner($query, $partner)),
             )
             ->allowedSorts('code', 'name', 'created_at')
             ->defaultSort('-created_at')
             ->select('properties.*')
+            ->with('partner:id,name')
             ->tap(fn (Builder $query) => $this->propertyOwners->addOwnerColumns($query))
             ->paginate(self::PER_PAGE)
             ->withQueryString();
+    }
+
+    /**
+     * A partner id lists that partner's properties; `direct` lists the properties that came with no partner.
+     *
+     * @param  Builder<Property>  $query
+     */
+    private function partner(Builder $query, string $partner): void
+    {
+        if ($partner === self::DIRECT) {
+            $query->whereNull('properties.partner_id');
+        } elseif (ctype_digit($partner)) {
+            $query->where('properties.partner_id', (int) $partner);
+        } else {
+            $query->whereRaw('false');
+        }
     }
 
     /**

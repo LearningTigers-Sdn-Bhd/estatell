@@ -36,4 +36,15 @@ class AdminPropertyStaffData extends Data
             createdAt: $user->created_at->toDateString(),
         );
     }
+
+    /**
+     * The row a partner sees: the same columns, but never the setup-email action.
+     */
+    public static function forPartner(User $user): self
+    {
+        $row = self::fromModel($user);
+        $row->canSendSetupLink = false;
+
+        return $row;
+    }
 }

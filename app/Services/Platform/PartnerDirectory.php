@@ -51,4 +51,20 @@ class PartnerDirectory
             ->paginate(self::PER_PAGE)
             ->withQueryString();
     }
+
+    /**
+     * Every partner as a picker option for the admin property list filter, with "Direct" first. The value is the
+     * partner id, or `direct` for properties with no partner.
+     *
+     * @return list<array{value: string, label: string}>
+     */
+    public function filterOptions(): array
+    {
+        return [
+            ['value' => PropertyDirectory::DIRECT, 'label' => __('Direct')],
+            ...Partner::query()->orderBy('name')->get(['id', 'name', 'code_prefix'])
+                ->map(fn (Partner $partner): array => ['value' => (string) $partner->id, 'label' => "{$partner->name} ({$partner->code_prefix})"])
+                ->all(),
+        ];
+    }
 }

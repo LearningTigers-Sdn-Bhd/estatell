@@ -9,6 +9,7 @@ use App\Actions\Staff\AssignOwnerRole;
 use App\Enums\OwnerSetupMethod;
 use App\Enums\PropertyStatus;
 use App\Enums\PropertyType;
+use App\Models\Partner;
 use App\Models\Property;
 use App\Models\User;
 use App\Notifications\OwnerSetupNotification;
@@ -28,19 +29,21 @@ class CreatePropertyForOwner
 
     /**
      * Create an onboarding property and its owner atomically, then send the selected account setup message.
+     * With a partner, the property gets the partner's code prefix and is linked to the partner.
      *
      * @param  array{property_name: string, type: string, owner_name: string, owner_email: string, setup_method: string, password?: string, verify_owner_email?: bool}  $input
      */
-    public function __invoke(User $admin, array $input): Property
+    public function __invoke(User $admin, array $input, ?Partner $partner = null): Property
     {
         $type = PropertyType::from($input['type']);
         $setupMethod = OwnerSetupMethod::from($input['setup_method']);
         $verifyOwnerEmail = $setupMethod === OwnerSetupMethod::InitialPassword
             && ($input['verify_owner_email'] ?? false);
 
-        [$property, $owner] = DB::transaction(function () use ($admin, $input, $setupMethod, $type, $verifyOwnerEmail): array {
+        [$property, $owner] = DB::transaction(function () use ($admin, $input, $partner, $setupMethod, $type, $verifyOwnerEmail): array {
             $property = (new Property)->forceFill([
-                'code' => ($this->issuePropertyCode)(),
+                'code' => ($this->issuePropertyCode)($partner?->code_prefix ?? 'ES'),
+                'partner_id' => $partner?->id,
                 'name' => $input['property_name'],
                 'type' => $type,
                 'status' => PropertyStatus::Onboarding,
