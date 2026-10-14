@@ -8,7 +8,6 @@ use App\Models\Property;
 use App\Models\PropertySetting;
 use App\Models\Rate;
 use App\Models\RatePlan;
-use App\Models\Role;
 use App\Models\RoomType;
 use App\Models\User;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -138,11 +137,7 @@ test('a refused plan flashes an error toast and writes nothing', function () {
 test('linking companies needs company.manage', function () {
     [$owner, $property, $parent, $deluxe] = quickDerivedSetup();
     $company = Company::factory()->for($property)->create();
-    $staff = User::factory()->for($property)->create();
-    $role = Role::query()->create(['property_id' => $property->id, 'name' => 'Rates only']);
-    $role->givePermissionTo('settings.manage');
-    setPermissionsTeamId($property->id);
-    $staff->assignRole($role);
+    $staff = User::factory()->for($property)->withPermissions(['settings.manage'])->create();
 
     $this->actingAs($staff)
         ->post(route('settings.rate-plans.derived.store', [$property->code, $parent]), quickDerivedPayload($deluxe, ['company_ids' => [$company->id]]))
@@ -186,11 +181,7 @@ test('the list offers active companies only to staff who manage companies', func
     [$owner, $property] = quickDerivedSetup();
     Company::factory()->for($property)->create(['name' => 'Petronas']);
     Company::factory()->suspended()->for($property)->create(['name' => 'Gone Sdn Bhd']);
-    $staff = User::factory()->for($property)->create();
-    $role = Role::query()->create(['property_id' => $property->id, 'name' => 'Rates only']);
-    $role->givePermissionTo('settings.manage');
-    setPermissionsTeamId($property->id);
-    $staff->assignRole($role);
+    $staff = User::factory()->for($property)->withPermissions(['settings.manage'])->create();
 
     $this->actingAs($owner)->get(route('settings.rate-plans.index', $property->code))
         ->assertInertia(fn (Assert $page) => $page->has('companies', 1)->where('companies.0.name', 'Petronas'));

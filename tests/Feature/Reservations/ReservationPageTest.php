@@ -26,7 +26,6 @@ use App\Services\Reservations\BookingSummary;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Inertia\Testing\AssertableInertia as Assert;
-use Spatie\Permission\PermissionRegistrar;
 
 beforeEach(function () {
     $this->travelTo(now()->setDate(2026, 10, 10)->setTime(12, 0));
@@ -51,16 +50,9 @@ function pageOwner(DefaultRoleEnum $role = DefaultRoleEnum::Owner): array
  */
 function pageStaffWith(array $permissions): array
 {
-    $user = User::factory()->create();
+    $user = User::factory()->withPermissions($permissions)->create();
     $property = $user->property;
     PropertySetting::factory()->for($property)->create();
-    $role = Role::query()->create(['property_id' => $property->id, 'name' => 'Viewer']);
-    $previous = getPermissionsTeamId();
-    setPermissionsTeamId($property->id);
-    $role->givePermissionTo($permissions);
-    $user->assignRole($role);
-    setPermissionsTeamId($previous);
-    app(PermissionRegistrar::class)->forgetCachedPermissions();
 
     return [$user, $property];
 }

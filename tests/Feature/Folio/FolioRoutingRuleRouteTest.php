@@ -145,11 +145,7 @@ test('a third-party folio needs exactly one payer, and a company must be Active 
 test('a company payer needs company.view', function () {
     $setup = rrSetup();
     $company = Company::factory()->for($setup['property'])->create();
-    $role = Role::query()->create(['property_id' => $setup['property']->id, 'name' => 'Transfer only']);
-    $role->givePermissionTo(['reservations.view', 'folio.transfer']);
-    $staff = User::factory()->for($setup['property'])->create();
-    setPermissionsTeamId($setup['property']->id);
-    $staff->assignRole($role);
+    $staff = User::factory()->for($setup['property'])->withPermissions(['reservations.view', 'folio.transfer'])->create();
 
     $this->actingAs($staff)->post(rrUrl($setup, 'reservations.folios.third-party.store'), ['payer_company_id' => $company->id])
         ->assertSessionHasErrors('payer_company_id');

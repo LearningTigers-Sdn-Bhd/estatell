@@ -16,14 +16,12 @@ use App\Models\Property;
 use App\Models\PropertySetting;
 use App\Models\Reservation;
 use App\Models\ReservationUnit;
-use App\Models\Role;
 use App\Models\Tax;
 use App\Models\TransactionCode;
 use App\Models\User;
 use Illuminate\Testing\TestResponse;
 use Inertia\Testing\AssertableInertia as Assert;
 use Spatie\Activitylog\Models\Activity;
-use Spatie\Permission\PermissionRegistrar;
 
 beforeEach(function () {
     $this->travelTo(now()->setDate(2026, 10, 10)->setTime(12, 0));
@@ -233,12 +231,7 @@ test('a closed folio and a user without the permission see no discount actions',
 
     $this->actingAs(fxStaff($setup, DefaultRoleEnum::Manager))->get($page)->assertInertia(fn (Assert $inertia) => $inertia->where('folio.canApplyDiscount', true));
 
-    $noDiscount = User::factory()->create(['property_id' => $setup['property']->id]);
-    $role = Role::query()->create(['property_id' => $setup['property']->id, 'name' => 'Viewer']);
-    setPermissionsTeamId($setup['property']->id);
-    $role->givePermissionTo('reservations.view');
-    $noDiscount->assignRole($role);
-    app(PermissionRegistrar::class)->forgetCachedPermissions();
+    $noDiscount = User::factory()->for($setup['property'])->withPermissions(['reservations.view'])->create();
 
     $this->actingAs($noDiscount)->get($page)->assertInertia(fn (Assert $inertia) => $inertia->where('folio.canApplyDiscount', false));
 

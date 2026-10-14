@@ -22,7 +22,6 @@ use App\Models\RatePlanInclusion;
 use App\Models\RatePlanStayDiscount;
 use App\Models\Reservation;
 use App\Models\ReservationUnit;
-use App\Models\Role;
 use App\Models\Room;
 use App\Models\RoomBlock;
 use App\Models\RoomType;
@@ -293,23 +292,9 @@ test('it refuses a stay that ends on a closed to departure date', function () {
     expect(addUnit($setup, unitData($setup, 3))->refusal)->toBe(ReservationResult::REFUSAL_RESTRICTED);
 });
 
-/**
- * @param  list<string>  $permissions
- */
-function unitStaffWith(Property $property, array $permissions): User
-{
-    $user = User::factory()->for($property)->create();
-    $role = Role::query()->create(['property_id' => $property->id, 'name' => 'Override '.implode(',', $permissions)]);
-    $role->givePermissionTo($permissions);
-    setPermissionsTeamId($property->id);
-    $user->assignRole($role);
-
-    return $user;
-}
-
 test('a restriction can be booked past with a reason and the permission, and the override is logged', function () {
     $setup = unitSetup();
-    $setup['user'] = unitStaffWith($setup['property'], ['rates.override-restrictions']);
+    $setup['user'] = User::factory()->for($setup['property'])->withPermissions(['rates.override-restrictions'])->create();
     Rate::query()->where('date', $setup['arrival']->toDateString())->update(['min_stay' => 5]);
 
     $result = addUnit($setup, unitData($setup, 2, ['restrictionOverrideReason' => 'Owner friend']));
@@ -324,7 +309,7 @@ test('a restriction can be booked past with a reason and the permission, and the
 
 test('the permission team is put back after the check', function () {
     $setup = unitSetup();
-    $setup['user'] = unitStaffWith($setup['property'], ['rates.override-restrictions']);
+    $setup['user'] = User::factory()->for($setup['property'])->withPermissions(['rates.override-restrictions'])->create();
     Rate::query()->where('date', $setup['arrival']->toDateString())->update(['min_stay' => 5]);
     setPermissionsTeamId(987654);
 
@@ -335,7 +320,7 @@ test('the permission team is put back after the check', function () {
 
 test('a restriction override needs the permission', function () {
     $setup = unitSetup();
-    $setup['user'] = unitStaffWith($setup['property'], ['rates.view']);
+    $setup['user'] = User::factory()->for($setup['property'])->withPermissions(['rates.view'])->create();
     Rate::query()->where('date', $setup['arrival']->toDateString())->update(['stop_sell' => true]);
 
     $result = addUnit($setup, unitData($setup, 2, ['restrictionOverrideReason' => 'Please']));

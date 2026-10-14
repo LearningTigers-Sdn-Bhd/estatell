@@ -30,7 +30,6 @@ use App\Models\RatePlan;
 use App\Models\RatePlanInclusion;
 use App\Models\Reservation;
 use App\Models\ReservationUnit;
-use App\Models\Role;
 use App\Models\TransactionCode;
 use App\Models\User;
 use App\Notifications\NightAuditCompleted;
@@ -55,27 +54,11 @@ function notifySetup(string $state = 'completed'): array
     return ['property' => $property, 'audit' => $audit, 'owner' => $owner];
 }
 
-/**
- * A staff user of the property who holds only the given permissions.
- *
- * @param  list<PermissionEnum>  $permissions
- */
-function notifyStaff(Property $property, array $permissions): User
-{
-    $user = User::factory()->for($property)->create();
-    $role = Role::query()->create(['property_id' => $property->id, 'name' => 'Role '.fake()->unique()->word()]);
-    $role->givePermissionTo(array_map(fn (PermissionEnum $permission): string => $permission->value, $permissions));
-    setPermissionsTeamId($property->id);
-    $user->assignRole($role);
-
-    return $user;
-}
-
 test('a completed audit tells the staff who receive the report and nobody else', function () {
     Notification::fake();
     ['property' => $property, 'audit' => $audit, 'owner' => $owner] = notifySetup();
-    $receiver = notifyStaff($property, [PermissionEnum::NightAuditReceiveReport]);
-    $runner = notifyStaff($property, [PermissionEnum::NightAuditRun]);
+    $receiver = User::factory()->for($property)->withPermissions([PermissionEnum::NightAuditReceiveReport])->create();
+    $runner = User::factory()->for($property)->withPermissions([PermissionEnum::NightAuditRun])->create();
     $deactivated = User::factory()->for($property)->withRole(DefaultRoleEnum::Manager)->deactivated()->create();
     $otherOwner = User::factory()->withRole(DefaultRoleEnum::Owner)->create();
     $admin = User::factory()->admin()->create();
@@ -107,8 +90,8 @@ test('a completed audit with an open exception sends the exceptions message, and
 test('a failed audit tells the staff who can run the audit, and a running audit tells nobody', function () {
     Notification::fake();
     ['property' => $property, 'audit' => $audit, 'owner' => $owner] = notifySetup('failed');
-    $runner = notifyStaff($property, [PermissionEnum::NightAuditRun]);
-    $receiver = notifyStaff($property, [PermissionEnum::NightAuditReceiveReport]);
+    $runner = User::factory()->for($property)->withPermissions([PermissionEnum::NightAuditRun])->create();
+    $receiver = User::factory()->for($property)->withPermissions([PermissionEnum::NightAuditReceiveReport])->create();
 
     $sent = app(NotifyNightAuditResult::class)($audit);
 

@@ -13,7 +13,6 @@ use App\Models\Property;
 use App\Models\PropertySetting;
 use App\Models\Reservation;
 use App\Models\ReservationUnit;
-use App\Models\Role;
 use App\Models\Room;
 use App\Models\RoomType;
 use App\Models\TransactionCode;
@@ -144,11 +143,7 @@ function dashboardSetup(array $permissions = [PermissionEnum::ReservationsView, 
     $property = Property::factory()->live()->create();
     PropertySetting::factory()->for($property)->create();
     BusinessDate::factory()->create(['property_id' => $property->id, 'date' => $date]);
-    $user = User::factory()->for($property)->create();
-    $role = Role::query()->create(['property_id' => $property->id, 'name' => 'Dashboard']);
-    $role->givePermissionTo(array_map(fn (PermissionEnum $permission): string => $permission->value, $permissions));
-    setPermissionsTeamId($property->id);
-    $user->assignRole($role);
+    $user = User::factory()->for($property)->withPermissions($permissions)->create();
 
     return ['property' => $property, 'user' => $user];
 }

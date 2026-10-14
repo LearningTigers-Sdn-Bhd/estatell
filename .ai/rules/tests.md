@@ -22,3 +22,6 @@ A helper function used by more than one test file goes in `tests/Feature/Support
 
 ## One folder per module
 Feature tests live in `tests/Feature/{Module}/`, named after the `app/Actions` or `app/Services` module of the class under test (Folio, Reservations, NightAudit, ...). Report pages go in `Reports/`, seeder tests in `Seeders/`. Do not add test files to the root of `tests/Feature/`. Run one module with `php artisan test --compact tests/Feature/Folio`.
+
+## Staff with only some permissions
+Use `User::factory()->for($property)->withPermissions([...])->create()`. It takes permission names or `PermissionEnum` cases. Do not create custom roles by hand in tests, unless the test is about roles.

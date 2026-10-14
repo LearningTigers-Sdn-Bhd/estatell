@@ -23,7 +23,6 @@ use App\Models\Property;
 use App\Models\PropertySetting;
 use App\Models\Reservation;
 use App\Models\ReservationUnit;
-use App\Models\Role;
 use App\Models\Room;
 use App\Models\RoomType;
 use App\Models\TransactionCode;
@@ -100,17 +99,6 @@ function gcSave(object $test, array $setup, array $rows, array $extra = [], ?Use
     return $test->actingAs($as ?? $setup['user'])->post(gcUrl($setup, 'store'), ['idempotency_key' => $extra['key'] ?? fake()->uuid(), 'rows' => $rows, ...array_diff_key($extra, ['key' => 1])]);
 }
 
-function gcStaff(Property $property, array $permissions): User
-{
-    $user = User::factory()->for($property)->create();
-    $role = Role::query()->create(['property_id' => $property->id, 'name' => 'Only '.implode(',', $permissions)]);
-    $role->givePermissionTo($permissions);
-    setPermissionsTeamId($property->id);
-    $user->assignRole($role);
-
-    return $user;
-}
-
 function gcBalance(Folio $folio): string
 {
     return bcadd((string) FolioLine::query()->where('folio_id', $folio->id)->sum('amount'), '0', 2);
@@ -182,7 +170,7 @@ test('a room whose folio holds a deposit refunds it with the move, and a user wh
     gcCharge($s, $s['folios'][0], '95.00');
     gcDeposit($s, $s['units'][0], '50.00');
 
-    $clerk = gcStaff($s['property'], ['reservations.view', 'front-desk.check-out', 'folio.transfer']);
+    $clerk = User::factory()->for($s['property'])->withPermissions(['reservations.view', 'front-desk.check-out', 'folio.transfer'])->create();
     gcSave($this, $s, [['unit_id' => $s['units'][0]->id, 'choice' => 'move']], as: $clerk)
         ->assertSessionHasErrors('units.'.$s['units'][0]->id);
 
@@ -350,7 +338,7 @@ test('disabled rows are refused and never touched', function (string $case) {
 test('each choice needs its own permission', function (string $choice, array $row, array $permissions, array $extra) {
     $s = gcSetup(2);
     gcCharge($s, $s['folios'][0], '45.00');
-    $clerk = gcStaff($s['property'], ['reservations.view', 'front-desk.check-out', ...$permissions]);
+    $clerk = User::factory()->for($s['property'])->withPermissions(['reservations.view', 'front-desk.check-out', ...$permissions])->create();
 
     gcSave($this, $s, [['unit_id' => $s['units'][0]->id, ...$row]], $extra, $clerk)->assertSessionHasErrors();
 
@@ -364,7 +352,7 @@ test('each choice needs its own permission', function (string $choice, array $ro
 
 test('the route needs front-desk.check-out and another property or reservation is a 404', function () {
     $s = gcSetup(1);
-    $viewer = gcStaff($s['property'], ['reservations.view']);
+    $viewer = User::factory()->for($s['property'])->withPermissions(['reservations.view'])->create();
 
     gcSave($this, $s, [['unit_id' => $s['units'][0]->id]], as: $viewer)->assertForbidden();
 
@@ -420,7 +408,7 @@ test('the page renders the prefilled preview and the cancel link', function () {
 
 test('the page needs front-desk.check-out and another property or reservation is a 404', function () {
     $s = gcSetup(1);
-    $viewer = gcStaff($s['property'], ['reservations.view']);
+    $viewer = User::factory()->for($s['property'])->withPermissions(['reservations.view'])->create();
     $url = route('reservations.check-out', ['property' => $s['property']->code, 'reservation' => $s['reservation']->id]);
 
     $this->actingAs($viewer)->get($url)->assertForbidden();
@@ -500,7 +488,7 @@ test('Move charges is offered only to a user who has folio.transfer', function (
     $s['units'][1]->nights()->get()->each->delete();
     UnitNight::factory()->create(['reservation_unit_id' => $s['units'][1]->id, 'rate_plan_id' => $s['units'][1]->rate_plan_id, 'date' => '2026-10-10']);
     FolioRoutingRule::factory()->forUnit($s['units'][1])->forCategory(TransactionCategory::Room)->toFolio($s['folios'][0])->create(['reservation_id' => $s['reservation']->id]);
-    $clerk = gcStaff($s['property'], ['reservations.view', 'front-desk.check-out']);
+    $clerk = User::factory()->for($s['property'])->withPermissions(['reservations.view', 'front-desk.check-out'])->create();
 
     $owner = collect($this->actingAs($s['user'])->postJson(gcUrl($s, 'preview'))->json('rows'))->keyBy('unitId');
     $limited = collect($this->actingAs($clerk)->postJson(gcUrl($s, 'preview'))->json('rows'))->keyBy('unitId');
@@ -530,7 +518,7 @@ test('the group bill is named after the payer company, else the group name, and 
         ->where('checkOut.preview.master.name', $company->name)
         ->where('checkOut.preview.master.canSettle', true));
 
-    $clerk = gcStaff($s['property'], ['reservations.view', 'front-desk.check-out']);
+    $clerk = User::factory()->for($s['property'])->withPermissions(['reservations.view', 'front-desk.check-out'])->create();
 
     $this->actingAs($clerk)->get($url)->assertInertia(fn (Assert $page) => $page->where('canWaiveFees', false));
 });
@@ -585,7 +573,7 @@ test('Print receipts is a 404 for a payment of another reservation or property o
     $this->actingAs($s['user'])->get($query([$payment->id, $foreign->id]))->assertNotFound();
     $this->actingAs($s['user'])->get($query([$payment->id]))->assertOk();
     $this->actingAs($s['user'])->get(gcUrl($s, 'receipts'))->assertInvalid('payments');
-    $this->actingAs(gcStaff($s['property'], ['front-desk.check-out']))->get($query([$payment->id]))->assertForbidden();
+    $this->actingAs(User::factory()->for($s['property'])->withPermissions(['front-desk.check-out'])->create())->get($query([$payment->id]))->assertForbidden();
 
     $other = gcSetup(1);
     $this->actingAs($other['user'])->get($query([$payment->id]))->assertNotFound();
@@ -596,7 +584,7 @@ test('the page tells whether the user may print receipts, and a save without pay
     $url = route('reservations.check-out', ['property' => $s['property']->code, 'reservation' => $s['reservation']->id]);
 
     $this->actingAs($s['user'])->get($url)->assertInertia(fn (Assert $page) => $page->where('canPrintReceipts', true));
-    $this->actingAs(gcStaff($s['property'], ['front-desk.check-out', 'reservations.view']))->get($url)->assertInertia(fn (Assert $page) => $page->where('canPrintReceipts', false));
+    $this->actingAs(User::factory()->for($s['property'])->withPermissions(['front-desk.check-out', 'reservations.view'])->create())->get($url)->assertInertia(fn (Assert $page) => $page->where('canPrintReceipts', false));
 
     gcSave($this, $s, [['unit_id' => $s['units'][0]->id]])->assertInertiaFlash('groupCheckOut.paymentIds', []);
 });

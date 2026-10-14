@@ -20,7 +20,6 @@ use App\Models\RatePlan;
 use App\Models\RatePlanInclusion;
 use App\Models\Reservation;
 use App\Models\ReservationUnit;
-use App\Models\Role;
 use App\Models\Room;
 use App\Models\TransactionCode;
 use App\Models\User;
@@ -55,11 +54,7 @@ function packageFixSetup(array $permissions = [PermissionEnum::NightAuditRun, Pe
     }
 
     TransactionCode::factory()->system(SystemTransactionCode::RoomRevenue)->create(['property_id' => $property->id]);
-    $user = User::factory()->for($property)->create();
-    $role = Role::query()->create(['property_id' => $property->id, 'name' => 'Audit']);
-    $role->givePermissionTo(array_map(fn (PermissionEnum $permission): string => $permission->value, $permissions));
-    setPermissionsTeamId($property->id);
-    $user->assignRole($role);
+    $user = User::factory()->for($property)->withPermissions($permissions)->create();
     expect(app(PostRoomCharges::class)($user, $unit, CarbonImmutable::parse('2026-10-09'))->isRefused())->toBeFalse();
     $audit = NightAudit::factory()->completed()->create(['business_date_id' => $audited->id]);
     $exception = NightAuditException::factory()->create(['night_audit_id' => $audit->id, 'reservation_unit_id' => $unit->id, 'message' => 'exceeds_night_amount']);

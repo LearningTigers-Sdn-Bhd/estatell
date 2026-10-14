@@ -11,14 +11,12 @@ use App\Models\Guest;
 use App\Models\Rate;
 use App\Models\RatePlan;
 use App\Models\Reservation;
-use App\Models\Role;
 use App\Models\Room;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Inertia\Testing\AssertableInertia as Assert;
 use Spatie\Activitylog\Models\Activity;
-use Spatie\Permission\PermissionRegistrar;
 
 beforeEach(function () {
     $this->travelTo(now()->setDate(2026, 10, 10)->setTime(12, 0));
@@ -467,11 +465,7 @@ test('a booking can name a company and a refused company saves nothing', functio
 test('staff without company.view cannot name a company', function () {
     $setup = bookingSetup();
     $company = Company::factory()->for($setup['property'])->create();
-    $role = Role::query()->create(['property_id' => $setup['property']->id, 'name' => 'Booker only']);
-    setPermissionsTeamId($setup['property']->id);
-    $role->givePermissionTo(['reservations.view', 'reservations.manage', 'guests.view']);
-    $setup['user']->syncRoles([$role]);
-    app(PermissionRegistrar::class)->forgetCachedPermissions();
+    actionsRoleWith($setup['user'], ['reservations.view', 'reservations.manage', 'guests.view']);
 
     $this->actingAs($setup['user'])
         ->get(bookingFormUrl($setup, 'reservations.new'))

@@ -4,6 +4,7 @@ namespace Database\Factories;
 
 use App\Actions\Staff\SeedDefaultRoles;
 use App\Enums\DefaultRoleEnum;
+use App\Enums\PermissionEnum;
 use App\Models\Partner;
 use App\Models\Property;
 use App\Models\Role;
@@ -11,6 +12,7 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use Spatie\Permission\PermissionRegistrar;
 
 /**
  * @extends Factory<User>
@@ -132,6 +134,27 @@ class UserFactory extends Factory
             $user->assignRole(Role::query()->where('property_id', $user->property_id)->where('default_role', $defaultRole)->firstOrFail());
 
             setPermissionsTeamId($previousTeamId);
+        });
+    }
+
+    /**
+     * Give the user a custom role on its property that holds only these permissions.
+     *
+     * @param  list<PermissionEnum|string>  $permissions
+     */
+    public function withPermissions(array $permissions): static
+    {
+        return $this->afterCreating(function (User $user) use ($permissions): void {
+            $role = Role::query()->create(['property_id' => $user->property_id, 'name' => 'Custom '.Str::lower(Str::random(8))]);
+
+            $previousTeamId = getPermissionsTeamId();
+            setPermissionsTeamId($user->property_id);
+
+            $role->givePermissionTo(array_map(fn (PermissionEnum|string $permission): string => $permission instanceof PermissionEnum ? $permission->value : $permission, $permissions));
+            $user->assignRole($role);
+
+            setPermissionsTeamId($previousTeamId);
+            app(PermissionRegistrar::class)->forgetCachedPermissions();
         });
     }
 }

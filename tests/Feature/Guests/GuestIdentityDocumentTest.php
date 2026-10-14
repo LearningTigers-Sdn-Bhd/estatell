@@ -4,8 +4,6 @@ use App\Enums\DefaultRoleEnum;
 use App\Enums\MediaDisk;
 use App\Models\Guest;
 use App\Models\GuestIdentityDocument;
-use App\Models\Property;
-use App\Models\Role;
 use App\Models\User;
 use App\Services\Platform\PlatformSettings;
 use Illuminate\Http\UploadedFile;
@@ -37,20 +35,6 @@ function guestWithDocument(User $user, array $attributes = []): array
     $document = GuestIdentityDocument::factory()->for($guest)->create(['number' => '900101141234', ...$attributes]);
 
     return [$guest, $document];
-}
-
-/**
- * @param  list<string>  $permissions
- */
-function staffWithOnly(Property $property, array $permissions): User
-{
-    $user = User::factory()->for($property)->create();
-    $role = Role::query()->create(['property_id' => $property->id, 'name' => 'Custom '.implode(',', $permissions)]);
-    $role->givePermissionTo($permissions);
-    setPermissionsTeamId($property->id);
-    $user->assignRole($role);
-
-    return $user;
 }
 
 function pdfScan(string $name): UploadedFile
@@ -217,7 +201,7 @@ test('the documents tab never carries the full number and sends the sheet form o
             ->has('documentFormOptions.types')
             ->has('documentFormOptions.countries'));
 
-    $this->actingAs(staffWithOnly($owner->property, ['guests.view-documents']))->get($url)
+    $this->actingAs(User::factory()->for($owner->property)->withPermissions(['guests.view-documents'])->create())->get($url)
         ->assertInertia(fn (Assert $page) => $page->where('documentFormOptions', null));
 });
 
@@ -244,7 +228,7 @@ test('the guest list finds an exact ID number only for staff who may view docume
     $property = $owner->property;
     [$guest] = guestWithDocument($owner);
     Guest::factory()->for($property)->create();
-    $viewer = staffWithOnly($property, ['guests.view']);
+    $viewer = User::factory()->for($property)->withPermissions(['guests.view'])->create();
     $url = route('guests.index', $property->code).'?filter[search]=900101-14-1234';
 
     $this->actingAs($owner)->get($url)
@@ -278,7 +262,7 @@ test('each document permission is enforced', function () {
         }
     }
 
-    $this->actingAs(staffWithOnly($property, ['guests.view-documents']));
+    $this->actingAs(User::factory()->for($property)->withPermissions(['guests.view-documents'])->create());
     $this->get(route('guests.documents.index', [$property->code, $guest]))->assertOk();
     $this->postJson(route('guests.documents.reveal', [$property->code, $guest, $document]))->assertOk();
     foreach (array_slice($routes(), 3) as [$method, $url]) {

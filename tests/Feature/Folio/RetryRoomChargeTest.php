@@ -15,7 +15,6 @@ use App\Models\Property;
 use App\Models\PropertySetting;
 use App\Models\Reservation;
 use App\Models\ReservationUnit;
-use App\Models\Role;
 use App\Models\Room;
 use App\Models\TransactionCode;
 use App\Models\UnitNight;
@@ -46,11 +45,7 @@ function retrySetup(array $permissions = [PermissionEnum::NightAuditRun, Permiss
     $audit = NightAudit::factory()->completed()->create(['business_date_id' => $audited->id]);
     $exception = NightAuditException::factory()->create(['night_audit_id' => $audit->id, 'reservation_unit_id' => $unit->id, 'message' => 'folio_not_open']);
 
-    $user = User::factory()->for($property)->create();
-    $role = Role::query()->create(['property_id' => $property->id, 'name' => 'Audit']);
-    $role->givePermissionTo(array_map(fn (PermissionEnum $permission): string => $permission->value, $permissions));
-    setPermissionsTeamId($property->id);
-    $user->assignRole($role);
+    $user = User::factory()->for($property)->withPermissions($permissions)->create();
 
     return ['property' => $property, 'user' => $user, 'unit' => $unit, 'exception' => $exception];
 }

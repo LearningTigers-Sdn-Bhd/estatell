@@ -30,7 +30,6 @@ use App\Models\Rate;
 use App\Models\RatePlan;
 use App\Models\Reservation;
 use App\Models\ReservationUnit;
-use App\Models\Role;
 use App\Models\Room;
 use App\Models\RoomRevenuePolicy;
 use App\Models\RoomType;
@@ -91,22 +90,6 @@ function uaSetup(DefaultRoleEnum $role = DefaultRoleEnum::Owner, array $unit = [
     $unit->nights()->update(['room_id' => $room->id]);
 
     return ['user' => $user, 'property' => $property, 'reservation' => $reservation, 'unit' => $unit];
-}
-
-/**
- * A user of the property whose role holds exactly these permissions.
- *
- * @param  list<string>  $permissions
- */
-function uaStaffWith(Property $property, array $permissions): User
-{
-    $user = User::factory()->for($property)->create();
-    $role = Role::query()->create(['property_id' => $property->id, 'name' => 'Only '.implode(',', $permissions)]);
-    $role->givePermissionTo($permissions);
-    setPermissionsTeamId($property->id);
-    $user->assignRole($role);
-
-    return $user;
 }
 
 /** @param array{property: Property, reservation: Reservation, unit: ReservationUnit} $setup */
@@ -377,7 +360,7 @@ test('the check-in preview shows the room, the card status and what Collect now 
 test('the check-in preview leaves Collect now out for a user without payment.record', function () {
     $setup = uaSetup();
     $setup['property']->settings->update(['security_deposit_amount' => '100.00']);
-    $reader = uaStaffWith($setup['property'], ['reservations.view', 'front-desk.check-in']);
+    $reader = User::factory()->for($setup['property'])->withPermissions(['reservations.view', 'front-desk.check-in'])->create();
 
     $this->actingAs($reader)->postJson(uaUrl($setup, 'check-in-preview'))
         ->assertOk()
@@ -538,7 +521,7 @@ test('check out refunds the deposit first and then checks the unit out', functio
 
 test('a user with check-out but not folio.close closes the unit folio by checking out', function () {
     $setup = uaDepartingSetup();
-    $clerk = uaStaffWith($setup['property'], ['reservations.view', 'front-desk.check-out', 'payment.refund']);
+    $clerk = User::factory()->for($setup['property'])->withPermissions(['reservations.view', 'front-desk.check-out', 'payment.refund'])->create();
 
     $this->actingAs($clerk)
         ->post(uaUrl($setup, 'check-out'), ['refund_amount' => '100.00', 'idempotency_key' => fake()->uuid()])
@@ -604,7 +587,7 @@ test('the check-out preview says who may collect the balance', function () {
     $this->actingAs($setup['user'])->postJson(uaUrl($setup, 'check-out-preview'))
         ->assertJson(['balance' => '200.00', 'owing' => '200.00', 'canCollect' => true]);
 
-    $this->actingAs(uaStaffWith($setup['property'], ['reservations.view', 'front-desk.check-out', 'payment.refund']))
+    $this->actingAs(User::factory()->for($setup['property'])->withPermissions(['reservations.view', 'front-desk.check-out', 'payment.refund'])->create())
         ->postJson(uaUrl($setup, 'check-out-preview'))
         ->assertJson(['canCollect' => false]);
 });
@@ -666,7 +649,7 @@ test('collect balance from a user without payment.record is dropped', function (
     $setup = uaDepartingSetup();
     uaOwing($setup);
 
-    $this->actingAs(uaStaffWith($setup['property'], ['reservations.view', 'front-desk.check-out', 'payment.refund']))
+    $this->actingAs(User::factory()->for($setup['property'])->withPermissions(['reservations.view', 'front-desk.check-out', 'payment.refund'])->create())
         ->post(uaUrl($setup, 'check-out'), ['collect_amount' => '200.00', 'payment_method_id' => PaymentMethod::query()->sole()->id, 'idempotency_key' => fake()->uuid()])
         ->assertSessionHasErrors('form');
 
@@ -724,7 +707,7 @@ test('check in is not offered before the arrival date or on the departure date',
 
 test('the front desk routes need their own permission', function (string $route) {
     $setup = uaSetup();
-    $outsider = uaStaffWith($setup['property'], ['reservations.view']);
+    $outsider = User::factory()->for($setup['property'])->withPermissions(['reservations.view'])->create();
 
     $this->actingAs($outsider)->post(uaUrl($setup, $route), [])->assertForbidden();
 })->with(['check-in-preview', 'check-in', 'check-out-preview', 'check-out', 'late-check-out-preview', 'late-check-out']);
@@ -820,7 +803,7 @@ test('check in all drops the card override for a user who may not use it', funct
 
 test('check in all needs front-desk.check-in and a unit choice', function () {
     $setup = uaSetup();
-    $outsider = uaStaffWith($setup['property'], ['reservations.view']);
+    $outsider = User::factory()->for($setup['property'])->withPermissions(['reservations.view'])->create();
 
     $this->actingAs($outsider)->post(route('reservations.check-in-all', ['property' => $setup['property']->code, 'reservation' => $setup['reservation']->id]), ['unit_ids' => [$setup['unit']->id]])->assertForbidden();
     $this->actingAs($outsider)->postJson(route('reservations.check-in-all-preview', ['property' => $setup['property']->code, 'reservation' => $setup['reservation']->id]))->assertForbidden();
@@ -830,7 +813,7 @@ test('check in all needs front-desk.check-in and a unit choice', function () {
 
 test('the page tells the browser whether the user may check in', function () {
     $setup = uaSetup();
-    $reader = uaStaffWith($setup['property'], ['reservations.view']);
+    $reader = User::factory()->for($setup['property'])->withPermissions(['reservations.view'])->create();
     $url = route('reservations.show', ['property' => $setup['property']->code, 'reservation' => $setup['reservation']->id]);
 
     $this->actingAs($setup['user'])->get($url)->assertInertia(fn (Assert $page) => $page->where('canCheckIn', true));
@@ -975,7 +958,7 @@ test('the menu offers check-out before the departure date only to staff who can 
     $this->actingAs($setup['user'])->get($showUrl)
         ->assertInertia(fn (Assert $page) => $page->where('unit.actions', fn ($actions) => collect($actions)->pluck('key')->all() === ['check-out', 'change-dates', 'move-room']));
 
-    $checkOutOnly = uaStaffWith($setup['property'], ['reservations.view', 'front-desk.check-out']);
+    $checkOutOnly = User::factory()->for($setup['property'])->withPermissions(['reservations.view', 'front-desk.check-out'])->create();
 
     $this->actingAs($checkOutOnly)->get($showUrl)
         ->assertInertia(fn (Assert $page) => $page->where('unit.actions', []));
@@ -984,7 +967,7 @@ test('the menu offers check-out before the departure date only to staff who can 
 test('early check-out needs both front-desk.check-out and reservations.manage', function (array $permissions) {
     $setup = uaEarlySetup();
 
-    $this->actingAs(uaStaffWith($setup['property'], $permissions))->post(uaUrl($setup, 'early-check-out'), [])->assertForbidden();
+    $this->actingAs(User::factory()->for($setup['property'])->withPermissions($permissions)->create())->post(uaUrl($setup, 'early-check-out'), [])->assertForbidden();
 
     expect($setup['unit']->fresh()->status)->toBe(UnitStatus::CheckedIn);
 })->with([
@@ -1352,7 +1335,7 @@ test('the single unit offers Check out once checked in, and Check in all hides w
 
 test('the single unit carries only the actions the user may use', function () {
     $setup = uaSetup();
-    $viewer = uaStaffWith($setup['property'], ['reservations.view']);
+    $viewer = User::factory()->for($setup['property'])->withPermissions(['reservations.view'])->create();
 
     $this->actingAs($viewer)->get(route('reservations.guests', ['property' => $setup['property']->code, 'reservation' => $setup['reservation']->id]))
         ->assertInertia(fn (Assert $page) => $page->where('singleUnit.actions', []));

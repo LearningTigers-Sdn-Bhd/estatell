@@ -11,7 +11,6 @@ use App\Models\Property;
 use App\Models\PropertySetting;
 use App\Models\Reservation;
 use App\Models\ReservationUnit;
-use App\Models\Role;
 use App\Models\User;
 use Spatie\Activitylog\Models\Activity;
 
@@ -26,13 +25,7 @@ function dismissSetup(bool $canRun = true): array
     $unit = ReservationUnit::factory()->for(Reservation::factory()->create(['property_id' => $property->id]))->withNights()->create(['arrival_date' => '2026-10-12', 'departure_date' => '2026-10-14']);
     $audit = NightAudit::factory()->completed()->create(['business_date_id' => $date->id]);
     $exception = NightAuditException::factory()->create(['night_audit_id' => $audit->id, 'reservation_unit_id' => $unit->id]);
-    $user = User::factory()->for($property)->create();
-    $role = Role::query()->create(['property_id' => $property->id, 'name' => 'Audit']);
-    if ($canRun) {
-        $role->givePermissionTo(PermissionEnum::NightAuditRun->value);
-    }
-    setPermissionsTeamId($property->id);
-    $user->assignRole($role);
+    $user = User::factory()->for($property)->withPermissions($canRun ? [PermissionEnum::NightAuditRun] : [])->create();
 
     return compact('property', 'user', 'unit', 'exception');
 }

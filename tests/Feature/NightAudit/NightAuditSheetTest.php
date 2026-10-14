@@ -21,7 +21,6 @@ use App\Models\Rate;
 use App\Models\RatePlan;
 use App\Models\Reservation;
 use App\Models\ReservationUnit;
-use App\Models\Role;
 use App\Models\Room;
 use App\Models\RoomRevenuePolicy;
 use App\Models\RoomType;
@@ -44,11 +43,7 @@ function sheetSetup(array $permissions = [PermissionEnum::NightAuditRun, Permiss
     $property = Property::factory()->live()->create();
     PropertySetting::factory()->for($property)->create();
     BusinessDate::factory()->create(['property_id' => $property->id, 'date' => '2026-10-12']);
-    $user = User::factory()->for($property)->create();
-    $role = Role::query()->create(['property_id' => $property->id, 'name' => 'Audit']);
-    $role->givePermissionTo(array_map(fn (PermissionEnum $permission): string => $permission->value, $permissions));
-    setPermissionsTeamId($property->id);
-    $user->assignRole($role);
+    $user = User::factory()->for($property)->withPermissions($permissions)->create();
 
     return ['property' => $property, 'user' => $user];
 }
