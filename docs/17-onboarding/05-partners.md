@@ -8,7 +8,8 @@ A partner is a reseller or consultant who brings properties to estatell and help
 
 ```
 partners                  id, name, code_prefix (char 2, unique), signup_code (char 6, unique),
-                          status (PartnerStatus), suspended_at, timestamps
+                          status (PartnerStatus), can_create_properties (bool, default false),
+                          suspended_at, timestamps
 users                     + partner_id (nullable, restrict on delete)
 properties                + partner_id (nullable, restrict on delete)
 property_code_counters    prefix (char 2, primary key), last_number (bigint)
@@ -23,6 +24,7 @@ partner_invitations       id, partner_id (cascade on delete), email, token_hash 
 - One login per partner for now: one `users` row with `partner_id`. The table allows a team later.
 - A user is exactly one of admin, staff, partner user or company user (see [Platform admins](../01-platform/01-platform-admins.md#data-model)).
 - `PartnerStatus`: Invited, Active, Suspended.
+- `can_create_properties`: may the partner create properties themselves? Off for every new partner, however it was added. The signup link works either way. wastays called this `can_create_hotels`.
 
 | From      | Can move to                                                                        |
 | --------- | ---------------------------------------------------------------------------------- |
@@ -52,30 +54,77 @@ app.example.com/join/K7Q2MX
 ```
 
 - `signup_code`: 6 characters from `ABCDEFGHJKLMNPQRSTUVWXYZ23456789` (no 0/O, 1/I), random and unique. It is separate from the prefix, so the link is hard to guess.
-- **Regenerate link** (partner or admin) issues a new code. The old link stops working at once.
+- The partner finds the link in a card at the top of their Properties page (see [Partner portal](#partner-portal)), with **Copy link**, **Copy message** and ⋯ → **Regenerate link**.
+- **Copy message** puts a ready-to-send text on the clipboard. The server sends `signupUrl` and the partner name; the browser builds the message, because it holds no secret:
+
+    ```
+    Hi! Set up your property on estatell with Andaman Stays.
+    Register here: https://app.estatell.com/join/K7Q2MX
+    We'll help you get started once you've signed up.
+    ```
+
+- **Regenerate link** asks first ("Regenerate your signup link? The old link stops working at once.") and issues a new code through `RegeneratePartnerSignupCode`. The old link stops working at once. Logged `partner.signup-link-regenerated`.
+- Admins copy a partner's link from ⋯ → **Copy signup link** on the Active tab (link only, no message). It is a read, so it is not logged and has no `support.2fa`.
+- The link works whether `can_create_properties` is on or off.
 - The register page reads the partner from the session, so the link survives validation errors. `CreateNewUser` re-checks that the partner is still Active when it saves. If not, the property registers as `ES`.
 - An Invited or Suspended partner's link shows the "no longer active" notice.
 
 ## Partner portal
 
-`/partner`, with `auth` and `can:partner`. Its own layout (`layouts/partner-layout.tsx`) and menu (`App\Navigation\PartnerNavigation`).
+`/partner`, with `auth` and `can:partner`. Its own layout (`layouts/partner-layout.tsx`) and menu (`App\Navigation\PartnerNavigation`): **Properties** and **Account**.
 
 ```
-┌ Andaman Stays ── Properties · New property · Signup link · Account ┐
-│ Code     Name        Status      Step       Last active            │
-│ AS10101  Pulau Inn   Onboarding  Rates 60%  2 days ago   [View as] │
-│ AS10102  Reef Lodge  Live        –          today        [View as] │
+┌ Andaman Stays ── Properties · Account ─────────────────────────────┐
+│ ┌ Your signup link ──────────────────────────────────────────────┐ │
+│ │ app.estatell.com/join/K7Q2MX   [Copy link] [Copy message]  [⋯] │ │
+│ │ Properties that register with this link appear here.           │ │
+│ └──────────────────────────────────────── ⋯ → Regenerate link ───┘ │
+│ Properties                                  [New property] ← if on │
+│ Code     Name        Status      Created                           │
+│ AS10101  Pulau Inn   Onboarding  2 days ago                        │
+│ AS10102  Reef Lodge  Live        12 Sep                            │
+└────────────────────────────────────────────────────────────────────┘
+Empty list: "Share your signup link to add a property."
+```
+
+- **New property** shows only when `can_create_properties` is on. It opens the same Sheet as admin and calls `CreatePropertyForOwner` with the partner, so the code gets the partner's prefix. When the switch is off, `POST /partner/properties` returns 403.
+- A row click opens the partner property page. Step, percentage and [View as] come later with the onboarding board and view as.
+
+### Property page
+
+```
+┌ ← Properties   Pulau Inn  [Onboarding] ────────────────────────────┐
+│ Overview · Staff · Features                                        │
+│ Staff                                                              │
+│  Name         Email            Role    Verified  Created           │
+│  Aisyah Rahim aisyah@pulau.my  Owner   No        2 days ago        │
+│                                                                    │
+│ Features                                                           │
+│  Day use        Off                                                │
+│  Boats          On                                                 │
+│  Ask estatell support to change features.                          │
 └────────────────────────────────────────────────────────────────────┘
 ```
 
-| Page         | URL                        | Name                       | Does                                                                         |
-| ------------ | -------------------------- | -------------------------- | ---------------------------------------------------------------------------- |
-| Properties   | `GET /partner`             | `partner.properties.index` | The partner's properties. Step and percentage come with the onboarding board |
-| New property | `POST /partner/properties` | `partner.properties.store` | The same Sheet and `CreatePropertyForOwner` as admin, with the partner       |
-| Signup link  | `GET /partner/link`        | `partner.link.show`        | Copy the link. **Regenerate link**                                           |
-| Regenerate   | `POST /partner/link`       | `partner.link.regenerate`  | `RegeneratePartnerSignupCode`                                                |
+- The same three tabs as the admin property page (see [Admin properties](../01-platform/05-admin-properties.md#show)), each with its own URL, rendering `pages/partner/properties/show.tsx` with a `tab` prop.
+- **Staff** is read-only: the same columns, no **Send setup email**.
+- **Features** is read-only: each `PlatformFeature` with On or Off, and the note "Ask estatell support to change features."
+- The tab bodies live in `components/pms/properties/`, shared by the admin and partner pages. The Features tab takes `readOnly`.
+- No suspend, reactivate or summary actions.
 
-- Every partner query is scoped by `properties.partner_id`.
+### Routes
+
+| Page or action  | URL                                       | Name                          | Does                                              |
+| --------------- | ----------------------------------------- | ----------------------------- | ------------------------------------------------- |
+| Properties      | `GET /partner`                            | `partner.properties.index`    | The partner's properties and the signup link card |
+| Property        | `GET /partner/properties/{code}`          | `partner.properties.show`     | Overview tab                                      |
+| Staff tab       | `GET /partner/properties/{code}/staff`    | `partner.properties.staff`    | Read-only staff                                   |
+| Features tab    | `GET /partner/properties/{code}/features` | `partner.properties.features` | Read-only features                                |
+| New property    | `POST /partner/properties`                | `partner.properties.store`    | `CreatePropertyForOwner`; 403 when switched off   |
+| Regenerate link | `POST /partner/link`                      | `partner.link.regenerate`     | `RegeneratePartnerSignupCode`                     |
+| Join            | `GET /join/{signupCode}`                  | `join`                        | Guest. Stores the partner and opens `/register`   |
+
+- Every partner query is scoped by `properties.partner_id`. Another partner's property returns 404.
 - Partner writes carry `support.2fa` (does nothing unless `SUPPORT_REQUIRE_2FA` is on).
 - Account pages (`/account`) work for partners like for admins, inside the partner layout. Staff-only account pages return 404.
 
@@ -88,12 +137,13 @@ Partners                                         [Add partner ▾]
  Active · Invited · Suspended                      ├─ Invite by email
                                                    ├─ Add with temp password
                                                    └─ Bulk add
-┌──┬───────────────┬────────┬──────────────────┬────────────┬───────────────────┐
-│☐ │ Partner       │ Prefix │ Email            │ Properties │ Status            │
-│☐ │ Andaman Stays │ AS     │ ops@andaman.my   │ 12         │ Active            │
-│☐ │ Kota Partners │ KP     │ kp@mail.com      │ 0          │ Temp password · 9d│
-└──┴───────────────┴────────┴──────────────────┴────────────┴───────────────────┘
+┌──┬───────────────┬────────┬────────────────┬────────────┬────────────┬───────────────────┬───┐
+│☐ │ Partner       │ Prefix │ Email          │ Properties │ Can create │ Status            │   │
+│☐ │ Andaman Stays │ AS     │ ops@andaman.my │ 12         │ [●  ]      │ Active            │ ⋯ │
+│☐ │ Kota Partners │ KP     │ kp@mail.com    │ 0          │ [  ○]      │ Temp password · 9d│ ⋯ │
+└──┴───────────────┴────────┴────────────────┴────────────┴────────────┴───────────────────┴───┘
 Selected (1): [Copy message] [Export ▾ CSV · XLSX · PDF] [Reset temp password]
+Row ⋯ → Copy signup link · Suspend
 ```
 
 | Staff                                      | Partner                                                         |
@@ -149,13 +199,15 @@ Selected (1): [Copy message] [Export ▾ CSV · XLSX · PDF] [Reset temp passwor
 | Copy message, export, reset | `/admin/partners/temporary-passwords/…`                                                   | `admin.partners.temporary-passwords.*`           |
 | Suspend                     | `POST /admin/partners/{partner}/suspend`                                                  | `admin.partners.suspend`                         |
 | Reactivate                  | `POST /admin/partners/{partner}/reactivate`                                               | `admin.partners.reactivate`                      |
+| Can create properties       | `PUT /admin/partners/{partner}/can-create-properties`                                     | `admin.partners.can-create-properties.update`    |
 | Accept page, accept         | `GET`, `POST /partner-invitations/{token}`                                                | `partner-invitations.show`, `.accept`            |
 | Move a property             | `PUT /admin/properties/{code}/partner`                                                    | `admin.properties.partner.update`                |
 
 ### Other admin rules
 
-- List columns: partner, prefix, user email, property count, status (with **Temp password · Nd** like staff), created.
-- The Suspended tab has the same columns, with **Suspended** (the date) instead of status. Active rows have ⋯ → **Suspend** with a confirm ("Suspend {name}? They can't sign in. Their properties keep running."). Suspended rows have ⋯ → **Reactivate** without a confirm. Only an Active partner can be suspended; an Invited one is revoked instead.
+- List columns: partner, prefix, user email, property count, **Can create properties**, status (with **Temp password · Nd** like staff), created.
+- **Can create properties** is a `Switch` on Active rows only, with an optimistic update that rolls back on failure. `SetPartnerCanCreateProperties` saves it (`support.2fa`) and logs `partner.create-properties-allowed` or `partner.create-properties-disallowed`. Setting the same value again does nothing. Invited and Suspended rows show no switch; suspending keeps the value.
+- The Suspended tab has the same columns, with **Suspended** (the date) instead of status. Active rows have ⋯ → **Copy signup link** and **Suspend** with a confirm ("Suspend {name}? They can't sign in. Their properties keep running."). Suspended rows have ⋯ → **Reactivate** without a confirm. Only an Active partner can be suspended; an Invited one is revoked instead.
 - Admin properties list gets a **Partner** column and filter.
 - **Move to partner** on the admin property page: pick a partner or "Direct". `MovePropertyToPartner` changes `partner_id` only. The code stays. The old partner loses view as at once. Logged with the old and new partner.
 - Every admin write carries `support.2fa` and is logged. Reading an upload writes nothing, so it does not.
@@ -164,14 +216,14 @@ Selected (1): [Copy message] [Export ▾ CSV · XLSX · PDF] [Reset temp passwor
 
 ## Rules
 
-- A partner can: list their properties, create a property, share and regenerate their link, and view as staff of their properties during onboarding and after go-live (see [Impersonation](../01-platform/04-impersonation.md)).
+- A partner can: list their properties, open a property page (staff and features read-only), create a property when the admin turned on **Can create properties**, share and regenerate their link, and view as staff of their properties during onboarding and after go-live (see [Impersonation](../01-platform/04-impersonation.md)).
 - A partner cannot: suspend a property, toggle features, edit platform settings, manage partners or move properties.
 - A suspended partner cannot sign in (blocked at login and logged out, like deactivated staff). `LogoutDeactivatedUsers` signs them out on their next request, with the message "Your partner account is suspended. Contact estatell support." Their properties keep running and stay linked.
 - Sign-in sends partners to `/partner`. Partners get 404 on `/admin` and on `/p/{code}` outside view as.
 
 ## Actions and services
 
-- `InvitePartner`, `ResendPartnerInvitation`, `RevokePartnerInvitation`, `AcceptPartnerInvitation`, `CreatePartnerWithTemporaryPassword`, `BulkCreatePartners`, `ResetPartnerTemporaryPassword`, `SuspendPartner`, `ReactivatePartner`, `RegeneratePartnerSignupCode`, `MovePropertyToPartner` (`app/Actions/Platform/`).
+- `InvitePartner`, `ResendPartnerInvitation`, `RevokePartnerInvitation`, `AcceptPartnerInvitation`, `CreatePartnerWithTemporaryPassword`, `BulkCreatePartners`, `ResetPartnerTemporaryPassword`, `SuspendPartner`, `ReactivatePartner`, `SetPartnerCanCreateProperties`, `RegeneratePartnerSignupCode`, `MovePropertyToPartner` (`app/Actions/Platform/`).
 - Partner creation shares one internal step, `CreatePartner` (partner row, counter row with `last_number` 10100, signup code), so the three ways cannot drift apart. `PartnerSignupCode` (`app/Services/Platform/`) generates the signup code and retries on a clash.
 - `ResetPartnerTemporaryPassword` is separate from the staff `ResetTemporaryPassword` (no Owner role check). Copy and export reuse `TemporaryPasswordMessage` and `TemporaryPasswordFile`; `TemporaryPasswordSlipData::fromPartner` puts the partner name where staff slips show the property.
 - `IssuePropertyCode` (`app/Actions/Property/`).
@@ -183,7 +235,9 @@ Selected (1): [Copy message] [Export ▾ CSV · XLSX · PDF] [Reset temp passwor
 - Codes: each prefix counts on its own; two sign-ups at once never share a code; moving a partner keeps the code.
 - The link registers an `AS` property linked to the partner; a regenerated or suspended link registers `ES`.
 - A partner sees only their properties; another partner's property returns 404.
-- A partner creates a property with their prefix.
+- A partner creates a property with their prefix when switched on; when off, there is no button and the store returns 403.
+- The signup link registers a property whether the switch is on or off.
+- The partner property page shows staff and features with no write actions; the switch is logged.
 - A suspended partner cannot sign in.
 - Invite reserves the prefix; revoke frees it; accept makes the partner Active; an expired link fails.
 - Invite refuses an email with an account or an open invitation for any partner; accept fails when the email got an account after the invite.
