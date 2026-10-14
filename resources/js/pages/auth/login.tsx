@@ -1,11 +1,17 @@
 import { Form, Head } from '@inertiajs/react';
-import InputError from '@/components/input-error';
+import { CheckCircle2 } from 'lucide-react';
 import PasswordInput from '@/components/password-input';
 import TextLink from '@/components/text-link';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import {
+    Field,
+    FieldError,
+    FieldGroup,
+    FieldLabel,
+} from '@/components/ui/field';
 import { Spinner } from '@/components/ui/spinner';
 import { register } from '@/routes';
 import { store } from '@/routes/login';
@@ -21,6 +27,13 @@ export default function Login({ status, canResetPassword }: Props) {
         <>
             <Head title="Log in" />
 
+            {status && (
+                <Alert role="status">
+                    <CheckCircle2 />
+                    <AlertDescription>{status}</AlertDescription>
+                </Alert>
+            )}
+
             <Form
                 {...store.form()}
                 resetOnSuccess={['password']}
@@ -28,30 +41,33 @@ export default function Login({ status, canResetPassword }: Props) {
             >
                 {({ processing, errors }) => (
                     <>
-                        <div className="grid gap-6">
-                            <div className="grid gap-2">
-                                <Label htmlFor="email">Email address</Label>
+                        <FieldGroup>
+                            <Field data-invalid={!!errors.email}>
+                                <FieldLabel htmlFor="email">
+                                    Email address
+                                </FieldLabel>
                                 <Input
                                     id="email"
                                     type="email"
                                     name="email"
                                     required
                                     autoFocus
-                                    tabIndex={1}
+                                    aria-invalid={!!errors.email}
                                     autoComplete="email"
                                     placeholder="email@example.com"
                                 />
-                                <InputError message={errors.email} />
-                            </div>
+                                <FieldError>{errors.email}</FieldError>
+                            </Field>
 
-                            <div className="grid gap-2">
-                                <div className="flex items-center">
-                                    <Label htmlFor="password">Password</Label>
+                            <Field data-invalid={!!errors.password}>
+                                <div className="flex flex-wrap items-center justify-between gap-2">
+                                    <FieldLabel htmlFor="password">
+                                        Password
+                                    </FieldLabel>
                                     {canResetPassword && (
                                         <TextLink
                                             href={request()}
-                                            className="ml-auto text-sm"
-                                            tabIndex={5}
+                                            className="text-sm"
                                         >
                                             Forgot your password?
                                         </TextLink>
@@ -61,49 +77,39 @@ export default function Login({ status, canResetPassword }: Props) {
                                     id="password"
                                     name="password"
                                     required
-                                    tabIndex={2}
+                                    aria-invalid={!!errors.password}
                                     autoComplete="current-password"
                                     placeholder="Password"
                                 />
-                                <InputError message={errors.password} />
-                            </div>
+                                <FieldError>{errors.password}</FieldError>
+                            </Field>
 
-                            <div className="flex items-center space-x-3">
-                                <Checkbox
-                                    id="remember"
-                                    name="remember"
-                                    tabIndex={3}
-                                />
-                                <Label htmlFor="remember">Remember me</Label>
-                            </div>
+                            <Field orientation="horizontal">
+                                <Checkbox id="remember" name="remember" />
+                                <FieldLabel htmlFor="remember">
+                                    Remember me
+                                </FieldLabel>
+                            </Field>
+                        </FieldGroup>
 
-                            <Button
-                                type="submit"
-                                className="mt-4 w-full"
-                                tabIndex={4}
-                                disabled={processing}
-                                data-test="login-button"
-                            >
-                                {processing && <Spinner />}
-                                Log in
-                            </Button>
-                        </div>
+                        <Button
+                            type="submit"
+                            className="w-full"
+                            disabled={processing}
+                            focusableWhenDisabled
+                            data-test="login-button"
+                        >
+                            {processing && <Spinner data-icon="inline-start" />}
+                            Log in
+                        </Button>
 
                         <div className="text-center text-sm text-muted-foreground">
                             Don't have an account?{' '}
-                            <TextLink href={register()} tabIndex={5}>
-                                Sign up
-                            </TextLink>
+                            <TextLink href={register()}>Sign up</TextLink>
                         </div>
                     </>
                 )}
             </Form>
-
-            {status && (
-                <div className="mb-4 text-center text-sm font-medium text-green-600">
-                    {status}
-                </div>
-            )}
         </>
     );
 }

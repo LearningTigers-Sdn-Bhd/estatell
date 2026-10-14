@@ -16,7 +16,19 @@ Every screen uses one archetype.
 | Grid calendar | Optional tab links + toolbar + the `pms/grid` engine, no `PageHeader`          | Rate calendar, Stay View                        |
 | Error         | Standalone wordmark, illustration, heading, explanation and recovery buttons   | 403, 404, 419, 500 and 503                      |
 
-Rules:
+## Authentication layout
+
+- Auth pages use `AuthSimpleLayout`, a full-width shell with a fixed `100dvh` height and an inner scroll region.
+- Two horizontal and two vertical dashed lines cross near the edges. Their inset is 24px on mobile and 48px from `sm`.
+- A static dot grid uses the `border` token and fades to transparent toward the center. The frame and dots are decorative and ignore pointer events.
+- The shell keeps content inside the frame with 40px padding on mobile and 80px from `sm`.
+- Content has a `max-w-sm` width and centers when space permits. Long forms and short viewports scroll without hiding the first field or final action.
+- The header shows the text wordmark, a Geist heading and a short description. Forms have no card border, shadow or marketing panel.
+- Fields use consistent gaps, errors stay below their controls, status notices use `Alert`, and loading buttons use `Spinner`.
+- Login, password recovery, two-factor challenge, set password, owner setup and verify email share this layout. Registration and password confirmation inherit it too.
+- Invitation and suspended-property pages also inherit the shared auth shell. Their forms and actions stay unchanged.
+
+## Shared page rules
 
 - The app shell owns the page width and padding. Pages do not add page-level `max-w-*` or replacement padding. Error pages have no app shell and own their centered width and padding.
 - Layout variants: a page sets `Page.layout = { variant }`. `default` grows with its content and the window scrolls. `fixed` fixes the page to the window height as a flex column, so the window does not scroll and the app header stays above. A Grid calendar gives its grid `fill`, and the grid scrolls on its own with a footer row at the bottom. A full-page Form puts its title, fields and summary in one scroll region marked `scroll-region`, and `FormActions` stays below it, so the footer is always visible. The booking form uses it. `fixed` was called `grid-only` before.

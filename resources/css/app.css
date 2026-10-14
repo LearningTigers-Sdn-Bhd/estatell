@@ -191,6 +191,22 @@
     }
 }
 
+@layer components {
+    .auth-dot-grid {
+        background-image: radial-gradient(
+            circle,
+            var(--border) 1px,
+            transparent 1px
+        );
+        background-size: 16px 16px;
+        mask-image: radial-gradient(
+            ellipse at center,
+            transparent 25%,
+            black 100%
+        );
+    }
+}
+
 @theme inline {
     --font-sans:
         'Instrument Sans', ui-sans-serif, system-ui, sans-serif,

@@ -22,7 +22,7 @@ export default function OwnerSetup({ owner, actionUrl, passwordRules }: Props) {
         return (
             <>
                 <Head title="Setup link unavailable" />
-                <div className="grid gap-6 text-center">
+                <div className="flex flex-col gap-6 text-center">
                     <p className="text-sm text-muted-foreground">
                         This account has already been set up. Log in to
                         continue.
@@ -45,8 +45,8 @@ export default function OwnerSetup({ owner, actionUrl, passwordRules }: Props) {
                 resetOnSuccess={['password', 'password_confirmation']}
             >
                 {({ processing, errors }) => (
-                    <div className="grid gap-6">
-                        <p className="text-center text-sm text-muted-foreground">
+                    <div className="flex flex-col gap-6">
+                        <p className="text-center text-sm leading-relaxed text-pretty text-muted-foreground">
                             Set your password for{' '}
                             <strong>{owner.propertyName}</strong>.
                         </p>

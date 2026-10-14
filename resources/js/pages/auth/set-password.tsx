@@ -28,7 +28,7 @@ export default function SetPassword({ email, passwordRules }: Props) {
                 resetOnSuccess={['password', 'password_confirmation']}
             >
                 {({ processing, errors }) => (
-                    <div className="grid gap-6">
+                    <div className="flex flex-col gap-6">
                         <FieldGroup>
                             <Field>
                                 <FieldLabel htmlFor="email">Email</FieldLabel>
@@ -84,7 +84,7 @@ export default function SetPassword({ email, passwordRules }: Props) {
                 )}
             </Form>
 
-            <div className="mt-6 text-center text-sm text-muted-foreground">
+            <div className="text-center text-sm text-muted-foreground">
                 Not you?{' '}
                 <TextLink href={logout()} as="button">
                     Log out

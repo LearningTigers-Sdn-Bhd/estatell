@@ -13,7 +13,7 @@ export default function ConfirmPassword() {
 
             <Form {...store.form()} resetOnSuccess={['password']}>
                 {({ processing, errors }) => (
-                    <div className="space-y-6">
+                    <div className="flex flex-col gap-6">
                         <div className="grid gap-2">
                             <Label htmlFor="password">Password</Label>
                             <PasswordInput
@@ -32,9 +32,12 @@ export default function ConfirmPassword() {
                                 type="submit"
                                 className="w-full"
                                 disabled={processing}
+                                focusableWhenDisabled
                                 data-test="confirm-password-button"
                             >
-                                {processing && <Spinner />}
+                                {processing && (
+                                    <Spinner data-icon="inline-start" />
+                                )}
                                 Confirm password
                             </Button>
                         </div>
