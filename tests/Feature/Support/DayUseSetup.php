@@ -16,7 +16,6 @@ use App\Models\Room;
 use App\Models\RoomType;
 use App\Models\User;
 use Carbon\CarbonImmutable;
-use Closure;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 
