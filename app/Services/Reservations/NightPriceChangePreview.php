@@ -24,6 +24,7 @@ use App\Services\Folio\NightChargeQuote;
 use App\Services\Folio\NightQuote;
 use App\Services\Folio\QuotedCharge;
 use App\Services\NightAudit\CurrentBusinessDate;
+use Brick\Math\BigDecimal;
 use Brick\Money\Money;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Collection;
@@ -169,9 +170,9 @@ class NightPriceChangePreview
         $rows = array_values($nights->map(fn (UnitNight $night): NightPriceNightData => new NightPriceNightData($night->id, $night->date->toDateString(), $night->amount, $chargedKeys->has('night:'.$night->id)))->all());
         $ticked = $nights->whereIn('id', $nightIds);
         $hadDiscount = $ticked->contains(fn (UnitNight $night): bool => $this->hasDiscount($unit, $night));
-        $amounts = $ticked->pluck('amount')->sort(fn (string $a, string $b): int => bccomp($a, $b, 2))->values();
+        $amounts = $ticked->pluck('amount')->sort(fn (string $a, string $b): int => BigDecimal::of($a)->compareTo($b))->values();
         $was = $amounts->first();
-        $wasHigh = $amounts->isEmpty() || bccomp($amounts->first(), $amounts->last(), 2) === 0 ? null : $amounts->last();
+        $wasHigh = $amounts->isEmpty() || BigDecimal::of($amounts->first())->isEqualTo($amounts->last()) ? null : $amounts->last();
 
         if ($price === null || $price === '' || $ticked->isEmpty()) {
             return new NightPriceChangePreviewData($rows, $was, $wasHigh, $hadDiscount, [], [], null, null);

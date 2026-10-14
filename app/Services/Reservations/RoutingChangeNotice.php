@@ -4,6 +4,7 @@ namespace App\Services\Reservations;
 
 use App\Models\Reservation;
 use App\Services\Folio\MasterPaymentsHeld;
+use Brick\Math\BigDecimal;
 
 /**
  * The toast after a change that can start sending room charges to the Master folio (add a unit, change the billing
@@ -26,7 +27,7 @@ class RoutingChangeNotice
         $parts = [$saved];
 
         if ($unitAdvances !== []) {
-            $amount = $this->masterPaymentsHeld->label($reservation, array_reduce($unitAdvances, fn (string $total, string $held): string => bcadd($total, $held, 2), '0.00'));
+            $amount = $this->masterPaymentsHeld->label($reservation, (string) array_reduce($unitAdvances, fn (BigDecimal $total, string $held): BigDecimal => $total->plus($held), BigDecimal::zero())->toScale(2));
 
             $parts[] = count($unitAdvances) === 1
                 ? __("Room charges now go to the Master folio, but a unit's own folio holds a :amount advance. Transfer its room charges back to it, or refund the advance.", ['amount' => $amount])

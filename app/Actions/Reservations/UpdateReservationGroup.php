@@ -7,6 +7,7 @@ use App\Enums\BillingMode;
 use App\Models\Reservation;
 use App\Models\User;
 use App\Services\Folio\MasterPaymentsHeld;
+use Brick\Math\BigDecimal;
 use Illuminate\Support\Facades\DB;
 
 class UpdateReservationGroup
@@ -28,7 +29,7 @@ class UpdateReservationGroup
             if ($locked->billing_mode !== $billingMode) {
                 $held = $this->masterPaymentsHeld->forReservation($locked);
 
-                if (bccomp($held, '0', 2) > 0) {
+                if (BigDecimal::of($held)->isPositive()) {
                     return GroupUpdateResult::refused($reservation, GroupUpdateResult::REFUSAL_MASTER_HAS_PAYMENTS, $held);
                 }
             }

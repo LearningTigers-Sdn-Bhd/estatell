@@ -247,12 +247,6 @@ parameters:
 			path: app/Actions/Reservations/UpdateReservationCompany.php
 
 		-
-			message: '#^Parameter \#1 \$num1 of function bccomp expects numeric\-string, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Actions/Reservations/UpdateReservationGroup.php
-
-		-
 			message: '#^Parameter \#1 \$roomIndex of method App\\Services\\Rooms\\BedLabelGenerator\:\:letter\(\) expects int, int\|string\|null given\.$#'
 			identifier: argument.type
 			count: 1
@@ -1129,19 +1123,7 @@ parameters:
 			path: app/Services/Reservations/BookingSummary.php
 
 		-
-			message: '#^Parameter \#1 \$num1 of function bccomp expects numeric\-string, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Services/Reservations/NightPriceChangePreview.php
-
-		-
 			message: '#^Parameter \#2 \$nightIds of method App\\Services\\Reservations\\NightPriceChangePreview\:\:plan\(\) expects list\<int\>, array\<int, \(int\|string\)\> given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Services/Reservations/NightPriceChangePreview.php
-
-		-
-			message: '#^Parameter \#2 \$num2 of function bccomp expects numeric\-string, string given\.$#'
 			identifier: argument.type
 			count: 1
 			path: app/Services/Reservations/NightPriceChangePreview.php
@@ -1229,12 +1211,6 @@ parameters:
 			identifier: argument.type
 			count: 1
 			path: app/Services/Reservations/ReservationRoomBox.php
-
-		-
-			message: '#^Parameter \#2 \$num2 of function bcadd expects numeric\-string, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Services/Reservations/RoutingChangeNotice.php
 
 		-
 			message: '#^Access to an undefined property App\\Models\\ReservationUnit\:\:\$unposted_add_ons_count\.$#'
