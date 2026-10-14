@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Property;
 
+use App\Data\Property\PrintHeaderData;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -28,13 +29,15 @@ class UpdatePrintHeaderRequest extends FormRequest
         ];
     }
 
-    /**
-     * @return array{show_logo: bool, show_address: bool, show_contact: bool, show_registration_number: bool, show_tin: bool}
-     */
-    public function switches(): array
+    public function toPrintHeaderData(): PrintHeaderData
     {
-        /** @var array{show_logo: bool, show_address: bool, show_contact: bool, show_registration_number: bool, show_tin: bool} */
-        return array_map(fn (string $key): bool => $this->boolean($key), array_combine(self::SWITCHES, self::SWITCHES));
+        return new PrintHeaderData(
+            showLogo: $this->boolean('show_logo'),
+            showAddress: $this->boolean('show_address'),
+            showContact: $this->boolean('show_contact'),
+            showRegistrationNumber: $this->boolean('show_registration_number'),
+            showTin: $this->boolean('show_tin'),
+        );
     }
 
     /**

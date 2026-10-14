@@ -38,6 +38,7 @@ use App\Actions\Rooms\CreateRoomType;
 use App\Actions\Rooms\GenerateRooms;
 use App\Actions\Staff\AssignOwnerRole;
 use App\Actions\Staff\AssignStaffRole;
+use App\Data\Catalogues\TaxInputData;
 use App\Data\Folio\NewChargeData;
 use App\Data\Payments\NewPaymentData;
 use App\Data\Reservations\NewAddOnData;
@@ -306,20 +307,20 @@ class SandbaySeeder extends Seeder
         $sst = Tax::query()->where('property_id', $property->id)->where('code', 'SST')->firstOrFail();
         $tourism = Tax::query()->where('property_id', $property->id)->where('code', 'TTX')->firstOrFail();
 
-        app(UpdateTax::class)($owner, $sst, ['enabled' => true]);
-        app(UpdateTax::class)($owner, $tourism, ['enabled' => true]);
+        app(UpdateTax::class)($owner, $sst, TaxInputData::fromModel($sst, enabled: true));
+        app(UpdateTax::class)($owner, $tourism, TaxInputData::fromModel($tourism, enabled: true));
 
-        $serviceCharge = app(CreateTax::class)($property, $owner, [
-            'name' => 'Service charge',
-            'code' => 'SC',
-            'rate_type' => TaxRateType::Percent->value,
-            'rate' => '10.00',
-            'is_inclusive' => false,
-            'foreign_guests_only' => false,
-            'collect_at_check_in' => false,
-            'registration_number' => null,
-            'enabled' => true,
-        ]);
+        $serviceCharge = app(CreateTax::class)($property, $owner, new TaxInputData(
+            name: 'Service charge',
+            code: 'SC',
+            rateType: TaxRateType::Percent,
+            rate: '10.00',
+            isInclusive: false,
+            foreignGuestsOnly: false,
+            collectAtCheckIn: false,
+            registrationNumber: null,
+            enabled: true,
+        ));
 
         app(UpdateRoomRevenueTaxes::class)($property, $owner, [$sst->id, $tourism->id, $serviceCharge->id]);
 

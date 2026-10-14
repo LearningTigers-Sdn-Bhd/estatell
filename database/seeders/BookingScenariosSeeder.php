@@ -37,6 +37,7 @@ use App\Actions\Rooms\GenerateBeds;
 use App\Actions\Rooms\GenerateRooms;
 use App\Actions\Staff\AssignOwnerRole;
 use App\Actions\Staff\AssignStaffRole;
+use App\Data\Catalogues\TaxInputData;
 use App\Data\Folio\NewChargeData;
 use App\Data\Payments\NewPaymentData;
 use App\Data\Reservations\NewBookingData;
@@ -324,7 +325,7 @@ class BookingScenariosSeeder extends Seeder
         $taxes = $this->property->taxes()->whereIn('code', ['SST', 'TTX'])->get();
 
         foreach ($taxes as $tax) {
-            app(UpdateTax::class)($this->owner, $tax, ['enabled' => true]);
+            app(UpdateTax::class)($this->owner, $tax, TaxInputData::fromModel($tax, enabled: true));
         }
 
         app(UpdateRoomRevenueTaxes::class)($this->property, $this->owner, $taxes->modelKeys());

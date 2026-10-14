@@ -83,7 +83,7 @@ class PrintSettingsController extends Controller
     {
         abort_if($property->printSetting === null, 404);
 
-        if (! $updatePrintHeader($request->user(), $property, $request->switches(), $request->taxIds())) {
+        if (! $updatePrintHeader($request->user(), $property, $request->toPrintHeaderData(), $request->taxIds())) {
             Inertia::flash('toast', ['type' => 'error', 'message' => __('The header could not be saved. Reload the page and try again.')]);
         }
 

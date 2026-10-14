@@ -202,6 +202,17 @@ enabled: boolean,
 appliesTo: string[],
 postingTransactionCode: string,
 };
+export type TaxInputData = {
+name: string,
+code: string,
+rateType: App.Enums.TaxRateType,
+rate: string,
+isInclusive: boolean,
+foreignGuestsOnly: boolean,
+collectAtCheckIn: boolean,
+registrationNumber: string | null,
+enabled: boolean,
+};
 }
 namespace CityLedger {
 export type AgingReportData = {
@@ -1079,6 +1090,13 @@ export type CurrencyData = {
 code: string,
 name: string,
 decimals: number,
+};
+export type PrintHeaderData = {
+showLogo: boolean,
+showAddress: boolean,
+showContact: boolean,
+showRegistrationNumber: boolean,
+showTin: boolean,
 };
 export type PrintSettingsData = {
 font: App.Enums.PdfFont,

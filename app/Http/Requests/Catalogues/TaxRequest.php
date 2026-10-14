@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Catalogues;
 
+use App\Data\Catalogues\TaxInputData;
 use App\Enums\TaxRateType;
 use App\Models\Property;
 use App\Models\Tax;
@@ -32,6 +33,21 @@ class TaxRequest extends FormRequest
             'code' => Str::of((string) $this->input('code'))->trim()->upper()->replaceMatches('/[^A-Z0-9]+/', '_')->trim('_')->toString(),
             'registration_number' => $registrationNumber,
         ]);
+    }
+
+    public function toTaxData(): TaxInputData
+    {
+        return new TaxInputData(
+            name: $this->string('name')->toString(),
+            code: $this->string('code')->toString(),
+            rateType: TaxRateType::from($this->string('rate_type')->toString()),
+            rate: $this->string('rate')->toString(),
+            isInclusive: $this->boolean('is_inclusive'),
+            foreignGuestsOnly: $this->boolean('foreign_guests_only'),
+            collectAtCheckIn: $this->boolean('collect_at_check_in'),
+            registrationNumber: $this->filled('registration_number') ? $this->string('registration_number')->toString() : null,
+            enabled: $this->boolean('enabled'),
+        );
     }
 
     /** @return array<string, ValidationRule|array<mixed>|string> */

@@ -2,6 +2,7 @@
 
 namespace App\Actions\Property;
 
+use App\Data\Property\PrintHeaderData;
 use App\Models\Property;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -13,10 +14,9 @@ class UpdatePrintHeader
      *
      * Returns false without writing when a tax belongs to another property.
      *
-     * @param  array{show_logo: bool, show_address: bool, show_contact: bool, show_registration_number: bool, show_tin: bool}  $switches
      * @param  list<int>  $taxIds
      */
-    public function __invoke(User $actor, Property $property, array $switches, array $taxIds): bool
+    public function __invoke(User $actor, Property $property, PrintHeaderData $header, array $taxIds): bool
     {
         $taxIds = array_values(array_unique($taxIds));
 
@@ -24,9 +24,15 @@ class UpdatePrintHeader
             return false;
         }
 
-        DB::transaction(function () use ($actor, $property, $switches, $taxIds): void {
+        DB::transaction(function () use ($actor, $property, $header, $taxIds): void {
             $printSetting = $property->printSetting()->lockForUpdate()->firstOrFail();
-            $printSetting->fill($switches);
+            $printSetting->fill([
+                'show_logo' => $header->showLogo,
+                'show_address' => $header->showAddress,
+                'show_contact' => $header->showContact,
+                'show_registration_number' => $header->showRegistrationNumber,
+                'show_tin' => $header->showTin,
+            ]);
             $changed = array_keys($printSetting->getDirty());
             $printSetting->save();
 

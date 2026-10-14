@@ -35,7 +35,7 @@ class TaxController extends Controller
 
     public function store(TaxRequest $request, Property $property, CreateTax $createTax): RedirectResponse
     {
-        $tax = $createTax($property, $request->user(), $request->validated());
+        $tax = $createTax($property, $request->user(), $request->toTaxData());
         Inertia::flash('toast', ['type' => 'success', 'message' => __(':name created.', ['name' => $tax->name])]);
 
         return to_route('settings.taxes.index', $property);
@@ -43,7 +43,7 @@ class TaxController extends Controller
 
     public function update(TaxRequest $request, Property $property, Tax $tax, UpdateTax $updateTax): RedirectResponse
     {
-        $updateTax($request->user(), $tax, $request->validated());
+        $updateTax($request->user(), $tax, $request->toTaxData());
         Inertia::flash('toast', ['type' => 'success', 'message' => __(':name saved.', ['name' => $tax->name])]);
 
         return to_route('settings.taxes.index', $property);

@@ -2,6 +2,7 @@
 
 namespace App\Actions\Catalogues;
 
+use App\Data\Catalogues\TaxInputData;
 use App\Enums\TransactionCategory;
 use App\Enums\TransactionKind;
 use App\Models\Property;
@@ -11,15 +12,14 @@ use Illuminate\Support\Facades\DB;
 
 class CreateTax
 {
-    /** @param array<string, mixed> $attributes */
-    public function __invoke(Property $property, User $actor, array $attributes): Tax
+    public function __invoke(Property $property, User $actor, TaxInputData $data): Tax
     {
-        return DB::transaction(function () use ($property, $actor, $attributes): Tax {
+        return DB::transaction(function () use ($property, $actor, $data): Tax {
             $property = Property::query()->lockForUpdate()->findOrFail($property->id);
             $postingCode = $property->transactionCodes()->create([
                 'system_key' => null,
-                'code' => 'TAX_'.$attributes['code'],
-                'name' => $attributes['name'],
+                'code' => 'TAX_'.$data->code,
+                'name' => $data->name,
                 'kind' => TransactionKind::Tax,
                 'category' => TransactionCategory::Tax,
                 'gl_account_code' => null,
@@ -27,7 +27,17 @@ class CreateTax
                 'active' => true,
             ]);
 
-            $tax = new Tax($attributes);
+            $tax = new Tax([
+                'name' => $data->name,
+                'code' => $data->code,
+                'rate_type' => $data->rateType,
+                'rate' => $data->rate,
+                'is_inclusive' => $data->isInclusive,
+                'foreign_guests_only' => $data->foreignGuestsOnly,
+                'collect_at_check_in' => $data->collectAtCheckIn,
+                'registration_number' => $data->registrationNumber,
+                'enabled' => $data->enabled,
+            ]);
             $tax->property_id = $property->id;
             $tax->transaction_code_id = $postingCode->id;
             $tax->save();
