@@ -385,6 +385,7 @@ canManageReservations: boolean,
 canViewReservations: boolean,
 canRunNightAudit: boolean,
 canViewReports: boolean,
+canManageSettings: boolean,
 };
 export type DashboardAlertData = {
 message: string,

@@ -225,6 +225,7 @@ test('quick actions follow their permissions', function () {
             'canViewReservations' => false,
             'canRunNightAudit' => true,
             'canViewReports' => false,
+            'canManageSettings' => false,
         ]));
 
     $this->actingAs($view['user'])->get(route('dashboard', $view['property']->code))

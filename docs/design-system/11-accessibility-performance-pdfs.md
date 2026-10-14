@@ -16,7 +16,7 @@ Part of the [design system](../design-system.md). Short contract: [DESIGN.md](..
 
 - Pages load as separate bundles through the page resolver.
 - `babel-plugin-react-compiler` is enabled. No manual `useMemo` or `useCallback` for performance.
-- Chart code loads only on report pages.
+- Chart code (recharts) loads only on pages that show a chart: reports and the dashboard Tonight tile.
 - Use the shadcn CLI and skill for every component: `docs`, `add --diff`, `search`.
 - Check each component on the real page that uses it, in light and dark mode. No separate component showcase page.
 

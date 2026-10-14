@@ -1,4 +1,5 @@
 import { Link } from '@inertiajs/react';
+import { OccupancyChart } from '@/components/pms/dashboard/occupancy-chart';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
     Popover,
@@ -9,16 +10,8 @@ import {
 } from '@/components/ui/popover';
 import { calendar } from '@/routes/rates';
 
-const weekday = (date: string) => {
-    const [year, month, day] = date.split('-').map(Number);
-
-    return new Date(year, month - 1, day).toLocaleDateString('en-GB', {
-        weekday: 'short',
-    });
-};
-
 /**
- * The Tonight tile: occupancy and free units on the business date, then seven nights as bars. Hovering or tapping the
+ * The Tonight tile: occupancy and free units on the business date, then seven nights as an area chart. Hovering or tapping the
  * figures opens the room types. The title links to the rate calendar.
  */
 export function TonightTile({
@@ -38,11 +31,11 @@ export function TonightTile({
                     </Link>
                 </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="flex flex-col gap-3">
                 <Popover>
                     <PopoverTrigger
                         openOnHover
-                        className="flex w-full flex-col gap-3 rounded-lg text-left outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        className="flex w-full flex-col rounded-lg text-left outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
                         <span className="flex flex-wrap items-baseline gap-x-6 gap-y-1">
                             <span>
@@ -63,29 +56,6 @@ export function TonightTile({
                                     </>
                                 )}
                             </span>
-                        </span>
-                        <span className="grid grid-cols-7 gap-2">
-                            {tile.nights.map((night) => (
-                                <span
-                                    key={night.date}
-                                    className="flex flex-col items-center gap-1"
-                                >
-                                    <span className="flex h-12 w-full items-end rounded-sm bg-muted">
-                                        <span
-                                            className="w-full rounded-sm bg-primary"
-                                            style={{
-                                                height: `${night.occupancy}%`,
-                                            }}
-                                        />
-                                    </span>
-                                    <span className="text-xs text-muted-foreground tabular-nums">
-                                        {weekday(night.date)}
-                                    </span>
-                                    <span className="sr-only">
-                                        {night.occupancy}% occupied
-                                    </span>
-                                </span>
-                            ))}
                         </span>
                     </PopoverTrigger>
                     <PopoverContent align="start" className="w-80">
@@ -136,6 +106,7 @@ export function TonightTile({
                         )}
                     </PopoverContent>
                 </Popover>
+                <OccupancyChart nights={tile.nights} />
             </CardContent>
         </Card>
     );
