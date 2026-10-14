@@ -49,9 +49,9 @@ class GuestDirectory
                     fn (Builder $tags) => $tags->where('tags.id', (int) $tag)->where('tags.property_id', $property->id),
                 )),
             )
-            ->when($anonymized, fn (Builder $query) => $query->whereNotNull('guests.anonymized_at'), fn (Builder $query) => $query->whereNull('guests.anonymized_at'))
             ->allowedSorts('full_name', 'created_at')
             ->defaultSort('full_name')
+            ->when($anonymized, fn (Builder $query) => $query->whereNotNull('guests.anonymized_at'), fn (Builder $query) => $query->whereNull('guests.anonymized_at'))
             ->with('tags')
             ->paginate(self::PER_PAGE)
             ->withQueryString();

@@ -9,6 +9,7 @@ use App\Models\Property;
 use App\Models\ReservationUnit;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Collection;
 
 /**
@@ -21,7 +22,7 @@ class StayUnits
 {
     /**
      * @param  list<int|string>|null  $unitIds  Only these units, when given.
-     * @return Collection<int, ReservationUnit> With the reservation, its booker and the occupants loaded, in unit id order.
+     * @return EloquentCollection<int, ReservationUnit> With the reservation, its booker and the occupants loaded, in unit id order.
      */
     public function between(Property $property, ReportFilters $filters, ?array $unitIds = null): Collection
     {

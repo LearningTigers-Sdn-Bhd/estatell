@@ -25,6 +25,7 @@ use App\Services\Folio\ScheduledFolioRows;
 use App\Services\Property\AmountInWords;
 use Brick\Math\BigDecimal;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Collection;
 
 /**
@@ -98,7 +99,7 @@ class BookingSummary
     /**
      * CANCELLED for a cancelled reservation, NO-SHOW when every unit is a no-show, else none.
      *
-     * @param  Collection<int, ReservationUnit>  $units
+     * @param  EloquentCollection<int, ReservationUnit>  $units
      */
     private function stamp(Reservation $reservation, Collection $units): ?string
     {
@@ -110,7 +111,7 @@ class BookingSummary
     }
 
     /**
-     * @param  Collection<int, ReservationUnit>  $units
+     * @param  EloquentCollection<int, ReservationUnit>  $units
      * @param  array<int, array{place: ?string, room: string, heading: string}>  $places
      * @return list<DocumentRow>
      */
@@ -157,7 +158,7 @@ class BookingSummary
     }
 
     /**
-     * @return Collection<int, Folio>
+     * @return EloquentCollection<int, Folio>
      */
     private function folios(Property $property, Reservation $reservation): Collection
     {

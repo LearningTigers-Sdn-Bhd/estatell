@@ -7,30 +7,6 @@ parameters:
 			path: app/Actions/Boats/SyncBoatFare.php
 
 		-
-			message: '#^Call to an undefined method Illuminate\\Support\\Collection\<int, App\\Models\\ReservationUnit\>\:\:modelKeys\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: app/Actions/Boats/UpdateBoatDeparture.php
-
-		-
-			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Relations\\HasMany\:\:active\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: app/Actions/Catalogues/CreateChargeItem.php
-
-		-
-			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Relations\\HasMany\:\:active\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: app/Actions/Catalogues/ReorderChargeItems.php
-
-		-
-			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Relations\\HasMany\:\:active\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: app/Actions/Catalogues/SeedChargeItems.php
-
-		-
 			message: '#^Unable to resolve the template type TKey in call to function collect$#'
 			identifier: argument.templateType
 			count: 1
@@ -205,12 +181,6 @@ parameters:
 			path: app/Actions/FrontDesk/CheckOutAndRefund.php
 
 		-
-			message: '#^Call to an undefined method Illuminate\\Support\\Collection\<int, App\\Models\\Folio\>\:\:modelKeys\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: app/Actions/FrontDesk/CheckOutGroup.php
-
-		-
 			message: '#^Parameter \#1 \$num1 of function bccomp expects numeric\-string, string given\.$#'
 			identifier: argument.type
 			count: 6
@@ -263,12 +233,6 @@ parameters:
 			identifier: return.type
 			count: 1
 			path: app/Actions/FrontDesk/ReleaseUnitRooms.php
-
-		-
-			message: '#^Call to an undefined method Illuminate\\Support\\Collection\<int, App\\Models\\Folio\>\:\:modelKeys\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: app/Actions/FrontDesk/UndoCheckOut.php
 
 		-
 			message: '#^Parameter \#8 \$roomDescription of callable App\\Actions\\Folio\\PostNightLines expects string\|null, array\|string\|null given\.$#'
@@ -335,18 +299,6 @@ parameters:
 			identifier: argument.type
 			count: 1
 			path: app/Actions/Platform/RecordImpersonationEnd.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$default_amount\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Actions/Property/SaveAgeGroups.php
-
-		-
-			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:childPrices\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: app/Actions/Property/SaveAgeGroups.php
 
 		-
 			message: '#^Parameter \#3 \$discounts of callable App\\Actions\\Rates\\SaveRatePlanStayDiscounts expects list\<array\{min_nights\: int, discount_type\: string, value\: float\|int\|string, from_night\: int\}\>, non\-empty\-array\<int, array\{min_nights\: int, discount_type\: ''amount''\|''percent'', value\: string, from_night\: int\}\> given\.$#'
@@ -589,36 +541,6 @@ parameters:
 			path: app/Http/Controllers/Admin/PropertyController.php
 
 		-
-			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Relations\\HasMany\:\:ordered\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: app/Http/Controllers/Boats/BoatDepartureController.php
-
-		-
-			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Relations\\HasMany\:\:ordered\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: app/Http/Controllers/Boats/BoatFareController.php
-
-		-
-			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Relations\\HasMany\:\:ordered\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: app/Http/Controllers/Catalogues/ChargeItemController.php
-
-		-
-			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Builder\<Illuminate\\Database\\Eloquent\\Model\>\:\:active\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: app/Http/Controllers/Catalogues/PaymentMethodController.php
-
-		-
-			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Relations\\HasMany\:\:ordered\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: app/Http/Controllers/Catalogues/PaymentMethodController.php
-
-		-
 			message: '#^Parameter \#1 \$stream of function fclose expects resource, resource\|false given\.$#'
 			identifier: argument.type
 			count: 1
@@ -641,12 +563,6 @@ parameters:
 			identifier: argument.type
 			count: 1
 			path: app/Http/Controllers/Partner/PartnerPropertyController.php
-
-		-
-			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Relations\\HasMany\:\:ordered\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: app/Http/Controllers/Rates/RatePlanController.php
 
 		-
 			message: '#^Parameter \#3 \$input of callable App\\Actions\\Registration\\SignRegistrationCard expects array\{profile\: array\<string, mixed\>, identity\: array\<string, mixed\>\|null, identity_document_id\: int\|null, vehicle_plate\: string\|null, remarks\: string\|null, marketing_consent\: bool, locale\: App\\Enums\\Locale, ticks\: list\<int\>, \.\.\.\}, array\<string, mixed\> given\.$#'
@@ -865,12 +781,6 @@ parameters:
 			path: app/Models/Casts/AsCurrency.php
 
 		-
-			message: '#^Method App\\Models\\Property\:\:chargeItems\(\) return type with generic class Illuminate\\Database\\Eloquent\\Relations\\HasMany does not specify its types\: TRelatedModel, TDeclaringModel$#'
-			identifier: missingType.generics
-			count: 1
-			path: app/Models/Property.php
-
-		-
 			message: '#^Access to an undefined property object\:\:\$property\.$#'
 			identifier: property.notFound
 			count: 3
@@ -995,12 +905,6 @@ parameters:
 			identifier: argument.type
 			count: 1
 			path: app/Services/CityLedger/ArInvoiceDetail.php
-
-		-
-			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Builder\<App\\Models\\ArInvoice\>\:\:allowedFilters\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: app/Services/CityLedger/ArInvoiceDirectory.php
 
 		-
 			message: '#^Parameter \#1 \$num1 of function bcadd expects numeric\-string, string given\.$#'
@@ -1183,14 +1087,20 @@ parameters:
 			path: app/Services/Folio/FolioDocumentRows.php
 
 		-
-			message: '#^Call to an undefined method Illuminate\\Support\\Collection\<int, App\\Models\\ReservationUnit\>\:\:modelKeys\(\)\.$#'
-			identifier: method.notFound
-			count: 3
+			message: '#^Method App\\Services\\Folio\\FolioDocumentRows\:\:places\(\) should return array\<int, array\{place\: string\|null, room\: string, heading\: string\}\> but returns array\<int, array\{place\: array\|string\|null, room\: string, heading\: string\}\>\.$#'
+			identifier: return.type
+			count: 1
 			path: app/Services/Folio/FolioDocumentRows.php
 
 		-
-			message: '#^Method App\\Services\\Folio\\FolioDocumentRows\:\:places\(\) should return array\<int, array\{place\: string\|null, room\: string, heading\: string\}\> but returns array\<int, array\{place\: array\|string\|null, room\: string, heading\: string\}\>\.$#'
-			identifier: return.type
+			message: '#^Parameter \#1 \$unitIds of method App\\Services\\Reservations\\ReservationRoomBox\:\:assignmentsForUnits\(\) expects list\<int\>, array\<int, \(int\|string\)\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/Folio/FolioDocumentRows.php
+
+		-
+			message: '#^Parameter \#1 \$unitIds of method App\\Services\\Reservations\\ReservationRoomBox\:\:assignmentsForUnitsOn\(\) expects list\<int\>, array\<int, \(int\|string\)\> given\.$#'
+			identifier: argument.type
 			count: 1
 			path: app/Services/Folio/FolioDocumentRows.php
 
@@ -1199,12 +1109,6 @@ parameters:
 			identifier: binaryOp.invalid
 			count: 1
 			path: app/Services/Folio/FolioReopenRule.php
-
-		-
-			message: '#^Call to an undefined method Illuminate\\Support\\Collection\<int, App\\Models\\Folio\>\:\:modelKeys\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: app/Services/Folio/FolioStatement.php
 
 		-
 			message: '#^If condition is always false\.$#'
@@ -1315,12 +1219,6 @@ parameters:
 			path: app/Services/Folio/IncomingScheduledCharges.php
 
 		-
-			message: '#^Call to an undefined method Illuminate\\Support\\Collection\<int, App\\Models\\Folio\>\:\:modelKeys\(\)\.$#'
-			identifier: method.notFound
-			count: 3
-			path: app/Services/Folio/MoveChargesPreview.php
-
-		-
 			message: '#^Method App\\Services\\Folio\\MoveChargesPreview\:\:charges\(\) should return Illuminate\\Support\\Collection\<int, array\{lineId\: int, folioId\: int, unitId\: int\|null, isRoom\: bool, total\: string, data\: App\\Data\\Folio\\MoveChargeData\}\> but returns Illuminate\\Support\\Collection\<int, array\{lineId\: int, folioId\: int, unitId\: int\|null, isRoom\: bool, total\: non\-empty\-string, data\: App\\Data\\Folio\\MoveChargeData\}\>\.$#'
 			identifier: return.type
 			count: 1
@@ -1351,28 +1249,10 @@ parameters:
 			path: app/Services/FrontDesk/CheckInCollection.php
 
 		-
-			message: '#^Call to an undefined method Illuminate\\Support\\Collection\<int, App\\Models\\Folio\>\:\:modelKeys\(\)\.$#'
-			identifier: method.notFound
-			count: 6
-			path: app/Services/FrontDesk/CheckOutSettlement.php
-
-		-
 			message: '#^Method App\\Services\\FrontDesk\\CheckOutSettlement\:\:heldDeposits\(\) has parameter \$folios with generic class Illuminate\\Support\\Collection but does not specify its types\: TKey, TValue$#'
 			identifier: missingType.generics
 			count: 1
 			path: app/Services/FrontDesk/CheckOutSettlement.php
-
-		-
-			message: '#^Call to an undefined method Illuminate\\Support\\Collection\<int, App\\Models\\Folio\>\:\:modelKeys\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: app/Services/FrontDesk/GroupCheckOutPreview.php
-
-		-
-			message: '#^Call to an undefined method Illuminate\\Support\\Collection\<int, App\\Models\\ReservationUnit\>\:\:modelKeys\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: app/Services/FrontDesk/GroupCheckOutPreview.php
 
 		-
 			message: '#^Method App\\Services\\FrontDesk\\GroupCheckOutPreview\:\:methods\(\) should return array\{data\: list\<App\\Data\\Payments\\PaymentMethodOptionData\>, first\: int\|null\} but returns array\{data\: array\<int, App\\Data\\Payments\\PaymentMethodOptionData\>, first\: int\|null\}\.$#'
@@ -1399,22 +1279,10 @@ parameters:
 			path: app/Services/FrontDesk/GroupCheckOutPreview.php
 
 		-
-			message: '#^Call to an undefined method Illuminate\\Support\\Collection\<int, App\\Models\\Folio\>\:\:modelKeys\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: app/Services/FrontDesk/UndoCheckOutRule.php
-
-		-
 			message: '#^Method App\\Services\\Guests\\CountryOptions\:\:name\(\) should return string\|null but returns string\|false\.$#'
 			identifier: return.type
 			count: 1
 			path: app/Services/Guests/CountryOptions.php
-
-		-
-			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Builder\<App\\Models\\Guest\>\:\:allowedSorts\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: app/Services/Guests/GuestDirectory.php
 
 		-
 			message: '#^Parameter \#1 \$query of method App\\Services\\Guests\\GuestDirectory\:\:search\(\) expects Illuminate\\Database\\Eloquent\\Builder\<App\\Models\\Guest\>, Illuminate\\Database\\Eloquent\\Builder\<Illuminate\\Database\\Eloquent\\Model\> given\.$#'
@@ -1559,12 +1427,6 @@ parameters:
 			identifier: nullCoalesce.expr
 			count: 1
 			path: app/Services/Rates/DayUseOffers.php
-
-		-
-			message: '#^Call to an undefined method Illuminate\\Support\\Collection\<int, App\\Models\\RatePlan\>\:\:load\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: app/Services/Rates/DerivedRatePlans.php
 
 		-
 			message: '#^Method App\\Services\\Rates\\DerivedRatePreview\:\:preview\(\) should return list\<array\{room_type_id\: int, name\: string, parent_amount\: string\|null, derived_amount\: string\|null\}\> but returns array\<int, array\{room_type_id\: int, name\: string, parent_amount\: non\-empty\-string, derived_amount\: non\-empty\-string\}\|array\{room_type_id\: int, name\: string, parent_amount\: null, derived_amount\: null\}\>\.$#'
@@ -1753,34 +1615,10 @@ parameters:
 			path: app/Services/Reports/UnitReportRows.php
 
 		-
-			message: '#^Call to an undefined method Illuminate\\Support\\Collection\<int, App\\Models\\Folio\>\:\:modelKeys\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: app/Services/Reservations/BookingSummary.php
-
-		-
-			message: '#^Call to an undefined method Illuminate\\Support\\Collection\<int, App\\Models\\ReservationUnit\>\:\:modelKeys\(\)\.$#'
-			identifier: method.notFound
-			count: 2
-			path: app/Services/Reservations/BookingSummary.php
-
-		-
 			message: '#^Method App\\Services\\Reservations\\BookingSummary\:\:stamp\(\) should return string\|null but returns array\|string\|null\.$#'
 			identifier: return.type
 			count: 1
 			path: app/Services/Reservations/BookingSummary.php
-
-		-
-			message: '#^Access to an undefined property object\:\:\$override_amount\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Services/Reservations/NightPriceChangePreview.php
-
-		-
-			message: '#^Call to an undefined method Illuminate\\Support\\Collection\<int, App\\Models\\UnitNight\>\:\:modelKeys\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: app/Services/Reservations/NightPriceChangePreview.php
 
 		-
 			message: '#^Parameter \#1 \$num1 of function bccomp expects numeric\-string, string given\.$#'
@@ -1801,12 +1639,6 @@ parameters:
 			path: app/Services/Reservations/NightPriceChangePreview.php
 
 		-
-			message: '#^Parameter \#4 \$night of method App\\Services\\Folio\\NightChargeQuote\:\:quote\(\) expects App\\Models\\UnitNight, object given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Services/Reservations/NightPriceChangePreview.php
-
-		-
 			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$name\.$#'
 			identifier: property.notFound
 			count: 2
@@ -1817,12 +1649,6 @@ parameters:
 			identifier: argument.type
 			count: 1
 			path: app/Services/Reservations/ReservationActivityLog.php
-
-		-
-			message: '#^Call to an undefined method Illuminate\\Support\\Collection\<int, App\\Models\\ReservationUnit\>\:\:loadMissing\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: app/Services/Reservations/ReservationBoatSetup.php
 
 		-
 			message: '#^Parameter \#1 \$unitIds of method App\\Services\\Reservations\\ReservationRoomBox\:\:assignmentsForUnits\(\) expects list\<int\>, array\<mixed\> given\.$#'
@@ -1885,12 +1711,6 @@ parameters:
 			path: app/Services/Reservations/ReservationGuestRows.php
 
 		-
-			message: '#^Method App\\Services\\Reservations\\ReservationOverview\:\:build\(\) should return array\{reservation\: App\\Data\\Reservations\\ReservationData, units\: list\<App\\Data\\Reservations\\ReservationUnitOptionData\>, models\: Illuminate\\Support\\Collection\<int, App\\Models\\ReservationUnit\>\} but returns array\{reservation\: App\\Data\\Reservations\\ReservationData, units\: array\<int, App\\Data\\Reservations\\ReservationUnitOptionData\>, models\: Illuminate\\Database\\Eloquent\\Collection\<int, App\\Models\\ReservationUnit\>\}\.$#'
-			identifier: return.type
-			count: 1
-			path: app/Services/Reservations/ReservationOverview.php
-
-		-
 			message: '#^Parameter \#1 \$unitIds of method App\\Services\\Reservations\\ReservationRoomBox\:\:assignmentsForUnits\(\) expects list\<int\>, array\<mixed\> given\.$#'
 			identifier: argument.type
 			count: 1
@@ -1915,12 +1735,6 @@ parameters:
 			path: app/Services/Reservations/UnitActionPreview.php
 
 		-
-			message: '#^Call to an undefined method Illuminate\\Support\\Collection\<int, App\\Models\\Folio\>\:\:modelKeys\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: app/Services/Reservations/UnitActionPreview.php
-
-		-
 			message: '#^Parameter \#1 \$rows of class App\\Data\\Reservations\\CheckInAllPreviewData constructor expects list\<array\{unitId\: int, label\: string, guest\: string\|null, room\: string\|null, cardsMissing\: int, ready\: bool, note\: string\|null\}\>, list\<array\{unitId\: int, label\: string, guest\: string\|null, room\: string\|null, cardsMissing\: int\<0, max\>, ready\: bool, note\: array\|string\|null\}\> given\.$#'
 			identifier: argument.type
 			count: 1
@@ -1931,12 +1745,6 @@ parameters:
 			identifier: argument.type
 			count: 1
 			path: app/Services/Reservations/UnitActionPreview.php
-
-		-
-			message: '#^Call to an undefined method Illuminate\\Support\\Collection\<int, App\\Models\\ReservationUnit\>\:\:loadMissing\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: app/Services/Reservations/UnitNationality.php
 
 		-
 			message: '#^Parameter \#1 \$key of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:contains\(\) expects \(callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: bool\)\|Illuminate\\Database\\Eloquent\\Model\|int\|string, Closure\(App\\Models\\Role\)\: bool given\.$#'
@@ -2095,12 +1903,6 @@ parameters:
 			path: database/factories/UnitNightFactory.php
 
 		-
-			message: '#^Call to an undefined method Illuminate\\Support\\Collection\<int, App\\Models\\ReservationUnit\>\:\:modelKeys\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: database/seeders/BookingScenariosSeeder.php
-
-		-
 			message: '#^Match expression does not handle remaining values\: int\<min, \-1\>\|int\<7, max\>$#'
 			identifier: match.unhandled
 			count: 1
@@ -2138,6 +1940,12 @@ parameters:
 
 		-
 			message: '#^Parameter \#3 \$taxIds of callable App\\Actions\\Catalogues\\UpdateRoomRevenueTaxes expects list\<int\>, array\<int, \(int\|string\)\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: database/seeders/BookingScenariosSeeder.php
+
+		-
+			message: '#^Parameter \#3 \$unitIds of callable App\\Actions\\FrontDesk\\CheckInAllUnits expects list\<int\>, array\<int, \(int\|string\)\> given\.$#'
 			identifier: argument.type
 			count: 1
 			path: database/seeders/BookingScenariosSeeder.php

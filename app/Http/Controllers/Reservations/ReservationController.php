@@ -52,6 +52,7 @@ use App\Services\Reservations\ReservationGuestRows;
 use App\Services\Reservations\ReservationOverview;
 use App\Services\Reservations\ReservationRoomBox;
 use App\Services\Reservations\UnitActionMenu;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Inertia\Inertia;
@@ -256,7 +257,7 @@ class ReservationController extends Controller
      * The one live unit of a single-unit reservation, so More can offer its Check in and Check out on every tab. Null
      * for a group. The Units tab sets it from the unit it already built.
      *
-     * @param  Collection<int, ReservationUnit>  $units
+     * @param  EloquentCollection<int, ReservationUnit>  $units
      */
     private function singleUnitData(User $user, Property $property, Reservation $reservation, Collection $units): ?ReservationUnitData
     {
@@ -275,7 +276,7 @@ class ReservationController extends Controller
      * overlay opens.
      *
      * @param  'units'|'guests'|'add-ons'|'folio'|'activity'  $tab
-     * @param  callable(list<ReservationUnitOptionData>, Collection<int, ReservationUnit>): array<string, mixed>  $tabProps
+     * @param  callable(list<ReservationUnitOptionData>, EloquentCollection<int, ReservationUnit>): array<string, mixed>  $tabProps
      */
     private function renderTab(User $user, Property $property, Reservation $reservation, string $tab, callable $tabProps): Response
     {

@@ -9,6 +9,7 @@ use App\Enums\StayType;
 use App\Enums\UnitStatus;
 use App\Models\ReservationUnit;
 use App\Services\Boats\BoatTripAccess;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Collection;
 
 /**
@@ -23,7 +24,7 @@ class ReservationBoatSetup
     ) {}
 
     /**
-     * @param  Collection<int, ReservationUnit>  $units
+     * @param  EloquentCollection<int, ReservationUnit>  $units
      * @return list<BoatSetupUnitData>
      */
     public function forUnits(Collection $units, bool $canManage): array

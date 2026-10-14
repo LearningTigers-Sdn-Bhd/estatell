@@ -17,6 +17,7 @@ use App\Services\Folio\FolioBalance;
 use App\Services\Folio\IncomingScheduledCharges;
 use App\Services\Folio\LineSourceUnits;
 use Brick\Math\BigDecimal;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Collection;
 
 /**
@@ -69,7 +70,7 @@ class CheckOutSettlement
      * The other live units that still charge unposted Scheduled rows to one of the unit's Open folios, as names and
      * dates (`folio_receives_scheduled_charges`). The unit itself is left out: check-out ends its stay.
      *
-     * @param  Collection<int, Folio>  $folios
+     * @param  EloquentCollection<int, Folio>  $folios
      * @return list<string>
      */
     public function incomingScheduled(ReservationUnit $unit, Collection $folios): array
@@ -86,7 +87,7 @@ class CheckOutSettlement
      * What the unit's folios hold for other rooms, for the `balance_not_settled` message: "MYR 540.00 for Room 102".
      * Only rooms with an amount above 0 are named.
      *
-     * @param  Collection<int, Folio>  $folios
+     * @param  EloquentCollection<int, Folio>  $folios
      * @return list<string>
      */
     public function heldForOtherRooms(ReservationUnit $unit, Collection $folios): array
@@ -115,7 +116,7 @@ class CheckOutSettlement
      * the unit are left out. `otherLineIds` are the other rooms' charges on Open folios that could move: top-level, not a
      * reversal and not reversed.
      *
-     * @param  Collection<int, Folio>  $folios
+     * @param  EloquentCollection<int, Folio>  $folios
      * @return array{shares: array<int, BigDecimal>, otherLineIds: list<int>}
      */
     public function roomShares(ReservationUnit $unit, Collection $folios): array
@@ -148,7 +149,7 @@ class CheckOutSettlement
      * The charges of the unit's Open folios that `TransferLines` accepts, oldest first: not a child, not a reversal,
      * not reversed, not owned by a payment and not a payment-kind line (a City ledger line). Payments never move.
      *
-     * @param  Collection<int, Folio>  $folios
+     * @param  EloquentCollection<int, Folio>  $folios
      * @return Collection<int, FolioLine>
      */
     public function movableLines(Collection $folios): Collection
@@ -171,7 +172,7 @@ class CheckOutSettlement
      * What `movableLines()` would move: the sum of every line on the unit's Open folios that is not a payment or a
      * payment-kind line, so a tax or discount child counts with its charge and a reversed charge with its reversal.
      *
-     * @param  Collection<int, Folio>  $folios
+     * @param  EloquentCollection<int, Folio>  $folios
      */
     public function movableTotal(Collection $folios): BigDecimal
     {
@@ -190,7 +191,7 @@ class CheckOutSettlement
      * The completed payments of the unit's Open folios that still have money to give back, whatever their purpose,
      * oldest first. A move to another folio refunds these, because a payment never moves.
      *
-     * @param  Collection<int, Folio>  $folios
+     * @param  EloquentCollection<int, Folio>  $folios
      * @return Collection<int, Payment>
      */
     public function heldPayments(Collection $folios): Collection
@@ -211,7 +212,7 @@ class CheckOutSettlement
      * Whether an Open folio of the unit holds money that `RefundPayment` cannot give back: a live payment-kind line
      * with no payment row (a City ledger line) or a payment that is not Completed.
      *
-     * @param  Collection<int, Folio>  $folios
+     * @param  EloquentCollection<int, Folio>  $folios
      */
     public function holdsUnrefundable(Collection $folios): bool
     {
@@ -245,7 +246,7 @@ class CheckOutSettlement
     }
 
     /**
-     * @return Collection<int, Folio>
+     * @return EloquentCollection<int, Folio>
      */
     public function folios(ReservationUnit $unit): Collection
     {

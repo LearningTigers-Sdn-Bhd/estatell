@@ -15,6 +15,7 @@ use App\Models\Folio;
 use App\Models\ReservationUnit;
 use App\Models\UnitDayUse;
 use App\Models\UnitNight;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Collection;
 
 /**
@@ -54,7 +55,7 @@ class UndoCheckOutRule
     /**
      * The unit folios that check-out closed (closed at or after `checked_out_at`).
      *
-     * @return Collection<int, Folio>
+     * @return EloquentCollection<int, Folio>
      */
     public function foliosToReopen(ReservationUnit $unit): Collection
     {

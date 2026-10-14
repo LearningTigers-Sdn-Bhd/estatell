@@ -16,6 +16,7 @@ use App\Services\NightAudit\CurrentBusinessDate;
 use App\Services\Property\PropertyToday;
 use App\Services\Reservations\ReservationRoomBox;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Collection;
 
 /**
@@ -38,7 +39,7 @@ class FolioDocumentRows
      * Each unit's place ("Room 103", or null while none is assigned), its Room column label and its group heading.
      * The room is tonight's, else the first night's.
      *
-     * @param  Collection<int, ReservationUnit>  $units  With `roomType` and `guests.guest` loaded
+     * @param  EloquentCollection<int, ReservationUnit>  $units  With `roomType` and `guests.guest` loaded
      * @return array<int, array{place: ?string, room: string, heading: string}> By unit id
      */
     public function places(Property $property, Collection $units): array
@@ -69,7 +70,7 @@ class FolioDocumentRows
      * the order the lines come in.
      *
      * @param  Collection<int, FolioLine>  $lines  Posted lines in ledger order
-     * @param  Collection<int, ReservationUnit>  $units  The units of the reservation, in print order
+     * @param  EloquentCollection<int, ReservationUnit>  $units  The units of the reservation, in print order
      * @param  array<int, array{place: ?string, room: string, heading: string}>  $places  See `places()`
      * @param  bool  $withTaxNumbers  False leaves the tax registration numbers off, for a document that prints none
      * @return list<DocumentRow>
@@ -142,7 +143,7 @@ class FolioDocumentRows
      * The Rooms block of a document that has no Rooms section: one line per unit, "Room 103 · Tan Wei Ming · 12–15 Oct".
      * The place is the room, else the room type name; the guest is the unit's primary guest. Both are left out when empty.
      *
-     * @param  Collection<int, ReservationUnit>  $units  With `roomType` and `guests.guest` loaded
+     * @param  EloquentCollection<int, ReservationUnit>  $units  With `roomType` and `guests.guest` loaded
      * @param  array<int, array{place: ?string, room: string, heading: string}>  $places  See `places()`
      * @return list<string>
      */
@@ -159,8 +160,8 @@ class FolioDocumentRows
      * The units that have a charge on the folio (a line that is reversed on it does not count), and the unit of a Unit folio.
      *
      * @param  list<DocumentRow>  $rows
-     * @param  Collection<int, ReservationUnit>  $units
-     * @return Collection<int, ReservationUnit>
+     * @param  EloquentCollection<int, ReservationUnit>  $units
+     * @return EloquentCollection<int, ReservationUnit>
      */
     public function unitsOnFolio(Folio $folio, array $rows, Collection $units): Collection
     {

@@ -31,6 +31,7 @@ use App\Services\CityLedger\ArInvoiceVoidCheck;
 use App\Services\CityLedger\CreditCheck;
 use App\Services\Payments\PaymentPurposeChoices;
 use Brick\Math\BigDecimal;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Collection;
 
 /**
@@ -105,7 +106,7 @@ class FolioStatement
      * Master first, then Unit folios in unit order, then ThirdParty folios.
      *
      * @param  list<int>  $unitOrder
-     * @return Collection<int, Folio>
+     * @return EloquentCollection<int, Folio>
      */
     private function folios(Reservation $reservation, array $unitOrder): Collection
     {
@@ -159,7 +160,7 @@ class FolioStatement
     }
 
     /**
-     * @param  Collection<int, Folio>  $folios
+     * @param  EloquentCollection<int, Folio>  $folios
      * @return array<int, string> Balance by folio id
      */
     private function balances(Collection $folios): array

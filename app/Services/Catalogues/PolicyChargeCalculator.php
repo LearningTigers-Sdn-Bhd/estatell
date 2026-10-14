@@ -16,6 +16,7 @@ use App\Services\Rates\RateQuoteService;
 use Brick\Math\RoundingMode;
 use Brick\Money\Money;
 use Carbon\CarbonInterface;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Collection;
 use InvalidArgumentException;
 
@@ -122,7 +123,7 @@ class PolicyChargeCalculator
     }
 
     /**
-     * @return Collection<int, UnitNight>
+     * @return EloquentCollection<int, UnitNight>
      */
     private function chargedNights(RoomRevenuePolicy $policy, ReservationUnit $unit, ?CarbonInterface $newDeparture): Collection
     {
@@ -137,8 +138,8 @@ class PolicyChargeCalculator
     }
 
     /**
-     * @param  Collection<int, UnitNight>  $nights
-     * @return Collection<int, UnitNight>
+     * @param  EloquentCollection<int, UnitNight>  $nights
+     * @return EloquentCollection<int, UnitNight>
      */
     private function unusedNights(Collection $nights, ?CarbonInterface $newDeparture): Collection
     {
@@ -154,7 +155,7 @@ class PolicyChargeCalculator
     /**
      * The rate the percent is taken of. A current rate that cannot be quoted falls back to the booked rate.
      *
-     * @param  Collection<int, UnitNight>  $nights
+     * @param  EloquentCollection<int, UnitNight>  $nights
      */
     private function baseAmount(RoomRevenuePolicy $policy, ReservationUnit $unit, Collection $nights, Money $zero): Money
     {

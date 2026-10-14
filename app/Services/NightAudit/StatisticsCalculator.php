@@ -15,6 +15,7 @@ use Brick\Math\BigDecimal;
 use Brick\Math\RoundingMode;
 use Brick\Money\Money;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Spatie\Activitylog\Models\Activity;
@@ -97,7 +98,7 @@ class StatisticsCalculator
     /**
      * The night rows of the CheckedIn units that sleep on the date.
      *
-     * @return Collection<int, UnitNight>
+     * @return EloquentCollection<int, UnitNight>
      */
     private function sleptNights(Property $property, CarbonImmutable $date): Collection
     {

@@ -5,6 +5,7 @@ namespace App\Services\Rates;
 use App\Enums\PricingBasis;
 use App\Models\RatePlan;
 use App\Models\RoomType;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 
@@ -87,7 +88,7 @@ class DerivedRatePlans
     /**
      * The active plans that follow this one.
      *
-     * @return Collection<int, RatePlan>
+     * @return EloquentCollection<int, RatePlan>
      */
     public function followers(RatePlan $parent): Collection
     {

@@ -6,6 +6,7 @@ use App\Enums\BoatDirection;
 use App\Enums\StayType;
 use App\Models\Reservation;
 use App\Models\ReservationUnit;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Collection;
 
 /**
@@ -45,7 +46,7 @@ class ReservationBoatSummary
     }
 
     /**
-     * @param  Collection<int, ReservationUnit>  $units
+     * @param  EloquentCollection<int, ReservationUnit>  $units
      */
     private function summarise(Collection $units, BoatDirection $direction): string
     {

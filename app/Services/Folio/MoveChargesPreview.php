@@ -31,6 +31,7 @@ use App\Services\NightAudit\CurrentBusinessDate;
 use App\Services\Reservations\ReservationRoomBox;
 use Brick\Math\BigDecimal;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Collection;
 
 /**
@@ -191,7 +192,7 @@ class MoveChargesPreview
      * Everything read once per request: the folios and their names, the balances, the movable charges and the
      * Scheduled blocks.
      *
-     * @return array{labels: array<int, string>, openFolios: Collection<int, Folio>, balances: array<int, string>, charges: Collection<int, array{lineId: int, folioId: int, unitId: int|null, isRoom: bool, total: string, data: MoveChargeData}>, blocks: list<array{target: int|null, unit: int, date: string, code: TransactionCode, rows: list<FolioRowData>}>, unitLabels: array<int, string>, units: Collection<int, ReservationUnit>}
+     * @return array{labels: array<int, string>, openFolios: EloquentCollection<int, Folio>, balances: array<int, string>, charges: Collection<int, array{lineId: int, folioId: int, unitId: int|null, isRoom: bool, total: string, data: MoveChargeData}>, blocks: list<array{target: int|null, unit: int, date: string, code: TransactionCode, rows: list<FolioRowData>}>, unitLabels: array<int, string>, units: EloquentCollection<int, ReservationUnit>}
      */
     private function state(Property $property, Reservation $reservation): array
     {
@@ -223,7 +224,7 @@ class MoveChargesPreview
      * Master first, then Unit folios in unit order, then third-party folios. Voided folios are left out.
      *
      * @param  list<int>  $unitOrder
-     * @return Collection<int, Folio>
+     * @return EloquentCollection<int, Folio>
      */
     private function folios(Reservation $reservation, array $unitOrder): Collection
     {
@@ -249,7 +250,7 @@ class MoveChargesPreview
      * The charges `TransferLines` accepts on the given folios, with their live children: not a child, not a reversal, not
      * reversed and not owned by a payment.
      *
-     * @param  Collection<int, Folio>  $folios
+     * @param  EloquentCollection<int, Folio>  $folios
      * @param  array<int, string>  $unitLabels
      * @return Collection<int, array{lineId: int, folioId: int, unitId: int|null, isRoom: bool, total: string, data: MoveChargeData}>
      */
@@ -374,7 +375,7 @@ class MoveChargesPreview
     {
         /** @var list<array{target: int|null, unit: int, date: string, code: TransactionCode, rows: list<FolioRowData>}> $blocks */
         $blocks = $state['blocks'];
-        /** @var Collection<int, ReservationUnit> $units */
+        /** @var EloquentCollection<int, ReservationUnit> $units */
         $units = $state['units'];
         $businessDate = $this->currentBusinessDate->date($reservation->property);
         $offTarget = array_values(array_filter($blocks, fn (array $block): bool => $block['target'] !== $target->id));

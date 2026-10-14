@@ -3,6 +3,7 @@
 namespace App\Services\Reservations;
 
 use App\Models\ReservationUnit;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Collection;
 
 /**
@@ -23,7 +24,7 @@ class UnitNationality
      * The same nationality for many units, without a query for each unit: the units get their primary guest and
      * booker loaded once (relations that are already loaded are reused).
      *
-     * @param  Collection<int, ReservationUnit>  $units
+     * @param  EloquentCollection<int, ReservationUnit>  $units
      * @return array<int, string|null> The code by unit id
      */
     public function forUnits(Collection $units): array

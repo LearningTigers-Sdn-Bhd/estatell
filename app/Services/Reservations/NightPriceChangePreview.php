@@ -25,6 +25,7 @@ use App\Services\Folio\NightQuote;
 use App\Services\Folio\QuotedCharge;
 use App\Services\NightAudit\CurrentBusinessDate;
 use Brick\Money\Money;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Collection;
 
 /**
@@ -60,7 +61,7 @@ class NightPriceChangePreview
         }
 
         $ids = array_values(array_unique($nightIds));
-        $nights = $ids === [] ? collect() : $unit->nights()->whereIn('id', $ids)->with('ratePlan.inclusions.chargeItem.transactionCode')->orderBy('date')->get();
+        $nights = $ids === [] ? new EloquentCollection : $unit->nights()->whereIn('id', $ids)->with('ratePlan.inclusions.chargeItem.transactionCode')->orderBy('date')->get();
 
         if ($nights->isEmpty() || $nights->count() !== count($ids)) {
             return NightPricePlan::refused(NightPriceResult::REFUSAL_NIGHTS_INVALID);
@@ -202,7 +203,7 @@ class NightPriceChangePreview
      * The top-level lines of the nights that are not reversed and not a reversal: the room, the inclusions, an earlier
      * correction, and copies moved to another folio (a move keeps the source).
      *
-     * @param  Collection<int, UnitNight>  $nights
+     * @param  EloquentCollection<int, UnitNight>  $nights
      * @return Collection<int, FolioLine>
      */
     private function liveLines(Collection $nights): Collection

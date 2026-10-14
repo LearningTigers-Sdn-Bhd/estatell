@@ -11,6 +11,7 @@ use App\Models\ReservationUnit;
 use App\Services\FrontDesk\CheckOutSettlement;
 use App\Services\Platform\Impersonation;
 use Illuminate\Contracts\Validation\ValidationRule;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\Validator;
@@ -168,7 +169,7 @@ class CheckOutGroupRequest extends FormRequest
     }
 
     /**
-     * @return Collection<int, ReservationUnit>
+     * @return EloquentCollection<int, ReservationUnit>
      */
     protected function reservationUnits(): Collection
     {

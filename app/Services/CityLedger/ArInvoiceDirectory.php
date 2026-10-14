@@ -43,6 +43,15 @@ class ArInvoiceDirectory
         $today = $this->today($property);
 
         return QueryBuilder::for(ArInvoice::query()->where('ar_invoices.property_id', $property->id), $request)
+            ->allowedFilters(
+                AllowedFilter::callback('search', fn (Builder $query, string $search) => $query->where(fn (Builder $query) => $query
+                    ->where('ar_invoices.number', 'ilike', '%'.$search.'%')
+                    ->orWhereHas('company', fn (Builder $company) => $company->where('name', 'ilike', '%'.$search.'%')))),
+                AllowedFilter::callback('type', fn (Builder $query, string $type) => ArInvoiceType::tryFrom($type) === null ? $query : $query->where('ar_invoices.type', $type)),
+                AllowedFilter::callback('status', fn (Builder $query, string $status) => ArInvoiceStatus::tryFrom($status) === null ? $query : $query->where('ar_invoices.status', $status)),
+            )
+            ->allowedSorts('issued_on', 'due_on', 'amount', 'number')
+            ->defaultSort('-issued_on', '-id')
             ->addSelect('ar_invoices.*')
             ->selectSub(
                 ArInvoice::query()
@@ -59,15 +68,6 @@ class ArInvoiceDirectory
                     ->whereNull('ar_allocations.reversed_at'),
                 'allocated',
             )
-            ->allowedFilters(
-                AllowedFilter::callback('search', fn (Builder $query, string $search) => $query->where(fn (Builder $query) => $query
-                    ->where('ar_invoices.number', 'ilike', '%'.$search.'%')
-                    ->orWhereHas('company', fn (Builder $company) => $company->where('name', 'ilike', '%'.$search.'%')))),
-                AllowedFilter::callback('type', fn (Builder $query, string $type) => ArInvoiceType::tryFrom($type) === null ? $query : $query->where('ar_invoices.type', $type)),
-                AllowedFilter::callback('status', fn (Builder $query, string $status) => ArInvoiceStatus::tryFrom($status) === null ? $query : $query->where('ar_invoices.status', $status)),
-            )
-            ->allowedSorts('issued_on', 'due_on', 'amount', 'number')
-            ->defaultSort('-issued_on', '-id')
             ->with('company:id,name')
             ->paginate(self::PER_PAGE)
             ->withQueryString()

@@ -20,6 +20,7 @@ use App\Services\Property\PropertyToday;
 use Carbon\CarbonImmutable;
 use Closure;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Collection;
 
 /**
@@ -225,7 +226,7 @@ class AuditReadiness
      * One item for each reservation: the folios named in the detail, the amounts summed (credits as a positive figure),
      * the payer company or else the booker as the guest, and the first folio as the link target.
      *
-     * @param  Collection<int, Folio>  $folios
+     * @param  EloquentCollection<int, Folio>  $folios
      * @param  Closure(string): string  $phrase
      * @return list<ReadinessItem>
      */

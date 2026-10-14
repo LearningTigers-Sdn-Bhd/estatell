@@ -15,6 +15,7 @@ use App\Models\Reservation;
 use App\Models\ReservationUnit;
 use App\Services\Folio\FolioRefusals;
 use App\Services\Folio\MoveChargesPreview;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Collection;
@@ -96,7 +97,7 @@ class ReservationFolioMoveController extends Controller
     }
 
     /**
-     * @param  Collection<int, ReservationUnit>  $units
+     * @param  EloquentCollection<int, ReservationUnit>  $units
      */
     private function previewData(MoveChargesPreview $preview, Property $property, Reservation $reservation, Folio $target, MoveChargesRequest $request, Collection $units): MovePreviewData
     {
@@ -127,7 +128,7 @@ class ReservationFolioMoveController extends Controller
     /**
      * The rooms with a scheduled choice. One that is not a unit of this reservation is a 404.
      *
-     * @return Collection<int, ReservationUnit>
+     * @return EloquentCollection<int, ReservationUnit>
      */
     private function units(MoveChargesRequest $request, Reservation $reservation): Collection
     {

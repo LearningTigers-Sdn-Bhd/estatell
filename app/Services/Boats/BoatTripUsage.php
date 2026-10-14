@@ -11,6 +11,7 @@ use App\Models\UnitBoatTrip;
 use App\Services\NightAudit\CurrentBusinessDate;
 use App\Services\Property\PropertyToday;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -41,7 +42,7 @@ class BoatTripUsage
      * arrival for Boat in, the departure for Boat out) on or after the business date. Oldest unit first. Pass `$lock`
      * inside a transaction to hold the unit rows.
      *
-     * @return Collection<int, ReservationUnit>
+     * @return EloquentCollection<int, ReservationUnit>
      */
     public function upcomingUnits(BoatDeparture $boatDeparture, CarbonImmutable $businessDate, bool $lock = false): Collection
     {

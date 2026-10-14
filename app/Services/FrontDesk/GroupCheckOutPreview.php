@@ -33,6 +33,7 @@ use App\Services\NightAudit\CurrentBusinessDate;
 use App\Services\Platform\Impersonation;
 use Brick\Math\BigDecimal;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Collection;
 
 /**
@@ -147,7 +148,7 @@ class GroupCheckOutPreview
     /**
      * Whether **Check out all** is offered: 2 or more units, and one is CheckedIn or holds money on a unit folio.
      *
-     * @param  Collection<int, ReservationUnit>  $units
+     * @param  EloquentCollection<int, ReservationUnit>  $units
      */
     public function isOffered(Collection $units): bool
     {

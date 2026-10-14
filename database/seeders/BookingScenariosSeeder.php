@@ -81,6 +81,7 @@ use App\Models\User;
 use App\Services\Folio\FolioBalance;
 use App\Services\Property\PropertyToday;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -747,7 +748,7 @@ class BookingScenariosSeeder extends Seeder
     }
 
     /**
-     * @return Collection<int, ReservationUnit>
+     * @return EloquentCollection<int, ReservationUnit>
      */
     private function units(string $code): Collection
     {
@@ -756,7 +757,7 @@ class BookingScenariosSeeder extends Seeder
 
     /**
      * @param  list<int>|null  $indexes  Unit positions in the booking. Null checks in every unit.
-     * @return Collection<int, ReservationUnit>
+     * @return EloquentCollection<int, ReservationUnit>
      */
     private function pick(string $code, ?array $indexes): Collection
     {

@@ -8,6 +8,7 @@ use App\Models\Folio;
 use App\Models\Reservation;
 use App\Models\ReservationUnit;
 use App\Models\UnitAddOn;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Collection;
 
 /**
@@ -27,7 +28,7 @@ class AddOnBilling
      * `folioLine` and `chargeItem.transactionCode` must be loaded on each add-on. The result is keyed by add-on id.
      *
      * @param  Collection<int, UnitAddOn>  $addOns
-     * @param  Collection<int, ReservationUnit>  $units
+     * @param  EloquentCollection<int, ReservationUnit>  $units
      * @param  array<int, string>  $labels  Unit label by unit id
      * @return array<int, array{folio: ?string, routedTo: ?string}>
      */

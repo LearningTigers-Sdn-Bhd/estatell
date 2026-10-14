@@ -11,6 +11,7 @@ use App\Services\Guests\CountryOptions;
 use App\Services\Property\AmountInWords;
 use Brick\Math\BigDecimal;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Collection;
 
 /**
@@ -68,7 +69,7 @@ class FolioInvoice
     /**
      * Bill to, Stay, Reservation and Your ref, the cells that have a value.
      *
-     * @param  Collection<int, ReservationUnit>  $onFolio
+     * @param  EloquentCollection<int, ReservationUnit>  $onFolio
      * @return list<array{label: string, lines: list<string>}>
      */
     private function strip(Folio $folio, Collection $onFolio): array

@@ -87,6 +87,7 @@ use App\Services\Availability\DayUseAvailability;
 use App\Services\Folio\FolioBalance;
 use App\Services\Property\PropertyToday;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -855,7 +856,7 @@ class SandbaySeeder extends Seeder
     /**
      * Check in every unit of a reservation through `CheckInAllUnits`. A refused unit stops the run.
      *
-     * @return Collection<int, ReservationUnit>
+     * @return EloquentCollection<int, ReservationUnit>
      */
     private function checkIn(User $owner, Reservation $reservation): Collection
     {

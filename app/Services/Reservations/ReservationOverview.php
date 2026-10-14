@@ -9,6 +9,7 @@ use App\Enums\StayType;
 use App\Models\Reservation;
 use App\Models\ReservationUnit;
 use Brick\Math\BigDecimal;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -24,7 +25,7 @@ class ReservationOverview
     /**
      * Expects `booker`, `creator` and `company` to be loaded.
      *
-     * @return array{reservation: ReservationData, units: list<ReservationUnitOptionData>, models: Collection<int, ReservationUnit>}
+     * @return array{reservation: ReservationData, units: list<ReservationUnitOptionData>, models: EloquentCollection<int, ReservationUnit>}
      */
     public function build(Reservation $reservation, bool $canViewGuest): array
     {
@@ -49,7 +50,7 @@ class ReservationOverview
                 balance: $this->balance($reservation),
                 canViewGuest: $canViewGuest,
             ),
-            'units' => $units->map(fn (ReservationUnit $unit): ReservationUnitOptionData => ReservationUnitOptionData::fromModel($unit, $assigned[$unit->id] ?? null))->values()->all(),
+            'units' => array_values($units->map(fn (ReservationUnit $unit): ReservationUnitOptionData => ReservationUnitOptionData::fromModel($unit, $assigned[$unit->id] ?? null))->all()),
             'models' => $units,
         ];
     }
@@ -70,7 +71,7 @@ class ReservationOverview
     }
 
     /**
-     * @param  Collection<int, ReservationUnit>  $units
+     * @param  EloquentCollection<int, ReservationUnit>  $units
      * @return array<int, array{count: int, total: string}> By unit id
      */
     private function nightTotals(Collection $units): array
