@@ -28,23 +28,23 @@ The first release has only the Basics page. It uses the current staff layout. Ba
 | 6   |            | Companies: city ledger companies and their portal users. See [Companies table](#companies-table).                                                                                                                                                                                                         | No       | Basics             |
 | 7   | Prices     | Basic rate: weekday and weekend price per room-sold room type, priced by room or by guest, plus optional more rates. See [Basic rate table](#basic-rate-table).                                                                                                                                           | Yes      | Room types + Taxes |
 | 8   |            | Charge items: starter items and extras with price, unit and taxes. See [Charge items table](#charge-items-table).                                                                                                                                                                                         | No       | Taxes              |
-| 9   |            | Discounts                                                                                                                                                                                                                                                                                                 | No       | Basic rate         |
+| 9   |            | Discounts: the starter discount and more, with type, value and what they apply to. See [Discounts table](#discounts-table).                                                                                                                                                                               | No       | Basics             |
 | 10  | Check-in   | Check-in essentials: check-in and check-out times, ID requirement, terms preset preview                                                                                                                                                                                                                   | Yes      | Basics             |
 | 11  | Team       | Roles and staff: invite staff and choose roles                                                                                                                                                                                                                                                            | No       | Basics             |
 | 12  | Test drive | Practice mode. See [Test drive](06-test-drive.md).                                                                                                                                                                                                                                                        | No       | All required Done  |
 | 13  | Review     | Readiness list and go live. See [Go live](03-go-live.md).                                                                                                                                                                                                                                                 | –        | All required Done  |
 
 ```
-                         1 Basics*
-   ┌─────────┬─────────┬─────┴─────┬───────────┬────────────┐
-   ▼         ▼         ▼           ▼           ▼            ▼
- 2 Room    4 Taxes*  5 Payment   6 Companies  10 Check-in  11 Team
-   types*  │     │     methods*    (opt)                     (opt)
+                              1 Basics*
+   ┌─────────┬─────────┬──────────┼───────────┬────────────┬───────────┐
+   ▼         ▼         ▼          ▼           ▼            ▼           ▼
+ 2 Room    4 Taxes*  5 Payment  6 Companies  9 Discounts  10 Check-in  11 Team
+   types*  │     │     methods*   (opt)        (opt)        essentials*  (opt)
    │   │   │     ▼
    ▼   │   │   8 Charge items (opt)
  3 Rooms*  │
        ▼   ▼
-     7 Basic rate* ──▶ 9 Discounts (opt)
+     7 Basic rate*
 
  all * Done ──▶ 12 Test drive (opt) ──▶ 13 Review / Go live
 ```
@@ -359,6 +359,36 @@ A rate plan has one pricing basis, so the rows map to one plan per basis used:
 - One submit, one transaction, through the charge item Actions used by settings.
 - At phone width each row stacks into a card with ⌄ More options.
 - Check: optional, never blocks. Done when at least one active item has a price or a tax, or Skipped.
+
+## Discounts table
+
+```
+ ┌────┬──────────────────────┬──────────────┬────────────────┬─────────────────────────┬────┐
+ │ On │ Name                 │ Type         │ Value          │ Applies to              │    │
+ ├────┼──────────────────────┼──────────────┼────────────────┼─────────────────────────┼────┤
+ │[●] │[ Discount          ] │[ Open     ▾] │ staff enter it │[ All charges         ▾] │ ⌄  │
+ │[●] │[ Walk-in           ] │[ Percent  ▾] │ [ 10   ] %     │[ Room only           ▾] │ ⌄🗑│
+ │[●] │[ Returning guest   ] │[ Fixed    ▾] │ RM [ 20.00 ]   │[ All charges         ▾] │⌃🗑 │
+ │    ├──────────────────────────────────────────────────────────────────────────────┤    │
+ │    │ Amount when used   [x] Staff can change the amount                           │    │
+ │    │ Code               RETURNING_GUEST  (made from the name)                     │    │
+ │    └──────────────────────────────────────────────────────────────────────────────┘    │
+ ├────┴──────────────────────┴──────────────┴────────────────┴─────────────────────────┴────┤
+ │ [+ Add discount]                                                                         │
+ └──────────────────────────────────────────────────────────────────────────────────────────┘
+ After you go live, you can set long-stay and rate discounts in Rates.
+```
+
+- Optional. Starts with the starter discount from `SeedDiscounts` (Malaysia: **Discount**, Open, All charges). No empty row.
+- **On** is `active`. Discounts are never deleted: a saved one is turned off. 🗑 only on unsaved rows.
+- **Name** is editable and unique, ignoring case (renames the code).
+- **Type** and **Value**: Percent 1 to 100 %, Fixed more than 0 in the property currency, Open with no value ("staff enter it").
+- **Applies to**: Room only (the five room revenue codes), All charges (every charge except tax), or Selected. Selected lists "Room charges" (the five room codes as one tick) and each active charge item, at least one ticked.
+- ⌄ **More options**: **Staff can change the amount** for Fixed only (`allow_override`). Percent shows it locked off and Open locked on, as the database CHECKs require. **Code** is read-only, made from the name. The starter shows "fixed".
+- No example line: a discount applies to a folio, so a sample would mislead.
+- One submit, one transaction, through the discount Actions used by settings.
+- At phone width each row stacks into a card with ⌄ More options.
+- Check: optional, never blocks. Done when at least one discount is active, or Skipped. The starter is active, so this usually shows Done.
 
 ## Section states
 
