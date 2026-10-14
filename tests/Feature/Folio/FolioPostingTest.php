@@ -24,6 +24,7 @@ use App\Models\UnitAddOn;
 use App\Models\User;
 use App\Services\Folio\FolioBalance;
 use App\Services\Folio\FolioRouter;
+use Brick\Math\BigDecimal;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Spatie\Activitylog\Models\Activity;
@@ -374,7 +375,7 @@ test('a transfer takes lines from several source folios in one group and logs no
     $third = FolioLine::factory()->for($otherSource)->create(['transaction_code_id' => $first->transaction_code_id, 'posting_date' => today()->toDateString()]);
     $target = Folio::factory()->create(['property_id' => $setup['property']->id, 'reservation_id' => $first->folio->reservation_id]);
     $logged = Activity::query()->count();
-    $total = bcadd(balanceOf($first->folio), balanceOf($otherSource), 2);
+    $total = (string) BigDecimal::of(balanceOf($first->folio))->plus(balanceOf($otherSource))->toScale(2);
 
     $result = app(TransferLines::class)($setup['actor'], [$first, $third, $second], $target);
 

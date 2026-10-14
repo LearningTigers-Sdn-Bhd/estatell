@@ -80,6 +80,7 @@ use App\Models\RoomType;
 use App\Models\User;
 use App\Services\Folio\FolioBalance;
 use App\Services\Property\PropertyToday;
+use Brick\Math\BigDecimal;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Seeder;
@@ -450,7 +451,7 @@ class BookingScenariosSeeder extends Seeder
 
             foreach (range(1, 7) as $weekday) {
                 $base = in_array($weekday, [5, 6], true) ? $definition['weekend'] : $definition['weekday'];
-                $days[$weekday] = ['amount' => bcadd($base, $supplement, 2), 'occupancy' => []];
+                $days[$weekday] = ['amount' => (string) BigDecimal::of($base)->plus($supplement)->toScale(2), 'occupancy' => []];
             }
 
             $rows[] = ['room_type_id' => $this->roomTypes[$definition['name']]->id, 'days' => $days];
@@ -895,7 +896,7 @@ class BookingScenariosSeeder extends Seeder
         foreach ($folios as $folio) {
             $balance = app(FolioBalance::class)->forFolio($folio);
 
-            if (bccomp($balance, '0', 2) > 0) {
+            if (BigDecimal::of($balance)->isPositive()) {
                 $this->pay($this->reservations[$code], $folio, PaymentMethodType::Cash, PaymentPurpose::Settlement, $balance);
             }
         }

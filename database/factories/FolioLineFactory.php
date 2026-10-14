@@ -6,6 +6,7 @@ use App\Enums\TransactionKind;
 use App\Models\Folio;
 use App\Models\FolioLine;
 use App\Models\TransactionCode;
+use Brick\Math\BigDecimal;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -59,8 +60,8 @@ class FolioLineFactory extends Factory
             'kind' => $line->kind,
             'description' => $line->description,
             'quantity' => $line->quantity,
-            'unit_amount' => bcmul($line->unit_amount, '-1', 2),
-            'amount' => bcmul($line->amount, '-1', 2),
+            'unit_amount' => (string) BigDecimal::of($line->unit_amount)->negated()->toScale(2),
+            'amount' => (string) BigDecimal::of($line->amount)->negated()->toScale(2),
             'reversal_of_id' => $line->id,
             'idempotency_key' => 'reversal:'.$line->id,
         ]);

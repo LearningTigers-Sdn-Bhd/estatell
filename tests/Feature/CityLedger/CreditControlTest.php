@@ -26,6 +26,7 @@ use App\Models\User;
 use App\Services\CityLedger\CreditCheck;
 use App\Services\CityLedger\CreditExposure;
 use App\Services\Reservations\StayTotal;
+use Brick\Math\BigDecimal;
 use Illuminate\Support\Facades\DB;
 use Spatie\Activitylog\Models\Activity;
 
@@ -162,7 +163,7 @@ test('the stay total sums the live units only', function () {
     $total = app(StayTotal::class)->forReservation($reservation);
     ReservationUnit::factory()->for($reservation)->withNights()->create(['status' => UnitStatus::Cancelled]);
 
-    expect(bccomp($total, '0', 2))->toBe(1)
+    expect(BigDecimal::of($total)->isPositive())->toBeTrue()
         ->and(app(StayTotal::class)->forReservation($reservation))->toBe($total);
 });
 

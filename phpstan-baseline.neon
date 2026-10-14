@@ -1177,12 +1177,6 @@ parameters:
 			path: database/factories/FolioLineFactory.php
 
 		-
-			message: '#^Parameter \#1 \$num1 of function bcmul expects numeric\-string, string given\.$#'
-			identifier: argument.type
-			count: 2
-			path: database/factories/FolioLineFactory.php
-
-		-
 			message: '#^Access to an undefined property App\\Models\\Reservation\|Illuminate\\Database\\Eloquent\\Collection\<\(int\|string\), App\\Models\\Reservation\>\:\:\$property_id\.$#'
 			identifier: property.notFound
 			count: 1
@@ -1309,18 +1303,6 @@ parameters:
 			path: database/seeders/BookingScenariosSeeder.php
 
 		-
-			message: '#^Parameter \#1 \$num1 of function bccomp expects numeric\-string, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: database/seeders/BookingScenariosSeeder.php
-
-		-
-			message: '#^Parameter \#2 \$num2 of function bcadd expects numeric\-string, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: database/seeders/BookingScenariosSeeder.php
-
-		-
 			message: '#^Parameter \#3 \$roomIds of callable App\\Actions\\Rooms\\GenerateBeds expects list\<int\>, array\<mixed\> given\.$#'
 			identifier: argument.type
 			count: 1
@@ -1347,12 +1329,6 @@ parameters:
 		-
 			message: '#^Offset ''owner'' might not exist on non\-empty\-array\{owner\?\: App\\Models\\User, manager\?\: App\\Models\\User, front_desk\?\: App\\Models\\User, housekeeping\?\: App\\Models\\User\}\.$#'
 			identifier: offsetAccess.notFound
-			count: 1
-			path: database/seeders/SandbaySeeder.php
-
-		-
-			message: '#^Parameter \#2 \$num2 of function bcadd expects numeric\-string, string given\.$#'
-			identifier: argument.type
 			count: 1
 			path: database/seeders/SandbaySeeder.php
 

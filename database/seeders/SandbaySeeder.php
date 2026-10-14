@@ -86,6 +86,8 @@ use App\Models\User;
 use App\Services\Availability\DayUseAvailability;
 use App\Services\Folio\FolioBalance;
 use App\Services\Property\PropertyToday;
+use Brick\Math\BigDecimal;
+use Brick\Math\RoundingMode;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Seeder;
@@ -539,7 +541,7 @@ class SandbaySeeder extends Seeder
                 $hours = [];
 
                 foreach (range(2, 6) as $count) {
-                    $hours[] = ['hours' => $count, 'amount' => bcmul($nightly, (string) (0.3 + ($count - 2) * 0.1), 2)];
+                    $hours[] = ['hours' => $count, 'amount' => (string) BigDecimal::of($nightly)->multipliedBy(BigDecimal::of('0.3')->plus(BigDecimal::of('0.1')->multipliedBy($count - 2)))->toScale(2, RoundingMode::Down)];
                 }
 
                 $days[$weekday] = ['amount' => null, 'occupancy' => [], 'hours' => $hours];
@@ -583,7 +585,7 @@ class SandbaySeeder extends Seeder
 
             foreach (range(1, 7) as $weekday) {
                 $base = in_array($weekday, [5, 6], true) ? $definition['weekend'] : $definition['weekday'];
-                $days[$weekday] = ['amount' => bcadd($base, $supplement, 2), 'occupancy' => []];
+                $days[$weekday] = ['amount' => (string) BigDecimal::of($base)->plus($supplement)->toScale(2), 'occupancy' => []];
             }
 
             $roomTypes[] = ['room_type_id' => $roomType->id, 'days' => $days];

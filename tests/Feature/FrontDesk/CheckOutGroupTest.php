@@ -30,6 +30,7 @@ use App\Models\UnitNight;
 use App\Models\User;
 use App\Services\Payments\PaymentReceipt;
 use App\Services\Property\PrintProfile;
+use Brick\Math\BigDecimal;
 use Inertia\Testing\AssertableInertia as Assert;
 use Spatie\Activitylog\Models\Activity;
 
@@ -101,7 +102,7 @@ function gcSave(object $test, array $setup, array $rows, array $extra = [], ?Use
 
 function gcBalance(Folio $folio): string
 {
-    return bcadd((string) FolioLine::query()->where('folio_id', $folio->id)->sum('amount'), '0', 2);
+    return (string) BigDecimal::of((string) FolioLine::query()->where('folio_id', $folio->id)->sum('amount'))->toScale(2);
 }
 
 test('ready rooms check out with collect, refund and add to master in one save', function () {

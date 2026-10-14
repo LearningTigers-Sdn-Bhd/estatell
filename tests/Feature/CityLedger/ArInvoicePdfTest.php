@@ -30,6 +30,7 @@ use App\Services\CityLedger\ArInvoiceDocument;
 use App\Services\CityLedger\ArInvoicePrinter;
 use App\Services\CityLedger\CompanyBillTo;
 use App\Services\Property\PrintProfile;
+use Brick\Math\BigDecimal;
 use Carbon\CarbonImmutable;
 
 beforeEach(function () {
@@ -168,7 +169,7 @@ test('the guest payment prints under Paid at the hotel and total minus paid is t
         ->and($document->paid)->toBe('50.00')
         ->and($document->lines->total)->toBe('118.00')
         ->and($invoice->amount)->toBe('68.00')
-        ->and(bcsub($document->lines->total, $document->paid, 2))->toBe($document->amountDue)
+        ->and((string) BigDecimal::of($document->lines->total)->minus($document->paid)->toScale(2))->toBe($document->amountDue)
         ->and($html)->toContain('Paid at the hotel')->toContain('R-1004')->toContain('(50.00)')->toContain('Amount due MYR')->not->toContain('Billed to');
 });
 
