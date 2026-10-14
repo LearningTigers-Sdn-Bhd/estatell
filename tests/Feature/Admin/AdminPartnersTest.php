@@ -4,6 +4,7 @@ use App\Actions\Platform\CreatePartner;
 use App\Actions\Property\IssuePropertyCode;
 use App\Enums\PartnerStatus;
 use App\Models\Partner;
+use App\Models\PartnerInvitation;
 use App\Models\Property;
 use App\Models\User;
 use Illuminate\Database\QueryException;
@@ -210,4 +211,15 @@ test('the Suspended tab lists only suspended partners and the Active tab drops t
             ->has('partners.data', 1)
             ->where('partners.data.0.name', 'Live Stays')
         );
+});
+
+test('add with a temp password refuses an email with an open partner invitation', function () {
+    PartnerInvitation::factory()->create(['email' => 'ops@andaman.test']);
+
+    $this->actingAs($this->admin)
+        ->post(route('admin.partners.store'), $this->input)
+        ->assertSessionHasErrors('email');
+
+    expect(Partner::query()->where('name', 'Andaman Stays')->exists())->toBeFalse()
+        ->and(User::query()->where('email', 'ops@andaman.test')->exists())->toBeFalse();
 });

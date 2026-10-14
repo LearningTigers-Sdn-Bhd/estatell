@@ -53,4 +53,10 @@ class Partner extends Model
     {
         return $this->hasMany(Property::class);
     }
+
+    /** @return HasMany<PartnerInvitation, $this> */
+    public function invitations(): HasMany
+    {
+        return $this->hasMany(PartnerInvitation::class);
+    }
 }

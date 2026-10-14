@@ -39,6 +39,11 @@ class PartnerFactory extends Factory
         });
     }
 
+    public function invited(): static
+    {
+        return $this->state(fn (array $attributes) => ['status' => PartnerStatus::Invited]);
+    }
+
     public function suspended(): static
     {
         return $this->state(fn (array $attributes) => [

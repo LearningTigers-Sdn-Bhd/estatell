@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Actions\Platform\CreatePartnerWithTemporaryPassword;
+use App\Data\Platform\AdminPartnerInvitationRowData;
 use App\Data\Platform\AdminPartnerRowData;
 use App\Enums\PartnerStatus;
 use App\Enums\TemporaryPasswordExportFormat;
@@ -37,6 +38,17 @@ class PartnerController extends Controller
         return Inertia::render('admin/partners/index', [
             'tab' => 'suspended',
             'partners' => AdminPartnerRowData::collect($partnerDirectory->paginate(PartnerStatus::Suspended), PaginatedDataCollection::class),
+        ]);
+    }
+
+    /**
+     * List the open partner invitations. Each row is a partner in the Invited state.
+     */
+    public function invited(PartnerDirectory $partnerDirectory): Response
+    {
+        return Inertia::render('admin/partners/index', [
+            'tab' => 'invited',
+            'invitations' => AdminPartnerInvitationRowData::collect($partnerDirectory->paginateInvitations(), PaginatedDataCollection::class),
         ]);
     }
 

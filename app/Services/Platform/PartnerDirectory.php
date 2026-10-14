@@ -4,6 +4,7 @@ namespace App\Services\Platform;
 
 use App\Enums\PartnerStatus;
 use App\Models\Partner;
+use App\Models\PartnerInvitation;
 use App\Models\User;
 use Illuminate\Pagination\LengthAwarePaginator;
 
@@ -30,6 +31,23 @@ class PartnerDirectory
             ])
             ->latest('created_at')
             ->latest('id')
+            ->paginate(self::PER_PAGE)
+            ->withQueryString();
+    }
+
+    /**
+     * The open partner invitations for the Invited tab, most recently sent first. Expired ones stay listed until
+     * they are resent or revoked.
+     *
+     * @return LengthAwarePaginator<int, PartnerInvitation>
+     */
+    public function paginateInvitations(): LengthAwarePaginator
+    {
+        return PartnerInvitation::query()
+            ->open()
+            ->with(['partner', 'inviter'])
+            ->orderByDesc('last_sent_at')
+            ->orderByDesc('id')
             ->paginate(self::PER_PAGE)
             ->withQueryString();
     }

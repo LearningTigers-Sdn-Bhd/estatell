@@ -909,6 +909,16 @@ error: string | null,
 };
 }
 namespace Platform {
+export type AdminPartnerInvitationRowData = {
+id: number,
+partnerName: string,
+codePrefix: string,
+email: string,
+invitedBy: string | null,
+lastSentAt: string,
+expiresAt: string,
+expired: boolean,
+};
 export type AdminPartnerRowData = {
 id: number,
 name: string,
@@ -962,6 +972,10 @@ verified: boolean,
 deactivated: boolean,
 canSendSetupLink: boolean,
 createdAt: string,
+};
+export type PartnerInvitationPreviewData = {
+email: string,
+partnerName: string,
 };
 export type PlatformSettingsData = {
 requireGoLiveApproval: boolean,

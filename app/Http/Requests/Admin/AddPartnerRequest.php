@@ -2,12 +2,10 @@
 
 namespace App\Http\Requests\Admin;
 
-use App\Models\User;
-use Closure;
+use App\Concerns\PartnerValidationRules;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Str;
-use Illuminate\Validation\Rule;
 
 /**
  * Add a partner and its one login with a temp password. The prefix must be free in the property code counters,
@@ -15,6 +13,8 @@ use Illuminate\Validation\Rule;
  */
 class AddPartnerRequest extends FormRequest
 {
+    use PartnerValidationRules;
+
     public function authorize(): bool
     {
         return true;
@@ -37,26 +37,9 @@ class AddPartnerRequest extends FormRequest
     {
         return [
             'partner_name' => ['required', 'string', 'max:255'],
-            'code_prefix' => [
-                'required',
-                'string',
-                'regex:/^[A-Z]{2}$/',
-                'not_in:ES',
-                Rule::unique('property_code_counters', 'prefix'),
-            ],
+            'code_prefix' => $this->partnerPrefixRules(),
             'name' => ['required', 'string', 'max:255'],
-            'email' => [
-                'required',
-                'string',
-                'lowercase',
-                'email',
-                'max:255',
-                function (string $attribute, mixed $value, Closure $fail): void {
-                    if (User::query()->whereRaw('lower(email) = ?', [$value])->exists()) {
-                        $fail(__('The email has already been taken.'));
-                    }
-                },
-            ],
+            'email' => $this->partnerEmailRules(),
         ];
     }
 
@@ -65,10 +48,6 @@ class AddPartnerRequest extends FormRequest
      */
     public function messages(): array
     {
-        return [
-            'code_prefix.regex' => __('The prefix must be two capital letters.'),
-            'code_prefix.not_in' => __('ES is reserved for direct properties.'),
-            'code_prefix.unique' => __('This prefix is already taken.'),
-        ];
+        return $this->partnerPrefixMessages('code_prefix');
     }
 }

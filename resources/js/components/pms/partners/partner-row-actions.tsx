@@ -1,5 +1,5 @@
 import { Form, router } from '@inertiajs/react';
-import { Copy, Ellipsis, KeyRound, Pause, Play } from 'lucide-react';
+import { Ban, Copy, Ellipsis, KeyRound, Pause, Play, Send } from 'lucide-react';
 import { useState } from 'react';
 import {
     AlertDialog,
@@ -21,6 +21,10 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Spinner } from '@/components/ui/spinner';
 import { reactivate, suspend } from '@/routes/admin/partners';
+import {
+    destroy as revokeInvitation,
+    resend as resendInvitation,
+} from '@/routes/admin/partners/invitations';
 import { reset } from '@/routes/admin/partners/temporary-passwords';
 
 type Partner = Pick<
@@ -148,5 +152,94 @@ export function SuspendedPartnerActions({ partner }: { partner: Partner }) {
                 </DropdownMenuItem>
             </DropdownMenuContent>
         </DropdownMenu>
+    );
+}
+
+type Invitation = Pick<
+    App.Data.Platform.AdminPartnerInvitationRowData,
+    'id' | 'email' | 'partnerName' | 'codePrefix'
+>;
+
+/**
+ * Row actions on the Invited tab. Resend needs no confirm. Revoke confirms, because the link stops working and the
+ * prefix becomes free.
+ */
+export function InvitedPartnerActions({
+    invitation,
+}: {
+    invitation: Invitation;
+}) {
+    const [revoking, setRevoking] = useState(false);
+
+    return (
+        <>
+            <DropdownMenu>
+                <RowActionsTrigger name={invitation.partnerName} />
+                <DropdownMenuContent align="end" className="w-44">
+                    <DropdownMenuItem
+                        onClick={() =>
+                            router.post(
+                                resendInvitation.url({
+                                    partnerInvitation: invitation.id,
+                                }),
+                                {},
+                                { preserveScroll: true },
+                            )
+                        }
+                    >
+                        <Send />
+                        Resend
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                        variant="destructive"
+                        onClick={() => setRevoking(true)}
+                    >
+                        <Ban />
+                        Revoke
+                    </DropdownMenuItem>
+                </DropdownMenuContent>
+            </DropdownMenu>
+            <AlertDialog
+                open={revoking}
+                onOpenChange={(open) => !open && setRevoking(false)}
+            >
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>
+                            Revoke the invitation to {invitation.email}?
+                        </AlertDialogTitle>
+                        <AlertDialogDescription>
+                            The link stops working. The prefix{' '}
+                            {invitation.codePrefix} is free for another partner.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <Form
+                        {...revokeInvitation.form({
+                            partnerInvitation: invitation.id,
+                        })}
+                        options={{ preserveScroll: true }}
+                        onSuccess={() => setRevoking(false)}
+                    >
+                        {({ processing }) => (
+                            <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <Button
+                                    type="submit"
+                                    variant="destructive"
+                                    disabled={processing}
+                                    focusableWhenDisabled
+                                >
+                                    {processing && (
+                                        <Spinner data-icon="inline-start" />
+                                    )}
+                                    Revoke invitation
+                                </Button>
+                            </AlertDialogFooter>
+                        )}
+                    </Form>
+                </AlertDialogContent>
+            </AlertDialog>
+        </>
     );
 }

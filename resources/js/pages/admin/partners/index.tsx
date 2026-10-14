@@ -1,12 +1,13 @@
 import { Head } from '@inertiajs/react';
-import { Handshake, Pause, Plus, Users } from 'lucide-react';
+import { Handshake, Mail, Pause, Users } from 'lucide-react';
 import { useState } from 'react';
 import { DataTable, dataTableColumns } from '@/components/pms/data-table';
 import { DateText } from '@/components/pms/date-text';
 import { EmptyState } from '@/components/pms/empty-state';
-import { AddPartnerDialog } from '@/components/pms/partners/add-partner-dialog';
+import { AddPartnerMenu } from '@/components/pms/partners/add-partner-menu';
 import {
     ActivePartnerActions,
+    InvitedPartnerActions,
     SuspendedPartnerActions,
 } from '@/components/pms/partners/partner-row-actions';
 import { PageHeader } from '@/components/pms/page-header';
@@ -18,7 +19,7 @@ import { ResetTemporaryPassword } from '@/components/pms/temporary-passwords/res
 import { TemporaryPasswordMessageDialog } from '@/components/pms/temporary-passwords/temporary-password-message-dialog';
 import { Button } from '@/components/ui/button';
 import { dashboard } from '@/routes/admin';
-import { index, suspended } from '@/routes/admin/partners';
+import { index, invited, suspended } from '@/routes/admin/partners';
 import {
     exportMethod,
     message,
@@ -26,11 +27,13 @@ import {
 } from '@/routes/admin/partners/temporary-passwords';
 
 type Row = App.Data.Platform.AdminPartnerRowData;
+type InvitationRow = App.Data.Platform.AdminPartnerInvitationRowData;
 
 type Props = {
-    tab: 'active' | 'suspended';
+    tab: 'active' | 'invited' | 'suspended';
     exportFormats?: EnumOption[];
-    partners: Illuminate.LengthAwarePaginator<number, Row>;
+    partners?: Illuminate.LengthAwarePaginator<number, Row>;
+    invitations?: Illuminate.LengthAwarePaginator<number, InvitationRow>;
 };
 
 /**
@@ -119,6 +122,61 @@ const activeColumns = (onShowMessage: (userIds: number[]) => void) => [
     }),
 ];
 
+const invitationColumn = dataTableColumns<InvitationRow>();
+
+const invitationColumns = [
+    invitationColumn.accessor('partnerName', {
+        header: 'Partner',
+        enableSorting: false,
+        cell: (info) => <span className="font-medium">{info.getValue()}</span>,
+    }),
+    invitationColumn.accessor('codePrefix', {
+        header: 'Prefix',
+        enableSorting: false,
+        cell: (info) => <span className="tabular-nums">{info.getValue()}</span>,
+    }),
+    invitationColumn.accessor('email', {
+        header: 'Email',
+        enableSorting: false,
+    }),
+    invitationColumn.accessor('invitedBy', {
+        header: 'Invited by',
+        enableSorting: false,
+        cell: (info) => info.getValue() ?? '—',
+    }),
+    invitationColumn.accessor('lastSentAt', {
+        header: 'Sent',
+        enableSorting: false,
+        cell: (info) => <DateText date={info.getValue()} />,
+    }),
+    invitationColumn.display({
+        id: 'expires',
+        header: 'Expires',
+        cell: (info) => {
+            const invitation = info.row.original;
+
+            return invitation.expired ? (
+                <StatusBadge
+                    status={{
+                        value: 'expired',
+                        label: 'Expired',
+                        tone: 'warning',
+                    }}
+                />
+            ) : (
+                <DateText date={invitation.expiresAt} />
+            );
+        },
+    }),
+    invitationColumn.display({
+        id: 'actions',
+        header: () => <span className="sr-only">Actions</span>,
+        cell: (info) => (
+            <InvitedPartnerActions invitation={info.row.original} />
+        ),
+    }),
+];
+
 const suspendedColumns = [
     ...columns,
     column.accessor('suspendedAt', {
@@ -193,13 +251,13 @@ function SelectionBar({
 export default function PartnersIndex({
     tab,
     partners,
+    invitations,
     exportFormats = [],
 }: Props) {
-    const [addOpen, setAddOpen] = useState(false);
     const [messageUserIds, setMessageUserIds] = useState<number[] | null>(null);
     const [chosen, setChosen] = useState<Set<string>>(new Set());
     // Partners that left the list (suspended, for example) drop out of the selection.
-    const selected = partners.data
+    const selected = (partners?.data ?? [])
         .filter((row) => tab === 'active' && chosen.has(String(row.userId)))
         .map((row) => row.userId);
 
@@ -212,10 +270,9 @@ export default function PartnersIndex({
                     title="Partners"
                     description="Resellers and consultants who bring properties to estatell."
                     actions={
-                        <Button onClick={() => setAddOpen(true)}>
-                            <Plus data-icon="inline-start" />
-                            Add partner
-                        </Button>
+                        <AddPartnerMenu
+                            onAdded={(userId) => setMessageUserIds([userId])}
+                        />
                     }
                 />
 
@@ -229,6 +286,12 @@ export default function PartnersIndex({
                             label: 'Active',
                             icon: Users,
                             href: index(),
+                        },
+                        {
+                            value: 'invited',
+                            label: 'Invited',
+                            icon: Mail,
+                            href: invited(),
                         },
                         {
                             value: 'suspended',
@@ -246,49 +309,70 @@ export default function PartnersIndex({
                             onClear={() => setChosen(new Set())}
                         />
                     )}
-                    <DataTable
-                        columns={
-                            tab === 'active'
-                                ? activeColumns(setMessageUserIds)
-                                : suspendedColumns
-                        }
-                        data={partners.data}
-                        getRowId={(row) => String(row.userId)}
-                        selection={
-                            tab === 'active'
-                                ? { selected: chosen, onChange: setChosen }
-                                : undefined
-                        }
-                        sort=""
-                        onSortChange={() => {}}
-                        pagination={{
-                            currentPage: partners.meta.current_page,
-                            lastPage: partners.meta.last_page,
-                            from: partners.meta.from,
-                            to: partners.meta.to,
-                            total: partners.meta.total,
-                            prevUrl: partners.meta.prev_page_url,
-                            nextUrl: partners.meta.next_page_url,
-                        }}
-                        empty={
-                            <EmptyState
-                                icon={Handshake}
-                                title={
-                                    tab === 'active'
-                                        ? 'No partners yet'
-                                        : 'No suspended partners'
-                                }
-                            />
-                        }
-                    />
+                    {tab !== 'invited' && partners && (
+                        <DataTable
+                            columns={
+                                tab === 'active'
+                                    ? activeColumns(setMessageUserIds)
+                                    : suspendedColumns
+                            }
+                            data={partners.data}
+                            getRowId={(row) => String(row.userId)}
+                            selection={
+                                tab === 'active'
+                                    ? { selected: chosen, onChange: setChosen }
+                                    : undefined
+                            }
+                            sort=""
+                            onSortChange={() => {}}
+                            pagination={{
+                                currentPage: partners.meta.current_page,
+                                lastPage: partners.meta.last_page,
+                                from: partners.meta.from,
+                                to: partners.meta.to,
+                                total: partners.meta.total,
+                                prevUrl: partners.meta.prev_page_url,
+                                nextUrl: partners.meta.next_page_url,
+                            }}
+                            empty={
+                                <EmptyState
+                                    icon={Handshake}
+                                    title={
+                                        tab === 'active'
+                                            ? 'No partners yet'
+                                            : 'No suspended partners'
+                                    }
+                                />
+                            }
+                        />
+                    )}
+                    {tab === 'invited' && invitations && (
+                        <DataTable
+                            columns={invitationColumns}
+                            data={invitations.data}
+                            getRowId={(row) => String(row.id)}
+                            sort=""
+                            onSortChange={() => {}}
+                            pagination={{
+                                currentPage: invitations.meta.current_page,
+                                lastPage: invitations.meta.last_page,
+                                from: invitations.meta.from,
+                                to: invitations.meta.to,
+                                total: invitations.meta.total,
+                                prevUrl: invitations.meta.prev_page_url,
+                                nextUrl: invitations.meta.next_page_url,
+                            }}
+                            empty={
+                                <EmptyState
+                                    icon={Mail}
+                                    title="No open invitations"
+                                />
+                            }
+                        />
+                    )}
                 </TabLinks>
             </div>
 
-            <AddPartnerDialog
-                open={addOpen}
-                onOpenChange={setAddOpen}
-                onAdded={(userId) => setMessageUserIds([userId])}
-            />
             <TemporaryPasswordMessageDialog
                 route={message()}
                 who="partner"
