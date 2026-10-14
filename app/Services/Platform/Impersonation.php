@@ -245,7 +245,7 @@ class Impersonation
      */
     public function allowsMoneyCorrections(int $propertyId): bool
     {
-        return PropertySetting::query()->where('property_id', $propertyId)->first()?->allow_support_money_corrections ?? true;
+        return PropertySetting::query()->where('property_id', $propertyId)->first()->allow_support_money_corrections ?? true;
     }
 
     /**

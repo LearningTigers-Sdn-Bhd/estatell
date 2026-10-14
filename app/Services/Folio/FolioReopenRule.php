@@ -76,7 +76,7 @@ class FolioReopenRule
         }
 
         $property = $folio->loadMissing('property.settings')->property;
-        $timeZone = $property->settings?->time_zone ?? config('app.timezone');
+        $timeZone = $property->settings->time_zone ?? config('app.timezone');
         $closedAt = $folio->closed_at === null ? null : CarbonImmutable::parse($folio->closed_at)->setTimezone($timeZone);
         $today = $this->propertyToday->date($property);
         $when = match (true) {

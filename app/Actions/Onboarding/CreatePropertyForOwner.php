@@ -42,7 +42,7 @@ class CreatePropertyForOwner
 
         [$property, $owner] = DB::transaction(function () use ($admin, $input, $partner, $setupMethod, $type, $verifyOwnerEmail): array {
             $property = (new Property)->forceFill([
-                'code' => ($this->issuePropertyCode)($partner?->code_prefix ?? 'ES'),
+                'code' => ($this->issuePropertyCode)($partner->code_prefix ?? 'ES'),
                 'partner_id' => $partner?->id,
                 'name' => $input['property_name'],
                 'type' => $type,

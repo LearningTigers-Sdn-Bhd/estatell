@@ -176,7 +176,7 @@ class BookingSummary
     private function strip(Reservation $reservation, ?CarbonImmutable $from, ?CarbonImmutable $to, string $timeZone, ?string $dayUseLabel): array
     {
         $cells = [
-            [__('Bill to'), $reservation->company?->name ?? $reservation->booker->full_name],
+            [__('Bill to'), $reservation->company->name ?? $reservation->booker->full_name],
             [__('Stay'), $from === null || $to === null ? '' : ($dayUseLabel !== null ? $from->format('d M Y').' · '.$dayUseLabel : DateRange::long($from, $to).' · '.trans_choice(':count night|:count nights', (int) $from->diffInDays($to)))],
             [__('Booked on'), $reservation->created_at->setTimezone($timeZone)->format('d M Y')],
             [__('Your ref'), trim((string) $reservation->external_reference)],

@@ -49,7 +49,7 @@ class LogIdentityExport
                 'from' => $filters->from,
                 'to' => $filters->to,
                 'rows' => count($rows),
-                'format' => $format?->value ?? 'pdf',
+                'format' => $format->value ?? 'pdf',
             ])
             ->log('Report exported with full ID numbers');
 

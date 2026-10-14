@@ -149,8 +149,8 @@ class FreeUnits
         $last = $stay->includedEnd()->format('Y-m-d');
         $departureDate = CarbonImmutable::parse($last)->addDay()->toDateString();
         $settings = PropertySetting::query()->where('property_id', $roomType->property_id)->first();
-        $arrives = $this->normalize($arrivalTime ?? $settings?->check_in_time ?? '15:00');
-        $departs = $this->normalize($departureTime ?? $settings?->check_out_time ?? '11:00');
+        $arrives = $this->normalize($arrivalTime ?? $settings->check_in_time ?? '15:00');
+        $departs = $this->normalize($departureTime ?? $settings->check_out_time ?? '11:00');
         $blocks = UnitDayUse::query()
             ->join('reservation_units', 'reservation_units.id', '=', 'unit_day_uses.reservation_unit_id')
             ->where('reservation_units.property_id', $roomType->property_id)

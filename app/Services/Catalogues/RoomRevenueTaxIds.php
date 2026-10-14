@@ -29,7 +29,7 @@ class RoomRevenueTaxIds
     {
         $transactionCode = $property->transactionCodes()->where('system_key', $code->value)->with('applicableTaxes')->first();
 
-        return array_values(($transactionCode?->applicableTaxes ?? collect())
+        return array_values(($transactionCode->applicableTaxes ?? collect())
             ->pluck('id')
             ->map(fn (mixed $id): int => (int) $id)
             ->sort()

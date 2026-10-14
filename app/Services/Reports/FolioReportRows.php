@@ -73,7 +73,7 @@ class FolioReportRows
             folioId: $folio->id,
             folio: $folio->number,
             reservation: $reservation->reference,
-            payer: $folio->payerCompany?->name ?? $folio->payerGuest?->full_name ?? $reservation->booker->full_name,
+            payer: $folio->payerCompany->name ?? $folio->payerGuest->full_name ?? $reservation->booker->full_name,
             arrival: $arrival,
             departure: $departure,
             status: $folio->type === FolioType::Unit && $folio->reservationUnit !== null

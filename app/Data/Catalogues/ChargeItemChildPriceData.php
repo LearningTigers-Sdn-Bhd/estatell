@@ -33,7 +33,7 @@ class ChargeItemChildPriceData extends Data
             label: $ageGroup->label,
             minAge: $ageGroup->min_age,
             maxAge: $ageGroup->max_age,
-            pricing: $price?->pricing ?? ($priced ? AgeBandPricing::Percent : AgeBandPricing::Free),
+            pricing: $price->pricing ?? ($priced ? AgeBandPricing::Percent : AgeBandPricing::Free),
             value: $price !== null ? $price->value : ($priced ? '100.00' : null),
         );
     }

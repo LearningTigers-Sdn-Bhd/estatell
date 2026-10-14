@@ -75,7 +75,7 @@ class BoatManifestRow extends Data implements ReportRow
     public static function fromModel(UnitBoatTrip $trip, ReservationUnit $unit, ?string $room): self
     {
         $reservation = $unit->reservation;
-        $occupant = ($unit->guests->firstWhere('is_primary', true) ?? $unit->guests->first())?->guest ?? $reservation->booker;
+        $occupant = ($unit->guests->firstWhere('is_primary', true) ?? $unit->guests->first())->guest ?? $reservation->booker;
         $departure = $trip->boatDeparture;
         $isScheduled = $trip->mode === BoatMode::Scheduled && $departure !== null;
 

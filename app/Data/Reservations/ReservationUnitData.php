@@ -73,7 +73,7 @@ class ReservationUnitData extends Data
         $nights = $unit->nights->sortBy('date')->values();
         $assigned = $isDayUse
             ? collect([$dayUse?->room?->number])
-            : $nights->map(fn (UnitNight $night): ?string => $night->room?->number ?? $night->bed?->label);
+            : $nights->map(fn (UnitNight $night): ?string => $night->room->number ?? $night->bed?->label);
         $primary = $unit->guests->firstWhere('is_primary', true)?->guest;
 
         return new self(
@@ -95,7 +95,7 @@ class ReservationUnitData extends Data
             allNightsAssigned: ($isDayUse || $nights->isNotEmpty()) && $assigned->every(fn (?string $value): bool => $value !== null),
             primaryGuest: $primary?->full_name,
             primaryGuestId: $canViewGuest ? $primary?->id : null,
-            total: $nights->reduce(fn (BigDecimal $sum, UnitNight $night): BigDecimal => $sum->plus($night->amount), BigDecimal::of($dayUse?->amount ?? '0'))->toScale(2)->__toString(),
+            total: $nights->reduce(fn (BigDecimal $sum, UnitNight $night): BigDecimal => $sum->plus($night->amount), BigDecimal::of($dayUse->amount ?? '0'))->toScale(2)->__toString(),
             nights: $nights->map(fn (UnitNight $night): ReservationNightData => ReservationNightData::fromModel($night, in_array($night->id, $chargedNightIds, true)))->all(),
             priceOverrideReason: $overrideReason,
             priceOverrideBy: $overrideBy,

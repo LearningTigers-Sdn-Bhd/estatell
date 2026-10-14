@@ -59,7 +59,7 @@ class FolioPaymentRows
                 }
 
                 $billed = $billed->minus($line->amount);
-                $company = $folios[$line->folio_id]->payerCompany?->name ?? $fallbackCompany;
+                $company = $folios[$line->folio_id]->payerCompany->name ?? $fallbackCompany;
                 $invoice = $invoices->get($line->folio_id);
                 $text = $company === null ? $line->description : __('Billed to :company', ['company' => $company]);
                 $rows[] = new DocumentPayment($date, null, $invoice === null ? $text : $text.', '.__('invoice :number', ['number' => $invoice]), $line->amount);

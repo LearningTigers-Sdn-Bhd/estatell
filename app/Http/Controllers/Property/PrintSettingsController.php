@@ -109,7 +109,7 @@ class PrintSettingsController extends Controller
 
         if ($request->query('document') === 'booking-summary') {
             return $printedPdf->make($property, 'pdf.document-sample', [
-                'currency' => $property->settings?->currency ?? Currency::of('MYR'),
+                'currency' => $property->settings->currency ?? Currency::of('MYR'),
                 'groups' => $sampleDocument->groups($property->printSetting),
                 'settings' => $property->printSetting,
             ])->stream('sample-booking-summary.pdf');

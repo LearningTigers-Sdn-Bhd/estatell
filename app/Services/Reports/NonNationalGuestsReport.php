@@ -110,6 +110,6 @@ class NonNationalGuestsReport implements HasNote, HasTotals, Report
      */
     private function guestOf(ReservationUnit $unit): Guest
     {
-        return $unit->guests->firstWhere('is_primary', true)?->guest ?? $unit->reservation->booker;
+        return $unit->guests->firstWhere('is_primary', true)->guest ?? $unit->reservation->booker;
     }
 }

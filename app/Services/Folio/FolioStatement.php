@@ -68,29 +68,19 @@ class FolioStatement
         $balances = $this->balances($folios);
         $blocks = $this->scheduledRows->forReservation($property, $reservation, $labels);
 
-        $entries = $folios->map(fn (Folio $folio): array => [
-            'key' => (string) $folio->id,
-            'folio' => $folio,
-            'unit' => null,
-            'item' => new FolioRailItemData(
-                (string) $folio->id,
-                $folio->type->value,
-                $this->name($folio, $labels),
-                $folio->payerGuest?->full_name ?? $folio->payerCompany?->name,
-                BadgeData::fromFolioStatus($folio->status),
-                $balances[$folio->id] ?? '0.00',
-            ),
-        ])->values();
+        $entries = $folios->map(fn (Folio $folio): array => $this->entry((string) $folio->id, $folio, null, new FolioRailItemData(
+            (string) $folio->id,
+            $folio->type->value,
+            $this->name($folio, $labels),
+            $folio->payerGuest->full_name ?? $folio->payerCompany?->name,
+            BadgeData::fromFolioStatus($folio->status),
+            $balances[$folio->id] ?? '0.00',
+        )))->values();
 
         $notStarted = collect($blocks)->where('target', null)->pluck('unit')->unique()->values();
 
         foreach ($notStarted as $unitId) {
-            $entries->push([
-                'key' => 'u'.$unitId,
-                'folio' => null,
-                'unit' => $unitId,
-                'item' => new FolioRailItemData('u'.$unitId, 'not_started', __('Unit :unit', ['unit' => $labels[$unitId] ?? '—']), __('Not started'), null, null),
-            ]);
+            $entries->push($this->entry('u'.$unitId, null, $unitId, new FolioRailItemData('u'.$unitId, 'not_started', __('Unit :unit', ['unit' => $labels[$unitId] ?? '—']), __('Not started'), null, null)));
         }
 
         $open = $entries->firstWhere('key', $selected)
@@ -101,6 +91,14 @@ class FolioStatement
             'folios' => $entries->map(fn (array $entry): FolioRailItemData => $entry['item'])->all(),
             'folio' => $open === null ? null : $this->data($reservation, $open, $entries, $units, $blocks, $balances, $can, $labels, $user),
         ];
+    }
+
+    /**
+     * @return array{key: string, folio: Folio|null, unit: int|null, item: FolioRailItemData}
+     */
+    private function entry(string $key, ?Folio $folio, ?int $unit, FolioRailItemData $item): array
+    {
+        return ['key' => $key, 'folio' => $folio, 'unit' => $unit, 'item' => $item];
     }
 
     /**
@@ -183,7 +181,7 @@ class FolioStatement
      */
     public function optionLabel(Folio $folio, array $labels): string
     {
-        return trim($this->name($folio, $labels).' · '.($folio->payerGuest?->full_name ?? $folio->payerCompany?->name), ' ·');
+        return trim($this->name($folio, $labels).' · '.($folio->payerGuest->full_name ?? $folio->payerCompany?->name), ' ·');
     }
 
     /**

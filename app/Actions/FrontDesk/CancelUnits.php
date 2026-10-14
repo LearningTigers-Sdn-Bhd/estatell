@@ -108,6 +108,6 @@ class CancelUnits
 
         return $night?->room?->number !== null
             ? __('Room :number', ['number' => $night->room->number])
-            : ($night?->bed?->label ?? $unit->roomType->name);
+            : ($night->bed->label ?? $unit->roomType->name);
     }
 }

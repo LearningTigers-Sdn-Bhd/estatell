@@ -72,7 +72,7 @@ class TaxReport implements HasTotals, Report
                 key: $key,
                 group: $group,
                 period: $bucket['period'],
-                tax: $tax?->name ?? $codes->get($bucket['codeId'])?->name ?? '',
+                tax: $tax->name ?? $codes->get($bucket['codeId'])->name ?? '',
                 registration: $tax?->registration_number,
                 lines: $bucket['lines'],
                 amount: (string) $bucket['amount']->toScale(2, RoundingMode::HalfUp),

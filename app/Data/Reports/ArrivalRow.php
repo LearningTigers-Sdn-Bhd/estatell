@@ -92,7 +92,7 @@ class ArrivalRow extends Data implements ReportRow
     public static function fromModel(ReservationUnit $unit, ?string $room, string $balance, ?string $boat = null): self
     {
         $reservation = $unit->reservation;
-        $occupant = ($unit->guests->firstWhere('is_primary', true) ?? $unit->guests->first())?->guest ?? $reservation->booker;
+        $occupant = ($unit->guests->firstWhere('is_primary', true) ?? $unit->guests->first())->guest ?? $reservation->booker;
 
         return new self(
             key: $unit->id,

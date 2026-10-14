@@ -74,7 +74,7 @@ class SyncRoutingRules
                     && $rule->reservation_unit_id === null
                     && $rule->transaction_code_id === null
                     && $rule->category === $category
-                    && $rule->target_folio_id === $master?->id;
+                    && $rule->target_folio_id === $master->id;
 
                 if (! $matches) {
                     $rule->delete();

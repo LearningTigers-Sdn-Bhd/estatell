@@ -54,7 +54,7 @@ class ClaimBusinessDate
                 $audit = $businessDate->nightAudit;
                 $resumed = $audit === null ? 0 : NightAudit::query()->whereKey($audit->id)->where('status', AuditStatus::Failed->value)->update([
                     'status' => AuditStatus::Running->value,
-                    'run_by' => $actor?->id ?? $audit->run_by,
+                    'run_by' => $actor->id ?? $audit->run_by,
                     'forced' => $force || $audit->forced,
                     'force_reason' => $force ? $forceReason : $audit->force_reason,
                 ]);

@@ -44,7 +44,7 @@ class FolioFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'type' => FolioType::Unit,
-            'reservation_unit_id' => $unit?->id ?? fn (array $attributes): int => ReservationUnit::factory()->create([
+            'reservation_unit_id' => $unit->id ?? fn (array $attributes): int => ReservationUnit::factory()->create([
                 'reservation_id' => $attributes['reservation_id'],
             ])->id,
         ]);

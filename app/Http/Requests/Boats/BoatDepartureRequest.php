@@ -155,6 +155,6 @@ class BoatDepartureRequest extends FormRequest
             return filter_var($this->input('active'), FILTER_VALIDATE_BOOLEAN);
         }
 
-        return $current?->active ?? true;
+        return $current->active ?? true;
     }
 }

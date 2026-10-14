@@ -12,3 +12,11 @@ parameters:
         - routes/
 
     level: 7
+
+    ignoreErrors:
+        # Seeder::$command is documented as non-null, but it is unset when a seeder runs outside db:seed.
+        # Laravel's own Seeder checks isset($this->command), so the seeders keep ?->.
+        -
+            identifier: nullsafe.neverNull
+            message: '#^Using nullsafe method call on non-nullable type Illuminate\\Console\\Command\. Use \-\> instead\.$#'
+            path: database/seeders/*

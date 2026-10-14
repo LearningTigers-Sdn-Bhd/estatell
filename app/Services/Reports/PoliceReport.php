@@ -56,7 +56,7 @@ class PoliceReport implements Report
 
         $rooms = $this->roomBox->assignmentsForUnits(array_values(array_unique(array_map(fn (array $pair): int => $pair[0]->id, $pairs))));
         $identities = $this->identities->partsForGuests(array_map(fn (array $pair): int => $pair[1]->id, $pairs));
-        $timeZone = $property->loadMissing('settings')->settings?->time_zone ?? config('app.timezone');
+        $timeZone = $property->loadMissing('settings')->settings->time_zone ?? config('app.timezone');
 
         return array_map(fn (array $pair): PoliceReportRow => PoliceReportRow::fromGuest(
             $pair[0],

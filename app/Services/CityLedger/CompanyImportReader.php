@@ -108,7 +108,7 @@ class CompanyImportReader
 
         return [
             ...$values,
-            'type' => $type?->value ?? '',
+            'type' => $type->value ?? '',
             'contact_email' => Str::lower($values['contact_email']),
             'direct_bill_enabled' => $directBill ?? true,
             'billing_country_code' => $country ?? '',

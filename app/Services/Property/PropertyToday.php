@@ -13,7 +13,7 @@ class PropertyToday
 {
     public function date(Property $property): CarbonImmutable
     {
-        $timeZone = $property->settings?->time_zone ?? config('app.timezone');
+        $timeZone = $property->settings->time_zone ?? config('app.timezone');
 
         return CarbonImmutable::now($timeZone)->startOfDay();
     }

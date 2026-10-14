@@ -46,7 +46,7 @@ class NightAuditSheetData extends Data
         $groups = self::groups($readiness->items($property), $property, $advice, $user->can(PermissionEnum::FrontDeskCheckIn->value), $user->can(PermissionEnum::FrontDeskCheckOut->value));
         $blockers = array_values(array_filter($groups, fn (ReadinessGroupData $group): bool => $group->blocker));
         $warnings = array_values(array_filter($groups, fn (ReadinessGroupData $group): bool => ! $group->blocker));
-        $audit = $businessDate?->nightAudit ?? NightAudit::query()->where('property_id', $property->id)->latest('id')->first();
+        $audit = $businessDate->nightAudit ?? NightAudit::query()->where('property_id', $property->id)->latest('id')->first();
 
         return new self(
             date: $businessDate?->date->toDateString(),

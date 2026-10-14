@@ -98,7 +98,7 @@ class UnitActionPreview
         }
 
         $tonight = $unit->nights()->with(['room', 'bed'])->whereDate('date', $businessDate->toDateString())->first();
-        $room = $tonight?->room?->number ?? $tonight?->bed?->label;
+        $room = $tonight->room->number ?? $tonight?->bed?->label;
         $cardRequired = (bool) $property->settings?->card_required_for_check_in;
         $needsNationality = $this->unitNationality->for($unit) === null
             && Tax::query()->where('property_id', $unit->property_id)->where('enabled', true)->where('foreign_guests_only', true)->exists();
@@ -153,7 +153,7 @@ class UnitActionPreview
             $tonight = $unit->nights->first();
             $arrival = $unit->arrival_date->toDateString();
             $ready = $today >= $arrival && $today < $unit->departure_date->toDateString();
-            $room = $tonight?->room?->number ?? $tonight?->bed?->label;
+            $room = $tonight->room->number ?? $tonight?->bed?->label;
 
             $rows[] = [
                 'unitId' => $unit->id,
@@ -221,7 +221,7 @@ class UnitActionPreview
         $night = $unit->nights()->with(['room', 'bed'])->whereDate('date', $from->toDateString())->first();
 
         return new UnitMovePreviewData(
-            current: $night?->room?->number ?? $night?->bed?->label,
+            current: $night->room->number ?? $night?->bed?->label,
             roomTypes: $types->map(fn (RoomType $type): array => ['id' => $type->id, 'name' => $type->name])->all(),
             roomTypeId: $chosen?->id,
             sellsBeds: $own->sell_unit === SellUnit::Bed,
@@ -463,7 +463,7 @@ class UnitActionPreview
         if ($reservation->cancellation_requested_at !== null) {
             $reservation->loadMissing(['company', 'cancellationRequester']);
             $request = [
-                'by' => $reservation->company?->name ?? $reservation->cancellationRequester?->name ?? __('The booker'),
+                'by' => $reservation->company->name ?? $reservation->cancellationRequester->name ?? __('The booker'),
                 'at' => $reservation->cancellation_requested_at->toDateString(),
             ];
         }

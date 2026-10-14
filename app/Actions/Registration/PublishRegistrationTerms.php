@@ -30,7 +30,7 @@ class PublishRegistrationTerms
 
             $terms = $document->versions()->create([
                 'locale' => $locale,
-                'version' => ($latest?->version ?? 0) + 1,
+                'version' => ($latest->version ?? 0) + 1,
                 'body' => $body,
                 'published_at' => now(),
                 'published_by' => $actor->id,

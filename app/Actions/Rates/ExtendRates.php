@@ -79,9 +79,9 @@ class ExtendRates
                         'amount' => $source->amount,
                         'min_stay' => $source->min_stay,
                         'max_stay' => $source->max_stay,
-                        'closed_to_arrival' => $current?->closed_to_arrival ?? false,
-                        'closed_to_departure' => $current?->closed_to_departure ?? false,
-                        'stop_sell' => $current?->stop_sell ?? false,
+                        'closed_to_arrival' => $current->closed_to_arrival ?? false,
+                        'closed_to_departure' => $current->closed_to_departure ?? false,
+                        'stop_sell' => $current->stop_sell ?? false,
                     ];
                     $occupancy[$roomTypeId.'|'.$date->toDateString()] = $source->occupancyPrices
                         ->map(fn ($price): array => ['adults' => $price->adults, 'amount' => $price->amount])

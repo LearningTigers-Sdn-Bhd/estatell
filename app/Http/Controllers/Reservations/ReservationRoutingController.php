@@ -44,7 +44,7 @@ class ReservationRoutingController extends Controller
 
         $folio = $createFolio->thirdParty($reservation, $guest, $company?->id, $request->user());
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => __('Folio :number created for :payer.', ['number' => $folio->number, 'payer' => $guest?->full_name ?? $company?->name])]);
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Folio :number created for :payer.', ['number' => $folio->number, 'payer' => $guest->full_name ?? $company?->name])]);
 
         return to_route('reservations.folio', ['property' => $property, 'reservation' => $reservation, 'folio' => $folio->id]);
     }

@@ -31,7 +31,7 @@ class PackageNightRespreadData extends Data
     {
         $unit = $exception->reservationUnit;
         $target = $unit->nights()->with(['room', 'bed.room', 'ratePlan'])->whereDate('date', $exception->nightAudit->businessDate->date)->firstOrFail();
-        $room = $target->room?->number ?? $target->bed?->room?->number;
+        $room = $target->room->number ?? $target->bed?->room?->number;
 
         return new self(
             title: __('Fix package price').' · '.($room === null ? $unit->roomType->name : __('Room :room', ['room' => $room])).' · '.$target->ratePlan->name,

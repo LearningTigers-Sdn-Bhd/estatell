@@ -25,7 +25,7 @@ class ReservationNightData extends Data
         return new self(
             id: $night->id,
             date: $night->date->toDateString(),
-            assigned: $night->room?->number ?? $night->bed?->label,
+            assigned: $night->room->number ?? $night->bed?->label,
             ratePlan: $night->ratePlan->name,
             amount: $night->amount,
             isOverridden: $night->override_amount !== null,

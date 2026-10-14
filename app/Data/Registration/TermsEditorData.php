@@ -55,7 +55,7 @@ class TermsEditorData extends Data
                 Locale::cases(),
             ),
             version: $latest?->version,
-            body: $latest?->body ?? $preset->body($locale),
+            body: $latest->body ?? $preset->body($locale),
             isDraft: $latest === null,
             publishedAt: $latest?->published_at->toIso8601String(),
             publishedBy: $latest?->publisher?->name,

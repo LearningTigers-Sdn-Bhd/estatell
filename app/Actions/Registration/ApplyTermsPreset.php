@@ -35,7 +35,7 @@ class ApplyTermsPreset
 
             $terms = $document->versions()->create([
                 'locale' => $locale,
-                'version' => ($latest?->version ?? 0) + 1,
+                'version' => ($latest->version ?? 0) + 1,
                 'body' => $body,
                 'preset' => $preset,
                 'preset_version' => $preset->version($locale),

@@ -121,7 +121,7 @@ class SetBoatTrip
                 'direction' => $data->direction->value,
                 'mode' => $data->mode->value,
                 'boat_departure_id' => $boatDepartureId,
-                'boat_time' => substr($departure?->leaves_at ?? $time, 0, 5),
+                'boat_time' => substr($departure->leaves_at ?? $time, 0, 5),
                 'pickup_point' => $departure?->pickup_point,
                 'unit_time' => substr($time, 0, 5),
                 'note' => $note,

@@ -34,7 +34,7 @@ class StartImpersonation
             return null;
         }
 
-        if (! ($property->settings?->allow_support_access ?? true)) {
+        if (! ($property->settings->allow_support_access ?? true)) {
             return null;
         }
 

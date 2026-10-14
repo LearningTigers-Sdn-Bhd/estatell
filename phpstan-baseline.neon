@@ -1,12 +1,6 @@
 parameters:
 	ignoreErrors:
 		-
-			message: '#^Using nullsafe property access "\?\-\>leaves_at" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: app/Actions/Boats/SetBoatTrip.php
-
-		-
 			message: '#^Strict comparison using \!\=\= between int and null will always evaluate to true\.$#'
 			identifier: notIdentical.alwaysTrue
 			count: 1
@@ -181,12 +175,6 @@ parameters:
 			path: app/Actions/Folio/MoveCharges.php
 
 		-
-			message: '#^Using nullsafe property access "\?\-\>name" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: app/Actions/Folio/PostCharge.php
-
-		-
 			message: '#^Parameter \#1 \$num1 of function bcmul expects numeric\-string, string given\.$#'
 			identifier: argument.type
 			count: 2
@@ -195,12 +183,6 @@ parameters:
 		-
 			message: '#^Method App\\Actions\\Folio\\SyncRoutingRules\:\:unitsWithPostedRoomLines\(\) should return list\<int\> but returns array\<int\>\.$#'
 			identifier: return.type
-			count: 1
-			path: app/Actions/Folio/SyncRoutingRules.php
-
-		-
-			message: '#^Using nullsafe property access on non\-nullable type App\\Models\\Folio\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
 			count: 1
 			path: app/Actions/Folio/SyncRoutingRules.php
 
@@ -233,12 +215,6 @@ parameters:
 			identifier: argument.type
 			count: 1
 			path: app/Actions/FrontDesk/CancelUnit.php
-
-		-
-			message: '#^Using nullsafe property access "\?\-\>label" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: app/Actions/FrontDesk/CancelUnits.php
 
 		-
 			message: '#^Parameter \#6 \$childAges of class App\\Services\\Rates\\RateQuoteRequest constructor expects list\<int\>, array\<int\> given\.$#'
@@ -349,18 +325,6 @@ parameters:
 			path: app/Actions/FrontDesk/UndoCheckOut.php
 
 		-
-			message: '#^Using nullsafe property access "\?\-\>id" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: app/Actions/NightAudit/ClaimBusinessDate.php
-
-		-
-			message: '#^Using nullsafe property access "\?\-\>reservation" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: app/Actions/NightAudit/DismissAuditException.php
-
-		-
 			message: '#^Parameter \#8 \$roomDescription of callable App\\Actions\\Folio\\PostNightLines expects string\|null, array\|string\|null given\.$#'
 			identifier: argument.type
 			count: 1
@@ -415,18 +379,6 @@ parameters:
 			path: app/Actions/Onboarding/CreatePropertyForOwner.php
 
 		-
-			message: '#^Using nullsafe property access "\?\-\>code_prefix" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: app/Actions/Onboarding/CreatePropertyForOwner.php
-
-		-
-			message: '#^Using nullsafe property access "\?\-\>code_prefix" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: app/Actions/Onboarding/RegisterPropertyOwner.php
-
-		-
 			message: '#^Parameter \$note of class App\\Notifications\\SupportAccessUsed constructor expects string\|null, int\|string\|null given\.$#'
 			identifier: argument.type
 			count: 1
@@ -437,12 +389,6 @@ parameters:
 			identifier: argument.type
 			count: 1
 			path: app/Actions/Platform/RecordImpersonationEnd.php
-
-		-
-			message: '#^Using nullsafe property access "\?\-\>allow_support_access" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: app/Actions/Platform/StartImpersonation.php
 
 		-
 			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$default_amount\.$#'
@@ -475,46 +421,10 @@ parameters:
 			path: app/Actions/Rates/ExtendRates.php
 
 		-
-			message: '#^Using nullsafe property access "\?\-\>closed_to_arrival" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: app/Actions/Rates/ExtendRates.php
-
-		-
-			message: '#^Using nullsafe property access "\?\-\>closed_to_departure" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: app/Actions/Rates/ExtendRates.php
-
-		-
-			message: '#^Using nullsafe property access "\?\-\>stop_sell" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: app/Actions/Rates/ExtendRates.php
-
-		-
 			message: '#^Parameter \#1 \$array \(list\<int\>\) of array_values is already a list, call has no effect\.$#'
 			identifier: arrayValues.list
 			count: 2
 			path: app/Actions/Rates/ReorderRatePlans.php
-
-		-
-			message: '#^Using nullsafe property access "\?\-\>closed_to_arrival" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: app/Actions/Rates/SaveRates.php
-
-		-
-			message: '#^Using nullsafe property access "\?\-\>closed_to_departure" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: app/Actions/Rates/SaveRates.php
-
-		-
-			message: '#^Using nullsafe property access "\?\-\>stop_sell" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: app/Actions/Rates/SaveRates.php
 
 		-
 			message: '#^Method App\\Actions\\Rates\\UpsertRates\:\:rateIds\(\) should return Illuminate\\Support\\Collection\<string, int\> but returns Illuminate\\Support\\Collection\<non\-falsy\-string, int\>\.$#'
@@ -535,24 +445,6 @@ parameters:
 			path: app/Actions/Rates/UpsertRates.php
 
 		-
-			message: '#^Using nullsafe property access "\?\-\>version" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: app/Actions/Registration/ApplyTermsPreset.php
-
-		-
-			message: '#^Using nullsafe property access "\?\-\>version" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: app/Actions/Registration/PublishRegistrationTerms.php
-
-		-
-			message: '#^Using nullsafe property access "\?\-\>value" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: app/Actions/Reports/LogIdentityExport.php
-
-		-
 			message: '#^Call to function is_int\(\) with int will always evaluate to true\.$#'
 			identifier: function.alreadyNarrowedType
 			count: 1
@@ -574,30 +466,6 @@ parameters:
 			message: '#^Parameter \#1 \$array \(list\<int\>\) of array_values is already a list, call has no effect\.$#'
 			identifier: arrayValues.list
 			count: 2
-			path: app/Actions/Reservations/AddUnit.php
-
-		-
-			message: '#^Using nullsafe property access "\?\-\>arrival_time" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: app/Actions/Reservations/AddUnit.php
-
-		-
-			message: '#^Using nullsafe property access "\?\-\>check_in_time" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: app/Actions/Reservations/AddUnit.php
-
-		-
-			message: '#^Using nullsafe property access "\?\-\>check_out_time" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: app/Actions/Reservations/AddUnit.php
-
-		-
-			message: '#^Using nullsafe property access "\?\-\>departure_time" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
 			path: app/Actions/Reservations/AddUnit.php
 
 		-
@@ -667,12 +535,6 @@ parameters:
 			path: app/Data/Boats/BoatFareRowData.php
 
 		-
-			message: '#^Using nullsafe property access "\?\-\>pricing" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: app/Data/Catalogues/ChargeItemChildPriceData.php
-
-		-
 			message: '#^Parameter \#1 \$num1 of function bccomp expects numeric\-string, string given\.$#'
 			identifier: argument.type
 			count: 1
@@ -697,38 +559,14 @@ parameters:
 			path: app/Data/Guests/GuestRowData.php
 
 		-
-			message: '#^Using nullsafe property access "\?\-\>audit_time" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: app/Data/NightAudit/BusinessDateData.php
-
-		-
-			message: '#^Using nullsafe property access "\?\-\>time_zone" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: app/Data/NightAudit/BusinessDateData.php
-
-		-
 			message: '#^Parameter \$units of class App\\Data\\NightAudit\\NightAuditReservationData constructor expects list\<App\\Data\\Reservations\\ReservationUnitData\>, array\<int, App\\Data\\Reservations\\ReservationUnitData\> given\.$#'
 			identifier: argument.type
 			count: 1
 			path: app/Data/NightAudit/NightAuditReservationData.php
 
 		-
-			message: '#^Using nullsafe property access "\?\-\>nightAudit" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: app/Data/NightAudit/NightAuditSheetData.php
-
-		-
 			message: '#^Parameter \$blockedReason of class App\\Data\\NightAudit\\PackageNightRespreadData constructor expects string\|null, array\|string\|null given\.$#'
 			identifier: argument.type
-			count: 1
-			path: app/Data/NightAudit/PackageNightRespreadData.php
-
-		-
-			message: '#^Using nullsafe property access "\?\-\>number" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
 			count: 1
 			path: app/Data/NightAudit/PackageNightRespreadData.php
 
@@ -823,58 +661,10 @@ parameters:
 			path: app/Data/Registration/TermsDocumentData.php
 
 		-
-			message: '#^Using nullsafe property access "\?\-\>body" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: app/Data/Registration/TermsEditorData.php
-
-		-
-			message: '#^Using nullsafe property access "\?\-\>guest" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: app/Data/Reports/ArrivalRow.php
-
-		-
-			message: '#^Using nullsafe property access "\?\-\>guest" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: app/Data/Reports/BoatManifestRow.php
-
-		-
-			message: '#^Using nullsafe property access "\?\-\>guest" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: app/Data/Reports/DepartureRow.php
-
-		-
-			message: '#^Using nullsafe property access "\?\-\>full_name" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: app/Data/Reports/FolioLedgerRow.php
-
-		-
-			message: '#^Using nullsafe property access "\?\-\>name" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: app/Data/Reports/FolioLedgerRow.php
-
-		-
 			message: '#^Parameter \#2 \$array of function implode expects array\<string\>, array\<int, array\|string\> given\.$#'
 			identifier: argument.type
 			count: 1
 			path: app/Data/Reports/HousekeepingTaskRow.php
-
-		-
-			message: '#^Using nullsafe property access "\?\-\>guest" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: app/Data/Reports/InHouseRow.php
-
-		-
-			message: '#^Using nullsafe property access "\?\-\>name" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: app/Data/Reports/NightAuditHistoryRow.php
 
 		-
 			message: '#^Method App\\Data\\Reports\\ReportTotals\:\:valuesFor\(\) should return array\<string, float\|int\|string\> but returns array\<string, array\|float\|int\|string\>\.$#'
@@ -901,18 +691,6 @@ parameters:
 			path: app/Data/Reservations/ReservationListItemData.php
 
 		-
-			message: '#^Using nullsafe property access "\?\-\>stay_type" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: app/Data/Reservations/ReservationListItemData.php
-
-		-
-			message: '#^Using nullsafe property access "\?\-\>number" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: app/Data/Reservations/ReservationNightData.php
-
-		-
 			message: '#^Parameter \$assigned of class App\\Data\\Reservations\\ReservationUnitData constructor expects list\<string\>, array\<int, non\-falsy\-string\> given\.$#'
 			identifier: argument.type
 			count: 1
@@ -927,18 +705,6 @@ parameters:
 		-
 			message: '#^Parameter \$nights of class App\\Data\\Reservations\\ReservationUnitData constructor expects list\<App\\Data\\Reservations\\ReservationNightData\>, array\<int, App\\Data\\Reservations\\ReservationNightData\> given\.$#'
 			identifier: argument.type
-			count: 1
-			path: app/Data/Reservations/ReservationUnitData.php
-
-		-
-			message: '#^Using nullsafe property access "\?\-\>amount" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: app/Data/Reservations/ReservationUnitData.php
-
-		-
-			message: '#^Using nullsafe property access "\?\-\>number" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
 			count: 1
 			path: app/Data/Reservations/ReservationUnitData.php
 
@@ -1081,24 +847,6 @@ parameters:
 			path: app/Http/Controllers/Partner/PartnerPropertyController.php
 
 		-
-			message: '#^Using nullsafe property access "\?\-\>allow_support_access" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: app/Http/Controllers/Platform/ViewAsController.php
-
-		-
-			message: '#^Using nullsafe property access "\?\-\>allow_support_money_corrections" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: app/Http/Controllers/Platform/ViewAsController.php
-
-		-
-			message: '#^Using nullsafe property access "\?\-\>currency" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: app/Http/Controllers/Property/PrintSettingsController.php
-
-		-
 			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Relations\\HasMany\:\:ordered\(\)\.$#'
 			identifier: method.notFound
 			count: 1
@@ -1115,12 +863,6 @@ parameters:
 			identifier: argument.type
 			count: 1
 			path: app/Http/Controllers/Registration/RegistrationTermsController.php
-
-		-
-			message: '#^Using nullsafe property access "\?\-\>value" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: app/Http/Controllers/Reports/BoatManifestReportController.php
 
 		-
 			message: '#^Parameter \#3 \$departureIds of method App\\Services\\Boats\\BoatSeats\:\:forDate\(\) expects list\<int\>, array\<int\> given\.$#'
@@ -1141,34 +883,10 @@ parameters:
 			path: app/Http/Controllers/Reservations/ReservationBookingController.php
 
 		-
-			message: '#^Using nullsafe property access "\?\-\>check_in_time" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: app/Http/Controllers/Reservations/ReservationBookingController.php
-
-		-
-			message: '#^Using nullsafe property access "\?\-\>check_out_time" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: app/Http/Controllers/Reservations/ReservationBookingController.php
-
-		-
-			message: '#^Using nullsafe property access "\?\-\>time_zone" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: app/Http/Controllers/Reservations/ReservationBookingController.php
-
-		-
 			message: '#^Parameter \#7 \$chargedNightIds of static method App\\Data\\Reservations\\ReservationUnitData\:\:fromModel\(\) expects list\<int\>, array\<int\> given\.$#'
 			identifier: argument.type
 			count: 1
 			path: app/Http/Controllers/Reservations/ReservationController.php
-
-		-
-			message: '#^Using nullsafe property access "\?\-\>reservation_unit_id" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: app/Http/Controllers/Reservations/ReservationFolioController.php
 
 		-
 			message: '#^Parameter \#3 \$lines of callable App\\Actions\\Folio\\MoveCharges expects list\<App\\Models\\FolioLine\>, array\<int, App\\Models\\FolioLine\> given\.$#'
@@ -1187,18 +905,6 @@ parameters:
 			identifier: argument.type
 			count: 1
 			path: app/Http/Controllers/Reservations/ReservationFolioMoveController.php
-
-		-
-			message: '#^Using nullsafe property access "\?\-\>name" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: app/Http/Controllers/Reservations/ReservationGroupCheckOutController.php
-
-		-
-			message: '#^Using nullsafe property access "\?\-\>full_name" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: app/Http/Controllers/Reservations/ReservationRoutingController.php
 
 		-
 			message: '#^Parameter \#4 \$tagNames of callable App\\Actions\\Guests\\UpdateGuest expects list\<string\>, array\<mixed\> given\.$#'
@@ -1265,12 +971,6 @@ parameters:
 			identifier: property.notFound
 			count: 1
 			path: app/Http/Middleware/HandleInertiaRequests.php
-
-		-
-			message: '#^Using nullsafe property access "\?\-\>active" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: app/Http/Requests/Boats/BoatDepartureRequest.php
 
 		-
 			message: '#^Method App\\Http\\Requests\\CityLedger\\UpdateCompanyRatePlansRequest\:\:ratePlanIds\(\) should return list\<int\> but returns array\<int\>\.$#'
@@ -1495,24 +1195,6 @@ parameters:
 			path: app/Navigation/SettingsNavigation.php
 
 		-
-			message: '#^Using nullsafe property access "\?\-\>error_message" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: app/Notifications/NightAuditFailed.php
-
-		-
-			message: '#^Using nullsafe property access "\?\-\>name" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: app/Notifications/PartnerInvitationNotification.php
-
-		-
-			message: '#^Using nullsafe property access "\?\-\>name" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: app/Notifications/StaffInvitationNotification.php
-
-		-
 			message: '#^Access to an undefined property object\:\:\$property\.$#'
 			identifier: property.notFound
 			count: 3
@@ -1579,18 +1261,6 @@ parameters:
 			path: app/Services/Availability/FreeUnits.php
 
 		-
-			message: '#^Using nullsafe property access "\?\-\>check_in_time" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: app/Services/Availability/FreeUnits.php
-
-		-
-			message: '#^Using nullsafe property access "\?\-\>check_out_time" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: app/Services/Availability/FreeUnits.php
-
-		-
 			message: '#^Access to an undefined property App\\Models\\BoatDeparture\:\:\$departures\.$#'
 			identifier: property.notFound
 			count: 1
@@ -1607,12 +1277,6 @@ parameters:
 			identifier: argument.type
 			count: 1
 			path: app/Services/Catalogues/PolicyChargeCalculator.php
-
-		-
-			message: '#^Using nullsafe property access "\?\-\>applicableTaxes" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: app/Services/Catalogues/RoomRevenueTaxIds.php
 
 		-
 			message: '#^Parameter \#1 \$num1 of function bcadd expects numeric\-string, string given\.$#'
@@ -1807,12 +1471,6 @@ parameters:
 			path: app/Services/CityLedger/CompanyImportReader.php
 
 		-
-			message: '#^Using nullsafe property access "\?\-\>value" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: app/Services/CityLedger/CompanyImportReader.php
-
-		-
 			message: '#^Method App\\Services\\CityLedger\\CompanyOptions\:\:active\(\) should return list\<App\\Data\\CityLedger\\CompanyOptionData\> but returns array\<int, App\\Data\\CityLedger\\CompanyOptionData\>\.$#'
 			identifier: return.type
 			count: 1
@@ -1939,34 +1597,10 @@ parameters:
 			path: app/Services/Folio/FolioDocumentRows.php
 
 		-
-			message: '#^Using nullsafe property access "\?\-\>name" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: app/Services/Folio/FolioPaymentRows.php
-
-		-
 			message: '#^Binary operation "\." between array\<string\>\|string and '' '' results in an error\.$#'
 			identifier: binaryOp.invalid
 			count: 1
 			path: app/Services/Folio/FolioReopenRule.php
-
-		-
-			message: '#^Using nullsafe property access "\?\-\>time_zone" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: app/Services/Folio/FolioReopenRule.php
-
-		-
-			message: '#^Using nullsafe property access "\?\-\>targetFolio" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: app/Services/Folio/FolioRouter.php
-
-		-
-			message: '#^Using nullsafe property access "\?\-\>target_folio_id" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: app/Services/Folio/FolioRouter.php
 
 		-
 			message: '#^Call to an undefined method Illuminate\\Support\\Collection\<int, App\\Models\\Folio\>\:\:modelKeys\(\)\.$#'
@@ -2017,19 +1651,7 @@ parameters:
 			path: app/Services/Folio/FolioStatement.php
 
 		-
-			message: '#^Parameter \#1 \.\.\.\$values of method Illuminate\\Support\\Collection\<int,array\<string, App\\Data\\Folio\\FolioRailItemData\|App\\Models\\Folio\|string\|null\>\>\:\:push\(\) expects array\{key\: string, folio\: App\\Models\\Folio, unit\: null, item\: App\\Data\\Folio\\FolioRailItemData\}, array\{key\: non\-falsy\-string, folio\: null, unit\: mixed, item\: App\\Data\\Folio\\FolioRailItemData\} given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Services/Folio/FolioStatement.php
-
-		-
 			message: '#^Parameter \#2 \$unitIds of method App\\Services\\Folio\\FolioStatement\:\:payerUnits\(\) expects list\<int\>, array\<int, int\> given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Services/Folio/FolioStatement.php
-
-		-
-			message: '#^Parameter \#3 \$entries of method App\\Services\\Folio\\FolioStatement\:\:data\(\) expects Illuminate\\Support\\Collection\<int, array\{key\: string, folio\: App\\Models\\Folio\|null, unit\: int\|null, item\: App\\Data\\Folio\\FolioRailItemData\}\>, Illuminate\\Support\\Collection\<int, array\{key\: string, folio\: App\\Models\\Folio, unit\: null, item\: App\\Data\\Folio\\FolioRailItemData\}\> given\.$#'
 			identifier: argument.type
 			count: 1
 			path: app/Services/Folio/FolioStatement.php
@@ -2077,15 +1699,9 @@ parameters:
 			path: app/Services/Folio/FolioStatement.php
 
 		-
-			message: '#^Using nullsafe property access "\?\-\>full_name" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 2
-			path: app/Services/Folio/FolioStatement.php
-
-		-
 			message: '#^Using nullsafe property access on non\-nullable type App\\Models\\Folio\. Use \-\> instead\.$#'
 			identifier: nullsafe.neverNull
-			count: 2
+			count: 1
 			path: app/Services/Folio/FolioStatement.php
 
 		-
@@ -2245,24 +1861,6 @@ parameters:
 			path: app/Services/FrontDesk/GroupCheckOutPreview.php
 
 		-
-			message: '#^Using nullsafe property access "\?\-\>amount" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: app/Services/FrontDesk/GroupCheckOutPreview.php
-
-		-
-			message: '#^Using nullsafe property access "\?\-\>name" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: app/Services/FrontDesk/GroupCheckOutPreview.php
-
-		-
-			message: '#^Using nullsafe property access "\?\-\>refundAmount" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: app/Services/FrontDesk/GroupCheckOutPreview.php
-
-		-
 			message: '#^Call to an undefined method Illuminate\\Support\\Collection\<int, App\\Models\\Folio\>\:\:modelKeys\(\)\.$#'
 			identifier: method.notFound
 			count: 1
@@ -2301,12 +1899,6 @@ parameters:
 		-
 			message: '#^Parameter \$bedBlocks of static method App\\Data\\Housekeeping\\HousekeepingRoomData\:\:forRoom\(\) expects list\<App\\Data\\Housekeeping\\HousekeepingBedBlockData\>, array\<int, App\\Data\\Housekeeping\\HousekeepingBedBlockData\> given\.$#'
 			identifier: argument.type
-			count: 1
-			path: app/Services/Housekeeping/HousekeepingBoardBuilder.php
-
-		-
-			message: '#^Using nullsafe property access "\?\-\>room_id" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
 			count: 1
 			path: app/Services/Housekeeping/HousekeepingBoardBuilder.php
 
@@ -2443,26 +2035,8 @@ parameters:
 			path: app/Services/Notifications/NotificationPreferences.php
 
 		-
-			message: '#^Using nullsafe property access "\?\-\>enabled" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 2
-			path: app/Services/Notifications/NotificationPreferences.php
-
-		-
 			message: '#^Parameter \#1 \$liveStatuses of static method App\\Enums\\PaymentStage\:\:forMaster\(\) expects list\<App\\Enums\\UnitStatus\>, array\<mixed\> given\.$#'
 			identifier: argument.type
-			count: 1
-			path: app/Services/Payments/PaymentPurposeChoices.php
-
-		-
-			message: '#^Using nullsafe property access "\?\-\>reservation_unit_id" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: app/Services/Payments/PaymentPurposeChoices.php
-
-		-
-			message: '#^Using nullsafe property access "\?\-\>type" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
 			count: 1
 			path: app/Services/Payments/PaymentPurposeChoices.php
 
@@ -2481,12 +2055,6 @@ parameters:
 		-
 			message: '#^Method App\\Services\\Platform\\Impersonation\:\:session\(\) should return array\{support_user_id\: int, user_id\: int, property_id\: int, reason\: string, note\: string\|null, started_at\: string, return_url\: string\}\|null but returns non\-empty\-array\|null\.$#'
 			identifier: return.type
-			count: 1
-			path: app/Services/Platform/Impersonation.php
-
-		-
-			message: '#^Using nullsafe property access "\?\-\>allow_support_money_corrections" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
 			count: 1
 			path: app/Services/Platform/Impersonation.php
 
@@ -2549,12 +2117,6 @@ parameters:
 			identifier: greaterOrEqual.alwaysTrue
 			count: 1
 			path: app/Services/Property/CurrencyOptions.php
-
-		-
-			message: '#^Using nullsafe property access "\?\-\>time_zone" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: app/Services/Property/PropertyToday.php
 
 		-
 			message: '#^Expression on left side of \?\? is not nullable\.$#'
@@ -2689,12 +2251,6 @@ parameters:
 			path: app/Services/Registration/RegistrationCardRequirement.php
 
 		-
-			message: '#^Using nullsafe property access "\?\-\>registration_card_scope" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: app/Services/Registration/RegistrationCardRequirement.php
-
-		-
 			message: '#^Method App\\Services\\Registration\\RegistrationCardSnapshot\:\:guestValues\(\) should return array\<string, string\> but returns array\<string, array\|string\>\.$#'
 			identifier: return.type
 			count: 1
@@ -2743,18 +2299,6 @@ parameters:
 			path: app/Services/Reports/FolioReportRows.php
 
 		-
-			message: '#^Using nullsafe property access "\?\-\>full_name" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: app/Services/Reports/FolioReportRows.php
-
-		-
-			message: '#^Using nullsafe property access "\?\-\>name" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: app/Services/Reports/FolioReportRows.php
-
-		-
 			message: '#^Method App\\Services\\Reports\\MealCountsReport\:\:rows\(\) should return list\<App\\Data\\Reports\\MealCountRow\> but returns array\<int, App\\Data\\Reports\\MealCountRow\>\.$#'
 			identifier: return.type
 			count: 1
@@ -2797,12 +2341,6 @@ parameters:
 			path: app/Services/Reports/NonNationalGuestsReport.php
 
 		-
-			message: '#^Using nullsafe property access "\?\-\>guest" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: app/Services/Reports/NonNationalGuestsReport.php
-
-		-
 			message: '#^Method App\\Services\\Reports\\OccupancyReport\:\:rows\(\) should return list\<App\\Data\\Reports\\OccupancyRow\> but returns array\<int, App\\Data\\Reports\\OccupancyRow\>\.$#'
 			identifier: return.type
 			count: 1
@@ -2815,12 +2353,6 @@ parameters:
 			path: app/Services/Reports/PaymentsReport.php
 
 		-
-			message: '#^Using nullsafe property access "\?\-\>time_zone" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: app/Services/Reports/PoliceReport.php
-
-		-
 			message: '#^Method App\\Services\\Reports\\ReportPage\:\:sort\(\) should return array\{list\<TRow of App\\Data\\Reports\\ReportRow&Spatie\\LaravelData\\Data\>, string\} but returns array\{array\<int, App\\Data\\Reports\\ReportRow&Spatie\\LaravelData\\Data\>, string\}\.$#'
 			identifier: return.type
 			count: 1
@@ -2831,24 +2363,6 @@ parameters:
 			identifier: property.notFound
 			count: 2
 			path: app/Services/Reports/ReportPdf.php
-
-		-
-			message: '#^Using nullsafe property access "\?\-\>code" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: app/Services/Reports/RevenueReport.php
-
-		-
-			message: '#^Using nullsafe property access "\?\-\>name" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: app/Services/Reports/RevenueReport.php
-
-		-
-			message: '#^Using nullsafe property access "\?\-\>name" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 2
-			path: app/Services/Reports/TaxReport.php
 
 		-
 			message: '#^Method App\\Services\\Reports\\UnitReportRows\:\:rows\(\) should return list\<TRow\> but returns array\<int, TRow\>\.$#'
@@ -2895,12 +2409,6 @@ parameters:
 		-
 			message: '#^Parameter \$rooms of class App\\Services\\Reservations\\BookingSummaryDocument constructor expects list\<string\>, array\<int, string\> given\.$#'
 			identifier: argument.type
-			count: 1
-			path: app/Services/Reservations/BookingSummary.php
-
-		-
-			message: '#^Using nullsafe property access "\?\-\>name" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
 			count: 1
 			path: app/Services/Reservations/BookingSummary.php
 
@@ -3085,12 +2593,6 @@ parameters:
 			path: app/Services/Reservations/ReservationGuestRows.php
 
 		-
-			message: '#^Using nullsafe property access "\?\-\>full_name" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: app/Services/Reservations/ReservationGuestRows.php
-
-		-
 			message: '#^Method App\\Services\\Reservations\\ReservationOverview\:\:build\(\) should return array\{reservation\: App\\Data\\Reservations\\ReservationData, units\: list\<App\\Data\\Reservations\\ReservationUnitOptionData\>, models\: Illuminate\\Support\\Collection\<int, App\\Models\\ReservationUnit\>\} but returns array\{reservation\: App\\Data\\Reservations\\ReservationData, units\: array\<int, App\\Data\\Reservations\\ReservationUnitOptionData\>, models\: Illuminate\\Database\\Eloquent\\Collection\<int, App\\Models\\ReservationUnit\>\}\.$#'
 			identifier: return.type
 			count: 1
@@ -3099,12 +2601,6 @@ parameters:
 		-
 			message: '#^Parameter \#1 \$unitIds of method App\\Services\\Reservations\\ReservationRoomBox\:\:assignmentsForUnits\(\) expects list\<int\>, array\<mixed\> given\.$#'
 			identifier: argument.type
-			count: 1
-			path: app/Services/Reservations/ReservationOverview.php
-
-		-
-			message: '#^Using nullsafe property access "\?\-\>stay_type" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
 			count: 1
 			path: app/Services/Reservations/ReservationOverview.php
 
@@ -3193,18 +2689,6 @@ parameters:
 			path: app/Services/Reservations/UnitActionPreview.php
 
 		-
-			message: '#^Using nullsafe property access "\?\-\>name" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 2
-			path: app/Services/Reservations/UnitActionPreview.php
-
-		-
-			message: '#^Using nullsafe property access "\?\-\>number" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 3
-			path: app/Services/Reservations/UnitActionPreview.php
-
-		-
 			message: '#^Call to an undefined method Illuminate\\Support\\Collection\<int, App\\Models\\ReservationUnit\>\:\:loadMissing\(\)\.$#'
 			identifier: method.notFound
 			count: 1
@@ -3243,12 +2727,6 @@ parameters:
 		-
 			message: '#^Parameter \#1 \$property of callable App\\Services\\NightAudit\\NextDocumentNumber expects App\\Models\\Property, App\\Models\\Property\|Illuminate\\Database\\Eloquent\\Collection\<\(int\|string\), App\\Models\\Property\> given\.$#'
 			identifier: argument.type
-			count: 1
-			path: database/factories/FolioFactory.php
-
-		-
-			message: '#^Using nullsafe property access "\?\-\>id" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
 			count: 1
 			path: database/factories/FolioFactory.php
 
@@ -3361,12 +2839,6 @@ parameters:
 			path: database/factories/UnitAddOnFactory.php
 
 		-
-			message: '#^Using nullsafe property access "\?\-\>id" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: database/factories/UnitAddOnFactory.php
-
-		-
 			message: '#^Access to an undefined property App\\Models\\ReservationUnit\|Illuminate\\Database\\Eloquent\\Collection\<\(int\|string\), App\\Models\\ReservationUnit\>\:\:\$property_id\.$#'
 			identifier: property.notFound
 			count: 1
@@ -3377,18 +2849,6 @@ parameters:
 			identifier: property.notFound
 			count: 1
 			path: database/factories/UnitNightFactory.php
-
-		-
-			message: '#^Using nullsafe property access "\?\-\>id" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: database/factories/UserFactory.php
-
-		-
-			message: '#^Using nullsafe method call on non\-nullable type Illuminate\\Console\\Command\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: database/seeders/AdminSeeder.php
 
 		-
 			message: '#^Call to an undefined method Illuminate\\Support\\Collection\<int, App\\Models\\ReservationUnit\>\:\:modelKeys\(\)\.$#'
@@ -3439,12 +2899,6 @@ parameters:
 			path: database/seeders/BookingScenariosSeeder.php
 
 		-
-			message: '#^Using nullsafe method call on non\-nullable type Illuminate\\Console\\Command\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 6
-			path: database/seeders/BookingScenariosSeeder.php
-
-		-
 			message: '#^Offset ''front_desk''\|''housekeeping''\|''manager'' might not exist on non\-empty\-array\{owner\?\: App\\Models\\User, manager\?\: App\\Models\\User, front_desk\?\: App\\Models\\User, housekeeping\?\: App\\Models\\User\}\.$#'
 			identifier: offsetAccess.notFound
 			count: 1
@@ -3466,10 +2920,4 @@ parameters:
 			message: '#^Parameter \#3 \$unitIds of callable App\\Actions\\FrontDesk\\CheckInAllUnits expects list\<int\>, array\<int, \(int\|string\)\> given\.$#'
 			identifier: argument.type
 			count: 1
-			path: database/seeders/SandbaySeeder.php
-
-		-
-			message: '#^Using nullsafe method call on non\-nullable type Illuminate\\Console\\Command\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 7
 			path: database/seeders/SandbaySeeder.php

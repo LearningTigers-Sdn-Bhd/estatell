@@ -293,7 +293,7 @@ class GroupCheckOutPreview
             $master->id,
             $this->moveChargesPreview->folioLabel($master),
             $this->folioBalance->forFolio($master),
-            $company?->name ?? $reservation->group_name ?? $this->moveChargesPreview->folioLabel($master),
+            $company->name ?? $reservation->group_name ?? $this->moveChargesPreview->folioLabel($master),
             $company?->name,
             $company !== null && $company->direct_bill_enabled && $user->can(PermissionEnum::CityLedgerInvoice->value),
         );
@@ -346,7 +346,7 @@ class GroupCheckOutPreview
                 $move = $move->plus($row->moveAmount);
                 $refund = $refund->plus($row->refundOnMove);
             } elseif ($choice === 'collect') {
-                $amount = $byUnit?->get($row->unitId)?->collect?->amount ?? $row->collectAmount;
+                $amount = $byUnit?->get($row->unitId)->collect->amount ?? $row->collectAmount;
 
                 if ($onePayment === null) {
                     $collect = $collect->plus($amount);
@@ -355,7 +355,7 @@ class GroupCheckOutPreview
                     $refund = $refund->plus($row->refundOnMove);
                 }
             } elseif ($choice === 'refund') {
-                $refund = $refund->plus($byUnit?->get($row->unitId)?->refundAmount ?? $row->refundAmount);
+                $refund = $refund->plus($byUnit?->get($row->unitId)->refundAmount ?? $row->refundAmount);
             }
         }
 

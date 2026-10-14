@@ -33,7 +33,7 @@ class FolioRouter
             ->sortByDesc(fn (FolioRoutingRule $rule): int => $this->specificity($rule))
             ->first();
 
-        return $rule?->targetFolio ?? $this->unitFolio($unit);
+        return $rule->targetFolio ?? $this->unitFolio($unit);
     }
 
     /**
@@ -71,7 +71,7 @@ class FolioRouter
             ->pluck('id', 'reservation_unit_id')
             ->all();
 
-        return fn (ReservationUnit $unit, TransactionCode $code): ?int => $this->pick($rules, $unit, $code)?->target_folio_id
+        return fn (ReservationUnit $unit, TransactionCode $code): ?int => $this->pick($rules, $unit, $code)->target_folio_id
             ?? ($unitFolioIds[$unit->id] ?? null);
     }
 

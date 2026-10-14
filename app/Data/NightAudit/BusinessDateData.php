@@ -33,8 +33,8 @@ class BusinessDateData extends Data
         return new self(
             date: $businessDate->date->toDateString(),
             status: $businessDate->status,
-            timeZone: $settings?->time_zone ?? config('app.timezone'),
-            auditTime: substr($settings?->audit_time ?? '02:00', 0, 5),
+            timeZone: $settings->time_zone ?? config('app.timezone'),
+            auditTime: substr($settings->audit_time ?? '02:00', 0, 5),
             serverNow: now()->toIso8601String(),
         );
     }

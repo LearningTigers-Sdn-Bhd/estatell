@@ -105,7 +105,7 @@ class HousekeepingBoardBuilder
             }
 
             $night = $unit->nights->first(fn ($candidate): bool => $candidate->date->toDateString() === ($departing ? $date->subDay() : $date)->toDateString());
-            $roomId = $night?->room_id ?? $night?->bed?->room_id;
+            $roomId = $night->room_id ?? $night?->bed?->room_id;
 
             if ($roomId === null) {
                 continue;

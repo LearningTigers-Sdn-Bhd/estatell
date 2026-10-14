@@ -109,7 +109,7 @@ class NightAuditHistoryRow extends Data implements ReportRow
             date: $date,
             status: BadgeData::fromAuditStatus($audit->status),
             trigger: $audit->trigger->label(),
-            run_by: $audit->runBy?->name ?? '',
+            run_by: $audit->runBy->name ?? '',
             started: $time($started, 'j M Y H:i'),
             started_date: $time($started, 'j M Y'),
             started_time: $time($started, 'H:i'),

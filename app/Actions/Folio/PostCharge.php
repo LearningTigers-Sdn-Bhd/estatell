@@ -141,7 +141,7 @@ class PostCharge
                 $actor,
                 $folio,
                 $code,
-                filled($data->description) ? trim((string) $data->description) : ($addOn instanceof UnitAddOn ? AddOnLabel::for($addOn) : ($item?->name ?? $code->name)),
+                filled($data->description) ? trim((string) $data->description) : ($addOn instanceof UnitAddOn ? AddOnLabel::for($addOn) : ($item->name ?? $code->name)),
                 $data->quantity,
                 $unitAmount,
                 $tax,

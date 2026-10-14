@@ -34,7 +34,7 @@ class RegisterPropertyOwner
     {
         return DB::transaction(function () use ($input, $partner): User {
             $property = (new Property)->forceFill([
-                'code' => ($this->issuePropertyCode)($partner?->code_prefix ?? 'ES'),
+                'code' => ($this->issuePropertyCode)($partner->code_prefix ?? 'ES'),
                 'partner_id' => $partner?->id,
                 'name' => $input['property_name'],
                 'status' => PropertyStatus::Onboarding,

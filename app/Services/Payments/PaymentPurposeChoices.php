@@ -28,7 +28,7 @@ class PaymentPurposeChoices
      */
     public function for(Reservation $reservation, ?Folio $folio, ?int $entryUnitId): array
     {
-        $type = $folio?->type ?? FolioType::Unit;
+        $type = $folio->type ?? FolioType::Unit;
 
         if ($type === FolioType::ThirdParty) {
             return PaymentPurpose::forStage($type, PaymentStage::InHouse);
@@ -45,7 +45,7 @@ class PaymentPurposeChoices
 
         $unit = ReservationUnit::query()
             ->where('reservation_id', $reservation->id)
-            ->find($folio?->reservation_unit_id ?? $entryUnitId);
+            ->find($folio->reservation_unit_id ?? $entryUnitId);
 
         if ($unit === null) {
             return [];

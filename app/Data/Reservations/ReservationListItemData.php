@@ -97,7 +97,7 @@ class ReservationListItemData extends Data
             firstArrival: $firstArrival,
             lastDeparture: $lastDeparture,
             nights: $firstArrival === null ? 0 : (int) CarbonImmutable::parse($firstArrival)->diffInDays(CarbonImmutable::parse($lastDeparture)),
-            stayType: $counted->first()?->stay_type ?? StayType::Overnight,
+            stayType: $counted->first()->stay_type ?? StayType::Overnight,
             stayLabel: app(StayLabel::class)->forUnits($counted),
             roomTypes: $counted->countBy(fn (ReservationUnit $unit): string => $unit->roomType->name)
                 ->map(fn (int $count, string $name): string => __(':count× :name', ['count' => $count, 'name' => $name]))

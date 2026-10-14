@@ -37,7 +37,7 @@ class UnitAddOnFactory extends Factory
     public function posted(?FolioLine $line = null): static
     {
         return $this->state(fn (array $attributes) => [
-            'folio_line_id' => $line?->id ?? FolioLine::factory()->create()->id,
+            'folio_line_id' => $line->id ?? FolioLine::factory()->create()->id,
         ]);
     }
 }

@@ -37,7 +37,7 @@ class PartnerInvitationNotification extends Notification implements ShouldQueue
             ->subject(__('Join :app as a partner', ['app' => config('app.name')]))
             ->greeting(__('Hello,'))
             ->line(__(':inviter invited you to join :app as a partner for :partner.', [
-                'inviter' => $invitation->inviter?->name ?? __('estatell support'),
+                'inviter' => $invitation->inviter->name ?? __('estatell support'),
                 'app' => config('app.name'),
                 'partner' => $invitation->partner->name,
             ]))

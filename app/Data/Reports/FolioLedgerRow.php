@@ -74,7 +74,7 @@ class FolioLedgerRow extends Data implements ReportRow
             date: $line->posting_date->toDateString(),
             folio: $folio->number,
             reservation: $folio->reservation->reference,
-            guest: $folio->payerCompany?->name ?? $folio->payerGuest?->full_name ?? $folio->reservation->booker->full_name,
+            guest: $folio->payerCompany->name ?? $folio->payerGuest->full_name ?? $folio->reservation->booker->full_name,
             code: $line->transactionCode->code,
             description: $line->description,
             kind: $line->kind->label(),

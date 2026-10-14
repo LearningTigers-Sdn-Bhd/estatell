@@ -36,7 +36,7 @@ class RegistrationCardRequirement
     {
         $guests = $unit->guests()->with('guest')->orderByDesc('is_primary')->orderBy('id')->get();
 
-        if (($property->settings?->registration_card_scope ?? RegistrationCardScope::PrimaryOnly) === RegistrationCardScope::PrimaryOnly) {
+        if (($property->settings->registration_card_scope ?? RegistrationCardScope::PrimaryOnly) === RegistrationCardScope::PrimaryOnly) {
             return $guests->filter(fn (UnitGuest $unitGuest): bool => $unitGuest->is_primary)->values();
         }
 

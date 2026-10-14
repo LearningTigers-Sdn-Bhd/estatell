@@ -86,9 +86,9 @@ class SaveRates
                         'amount' => $amount === null ? $current?->amount : number_format((float) $amount, 2, '.', ''),
                         'min_stay' => $current?->min_stay,
                         'max_stay' => $current?->max_stay,
-                        'closed_to_arrival' => $current?->closed_to_arrival ?? false,
-                        'closed_to_departure' => $current?->closed_to_departure ?? false,
-                        'stop_sell' => $current?->stop_sell ?? false,
+                        'closed_to_arrival' => $current->closed_to_arrival ?? false,
+                        'closed_to_departure' => $current->closed_to_departure ?? false,
+                        'stop_sell' => $current->stop_sell ?? false,
                     ];
                     $row = array_merge($row, $restrictions);
 

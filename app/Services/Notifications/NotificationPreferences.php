@@ -44,7 +44,7 @@ class NotificationPreferences
             fn ($setting): bool => $setting->type === $type && $setting->channel === $channel,
         );
 
-        return $setting?->enabled ?? $type->defaultEnabled($channel);
+        return $setting->enabled ?? $type->defaultEnabled($channel);
     }
 
     public function userEnabled(User $user, NotificationType $type, NotificationChannel $channel): bool
@@ -67,6 +67,6 @@ class NotificationPreferences
             fn ($preference): bool => $preference->type === $type && $preference->channel === $channel,
         );
 
-        return $preference?->enabled ?? $type->defaultEnabled($channel);
+        return $preference->enabled ?? $type->defaultEnabled($channel);
     }
 }

@@ -37,7 +37,7 @@ class StaffInvitationNotification extends Notification implements ShouldQueue
             ->subject(__('Join :property on :app', ['property' => $invitation->property->name, 'app' => config('app.name')]))
             ->greeting(__('Hello,'))
             ->line(__(':inviter invited you to join :property as :role.', [
-                'inviter' => $invitation->inviter?->name ?? __('The property owner'),
+                'inviter' => $invitation->inviter->name ?? __('The property owner'),
                 'property' => $invitation->property->name,
                 'role' => $invitation->role->name,
             ]))

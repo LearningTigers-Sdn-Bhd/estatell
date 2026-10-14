@@ -49,7 +49,7 @@ class ReservationGroupCheckOutController extends Controller
         }
 
         $reservation->loadMissing(['booker', 'company']);
-        $payer = $reservation->company?->name ?? $reservation->group_name ?? $reservation->booker->full_name;
+        $payer = $reservation->company->name ?? $reservation->group_name ?? $reservation->booker->full_name;
 
         return Inertia::render('reservations/check-out', [
             'checkOut' => new GroupCheckOutPageData(

@@ -95,7 +95,7 @@ class ReservationGuestRows
         }
 
         if ($unitGuest->is_primary && $unitFolio !== null && $unitFolio->payer_guest_id !== $unitGuest->guest_id) {
-            $payer = $unitFolio->payerGuest?->full_name ?? $unitFolio->payerCompany?->name;
+            $payer = $unitFolio->payerGuest->full_name ?? $unitFolio->payerCompany?->name;
 
             return $payer === null ? null : __('Unit folio billed to :name', ['name' => $payer]);
         }

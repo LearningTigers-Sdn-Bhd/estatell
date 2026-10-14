@@ -43,7 +43,7 @@ class ReservationOverview
                 firstArrival: $dated->min(fn (ReservationUnit $unit): string => $unit->arrival_date->toDateString()),
                 lastDeparture: $dated->max(fn (ReservationUnit $unit): string => $unit->departure_date->toDateString()),
                 roomNights: (int) $live->sum(fn (ReservationUnit $unit): int => $nights[$unit->id]['count'] ?? 0),
-                stayType: $dated->first()?->stay_type ?? StayType::Overnight,
+                stayType: $dated->first()->stay_type ?? StayType::Overnight,
                 stayLabel: $this->stayLabel->forUnits($dated),
                 stayTotal: $total->toScale(2)->__toString(),
                 balance: $this->balance($reservation),

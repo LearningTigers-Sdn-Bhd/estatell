@@ -48,7 +48,7 @@ class ReservationFolioController extends Controller
     public function storeCharge(StoreFolioChargeRequest $request, Property $property, Reservation $reservation, Folio $folio, PostCharge $postCharge, FolioRefusals $refusals): RedirectResponse
     {
         $target = Folio::query()->where('reservation_id', $reservation->id)->find($request->integer('folio_id'));
-        $unit = $reservation->units()->findOrFail($target?->reservation_unit_id ?? $request->integer('unit_id'));
+        $unit = $reservation->units()->findOrFail($target->reservation_unit_id ?? $request->integer('unit_id'));
         $result = $postCharge($request->user(), $unit, $request->toChargeData());
 
         if ($result->isRefused()) {

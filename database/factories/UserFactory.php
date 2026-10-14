@@ -107,7 +107,7 @@ class UserFactory extends Factory
     public function partner(?Partner $partner = null): static
     {
         return $this->state(fn (array $attributes) => [
-            'partner_id' => $partner?->id ?? Partner::factory(),
+            'partner_id' => $partner->id ?? Partner::factory(),
             'property_id' => null,
         ]);
     }

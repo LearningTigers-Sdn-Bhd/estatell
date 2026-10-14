@@ -47,7 +47,7 @@ class BoatManifestReportController extends Controller
             'to' => $filters->to,
             'maxRangeDays' => $key->maxRangeDays(),
             'currency' => CurrencyData::forProperty($property),
-            'direction' => $filters->direction?->value ?? BoatDirection::In->value,
+            'direction' => $filters->direction->value ?? BoatDirection::In->value,
             'directionOptions' => BoatDirection::options(),
             'emptyTitle' => $hasDepartures
                 ? __('No boat in trips on :date.', ['date' => CarbonImmutable::parse($filters->from)->format('j M')])

@@ -36,7 +36,7 @@ class DismissAuditException
             }
 
             $locked->forceFill(['resolved_at' => now(), 'resolved_by' => $actor->id])->save();
-            activity()->performedOn($locked->reservationUnit?->reservation ?? $locked)->causedBy($actor)
+            activity()->performedOn($locked->reservationUnit->reservation ?? $locked)->causedBy($actor)
                 ->event('night_audit.exception_dismissed')
                 ->withProperties(['property_id' => $locked->property_id, 'reservation_unit_id' => $locked->reservation_unit_id, 'night_audit_exception_id' => $locked->id, 'reason' => $reason])
                 ->log('Night audit exception dismissed');
