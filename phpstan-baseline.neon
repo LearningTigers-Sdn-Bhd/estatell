@@ -43,12 +43,6 @@ parameters:
 			path: app/Actions/FrontDesk/ReleaseUnitRooms.php
 
 		-
-			message: '#^Parameter \#8 \$roomDescription of callable App\\Actions\\Folio\\PostNightLines expects string\|null, array\|string\|null given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Actions/NightAudit/PostRoomCharges.php
-
-		-
 			message: '#^Parameter \$note of class App\\Notifications\\SupportAccessUsed constructor expects string\|null, int\|string\|null given\.$#'
 			identifier: argument.type
 			count: 1
@@ -139,24 +133,6 @@ parameters:
 			path: app/Data/Boats/BoatFareRowData.php
 
 		-
-			message: '#^Parameter \$blockedReason of class App\\Data\\NightAudit\\PackageNightRespreadData constructor expects string\|null, array\|string\|null given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Data/NightAudit/PackageNightRespreadData.php
-
-		-
-			message: '#^Method App\\Data\\Notifications\\NotificationPreferenceData\:\:disabledReason\(\) should return string\|null but returns array\|string\|null\.$#'
-			identifier: return.type
-			count: 1
-			path: app/Data/Notifications/NotificationPreferenceData.php
-
-		-
-			message: '#^Parameter \$disabledReason of class App\\Data\\Notifications\\NotificationChannelPreferenceData constructor expects string\|null, array\|string\|null given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Data/Notifications/NotificationPreferenceData.php
-
-		-
 			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$default_role\.$#'
 			identifier: property.notFound
 			count: 1
@@ -239,12 +215,6 @@ parameters:
 			identifier: property.notFound
 			count: 1
 			path: app/Data/Staff/TemporaryPasswordSlipData.php
-
-		-
-			message: '#^Method App\\Enums\\PricingBasis\:\:channelRefusal\(\) should return string\|null but returns array\|string\|null\.$#'
-			identifier: return.type
-			count: 1
-			path: app/Enums/PricingBasis.php
 
 		-
 			message: '#^Parameter \#1 \$rows of method App\\Services\\Reports\\HasBreakdown\:\:breakdown\(\) expects list\<App\\Data\\Reports\\ReportRow&Spatie\\LaravelData\\Data\>, list\<App\\Data\\Reports\\ReportRow\> given\.$#'
@@ -373,18 +343,6 @@ parameters:
 			path: app/Services/Boats/BoatFareUsage.php
 
 		-
-			message: '#^Method App\\Services\\Boats\\ReservationBoatSummary\:\:summarise\(\) should return string but returns array\|string\|null\.$#'
-			identifier: return.type
-			count: 1
-			path: app/Services/Boats/ReservationBoatSummary.php
-
-		-
-			message: '#^Method App\\Services\\CityLedger\\ArInvoiceVoidCheck\:\:blockedBy\(\) should return string\|null but returns array\|string\|null\.$#'
-			identifier: return.type
-			count: 1
-			path: app/Services/CityLedger/ArInvoiceVoidCheck.php
-
-		-
 			message: '#^Parameter \#1 \$receipts of static method App\\Services\\CityLedger\\ArInvoiceRefusals\:\:listed\(\) expects list\<string\>, non\-empty\-array\<mixed\> given\.$#'
 			identifier: argument.type
 			count: 1
@@ -423,12 +381,6 @@ parameters:
 		-
 			message: '#^Binary operation "\." between array\|string and string results in an error\.$#'
 			identifier: binaryOp.invalid
-			count: 1
-			path: app/Services/Folio/FolioDocumentRows.php
-
-		-
-			message: '#^Method App\\Services\\Folio\\FolioDocumentRows\:\:places\(\) should return array\<int, array\{place\: string\|null, room\: string, heading\: string\}\> but returns array\<int, array\{place\: array\|string\|null, room\: string, heading\: string\}\>\.$#'
-			identifier: return.type
 			count: 1
 			path: app/Services/Folio/FolioDocumentRows.php
 
@@ -601,18 +553,6 @@ parameters:
 			path: app/Services/FrontDesk/GroupCheckOutPreview.php
 
 		-
-			message: '#^Parameter \#16 \$moveNote of class App\\Data\\Reservations\\GroupCheckOutRowData constructor expects string\|null, array\|string\|null given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Services/FrontDesk/GroupCheckOutPreview.php
-
-		-
-			message: '#^Parameter \#8 \$note of class App\\Data\\Reservations\\GroupCheckOutRowData constructor expects string\|null, array\|string\|null given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Services/FrontDesk/GroupCheckOutPreview.php
-
-		-
 			message: '#^Method App\\Services\\Guests\\CountryOptions\:\:name\(\) should return string\|null but returns string\|false\.$#'
 			identifier: return.type
 			count: 1
@@ -631,28 +571,10 @@ parameters:
 			path: app/Services/Guests/GuestDirectory.php
 
 		-
-			message: '#^Method App\\Services\\NightAudit\\AuditReadiness\:\:dayUseHours\(\) should return string\|null but returns array\|string\|null\.$#'
-			identifier: return.type
-			count: 1
-			path: app/Services/NightAudit/AuditReadiness.php
-
-		-
-			message: '#^Method App\\Services\\NightAudit\\AuditReadiness\:\:endedDayUseDetail\(\) should return string\|null but returns array\|string\|null\.$#'
-			identifier: return.type
-			count: 1
-			path: app/Services/NightAudit/AuditReadiness.php
-
-		-
 			message: '#^Parameter \$chargedNightIds of class App\\Services\\NightAudit\\PackageNightRespreadResult constructor expects list\<int\>, array\<int, mixed\> given\.$#'
 			identifier: argument.type
 			count: 1
 			path: app/Services/NightAudit/PackageNightRespread.php
-
-		-
-			message: '#^Method App\\Services\\NightAudit\\ReadinessAdvice\:\:consequence\(\) should return string\|null but returns array\|string\|null\.$#'
-			identifier: return.type
-			count: 1
-			path: app/Services/NightAudit/ReadinessAdvice.php
 
 		-
 			message: '#^Parameter \#1 \$num of function number_format expects float, string given\.$#'
@@ -829,12 +751,6 @@ parameters:
 			path: app/Services/Registration/RegistrationCardDocumentBuilder.php
 
 		-
-			message: '#^Method App\\Services\\Registration\\RegistrationCardFieldRules\:\:noteFor\(\) should return string\|null but returns array\|string\|null\.$#'
-			identifier: return.type
-			count: 1
-			path: app/Services/Registration/RegistrationCardFieldRules.php
-
-		-
 			message: '#^Method App\\Services\\Registration\\RegistrationCardRequirement\:\:signedUnitGuestIds\(\) should return list\<int\> but returns array\<mixed\>\.$#'
 			identifier: return.type
 			count: 1
@@ -843,12 +759,6 @@ parameters:
 		-
 			message: '#^Method App\\Services\\Registration\\RegistrationCardSnapshot\:\:guestValues\(\) should return array\<string, string\> but returns array\<string, array\|string\>\.$#'
 			identifier: return.type
-			count: 1
-			path: app/Services/Registration/RegistrationCardSnapshot.php
-
-		-
-			message: '#^Parameter \#2 \$callback of function array_filter expects \(callable\(array\|string\|null\)\: bool\)\|null, Closure\(string\|null\)\: bool given\.$#'
-			identifier: argument.type
 			count: 1
 			path: app/Services/Registration/RegistrationCardSnapshot.php
 
@@ -863,18 +773,6 @@ parameters:
 			identifier: return.type
 			count: 1
 			path: app/Services/Reports/FolioLedgerReport.php
-
-		-
-			message: '#^Method App\\Services\\Reports\\FolioReportRows\:\:note\(\) should return string\|null but returns array\|string\|null\.$#'
-			identifier: return.type
-			count: 1
-			path: app/Services/Reports/FolioReportRows.php
-
-		-
-			message: '#^Method App\\Services\\Reports\\NonNationalGuestsReport\:\:note\(\) should return string\|null but returns array\|string\|null\.$#'
-			identifier: return.type
-			count: 1
-			path: app/Services/Reports/NonNationalGuestsReport.php
 
 		-
 			message: '#^Parameter \#1 \$guestIds of method App\\Services\\Reports\\GuestIdentities\:\:partsForGuests\(\) expects list\<int\>, array\<mixed\> given\.$#'
@@ -923,12 +821,6 @@ parameters:
 			identifier: argument.type
 			count: 1
 			path: app/Services/Reports/UnitReportRows.php
-
-		-
-			message: '#^Method App\\Services\\Reservations\\BookingSummary\:\:stamp\(\) should return string\|null but returns array\|string\|null\.$#'
-			identifier: return.type
-			count: 1
-			path: app/Services/Reservations/BookingSummary.php
 
 		-
 			message: '#^Parameter \#2 \$nightIds of method App\\Services\\Reservations\\NightPriceChangePreview\:\:plan\(\) expects list\<int\>, array\<int, \(int\|string\)\> given\.$#'
@@ -985,12 +877,6 @@ parameters:
 			path: app/Services/Reservations/ReservationDirectory.php
 
 		-
-			message: '#^Method App\\Services\\Reservations\\ReservationGuestRows\:\:billing\(\) should return string\|null but returns array\|string\|null\.$#'
-			identifier: return.type
-			count: 2
-			path: app/Services/Reservations/ReservationGuestRows.php
-
-		-
 			message: '#^Parameter \#3 \$ownFolioGuestIds of method App\\Services\\Reservations\\ReservationGuestRows\:\:billable\(\) expects list\<int\>, array\<mixed\> given\.$#'
 			identifier: argument.type
 			count: 1
@@ -1027,12 +913,6 @@ parameters:
 			path: app/Services/Reservations/UnitActionPreview.php
 
 		-
-			message: '#^Parameter \#1 \$rows of class App\\Data\\Reservations\\CheckInAllPreviewData constructor expects list\<array\{unitId\: int, label\: string, guest\: string\|null, room\: string\|null, cardsMissing\: int, ready\: bool, note\: string\|null\}\>, list\<array\{unitId\: int, label\: string, guest\: string\|null, room\: string\|null, cardsMissing\: int\<0, max\>, ready\: bool, note\: array\|string\|null\}\> given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Services/Reservations/UnitActionPreview.php
-
-		-
 			message: '#^Parameter \#1 \$value of static method Brick\\Math\\BigNumber\:\:of\(\) expects Brick\\Math\\BigNumber\|int\|string, float\|int\|string given\.$#'
 			identifier: argument.type
 			count: 1
@@ -1043,12 +923,6 @@ parameters:
 			identifier: argument.type
 			count: 1
 			path: app/Services/Staff/AssignableRoles.php
-
-		-
-			message: '#^Method App\\Services\\Staff\\StaffImportReader\:\:read\(\) should return list\<array\{name\: string, email\: string, roleId\: int\|null, problem\: string\|null\}\> but returns array\<int, array\{name\: string, email\: string, roleId\: int\|null, problem\: array\|string\|null\}\>\.$#'
-			identifier: return.type
-			count: 1
-			path: app/Services/Staff/StaffImportReader.php
 
 		-
 			message: '#^Match expression does not handle remaining values\: int\<min, \-1\>\|int\<7, max\>$#'

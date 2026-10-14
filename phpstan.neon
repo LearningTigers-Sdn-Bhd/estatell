@@ -20,3 +20,7 @@ parameters:
             identifier: nullsafe.neverNull
             message: '#^Using nullsafe method call on non-nullable type Illuminate\\Console\\Command\. Use \-\> instead\.$#'
             path: database/seeders/*
+
+        # Laravel types __() as array|string|null. The app only translates string keys that resolve to strings.
+        -
+            message: '#array\|string\|null#'
