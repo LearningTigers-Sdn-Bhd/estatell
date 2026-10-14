@@ -70,10 +70,10 @@ It is a focused rebuild of the PMS core of wastays, with a normalized database, 
     composer run dev
     ```
 
-6. Check that the tests pass:
+6. Check that everything passes. `composer test` runs Pint, PHPStan and the full test suite in parallel:
 
     ```bash
-    php artisan test --parallel --recreate-databases
+    composer test
     ```
 
 ### Local mail (Mailbox)
@@ -118,16 +118,17 @@ You never migrate the test database yourself. `RefreshDatabase` rebuilds its sch
 
 ## Common commands
 
-| Task                     | Command                                                 |
-| ------------------------ | ------------------------------------------------------- |
-| Run all tests            | `php artisan test --parallel --recreate-databases`      |
-| Run one test file        | `php artisan test --compact tests/Feature/RoomTest.php` |
-| Format PHP               | `vendor/bin/pint --dirty`                               |
-| Static analysis          | `composer run types:check`                              |
-| Frontend lint and format | `npm run check`                                         |
-| TypeScript check         | `npm run types:check`                                   |
-| Full CI check            | `composer run ci:check`                                 |
-| Build frontend           | `npm run build`                                         |
+| Task                      | Command                                                 |
+| ------------------------- | ------------------------------------------------------- |
+| Lint, types and all tests | `composer test`                                         |
+| All tests only            | `php artisan test --parallel --recreate-databases`      |
+| Run one test file         | `php artisan test --compact tests/Feature/RoomTest.php` |
+| Format PHP                | `vendor/bin/pint --dirty`                               |
+| Static analysis           | `composer run types:check`                              |
+| Frontend lint and format  | `npm run check`                                         |
+| TypeScript check          | `npm run types:check`                                   |
+| Full CI check             | `composer run ci:check`                                 |
+| Build frontend            | `npm run build`                                         |
 
 ## Project structure
 
