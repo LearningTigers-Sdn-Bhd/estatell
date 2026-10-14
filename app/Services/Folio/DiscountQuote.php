@@ -41,7 +41,7 @@ class DiscountQuote
         $shares = $refusal === null && ($amount !== null || $discount->type === DiscountType::Percent) ? $this->shares($discount, $charges, $subtotal, (string) $amount, $currency) : [];
 
         return new DiscountQuoteData(
-            lines: $charges->map(fn (FolioLine $line): DiscountQuoteLineData => DiscountQuoteLineData::fromLine($line, isset($shares[$line->id]) ? (string) $shares[$line->id]->getAmount() : null))->all(),
+            lines: array_values($charges->map(fn (FolioLine $line): DiscountQuoteLineData => DiscountQuoteLineData::fromLine($line, isset($shares[$line->id]) ? (string) $shares[$line->id]->getAmount() : null))->all()),
             subtotal: (string) $subtotal->getAmount(),
             amount: $refusal === null && $discount->type === DiscountType::Percent ? (string) array_reduce($shares, fn (Money $sum, Money $share): Money => $sum->plus($share), Money::zero($currency))->getAmount() : $amount,
             amountRefusal: $refusal,

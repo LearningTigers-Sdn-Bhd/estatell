@@ -25,7 +25,7 @@ class FolioLedgerReport implements HasTotals, Report
      */
     public function rows(Property $property, ReportFilters $filters, ?array $rowKeys = null): array
     {
-        return FolioLine::query()
+        return array_values(FolioLine::query()
             ->join('folios', 'folios.id', '=', 'folio_lines.folio_id')
             ->where('folios.property_id', $property->id)
             ->whereBetween('folio_lines.posting_date', [$filters->from, $filters->to])
@@ -40,7 +40,7 @@ class FolioLedgerReport implements HasTotals, Report
             ->orderBy('folio_lines.id')
             ->get()
             ->map(fn (FolioLine $line): FolioLedgerRow => FolioLedgerRow::fromModel($line))
-            ->all();
+            ->all());
     }
 
     /**

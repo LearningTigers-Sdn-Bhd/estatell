@@ -69,7 +69,7 @@ class AutoAssignRooms
             $query->whereIn('rooms.id', $unitIds)->select('rooms.id');
         }
 
-        return $query
+        return array_values($query
             ->orderByRaw("CASE WHEN room_statuses.status = 'dirty' THEN 1 ELSE 0 END")
             ->orderByRaw('room_groups.position IS NULL')
             ->orderBy('room_groups.position')
@@ -78,6 +78,6 @@ class AutoAssignRooms
             ->when($isBed, fn ($query) => $query->orderBy('beds.position')->orderBy('beds.id'))
             ->pluck('id')
             ->map(fn (mixed $id): int => (int) $id)
-            ->all();
+            ->all());
     }
 }

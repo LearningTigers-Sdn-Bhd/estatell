@@ -41,7 +41,7 @@ class RateCalendarCellData extends Data
             closedToArrival: $rate->closed_to_arrival,
             closedToDeparture: $rate->closed_to_departure,
             stopSell: $rate->stop_sell,
-            occupancy: $rate->occupancyPrices->sortBy('adults')->map(RateCalendarOccupancyData::fromModel(...))->values()->all(),
+            occupancy: array_values($rate->occupancyPrices->sortBy('adults')->map(RateCalendarOccupancyData::fromModel(...))->all()),
         );
     }
 
@@ -61,7 +61,7 @@ class RateCalendarCellData extends Data
             closedToArrival: false,
             closedToDeparture: false,
             stopSell: $rate->stop_sell,
-            hours: $hours->map(RateCalendarHourData::fromModel(...))->all(),
+            hours: array_values($hours->map(RateCalendarHourData::fromModel(...))->all()),
         );
     }
 

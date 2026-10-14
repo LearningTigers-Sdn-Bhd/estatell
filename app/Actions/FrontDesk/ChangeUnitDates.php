@@ -142,7 +142,7 @@ class ChangeUnitDates
                     $run[0],
                     $run[array_key_last($run)]->addDay(),
                     $locked->adults,
-                    $locked->childAges()->pluck('age')->map(fn (mixed $age): int => (int) $age)->all(),
+                    array_values($locked->childAges()->pluck('age')->map(fn (mixed $age): int => (int) $age)->all()),
                     1,
                 ));
 

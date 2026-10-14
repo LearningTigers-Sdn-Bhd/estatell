@@ -128,13 +128,13 @@ class MoveCharges
             return MoveChargesResult::refused($changes['refusal']);
         }
 
-        $this->log($actor, $targetFolio, $sources->all(), count($parents), (string) $amount->toScale(2), $schedules, $changes, $copies[0]->transfer_group_id ?? null, $ids);
+        $this->log($actor, $targetFolio, array_values($sources->all()), count($parents), (string) $amount->toScale(2), $schedules, $changes, $copies[0]->transfer_group_id ?? null, $ids);
 
         foreach ($sources as $source) {
             ($this->closeSettledUnitFolio)($actor, $source);
         }
 
-        return MoveChargesResult::moved(count($parents), (string) $amount->toScale(2), count($schedules), $sources->all());
+        return MoveChargesResult::moved(count($parents), (string) $amount->toScale(2), count($schedules), array_values($sources->all()));
     }
 
     /**

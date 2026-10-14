@@ -100,7 +100,7 @@ class TermsRenderer
     {
         preg_match_all(self::ITEM_PATTERN, $body, $matches);
 
-        return array_values($matches[1]);
+        return $matches[1];
     }
 
     /**

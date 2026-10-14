@@ -160,7 +160,7 @@ class DocumentLines
             $open[$key] = array_key_last($result);
         }
 
-        return $result;
+        return array_values($result);
     }
 
     /**

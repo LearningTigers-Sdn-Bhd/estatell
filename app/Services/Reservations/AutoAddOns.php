@@ -19,7 +19,7 @@ class AutoAddOns
      */
     public function items(Property $property, StayType $stayType = StayType::Overnight): array
     {
-        return ChargeItem::query()
+        return array_values(ChargeItem::query()
             ->where('property_id', $property->id)
             ->active()
             ->where('auto_add', true)
@@ -27,7 +27,7 @@ class AutoAddOns
             ->get()
             ->filter(fn (ChargeItem $item): bool => $stayType !== StayType::DayUse || ! in_array($item->charging_unit, [ChargingUnit::PerNight, ChargingUnit::PerGuestNight], true))
             ->values()
-            ->all();
+            ->all());
     }
 
     /**

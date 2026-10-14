@@ -123,7 +123,7 @@ class SyncRoutingRules
      */
     private function unitsWithPostedRoomLines(Reservation $reservation): array
     {
-        return FolioLine::query()
+        return array_values(FolioLine::query()
             ->join('folios', 'folios.id', '=', 'folio_lines.folio_id')
             ->join('transaction_codes', 'transaction_codes.id', '=', 'folio_lines.transaction_code_id')
             ->where('folios.reservation_id', $reservation->id)
@@ -136,6 +136,6 @@ class SyncRoutingRules
             ->orderBy('folios.reservation_unit_id')
             ->pluck('folios.reservation_unit_id')
             ->map(fn (mixed $id): int => (int) $id)
-            ->all();
+            ->all());
     }
 }

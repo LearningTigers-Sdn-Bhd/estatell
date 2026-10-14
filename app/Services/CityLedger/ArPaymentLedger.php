@@ -46,12 +46,12 @@ class ArPaymentLedger
         $mayAllocate = $user->can(PermissionEnum::CityLedgerAllocate->value);
         $mayVoid = $user->can(PermissionEnum::CityLedgerPayment->value);
 
-        return $payments->map(function (ArPayment $payment) use ($allocated, $mayAllocate, $mayVoid): ArPaymentRowData {
+        return array_values($payments->map(function (ArPayment $payment) use ($allocated, $mayAllocate, $mayVoid): ArPaymentRowData {
             $used = (string) ($allocated[$payment->id] ?? '0');
             $unallocated = $payment->voided_at !== null ? '0.00' : bcsub((string) $payment->amount, $used, 2);
 
             return ArPaymentRowData::fromModel($payment, $unallocated, bccomp($used, '0', 2) > 0, $mayAllocate, $mayVoid);
-        })->all();
+        })->all());
     }
 
     /**
@@ -61,7 +61,7 @@ class ArPaymentLedger
      */
     public function openInvoices(Company $company): array
     {
-        return ArInvoice::query()
+        return array_values(ArInvoice::query()
             ->where('ar_invoices.company_id', $company->id)
             ->where('ar_invoices.type', ArInvoiceType::Invoice)
             ->where('ar_invoices.status', ArInvoiceStatus::Open)
@@ -88,7 +88,7 @@ class ArPaymentLedger
             ->filter(fn (array $pair): bool => bccomp($pair[1], '0', 2) > 0)
             ->map(fn (array $pair): OpenArInvoiceData => OpenArInvoiceData::fromModel($pair[0], $pair[1]))
             ->values()
-            ->all();
+            ->all());
     }
 
     /**
@@ -98,7 +98,7 @@ class ArPaymentLedger
      */
     public function methods(Company $company): array
     {
-        return PaymentMethod::query()
+        return array_values(PaymentMethod::query()
             ->where('property_id', $company->property_id)
             ->active()
             ->whereNotIn('type', [PaymentMethodType::OtaCollected, PaymentMethodType::DirectBill])
@@ -106,6 +106,6 @@ class ArPaymentLedger
             ->orderBy('id')
             ->get()
             ->map(ArPaymentMethodOptionData::fromModel(...))
-            ->all();
+            ->all());
     }
 }

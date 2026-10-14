@@ -76,12 +76,12 @@ class RoutingRuleList
             ->all();
 
         return new RoutingRulesData(
-            rules: $rules,
+            rules: array_values($rules),
             categories: array_map(
                 fn (TransactionCategory $category): array => ['value' => $category->value, 'label' => $category->label()],
                 TransactionCategory::routableCases(),
             ),
-            targets: $targets,
+            targets: array_values($targets),
         );
     }
 }

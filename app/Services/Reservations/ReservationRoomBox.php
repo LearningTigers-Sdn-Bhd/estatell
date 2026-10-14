@@ -41,11 +41,11 @@ class ReservationRoomBox
      */
     private function box(Reservation $reservation, array $assigned, bool $autoAssignRooms): ReservationRoomBoxData
     {
-        $everyUnit = $reservation->units
+        $everyUnit = array_values($reservation->units
             ->sortBy('id')
             ->map(fn (ReservationUnit $unit): ReservationRoomBoxUnitData => ReservationRoomBoxUnitData::fromModel($unit, $assigned[$unit->id] ?? null))
             ->values()
-            ->all();
+            ->all());
 
         if ($reservation->status === ReservationStatus::Cancelled) {
             return $this->iconBox(ReservationRoomBoxState::Cancelled, __('Cancelled'), $everyUnit);
@@ -71,7 +71,7 @@ class ReservationRoomBox
                 label: ReservationRoomBoxState::Assigned->label(),
                 tone: ReservationRoomBoxState::Assigned->tone(),
                 tooltip: null,
-                numbers: $assignedNumbers->take(2)->all(),
+                numbers: array_values($assignedNumbers->take(2)->all()),
                 more: max(0, $assignedNumbers->count() - 2),
                 count: $unassigned->count(),
                 isBed: false,

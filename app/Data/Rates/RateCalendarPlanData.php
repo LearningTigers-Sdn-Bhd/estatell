@@ -42,7 +42,7 @@ class RateCalendarPlanData extends Data
             followsName: $ratePlan->parent?->name,
             fixedNights: $ratePlan->fixed_nights,
             packageUnit: $ratePlan->package_unit,
-            inclusions: $ratePlan->inclusions->map(RateCalendarInclusionData::fromModel(...))->values()->all(),
+            inclusions: array_values($ratePlan->inclusions->map(RateCalendarInclusionData::fromModel(...))->all()),
             cells: $cells,
         );
     }

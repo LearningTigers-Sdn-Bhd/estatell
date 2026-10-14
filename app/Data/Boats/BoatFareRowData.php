@@ -63,11 +63,11 @@ class BoatFareRowData extends Data
             chargingUnit: $chargeItem->charging_unit,
             usedBy: $usedBy,
             childrenSummary: self::childrenSummary($childPrices, $currency),
-            taxes: $chargeItem->transactionCode->applicableTaxes
+            taxes: array_values($chargeItem->transactionCode->applicableTaxes
                 ->map(fn (Tax $tax): ChargeItemTaxData => ChargeItemTaxData::fromModel($tax))
                 ->values()
-                ->all(),
-            childPrices: $childPrices,
+                ->all()),
+            childPrices: array_values($childPrices),
         );
     }
 

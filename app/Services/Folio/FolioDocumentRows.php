@@ -148,11 +148,11 @@ class FolioDocumentRows
      */
     public function roomLines(Collection $units, array $places): array
     {
-        return $units->map(fn (ReservationUnit $unit): string => implode(' · ', array_filter([
+        return array_values($units->map(fn (ReservationUnit $unit): string => implode(' · ', array_filter([
             $places[$unit->id]['place'] ?? $unit->roomType->name,
             $unit->guests->firstWhere('is_primary', true)?->guest?->full_name,
             DateRange::short(CarbonImmutable::parse($unit->arrival_date->toDateString()), CarbonImmutable::parse($unit->departure_date->toDateString())),
-        ], filled(...))))->values()->all();
+        ], filled(...))))->all());
     }
 
     /**

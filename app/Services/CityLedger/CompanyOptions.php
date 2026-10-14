@@ -19,12 +19,12 @@ class CompanyOptions
      */
     public function active(Property $property): array
     {
-        return Company::query()
+        return array_values(Company::query()
             ->where('property_id', $property->id)
             ->where('status', CompanyStatus::Active)
             ->orderBy('name')
             ->get()
             ->map(CompanyOptionData::fromModel(...))
-            ->all();
+            ->all());
     }
 }

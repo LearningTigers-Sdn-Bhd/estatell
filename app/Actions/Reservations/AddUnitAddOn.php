@@ -101,7 +101,7 @@ class AddUnitAddOn
                 $serviceDate = $businessDate;
             }
 
-            $split = $this->childPrices->split($item, $locked->childAges()->pluck('age')->map(fn (mixed $age): int => (int) $age)->all(), $locked->children);
+            $split = $this->childPrices->split($item, array_values($locked->childAges()->pluck('age')->map(fn (mixed $age): int => (int) $age)->all()), $locked->children);
             $rows = $this->quantityResolver->rows($item->charging_unit, $locked, $businessDate, $quantity, $serviceDate, $split);
 
             if ($rows === []) {

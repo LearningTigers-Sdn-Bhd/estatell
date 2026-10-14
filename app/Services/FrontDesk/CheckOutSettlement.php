@@ -74,12 +74,12 @@ class CheckOutSettlement
      */
     public function incomingScheduled(ReservationUnit $unit, Collection $folios): array
     {
-        return $folios
+        return array_values($folios
             ->where('status', FolioStatus::Open)
             ->flatMap(fn (Folio $folio): array => $this->incomingScheduledCharges->for($folio, $unit->id))
             ->unique()
             ->values()
-            ->all();
+            ->all());
     }
 
     /**

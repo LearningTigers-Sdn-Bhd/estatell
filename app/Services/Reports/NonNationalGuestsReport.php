@@ -51,7 +51,7 @@ class NonNationalGuestsReport implements HasNote, HasTotals, Report
         $guests = $foreign->mapWithKeys(fn (ReservationUnit $unit): array => [$unit->id => $this->guestOf($unit)]);
         $identities = $this->identities->partsForGuests($guests->pluck('id')->all());
 
-        return $foreign
+        return array_values($foreign
             ->map(fn (ReservationUnit $unit): NonNationalGuestRow => NonNationalGuestRow::fromUnit(
                 $unit,
                 $guests[$unit->id]->full_name,
@@ -63,7 +63,7 @@ class NonNationalGuestsReport implements HasNote, HasTotals, Report
                 $this->stays->nightsInRange($unit, $filters),
                 $taxes[$unit->id] ?? '0.00',
             ))
-            ->all();
+            ->all());
     }
 
     public function note(Property $property, ReportFilters $filters): ?string

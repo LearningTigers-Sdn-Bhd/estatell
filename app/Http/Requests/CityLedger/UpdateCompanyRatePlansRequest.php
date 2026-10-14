@@ -31,6 +31,6 @@ class UpdateCompanyRatePlansRequest extends FormRequest
      */
     public function ratePlanIds(): array
     {
-        return array_map(intval(...), $this->validated('rate_plan_ids') ?? []);
+        return array_values(array_map(intval(...), $this->validated('rate_plan_ids') ?? []));
     }
 }

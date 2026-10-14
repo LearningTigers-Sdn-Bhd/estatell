@@ -101,7 +101,7 @@ class RegistrationTermsController extends Controller
     private function editor(Property $property, TermsDocument $document, Locale $locale, TermsRenderer $renderer): TermsEditorData
     {
         $versions = $document->versions()->with('publisher')->forLocale($locale)->orderByDesc('version')->get();
-        $publishedLocales = $document->versions()->distinct()->pluck('locale')->map(fn ($value): Locale => $value instanceof Locale ? $value : Locale::from($value))->all();
+        $publishedLocales = array_values($document->versions()->distinct()->pluck('locale')->map(fn ($value): Locale => $value instanceof Locale ? $value : Locale::from($value))->all());
 
         return TermsEditorData::forDocument(
             $document,

@@ -103,11 +103,11 @@ class AuditReadiness
      */
     private function inHouseWithoutRoom(Property $property, CarbonImmutable $date): array
     {
-        return $this->units($property, UnitStatus::CheckedIn)
+        return array_values($this->units($property, UnitStatus::CheckedIn)
             ->whereHas('nights', fn (Builder $nights) => $nights->whereDate('date', $date->toDateString())->whereNull('room_id')->whereNull('bed_id'))
             ->get()
             ->map(fn (ReservationUnit $unit): ReadinessItem => $this->item(AuditCheck::InHouseWithoutRoom, $unit))
-            ->all();
+            ->all());
     }
 
     /**
@@ -117,12 +117,12 @@ class AuditReadiness
      */
     private function arrivalsNotCheckedIn(Property $property, CarbonImmutable $date): array
     {
-        return $this->units($property, UnitStatus::Confirmed)
+        return array_values($this->units($property, UnitStatus::Confirmed)
             ->whereDate('arrival_date', '<=', $date->toDateString())
             ->where('late_arrival_expected', false)
             ->get()
             ->map(fn (ReservationUnit $unit): ReadinessItem => $this->item(AuditCheck::ArrivalNotCheckedIn, $unit, $this->dayUseHours($unit)))
-            ->all();
+            ->all());
     }
 
     /**
@@ -130,11 +130,11 @@ class AuditReadiness
      */
     private function departuresNotCheckedOut(Property $property, CarbonImmutable $date): array
     {
-        return $this->units($property, UnitStatus::CheckedIn)
+        return array_values($this->units($property, UnitStatus::CheckedIn)
             ->whereDate('departure_date', '<=', $date->toDateString())
             ->get()
             ->map(fn (ReservationUnit $unit): ReadinessItem => $this->item(AuditCheck::DepartureNotCheckedOut, $unit, $this->endedDayUseDetail($unit), canExtend: $unit->stay_type !== StayType::DayUse && $unit->departure_date->toDateString() === $date->toDateString()))
-            ->all();
+            ->all());
     }
 
     /**
@@ -142,7 +142,7 @@ class AuditReadiness
      */
     private function foliosOpenAfterCheckOut(Property $property): array
     {
-        return Folio::query()
+        return array_values(Folio::query()
             ->where('property_id', $property->id)
             ->where('type', FolioType::Unit->value)
             ->where('status', FolioStatus::Open->value)
@@ -151,7 +151,7 @@ class AuditReadiness
             ->orderBy('id')
             ->get()
             ->map(fn (Folio $folio): ReadinessItem => $this->item(AuditCheck::FolioOpenAfterCheckOut, $folio->reservationUnit, $folio->number))
-            ->all();
+            ->all());
     }
 
     /**
@@ -233,7 +233,7 @@ class AuditReadiness
     {
         $currency = $property->loadMissing('settings')->settings?->currency->getCurrencyCode();
 
-        return $folios->groupBy('reservation_id')->map(function (Collection $group) use ($check, $currency, $phrase, $credit): ReadinessItem {
+        return array_values($folios->groupBy('reservation_id')->map(function (Collection $group) use ($check, $currency, $phrase, $credit): ReadinessItem {
             $first = $group->first();
             $total = $group->reduce(fn (string $sum, Folio $folio): string => bcadd($sum, $credit ? bcmul($this->balance($folio), '-1', 2) : $this->balance($folio), 2), '0.00');
             $amount = trim($currency.' '.number_format((float) $total, 2));
@@ -252,7 +252,7 @@ class AuditReadiness
                 detail: $credit ? $phrase($amount).' · '.$names : $names.' · '.$phrase($amount),
                 folioId: $first->id,
             );
-        })->values()->all();
+        })->all());
     }
 
     /**
@@ -260,7 +260,7 @@ class AuditReadiness
      */
     private function carriedExceptions(Property $property): array
     {
-        return NightAuditException::query()
+        return array_values(NightAuditException::query()
             ->where('property_id', $property->id)
             ->open()
             ->notStale()
@@ -279,7 +279,7 @@ class AuditReadiness
                 exceptionType: $exception->type,
                 exceptionDate: $exception->nightAudit->businessDate->date->toDateString(),
             ))
-            ->all();
+            ->all());
     }
 
     /**

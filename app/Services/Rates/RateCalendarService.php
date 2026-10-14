@@ -76,7 +76,7 @@ class RateCalendarService
             from: $start->toDateString(),
             to: $end->toDateString(),
             dates: $this->datesOf($start, $end),
-            roomTypes: $groups->all(),
+            roomTypes: array_values($groups->all()),
             ending: $this->ending($plans, $roomTypes, $today),
         );
     }
@@ -104,7 +104,7 @@ class RateCalendarService
         $own = $rates->get($plan->id.'-'.$roomType->id, new Collection);
 
         if ($plan->pricing_basis === PricingBasis::DayUse) {
-            return $own->map(fn (Rate $rate): RateCalendarCellData => RateCalendarCellData::forDayUse($rate))->values()->all();
+            return array_values($own->map(fn (Rate $rate): RateCalendarCellData => RateCalendarCellData::forDayUse($rate))->all());
         }
 
         if ($plan->pricing_basis === PricingBasis::Package) {
@@ -112,7 +112,7 @@ class RateCalendarService
         }
 
         if ($plan->parent_rate_plan_id === null) {
-            return $own->map(fn (Rate $rate): RateCalendarCellData => RateCalendarCellData::fromRate($rate, $rate->amount))->values()->all();
+            return array_values($own->map(fn (Rate $rate): RateCalendarCellData => RateCalendarCellData::fromRate($rate, $rate->amount))->all());
         }
 
         $cells = [];
@@ -190,7 +190,7 @@ class RateCalendarService
         $ownPricePlans = $plans->filter(fn (RatePlan $plan): bool => $plan->parent_rate_plan_id === null && $plan->pricing_basis !== PricingBasis::Package);
         $pricedUntil = $this->ratesEndingCheck->pricedUntilByPlan($ownPricePlans->modelKeys());
 
-        return $ownPricePlans->map(function (RatePlan $plan) use ($roomTypes, $pricedUntil, $today): ?RateCalendarEndingData {
+        return array_values($ownPricePlans->map(function (RatePlan $plan) use ($roomTypes, $pricedUntil, $today): ?RateCalendarEndingData {
             $names = $roomTypes
                 ->filter(fn (RoomType $roomType): bool => $plan->roomTypes->contains('id', $roomType->id)
                     && $this->ratesEndingCheck->isEnding($pricedUntil[$plan->id][$roomType->id] ?? null, $today))
@@ -198,7 +198,7 @@ class RateCalendarService
                 ->all();
 
             return $names === [] ? null : RateCalendarEndingData::fromModel($plan, $names);
-        })->filter()->values()->all();
+        })->filter()->all());
     }
 
     /**

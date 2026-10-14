@@ -45,7 +45,7 @@ class PackageNightRespread
             ->whereIn('idempotency_key', $nights->map(fn (UnitNight $night): string => 'night:'.$night->id))
             ->pluck('idempotency_key')->all();
         $charged = $nights->filter(fn (UnitNight $night): bool => in_array('night:'.$night->id, $keys, true));
-        $unposted = $nights->reject(fn (UnitNight $night): bool => in_array('night:'.$night->id, $keys, true))->values()->all();
+        $unposted = array_values($nights->reject(fn (UnitNight $night): bool => in_array('night:'.$night->id, $keys, true))->all());
         $currency = $unit->property->settings->currency->getCurrencyCode();
         $total = Money::sum(...$nights->map(fn (UnitNight $night): Money => Money::of($night->amount, $currency))->all());
         $remaining = array_reduce($unposted, fn (Money $sum, UnitNight $night): Money => $sum->plus($night->amount), Money::zero($currency));
@@ -62,7 +62,7 @@ class PackageNightRespread
                 $guests,
             );
 
-            return new PackageNightRespreadResult($unposted, $amounts, $charged->values()->all(), $total, $remaining);
+            return new PackageNightRespreadResult($unposted, $amounts, array_values($charged->all()), $total, $remaining);
         } catch (QuoteRefused $refused) {
             if ($charged->isEmpty()) {
                 return new PackageNightRespreadResult(total: $total, remaining: $remaining, refusal: $refused->reason);
@@ -72,7 +72,7 @@ class PackageNightRespread
         try {
             $amounts = $this->packagePricing->spreadByInclusions(
                 $total,
-                $nights->map(fn (UnitNight $night): bool => $night->id === $firstNightId)->all(),
+                array_values($nights->map(fn (UnitNight $night): bool => $night->id === $firstNightId)->all()),
                 $inclusions,
                 $guests,
             );
@@ -81,7 +81,7 @@ class PackageNightRespread
         }
 
         return new PackageNightRespreadResult(
-            $nights->all(),
+            array_values($nights->all()),
             $amounts,
             total: $total,
             remaining: $total,

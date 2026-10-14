@@ -142,7 +142,7 @@ class NightPriceChangePreview
                 }
             }
 
-            $lines = $liveLines->where('source_id', $night->id)->values()->all();
+            $lines = array_values($liveLines->where('source_id', $night->id)->all());
             $oldTotal = $isCharged
                 ? array_reduce($lines, fn (Money $sum, FolioLine $line): Money => $sum->plus($this->treeTotal($line, $currency)), Money::zero($currency))
                 : $this->scheduledTotal($property, $taxes, $unit, $night, $first, $roomCode, $nationality, $currency);
@@ -165,7 +165,7 @@ class NightPriceChangePreview
     {
         $nights = $unit->nights()->orderBy('date')->get();
         $chargedKeys = FolioLine::query()->whereIn('idempotency_key', $nights->map(fn (UnitNight $night): string => 'night:'.$night->id)->all())->pluck('idempotency_key')->flip();
-        $rows = $nights->map(fn (UnitNight $night): NightPriceNightData => new NightPriceNightData($night->id, $night->date->toDateString(), $night->amount, $chargedKeys->has('night:'.$night->id)))->all();
+        $rows = array_values($nights->map(fn (UnitNight $night): NightPriceNightData => new NightPriceNightData($night->id, $night->date->toDateString(), $night->amount, $chargedKeys->has('night:'.$night->id)))->all());
         $ticked = $nights->whereIn('id', $nightIds);
         $hadDiscount = $ticked->contains(fn (UnitNight $night): bool => $this->hasDiscount($unit, $night));
         $amounts = $ticked->pluck('amount')->sort(fn (string $a, string $b): int => bccomp($a, $b, 2))->values();

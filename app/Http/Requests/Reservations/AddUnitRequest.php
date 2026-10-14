@@ -63,7 +63,7 @@ class AddUnitRequest extends FormRequest
             arrivalDate: $this->date('arrival_date', 'Y-m-d')->toImmutable(),
             departureDate: $this->date($isDayUse ? 'arrival_date' : 'departure_date', 'Y-m-d')->toImmutable(),
             adults: $this->integer('adults'),
-            childAges: array_map(intval(...), $this->validated('child_ages') ?? []),
+            childAges: array_values(array_map(intval(...), $this->validated('child_ages') ?? [])),
             overrideTotal: $this->filled('override_total') ? $this->string('override_total')->toString() : null,
             overrideReason: $this->filled('override_reason') ? $this->string('override_reason')->toString() : null,
             restrictionOverrideReason: $this->filled('restriction_override_reason') ? $this->string('restriction_override_reason')->toString() : null,

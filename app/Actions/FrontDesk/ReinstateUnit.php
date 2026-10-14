@@ -91,7 +91,7 @@ class ReinstateUnit
                 $arrival,
                 $departure,
                 $locked->adults,
-                $locked->childAges()->pluck('age')->map(fn (mixed $age): int => (int) $age)->all(),
+                array_values($locked->childAges()->pluck('age')->map(fn (mixed $age): int => (int) $age)->all()),
                 1,
             ));
 

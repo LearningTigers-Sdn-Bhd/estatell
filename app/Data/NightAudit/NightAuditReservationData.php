@@ -49,7 +49,7 @@ class NightAuditReservationData extends Data
 
         return new self(
             reservation: $built['reservation'],
-            units: $units,
+            units: array_values($units),
             paymentOptions: $user->can(PermissionEnum::PaymentRecord->value) ? $options->payments($property) : null,
             canWaiveFees: $user->can(PermissionEnum::FrontDeskWaiveFees->value),
             canAssignRoom: $user->can(PermissionEnum::ReservationsManage->value),

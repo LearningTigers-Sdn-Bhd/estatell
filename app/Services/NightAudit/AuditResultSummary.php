@@ -34,7 +34,7 @@ class AuditResultSummary
         $date = CarbonImmutable::parse($audit->businessDate->date->toDateString());
         $currency = $property->settings->currency->getCurrencyCode();
 
-        $revenue = DailyRevenue::query()
+        $revenue = array_values(DailyRevenue::query()
             ->with('transactionCode')
             ->where('property_id', $property->id)
             ->whereDate('business_date', $date->toDateString())
@@ -47,10 +47,10 @@ class AuditResultSummary
                 'lines' => $row->line_count,
             ])
             ->values()
-            ->all();
+            ->all());
 
         $ofDate = $this->paymentsOfDate($audit, $date);
-        $payments = $ofDate
+        $payments = array_values($ofDate
             ->whereNull('refund_of_id')
             ->map(fn (Payment $payment): array => ['name' => $payment->paymentMethod->name, 'amount' => (string) $payment->amount])
             ->concat($this->arPaymentsOfDate($audit, $date)->map(fn (ArPayment $payment): array => ['name' => $payment->paymentMethod->name, 'amount' => (string) $payment->amount]))
@@ -62,7 +62,7 @@ class AuditResultSummary
             ])
             ->sortKeys()
             ->values()
-            ->all();
+            ->all());
 
         $refunds = Money::of((string) $ofDate->whereNotNull('refund_of_id')->sum('amount'), $currency);
         $mealDate = $date->addDay();

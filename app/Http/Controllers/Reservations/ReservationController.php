@@ -230,11 +230,11 @@ class ReservationController extends Controller
 
         $canChangePrice = $user->can(PermissionEnum::ReservationsChangePrice->value)
             && in_array($unit->status, [UnitStatus::Confirmed, UnitStatus::CheckedIn, UnitStatus::CheckedOut], true);
-        $charged = FolioLine::query()
+        $charged = array_values(FolioLine::query()
             ->whereIn('idempotency_key', $unit->nights->map(fn (UnitNight $night): string => 'night:'.$night->id)->all())
             ->pluck('source_id')
             ->map(intval(...))
-            ->all();
+            ->all());
 
         $boatAccess = app(BoatTripAccess::class);
         $canManageBoats = $boatsOn && $user->can(PermissionEnum::ReservationsManage->value);

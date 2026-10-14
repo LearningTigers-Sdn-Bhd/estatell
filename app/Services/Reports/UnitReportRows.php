@@ -35,8 +35,8 @@ class UnitReportRows
         $rooms = $roomsFor($units->pluck('id')->all());
         $balances = $this->folioBalance->forReservations($units->pluck('reservation_id')->unique()->values()->all());
 
-        return $units
+        return array_values($units
             ->map(fn (ReservationUnit $unit) => $makeRow($unit, $rooms[$unit->id] ?? null, $balances[$unit->reservation_id]))
-            ->all();
+            ->all());
     }
 }

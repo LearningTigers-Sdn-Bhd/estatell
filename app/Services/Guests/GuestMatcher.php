@@ -97,7 +97,7 @@ class GuestMatcher
             email: $guest->email,
             phone: $guest->phone,
             dateOfBirth: $guest->date_of_birth?->toDateString(),
-            idNumbers: $includeIdNumbers ? $guest->documents->map(fn (GuestIdentityDocument $document): string => $document->number)->all() : [],
+            idNumbers: array_values($includeIdNumbers ? $guest->documents->map(fn (GuestIdentityDocument $document): string => $document->number)->all() : []),
             includeIdNumbers: $includeIdNumbers,
             excludeGuestId: $guest->id,
         );

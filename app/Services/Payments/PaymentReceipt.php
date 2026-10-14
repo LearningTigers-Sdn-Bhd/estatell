@@ -23,14 +23,14 @@ class PaymentReceipt
      */
     public function paymentIdsFor(Reservation $reservation): array
     {
-        return Payment::query()
+        return array_values(Payment::query()
             ->where('property_id', $reservation->property_id)
             ->whereNull('refund_of_id')
             ->whereHas('folio', fn ($folios) => $folios->where('reservation_id', $reservation->id))
             ->orderBy('id')
             ->pluck('id')
             ->map(fn (mixed $id): int => (int) $id)
-            ->all();
+            ->all());
     }
 
     /**

@@ -33,9 +33,9 @@ class RatePlanOptionData extends Data
         return new self(
             $ratePlan->id,
             $ratePlan->name,
-            $ratePlan->roomTypes->pluck('id')->map(intval(...))->values()->all(),
+            array_values($ratePlan->roomTypes->pluck('id')->map(intval(...))->all()),
             $ratePlan->pricing_basis === PricingBasis::Package ? $ratePlan->fixed_nights : null,
-            $ratePlan->companies->pluck('id')->map(intval(...))->values()->all(),
+            array_values($ratePlan->companies->pluck('id')->map(intval(...))->all()),
             $ratePlan->pricing_basis === PricingBasis::DayUse,
             $ratePlan->day_use_min_hours,
             $ratePlan->day_use_max_hours,

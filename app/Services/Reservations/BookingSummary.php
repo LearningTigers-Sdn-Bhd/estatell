@@ -83,7 +83,7 @@ class BookingSummary
             stamp: $this->stamp($reservation, $units),
             showPrices: $showPrices,
             strip: $this->strip($reservation, $from, $to, $timeZone, $this->stayLabel->forUnits($dated)),
-            rooms: $units->map(fn (ReservationUnit $unit): string => $this->roomLine($unit, $places[$unit->id]['place'], $from, $to, $showPrices))->values()->all(),
+            rooms: array_values($units->map(fn (ReservationUnit $unit): string => $this->roomLine($unit, $places[$unit->id]['place'], $from, $to, $showPrices))->all()),
             lines: $lines,
             payments: $payments,
             paid: $paid,

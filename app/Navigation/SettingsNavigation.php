@@ -62,14 +62,14 @@ class SettingsNavigation
                     active: request()->routeIs('settings.rooms.*', 'settings.room-groups.*'),
                 ) : null,
             ]))),
-            new NavGroupData(label: __('Rates'), items: array_values(array_filter([
+            new NavGroupData(label: __('Rates'), items: array_filter([
                 $user->can(PermissionEnum::SettingsManage->value) ? new NavItemData(
                     title: __('Rate plans'),
                     href: route('settings.rate-plans.index', ['property' => $property->code], absolute: false),
                     icon: 'tag',
                     active: request()->routeIs('settings.rate-plans.*'),
                 ) : null,
-            ]))),
+            ])),
             new NavGroupData(label: __('Billing setup'), items: array_values(array_filter([
                 $user->can(PermissionEnum::SettingsManage->value) ? new NavItemData(
                     title: __('Taxes'),
@@ -116,14 +116,14 @@ class SettingsNavigation
                     active: request()->routeIs('settings.roles.*'),
                 ) : null,
             ]))),
-            new NavGroupData(label: __('System'), items: array_values(array_filter([
+            new NavGroupData(label: __('System'), items: array_filter([
                 $user->can(PermissionEnum::NotificationManage->value) ? new NavItemData(
                     title: __('Notifications'),
                     href: route('settings.notifications.index', ['property' => $property->code], absolute: false),
                     icon: 'bell',
                     active: request()->routeIs('settings.notifications.*'),
                 ) : null,
-            ]))),
+            ])),
         ];
     }
 }

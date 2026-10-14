@@ -51,7 +51,7 @@ class FolioReportRows
             ->orderBy('id')
             ->get();
 
-        return $folios->map(fn (Folio $folio): FolioReportEntry => $this->entry($folio, $figures[$folio->id], $date))->all();
+        return array_values($folios->map(fn (Folio $folio): FolioReportEntry => $this->entry($folio, $figures[$folio->id], $date))->all());
     }
 
     /**

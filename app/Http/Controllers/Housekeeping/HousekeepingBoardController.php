@@ -170,13 +170,13 @@ class HousekeepingBoardController extends Controller
             ->whereHas('permissions', fn ($query) => $query->where('name', PermissionEnum::HousekeepingUpdate->value))
             ->pluck('id');
 
-        return User::query()
+        return array_values(User::query()
             ->where('property_id', $property->id)
             ->whereNull('deactivated_at')
             ->whereHas('roles', fn ($query) => $query->whereIn('roles.id', $roleIds))
             ->orderBy('name')
             ->get()
             ->map(fn (User $staff): HousekeepingStaffData => HousekeepingStaffData::fromModel($staff))
-            ->all();
+            ->all());
     }
 }

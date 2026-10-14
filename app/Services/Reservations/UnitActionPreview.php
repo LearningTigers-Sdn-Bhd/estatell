@@ -222,7 +222,7 @@ class UnitActionPreview
 
         return new UnitMovePreviewData(
             current: $night->room->number ?? $night?->bed?->label,
-            roomTypes: $types->map(fn (RoomType $type): array => ['id' => $type->id, 'name' => $type->name])->all(),
+            roomTypes: array_values($types->map(fn (RoomType $type): array => ['id' => $type->id, 'name' => $type->name])->all()),
             roomTypeId: $chosen?->id,
             sellsBeds: $own->sell_unit === SellUnit::Bed,
             reasonRequired: $night === null || $night->room_id !== null || $night->bed_id !== null,
@@ -361,9 +361,9 @@ class UnitActionPreview
             return UnitUndoPreviewData::refused($this->refusals->message($refusal));
         }
 
-        $reopens = $this->undoCheckOutRule->foliosToReopen($unit)
+        $reopens = array_values($this->undoCheckOutRule->foliosToReopen($unit)
             ->map(fn (Folio $folio): string => $folio->invoice_number === null ? $folio->number : $folio->number.' · '.$folio->invoice_number)
-            ->all();
+            ->all());
 
         return $this->undoPreview($unit, $reopens);
     }
@@ -375,7 +375,7 @@ class UnitActionPreview
     {
         $folioIds = $this->checkOutSettlement->folios($unit)->modelKeys();
         $lines = FolioLine::query()->whereIn('folio_id', $folioIds)->whereNull('parent_line_id')->orderBy('id')->get();
-        $charges = $lines->where('kind', TransactionKind::Charge)->map(fn (FolioLine $line): array => ['description' => $line->description, 'amount' => (string) $line->amount])->values()->all();
+        $charges = array_values($lines->where('kind', TransactionKind::Charge)->map(fn (FolioLine $line): array => ['description' => $line->description, 'amount' => (string) $line->amount])->all());
         $paid = $lines->where('kind', TransactionKind::Payment)->reduce(fn (BigDecimal $sum, FolioLine $line): BigDecimal => $sum->minus((string) $line->amount), BigDecimal::zero());
 
         return new UnitUndoPreviewData($charges, (string) $paid->toScale(2), $reopens, null);
@@ -643,7 +643,7 @@ class UnitActionPreview
      */
     private function childAges(ReservationUnit $unit): array
     {
-        return $unit->childAges()->pluck('age')->map(fn (mixed $age): int => (int) $age)->all();
+        return array_values($unit->childAges()->pluck('age')->map(fn (mixed $age): int => (int) $age)->all());
     }
 
     /**

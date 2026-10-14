@@ -31,10 +31,10 @@ class RatePlanDerivationData extends Data
             derivation: $ratePlan->derivation,
             direction: $value === null ? null : ((float) $value < 0 ? 'down' : 'up'),
             value: $value === null ? null : ltrim($value, '-'),
-            parents: $derivedRatePlans->eligibleParents($ratePlan)
+            parents: array_values($derivedRatePlans->eligibleParents($ratePlan)
                 ->map(fn (RatePlan $parent): RatePlanParentOptionData => new RatePlanParentOptionData($parent->id, $parent->name))
                 ->values()
-                ->all(),
+                ->all()),
             cannotFollowReason: $derivedRatePlans->cannotFollowReason($ratePlan),
         );
     }

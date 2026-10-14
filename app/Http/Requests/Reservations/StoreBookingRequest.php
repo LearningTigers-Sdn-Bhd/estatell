@@ -163,19 +163,19 @@ class StoreBookingRequest extends FormRequest
                 hours: $isDayUse && isset($line['hours']) ? (int) $line['hours'] : null,
                 roomId: $isDayUse && isset($line['room_id']) ? (int) $line['room_id'] : null,
                 adults: (int) $line['adults'],
-                childAges: array_map(intval(...), $line['child_ages'] ?? []),
+                childAges: array_values(array_map(intval(...), $line['child_ages'] ?? [])),
                 beds: $beds,
                 discountId: isset($line['discount_id']) ? (int) $line['discount_id'] : null,
                 overrideTotal: $line['override_total'] ?? null,
                 overrideReason: $line['override_reason'] ?? null,
                 restrictionOverrideReason: $line['restriction_override_reason'] ?? null,
-                addOns: array_map(fn (array $addOn): NewAddOnData => new NewAddOnData(
+                addOns: array_values(array_map(fn (array $addOn): NewAddOnData => new NewAddOnData(
                     chargeItemId: (int) $addOn['charge_item_id'],
                     quantity: isset($addOn['quantity']) ? (int) $addOn['quantity'] : null,
                     unitAmount: $addOn['unit_amount'] ?? null,
                     serviceDate: isset($addOn['service_date']) ? CarbonImmutable::parse($addOn['service_date']) : null,
-                ), $line['add_ons'] ?? []),
-                declinedAutoAddOns: array_map(intval(...), $line['declined_auto_add_ons'] ?? []),
+                ), $line['add_ons'] ?? [])),
+                declinedAutoAddOns: array_values(array_map(intval(...), $line['declined_auto_add_ons'] ?? [])),
                 boatTrips: $boatTrips,
             );
 
@@ -289,10 +289,10 @@ class StoreBookingRequest extends FormRequest
      */
     public function unitsPerLine(): array
     {
-        return array_map(
+        return array_values(array_map(
             fn (array $line): int => $this->isBedLine((int) $line['room_type_id']) ? max(1, (int) ($line['beds'] ?? 1)) : 1,
             $this->input('lines', []),
-        );
+        ));
     }
 
     /**

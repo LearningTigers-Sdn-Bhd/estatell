@@ -24,14 +24,14 @@ class ReorderRoomTypes
                 return false;
             }
 
-            foreach (array_values($orderedIds) as $index => $id) {
+            foreach ($orderedIds as $index => $id) {
                 $property->roomTypes()->whereKey($id)->update(['position' => $index + 1]);
             }
 
             activity()
                 ->causedBy($actor)
                 ->event('room_type.reordered')
-                ->withProperties(['property_id' => $property->id, 'order' => array_values($orderedIds)])
+                ->withProperties(['property_id' => $property->id, 'order' => $orderedIds])
                 ->log('Room types reordered');
 
             return true;

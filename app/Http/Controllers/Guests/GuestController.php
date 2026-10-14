@@ -224,8 +224,8 @@ class GuestController extends Controller
      */
     private function tags(Property $property): array
     {
-        return $property->tags()->orderByRaw('lower(name)')->get()
+        return array_values($property->tags()->orderByRaw('lower(name)')->get()
             ->map(fn (Tag $tag): TagData => TagData::fromModel($tag))
-            ->all();
+            ->all());
     }
 }

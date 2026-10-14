@@ -33,6 +33,6 @@ class CheckOutGroupReceiptsRequest extends FormRequest
      */
     public function paymentIds(): array
     {
-        return array_map('intval', $this->validated('payments'));
+        return array_values(array_map('intval', $this->validated('payments')));
     }
 }

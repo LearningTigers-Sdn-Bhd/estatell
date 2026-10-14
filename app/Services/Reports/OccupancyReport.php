@@ -69,7 +69,7 @@ class OccupancyReport implements HasTotals, Report
             $rows = array_values(array_filter($rows, fn (OccupancyRow $row): bool => in_array($row->key, $wanted, true)));
         }
 
-        return $rows;
+        return array_values($rows);
     }
 
     /**

@@ -57,7 +57,7 @@ class HousekeepingBoardBuilder
             $row = HousekeepingRoomData::forRoom(
                 room: $room,
                 outOfService: $wholeRoom === null ? null : HousekeepingOutOfServiceData::fromModel($wholeRoom),
-                bedBlocks: $bedBlocks,
+                bedBlocks: array_values($bedBlocks),
                 stay: $stay['view'],
                 reason: $stay['reason'],
                 canUpdate: $canUpdate,

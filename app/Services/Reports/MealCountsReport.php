@@ -42,7 +42,7 @@ class MealCountsReport implements HasTotals, Report
             $rows = array_values(array_filter($rows, fn (MealCountRow $row): bool => isset($wanted[$row->key])));
         }
 
-        return $rows;
+        return array_values($rows);
     }
 
     /**

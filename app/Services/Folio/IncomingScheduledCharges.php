@@ -77,10 +77,10 @@ class IncomingScheduledCharges
 
         $names = $this->unitNames($dates->keys()->all());
 
-        return $dates
+        return array_values($dates
             ->map(fn (array $days, int $unitId): string => $names[$unitId].' ('.$this->days($days).')')
             ->values()
-            ->all();
+            ->all());
     }
 
     /**

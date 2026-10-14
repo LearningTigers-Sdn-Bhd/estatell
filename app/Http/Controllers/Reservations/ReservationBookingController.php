@@ -89,7 +89,7 @@ class ReservationBookingController extends Controller
                 $request->string('start_time')->toString(),
                 $request->integer('hours'),
                 $request->integer('adults'),
-                array_map(intval(...), $request->validated('child_ages') ?? []),
+                array_values(array_map(intval(...), $request->validated('child_ages') ?? [])),
                 $request->addOns(),
             ));
         }
@@ -101,7 +101,7 @@ class ReservationBookingController extends Controller
             $request->date('arrival_date', 'Y-m-d')->toImmutable(),
             $request->date('departure_date', 'Y-m-d')->toImmutable(),
             $request->integer('adults'),
-            array_map(intval(...), $request->validated('child_ages') ?? []),
+            array_values(array_map(intval(...), $request->validated('child_ages') ?? [])),
             $request->integer('beds', 1),
             $request->addOns(),
             $request->filled('override_total') ? $request->string('override_total')->toString() : null,
@@ -158,12 +158,12 @@ class ReservationBookingController extends Controller
     public function boatSeats(BoatSeatsRequest $request, Property $property, BoatSeats $boatSeats): JsonResponse
     {
         $direction = BoatDirection::from($request->string('direction')->toString());
-        $departureIds = $property->boatDepartures()
+        $departureIds = array_values($property->boatDepartures()
             ->where('direction', $direction->value)
             ->where('active', true)
             ->pluck('id')
             ->map(intval(...))
-            ->all();
+            ->all());
 
         return response()->json(['seats' => (object) $boatSeats->forDate($direction, $request->date('date', 'Y-m-d')->toImmutable(), $departureIds)]);
     }

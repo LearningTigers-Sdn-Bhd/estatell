@@ -73,7 +73,7 @@ class ReservationFolioMoveController extends Controller
         $target = $reservation->folios()->findOrFail($request->integer('target_folio_id'));
         $lines = $this->lines($request, $reservation);
         $units = $this->units($request, $reservation);
-        $result = $moveCharges($request->user(), $target, $lines->all(), $units->map(fn (ReservationUnit $unit): array => ['unit' => $unit, 'scope' => $request->scopes()[$unit->id]])->values()->all());
+        $result = $moveCharges($request->user(), $target, array_values($lines->all()), array_values($units->map(fn (ReservationUnit $unit): array => ['unit' => $unit, 'scope' => $request->scopes()[$unit->id]])->all()));
 
         if ($result->isRefused()) {
             return back(fallback: $this->page($property, $reservation, $target))->withErrors($refusals->errors((string) $result->refusal, $result->rooms));
@@ -105,7 +105,7 @@ class ReservationFolioMoveController extends Controller
             $reservation,
             $target,
             $request->lineIds(),
-            $units->map(fn (ReservationUnit $unit): array => ['unit' => $unit, 'scope' => $request->scopes()[$unit->id]])->values()->all(),
+            array_values($units->map(fn (ReservationUnit $unit): array => ['unit' => $unit, 'scope' => $request->scopes()[$unit->id]])->all()),
         );
     }
 

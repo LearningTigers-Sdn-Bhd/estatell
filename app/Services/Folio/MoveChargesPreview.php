@@ -160,13 +160,13 @@ class MoveChargesPreview
             reference: $reservation->reference,
             title: __('Move charges · :reference · :name', ['reference' => $reservation->reference, 'name' => $reservation->group_name ?? $reservation->booker->full_name]),
             currency: CurrencyData::forProperty($property),
-            folios: $state['openFolios']->map(fn (Folio $folio): MoveFolioData => new MoveFolioData(
+            folios: array_values($state['openFolios']->map(fn (Folio $folio): MoveFolioData => new MoveFolioData(
                 $folio->id,
                 $state['labels'][$folio->id],
                 $folio->type->value,
                 $state['balances'][$folio->id] ?? '0.00',
                 $state['charges']->where('folioId', $folio->id)->pluck('data')->values()->all(),
-            ))->values()->all(),
+            ))->all()),
             targetId: $target->id,
             lineIds: array_values(array_filter($lineIds, fn (int $id): bool => $state['charges']->contains(fn (array $charge): bool => $charge['lineId'] === $id && $charge['folioId'] !== $target->id))),
             maxCharges: self::MAX_CHARGES,
@@ -299,7 +299,7 @@ class MoveChargesPreview
                         (string) $line->amount,
                         (string) $total->toScale(2),
                         $isRoom,
-                        array_map(fn (FolioLine $child): MoveChildData => new MoveChildData($child->description, (string) $child->amount), $descendants),
+                        array_values(array_map(fn (FolioLine $child): MoveChildData => new MoveChildData($child->description, (string) $child->amount), $descendants)),
                     ),
                 ];
             })
@@ -381,7 +381,7 @@ class MoveChargesPreview
         $withNights = $businessDate === null ? [] : $this->unitsWithNightsAfter(array_values(array_unique(array_column($offTarget, 'unit'))), $businessDate);
         $candidates = $units->filter(fn (ReservationUnit $unit): bool => $unit->status->holdsInventory() && in_array($unit->id, $withNights, true));
 
-        $asSchedules = fn (string $scope): array => $candidates->map(fn (ReservationUnit $unit): array => ['unit' => $unit, 'scope' => $scope])->values()->all();
+        $asSchedules = fn (string $scope): array => array_values($candidates->map(fn (ReservationUnit $unit): array => ['unit' => $unit, 'scope' => $scope])->all());
         $resolveRoom = $this->router->resolverFor($reservation, $this->proposedRules($reservation, $target, $asSchedules(self::SCOPE_ROOM)));
         $resolveAll = $this->router->resolverFor($reservation, $this->proposedRules($reservation, $target, $asSchedules(self::SCOPE_ALL)));
 

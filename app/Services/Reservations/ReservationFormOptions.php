@@ -33,10 +33,10 @@ class ReservationFormOptions
     public function addUnit(Property $property): AddUnitOptionsData
     {
         return new AddUnitOptionsData(
-            roomTypes: RoomType::query()->where('property_id', $property->id)->active()->ordered()->get()
-                ->map(RoomTypeOptionData::fromModel(...))->all(),
-            ratePlans: RatePlan::query()->where('property_id', $property->id)->active()->ordered()->with('roomTypes:id', 'companies:id')->get()
-                ->map(RatePlanOptionData::fromModel(...))->all(),
+            roomTypes: array_values(RoomType::query()->where('property_id', $property->id)->active()->ordered()->get()
+                ->map(RoomTypeOptionData::fromModel(...))->all()),
+            ratePlans: array_values(RatePlan::query()->where('property_id', $property->id)->active()->ordered()->with('roomTypes:id', 'companies:id')->get()
+                ->map(RatePlanOptionData::fromModel(...))->all()),
         );
     }
 
@@ -47,8 +47,8 @@ class ReservationFormOptions
      */
     public function roomDiscounts(Property $property): array
     {
-        return Discount::query()->where('property_id', $property->id)->active()->where('scope', DiscountScope::RoomOnly)->ordered()->get()
-            ->map(DiscountOptionData::fromModel(...))->all();
+        return array_values(Discount::query()->where('property_id', $property->id)->active()->where('scope', DiscountScope::RoomOnly)->ordered()->get()
+            ->map(DiscountOptionData::fromModel(...))->all());
     }
 
     /**
@@ -56,8 +56,8 @@ class ReservationFormOptions
      */
     public function chargeItems(Property $property): array
     {
-        return ChargeItem::query()->where('property_id', $property->id)->active()->ordered()->get()
-            ->map(ChargeItemOptionData::fromModel(...))->all();
+        return array_values(ChargeItem::query()->where('property_id', $property->id)->active()->ordered()->get()
+            ->map(ChargeItemOptionData::fromModel(...))->all());
     }
 
     /**
@@ -67,8 +67,8 @@ class ReservationFormOptions
      */
     public function boatDepartures(Property $property): array
     {
-        return BoatDeparture::query()->where('property_id', $property->id)->where('active', true)->ordered()->get()
-            ->map(BoatDepartureOptionData::fromModel(...))->all();
+        return array_values(BoatDeparture::query()->where('property_id', $property->id)->where('active', true)->ordered()->get()
+            ->map(BoatDepartureOptionData::fromModel(...))->all());
     }
 
     /**
@@ -78,8 +78,8 @@ class ReservationFormOptions
      */
     public function chargeCodes(Property $property): array
     {
-        return TransactionCode::query()->where('property_id', $property->id)->where('kind', TransactionKind::Charge)->active()->orderBy('code')->get()
-            ->map(ChargeCodeOptionData::fromModel(...))->all();
+        return array_values(TransactionCode::query()->where('property_id', $property->id)->where('kind', TransactionKind::Charge)->active()->orderBy('code')->get()
+            ->map(ChargeCodeOptionData::fromModel(...))->all());
     }
 
     /**
@@ -90,11 +90,11 @@ class ReservationFormOptions
      */
     public function folioDiscounts(Property $property, bool $canEnterOpenAmounts): array
     {
-        return Discount::query()->where('property_id', $property->id)->active()->ordered()->get()
+        return array_values(Discount::query()->where('property_id', $property->id)->active()->ordered()->get()
             ->reject(fn (Discount $discount): bool => ! $canEnterOpenAmounts && $discount->type === DiscountType::Open)
             ->map(fn (Discount $discount): FolioDiscountOptionData => FolioDiscountOptionData::fromModel($discount, $canEnterOpenAmounts))
             ->values()
-            ->all();
+            ->all());
     }
 
     /**
@@ -104,10 +104,10 @@ class ReservationFormOptions
     public function payments(Property $property): PaymentFormOptionsData
     {
         return PaymentFormOptionsData::forMethods(
-            PaymentMethod::query()->where('property_id', $property->id)->active()
+            array_values(PaymentMethod::query()->where('property_id', $property->id)->active()
                 ->whereNotIn('type', [PaymentMethodType::OtaCollected, PaymentMethodType::DirectBill])
                 ->ordered()->get()
-                ->map(PaymentMethodOptionData::fromModel(...))->all(),
+                ->map(PaymentMethodOptionData::fromModel(...))->all()),
         );
     }
 }

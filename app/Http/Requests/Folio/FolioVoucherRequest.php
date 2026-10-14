@@ -69,7 +69,7 @@ class FolioVoucherRequest extends FormRequest
      */
     public function lineIds(): array
     {
-        return array_map(intval(...), $this->array('lines'));
+        return array_values(array_map(intval(...), $this->array('lines')));
     }
 
     /**

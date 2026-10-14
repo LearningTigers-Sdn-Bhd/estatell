@@ -39,13 +39,13 @@ class ReservationBoatSetup
         $open->loadMissing(['roomType', 'boatTrips.boatDeparture']);
         $assigned = $this->roomBox->assignmentsForUnits($open->pluck('id')->all());
 
-        return $open
+        return array_values($open
             ->map(fn (ReservationUnit $unit): BoatSetupUnitData => BoatSetupUnitData::fromModel(
                 $unit,
                 ReservationUnitOptionData::fromModel($unit, $assigned[$unit->id] ?? null)->label,
                 $canManage && $this->boatTripAccess->refusalFor($unit, BoatDirection::In) === null,
                 $canManage && $this->boatTripAccess->refusalFor($unit, BoatDirection::Out) === null,
             ))
-            ->all();
+            ->all());
     }
 }

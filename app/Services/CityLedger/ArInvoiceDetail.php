@@ -44,7 +44,7 @@ class ArInvoiceDetail
             reservationId: $invoice->folio?->reservation?->id,
             reservationReference: $invoice->folio?->reservation?->reference,
             credited: $credited,
-            creditNotes: $notes->map(fn (ArInvoice $note): ArInvoiceRowData => ArInvoiceRowData::fromModel($note, null, $today))->all(),
+            creditNotes: array_values($notes->map(fn (ArInvoice $note): ArInvoiceRowData => ArInvoiceRowData::fromModel($note, null, $today))->all()),
             lines: $this->lines($invoice),
             allocations: $allocations,
             creditBlockedBy: array_values(array_filter($allocations, fn (ArAllocationRowData $allocation): bool => ! $allocation->isReversed)),
@@ -65,13 +65,13 @@ class ArInvoiceDetail
     {
         $mayReverse = $user->can(PermissionEnum::CityLedgerAllocate->value);
 
-        return ArAllocation::query()
+        return array_values(ArAllocation::query()
             ->where('ar_invoice_id', $invoice->id)
             ->with('payment:id,company_id,receipt_number,received_on')
             ->latest('id')
             ->get()
             ->map(fn (ArAllocation $allocation): ArAllocationRowData => ArAllocationRowData::fromModel($allocation, $mayReverse))
-            ->all();
+            ->all());
     }
 
     /**
@@ -85,12 +85,12 @@ class ArInvoiceDetail
             return [];
         }
 
-        return FolioLine::query()
+        return array_values(FolioLine::query()
             ->where('folio_id', $invoice->folio_id)
             ->whereNotIn('transaction_code_id', TransactionCode::query()->where('system_key', SystemTransactionCode::DirectBillPayment->value)->select('id'))
             ->orderBy('id')
             ->get(['posting_date', 'description', 'amount'])
             ->map(fn (FolioLine $line): ArInvoiceLineData => new ArInvoiceLineData($line->posting_date->toDateString(), $line->description, (string) $line->amount))
-            ->all();
+            ->all());
     }
 }

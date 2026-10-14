@@ -18,7 +18,7 @@ class ViewAsStaff
      */
     public function for(Property $property): array
     {
-        return User::query()
+        return array_values(User::query()
             ->leftJoin('model_has_roles', fn ($join) => $join
                 ->on('model_has_roles.model_id', '=', 'users.id')
                 ->where('model_has_roles.model_type', (new User)->getMorphClass()))
@@ -37,6 +37,6 @@ class ViewAsStaff
                 isOwner: $user->getAttribute('default_role') === DefaultRoleEnum::Owner->value,
             ))
             ->values()
-            ->all();
+            ->all());
     }
 }

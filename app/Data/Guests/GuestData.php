@@ -69,7 +69,7 @@ class GuestData extends Data
             blacklistedAt: $guest->blacklisted_at?->toDateString(),
             blacklistReason: $guest->blacklist_reason,
             anonymizedAt: $guest->anonymized_at?->toDateString(),
-            tags: $guest->tags->sortBy(fn (Tag $tag): string => mb_strtolower($tag->name))->map(fn (Tag $tag): TagData => TagData::fromModel($tag))->values()->all(),
+            tags: array_values($guest->tags->sortBy(fn (Tag $tag): string => mb_strtolower($tag->name))->map(fn (Tag $tag): TagData => TagData::fromModel($tag))->all()),
             createdAt: $guest->created_at->toDateString(),
         );
     }

@@ -170,7 +170,7 @@ class PolicyChargeCalculator
             $nights->first()->date,
             $nights->last()->date->addDay(),
             $unit->adults,
-            $unit->childAges()->pluck('age')->map(fn (mixed $age): int => (int) $age)->all(),
+            array_values($unit->childAges()->pluck('age')->map(fn (mixed $age): int => (int) $age)->all()),
             1,
         ));
 

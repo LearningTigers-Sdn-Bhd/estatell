@@ -101,13 +101,13 @@ class RegistrationCardPageData extends Data
             voidReason: $card->void_reason,
             locale: $resolved->locale->value,
             localeOptions: array_map(fn (Locale $locale): array => ['value' => $locale->value, 'label' => $locale->label()], $resolved->locales),
-            fields: $visible->map(fn (RegistrationCardFieldSetting $setting): array => [
+            fields: array_values($visible->map(fn (RegistrationCardFieldSetting $setting): array => [
                 'field' => $setting->field->value,
                 'label' => $setting->field->label(),
                 'group' => $setting->field->group()->value,
                 'visibility' => $setting->visibility->value,
                 'value' => $stay[$setting->field->value] ?? null,
-            ])->values()->all(),
+            ])->all()),
             values: [
                 'full_name' => $guest->full_name,
                 'nationality_code' => $guest->nationality_code,
@@ -125,7 +125,7 @@ class RegistrationCardPageData extends Data
                 'remarks' => $card->remarks,
                 'marketing_consent' => $guest->marketing_consent_at !== null,
             ],
-            documents: $documents->map(fn (GuestIdentityDocument $document): array => ['id' => $document->id, 'label' => $document->type->label().' '.$document->maskedNumber()])->values()->all(),
+            documents: array_values($documents->map(fn (GuestIdentityDocument $document): array => ['id' => $document->id, 'label' => $document->type->label().' '.$document->maskedNumber()])->all()),
             termsText: $rendered['text'],
             checklist: $rendered['items'],
             labels: $labels,

@@ -31,7 +31,7 @@ class UpdateDayUseTaxes
             sort($taxIds);
             $current = $dayUse->applicableTaxes->pluck('id')->map(fn (mixed $id): int => (int) $id)->sort()->values()->all();
 
-            if ($current === array_values($taxIds)) {
+            if ($current === $taxIds) {
                 return true;
             }
 

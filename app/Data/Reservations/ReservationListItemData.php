@@ -99,10 +99,10 @@ class ReservationListItemData extends Data
             nights: $firstArrival === null ? 0 : (int) CarbonImmutable::parse($firstArrival)->diffInDays(CarbonImmutable::parse($lastDeparture)),
             stayType: $counted->first()->stay_type ?? StayType::Overnight,
             stayLabel: app(StayLabel::class)->forUnits($counted),
-            roomTypes: $counted->countBy(fn (ReservationUnit $unit): string => $unit->roomType->name)
+            roomTypes: array_values($counted->countBy(fn (ReservationUnit $unit): string => $unit->roomType->name)
                 ->map(fn (int $count, string $name): string => __(':count× :name', ['count' => $count, 'name' => $name]))
                 ->values()
-                ->all(),
+                ->all()),
             bookedOn: $reservation->created_at->toDateString(),
             total: BigDecimal::of((string) $reservation->getAttribute('stay_total'))->toScale(2)->__toString(),
             paid: (string) $reservation->getAttribute('paid'),

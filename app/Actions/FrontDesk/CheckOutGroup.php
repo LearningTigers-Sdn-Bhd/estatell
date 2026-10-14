@@ -246,7 +246,7 @@ class CheckOutGroup
             return ['refusal' => CheckOutGroupResult::REFUSAL_PAYMENT_NOT_REFUNDABLE, 'moved' => $none, 'refunded' => $none];
         }
 
-        $posted = ($this->transferLines)($actor, $lines->all(), $target);
+        $posted = ($this->transferLines)($actor, array_values($lines->all()), $target);
 
         if ($posted->isRefused()) {
             return ['refusal' => (string) $posted->refusal, 'moved' => $none, 'refunded' => $none];
@@ -445,7 +445,7 @@ class CheckOutGroup
 
         $lines = FolioLine::query()->where('idempotency_key', 'like', 'payment:'.$uuid.':%')->select('id');
 
-        return Payment::query()->whereIn('folio_line_id', $lines)->orderBy('id')->pluck('id')->map(fn (mixed $id): int => (int) $id)->all();
+        return array_values(Payment::query()->whereIn('folio_line_id', $lines)->orderBy('id')->pluck('id')->map(fn (mixed $id): int => (int) $id)->all());
     }
 
     private function log(User $actor, Reservation $reservation, CheckOutGroupResult $result, bool $onePayment, string $businessDate): void

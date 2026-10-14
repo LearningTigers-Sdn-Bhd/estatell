@@ -43,13 +43,13 @@ class ArInvoiceBalance
      */
     public function activeReceiptNumbers(ArInvoice $invoice): array
     {
-        return ArAllocation::query()
+        return array_values(ArAllocation::query()
             ->where('ar_invoice_id', $invoice->id)
             ->active()
             ->with('payment:id,receipt_number')
             ->orderBy('id')
             ->get()
             ->map(fn (ArAllocation $allocation): string => $allocation->payment->receipt_number)
-            ->all();
+            ->all());
     }
 }

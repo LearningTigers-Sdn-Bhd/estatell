@@ -55,11 +55,11 @@ class QuoteBookingLineRequest extends FormRequest
      */
     public function addOns(): array
     {
-        return array_map(fn (array $addOn): NewAddOnData => new NewAddOnData(
+        return array_values(array_map(fn (array $addOn): NewAddOnData => new NewAddOnData(
             chargeItemId: (int) $addOn['charge_item_id'],
             quantity: isset($addOn['quantity']) ? (int) $addOn['quantity'] : null,
             unitAmount: $addOn['unit_amount'] ?? null,
             serviceDate: isset($addOn['service_date']) ? CarbonImmutable::parse($addOn['service_date']) : null,
-        ), $this->validated('add_ons') ?? []);
+        ), $this->validated('add_ons') ?? []));
     }
 }

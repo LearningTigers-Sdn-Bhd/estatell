@@ -39,7 +39,7 @@ class GuestRowData extends Data
             isVip: $guest->is_vip,
             isBlacklisted: $guest->blacklisted_at !== null,
             isAnonymized: $guest->anonymized_at !== null,
-            tags: $guest->tags->map(fn (Tag $tag): string => $tag->name)->sortBy(fn (string $name): string => mb_strtolower($name))->values()->all(),
+            tags: array_values($guest->tags->map(fn (Tag $tag): string => $tag->name)->sortBy(fn (string $name): string => mb_strtolower($name))->all()),
             createdAt: $guest->created_at->toDateString(),
         );
     }

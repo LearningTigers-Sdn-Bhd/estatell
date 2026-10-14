@@ -190,7 +190,7 @@ class AddUnit
             $arrival,
             $departure,
             $data->adults,
-            array_values($data->childAges),
+            $data->childAges,
             1,
         ));
 
@@ -241,7 +241,7 @@ class AddUnit
             array_keys($quote->nights),
         ));
 
-        $unit->childAges()->createMany(array_map(fn (int $age): array => ['age' => $age], array_values($data->childAges)));
+        $unit->childAges()->createMany(array_map(fn (int $age): array => ['age' => $age], $data->childAges));
 
         foreach ($data->addOns as $addOn) {
             $addOnResult = ($this->addUnitAddOn)($actor, $unit, $addOn);

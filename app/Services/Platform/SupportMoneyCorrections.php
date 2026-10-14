@@ -33,7 +33,7 @@ class SupportMoneyCorrections
      */
     public function forSession(Property $property, User $supportUser, int $impersonatedUserId, CarbonImmutable $since): array
     {
-        return Activity::query()
+        return array_values(Activity::query()
             ->causedBy($supportUser)
             ->whereIn('event', array_keys(self::EVENT_REFERENCES))
             ->where('created_at', '>=', $since)
@@ -53,7 +53,7 @@ class SupportMoneyCorrections
                 ];
             })
             ->values()
-            ->all();
+            ->all());
     }
 
     private function label(string $event): string

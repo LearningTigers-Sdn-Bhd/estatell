@@ -54,7 +54,7 @@ class ChangeNightPriceRequest extends FormRequest
      */
     public function nights(): array
     {
-        return $this->unit()->nights()->whereIn('id', $this->nightIds())->orderBy('date')->get()->all();
+        return array_values($this->unit()->nights()->whereIn('id', $this->nightIds())->orderBy('date')->get()->all());
     }
 
     /**

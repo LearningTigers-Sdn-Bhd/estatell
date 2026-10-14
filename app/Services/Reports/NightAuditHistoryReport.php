@@ -52,7 +52,7 @@ class NightAuditHistoryReport implements HasTotals, Report
         $zero = Money::zero($property->loadMissing('settings')->settings->currency->getCurrencyCode());
         $timeZone = $property->settings->time_zone ?? config('app.timezone');
 
-        return $audits
+        return array_values($audits
             ->sortBy(fn (NightAudit $audit): string => $audit->businessDate->date->toDateString())
             ->map(function (NightAudit $audit) use ($occupancy, $revenue, $zero, $timeZone): NightAuditHistoryRow {
                 $date = $audit->businessDate->date->toDateString();
@@ -65,7 +65,7 @@ class NightAuditHistoryReport implements HasTotals, Report
                 );
             })
             ->values()
-            ->all();
+            ->all());
     }
 
     /**

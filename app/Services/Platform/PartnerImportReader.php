@@ -64,6 +64,6 @@ class PartnerImportReader
             ]);
         }
 
-        return $rows->all();
+        return array_values($rows->all());
     }
 }

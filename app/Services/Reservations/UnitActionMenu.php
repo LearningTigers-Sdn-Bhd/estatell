@@ -33,13 +33,13 @@ class UnitActionMenu
     {
         $current = $this->currentBusinessDate->get($unit->property()->firstOrFail());
 
-        return collect(UnitAction::cases())
+        return array_values(collect(UnitAction::cases())
             ->filter(fn (UnitAction $action): bool => $action->isOpenFor($unit->status)
                 && $user->can($action->permission()->value)
                 && $this->isTimely($action, $unit, $current, $user))
             ->map(fn (UnitAction $action): UnitActionData => UnitActionData::fromAction($action))
             ->values()
-            ->all();
+            ->all());
     }
 
     /**
