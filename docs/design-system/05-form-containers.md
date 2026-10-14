@@ -158,3 +158,13 @@ A full-page form whose tabs or links lead to other pages guards its unsaved chan
 - Prefetches, non-GET requests and visits to the current URL are not blocked. A browser reload or tab close asks the browser to confirm.
 - After a successful save the form calls `form.setDefaults()`, so it is clean again.
 - Built for the rate plan editor. Use it for any other full-page editor with several tab pages.
+
+## Editable tables
+
+Tables that add and remove rows in a form (age groups, meal periods, the onboarding sections):
+
+- The add button is in the `TableFooter`, at the end (right): `flex justify-between`, `variant="outline"` with a `Plus` icon.
+- A summary (for example "Guests aged 12 and over count as adults" or "Total: 10") goes at the start (left).
+- A second footer action, such as **Import from file**, sits before the add button, so the add button is always last.
+- Each row has a remove button in its last cell. A table that must keep one row disables the remove button on the last row (`focusableWhenDisabled`, with a tooltip).
+- At phone width rows stack into cards and the footer button spans the full width.

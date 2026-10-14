@@ -79,7 +79,7 @@ Room revenue is not a separate section. Its taxes are the **Applies to rooms** c
    ├──────────────────────────────────────┼──────────────────────┼──────────────┼────┤
    │[ Dewan Bandaraya Kota Kinabalu     ] │[ DBKK/LP/2025/01234] │[ 31/12/2026 ]│ 🗑 │
    ├──────────────────────────────────────┴──────────────────────┴──────────────┴────┤
-   │ [+ Add licence]                                                                 │
+   │                                                                 [+ Add licence] │
    └─────────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -142,7 +142,7 @@ Setup started (another section is no longer Not started):
  │ [ Standard Double            ] │ [ 2 ]       │ [ 1 ]        │ 🗑 │
  │ [                            ] │ [ 2 ]       │ [ 0 ]        │ 🗑 │
  ├────────────────────────────────┴─────────────┴──────────────┴────┤
- │ [+ Add room type]                                                │
+ │                                                [+ Add room type] │
  └──────────────────────────────────────────────────────────────────┘
 ```
 
@@ -169,7 +169,7 @@ Setup started (another section is no longer Not started):
  │ [ Ground floor                             ] │ 🗑 │
  │ [ Garden block                             ] │ 🗑 │
  ├──────────────────────────────────────────────┴────┤
- │ [+ Add group]                                     │
+ │                                     [+ Add group] │
  └───────────────────────────────────────────────────┘
 
  Rooms
@@ -179,7 +179,7 @@ Setup started (another section is no longer Not started):
  │ [Standard Dbl ▾] │ [Ground floor▾]│ [    ] │ [101] │ [106] │   6   │ 🗑 │
  │ [Deluxe King  ▾] │ [Garden block▾]│ [ G  ] │ [  1] │ [  4] │   4   │ 🗑 │
  ├──────────────────┴────────────────┴────────┴───────┴───────┴───────┴────┤
- │ [+ Add range]                                           Total: 10       │
+ │ Total: 10                                                 [+ Add range] │
  └─────────────────────────────────────────────────────────────────────────┘
  Preview   Ground floor 101 … 106 · Garden block G1 … G4
 ```
@@ -224,7 +224,7 @@ Setup started (another section is no longer Not started):
  │[●] │[ Service charge] │[ 10   ][ % ▾]  │[Added on ▾]  │   [ ]    │[             ] │⌄🗑│
  │    │  ℹ Not applied to rooms. Link it to extras in Charge items →                │  │
  ├────┴──────────────────┴────────────────┴──────────────┴──────────┴────────────────┴──┤
- │ [+ Add tax]                                                                          │
+ │                                                                          [+ Add tax] │
  └──────────────────────────────────────────────────────────────────────────────────────┘
  What a guest pays for 1 night at RM 100.00
  ┌──────────────┬─────────────┬───────────────┐
@@ -268,7 +268,7 @@ Setup started (another section is no longer Not started):
  │    │  ℹ Bill stays to companies. Add them in the next section.    │    │
  │[●] │[ DuitNow QR            ] │[ E-wallet     ▾] │     [x]       │ 🗑 │
  ├────┴──────────────────────────┴──────────────────┴───────────────┴────┤
- │ [+ Add payment method]                                                │
+ │                                                [+ Add payment method] │
  └───────────────────────────────────────────────────────────────────────┘
  After you go live, you can add card fees and change the order in Settings,
  under Payment methods.
@@ -297,7 +297,7 @@ Setup started (another section is no longer Not started):
  │   [ +Add portal user ]                                                                 │    │
  │[ Borneo Tours      ] │[Travel agt ▾]│[ ops@borneotours.my ] │  [x]   │ RM[        ] │ [14]  │ ⌄🗑│
  ├──────────────────────┴──────────────┴───────────────────────┴────────┴──────────────┴───────┴────┤
- │ [+ Add company]   [Import from file]                                                             │
+ │                                                             [Import from file]   [+ Add company] │
  └──────────────────────────────────────────────────────────────────────────────────────────────────┘
  Empty credit limit = no limit. After you go live, you can give companies their
  own rates in Settings, under Rate plans.
@@ -347,7 +347,7 @@ Setup started (another section is no longer Not started):
  │[ Long stay          ] │[Own prices                  ▾] │[ All                ▾] │⌃🗑 │
  │   (nested grid: Room type · Price by · Weekdays · Weekend)                     │    │
  ├───────────────────────┴────────────────────────────────┴────────────────────────┴────┤
- │ [+ Add rate]                                                                         │
+ │                                                                         [+ Add rate] │
  └──────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -415,7 +415,7 @@ A rate plan has one pricing basis, so the rows map to one plan per basis used:
  │    │ Code                  BREAKFAST  (made from the name)                                        │    │
  │    └──────────────────────────────────────────────────────────────────────────────────────────────┘    │
  ├────┴────────────────────┴──────────────────┴────────────────┴───────────────────┴────────────────┴────┤
- │ [+ Add item]                                                                                         │
+ │                                                                                         [+ Add item] │
  └──────────────────────────────────────────────────────────────────────────────────────────────────────┘
  Empty price = staff enter the amount each time.
 ```
@@ -451,7 +451,7 @@ A rate plan has one pricing basis, so the rows map to one plan per basis used:
  │    │ Code               RETURNING_GUEST  (made from the name)                     │    │
  │    └──────────────────────────────────────────────────────────────────────────────┘    │
  ├────┴──────────────────────┴──────────────┴────────────────┴─────────────────────────┴────┤
- │ [+ Add discount]                                                                         │
+ │                                                                         [+ Add discount] │
  └──────────────────────────────────────────────────────────────────────────────────────────┘
  After you go live, you can set long-stay and rate discounts in Rates.
 ```
@@ -528,7 +528,7 @@ Not a table: three groups on one page.
  │[ Aina Rahman       ] │[ aina@seaview.my     ] │[Front desk  ▾] │ Ready after go-live          │    │
  │[                   ] │[                     ] │[Front desk  ▾] │ Created when you save        │ 🗑 │
  ├──────────────────────┴────────────────────────┴────────────────┴──────────────────────────────┴────┤
- │ [+ Add person]   [Import from file]                                                                │
+ │                                                                [Import from file]   [+ Add person] │
  └────────────────────────────────────────────────────────────────────────────────────────────────────┘
  After you go live, you can invite staff by email and make custom roles in
  Settings, under Staff and Roles.
@@ -583,6 +583,7 @@ Editing an earlier section never resets a later one. A later section only shows 
 - Its own onboarding layout, set with Inertia 3 `useLayoutProps`. No PMS sidebar and no ⌘K command palette.
 - The phase bar shows state by icon (check, lock, warning, number), never by colour alone, with the state word for assistive tech.
 - The footer is a flex sibling of the scroll area, so it never covers the last field.
+- In an editable table the add button sits at the end (right) of the `TableFooter` (`justify-between`). A summary such as "Total: 10" goes at the start (left). With a second action, such as **Import from file**, the add button stays last. See [Form containers](../design-system/05-form-containers.md#editable-tables).
 - Hints that point beyond onboarding say "After you go live, you can … in Settings, under {page}." (or "in Rates") in plain text, with no arrow paths. Settings is behind the fence until go-live. A hint that opens another onboarding section is a link instead, for example **Charge items →**.
 
 ## Forms
