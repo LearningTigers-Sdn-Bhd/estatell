@@ -58,6 +58,7 @@
 }
 
 :root {
+    --error-wordmark: url('/images/errors/wordmark-light.webp');
     --background: oklch(1 0 0);
     --foreground: oklch(0.153 0.006 107.1);
     --card: oklch(1 0 0);
@@ -120,6 +121,7 @@
 }
 
 .dark {
+    --error-wordmark: url('/images/errors/wordmark-dark.svg');
     --background: oklch(0.153 0.006 107.1);
     --foreground: oklch(0.988 0.003 106.5);
     --card: oklch(0.228 0.013 107.4);

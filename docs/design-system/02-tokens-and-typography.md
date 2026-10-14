@@ -44,3 +44,10 @@ Part of the [design system](../design-system.md). Short contract: [DESIGN.md](..
     - `truncate` for single-line overflow.
     - `className` on components is for layout only, never to recolor or restyle them.
 - **Overlays** (Dialog, Sheet, Popover) manage their own stacking. No manual `z-index`.
+
+## Error-page wordmark
+
+- Use the approved landing-page artwork, not a font recreation or the app icon. The error-page assets live in `public/images/errors/`.
+- Light mode uses the original green `wordmark-light.webp`. Dark mode uses `wordmark-dark.svg`, an off-white fill through the original artwork's alpha mask. The letter shapes and transparent boundary stay the same.
+- The `--error-wordmark` image URL changes in the existing light and dark theme definitions. The page uses that token, so the correct logo appears before React hydrates. Give it the accessible name **Estatell**.
+- These assets apply to the standalone error page. Existing app and authentication logos stay as they are.

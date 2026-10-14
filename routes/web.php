@@ -5,9 +5,23 @@ use App\Http\Controllers\HomeRedirectController;
 use App\Http\Controllers\Platform\ImpersonationController;
 use App\Http\Controllers\Platform\ViewAsController;
 use App\Http\Middleware\EnsurePropertyAccess;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use Inertia\Inertia;
+use Symfony\Component\HttpFoundation\Response;
 
 Route::inertia('/', 'welcome')->name('home');
+
+Route::get('_preview/errors/{status}', function (Request $request, int $status): Response {
+    abort_unless(app()->environment('local'), 404);
+
+    Inertia::flushShared();
+
+    return Inertia::render('errors', [
+        'status' => $status,
+        'recoveryUrl' => $status === 503 ? $request->fullUrl() : route('home.redirect', absolute: false),
+    ])->toResponse($request)->setStatusCode($status);
+})->whereIn('status', ['403', '404', '419', '500', '503'])->name('errors.preview');
 
 Route::get('dashboard', HomeRedirectController::class)->middleware('auth')->name('home.redirect');
 
