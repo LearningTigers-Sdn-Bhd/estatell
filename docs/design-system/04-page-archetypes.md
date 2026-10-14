@@ -4,16 +4,16 @@ Part of the [design system](../design-system.md). Short contract: [DESIGN.md](..
 
 Every screen uses one archetype.
 
-| Archetype     | Built from                                                                | Used by                                         |
-| ------------- | ------------------------------------------------------------------------- | ----------------------------------------------- |
-| Index         | `PageHeader` + `FilterBar` + `DataTable` + `BulkActionBar` + `EmptyState` | Reservations, guests, companies, AR, rate plans |
-| Detail        | `PageHeader` + `DetailLayout` (Tabs + side summary card)                  | Guest, company, folio (reservation: see below)  |
-| Form          | `FormField` sections + sticky `FormActions`                               | Create and edit pages with 13+ fields           |
-| Settings      | Tabs + `SettingsSection` (one card = one form, saved separately)          | Property, taxes, payments, terms, notifications |
-| Wizard        | The Form archetype in the onboarding layout (`useLayoutProps`)            | Onboarding                                      |
-| Board         | Grouped card grid + filters                                               | Housekeeping, readiness panel                   |
-| Dashboard     | Alert + quick action buttons + a row of link tiles + one action list      | [Dashboard](../18-front-desk/04-dashboard.md)   |
-| Grid calendar | Optional tab links + toolbar + the `pms/grid` engine, no `PageHeader`     | Rate calendar, Stay View                        |
+| Archetype     | Built from                                                                     | Used by                                         |
+| ------------- | ------------------------------------------------------------------------------ | ----------------------------------------------- |
+| Index         | `PageHeader` + `FilterBar` + `DataTable` + `BulkActionBar` + `EmptyState`      | Reservations, guests, companies, AR, rate plans |
+| Detail        | `PageHeader` + `DetailLayout` (Tabs + side summary card)                       | Guest, company, folio (reservation: see below)  |
+| Form          | `FormField` sections + sticky `FormActions`                                    | Create and edit pages with 13+ fields           |
+| Settings      | Tabs + `SettingsSection` (one card = one form, saved separately)               | Property, taxes, payments, terms, notifications |
+| Wizard        | The Form archetype in the onboarding layout (`useLayoutProps`)                 | Onboarding                                      |
+| Board         | Grouped card grid + filters                                                    | Housekeeping, readiness panel                   |
+| Dashboard     | Alert + quick action buttons + a bento grid: one action list beside link tiles | [Dashboard](../18-front-desk/04-dashboard.md)   |
+| Grid calendar | Optional tab links + toolbar + the `pms/grid` engine, no `PageHeader`          | Rate calendar, Stay View                        |
 
 Rules:
 

@@ -14,20 +14,41 @@ Dashboard · Sandbay Resort                          Business date 12 Oct 2026
 └─────────────────────────────────────────────────────────────────────────────┘
 [+ New booking]  [Walk-in]  [Find reservation]                 [Run night audit]
 
-┌ Arrivals ──────┬ Departures ────┬ Tonight ─────────────┬ October ─────────────┐
-│ 5 to check in  │ 3 to check out │ 70% · 9 rooms free   │ MYR 84,200 posted    │
-│ of 8           │ of 5           │ ▁▃▅▆▇▆▅ next 7 days  │ 612 nights booked    │
-└────────────────┴────────────────┴──────────────────────┴──────────────────────┘
-
-To do today                                                              8 items
- Overdue  Room 104 · Lee Mei Ling · was due 12:00            [Check out]
- 14:00    Tan Wei Ming · WA1-0142 · 2 rooms                  [Check in]
- 15:00    Ahmad Faiz · WA1-0150 · Deluxe Twin                [Check in]
- Folio    Master F-0031 · Acme Sdn Bhd · MYR 1,700 not billed [Open folio]
- …                                                     [See all arrivals]
+┌ To do today ───────────────────── 8 items ┐┌ Tonight ────────────────────────┐
+│ Overdue  Room 104 · Lee Mei Ling          ││ 70%  occupied                   │
+│          was due 12:00       [Check out]  ││ 9 rooms free                    │
+│ 14:00    Tan Wei Ming · WA1-0142          ││                                 │
+│          2 rooms              [Check in]  ││ ▁▃▅▆▇▆▅                         │
+│ 15:00    Ahmad Faiz · WA1-0150            ││ Mon ─────────────────────── Sun │
+│          Deluxe Twin          [Check in]  │└─────────────────────────────────┘
+│ Folio    Master F-0031 · Acme Sdn Bhd     │┌ Arrivals ──────┐┌ Departures ───┐
+│          MYR 1,700 not billed [Open folio]││ 5              ││ 3             │
+│ …                                         ││ to check in    ││ to check out  │
+│                     [See all arrivals]    ││ of 8           ││ of 5          │
+│                                           │└────────────────┘└───────────────┘
+│                                           │┌ October ────────────────────────┐
+│                                           ││ MYR 84,200 posted               │
+│                                           ││ 612 nights booked               │
+└───────────────────────────────────────────┘└─────────────────────────────────┘
 ```
 
-Everything uses the property **business date** (`CurrentBusinessDate`) and the property time zone, never the calendar date. On a narrow screen the parts stack: alert, quick actions, tiles (two by two), then the list.
+Everything uses the property **business date** (`CurrentBusinessDate`) and the property time zone, never the calendar date.
+
+### Bento grid
+
+Below the quick actions the parts sit in a bento grid from `lg`:
+
+| Cell                     | Place                                      | Why                                       |
+| ------------------------ | ------------------------------------------ | ----------------------------------------- |
+| **To do today**          | Left, about 55% wide, the full grid height | Where staff act, so it gets the most room |
+| **Tonight**              | Right, top, full right-column width        | The 7-night bar needs width to read       |
+| **Arrivals, Departures** | Right, middle, side by side                | Two short counts                          |
+| **{Month}**              | Right, bottom, full right-column width     | Two figures with their labels             |
+
+- The grid height follows the right column. A long To do list scrolls inside its cell, so the right column never leaves a gap.
+- Each cell is one card with a rounded border. To do rows are plain rows, not cards in a card.
+- A cell the user may not see is left out and the others in its column grow to fill it. With no tile at all, To do takes the full width.
+- Below `lg` the parts stack: alert, quick actions, tiles (two by two), then the list.
 
 ## Night audit alert
 
@@ -52,7 +73,7 @@ A user with none of them sees no button row.
 
 ## Tiles
 
-Four tiles. Each is a link, and a tile the user may not see is left out (the others share the row).
+Four tiles in the right column of the [bento grid](#bento-grid). Each is a link, and a tile the user may not see is left out.
 
 | Tile           | Shows                                                                                                                                                                     | Link                       | Source                                                                     | Permission          |
 | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------- | -------------------------------------------------------------------------- | ------------------- |
