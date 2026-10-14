@@ -293,3 +293,73 @@ test('units of another room type, another property or other dates are not counte
 
     expect(availableByNight($roomType, '2026-11-02', '2026-11-04'))->toBe([3, 3]);
 });
+
+test('the batch gives the same nights as nights() for each room type', function () {
+    [$property, $roomType] = availabilitySetup(3);
+    $dormType = RoomType::factory()->for($property)->bed()->create();
+    $dorm = Room::factory()->for($property)->create(['room_type_id' => $dormType->id]);
+    Bed::factory()->count(4)->create(['room_id' => $dorm->id]);
+    $bed = Bed::query()->where('room_id', $dorm->id)->first();
+    $room = Room::query()->where('room_type_id', $roomType->id)->first();
+    blockRoom($room, '2026-11-03', '2026-11-04');
+    blockRoom($room, '2026-11-04', '2026-11-05');
+    blockRoom($dorm, '2026-11-02', '2026-11-03', $bed);
+    blockRoom($dorm, '2026-11-05', '2026-11-05');
+    bookUnit($roomType, '2026-11-02', '2026-11-05');
+    bookUnit($dormType, '2026-11-03', '2026-11-06');
+    bookUnit($dormType, '2026-11-03', '2026-11-04', UnitStatus::Cancelled);
+
+    $service = app(AvailabilityService::class);
+    $arrival = Date::parse('2026-11-01');
+    $departure = Date::parse('2026-11-07');
+    $batch = $service->nightsForRoomTypes([$roomType, $dormType], $arrival, $departure);
+    $rows = fn (array $nights): array => array_map(fn (NightAvailability $night): array => [$night->date->toDateString(), $night->total, $night->blocked, $night->booked, $night->available], $nights);
+
+    expect(array_keys($batch))->toBe([$roomType->id, $dormType->id])
+        ->and($rows($batch[$roomType->id]))->toBe($rows($service->nights($roomType, $arrival, $departure)))
+        ->and($rows($batch[$dormType->id]))->toBe($rows($service->nights($dormType, $arrival, $departure)))
+        ->and($batch[$dormType->id][1]->blocked)->toBe(1)
+        ->and($batch[$dormType->id][2]->booked)->toBe(1);
+});
+
+test('a room type with no rooms gets nights with a total of zero, and an empty stay gives empty lists', function () {
+    [$property, $roomType] = availabilitySetup(2);
+    $empty = RoomType::factory()->for($property)->create();
+    $service = app(AvailabilityService::class);
+
+    $batch = $service->nightsForRoomTypes([$roomType, $empty], Date::parse('2026-11-02'), Date::parse('2026-11-04'));
+    $none = $service->nightsForRoomTypes([$roomType, $empty], Date::parse('2026-11-02'), Date::parse('2026-11-02'));
+
+    expect($batch[$empty->id])->toHaveCount(2)
+        ->and($batch[$empty->id][0]->total)->toBe(0)
+        ->and($batch[$empty->id][0]->available)->toBe(0)
+        ->and($batch[$roomType->id][0]->total)->toBe(2)
+        ->and($none)->toBe([$roomType->id => [], $empty->id => []]);
+});
+
+test('the batch runs in the same number of queries for 2 and for 5 room types', function () {
+    $queries = function (int $count): int {
+        $property = Property::factory()->create();
+        $roomTypes = RoomType::factory()->count($count)->for($property)->create();
+
+        foreach ($roomTypes as $index => $roomType) {
+            $room = Room::factory()->for($property)->create(['room_type_id' => $roomType->id]);
+            blockRoom($room, '2026-11-03', '2026-11-04');
+            bookUnit($roomType, '2026-11-02', '2026-11-04');
+        }
+
+        $dormType = RoomType::factory()->for($property)->bed()->create();
+        Bed::factory()->count(2)->create(['room_id' => Room::factory()->for($property)->create(['room_type_id' => $dormType->id])->id]);
+        $roomTypes->push($dormType);
+
+        DB::flushQueryLog();
+        DB::enableQueryLog();
+        app(AvailabilityService::class)->nightsForRoomTypes($roomTypes, Date::parse('2026-11-01'), Date::parse('2026-11-10'));
+        $count = count(DB::getQueryLog());
+        DB::disableQueryLog();
+
+        return $count;
+    };
+
+    expect($queries(2))->toBe(4)->and($queries(5))->toBe(4);
+});
