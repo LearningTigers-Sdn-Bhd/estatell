@@ -28,6 +28,8 @@ Two roles can view as:
 | Copied link          | "Copy view-as link" next to [View as]                              | `/view-as/{code}?to=…&reason=…`                                       |
 | **Pasted staff URL** | Any `/p/{code}/…` URL opened by a support user who may view it     | Intercepted, redirected to the view-as page with `to` set to that URL |
 
+Admin ⌘K and the copied link are parked. They come in a later commit, after ⌘K exists.
+
 ## Flow
 
 ```
@@ -107,17 +109,19 @@ While impersonating, every page shows a banner that cannot be dismissed:
 
 ### Blocked during impersonation
 
-The `BlockDuringImpersonation` middleware denies these routes, and the UI hides them:
+The `BlockDuringImpersonation` middleware (alias `block.impersonation`) denies these routes, and the UI hides them:
 
-- Change password, email or two-factor settings.
-- Delete account.
-- Manage staff, roles and permissions.
-- Change notification preferences.
-- Change `allow_support_access`.
-- View identity document scans.
-- Refunds and voids.
-- Force close the night audit.
-- `GoLive`.
+| Blocked                             | Route or place                                                                                                                                 |
+| ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| Password, two-factor, sessions      | `account.password.update`, `account.security.*`, `account.sessions.destroy`, `account.set-password.*`                                          |
+| Delete account                      | `account.profile.destroy`                                                                                                                      |
+| Notification preferences            | `account.notifications.update`                                                                                                                 |
+| Identity document scans             | `guests.documents.scan`, `guests.documents.reveal`                                                                                             |
+| Refunds and voids                   | `reservations.folios.payments.refunds.store`, `reservations.folios.void-invoice-and-reopen`, `registration.void`, `finance.city-ledger.*.void` |
+| Go live                             | `onboarding.go-live.store`                                                                                                                     |
+| `allow_support_access`              | The `support` section of `UpdatePropertySettingsRequest` refuses with `403`. Other settings sections stay allowed.                             |
+| Manage staff, roles and permissions | No routes yet. Add `block.impersonation` when the roles module builds them.                                                                    |
+| Force close the night audit         | No route yet. Add `block.impersonation` when it is built.                                                                                      |
 
 Denied requests show a toast: "Not available during support access".
 
@@ -202,6 +206,15 @@ Then set, from the resolved property:
 ## Build choice
 
 Custom, about four small classes. `lab404/laravel-impersonate` (v1.7.8 supports Laravel 13) was considered. It saves little, because consent, reasons, blocking, the URL interstitial and auditing still need writing.
+
+| Piece            | Location                                                                                              |
+| ---------------- | ----------------------------------------------------------------------------------------------------- |
+| `PropertyPolicy` | `app/Policies/PropertyPolicy.php` (the first policy in the app)                                       |
+| `Impersonation`  | `app/Services/Platform/Impersonation.php`                                                             |
+| Actions          | `app/Actions/Platform/StartImpersonation.php`, `StopImpersonation.php`, `EndExpiredImpersonation.php` |
+| Blocking         | `app/Http/Middleware/BlockDuringImpersonation.php`                                                    |
+
+Built in three commits: view as (start, stop, banner, entry points), then logging and limits (audit causer, log events, `SupportAccessUsed`, 30-minute expiry, switching properties), then blocking.
 
 ## Tests
 
