@@ -5,6 +5,7 @@ namespace App\Services\Guests;
 use App\Models\Guest;
 use App\Models\GuestIdentityDocument;
 use App\Models\Property;
+use Closure;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Request;
@@ -42,7 +43,7 @@ class GuestDirectory
 
         return QueryBuilder::for(Guest::query()->where('guests.property_id', $property->id)->notMerged(), $request)
             ->allowedFilters(
-                AllowedFilter::callback('search', fn (Builder $query, string $search) => $this->search($query, $search, $searchIdNumbers)),
+                AllowedFilter::callback('search', $this->searchFilter($searchIdNumbers)),
                 AllowedFilter::callback('status', $this->status(...)),
                 AllowedFilter::callback('tag', fn (Builder $query, string $tag) => $query->whereHas(
                     'tags',
@@ -77,6 +78,14 @@ class GuestDirectory
             ->orderBy('guests.id')
             ->limit($limit)
             ->get();
+    }
+
+    /**
+     * @return Closure(Builder<Guest>, string): void
+     */
+    private function searchFilter(bool $searchIdNumbers): Closure
+    {
+        return fn (Builder $query, string $search) => $this->search($query, $search, $searchIdNumbers);
     }
 
     /**

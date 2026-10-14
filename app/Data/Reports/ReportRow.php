@@ -8,6 +8,8 @@ namespace App\Data\Reports;
  */
 interface ReportRow
 {
+    public int|string $key { get; }
+
     /**
      * The display text of each column, keyed by column key. Money has two decimals; the currency is in the heading.
      *

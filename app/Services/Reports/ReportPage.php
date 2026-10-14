@@ -60,15 +60,22 @@ class ReportPage
             $key = ltrim($sort, '-');
         }
 
-        $isBlank = fn (Data $row): bool => property_exists($row, $key) && $row->{$key} === null;
-        $filled = Collection::make($rows)->reject($isBlank);
-        $blank = Collection::make($rows)->filter($isBlank);
+        $filled = [];
+        $blank = [];
 
-        $sorted = $filled->sortBy(
-            fn (Data $row): float|int|string => $this->sortValue($row, $key),
-            SORT_REGULAR,
-            $descending,
-        )->concat($blank)->values()->all();
+        foreach ($rows as $row) {
+            if (property_exists($row, $key) && $row->{$key} === null) {
+                $blank[] = $row;
+            } else {
+                $filled[] = $row;
+            }
+        }
+
+        $direction = $descending ? -1 : 1;
+
+        usort($filled, fn (Data $a, Data $b): int => $direction * ($this->sortValue($a, $key) <=> $this->sortValue($b, $key)));
+
+        $sorted = [...$filled, ...$blank];
 
         return [$sorted, $sort];
     }
