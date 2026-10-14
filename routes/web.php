@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\HomeRedirectController;
 use App\Http\Controllers\Platform\ImpersonationController;
 use App\Http\Controllers\Platform\ViewAsController;
@@ -18,7 +19,7 @@ Route::middleware('auth')->group(function () {
 
 Route::prefix('p/{property:code}')->where(['property' => '[A-Za-z]{2}[0-9]{5,}'])->middleware([EnsurePropertyAccess::class, 'verified'])->group(function () {
     Route::inertia('suspended', 'property/suspended')->name('property.suspended');
-    Route::inertia('dashboard', 'dashboard')->name('dashboard');
+    Route::get('dashboard', [DashboardController::class, 'show'])->name('dashboard');
 
     require __DIR__.'/onboarding.php';
     require __DIR__.'/night-audit.php';

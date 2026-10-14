@@ -368,6 +368,57 @@ amount: string,
 balance: string,
 };
 }
+namespace Dashboard {
+export type DashboardAccessData = {
+canManageReservations: boolean,
+canViewReservations: boolean,
+canRunNightAudit: boolean,
+canViewReports: boolean,
+};
+export type DashboardAlertData = {
+message: string,
+};
+export type DashboardTilesData = {
+date: string,
+arrivals: App.Data.Dashboard.UnitCountTileData | null,
+departures: App.Data.Dashboard.UnitCountTileData | null,
+tonight: App.Data.Dashboard.TonightTileData | null,
+month: App.Data.Dashboard.MonthTileData | null,
+};
+export type MonthTileData = {
+month: string,
+from: string,
+to: string,
+currency: App.Enums.Currency | null,
+posted: string,
+bookedNights: number,
+bookedAmount: string,
+};
+export type TonightNightData = {
+date: string,
+occupancy: number,
+sold: number,
+total: number,
+};
+export type TonightRoomTypeData = {
+name: string,
+sellUnit: App.Enums.SellUnit,
+sold: number,
+total: number,
+left: number,
+};
+export type TonightTileData = {
+occupancy: number,
+roomsFree: number,
+bedsFree: number | null,
+nights: App.Data.Dashboard.TonightNightData[],
+roomTypes: App.Data.Dashboard.TonightRoomTypeData[],
+};
+export type UnitCountTileData = {
+remaining: number,
+total: number,
+};
+}
 namespace Folio {
 export type DiscountQuoteData = {
 lines: App.Data.Folio.DiscountQuoteLineData[],
