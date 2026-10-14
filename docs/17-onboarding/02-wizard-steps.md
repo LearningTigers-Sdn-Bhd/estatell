@@ -216,7 +216,7 @@ Room revenue is not a separate section. Its taxes are the **Applies to rooms** c
  │[ Petronas Carigali ] │[Corporate  ▾]│[ travel@petronas.my ] │  [x]   │ RM[20000.00] │ [30]  │ ⌃  │
  │   BRN [ 201901234567 ]  TIN [ C2584563200 ]  SST no. [ W10-… ]  Phone [ +60 88 … ]     │    │
  │   Portal users                                                                         │    │
- │   [ Aina Rahman     ] [ aina@petronas.my     ]  Temp password · 12d  [Copy message]    │    │
+ │   [ Aina Rahman     ] [ aina@petronas.my     ]  Ready after go-live                    │    │
  │   [ +Add portal user ]                                                                 │    │
  │[ Borneo Tours      ] │[Travel agt ▾]│[ ops@borneotours.my ] │  [x]   │ RM[        ] │ [14]  │ ⌄🗑│
  ├──────────────────────┴──────────────┴───────────────────────┴────────┴──────────────┴───────┴────┤
@@ -239,9 +239,9 @@ Room revenue is not a separate section. Its taxes are the **Applies to rooms** c
 
 - No email invitations in onboarding. Each portal user (name, email) is created with `CreateCompanyUserWithTemporaryPassword` and an Active link. Adding the first one sets the company's `portal_enabled`.
 - An email that already belongs to a company user follows the existing rule (Pending link, in-app).
-- The row shows **Temp password · Nd** with **Copy message**, as on the staff list. The page never receives temp passwords as props.
+- Before go-live the row shows "Ready after go-live": no Copy, Reset or export. The temp password is replaced at go-live (see [Go live](03-go-live.md#action)), and the details are shared from the go-live screen.
 - The portal opens only when the property is Live (`portal` middleware). Owners hand out the sign-in details after go-live.
-- Temp passwords expire after 14 days. Review lists portal users with **Export sign-in slips** (PDF), and expired ones with **Reset temp password**.
+- Review shows one info line: "{n} staff and {n} company users get their sign-in details when you go live."
 
 ## Basic rate table
 
@@ -448,7 +448,7 @@ Not a table: three groups on one page.
  │ Name                 │ Email                  │ Role  ⓘ        │ Sign-in                      │    │
  ├──────────────────────┼────────────────────────┼────────────────┼──────────────────────────────┼────┤
  │ Nurul Hafizah (you)  │ nurul@seaview.my       │ Owner          │ Active                       │    │
- │[ Aina Rahman       ] │[ aina@seaview.my     ] │[Front desk  ▾] │ Temp password · 12d  [Copy]  │ ⋯  │
+ │[ Aina Rahman       ] │[ aina@seaview.my     ] │[Front desk  ▾] │ Ready after go-live          │    │
  │[                   ] │[                     ] │[Front desk  ▾] │ Created when you save        │ 🗑 │
  ├──────────────────────┴────────────────────────┴────────────────┴──────────────────────────────┴────┤
  │ [+ Add person]   [Import from file]                                                                │
@@ -460,11 +460,11 @@ Not a table: three groups on one page.
 - Optional. Starts with the owner (read-only, "(you)") and one empty row.
 - Temp passwords only, no email invitations in onboarding. Each new row (name, email, role) is created on save by the bulk add Action (`BulkAddStaffRequest` rules: email required and unique against users and open invitations, errors per row).
 - **Role** offers Manager, Front desk, Housekeeping and Finance (not Owner). New rows default to Front desk. An ⓘ Popover lists one line per role, built on the server from the role's permissions. To verify that each default role has a short description.
-- **Sign-in** is read-only: "Created when you save" for new rows, "Temp password · Nd" with **Copy** (the copy message) for saved rows, "Active" once the person changed the password. The page never receives temp passwords as props.
-- ⋯ on saved rows: Copy message, Reset temp password. Removing someone is in settings. 🗑 only on unsaved rows.
+- **Sign-in** is read-only: "Created when you save" for new rows, "Ready after go-live" for saved rows. Before go-live there is no Copy, Reset or export, and the page never receives temp passwords as props.
+- Saved rows have no actions in onboarding. Removing someone is in settings after go-live. 🗑 only on unsaved rows.
 - **Import from file** opens the existing bulk add (grid or CSV/XLSX), then returns here.
 - Staff who sign in before go-live see the waiting page ([The fence](#the-fence)).
-- Temp passwords expire after 14 days. Review lists staff and company portal users together with **Export sign-in slips** (PDF) and **Reset temp password** for expired ones.
+- At go-live every pending temp password is replaced, so the 14 days start then. The go-live screen shares the details (see [Go live](03-go-live.md#after-go-live)). Review shows one info line: "{n} staff and {n} company users get their sign-in details when you go live."
 - At phone width each row stacks into a card.
 - Check: optional, never blocks. Done with at least one person besides the owner, or Skipped.
 
