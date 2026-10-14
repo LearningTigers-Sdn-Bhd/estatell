@@ -18,21 +18,21 @@ The first release has only the Basics page. It uses the current staff layout. Ba
 
 ## Phases and sections
 
-| #   | Phase      | Section                                                                                                                                                                                                                                                                                                   | Required | Locked until       |
-| --- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ------------------ |
-| 1   | Property   | Basics: property type cards, name, country (prefilled Malaysia), address. Another country shows currency and time zone. Editable until another section starts, then **Change country** (room types and rooms kept). See [Changing country](../02-property/03-seed-property-defaults.md#changing-country). | Yes      | –                  |
-| 2   | Rooms      | Room types: an editable table, sold by room only. See [Room types table](#room-types-table).                                                                                                                                                                                                              | Yes      | Basics             |
-| 3   |            | Rooms: number ranges per room type, optional room groups. See [Rooms table](#rooms-table).                                                                                                                                                                                                                | Yes      | Room types         |
-| 4   | Finance    | Taxes, including which taxes apply to rooms (room revenue). See [Taxes table](#taxes-table).                                                                                                                                                                                                              | Yes      | Basics             |
-| 5   |            | Payment methods: turn seeded methods on or off, add more. See [Payment methods table](#payment-methods-table).                                                                                                                                                                                            | Yes      | Basics             |
-| 6   |            | Companies: city ledger companies and their portal users. See [Companies table](#companies-table).                                                                                                                                                                                                         | No       | Basics             |
-| 7   | Prices     | Basic rate: weekday and weekend price per room-sold room type, priced by room or by guest, plus optional more rates. See [Basic rate table](#basic-rate-table).                                                                                                                                           | Yes      | Room types + Taxes |
-| 8   |            | Charge items: starter items and extras with price, unit and taxes. See [Charge items table](#charge-items-table).                                                                                                                                                                                         | No       | Taxes              |
-| 9   |            | Discounts: the starter discount and more, with type, value and what they apply to. See [Discounts table](#discounts-table).                                                                                                                                                                               | No       | Basics             |
-| 10  | Check-in   | Check-in essentials: times, registration card, security deposit and house terms. See [Check-in essentials form](#check-in-essentials-form).                                                                                                                                                               | Yes      | Basics             |
-| 11  | Team       | Team: staff with temp passwords and a role. See [Team table](#team-table).                                                                                                                                                                                                                                | No       | Basics             |
-| 12  | Test drive | Practice mode. See [Test drive](06-test-drive.md).                                                                                                                                                                                                                                                        | No       | All required Done  |
-| 13  | Review     | Readiness list and go live. See [Go live](03-go-live.md).                                                                                                                                                                                                                                                 | –        | All required Done  |
+| #   | Phase      | Section                                                                                                                                                         | Required | Locked until       |
+| --- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ------------------ |
+| 1   | Property   | Basics: property type, name, country, address, and currency and time zone outside Malaysia. See [Basics form](#basics-form).                                    | Yes      | –                  |
+| 2   | Rooms      | Room types: an editable table, sold by room only. See [Room types table](#room-types-table).                                                                    | Yes      | Basics             |
+| 3   |            | Rooms: number ranges per room type, optional room groups. See [Rooms table](#rooms-table).                                                                      | Yes      | Room types         |
+| 4   | Finance    | Taxes, including which taxes apply to rooms (room revenue). See [Taxes table](#taxes-table).                                                                    | Yes      | Basics             |
+| 5   |            | Payment methods: turn seeded methods on or off, add more. See [Payment methods table](#payment-methods-table).                                                  | Yes      | Basics             |
+| 6   |            | Companies: city ledger companies and their portal users. See [Companies table](#companies-table).                                                               | No       | Basics             |
+| 7   | Prices     | Basic rate: weekday and weekend price per room-sold room type, priced by room or by guest, plus optional more rates. See [Basic rate table](#basic-rate-table). | Yes      | Room types + Taxes |
+| 8   |            | Charge items: starter items and extras with price, unit and taxes. See [Charge items table](#charge-items-table).                                               | No       | Taxes              |
+| 9   |            | Discounts: the starter discount and more, with type, value and what they apply to. See [Discounts table](#discounts-table).                                     | No       | Basics             |
+| 10  | Check-in   | Check-in essentials: times, registration card, security deposit and house terms. See [Check-in essentials form](#check-in-essentials-form).                     | Yes      | Basics             |
+| 11  | Team       | Team: staff with temp passwords and a role. See [Team table](#team-table).                                                                                      | No       | Basics             |
+| 12  | Test drive | Practice mode. See [Test drive](06-test-drive.md).                                                                                                              | No       | All required Done  |
+| 13  | Review     | Readiness list and go live. See [Go live](03-go-live.md).                                                                                                       | –        | All required Done  |
 
 ```
                               1 Basics*
@@ -54,6 +54,63 @@ Room revenue is not a separate section. Its taxes are the **Applies to rooms** c
 - **Next** follows the numbers. The phase bar lets the owner jump to any unlocked section.
 - Optional sections show **Skip** in the footer.
 - Not in onboarding: photos, packages and meals, companies and city ledger, channel manager. They are in the Recommended checklist after go-live.
+
+## Basics form
+
+```
+ What kind of place is it?
+ [ Hotel ● ] [ Hostel ] [ Resort ] [ Serviced apartment ] [ Homestay ]
+
+ Property name   [ Seaview Lodge                          ]
+ Country         [ 🔍 Malaysia                          ▾ ]
+ Address line 1  [ 12 Jalan Pantai                        ]
+ Address line 2  [                                        ]
+ City            [ Kota Kinabalu ]   State [ Sabah      ▾ ]
+ Postcode        [ 88000 ]
+ ┌ ℹ Malaysia: MYR · Asia/Kuala_Lumpur · SST, tourism tax and local payment presets ┐
+```
+
+Another country:
+
+```
+ Country         [ 🔍 Indonesia                         ▾ ]
+ Currency        [ 🔍 Rupiah (IDR)                      ▾ ]
+ Time zone       [ Asia/Jakarta                         ▾ ]
+ State           [ Bali                                   ]   (free text)
+ ┌ ⚠ Malaysian presets don't apply. You'll add your own taxes in Finance. ┐
+```
+
+Setup started (another section is no longer Not started):
+
+```
+ Country     Malaysia · MYR · Asia/Kuala_Lumpur     [Change country]
+```
+
+**Fields**
+
+| Field                                      | Rule                                                                                                                                                                   |
+| ------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Type                                       | Required `PropertyType`, five cards                                                                                                                                    |
+| Name, address line 1 and 2, city, postcode | `SavePropertyBasicsRequest::identityRules()`                                                                                                                           |
+| Country                                    | Required, from `CountryOptions`, searchable, Malaysia first and prefilled                                                                                              |
+| State                                      | Malaysia: the Malaysian state list. Others: free text                                                                                                                  |
+| Currency                                   | Malaysia: not shown, MYR. Others: required, from `CurrencyOptions`, prefilled from the country (ICU). Empty when the country's currency is left out (for example KWD). |
+| Time zone                                  | Malaysia: not shown, `Asia/Kuala_Lumpur`. Others: required, one of the country's zones (`DateTimeZone::PER_COUNTRY`), prefilled when there is one                      |
+
+- The info or warning box under the form follows the country profile.
+- Admin- and partner-created properties arrive with type and country filled ([Account creation](01-account-creation.md)). The owner can still change them here.
+
+**Changing country**
+
+- While every other section is Not started, country, currency and time zone are plain fields. Saving a change reseeds the untouched presets.
+- After that they are read-only with **Change country**, which unlocks them in place with a warning. **Save & continue** opens an AlertDialog with the counts of what resets. Room types, rooms and team stay. Full rules: [Changing country](../02-property/03-seed-property-defaults.md#changing-country).
+- After go-live they are fixed.
+
+**Save and check**
+
+- `SavePropertyBasics` saves the property and runs `SeedPropertyDefaults` with the country profile in one transaction ([Seed property defaults](../02-property/03-seed-property-defaults.md)). Saving again only updates type, name and address.
+- At phone width the type cards wrap into two columns and the fields stack.
+- Check: Done when the property has a type, name, address line 1, city, country and a `property_settings` row.
 
 ## Room types table
 
