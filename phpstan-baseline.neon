@@ -37,12 +37,6 @@ parameters:
 			path: app/Actions/FrontDesk/CheckInAndCollect.php
 
 		-
-			message: '#^Method App\\Actions\\FrontDesk\\ReleaseUnitRooms\:\:__invoke\(\) should return array\{room_ids\: list\<int\>, bed_ids\: list\<int\>\} but returns array\{room_ids\: array\<int, int\>, bed_ids\: array\<int, int\>\}\.$#'
-			identifier: return.type
-			count: 1
-			path: app/Actions/FrontDesk/ReleaseUnitRooms.php
-
-		-
 			message: '#^Parameter \$note of class App\\Notifications\\SupportAccessUsed constructor expects string\|null, int\|string\|null given\.$#'
 			identifier: argument.type
 			count: 1
@@ -143,18 +137,6 @@ parameters:
 			identifier: property.notFound
 			count: 1
 			path: app/Data/Platform/AdminPropertyStaffData.php
-
-		-
-			message: '#^Parameter \$roomTypeIds of class App\\Data\\Rates\\RatePlanData constructor expects list\<int\>, array\<mixed\> given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Data/Rates/RatePlanData.php
-
-		-
-			message: '#^Parameter \$roomTypeNames of class App\\Data\\Rates\\RatePlanData constructor expects list\<string\>, array\<mixed\> given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Data/Rates/RatePlanData.php
 
 		-
 			message: '#^Parameter \#1 \$callback of function array_map expects \(callable\(array\<string, mixed\>\)\: mixed\)\|null, Closure\(array\{roomType\: App\\Models\\RoomType, adults\: int, children\: int, unit\: string, refusal\: App\\Services\\Rates\\RateQuote\|null, stays\: array\<int, App\\Services\\Rates\\RateQuote\>, nightAmounts\: array\<int, list\<Brick\\Money\\Money\>\>, byNight\: array\{quote\: App\\Services\\Rates\\RateQuote, unitAmounts\: list\<Brick\\Money\\Money\>\}\|null\}\)\: App\\Data\\Rates\\StayDiscountPreviewRowData given\.$#'
@@ -301,12 +283,6 @@ parameters:
 			path: app/Providers/AppServiceProvider.php
 
 		-
-			message: '#^Parameter \#2 \$roomTypeIds of method App\\Services\\Availability\\AvailabilityService\:\:bookedUnits\(\) expects list\<int\>, array\<int, \(int\|string\)\> given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Services/Availability/AvailabilityService.php
-
-		-
 			message: '#^Access to an undefined property App\\Models\\UnitNight\:\:\$arrival_time\.$#'
 			identifier: property.notFound
 			count: 1
@@ -315,12 +291,6 @@ parameters:
 		-
 			message: '#^Access to an undefined property App\\Models\\UnitNight\:\:\$departure_time\.$#'
 			identifier: property.notFound
-			count: 1
-			path: app/Services/Availability/DayUseAvailability.php
-
-		-
-			message: '#^Parameter \#2 \$roomIds of method App\\Services\\Availability\\DayUseAvailability\:\:busyRoomIds\(\) expects list\<int\>, array\<int, \(int\|string\)\> given\.$#'
-			identifier: argument.type
 			count: 1
 			path: app/Services/Availability/DayUseAvailability.php
 
@@ -367,32 +337,8 @@ parameters:
 			path: app/Services/CityLedger/CompanyImportReader.php
 
 		-
-			message: '#^Parameter \#1 \$companyIds of method App\\Services\\CityLedger\\CreditExposure\:\:inHouse\(\) expects list\<int\>, array\<mixed\> given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Services/CityLedger/CreditExposure.php
-
-		-
-			message: '#^Parameter \#1 \$companyIds of method App\\Services\\CityLedger\\CreditExposure\:\:openAr\(\) expects list\<int\>, array\<mixed\> given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Services/CityLedger/CreditExposure.php
-
-		-
 			message: '#^Binary operation "\." between array\|string and string results in an error\.$#'
 			identifier: binaryOp.invalid
-			count: 1
-			path: app/Services/Folio/FolioDocumentRows.php
-
-		-
-			message: '#^Parameter \#1 \$unitIds of method App\\Services\\Reservations\\ReservationRoomBox\:\:assignmentsForUnits\(\) expects list\<int\>, array\<int, \(int\|string\)\> given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Services/Folio/FolioDocumentRows.php
-
-		-
-			message: '#^Parameter \#1 \$unitIds of method App\\Services\\Reservations\\ReservationRoomBox\:\:assignmentsForUnitsOn\(\) expects list\<int\>, array\<int, \(int\|string\)\> given\.$#'
-			identifier: argument.type
 			count: 1
 			path: app/Services/Folio/FolioDocumentRows.php
 
@@ -415,12 +361,6 @@ parameters:
 			path: app/Services/Folio/FolioStatement.php
 
 		-
-			message: '#^Method App\\Services\\Folio\\FolioStatement\:\:build\(\) should return array\{folios\: list\<App\\Data\\Folio\\FolioRailItemData\>, folio\: App\\Data\\Folio\\FolioData\|null\} but returns array\{folios\: array\<int, App\\Data\\Folio\\FolioRailItemData\>, folio\: App\\Data\\Folio\\FolioData\|null\}\.$#'
-			identifier: return.type
-			count: 1
-			path: app/Services/Folio/FolioStatement.php
-
-		-
 			message: '#^Offset ''changePrice'' on array\{postCharge\?\: bool, reverse\?\: bool, transfer\?\: bool, discount\?\: bool, close\?\: bool, recordPayment\?\: bool, refund\?\: bool\} on left side of \?\? does not exist\.$#'
 			identifier: nullCoalesce.offset
 			count: 1
@@ -435,18 +375,6 @@ parameters:
 		-
 			message: '#^Offset ''settleCityLedger'' on array\{postCharge\?\: bool, reverse\?\: bool, transfer\?\: bool, discount\?\: bool, close\?\: bool, recordPayment\?\: bool, refund\?\: bool\} on left side of \?\? does not exist\.$#'
 			identifier: nullCoalesce.offset
-			count: 1
-			path: app/Services/Folio/FolioStatement.php
-
-		-
-			message: '#^Parameter \#2 \$unitIds of method App\\Services\\Folio\\FolioStatement\:\:payerUnits\(\) expects list\<int\>, array\<int, int\> given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Services/Folio/FolioStatement.php
-
-		-
-			message: '#^Parameter \$rows of class App\\Data\\Folio\\FolioData constructor expects list\<App\\Data\\Folio\\FolioRowData\>, array given\.$#'
-			identifier: argument.type
 			count: 1
 			path: app/Services/Folio/FolioStatement.php
 
@@ -487,70 +415,16 @@ parameters:
 			path: app/Services/Folio/FolioVoucher.php
 
 		-
-			message: '#^Parameter \#1 \$unitIds of method App\\Services\\Reservations\\ReservationRoomBox\:\:assignmentsForUnitsOn\(\) expects list\<int\>, array\<int, \(int\|string\)\> given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Services/Folio/InHouseUnits.php
-
-		-
-			message: '#^Parameter \#1 \$days of method App\\Services\\Folio\\IncomingScheduledCharges\:\:days\(\) expects list\<string\>, array\<int, mixed\> given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Services/Folio/IncomingScheduledCharges.php
-
-		-
-			message: '#^Parameter \#1 \$unitIds of method App\\Services\\Folio\\IncomingScheduledCharges\:\:unitNames\(\) expects list\<int\>, array\<int, \(int\|string\)\> given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Services/Folio/IncomingScheduledCharges.php
-
-		-
 			message: '#^Method App\\Services\\Folio\\MoveChargesPreview\:\:charges\(\) should return Illuminate\\Support\\Collection\<int, array\{lineId\: int, folioId\: int, unitId\: int\|null, isRoom\: bool, total\: string, data\: App\\Data\\Folio\\MoveChargeData\}\> but returns Illuminate\\Support\\Collection\<int, array\{lineId\: int, folioId\: int, unitId\: int\|null, isRoom\: bool, total\: non\-empty\-string, data\: App\\Data\\Folio\\MoveChargeData\}\>\.$#'
 			identifier: return.type
 			count: 1
 			path: app/Services/Folio/MoveChargesPreview.php
 
 		-
-			message: '#^Method App\\Services\\Folio\\MoveChargesPreview\:\:unitsWithNightsAfter\(\) should return list\<int\> but returns array\<mixed\>\.$#'
-			identifier: return.type
-			count: 1
-			path: app/Services/Folio/MoveChargesPreview.php
-
-		-
-			message: '#^Parameter \#1 \$unitIds of method App\\Services\\Reservations\\ReservationRoomBox\:\:assignmentsForUnits\(\) expects list\<int\>, array\<int, \(int\|string\)\> given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Services/Folio/MoveChargesPreview.php
-
-		-
-			message: '#^Parameter \#5 \$charges of class App\\Data\\Folio\\MoveFolioData constructor expects list\<App\\Data\\Folio\\MoveChargeData\>, array\<int, mixed\> given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Services/Folio/MoveChargesPreview.php
-
-		-
-			message: '#^Parameter \#4 \$taxIds of method App\\Services\\FrontDesk\\CheckInCollection\:\:taxSums\(\) expects list\<int\>, array\<mixed\> given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Services/FrontDesk/CheckInCollection.php
-
-		-
 			message: '#^Method App\\Services\\FrontDesk\\CheckOutSettlement\:\:heldDeposits\(\) has parameter \$folios with generic class Illuminate\\Support\\Collection but does not specify its types\: TKey, TValue$#'
 			identifier: missingType.generics
 			count: 1
 			path: app/Services/FrontDesk/CheckOutSettlement.php
-
-		-
-			message: '#^Method App\\Services\\FrontDesk\\GroupCheckOutPreview\:\:methods\(\) should return array\{data\: list\<App\\Data\\Payments\\PaymentMethodOptionData\>, first\: int\|null\} but returns array\{data\: array\<int, App\\Data\\Payments\\PaymentMethodOptionData\>, first\: int\|null\}\.$#'
-			identifier: return.type
-			count: 1
-			path: app/Services/FrontDesk/GroupCheckOutPreview.php
-
-		-
-			message: '#^Parameter \#1 \$unitIds of method App\\Services\\Folio\\IncomingScheduledCharges\:\:unitNames\(\) expects list\<int\>, array\<int, \(int\|string\)\> given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Services/FrontDesk/GroupCheckOutPreview.php
 
 		-
 			message: '#^Method App\\Services\\Guests\\CountryOptions\:\:name\(\) should return string\|null but returns string\|false\.$#'
@@ -569,12 +443,6 @@ parameters:
 			identifier: argument.type
 			count: 1
 			path: app/Services/Guests/GuestDirectory.php
-
-		-
-			message: '#^Parameter \$chargedNightIds of class App\\Services\\NightAudit\\PackageNightRespreadResult constructor expects list\<int\>, array\<int, mixed\> given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Services/NightAudit/PackageNightRespread.php
 
 		-
 			message: '#^Parameter \#1 \$num of function number_format expects float, string given\.$#'
@@ -679,24 +547,6 @@ parameters:
 			path: app/Services/Rates/Pricing/PackagePricing.php
 
 		-
-			message: '#^Parameter \#1 \$ratePlanIds of method App\\Services\\Rates\\RatesEndingCheck\:\:pricedUntilByPlan\(\) expects list\<int\>, array\<int, \(int\|string\)\> given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Services/Rates/RateCalendarService.php
-
-		-
-			message: '#^Parameter \#2 \$plans of static method App\\Data\\Rates\\RateCalendarRoomTypeData\:\:fromModel\(\) expects list\<App\\Data\\Rates\\RateCalendarPlanData\>, non\-empty\-array\<int, App\\Data\\Rates\\RateCalendarPlanData\> given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Services/Rates/RateCalendarService.php
-
-		-
-			message: '#^Parameter \#2 \$roomTypeNames of static method App\\Data\\Rates\\RateCalendarEndingData\:\:fromModel\(\) expects list\<string\>, non\-empty\-array\<mixed\> given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Services/Rates/RateCalendarService.php
-
-		-
 			message: '#^Type Illuminate\\Database\\Eloquent\\Collection\<int, App\\Models\\PackagePrice\> in generic type Illuminate\\Database\\Eloquent\\Collection\<string, Illuminate\\Database\\Eloquent\\Collection\<int, App\\Models\\PackagePrice\>\> in PHPDoc tag @param for parameter \$packagePrices is not subtype of template type TModel of Illuminate\\Database\\Eloquent\\Model of class Illuminate\\Database\\Eloquent\\Collection\.$#'
 			identifier: generics.notSubtype
 			count: 1
@@ -709,22 +559,10 @@ parameters:
 			path: app/Services/Rates/RateCalendarService.php
 
 		-
-			message: '#^Method App\\Services\\Rates\\RatePlanCoverage\:\:sellableRoomTypeIds\(\) should return list\<int\> but returns array\<mixed\>\.$#'
-			identifier: return.type
-			count: 1
-			path: app/Services/Rates/RatePlanCoverage.php
-
-		-
 			message: '#^Parameter \#1 \$nights of static method App\\Services\\Rates\\RateQuote\:\:quoted\(\) expects non\-empty\-list\<App\\Services\\Rates\\Pricing\\NightPrice\>, list\<App\\Services\\Rates\\Pricing\\NightPrice\> given\.$#'
 			identifier: argument.type
 			count: 1
 			path: app/Services/Rates/RateQuoteService.php
-
-		-
-			message: '#^Method App\\Services\\Rates\\StayDiscountPreview\:\:stayLengths\(\) should return list\<int\> but returns array\<int, mixed\>\.$#'
-			identifier: return.type
-			count: 1
-			path: app/Services/Rates/StayDiscountPreview.php
 
 		-
 			message: '#^Parameter \#1 \$nights of static method App\\Services\\Rates\\RateQuote\:\:quoted\(\) expects non\-empty\-list\<App\\Services\\Rates\\Pricing\\NightPrice\>, list\<App\\Services\\Rates\\Pricing\\NightPrice\> given\.$#'
@@ -751,12 +589,6 @@ parameters:
 			path: app/Services/Registration/RegistrationCardDocumentBuilder.php
 
 		-
-			message: '#^Method App\\Services\\Registration\\RegistrationCardRequirement\:\:signedUnitGuestIds\(\) should return list\<int\> but returns array\<mixed\>\.$#'
-			identifier: return.type
-			count: 1
-			path: app/Services/Registration/RegistrationCardRequirement.php
-
-		-
 			message: '#^Method App\\Services\\Registration\\RegistrationCardSnapshot\:\:guestValues\(\) should return array\<string, string\> but returns array\<string, array\|string\>\.$#'
 			identifier: return.type
 			count: 1
@@ -773,24 +605,6 @@ parameters:
 			identifier: return.type
 			count: 1
 			path: app/Services/Reports/FolioLedgerReport.php
-
-		-
-			message: '#^Parameter \#1 \$guestIds of method App\\Services\\Reports\\GuestIdentities\:\:partsForGuests\(\) expects list\<int\>, array\<mixed\> given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Services/Reports/NonNationalGuestsReport.php
-
-		-
-			message: '#^Parameter \#1 \$unitIds of method App\\Services\\Reservations\\ReservationRoomBox\:\:assignmentsForUnits\(\) expects list\<int\>, array\<mixed\> given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Services/Reports/NonNationalGuestsReport.php
-
-		-
-			message: '#^Parameter \#3 \$reservationIds of method App\\Services\\Reports\\TourismTaxByUnit\:\:forRange\(\) expects list\<int\>, array\<int, mixed\> given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Services/Reports/NonNationalGuestsReport.php
 
 		-
 			message: '#^Method App\\Services\\Reports\\PaymentsReport\:\:staffOptions\(\) should return list\<array\{value\: string, label\: string\}\> but returns array\<int, array\{value\: decimal\-int\-string, label\: string\}\>\.$#'
@@ -811,24 +625,6 @@ parameters:
 			path: app/Services/Reports/ReportPdf.php
 
 		-
-			message: '#^Parameter \#1 \$reservationIds of method App\\Services\\Folio\\FolioBalance\:\:forReservations\(\) expects list\<int\>, array\<int, mixed\> given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Services/Reports/UnitReportRows.php
-
-		-
-			message: '#^Parameter \#1 of closure expects list\<int\>, array\<mixed\> given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Services/Reports/UnitReportRows.php
-
-		-
-			message: '#^Parameter \#2 \$nightIds of method App\\Services\\Reservations\\NightPriceChangePreview\:\:plan\(\) expects list\<int\>, array\<int, \(int\|string\)\> given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Services/Reservations/NightPriceChangePreview.php
-
-		-
 			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$name\.$#'
 			identifier: property.notFound
 			count: 2
@@ -839,18 +635,6 @@ parameters:
 			identifier: argument.type
 			count: 1
 			path: app/Services/Reservations/ReservationActivityLog.php
-
-		-
-			message: '#^Parameter \#1 \$unitIds of method App\\Services\\Reservations\\ReservationRoomBox\:\:assignmentsForUnits\(\) expects list\<int\>, array\<mixed\> given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Services/Reservations/ReservationBoatSetup.php
-
-		-
-			message: '#^Method App\\Services\\Reservations\\ReservationDirectory\:\:repeatReservationIds\(\) should return list\<int\> but returns array\<int, mixed\>\.$#'
-			identifier: return.type
-			count: 1
-			path: app/Services/Reservations/ReservationDirectory.php
 
 		-
 			message: '#^Offset 1 might not exist on list\{0\: non\-falsy\-string, 1\?\: string, 2\?\: non\-falsy\-string\}\.$#'
@@ -877,34 +661,10 @@ parameters:
 			path: app/Services/Reservations/ReservationDirectory.php
 
 		-
-			message: '#^Parameter \#3 \$ownFolioGuestIds of method App\\Services\\Reservations\\ReservationGuestRows\:\:billable\(\) expects list\<int\>, array\<mixed\> given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Services/Reservations/ReservationGuestRows.php
-
-		-
-			message: '#^Parameter \#3 \$ownFolioGuestIds of method App\\Services\\Reservations\\ReservationGuestRows\:\:billing\(\) expects list\<int\>, array\<mixed\> given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Services/Reservations/ReservationGuestRows.php
-
-		-
 			message: '#^Parameter \$roles of class App\\Data\\Reservations\\ReservationGuestData constructor expects list\<string\>, list\{0\?\: non\-empty\-array\|non\-falsy\-string, 1\?\: non\-empty\-array\|non\-falsy\-string\} given\.$#'
 			identifier: argument.type
 			count: 1
 			path: app/Services/Reservations/ReservationGuestRows.php
-
-		-
-			message: '#^Parameter \#1 \$unitIds of method App\\Services\\Reservations\\ReservationRoomBox\:\:assignmentsForUnits\(\) expects list\<int\>, array\<mixed\> given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Services/Reservations/ReservationOverview.php
-
-		-
-			message: '#^Parameter \#1 \$unitIds of method App\\Services\\Reservations\\ReservationRoomBox\:\:assignmentsForUnits\(\) expects list\<int\>, array\<mixed\> given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Services/Reservations/ReservationRoomBox.php
 
 		-
 			message: '#^Access to an undefined property App\\Models\\ReservationUnit\:\:\$unposted_add_ons_count\.$#'
@@ -943,24 +703,6 @@ parameters:
 			path: database/seeders/BookingScenariosSeeder.php
 
 		-
-			message: '#^Parameter \#3 \$roomIds of callable App\\Actions\\Rooms\\GenerateBeds expects list\<int\>, array\<mixed\> given\.$#'
-			identifier: argument.type
-			count: 1
-			path: database/seeders/BookingScenariosSeeder.php
-
-		-
-			message: '#^Parameter \#3 \$taxIds of callable App\\Actions\\Catalogues\\UpdateRoomRevenueTaxes expects list\<int\>, array\<int, \(int\|string\)\> given\.$#'
-			identifier: argument.type
-			count: 1
-			path: database/seeders/BookingScenariosSeeder.php
-
-		-
-			message: '#^Parameter \#3 \$unitIds of callable App\\Actions\\FrontDesk\\CheckInAllUnits expects list\<int\>, array\<int, \(int\|string\)\> given\.$#'
-			identifier: argument.type
-			count: 1
-			path: database/seeders/BookingScenariosSeeder.php
-
-		-
 			message: '#^Offset ''front_desk''\|''housekeeping''\|''manager'' might not exist on non\-empty\-array\{owner\?\: App\\Models\\User, manager\?\: App\\Models\\User, front_desk\?\: App\\Models\\User, housekeeping\?\: App\\Models\\User\}\.$#'
 			identifier: offsetAccess.notFound
 			count: 1
@@ -969,11 +711,5 @@ parameters:
 		-
 			message: '#^Offset ''owner'' might not exist on non\-empty\-array\{owner\?\: App\\Models\\User, manager\?\: App\\Models\\User, front_desk\?\: App\\Models\\User, housekeeping\?\: App\\Models\\User\}\.$#'
 			identifier: offsetAccess.notFound
-			count: 1
-			path: database/seeders/SandbaySeeder.php
-
-		-
-			message: '#^Parameter \#3 \$unitIds of callable App\\Actions\\FrontDesk\\CheckInAllUnits expects list\<int\>, array\<int, \(int\|string\)\> given\.$#'
-			identifier: argument.type
 			count: 1
 			path: database/seeders/SandbaySeeder.php

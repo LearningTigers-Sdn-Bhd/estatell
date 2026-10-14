@@ -89,7 +89,7 @@ class FolioStatement
             ?? $entries->first();
 
         return [
-            'folios' => $entries->map(fn (array $entry): FolioRailItemData => $entry['item'])->all(),
+            'folios' => array_values($entries->map(fn (array $entry): FolioRailItemData => $entry['item'])->all()),
             'folio' => $open === null ? null : $this->data($reservation, $open, $entries, $units, $blocks, $balances, $can, $labels, $user),
         ];
     }
@@ -217,11 +217,10 @@ class FolioStatement
             ->map(fn (ReservationUnitOptionData $unit): FolioOptionData => new FolioOptionData($unit->id, $unit->label))
             ->values()
             ->all() : [];
-        $postRooms = $postUnits === [] ? [] : collect($units)
+        $postRooms = $postUnits === [] ? [] : array_values(collect($units)
             ->filter(fn (ReservationUnitOptionData $unit): bool => in_array($unit->status->value, [UnitStatus::CheckedIn->value, UnitStatus::CheckedOut->value], true))
             ->map(fn (ReservationUnitOptionData $unit): FolioOptionData => new FolioOptionData($unit->id, $unit->label))
-            ->values()
-            ->all();
+            ->all());
         $payerUnits = $postUnits === [] ? [] : $this->payerUnits($entries, array_map(fn (FolioOptionData $room): int => $room->id, $postRooms));
         $postFolios = $postUnits === [] ? [] : $entries
             ->filter(fn (array $other): bool => $other['folio'] !== null && $other['folio']->status === FolioStatus::Open)
@@ -279,14 +278,14 @@ class FolioStatement
             balance: $balance,
             projectedTotal: (string) $projected->toScale(2),
             lineCount: $posted->count(),
-            rows: [...$posted->all(), ...$scheduled->all()],
+            rows: array_values([...$posted->all(), ...$scheduled->all()]),
             canClose: $isOpen && ($can['close'] ?? false),
             canReopen: $folio?->status === FolioStatus::Closed && $billedBy === null && $user !== null && $this->folioReopenRule->allows($user, $folio),
             canApplyDiscount: $isOpen && ($can['discount'] ?? false) && $discountable,
             canPostCharge: $postUnits !== [],
             postUnits: array_values($postUnits),
             postFolios: $postFolios,
-            postRooms: array_values($postRooms),
+            postRooms: $postRooms,
             canMoveCharges: $canMoveCharges,
             canRecordPayment: $purposes !== [],
             canPrintVoucher: $posted->contains(fn (FolioRowData $row): bool => $row->printable) || $scheduled->contains(fn (FolioRowData $row): bool => $row->printable),

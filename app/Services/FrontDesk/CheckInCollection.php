@@ -38,7 +38,7 @@ class CheckInCollection
         $total = BigDecimal::zero();
 
         if ($flagged->isNotEmpty() && ! $hidden) {
-            $sums = $this->taxSums($unit, $property, $reservation, $flagged->pluck('id')->all());
+            $sums = $this->taxSums($unit, $property, $reservation, array_values(array_map(intval(...), $flagged->pluck('id')->all())));
 
             foreach ($flagged as $tax) {
                 $amount = $sums[$tax->id] ?? BigDecimal::zero();

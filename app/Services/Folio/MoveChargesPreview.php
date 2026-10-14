@@ -67,7 +67,7 @@ class MoveChargesPreview
     public function unitLabels(Reservation $reservation): array
     {
         $units = $reservation->units()->with('roomType:id,name')->orderBy('id')->get();
-        $assigned = $this->roomBox->assignmentsForUnits($units->modelKeys());
+        $assigned = $this->roomBox->assignmentsForUnits(array_values(array_map(intval(...), $units->modelKeys())));
 
         return $units->mapWithKeys(fn (ReservationUnit $unit): array => [$unit->id => $assigned[$unit->id] ?? $unit->roomType->name])->all();
     }
@@ -94,12 +94,12 @@ class MoveChargesPreview
      */
     public function unitsWithNightsAfter(array $unitIds, CarbonImmutable $businessDate): array
     {
-        return UnitNight::query()
+        return array_values(array_map(intval(...), UnitNight::query()
             ->whereIn('reservation_unit_id', $unitIds)
             ->whereDate('date', '>', $businessDate->toDateString())
             ->distinct()
             ->pluck('reservation_unit_id')
-            ->all();
+            ->all()));
     }
 
     /**
@@ -166,7 +166,7 @@ class MoveChargesPreview
                 $state['labels'][$folio->id],
                 $folio->type->value,
                 $state['balances'][$folio->id] ?? '0.00',
-                $state['charges']->where('folioId', $folio->id)->pluck('data')->values()->all(),
+                array_values($state['charges']->where('folioId', $folio->id)->pluck('data')->all()),
             ))->all()),
             targetId: $target->id,
             lineIds: array_values(array_filter($lineIds, fn (int $id): bool => $state['charges']->contains(fn (array $charge): bool => $charge['lineId'] === $id && $charge['folioId'] !== $target->id))),

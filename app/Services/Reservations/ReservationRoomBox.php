@@ -126,7 +126,7 @@ class ReservationRoomBox
      */
     private function firstNightAssignments(Collection $reservations): array
     {
-        return $this->assignmentsForUnits($reservations->flatMap(fn (Reservation $reservation) => $reservation->units->pluck('id'))->all());
+        return $this->assignmentsForUnits(array_values(array_map(intval(...), $reservations->flatMap(fn (Reservation $reservation) => $reservation->units->pluck('id'))->all())));
     }
 
     /**

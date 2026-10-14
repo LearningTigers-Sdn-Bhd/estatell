@@ -69,13 +69,13 @@ class IncomingScheduledCharges
             ->filter(fn (array $block): bool => $block['target'] === $folio->id && $liveIds->has($block['unit']))
             ->groupBy('unit')
             ->sortKeys()
-            ->map(fn ($blocks): array => $blocks->pluck('date')->unique()->sort()->values()->all());
+            ->map(fn ($blocks): array => array_values($blocks->map(fn (array $block): string => $block['date'])->unique()->sort()->all()));
 
         if ($dates->isEmpty()) {
             return [];
         }
 
-        $names = $this->unitNames($dates->keys()->all());
+        $names = $this->unitNames(array_values(array_map(intval(...), $dates->keys()->all())));
 
         return array_values($dates
             ->map(fn (array $days, int $unitId): string => $names[$unitId].' ('.$this->days($days).')')

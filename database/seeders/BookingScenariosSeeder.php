@@ -328,7 +328,7 @@ class BookingScenariosSeeder extends Seeder
             app(UpdateTax::class)($this->owner, $tax, TaxInputData::fromModel($tax, enabled: true));
         }
 
-        app(UpdateRoomRevenueTaxes::class)($this->property, $this->owner, $taxes->modelKeys());
+        app(UpdateRoomRevenueTaxes::class)($this->property, $this->owner, array_values(array_map(intval(...), $taxes->modelKeys())));
     }
 
     private function seedChargeItems(): void
@@ -378,7 +378,7 @@ class BookingScenariosSeeder extends Seeder
             }
 
             if ($definition['sell_unit'] === SellUnit::Bed) {
-                $roomIds = Room::query()->where('room_type_id', $roomType->id)->pluck('id')->all();
+                $roomIds = array_values(array_map(intval(...), Room::query()->where('room_type_id', $roomType->id)->pluck('id')->all()));
 
                 if (app(GenerateBeds::class)($this->property, $this->owner, $roomIds, 6) !== 6) {
                     throw new RuntimeException('Could not create the dorm beds.');
@@ -775,7 +775,7 @@ class BookingScenariosSeeder extends Seeder
      */
     private function checkIn(string $code, ?array $indexes = null): void
     {
-        $refusals = array_filter(app(CheckInAllUnits::class)($this->owner, $this->reservations[$code], $this->pick($code, $indexes)->modelKeys()));
+        $refusals = array_filter(app(CheckInAllUnits::class)($this->owner, $this->reservations[$code], array_values(array_map(intval(...), $this->pick($code, $indexes)->modelKeys()))));
 
         if ($refusals !== []) {
             throw new RuntimeException("{$code} check-in was refused: ".implode(', ', $refusals).'.');

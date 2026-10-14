@@ -20,13 +20,13 @@ class RatePlanCoverage
      */
     public function sellableRoomTypeIds(int $propertyId, PricingBasis $basis): array
     {
-        return RoomType::query()
+        return array_values(array_map(intval(...), RoomType::query()
             ->where('property_id', $propertyId)
             ->active()
             ->get()
             ->filter(fn (RoomType $roomType): bool => $basis->fits($roomType->sell_unit))
             ->pluck('id')
-            ->all();
+            ->all()));
     }
 
     /**

@@ -46,10 +46,10 @@ class NonNationalGuestsReport implements HasNote, HasTotals, Report
             return [];
         }
 
-        $taxes = $this->tourismTax->forRange($property, $filters, $foreign->pluck('reservation_id')->unique()->values()->all());
-        $rooms = $this->roomBox->assignmentsForUnits($foreign->pluck('id')->all());
+        $taxes = $this->tourismTax->forRange($property, $filters, array_values(array_map(intval(...), $foreign->pluck('reservation_id')->unique()->all())));
+        $rooms = $this->roomBox->assignmentsForUnits(array_values(array_map(intval(...), $foreign->pluck('id')->all())));
         $guests = $foreign->mapWithKeys(fn (ReservationUnit $unit): array => [$unit->id => $this->guestOf($unit)]);
-        $identities = $this->identities->partsForGuests($guests->pluck('id')->all());
+        $identities = $this->identities->partsForGuests(array_values(array_map(intval(...), $guests->pluck('id')->all())));
 
         return array_values($foreign
             ->map(fn (ReservationUnit $unit): NonNationalGuestRow => NonNationalGuestRow::fromUnit(

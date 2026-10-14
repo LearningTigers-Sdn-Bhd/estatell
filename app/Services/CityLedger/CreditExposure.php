@@ -37,7 +37,7 @@ class CreditExposure
      */
     public function forCompanies(Collection $companies): array
     {
-        $ids = $companies->pluck('id')->all();
+        $ids = array_values(array_map(intval(...), $companies->pluck('id')->all()));
         $openAr = $this->openAr($ids);
         $inHouse = $this->inHouse($ids, (int) $companies->first()?->property_id);
         $figures = [];

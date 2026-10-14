@@ -174,11 +174,10 @@ class ReservationDirectory
             ->selectRaw('booker_guest_id, min(id) as first_id')
             ->pluck('first_id', 'booker_guest_id');
 
-        return $reservations
+        return array_values(array_map(intval(...), $reservations
             ->filter(fn (Reservation $reservation): bool => $firstCompleted->has($reservation->booker_guest_id) && (int) $firstCompleted[$reservation->booker_guest_id] < $reservation->id)
             ->pluck('id')
-            ->values()
-            ->all();
+            ->all()));
     }
 
     /**

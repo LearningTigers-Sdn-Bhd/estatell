@@ -66,7 +66,7 @@ class AvailabilityService
         $stay = Period::make($first, $last, Precision::DAY(), Boundaries::EXCLUDE_NONE());
         $units = $this->unitsByRoomForTypes($roomTypes);
         $blocks = $this->openBlocks($roomTypes->first()->property_id, array_merge(...array_map('array_keys', $units)), $stay);
-        $booked = $this->bookedUnits($roomTypes->first()->property_id, $roomTypes->keys()->all(), $stay);
+        $booked = $this->bookedUnits($roomTypes->first()->property_id, array_values(array_map(intval(...), $roomTypes->keys()->all())), $stay);
         $result = [];
 
         foreach ($roomTypes as $roomType) {

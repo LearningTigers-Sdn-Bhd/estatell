@@ -86,7 +86,7 @@ class PackageNightRespread
             total: $total,
             remaining: $total,
             wholeStay: true,
-            chargedNightIds: $charged->pluck('id')->values()->all(),
+            chargedNightIds: array_values(array_map(intval(...), $charged->pluck('id')->all())),
         );
     }
 }

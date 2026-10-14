@@ -178,7 +178,7 @@ class NightPriceChangePreview
             return new NightPriceChangePreviewData($rows, $was, $wasHigh, $hadDiscount, [], [], null, null);
         }
 
-        $plan = $this->plan($unit, $ticked->modelKeys(), $price);
+        $plan = $this->plan($unit, array_values(array_map(intval(...), $ticked->modelKeys())), $price);
 
         if ($plan->isRefused()) {
             return new NightPriceChangePreviewData($rows, $was, $wasHigh, $hadDiscount, [], [], null, $this->refusals->message((string) $plan->refusal));

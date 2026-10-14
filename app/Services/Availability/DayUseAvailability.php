@@ -37,7 +37,7 @@ class DayUseAvailability
         }
 
         $rooms = $this->activeRooms($roomType);
-        $busy = $this->busyRoomIds($roomType, $rooms->modelKeys(), $date, $startsAt, $endsAt, $exceptUnitId);
+        $busy = $this->busyRoomIds($roomType, array_values(array_map(intval(...), $rooms->modelKeys())), $date, $startsAt, $endsAt, $exceptUnitId);
 
         return array_values($rooms
             ->reject(fn (Room $room): bool => isset($busy[$room->id]))

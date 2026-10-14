@@ -44,7 +44,7 @@ class FolioDocumentRows
      */
     public function places(Property $property, Collection $units): array
     {
-        $ids = $units->modelKeys();
+        $ids = array_values(array_map(intval(...), $units->modelKeys()));
         $tonight = $this->roomBox->assignmentsForUnitsOn($ids, ($this->currentBusinessDate->date($property) ?? $this->propertyToday->date($property))->toDateString());
         $first = $this->roomBox->assignmentsForUnits($ids);
         $places = [];

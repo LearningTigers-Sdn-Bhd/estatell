@@ -38,7 +38,7 @@ class ReservationBoatSetup
         }
 
         $open->loadMissing(['roomType', 'boatTrips.boatDeparture']);
-        $assigned = $this->roomBox->assignmentsForUnits($open->pluck('id')->all());
+        $assigned = $this->roomBox->assignmentsForUnits(array_values(array_map(intval(...), $open->pluck('id')->all())));
 
         return array_values($open
             ->map(fn (ReservationUnit $unit): BoatSetupUnitData => BoatSetupUnitData::fromModel(

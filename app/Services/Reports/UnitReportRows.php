@@ -32,8 +32,8 @@ class UnitReportRows
             ->with(['reservation.booker', 'reservation.company', 'roomType', 'guests.guest', 'dayUse'])
             ->get();
 
-        $rooms = $roomsFor($units->pluck('id')->all());
-        $balances = $this->folioBalance->forReservations($units->pluck('reservation_id')->unique()->values()->all());
+        $rooms = $roomsFor(array_values(array_map(intval(...), $units->pluck('id')->all())));
+        $balances = $this->folioBalance->forReservations(array_values(array_map(intval(...), $units->pluck('reservation_id')->unique()->all())));
 
         return array_values($units
             ->map(fn (ReservationUnit $unit) => $makeRow($unit, $rooms[$unit->id] ?? null, $balances[$unit->reservation_id]))

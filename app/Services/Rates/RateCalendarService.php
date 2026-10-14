@@ -60,14 +60,13 @@ class RateCalendarService
             ->groupBy(fn (PackagePrice $price): string => $price->rate_plan_id.'-'.$price->room_type_id);
 
         $groups = $roomTypes->map(function (RoomType $roomType) use ($plans, $rates, $packagePrices, $start, $end, $currency): ?RateCalendarRoomTypeData {
-            $rows = $plans
+            $rows = array_values($plans
                 ->filter(fn (RatePlan $plan): bool => $plan->roomTypes->contains('id', $roomType->id))
                 ->map(fn (RatePlan $plan): RateCalendarPlanData => RateCalendarPlanData::fromModel(
                     $plan,
                     $this->cells($plan, $roomType, $rates, $packagePrices, $start, $end, $currency),
                 ))
-                ->values()
-                ->all();
+                ->all());
 
             return $rows === [] ? null : RateCalendarRoomTypeData::fromModel($roomType, $rows, $this->availability($roomType, $start, $end));
         })->filter()->values();
@@ -188,14 +187,14 @@ class RateCalendarService
     private function ending(Collection $plans, Collection $roomTypes, CarbonInterface $today): array
     {
         $ownPricePlans = $plans->filter(fn (RatePlan $plan): bool => $plan->parent_rate_plan_id === null && $plan->pricing_basis !== PricingBasis::Package);
-        $pricedUntil = $this->ratesEndingCheck->pricedUntilByPlan($ownPricePlans->modelKeys());
+        $pricedUntil = $this->ratesEndingCheck->pricedUntilByPlan(array_values(array_map(intval(...), $ownPricePlans->modelKeys())));
 
         return array_values($ownPricePlans->map(function (RatePlan $plan) use ($roomTypes, $pricedUntil, $today): ?RateCalendarEndingData {
-            $names = $roomTypes
+            $names = array_values(array_map(strval(...), $roomTypes
                 ->filter(fn (RoomType $roomType): bool => $plan->roomTypes->contains('id', $roomType->id)
                     && $this->ratesEndingCheck->isEnding($pricedUntil[$plan->id][$roomType->id] ?? null, $today))
                 ->pluck('name')
-                ->all();
+                ->all()));
 
             return $names === [] ? null : RateCalendarEndingData::fromModel($plan, $names);
         })->filter()->all());

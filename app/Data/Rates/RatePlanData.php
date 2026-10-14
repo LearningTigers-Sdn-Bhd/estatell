@@ -75,8 +75,8 @@ class RatePlanData extends Data
             status: BadgeData::fromRatePlanStatus($ratePlan->archived_at === null ? RatePlanStatus::Active : RatePlanStatus::Archived),
             isDerived: $ratePlan->parent_rate_plan_id !== null,
             checkChildPrices: $ratePlan->needs_child_price_review,
-            roomTypeIds: $roomTypes->pluck('id')->all(),
-            roomTypeNames: $roomTypes->pluck('name')->all(),
+            roomTypeIds: array_values(array_map(intval(...), $roomTypes->pluck('id')->all())),
+            roomTypeNames: array_values(array_map(strval(...), $roomTypes->pluck('name')->all())),
         );
     }
 

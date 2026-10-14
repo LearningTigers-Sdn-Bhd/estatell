@@ -63,7 +63,7 @@ class InHouseUnits
         }
 
         $date = $this->currentBusinessDate->date($folio->loadMissing('property')->property);
-        $assigned = $date === null ? [] : $this->roomBox->assignmentsForUnitsOn($units->modelKeys(), $date->toDateString());
+        $assigned = $date === null ? [] : $this->roomBox->assignmentsForUnitsOn(array_values(array_map(intval(...), $units->modelKeys())), $date->toDateString());
 
         return array_values($units
             ->map(fn (ReservationUnit $unit): string => isset($assigned[$unit->id])

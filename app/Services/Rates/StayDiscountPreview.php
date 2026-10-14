@@ -39,13 +39,13 @@ class StayDiscountPreview
      */
     public function stayLengths(Collection $rules): array
     {
-        return collect([1])
+        return array_values(collect([1])
             ->merge($rules->pluck('min_nights'))
             ->unique()
             ->sort()
             ->take(self::MAX_STAY_LENGTHS)
             ->values()
-            ->all();
+            ->all());
     }
 
     /**

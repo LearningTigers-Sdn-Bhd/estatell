@@ -28,8 +28,8 @@ class ReleaseUnitRooms
         $nights = $unit->nights()->where(fn ($query) => $query->whereNotNull('room_id')->orWhereNotNull('bed_id'))->get();
 
         $released = [
-            'room_ids' => $nights->pluck('room_id')->filter()->unique()->values()->map(fn (mixed $id): int => (int) $id)->all(),
-            'bed_ids' => $nights->pluck('bed_id')->filter()->unique()->values()->map(fn (mixed $id): int => (int) $id)->all(),
+            'room_ids' => array_values($nights->pluck('room_id')->filter()->unique()->values()->map(fn (mixed $id): int => (int) $id)->all()),
+            'bed_ids' => array_values($nights->pluck('bed_id')->filter()->unique()->values()->map(fn (mixed $id): int => (int) $id)->all()),
         ];
 
         $unit->nights()->update(['room_id' => null, 'bed_id' => null]);

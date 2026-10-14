@@ -864,7 +864,7 @@ class SandbaySeeder extends Seeder
     private function checkIn(User $owner, Reservation $reservation): Collection
     {
         $units = $reservation->units()->orderBy('id')->get();
-        $refusals = array_filter(app(CheckInAllUnits::class)($owner, $reservation, $units->modelKeys()));
+        $refusals = array_filter(app(CheckInAllUnits::class)($owner, $reservation, array_values(array_map(intval(...), $units->modelKeys()))));
 
         if ($refusals !== []) {
             throw new RuntimeException('Check-in was refused: '.implode(', ', $refusals).'.');

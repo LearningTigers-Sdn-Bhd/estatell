@@ -43,7 +43,7 @@ class ReservationGuestRows
             ->with('payerGuest:id,full_name', 'payerCompany:id,name')
             ->get();
         $unitFolios = $folios->where('type', FolioType::Unit)->sortBy('id')->unique('reservation_unit_id')->keyBy('reservation_unit_id');
-        $ownFolioGuestIds = $folios->where('type', FolioType::ThirdParty)->where('status', FolioStatus::Open)->pluck('payer_guest_id')->filter()->all();
+        $ownFolioGuestIds = array_values(array_map(intval(...), $folios->where('type', FolioType::ThirdParty)->where('status', FolioStatus::Open)->pluck('payer_guest_id')->filter()->all()));
         $rows = [];
 
         if (! $bookerStays) {

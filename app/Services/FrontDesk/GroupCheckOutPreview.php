@@ -107,7 +107,7 @@ class GroupCheckOutPreview
         $master = $this->openMaster($reservation);
         $timeZone = $property->settings->time_zone ?? config('app.timezone');
         $units = $reservation->units()->with(['guests.guest', 'roomType'])->orderBy('id')->get();
-        $names = $this->incomingScheduledCharges->unitNames($units->modelKeys());
+        $names = $this->incomingScheduledCharges->unitNames(array_values(array_map(intval(...), $units->modelKeys())));
         $rows = [];
         $nothing = ['out' => [], 'cancelled' => []];
 
@@ -381,10 +381,10 @@ class GroupCheckOutPreview
      */
     private function methods(Reservation $reservation): array
     {
-        $data = PaymentMethod::query()->where('property_id', $reservation->property_id)->active()
+        $data = array_values(PaymentMethod::query()->where('property_id', $reservation->property_id)->active()
             ->whereNotIn('type', [PaymentMethodType::OtaCollected, PaymentMethodType::DirectBill])
             ->ordered()->get()
-            ->map(PaymentMethodOptionData::fromModel(...))->all();
+            ->map(PaymentMethodOptionData::fromModel(...))->all());
 
         return ['data' => $data, 'first' => $data[0]->id ?? null];
     }

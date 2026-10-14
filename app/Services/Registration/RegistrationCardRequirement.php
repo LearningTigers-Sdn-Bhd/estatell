@@ -68,9 +68,9 @@ class RegistrationCardRequirement
      */
     private function signedUnitGuestIds(ReservationUnit $unit): array
     {
-        return $unit->guests()
+        return array_values(array_map(intval(...), $unit->guests()
             ->whereHas('registrationCards', fn ($query) => $query->where('status', RegistrationCardStatus::Signed->value))
             ->pluck('id')
-            ->all();
+            ->all()));
     }
 }

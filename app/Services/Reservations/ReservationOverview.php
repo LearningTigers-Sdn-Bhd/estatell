@@ -30,7 +30,7 @@ class ReservationOverview
     public function build(Reservation $reservation, bool $canViewGuest): array
     {
         $units = $reservation->units()->with('roomType')->orderBy('id')->get();
-        $assigned = $this->roomBox->assignmentsForUnits($units->pluck('id')->all());
+        $assigned = $this->roomBox->assignmentsForUnits(array_values(array_map(intval(...), $units->pluck('id')->all())));
         $nights = $this->nightTotals($units);
         $live = $units->filter(fn (ReservationUnit $unit): bool => $unit->status->holdsInventory());
         $dated = $live->isEmpty() ? $units : $live;
