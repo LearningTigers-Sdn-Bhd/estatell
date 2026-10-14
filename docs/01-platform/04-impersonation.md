@@ -25,10 +25,9 @@ Two roles can view as:
 | -------------------- | ---------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
 | **[View as]** button | Admin property page, partner properties list, onboarding board row (comes with the onboarding board) | Opens the view-as page for that property                              |
 | Admin ⌘K             | Type a property code, name, city, or a reservation reference                                         | "View as owner" / "View as owner and open"                            |
-| Copied link          | "Copy view-as link" next to [View as]                                                                | `/view-as/{code}?to=…&reason=…`                                       |
 | **Pasted staff URL** | Any `/p/{code}/…` URL opened by a support user who may view it                                       | Intercepted, redirected to the view-as page with `to` set to that URL |
 
-Admin ⌘K and the copied link are parked. They come in a later commit, after ⌘K exists.
+Admin ⌘K is parked. It comes in a later commit, after ⌘K exists. There is no copy-link entry point: a support user shares a staff URL, and the pasted staff URL entry point handles it, so no reason travels in a link.
 
 ## Flow
 
