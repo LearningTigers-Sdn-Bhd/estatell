@@ -40,7 +40,7 @@ class GuestCardController extends Controller
         $this->ensureOwned($property, $unitGuest);
 
         $card = $prepareRegistrationCard($unitGuest);
-        $saved = $card !== null && $saveRegistrationCardDraft($request->user(), $card, $request->actionInput());
+        $saved = $card !== null && $saveRegistrationCardDraft($request->user(), $card, $request->toDraftData());
 
         Inertia::flash('toast', $saved
             ? ['type' => 'success', 'message' => __('Card details saved.')]
@@ -63,7 +63,7 @@ class GuestCardController extends Controller
         $this->ensureOwned($property, $unitGuest);
 
         $card = $prepareRegistrationCard($unitGuest);
-        $signed = $card !== null && $signRegistrationCard($request->user(), $card, $request->actionInput());
+        $signed = $card !== null && $signRegistrationCard($request->user(), $card, $request->toSignData());
 
         if ($signed) {
             return to_route('registration.done', [$property, $unitGuest]);

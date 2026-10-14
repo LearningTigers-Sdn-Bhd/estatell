@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Registration;
 
+use App\Data\Registration\RegistrationCardDraftData;
 use App\Models\UnitGuest;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -38,19 +39,16 @@ class SaveRegistrationCardDraftRequest extends FormRequest
         ];
     }
 
-    /**
-     * @return array{identity: array{type: string, number: string, issuing_country_code: string|null, expires_on: string|null}|null, identity_document_id: int|null, vehicle_plate: string|null, remarks: string|null}
-     */
-    public function actionInput(): array
+    public function toDraftData(): RegistrationCardDraftData
     {
         $validated = $this->validated();
 
-        return [
-            'identity' => CardIdentityRules::newDocument($validated),
-            'identity_document_id' => isset($validated['identity_document_id']) ? (int) $validated['identity_document_id'] : null,
-            'vehicle_plate' => $validated['vehicle_plate'] ?? null,
-            'remarks' => $validated['remarks'] ?? null,
-        ];
+        return new RegistrationCardDraftData(
+            identity: CardIdentityRules::newDocument($validated),
+            identityDocumentId: isset($validated['identity_document_id']) ? (int) $validated['identity_document_id'] : null,
+            vehiclePlate: $validated['vehicle_plate'] ?? null,
+            remarks: $validated['remarks'] ?? null,
+        );
     }
 
     private function unitGuest(): UnitGuest

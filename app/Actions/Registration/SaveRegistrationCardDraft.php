@@ -3,6 +3,7 @@
 namespace App\Actions\Registration;
 
 use App\Actions\Guests\AddIdentityDocument;
+use App\Data\Registration\RegistrationCardDraftData;
 use App\Enums\RegistrationCardStatus;
 use App\Models\Guest;
 use App\Models\RegistrationCard;
@@ -18,22 +19,20 @@ class SaveRegistrationCardDraft
      * A new document is added to the guest's profile.
      *
      * Returns false, without writing, when the card is not a draft or the guest's profile is closed.
-     *
-     * @param  array{identity: array{type: string, number: string, issuing_country_code: string|null, expires_on: string|null}|null, identity_document_id: int|null, vehicle_plate: string|null, remarks: string|null}  $input
      */
-    public function __invoke(User $actor, RegistrationCard $card, array $input): bool
+    public function __invoke(User $actor, RegistrationCard $card, RegistrationCardDraftData $data): bool
     {
-        return DB::transaction(function () use ($actor, $card, $input): bool {
+        return DB::transaction(function () use ($actor, $card, $data): bool {
             $card = RegistrationCard::query()->lockForUpdate()->with('unitGuest')->findOrFail($card->id);
 
             if ($card->status !== RegistrationCardStatus::Draft) {
                 return false;
             }
 
-            $documentId = $input['identity_document_id'];
+            $documentId = $data->identityDocumentId;
 
-            if ($input['identity'] !== null) {
-                $document = ($this->addIdentityDocument)($actor, Guest::query()->findOrFail($card->unitGuest->guest_id), $input['identity']);
+            if ($data->identity !== null) {
+                $document = ($this->addIdentityDocument)($actor, Guest::query()->findOrFail($card->unitGuest->guest_id), $data->identity);
 
                 if ($document === null) {
                     return false;
@@ -42,7 +41,7 @@ class SaveRegistrationCardDraft
                 $documentId = $document->id;
             }
 
-            $card->forceFill(['identity_document_id' => $documentId, 'vehicle_plate' => $input['vehicle_plate'], 'remarks' => $input['remarks']])->save();
+            $card->forceFill(['identity_document_id' => $documentId, 'vehicle_plate' => $data->vehiclePlate, 'remarks' => $data->remarks])->save();
 
             return true;
         });

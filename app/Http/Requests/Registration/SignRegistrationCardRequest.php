@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Registration;
 
+use App\Data\Registration\SignRegistrationCardData;
 use App\Enums\FieldVisibility;
 use App\Enums\Locale;
 use App\Enums\RegistrationCardField;
@@ -103,24 +104,24 @@ class SignRegistrationCardRequest extends FormRequest
     }
 
     /**
-     * @return array<string, mixed>
+     * Read from the validated input only: a field the card Layout hides is not validated, so its raw value is ignored.
      */
-    public function actionInput(): array
+    public function toSignData(): SignRegistrationCardData
     {
         $validated = $this->validated();
 
-        return [
-            'profile' => GuestProfileRules::attributes($validated, $this->phoneRegion()),
-            'identity' => CardIdentityRules::newDocument($validated),
-            'identity_document_id' => isset($validated['identity_document_id']) ? (int) $validated['identity_document_id'] : null,
-            'vehicle_plate' => $validated['vehicle_plate'] ?? null,
-            'remarks' => $validated['remarks'] ?? null,
-            'marketing_consent' => (bool) ($validated['marketing_consent'] ?? false),
-            'locale' => Locale::from($validated['locale']),
-            'ticks' => array_map('intval', $validated['ticks'] ?? []),
-            'signature' => $validated['signature'],
-            'signer_name' => $validated['signer_name'],
-        ];
+        return new SignRegistrationCardData(
+            profile: GuestProfileRules::attributes($validated, $this->phoneRegion()),
+            identity: CardIdentityRules::newDocument($validated),
+            identityDocumentId: isset($validated['identity_document_id']) ? (int) $validated['identity_document_id'] : null,
+            vehiclePlate: $validated['vehicle_plate'] ?? null,
+            remarks: $validated['remarks'] ?? null,
+            marketingConsent: (bool) ($validated['marketing_consent'] ?? false),
+            locale: Locale::from($validated['locale']),
+            ticks: array_values(array_map('intval', $validated['ticks'] ?? [])),
+            signature: $validated['signature'],
+            signerName: $validated['signer_name'],
+        );
     }
 
     private function property(): Property

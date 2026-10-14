@@ -25,7 +25,7 @@ class GuestIdentityDocumentController extends Controller
 
     public function store(IdentityDocumentRequest $request, Property $property, Guest $guest, AddIdentityDocument $addIdentityDocument): RedirectResponse
     {
-        $document = $addIdentityDocument($request->user(), $guest, $request->documentAttributes(), $request->frontScan(), $request->backScan());
+        $document = $addIdentityDocument($request->user(), $guest, $request->toIdentityDocumentData(), $request->frontScan(), $request->backScan());
 
         Inertia::flash('toast', $document !== null
             ? ['type' => 'success', 'message' => __('ID document added.')]
@@ -36,7 +36,7 @@ class GuestIdentityDocumentController extends Controller
 
     public function update(IdentityDocumentRequest $request, Property $property, Guest $guest, GuestIdentityDocument $document, UpdateIdentityDocument $updateIdentityDocument): RedirectResponse
     {
-        Inertia::flash('toast', $updateIdentityDocument($request->user(), $document, $request->documentAttributes(), $request->frontScan(), $request->backScan(), $request->removeScans())
+        Inertia::flash('toast', $updateIdentityDocument($request->user(), $document, $request->toIdentityDocumentData(), $request->frontScan(), $request->backScan(), $request->removeScans())
             ? ['type' => 'success', 'message' => __('ID document saved.')]
             : ['type' => 'error', 'message' => __(':name cannot be edited.', ['name' => $guest->full_name])]);
 

@@ -6,6 +6,8 @@ use App\Actions\Registration\SeedRegistrationCardFields;
 use App\Actions\Registration\SeedRegistrationTerms;
 use App\Actions\Registration\SignRegistrationCard;
 use App\Actions\Registration\VoidRegistrationCard;
+use App\Data\Registration\RegistrationCardDraftData;
+use App\Data\Registration\SignRegistrationCardData;
 use App\Enums\DefaultRoleEnum;
 use App\Enums\Locale;
 use App\Enums\PropertyType;
@@ -387,12 +389,20 @@ test('every action refuses a card that is not a draft, without writing', functio
     $card = app(PrepareRegistrationCard::class)($setup['unitGuest']);
     $card->forceFill(['status' => RegistrationCardStatus::Void])->save();
 
-    $signed = app(SignRegistrationCard::class)($setup['owner'], $card, [
-        'profile' => ['full_name' => 'X'], 'identity' => null, 'identity_document_id' => null, 'vehicle_plate' => null, 'remarks' => null,
-        'marketing_consent' => false, 'locale' => Locale::English, 'ticks' => cardTicks($setup['property']), 'signature' => CARD_SIGNATURE, 'signer_name' => 'X',
-    ]);
+    $signed = app(SignRegistrationCard::class)($setup['owner'], $card, new SignRegistrationCardData(
+        profile: ['full_name' => 'X'],
+        identity: null,
+        identityDocumentId: null,
+        vehiclePlate: null,
+        remarks: null,
+        marketingConsent: false,
+        locale: Locale::English,
+        ticks: cardTicks($setup['property']),
+        signature: CARD_SIGNATURE,
+        signerName: 'X',
+    ));
 
-    $saved = app(SaveRegistrationCardDraft::class)($setup['owner'], $card, ['identity' => null, 'identity_document_id' => null, 'vehicle_plate' => 'WXY 1', 'remarks' => null]);
+    $saved = app(SaveRegistrationCardDraft::class)($setup['owner'], $card, new RegistrationCardDraftData(identity: null, identityDocumentId: null, vehiclePlate: 'WXY 1', remarks: null));
 
     expect($signed)->toBeFalse()
         ->and($saved)->toBeFalse()

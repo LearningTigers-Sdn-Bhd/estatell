@@ -349,12 +349,6 @@ parameters:
 			path: app/Http/Controllers/Partner/PartnerPropertyController.php
 
 		-
-			message: '#^Parameter \#3 \$input of callable App\\Actions\\Registration\\SignRegistrationCard expects array\{profile\: array\<string, mixed\>, identity\: array\<string, mixed\>\|null, identity_document_id\: int\|null, vehicle_plate\: string\|null, remarks\: string\|null, marketing_consent\: bool, locale\: App\\Enums\\Locale, ticks\: list\<int\>, \.\.\.\}, array\<string, mixed\> given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Http/Controllers/Registration/GuestCardController.php
-
-		-
 			message: '#^Parameter \#4 \$tagNames of callable App\\Actions\\Guests\\UpdateGuest expects list\<string\>, array\<mixed\> given\.$#'
 			identifier: argument.type
 			count: 1

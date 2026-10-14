@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Registration;
 
+use App\Data\Guests\IdentityDocumentInputData;
 use App\Enums\IdentityDocumentType;
 use App\Services\Guests\CountryOptions;
 use App\Services\Guests\IdentityNumber;
@@ -53,17 +54,16 @@ class CardIdentityRules
 
     /**
      * @param  array<string, mixed>  $validated
-     * @return array{type: string, number: string, issuing_country_code: string|null, expires_on: string|null}|null
      */
-    public static function newDocument(array $validated): ?array
+    public static function newDocument(array $validated): ?IdentityDocumentInputData
     {
         $identity = $validated['identity'] ?? null;
 
-        return filled($identity['number'] ?? null) ? [
-            'type' => $identity['type'],
-            'number' => $identity['number'],
-            'issuing_country_code' => $identity['issuing_country_code'] ?? null,
-            'expires_on' => $identity['expires_on'] ?? null,
-        ] : null;
+        return filled($identity['number'] ?? null) ? new IdentityDocumentInputData(
+            type: IdentityDocumentType::from($identity['type']),
+            number: $identity['number'],
+            issuingCountryCode: $identity['issuing_country_code'] ?? null,
+            expiresOn: $identity['expires_on'] ?? null,
+        ) : null;
     }
 }

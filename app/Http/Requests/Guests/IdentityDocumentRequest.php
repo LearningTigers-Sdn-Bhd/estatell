@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Guests;
 
+use App\Data\Guests\IdentityDocumentInputData;
 use App\Enums\IdentityDocumentType;
 use App\Models\GuestIdentityDocument;
 use App\Services\Guests\CountryOptions;
@@ -55,13 +56,14 @@ class IdentityDocumentRequest extends FormRequest
         ];
     }
 
-    /**
-     * @return array{type: string, number: string, issuing_country_code: string|null, expires_on: string|null}
-     */
-    public function documentAttributes(): array
+    public function toIdentityDocumentData(): IdentityDocumentInputData
     {
-        /** @var array{type: string, number: string, issuing_country_code: string|null, expires_on: string|null} */
-        return $this->safe()->only(['type', 'number', 'issuing_country_code', 'expires_on']);
+        return new IdentityDocumentInputData(
+            type: IdentityDocumentType::from($this->string('type')->toString()),
+            number: $this->string('number')->toString(),
+            issuingCountryCode: $this->filled('issuing_country_code') ? $this->string('issuing_country_code')->toString() : null,
+            expiresOn: $this->filled('expires_on') ? $this->string('expires_on')->toString() : null,
+        );
     }
 
     public function frontScan(): ?UploadedFile

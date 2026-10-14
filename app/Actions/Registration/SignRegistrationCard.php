@@ -4,8 +4,8 @@ namespace App\Actions\Registration;
 
 use App\Actions\Guests\AddIdentityDocument;
 use App\Actions\Guests\UpdateGuest;
+use App\Data\Registration\SignRegistrationCardData;
 use App\Enums\DocumentType;
-use App\Enums\Locale;
 use App\Enums\RegistrationCardStatus;
 use App\Models\Guest;
 use App\Models\GuestIdentityDocument;
@@ -45,18 +45,16 @@ class SignRegistrationCard
      * Returns false, without writing, when the card is not a draft, the unit or guest is closed, the language has
      * no published terms, the ticks do not cover every checklist item, or the signature is not a PNG image.
      * Required fields are checked by the Form Request.
-     *
-     * @param  array{profile: array<string, mixed>, identity: array<string, mixed>|null, identity_document_id: int|null, vehicle_plate: string|null, remarks: string|null, marketing_consent: bool, locale: Locale, ticks: list<int>, signature: string, signer_name: string}  $input
      */
-    public function __invoke(User $actor, RegistrationCard $card, array $input): bool
+    public function __invoke(User $actor, RegistrationCard $card, SignRegistrationCardData $data): bool
     {
-        $signature = $this->signaturePng($input['signature']);
+        $signature = $this->signaturePng($data->signature);
 
         if ($signature === null) {
             return false;
         }
 
-        return DB::transaction(function () use ($actor, $card, $input, $signature): bool {
+        return DB::transaction(function () use ($actor, $card, $data, $signature): bool {
             $card = RegistrationCard::query()->lockForUpdate()->with('unitGuest.reservationUnit.roomType', 'property.settings')->findOrFail($card->id);
 
             if ($card->status !== RegistrationCardStatus::Draft || ! $this->requirement->canHaveCard($card->unitGuest)) {
@@ -65,25 +63,25 @@ class SignRegistrationCard
 
             $property = $card->property;
             $guest = Guest::query()->findOrFail($card->unitGuest->guest_id);
-            $resolved = $this->termsResolver->resolve($property, $card->unitGuest->reservationUnit->roomType, $guest, $input['locale']);
+            $resolved = $this->termsResolver->resolve($property, $card->unitGuest->reservationUnit->roomType, $guest, $data->locale);
 
-            if ($resolved === null || $resolved->locale !== $input['locale'] || ! $this->ticksCover($resolved->terms->body, $input['ticks'])) {
+            if ($resolved === null || $resolved->locale !== $data->locale || ! $this->ticksCover($resolved->terms->body, $data->ticks)) {
                 return false;
             }
 
-            if (! ($this->updateGuest)($actor, $guest, [...$input['profile'], 'preferred_locale' => $input['locale']])) {
+            if (! ($this->updateGuest)($actor, $guest, [...$data->profile, 'preferred_locale' => $data->locale])) {
                 return false;
             }
 
-            if ($input['marketing_consent'] && $guest->marketing_consent_at === null) {
+            if ($data->marketingConsent && $guest->marketing_consent_at === null) {
                 $guest->forceFill(['marketing_consent_at' => now()])->save();
             }
 
-            $document = $this->identityDocument($actor, $guest, $input);
+            $document = $this->identityDocument($actor, $guest, $data);
             $signedAt = now();
             $guest->refresh();
-            $card->vehicle_plate = $input['vehicle_plate'];
-            $card->remarks = $input['remarks'];
+            $card->vehicle_plate = $data->vehiclePlate;
+            $card->remarks = $data->remarks;
 
             $card->forceFill([
                 'status' => RegistrationCardStatus::Signed,
@@ -91,7 +89,7 @@ class SignRegistrationCard
                 'identity_document_id' => $document?->id,
                 'terms_id' => $resolved->terms->id,
                 'signed_at' => $signedAt,
-                'signer_name' => $input['signer_name'],
+                'signer_name' => $data->signerName,
                 'snapshot' => $this->snapshot->build(
                     $property,
                     $card,
@@ -99,8 +97,8 @@ class SignRegistrationCard
                     $document,
                     $resolved->terms,
                     $this->stay->valuesFor($card->unitGuest, $property),
-                    $input['ticks'],
-                    $input['signer_name'],
+                    $data->ticks,
+                    $data->signerName,
                     $signedAt,
                 ),
             ])->save();
@@ -111,7 +109,7 @@ class SignRegistrationCard
                 ->performedOn($card)
                 ->causedBy($actor)
                 ->event('registration_card.signed')
-                ->withProperties(['property_id' => $property->id, 'number' => $card->number, 'terms_id' => $resolved->terms->id, 'locale' => $input['locale']->value])
+                ->withProperties(['property_id' => $property->id, 'number' => $card->number, 'terms_id' => $resolved->terms->id, 'locale' => $data->locale->value])
                 ->log('Registration card signed');
 
             return true;
@@ -132,20 +130,14 @@ class SignRegistrationCard
         return $required === $ticked;
     }
 
-    /**
-     * @param  array{identity: array<string, mixed>|null, identity_document_id: int|null}  $input
-     */
-    private function identityDocument(User $actor, Guest $guest, array $input): ?GuestIdentityDocument
+    private function identityDocument(User $actor, Guest $guest, SignRegistrationCardData $data): ?GuestIdentityDocument
     {
-        if ($input['identity'] !== null) {
-            /** @var array{type: string, number: string, issuing_country_code: string|null, expires_on: string|null} $attributes */
-            $attributes = $input['identity'];
-
-            return ($this->addIdentityDocument)($actor, $guest, $attributes);
+        if ($data->identity !== null) {
+            return ($this->addIdentityDocument)($actor, $guest, $data->identity);
         }
 
-        if ($input['identity_document_id'] !== null) {
-            return GuestIdentityDocument::query()->whereBelongsTo($guest)->find($input['identity_document_id']);
+        if ($data->identityDocumentId !== null) {
+            return GuestIdentityDocument::query()->whereBelongsTo($guest)->find($data->identityDocumentId);
         }
 
         return null;

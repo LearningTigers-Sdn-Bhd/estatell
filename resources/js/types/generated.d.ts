@@ -712,6 +712,12 @@ isAnonymized: boolean,
 tags: string[],
 createdAt: string,
 };
+export type IdentityDocumentInputData = {
+type: App.Enums.IdentityDocumentType,
+number: string,
+issuingCountryCode: string | null,
+expiresOn: string | null,
+};
 export type TagData = {
 id: number,
 name: string,
@@ -1394,6 +1400,12 @@ total: number,
 locale: string,
 labels: Record<string, string>,
 };
+export type RegistrationCardDraftData = {
+identity: App.Data.Guests.IdentityDocumentInputData | null,
+identityDocumentId: number | null,
+vehiclePlate: string | null,
+remarks: string | null,
+};
 export type RegistrationCardFieldData = {
 field: string,
 label: string,
@@ -1452,6 +1464,18 @@ value: string,
 cardDocumentId: number | null,
 walkPosition: number | null,
 walkTotal: number,
+};
+export type SignRegistrationCardData = {
+profile: Record<string, any>,
+identity: App.Data.Guests.IdentityDocumentInputData | null,
+identityDocumentId: number | null,
+vehiclePlate: string | null,
+remarks: string | null,
+marketingConsent: boolean,
+locale: App.Enums.Locale,
+ticks: number[],
+signature: string,
+signerName: string,
 };
 export type TermsDocumentData = {
 id: number,
