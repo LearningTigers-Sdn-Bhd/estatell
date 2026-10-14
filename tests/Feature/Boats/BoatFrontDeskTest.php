@@ -1,15 +1,14 @@
 <?php
 
+require_once __DIR__.'/../Support/ReportSetup.php';
+
 use App\Enums\BoatDirection;
-use App\Enums\DefaultRoleEnum;
 use App\Enums\PageOrientation;
 use App\Enums\ReportKey;
 use App\Enums\StayType;
 use App\Features\Boats;
 use App\Models\BoatDeparture;
-use App\Models\BusinessDate;
 use App\Models\Property;
-use App\Models\PropertySetting;
 use App\Models\Reservation;
 use App\Models\ReservationUnit;
 use App\Models\UnitBoatTrip;
@@ -29,11 +28,7 @@ beforeEach(function () {
  */
 function boatDeskSetup(bool $featureOn = true): array
 {
-    $user = User::factory()->withRole(DefaultRoleEnum::Manager)->create();
-    $property = $user->property;
-    $property->forceFill(['status' => 'live'])->save();
-    PropertySetting::factory()->for($property)->create();
-    BusinessDate::factory()->create(['property_id' => $property->id, 'date' => '2026-10-10']);
+    [$user, $property] = reportSetup();
 
     if ($featureOn) {
         Feature::for($property)->activate(Boats::class);

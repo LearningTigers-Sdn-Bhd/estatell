@@ -1,5 +1,7 @@
 <?php
 
+require_once __DIR__.'/../Support/ReportSetup.php';
+
 use App\Data\Reports\ReportFilters;
 use App\Enums\DefaultRoleEnum;
 use App\Enums\ReportKey;
@@ -11,7 +13,6 @@ use App\Models\FolioLine;
 use App\Models\NightAudit;
 use App\Models\NightAuditException;
 use App\Models\Property;
-use App\Models\PropertySetting;
 use App\Models\TransactionCode;
 use App\Models\User;
 use App\Services\Reports\NightAuditHistoryReport;
@@ -20,20 +21,6 @@ use Inertia\Testing\AssertableInertia as Assert;
 beforeEach(function () {
     $this->travelTo(now()->setDate(2026, 10, 10)->setTime(12, 0));
 });
-
-/**
- * @return array{0: User, 1: Property}
- */
-function auditHistorySetup(DefaultRoleEnum $role = DefaultRoleEnum::Manager): array
-{
-    $user = User::factory()->withRole($role)->create();
-    $property = $user->property;
-    $property->forceFill(['status' => 'live'])->save();
-    PropertySetting::factory()->for($property)->create();
-    BusinessDate::factory()->create(['property_id' => $property->id, 'date' => '2026-10-10']);
-
-    return [$user, $property];
-}
 
 function auditHistoryUrl(Property $property, string $query = ''): string
 {
@@ -54,9 +41,9 @@ function auditOn(Property $property, string $date, string $state = 'completed', 
 }
 
 test('the page needs reports.view, is scoped to the property and opens on the last 30 days, newest first', function () {
-    [$front, $frontProperty] = auditHistorySetup(DefaultRoleEnum::FrontDesk);
-    [$manager, $own] = auditHistorySetup();
-    [, $other] = auditHistorySetup();
+    [$front, $frontProperty] = reportSetup(DefaultRoleEnum::FrontDesk);
+    [$manager, $own] = reportSetup();
+    [, $other] = reportSetup();
     auditOn($own, '2026-09-11');
     auditOn($own, '2026-10-09');
     auditOn($own, '2026-09-10');
@@ -76,7 +63,7 @@ test('the page needs reports.view, is scoped to the property and opens on the la
 });
 
 test('a report that sets no default range still opens on today', function () {
-    [$user, $property] = auditHistorySetup();
+    [$user, $property] = reportSetup();
 
     $this->actingAs($user)->get("/p/{$property->code}/reports/arrivals")->assertInertia(fn (Assert $page) => $page
         ->where('from', '2026-10-10')
@@ -84,7 +71,7 @@ test('a report that sets no default range still opens on today', function () {
 });
 
 test('a row carries the status, who ran it, the force reason, the exceptions and the figures of the date', function () {
-    [$user, $property] = auditHistorySetup();
+    [$user, $property] = reportSetup();
     $runner = User::factory()->create(['property_id' => $property->id, 'name' => 'Aina Runner']);
     $audit = auditOn($property, '2026-10-08', 'completed', ['run_by' => $runner->id, 'forced' => true, 'force_reason' => 'Power cut']);
     NightAuditException::factory()->create(['night_audit_id' => $audit->id]);
@@ -115,7 +102,7 @@ test('a row carries the status, who ran it, the force reason, the exceptions and
 });
 
 test('the exports hold only the selected audits, with the force reason as text and an empty packet column', function () {
-    [$user, $property] = auditHistorySetup();
+    [$user, $property] = reportSetup();
     auditOn($property, '2026-10-08', 'completed', ['forced' => true, 'force_reason' => 'Power cut']);
     auditOn($property, '2026-10-07');
     auditOn($property, '2026-10-06');
@@ -139,7 +126,7 @@ test('the exports hold only the selected audits, with the force reason as text a
 });
 
 test('the split columns hold the exception counts and the dates and times in the property time zone, and the totals sum the counts', function () {
-    [$user, $property] = auditHistorySetup();
+    [$user, $property] = reportSetup();
     $property->settings->forceFill(['time_zone' => 'Asia/Kuala_Lumpur'])->save();
     $audit = auditOn($property, '2026-10-08', 'completed', ['started_at' => '2026-10-08 16:30:00', 'completed_at' => '2026-10-08 16:45:00']);
     NightAuditException::factory()->count(2)->create(['night_audit_id' => $audit->id]);

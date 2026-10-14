@@ -1,5 +1,7 @@
 <?php
 
+require_once __DIR__.'/../Support/ReportSetup.php';
+
 use App\Data\Reports\BoatManifestRow;
 use App\Data\Reports\ReportFilters;
 use App\Enums\BoatDirection;
@@ -10,10 +12,8 @@ use App\Enums\Tone;
 use App\Enums\UnitStatus;
 use App\Features\Boats;
 use App\Models\BoatDeparture;
-use App\Models\BusinessDate;
 use App\Models\Guest;
 use App\Models\Property;
-use App\Models\PropertySetting;
 use App\Models\Reservation;
 use App\Models\ReservationUnit;
 use App\Models\Room;
@@ -42,11 +42,7 @@ beforeEach(function () {
  */
 function manifestSetup(DefaultRoleEnum $role = DefaultRoleEnum::Manager, bool $featureOn = true): array
 {
-    $user = User::factory()->withRole($role)->create();
-    $property = $user->property;
-    $property->forceFill(['status' => 'live'])->save();
-    PropertySetting::factory()->for($property)->create();
-    BusinessDate::factory()->create(['property_id' => $property->id, 'date' => '2026-10-10']);
+    [$user, $property] = reportSetup($role);
 
     if ($featureOn) {
         Feature::for($property)->activate(Boats::class);
