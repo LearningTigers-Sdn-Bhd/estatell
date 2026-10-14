@@ -145,7 +145,7 @@ Room revenue is not a separate section. Its taxes are the **Applies to rooms** c
  │[●] │[ Tourism tax   ] │[ 10.00][RM ▾]  │[Added on ▾]  │   [x]    │[             ] │⌃ │
  │    │  per night · [x] Foreign guests only · [x] Collect at check-in              │  │
  │[●] │[ Service charge] │[ 10   ][ % ▾]  │[Added on ▾]  │   [ ]    │[             ] │⌄🗑│
- │    │  ℹ Not applied to rooms. Link it to extras in Charge items.                 │  │
+ │    │  ℹ Not applied to rooms. Link it to extras in Charge items →                │  │
  ├────┴──────────────────┴────────────────┴──────────────┴──────────┴────────────────┴──┤
  │ [+ Add tax]                                                                          │
  └──────────────────────────────────────────────────────────────────────────────────────┘
@@ -167,7 +167,7 @@ Room revenue is not a separate section. Its taxes are the **Applies to rooms** c
 - The short code is not shown. It is derived from the name (VAT → `TAX_VAT`, a number added when taken) and editable in settings. To verify that `TaxRequest` accepts a derived code.
 - Preset rows have no remove button. They are turned off instead, because they own system posting codes. Custom rows can be removed. The last row stays while no taxes exist.
 - **Applies to rooms** saves through `UpdateRoomRevenueTaxes`, which links ROOM and every policy code that follows the Taxes tab. The header tooltip says "Also used for no-show, cancellation, early departure and late check-out charges."
-- A tax that does not apply to rooms is allowed (for example a service charge on food only). Its row says "Not applied to rooms. Link it to extras in Charge items." Charge items list it in each item's tax menu.
+- A tax that does not apply to rooms is allowed (for example a service charge on food only). Its row says "Not applied to rooms. Link it to extras in **Charge items →**", a link to section 8, which is unlocked once Taxes is Done. Charge items list it in each item's tax menu.
 - When no enabled tax applies to rooms, the example shows a warning: "Room nights have no tax. Tick **Applies to rooms** on a tax if they should."
 - The example is a sample night of 100 in the property currency, or the cheapest Basic rate once prices exist. The server calculates it with `RoomRevenuePreview` for a local and a foreign guest, as on the settings Taxes tab. The browser never calculates tax.
 - **We don't charge tax** greys out the table and turns every tax off. It is stored as an `onboarding_skips` row for Taxes. Unticking it removes the row.
