@@ -203,7 +203,7 @@ class FolioStatement
      * @param  list<ReservationUnitOptionData>  $units
      * @param  list<array{target: int|null, unit: int, date: string, rows: list<FolioRowData>}>  $blocks
      * @param  array<int, string>  $balances
-     * @param  array{postCharge?: bool, reverse?: bool, transfer?: bool, discount?: bool, close?: bool, recordPayment?: bool, refund?: bool}  $can
+     * @param  array{postCharge?: bool, reverse?: bool, transfer?: bool, discount?: bool, close?: bool, recordPayment?: bool, refund?: bool, printVoucher?: bool, settleCityLedger?: bool, changePrice?: bool}  $can
      * @param  array<int, string>  $labels  Unit label by unit id
      */
     private function data(Reservation $reservation, array $entry, Collection $entries, array $units, array $blocks, array $balances, array $can, array $labels, ?User $user): FolioData
@@ -251,17 +251,16 @@ class FolioStatement
             $scheduled->each(fn (FolioRowData $row) => $row->printable = true);
         }
 
-        $priceUnitIds = $isOpen && ($can['changePrice'] ?? false) ? collect($units)
+        $priceUnitIds = $isOpen && ($can['changePrice'] ?? false) ? array_values(collect($units)
             ->filter(fn (ReservationUnitOptionData $unit): bool => in_array($unit->status->value, [UnitStatus::Confirmed->value, UnitStatus::CheckedIn->value, UnitStatus::CheckedOut->value], true))
             ->map(fn (ReservationUnitOptionData $unit): int => $unit->id)
-            ->values()
-            ->all() : [];
+            ->all()) : [];
         [$posted, $discountable] = $folio === null ? [collect(), false] : $this->postedRows($folio, $allowed, $isOpen && ($can['discount'] ?? false), $isOpen && ($can['refund'] ?? false), $can['recordPayment'] ?? false, $can['printVoucher'] ?? false, $labels, $priceUnitIds);
         $balance = $folio === null ? null : ($balances[$folio->id] ?? '0.00');
         $purposes = ($can['recordPayment'] ?? false) && ($folio === null || $isOpen)
             ? $this->paymentPurposeChoices->for($reservation, $folio, $entry['unit'])
             : [];
-        $canSettle = ($can['settleCityLedger'] ?? false) && $isOpen && $folio?->payer_company_id !== null && $balance !== null && BigDecimal::of($balance)->isPositive();
+        $canSettle = ($can['settleCityLedger'] ?? false) && $isOpen && $folio?->payer_company_id !== null && BigDecimal::of($balance)->isPositive();
         $billedBy = $folio !== null && $user !== null ? $this->folioReopenRule->billingInvoice($folio) : null;
         $invoiceVoided = $folio?->invoice_number !== null && $billedBy === null && ArInvoice::query()->where('folio_id', $folio->id)->where('status', ArInvoiceStatus::Void)->exists();
         $canVoidAndReopen = $billedBy !== null && $user->can(PermissionEnum::CityLedgerInvoice->value) && $user->can(PermissionEnum::FolioReopen->value);

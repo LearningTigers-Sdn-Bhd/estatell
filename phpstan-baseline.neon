@@ -1,12 +1,6 @@
 parameters:
 	ignoreErrors:
 		-
-			message: '#^Strict comparison using \!\=\= between int and null will always evaluate to true\.$#'
-			identifier: notIdentical.alwaysTrue
-			count: 1
-			path: app/Actions/Boats/SyncBoatFare.php
-
-		-
 			message: '#^Unable to resolve the template type TKey in call to function collect$#'
 			identifier: argument.templateType
 			count: 1
@@ -43,46 +37,16 @@ parameters:
 			path: app/Actions/Reservations/AddUnit.php
 
 		-
-			message: '#^Strict comparison using \!\=\= between App\\Services\\CityLedger\\CreditCheckResult and null will always evaluate to true\.$#'
-			identifier: notIdentical.alwaysTrue
-			count: 1
-			path: app/Actions/Reservations/UpdateReservationCompany.php
-
-		-
 			message: '#^Parameter \#1 \$roomIndex of method App\\Services\\Rooms\\BedLabelGenerator\:\:letter\(\) expects int, int\|string\|null given\.$#'
 			identifier: argument.type
 			count: 1
 			path: app/Actions/Rooms/GenerateBeds.php
 
 		-
-			message: '#^Called ''first'' on Laravel collection, but could have been retrieved as a query\.$#'
-			identifier: larastan.noUnnecessaryCollectionCall
-			count: 1
-			path: app/Actions/Staff/AssignStaffRole.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$default_role\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Data/Platform/AdminPropertyStaffData.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$name\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Data/Platform/AdminPropertyStaffData.php
-
-		-
 			message: '#^Parameter \#1 \$callback of function array_map expects \(callable\(array\<string, mixed\>\)\: mixed\)\|null, Closure\(array\{roomType\: App\\Models\\RoomType, adults\: int, children\: int, unit\: string, refusal\: App\\Services\\Rates\\RateQuote\|null, stays\: array\<int, App\\Services\\Rates\\RateQuote\>, nightAmounts\: array\<int, list\<Brick\\Money\\Money\>\>, byNight\: array\{quote\: App\\Services\\Rates\\RateQuote, unitAmounts\: list\<Brick\\Money\\Money\>\}\|null\}\)\: App\\Data\\Rates\\StayDiscountPreviewRowData given\.$#'
 			identifier: argument.type
 			count: 1
 			path: app/Data/Rates/StayDiscountPreviewData.php
-
-		-
-			message: '#^Access to an undefined property App\\Models\\TermsDocument\:\:\$room_types_exists\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Data/Registration/TermsDocumentData.php
 
 		-
 			message: '#^Parameter \#2 \$array of function implode expects array\<string\>, array\<int, array\|string\> given\.$#'
@@ -95,30 +59,6 @@ parameters:
 			identifier: return.type
 			count: 1
 			path: app/Data/Reports/ReportTotals.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$default_role\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Data/Staff/StaffMemberData.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Data/Staff/StaffMemberData.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$name\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Data/Staff/StaffMemberData.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$name\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Data/Staff/TemporaryPasswordSlipData.php
 
 		-
 			message: '#^Parameter \#1 \$rows of method App\\Services\\Reports\\HasBreakdown\:\:breakdown\(\) expects list\<App\\Data\\Reports\\ReportRow&Spatie\\LaravelData\\Data\>, list\<App\\Data\\Reports\\ReportRow\> given\.$#'
@@ -145,12 +85,6 @@ parameters:
 			path: app/Models/Casts/AsCurrency.php
 
 		-
-			message: '#^Access to an undefined property object\:\:\$property\.$#'
-			identifier: property.notFound
-			count: 3
-			path: app/Notifications/SupportAccessUsed.php
-
-		-
 			message: '#^Access to an undefined property Spatie\\Activitylog\\Contracts\\Activity\:\:\$causer_id\.$#'
 			identifier: property.notFound
 			count: 1
@@ -169,18 +103,6 @@ parameters:
 			path: app/Providers/AppServiceProvider.php
 
 		-
-			message: '#^Access to an undefined property App\\Models\\UnitNight\:\:\$arrival_time\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Services/Availability/DayUseAvailability.php
-
-		-
-			message: '#^Access to an undefined property App\\Models\\UnitNight\:\:\$departure_time\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Services/Availability/DayUseAvailability.php
-
-		-
 			message: '#^Method App\\Services\\Availability\\FreeUnits\:\:takenByDayUse\(\) should return array\<int, list\<string\>\> but returns array\<''''\|int, non\-empty\-list\<string\>\>\.$#'
 			identifier: return.type
 			count: 1
@@ -191,12 +113,6 @@ parameters:
 			identifier: return.type
 			count: 1
 			path: app/Services/Availability/FreeUnits.php
-
-		-
-			message: '#^Access to an undefined property App\\Models\\BoatDeparture\:\:\$departures\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Services/Boats/BoatFareUsage.php
 
 		-
 			message: '#^Method App\\Services\\CityLedger\\CompanyBillTo\:\:lines\(\) should return list\<string\> but returns list\{0\?\: array\|string, 1\?\: array\|string, 2\?\: array\|string, 3\?\: array\|string, 4\?\: array\|string, 5\?\: array\|string, 6\?\: array\|string\}\.$#'
@@ -215,60 +131,6 @@ parameters:
 			identifier: binaryOp.invalid
 			count: 1
 			path: app/Services/Folio/FolioReopenRule.php
-
-		-
-			message: '#^If condition is always false\.$#'
-			identifier: if.alwaysFalse
-			count: 1
-			path: app/Services/Folio/FolioStatement.php
-
-		-
-			message: '#^Left side of && is always false\.$#'
-			identifier: booleanAnd.leftAlwaysFalse
-			count: 1
-			path: app/Services/Folio/FolioStatement.php
-
-		-
-			message: '#^Offset ''changePrice'' on array\{postCharge\?\: bool, reverse\?\: bool, transfer\?\: bool, discount\?\: bool, close\?\: bool, recordPayment\?\: bool, refund\?\: bool\} on left side of \?\? does not exist\.$#'
-			identifier: nullCoalesce.offset
-			count: 1
-			path: app/Services/Folio/FolioStatement.php
-
-		-
-			message: '#^Offset ''printVoucher'' on array\{postCharge\?\: bool, reverse\?\: bool, transfer\?\: bool, discount\?\: bool, close\?\: bool, recordPayment\?\: bool, refund\?\: bool\} on left side of \?\? does not exist\.$#'
-			identifier: nullCoalesce.offset
-			count: 3
-			path: app/Services/Folio/FolioStatement.php
-
-		-
-			message: '#^Offset ''settleCityLedger'' on array\{postCharge\?\: bool, reverse\?\: bool, transfer\?\: bool, discount\?\: bool, close\?\: bool, recordPayment\?\: bool, refund\?\: bool\} on left side of \?\? does not exist\.$#'
-			identifier: nullCoalesce.offset
-			count: 1
-			path: app/Services/Folio/FolioStatement.php
-
-		-
-			message: '#^Result of && is always false\.$#'
-			identifier: booleanAnd.alwaysFalse
-			count: 3
-			path: app/Services/Folio/FolioStatement.php
-
-		-
-			message: '#^Right side of && is always false\.$#'
-			identifier: booleanAnd.rightAlwaysFalse
-			count: 2
-			path: app/Services/Folio/FolioStatement.php
-
-		-
-			message: '#^Strict comparison using \!\=\= between string and null will always evaluate to true\.$#'
-			identifier: notIdentical.alwaysTrue
-			count: 1
-			path: app/Services/Folio/FolioStatement.php
-
-		-
-			message: '#^Ternary operator condition is always false\.$#'
-			identifier: ternary.alwaysFalse
-			count: 1
-			path: app/Services/Folio/FolioStatement.php
 
 		-
 			message: '#^Using nullsafe property access on non\-nullable type App\\Models\\Folio\. Use \-\> instead\.$#'
@@ -317,18 +179,6 @@ parameters:
 			identifier: argument.type
 			count: 1
 			path: app/Services/NightAudit/ReadinessAdvice.php
-
-		-
-			message: '#^Strict comparison using \=\=\= between string and App\\Enums\\NotificationChannel will always evaluate to false\.$#'
-			identifier: identical.alwaysFalse
-			count: 2
-			path: app/Services/Notifications/NotificationPreferences.php
-
-		-
-			message: '#^Strict comparison using \=\=\= between string and App\\Enums\\NotificationType will always evaluate to false\.$#'
-			identifier: identical.alwaysFalse
-			count: 2
-			path: app/Services/Notifications/NotificationPreferences.php
 
 		-
 			message: '#^Cannot cast object\|string\|null to string\.$#'
@@ -487,22 +337,10 @@ parameters:
 			path: app/Services/Reservations/ReservationGuestRows.php
 
 		-
-			message: '#^Access to an undefined property App\\Models\\ReservationUnit\:\:\$unposted_add_ons_count\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Services/Reservations/UnitActionPreview.php
-
-		-
 			message: '#^Parameter \#1 \$value of static method Brick\\Math\\BigNumber\:\:of\(\) expects Brick\\Math\\BigNumber\|int\|string, float\|int\|string given\.$#'
 			identifier: argument.type
 			count: 1
 			path: app/Services/Reservations/UnitActionPreview.php
-
-		-
-			message: '#^Parameter \#1 \$key of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:contains\(\) expects \(callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: bool\)\|Illuminate\\Database\\Eloquent\\Model\|int\|string, Closure\(App\\Models\\Role\)\: bool given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Services/Staff/AssignableRoles.php
 
 		-
 			message: '#^Match expression does not handle remaining values\: int\<min, \-1\>\|int\<7, max\>$#'

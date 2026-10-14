@@ -19,6 +19,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property bool $is_default
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
+ * @property-read bool $room_types_exists Set by withExists('roomTypes').
  */
 #[Fillable(['name', 'is_default'])]
 class TermsDocument extends Model

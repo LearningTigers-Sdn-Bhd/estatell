@@ -10,6 +10,11 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @property NotificationType $type
+ * @property NotificationChannel $channel
+ * @property bool $enabled
+ */
 #[Fillable(['type', 'channel', 'enabled'])]
 class UserNotificationPreference extends Model
 {

@@ -25,6 +25,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string $discount_amount
  * @property string|null $override_amount The stay override of the unit spread over its nights. When set, it is `amount`.
  * @property string $amount
+ * @property-read string $arrival_time `H:i:s`, only on rows selected with reservation_units.arrival_time.
+ * @property-read string $departure_time `H:i:s`, only on rows selected with reservation_units.departure_time.
  */
 #[Fillable([
     'date', 'rate_plan_id', 'room_id', 'bed_id', 'base_amount', 'extra_amount', 'supplement_amount',

@@ -36,6 +36,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  * @property CarbonImmutable|null $checked_out_at
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
+ * @property-read int $unposted_add_ons_count Set by withCount('addOns as unposted_add_ons_count').
  */
 #[Fillable([
     'room_type_id', 'rate_plan_id', 'arrival_date', 'departure_date', 'arrival_time', 'departure_time', 'adults', 'children', 'discount_id',

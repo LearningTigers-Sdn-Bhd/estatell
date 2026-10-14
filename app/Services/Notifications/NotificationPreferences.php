@@ -5,7 +5,9 @@ namespace App\Services\Notifications;
 use App\Enums\NotificationChannel;
 use App\Enums\NotificationType;
 use App\Models\Property;
+use App\Models\PropertyNotificationSetting;
 use App\Models\User;
+use App\Models\UserNotificationPreference;
 
 class NotificationPreferences
 {
@@ -41,7 +43,7 @@ class NotificationPreferences
         $property->loadMissing('notificationSettings');
 
         $setting = $property->notificationSettings->first(
-            fn ($setting): bool => $setting->type === $type && $setting->channel === $channel,
+            fn (PropertyNotificationSetting $setting): bool => $setting->type === $type && $setting->channel === $channel,
         );
 
         return $setting->enabled ?? $type->defaultEnabled($channel);
@@ -64,7 +66,7 @@ class NotificationPreferences
         $user->loadMissing('notificationPreferences');
 
         $preference = $user->notificationPreferences->first(
-            fn ($preference): bool => $preference->type === $type && $preference->channel === $channel,
+            fn (UserNotificationPreference $preference): bool => $preference->type === $type && $preference->channel === $channel,
         );
 
         return $preference->enabled ?? $type->defaultEnabled($channel);

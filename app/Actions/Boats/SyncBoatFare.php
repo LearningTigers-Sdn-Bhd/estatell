@@ -51,7 +51,7 @@ class SyncBoatFare
             return BoatTripResult::done($postedFareKept);
         }
 
-        if ($unit->rate_plan_id !== null && $this->ratePlanIncludes->includesChargeItem($unit->rate_plan_id, $departure->charge_item_id)) {
+        if ($this->ratePlanIncludes->includesChargeItem($unit->rate_plan_id, $departure->charge_item_id)) {
             return BoatTripResult::done($postedFareKept);
         }
 

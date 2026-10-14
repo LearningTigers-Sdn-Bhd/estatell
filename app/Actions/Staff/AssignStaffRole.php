@@ -41,7 +41,7 @@ class AssignStaffRole
             setPermissionsTeamId($staff->property_id);
 
             try {
-                $before = $staff->roles()->pluck('name')->first();
+                $before = $staff->roles()->value('name');
                 $staff->syncRoles($role);
             } finally {
                 setPermissionsTeamId($previousTeamId);

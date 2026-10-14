@@ -25,6 +25,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property bool $active
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
+ * @property-read int $departures Set by a selectRaw alias of count(*) in BoatFareUsage.
  */
 #[Fillable(['direction', 'leaves_at', 'arrives_at', 'pickup_point', 'seats', 'charge_item_id', 'active'])]
 class BoatDeparture extends Model

@@ -3,6 +3,7 @@
 namespace App\Notifications;
 
 use App\Enums\NotificationType;
+use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Notifications\Messages\MailMessage;
 
@@ -25,6 +26,9 @@ class SupportAccessUsed extends PropertyNotification
         parent::__construct(NotificationType::SupportAccessUsed);
     }
 
+    /**
+     * @param  User  $notifiable
+     */
     public function toMail(object $notifiable): MailMessage
     {
         $mail = (new MailMessage)

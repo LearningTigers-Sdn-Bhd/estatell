@@ -77,7 +77,7 @@ class UpdateReservationCompany
                 return $refusal;
             }
 
-            if ($company !== null && $check !== null && ! $check->allowed) {
+            if ($company !== null && ! $check->allowed) {
                 ($this->recordCreditOverride)($actor, $company, $check, (string) $overrideReason, 'change_reservation_company');
             }
 
