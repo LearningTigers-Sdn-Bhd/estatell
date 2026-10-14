@@ -2,6 +2,7 @@
 
 namespace App\Actions\Staff;
 
+use App\Data\Staff\AcceptStaffInvitationData;
 use App\Models\StaffInvitation;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -13,12 +14,10 @@ class AcceptStaffInvitation
      *
      * Accepting proves the email, so it is marked verified. Returns false when the invitation is closed or expired,
      * or when the email got an account after the invitation was sent.
-     *
-     * @param  array{name: string, password: string}  $input
      */
-    public function __invoke(StaffInvitation $invitation, array $input): User|false
+    public function __invoke(StaffInvitation $invitation, AcceptStaffInvitationData $data): User|false
     {
-        return DB::transaction(function () use ($invitation, $input): User|false {
+        return DB::transaction(function () use ($invitation, $data): User|false {
             $invitation = StaffInvitation::query()->with('role')->lockForUpdate()->findOrFail($invitation->id);
 
             if ($invitation->accepted_at !== null || $invitation->revoked_at !== null || $invitation->expires_at->isPast()) {
@@ -29,7 +28,7 @@ class AcceptStaffInvitation
                 return false;
             }
 
-            $user = new User(['name' => $input['name'], 'email' => $invitation->email, 'password' => $input['password']]);
+            $user = new User(['name' => $data->name, 'email' => $invitation->email, 'password' => $data->password]);
             $user->forceFill(['property_id' => $invitation->property_id, 'email_verified_at' => now()])->save();
 
             $previousTeamId = getPermissionsTeamId();

@@ -343,12 +343,6 @@ parameters:
 			path: app/Http/Controllers/Rooms/RoomTypeController.php
 
 		-
-			message: '#^Parameter \#2 \$input of callable App\\Actions\\Staff\\AcceptStaffInvitation expects array\{name\: string, password\: string\}, array\<string, mixed\> given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Http/Controllers/Staff/AcceptInvitationController.php
-
-		-
 			message: '#^Method App\\Http\\Requests\\Rates\\CreateRatePlanRequest\:\:ratePlanAttributes\(\) should return array\{name\: string, pricing_basis\: string, fixed_nights\?\: int, package_unit\?\: string, day_use_min_hours\?\: int, day_use_max_hours\?\: int\} but returns array\.$#'
 			identifier: return.type
 			count: 1

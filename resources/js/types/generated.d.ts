@@ -2496,6 +2496,10 @@ tone: App.Enums.Tone,
 };
 }
 namespace Staff {
+export type AcceptStaffInvitationData = {
+name: string,
+password: string,
+};
 export type InvitationPreviewData = {
 email: string,
 propertyName: string,

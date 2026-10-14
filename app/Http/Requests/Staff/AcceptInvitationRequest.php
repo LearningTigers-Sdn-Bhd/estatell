@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Staff;
 
 use App\Concerns\PasswordValidationRules;
+use App\Data\Staff\AcceptStaffInvitationData;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -29,5 +30,13 @@ class AcceptInvitationRequest extends FormRequest
             'name' => ['required', 'string', 'max:255'],
             'password' => $this->passwordRules(),
         ];
+    }
+
+    public function toAcceptStaffInvitationData(): AcceptStaffInvitationData
+    {
+        return new AcceptStaffInvitationData(
+            name: $this->string('name')->toString(),
+            password: $this->string('password')->toString(),
+        );
     }
 }
