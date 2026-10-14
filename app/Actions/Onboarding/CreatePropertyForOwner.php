@@ -6,9 +6,9 @@ use App\Actions\Property\GenerateDocumentPrefix;
 use App\Actions\Property\IssuePropertyCode;
 use App\Actions\Property\SeedPropertyDefaults;
 use App\Actions\Staff\AssignOwnerRole;
+use App\Data\Onboarding\NewOwnerPropertyData;
 use App\Enums\OwnerSetupMethod;
 use App\Enums\PropertyStatus;
-use App\Enums\PropertyType;
 use App\Models\Partner;
 use App\Models\Property;
 use App\Models\User;
@@ -30,21 +30,19 @@ class CreatePropertyForOwner
     /**
      * Create an onboarding property and its owner atomically, then send the selected account setup message.
      * With a partner, the property gets the partner's code prefix and is linked to the partner.
-     *
-     * @param  array{property_name: string, type: string, owner_name: string, owner_email: string, setup_method: string, password?: string, verify_owner_email?: bool}  $input
      */
-    public function __invoke(User $admin, array $input, ?Partner $partner = null): Property
+    public function __invoke(User $admin, NewOwnerPropertyData $data, ?Partner $partner = null): Property
     {
-        $type = PropertyType::from($input['type']);
-        $setupMethod = OwnerSetupMethod::from($input['setup_method']);
+        $type = $data->type;
+        $setupMethod = $data->setupMethod;
         $verifyOwnerEmail = $setupMethod === OwnerSetupMethod::InitialPassword
-            && ($input['verify_owner_email'] ?? false);
+            && $data->verifyOwnerEmail;
 
-        [$property, $owner] = DB::transaction(function () use ($admin, $input, $partner, $setupMethod, $type, $verifyOwnerEmail): array {
+        [$property, $owner] = DB::transaction(function () use ($admin, $data, $partner, $setupMethod, $type, $verifyOwnerEmail): array {
             $property = (new Property)->forceFill([
                 'code' => ($this->issuePropertyCode)($partner->code_prefix ?? 'ES'),
                 'partner_id' => $partner?->id,
-                'name' => $input['property_name'],
+                'name' => $data->propertyName,
                 'type' => $type,
                 'status' => PropertyStatus::Onboarding,
                 'country_code' => 'MY',
@@ -55,10 +53,10 @@ class CreatePropertyForOwner
             ($this->generateDocumentPrefix)($property);
 
             $owner = $property->users()->create([
-                'name' => $input['owner_name'],
-                'email' => Str::lower(trim($input['owner_email'])),
+                'name' => $data->ownerName,
+                'email' => Str::lower(trim($data->ownerEmail)),
                 'password' => $setupMethod === OwnerSetupMethod::InitialPassword
-                    ? $input['password']
+                    ? $data->password
                     : Str::random(64),
             ]);
 

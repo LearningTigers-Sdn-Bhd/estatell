@@ -53,7 +53,7 @@ class PropertyController extends Controller
      */
     public function store(CreatePropertyForOwnerRequest $request, CreatePropertyForOwner $createPropertyForOwner): RedirectResponse
     {
-        $property = $createPropertyForOwner($request->user(), $request->validated());
+        $property = $createPropertyForOwner($request->user(), $request->toNewOwnerPropertyData());
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Property and owner created.')]);
 

@@ -1,6 +1,7 @@
 <?php
 
 use App\Actions\Onboarding\RegisterPropertyOwner;
+use App\Data\Onboarding\NewPropertyOwnerData;
 use App\Enums\Locale;
 use App\Enums\PropertyType;
 use App\Enums\WeekendNights;
@@ -35,10 +36,7 @@ function generalInput(array $overrides = []): array
 }
 
 test('new owners see setup and saving basics creates defaults', function () {
-    $owner = app(RegisterPropertyOwner::class)([
-        'name' => 'Aina', 'email' => 'aina@example.com', 'password' => 'password',
-        'property_name' => 'Seaview Guesthouse',
-    ]);
+    $owner = app(RegisterPropertyOwner::class)(new NewPropertyOwnerData(name: 'Aina', email: 'aina@example.com', password: 'password', propertyName: 'Seaview Guesthouse'));
     $owner->forceFill(['email_verified_at' => now()])->save();
     $property = $owner->property;
 

@@ -51,7 +51,7 @@ class PartnerPropertyController extends Controller
     public function store(StorePartnerPropertyRequest $request, CreatePropertyForOwner $createPropertyForOwner): RedirectResponse
     {
         $user = $request->user();
-        $property = $createPropertyForOwner($user, $request->validated(), $user->partner);
+        $property = $createPropertyForOwner($user, $request->toNewOwnerPropertyData(), $user->partner);
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Property and owner created.')]);
 

@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Admin;
 
 use App\Concerns\PasswordValidationRules;
+use App\Data\Onboarding\NewOwnerPropertyData;
 use App\Enums\OwnerSetupMethod;
 use App\Enums\PropertyType;
 use App\Models\User;
@@ -27,6 +28,24 @@ class CreatePropertyForOwnerRequest extends FormRequest
             'owner_email' => Str::lower(trim((string) $this->input('owner_email'))),
             'verify_owner_email' => $this->boolean('verify_owner_email'),
         ]);
+    }
+
+    /**
+     * Read from the validated input: `password` is excluded unless the setup method is InitialPassword.
+     */
+    public function toNewOwnerPropertyData(): NewOwnerPropertyData
+    {
+        $validated = $this->validated();
+
+        return new NewOwnerPropertyData(
+            propertyName: $this->string('property_name')->toString(),
+            type: PropertyType::from($this->string('type')->toString()),
+            ownerName: $this->string('owner_name')->toString(),
+            ownerEmail: $this->string('owner_email')->toString(),
+            setupMethod: OwnerSetupMethod::from($this->string('setup_method')->toString()),
+            password: isset($validated['password']) ? (string) $validated['password'] : null,
+            verifyOwnerEmail: (bool) ($validated['verify_owner_email'] ?? false),
+        );
     }
 
     /**

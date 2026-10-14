@@ -5,6 +5,7 @@ use App\Actions\Property\GenerateDocumentPrefix;
 use App\Actions\Property\IssuePropertyCode;
 use App\Actions\Property\SeedPropertyDefaults;
 use App\Actions\Staff\AssignOwnerRole;
+use App\Data\Onboarding\NewOwnerPropertyData;
 use App\Enums\DefaultRoleEnum;
 use App\Enums\OwnerSetupMethod;
 use App\Enums\PropertyStatus;
@@ -26,14 +27,7 @@ beforeEach(function () {
 });
 
 test('both setup methods create the property owner defaults and expected notification', function (OwnerSetupMethod $method) {
-    $input = [
-        'property_name' => 'Seaview Guesthouse',
-        'type' => PropertyType::Hotel->value,
-        'owner_name' => 'Aina Rahman',
-        'owner_email' => ' AINA@Example.com ',
-        'setup_method' => $method->value,
-        'password' => 'initial-password',
-    ];
+    $input = new NewOwnerPropertyData(propertyName: 'Seaview Guesthouse', type: PropertyType::Hotel, ownerName: 'Aina Rahman', ownerEmail: ' AINA@Example.com ', setupMethod: $method, password: 'initial-password');
 
     $property = app(CreatePropertyForOwner::class)($this->admin, $input);
     $owner = User::query()->where('email', 'aina@example.com')->sole();
@@ -82,13 +76,7 @@ test('a failure while seeding rolls back the property owner and activity', funct
     $propertiesBefore = Property::query()->count();
     $usersBefore = User::query()->count();
 
-    expect(fn () => $action($this->admin, [
-        'property_name' => 'Seaview Guesthouse',
-        'type' => PropertyType::Hotel->value,
-        'owner_name' => 'Aina Rahman',
-        'owner_email' => 'aina@example.com',
-        'setup_method' => OwnerSetupMethod::EmailLink->value,
-    ]))->toThrow(RuntimeException::class, 'Seeding failed.');
+    expect(fn () => $action($this->admin, new NewOwnerPropertyData(propertyName: 'Seaview Guesthouse', type: PropertyType::Hotel, ownerName: 'Aina Rahman', ownerEmail: 'aina@example.com', setupMethod: OwnerSetupMethod::EmailLink)))->toThrow(RuntimeException::class, 'Seeding failed.');
 
     expect(Property::query()->count())->toBe($propertiesBefore)
         ->and(User::query()->count())->toBe($usersBefore)
@@ -99,15 +87,7 @@ test('a failure while seeding rolls back the property owner and activity', funct
 test('an initial password can create an already verified owner without sending verification mail', function () {
     Event::fake([Verified::class]);
 
-    $property = app(CreatePropertyForOwner::class)($this->admin, [
-        'property_name' => 'Seaview Guesthouse',
-        'type' => PropertyType::Hotel->value,
-        'owner_name' => 'Aina Rahman',
-        'owner_email' => 'aina@example.com',
-        'setup_method' => OwnerSetupMethod::InitialPassword->value,
-        'password' => 'initial-password',
-        'verify_owner_email' => true,
-    ]);
+    $property = app(CreatePropertyForOwner::class)($this->admin, new NewOwnerPropertyData(propertyName: 'Seaview Guesthouse', type: PropertyType::Hotel, ownerName: 'Aina Rahman', ownerEmail: 'aina@example.com', setupMethod: OwnerSetupMethod::InitialPassword, password: 'initial-password', verifyOwnerEmail: true));
 
     $owner = User::query()->where('email', 'aina@example.com')->sole();
 

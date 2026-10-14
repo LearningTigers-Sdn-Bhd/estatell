@@ -2,6 +2,7 @@
 
 use App\Actions\Onboarding\RegisterPropertyOwner;
 use App\Actions\Property\GenerateDocumentPrefix;
+use App\Data\Onboarding\NewPropertyOwnerData;
 use App\Models\Property;
 use App\Models\PropertyDocumentPrefixHistory;
 use Illuminate\Database\QueryException;
@@ -69,12 +70,7 @@ test('the database keeps prefixes unique and well formed', function () {
 });
 
 test('a property that signs up gets its prefix', function () {
-    $owner = app(RegisterPropertyOwner::class)([
-        'name' => 'Aisha',
-        'email' => 'aisha@example.test',
-        'password' => 'password-123',
-        'property_name' => 'Pulau Indah Resort',
-    ]);
+    $owner = app(RegisterPropertyOwner::class)(new NewPropertyOwnerData(name: 'Aisha', email: 'aisha@example.test', password: 'password-123', propertyName: 'Pulau Indah Resort'));
 
     expect($owner->property->document_prefix)->toBe('PIR');
 });

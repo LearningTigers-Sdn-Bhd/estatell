@@ -31,12 +31,6 @@ parameters:
 			path: app/Actions/Folio/TransferLines.php
 
 		-
-			message: '#^Parameter \#1 \$input of callable App\\Actions\\Onboarding\\RegisterPropertyOwner expects array\{name\: string, email\: string, password\: string, property_name\: string\}, array given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Actions/Fortify/CreateNewUser.php
-
-		-
 			message: '#^Parameter \#4 \$tagNames of callable App\\Actions\\Guests\\UpdateGuest expects list\<string\>, array\<mixed\> given\.$#'
 			identifier: argument.type
 			count: 1
@@ -95,12 +89,6 @@ parameters:
 			identifier: identical.alwaysFalse
 			count: 1
 			path: app/Actions/NightAudit/PostScheduledAddOns.php
-
-		-
-			message: '#^Offset ''password'' might not exist on array\{property_name\: string, type\: string, owner_name\: string, owner_email\: string, setup_method\: string, password\?\: string, verify_owner_email\?\: bool\}\.$#'
-			identifier: offsetAccess.notFound
-			count: 1
-			path: app/Actions/Onboarding/CreatePropertyForOwner.php
 
 		-
 			message: '#^Parameter \$note of class App\\Notifications\\SupportAccessUsed constructor expects string\|null, int\|string\|null given\.$#'
@@ -317,18 +305,6 @@ parameters:
 			identifier: argument.type
 			count: 1
 			path: app/Enums/ReportKey.php
-
-		-
-			message: '#^Parameter \#2 \$input of callable App\\Actions\\Onboarding\\CreatePropertyForOwner expects array\{property_name\: string, type\: string, owner_name\: string, owner_email\: string, setup_method\: string, password\?\: string, verify_owner_email\?\: bool\}, array\<string, mixed\> given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Http/Controllers/Admin/PropertyController.php
-
-		-
-			message: '#^Parameter \#2 \$input of callable App\\Actions\\Onboarding\\CreatePropertyForOwner expects array\{property_name\: string, type\: string, owner_name\: string, owner_email\: string, setup_method\: string, password\?\: string, verify_owner_email\?\: bool\}, array\<string, mixed\> given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Http/Controllers/Partner/PartnerPropertyController.php
 
 		-
 			message: '#^Parameter \#4 \$tagNames of callable App\\Actions\\Guests\\UpdateGuest expects list\<string\>, array\<mixed\> given\.$#'

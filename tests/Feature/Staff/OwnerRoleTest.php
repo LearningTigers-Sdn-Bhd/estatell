@@ -2,6 +2,7 @@
 
 use App\Actions\Onboarding\RegisterPropertyOwner;
 use App\Actions\Staff\SeedDefaultRoles;
+use App\Data\Onboarding\NewPropertyOwnerData;
 use App\Enums\DefaultRoleEnum;
 use App\Enums\PermissionEnum;
 use App\Models\Property;
@@ -19,10 +20,7 @@ function roleKeysFor(User $user): array
 }
 
 test('registering seeds the default roles and makes the owner the Owner role', function () {
-    $owner = app(RegisterPropertyOwner::class)([
-        'name' => 'Aina', 'email' => 'aina@example.com', 'password' => 'password',
-        'property_name' => 'Seaview Guesthouse',
-    ]);
+    $owner = app(RegisterPropertyOwner::class)(new NewPropertyOwnerData(name: 'Aina', email: 'aina@example.com', password: 'password', propertyName: 'Seaview Guesthouse'));
 
     expect(getPermissionsTeamId())->toBeNull()
         ->and($owner->property->roles()->count())->toBe(5)

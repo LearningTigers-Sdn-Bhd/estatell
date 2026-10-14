@@ -5,6 +5,7 @@ namespace App\Actions\Fortify;
 use App\Actions\Onboarding\RegisterPropertyOwner;
 use App\Concerns\PasswordValidationRules;
 use App\Concerns\ProfileValidationRules;
+use App\Data\Onboarding\NewPropertyOwnerData;
 use App\Enums\PartnerStatus;
 use App\Http\Controllers\Partner\JoinController;
 use App\Models\Partner;
@@ -34,7 +35,12 @@ class CreateNewUser implements CreatesNewUsers
         ])->validate();
 
         $partner = $this->joiningPartner();
-        $user = ($this->registerPropertyOwner)($validated, $partner);
+        $user = ($this->registerPropertyOwner)(new NewPropertyOwnerData(
+            name: (string) $validated['name'],
+            email: (string) $validated['email'],
+            password: (string) $validated['password'],
+            propertyName: (string) $validated['property_name'],
+        ), $partner);
 
         $this->request->session()->forget(JoinController::SESSION_KEY);
 

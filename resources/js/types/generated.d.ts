@@ -946,6 +946,21 @@ key: string,
 label: string,
 done: boolean,
 };
+export type NewOwnerPropertyData = {
+propertyName: string,
+type: App.Enums.PropertyType,
+ownerName: string,
+ownerEmail: string,
+setupMethod: App.Enums.OwnerSetupMethod,
+password: string | null,
+verifyOwnerEmail: boolean,
+};
+export type NewPropertyOwnerData = {
+name: string,
+email: string,
+password: string,
+propertyName: string,
+};
 export type OwnerSetupData = {
 name: string,
 email: string,
