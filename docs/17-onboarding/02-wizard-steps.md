@@ -22,7 +22,7 @@ The first release has only the Basics page. It uses the current staff layout. Ba
 | --- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ------------------------- |
 | 1   | Property   | Basics: property type cards, name, country (prefilled Malaysia), address. Another country shows currency and time zone. Editable until another section starts, then **Change country** (room types and rooms kept). See [Changing country](../02-property/03-seed-property-defaults.md#changing-country). | Yes      | –                         |
 | 2   | Rooms      | Room types: an editable table, sold by room only. See [Room types table](#room-types-table).                                                                                                                                                                                                              | Yes      | Basics                    |
-| 3   |            | Rooms: `GenerateRooms` number patterns, no beds                                                                                                                                                                                                                                                           | Yes      | Room types                |
+| 3   |            | Rooms: number ranges per room type, optional room groups. See [Rooms table](#rooms-table).                                                                                                                                                                                                                | Yes      | Room types                |
 | 4   | Finance    | Taxes: Malaysia confirms the seeded presets and enters registration numbers. Other countries add their own taxes or tick **We don't charge tax**.                                                                                                                                                         | Yes      | Basics                    |
 | 5   |            | Room revenue: taxes on the room charge                                                                                                                                                                                                                                                                    | Yes      | Taxes                     |
 | 6   |            | Payment methods: toggle the seeded presets                                                                                                                                                                                                                                                                | Yes      | Basics                    |
@@ -78,6 +78,60 @@ The first release has only the Basics page. It uses the current staff layout. Ba
 - At phone width each row stacks into a card.
 - Dorm beds (`SellUnit::Bed`) are not offered. A hostel sees "Selling dorm beds? Add them in Settings → Room types after setup." A bed-sold type made in settings shows read-only with "Sold by bed. Edit in settings." and counts toward Done. Basic rate leaves it out ("Price beds in Rates").
 - Check: Done with at least one room type.
+
+## Rooms table
+
+```
+ Room groups   [ No groups | ● Use groups ]
+
+ Groups (only with Use groups)
+ ┌──────────────────────────────────────────────┬────┐
+ │ Name                                         │    │
+ ├──────────────────────────────────────────────┼────┤
+ │ [ Ground floor                             ] │ 🗑 │
+ │ [ Garden block                             ] │ 🗑 │
+ ├──────────────────────────────────────────────┴────┤
+ │ [+ Add group]                                     │
+ └───────────────────────────────────────────────────┘
+
+ Rooms
+ ┌──────────────────┬────────────────┬────────┬───────┬───────┬───────┬────┐
+ │ Room type        │ Group          │ Prefix │ From  │ To    │ Rooms │    │
+ ├──────────────────┼────────────────┼────────┼───────┼───────┼───────┼────┤
+ │ [Standard Dbl ▾] │ [Ground floor▾]│ [    ] │ [101] │ [106] │   6   │ 🗑 │
+ │ [Deluxe King  ▾] │ [Garden block▾]│ [ G  ] │ [  1] │ [  4] │   4   │ 🗑 │
+ ├──────────────────┴────────────────┴────────┴───────┴───────┴───────┴────┤
+ │ [+ Add range]                                           Total: 10       │
+ └─────────────────────────────────────────────────────────────────────────┘
+ Preview   Ground floor 101 … 106 · Garden block G1 … G4
+```
+
+**Ranges**
+
+- One range row per room-sold room type to start. Only the room type is prefilled. Prefix, From and To are empty, with a grey placeholder (101 to 110) on the first row. Numbers are never guessed.
+- Columns: room type, prefix, from, to, rooms count. The Group column appears with Use groups.
+- No floor mode and no suffix in onboarding: "floors 2 to 3, rooms 01 to 04" is two ranges. Floor mode and suffix stay in settings.
+- The rooms count and preview are derived in the browser for display. The server validates and creates.
+- Limits follow `GenerateRoomsRequest`. A number already in use, or repeated across rows, shows an error on the row and its preview chip, and nothing saves.
+- A fully empty row is ignored on save, not an error.
+- **Add range** in the `TableFooter`. A row can be removed once rooms exist. Before that the last row stays.
+- Returning: saved rooms show as chips (under group headings when grouped) with × to delete, with a confirm popover. Blocked when a practice booking uses the room ("Reset practice first"). One empty range row is added for more rooms.
+- Bed-sold room types are not in the room type menu.
+
+**Room groups**
+
+- A `toggle-group`: **No groups** (default) or **Use groups**. It starts on Use groups when the property already has groups.
+- Use groups shows a Groups table (name, remove, **Add group** in the footer) above the ranges, and a required Group menu on every range row. The first group is preselected. Half-grouped rooms would leave an ungrouped heap on the housekeeping board and Stay View.
+- The Group menu lists the names typed in the Groups table, before anything is saved. Rows refer to new groups by row key. The server maps keys to ids.
+- Group names follow `RoomGroupRequest` (unique, case-insensitive). Table order sets the group position, which `AutoAssignRooms` uses first.
+- The last group row cannot be removed while Use groups is on. Removing a group that a range uses clears that range's menu and shows an error until a group is picked.
+- Back to No groups: unsaved groups hide and are not sent. With saved groups the toggle is disabled, with the tooltip "Remove groups in Settings → Rooms".
+
+**Save and check**
+
+- One submit, one transaction: create the groups, then `GenerateRooms` (range mode) per row with its `room_group_id`.
+- At phone width each row stacks into a card, with the Group menu on its own line.
+- Check: Done when every room-sold room type has at least one room.
 
 ## Section states
 
