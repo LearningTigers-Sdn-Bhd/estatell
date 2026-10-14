@@ -48,7 +48,7 @@ The owner can go back to setup and edit any section while practice data exists.
 
 ## Routes
 
-`live` lets a property in Onboarding through to the practice routes when Test drive is unlocked and a practice business date is open: reservations, front desk and finance folios. Finance reports, payments outside a folio, night audit, reports, housekeeping and channels stay blocked.
+`live` lets a property in Onboarding or PendingApproval through to the practice routes when Test drive is unlocked and a practice business date is open: reservations, front desk and finance folios. Finance reports, payments outside a folio, night audit, reports, housekeeping and channels stay blocked.
 
 ## Clear practice data
 
@@ -63,3 +63,9 @@ The owner can go back to setup and edit any section while practice data exists.
 ## Lessons from wastays
 
 A training mode with `Onboarding::ResetTrainingDataJob` broke whenever a new module wrote data the job did not know. The guard test above replaces that risk.
+
+## While waiting for approval
+
+- Test drive stays open while the property is PendingApproval. The banner reads "Practice mode · Waiting for approval. Practice data is cleared when you go live." with **Back to review**.
+- Setup stays read-only. Fixing something found in practice needs **Withdraw to make changes**.
+- `ApproveGoLive` clears practice data in its transaction, even mid-practice. The owner's next request lands on **You're live!**. The approve dialog shows the practice counts.

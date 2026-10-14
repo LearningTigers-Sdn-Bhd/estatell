@@ -32,11 +32,11 @@ Page: `pages/admin/settings/edit.tsx`, one form with one Save button, in the adm
 
 ## Settings
 
-| Column                     | Effect                                                                                                                      |
-| -------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| `require_go_live_approval` | When true, `GoLive` moves a property to `PendingApproval` instead of `Live`. See [Go live](../17-onboarding/03-go-live.md). |
-| `default_dorm_strategy`    | Default Channex strategy for Bed room types. See [Dorm strategies](../21-channels/03-dorm-strategies.md).                   |
-| `media_disk`               | Where new uploads are stored. See [Media storage](#media-storage).                                                          |
+| Column                     | Effect                                                                                                                                                                                                                                                                                                                         |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `require_go_live_approval` | When true, owners **Send for approval** and an admin approves or sends it back. The checkbox help: "Owners send their setup for review. You approve it or send it back from Properties, under Waiting for approval." Switching it off leaves pending requests pending. See [Go live](../17-onboarding/03-go-live.md#approval). |
+| `default_dorm_strategy`    | Default Channex strategy for Bed room types. See [Dorm strategies](../21-channels/03-dorm-strategies.md).                                                                                                                                                                                                                      |
+| `media_disk`               | Where new uploads are stored. See [Media storage](#media-storage).                                                                                                                                                                                                                                                             |
 
 ## Media storage
 

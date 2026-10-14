@@ -6,17 +6,18 @@ One place for platform admins to find any property and see its details. Admin ac
 
 ## Pages
 
-| Page         | URL                                     | Name                        | Archetype |
-| ------------ | --------------------------------------- | --------------------------- | --------- |
-| List         | `GET /admin/properties`                 | `admin.properties.index`    | Index     |
-| Create       | `POST /admin/properties`                | `admin.properties.store`    | Action    |
-| Show         | `GET /admin/properties/{code}`          | `admin.properties.show`     | Detail    |
-| Staff tab    | `GET /admin/properties/{code}/staff`    | `admin.properties.staff`    | Detail    |
-| Features tab | `GET /admin/properties/{code}/features` | `admin.properties.features` | Detail    |
+| Page           | URL                                                                                       | Name                         | Archetype |
+| -------------- | ----------------------------------------------------------------------------------------- | ---------------------------- | --------- |
+| List           | `GET /admin/properties`                                                                   | `admin.properties.index`     | Index     |
+| Create         | `POST /admin/properties`                                                                  | `admin.properties.store`     | Action    |
+| Show           | `GET /admin/properties/{code}`                                                            | `admin.properties.show`      | Detail    |
+| Staff tab      | `GET /admin/properties/{code}/staff`                                                      | `admin.properties.staff`     | Detail    |
+| Features tab   | `GET /admin/properties/{code}/features`                                                   | `admin.properties.features`  | Detail    |
+| Go-live review | `GET /admin/properties/{code}/go-live`, `POST …/go-live/approve`, `POST …/go-live/reject` | `admin.properties.go-live.*` | Detail    |
 
 - Read routes use `auth` and `can:admin`. Create, send setup email, suspend and reactivate routes also use `support.2fa`.
 - `{property}` binds by code (see [Routing](../routing.md#property-code)).
-- The admin sidebar has a **Properties** item.
+- The admin sidebar has a **Properties** item, with a count badge of go-live requests waiting for approval.
 
 ## List
 
@@ -28,6 +29,8 @@ One place for platform admins to find any property and see its details. Admin ac
 - The owner is the first active user with the property's Owner role (the first deactivated one when none is active). `PropertyOwners` (a Staff service) adds `owner_name` and `owner_email` as subqueries, so the list runs a fixed number of queries.
 - `PropertyDirectory` service builds the query. `AdminPropertyRowData` is one row.
 - **Create property** opens a Sheet. The admin enters the property name and type, owner name and email, then chooses a seven-day emailed setup link or an initial password. With an initial password, the admin can also mark the email as verified after confirming that the owner controls the address. The action creates an Onboarding property in Malaysia, seeds its defaults and assigns the Owner role. Success opens the new property detail page.
+
+- A **Waiting for approval** status tab lists pending go-live requests (property, partner, sent, warnings, **Review**). See [Go live](../17-onboarding/03-go-live.md#admin-side).
 
 ## Show
 

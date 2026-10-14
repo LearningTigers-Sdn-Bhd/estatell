@@ -32,7 +32,7 @@ The first release has only the Basics page. It uses the current staff layout. Ba
 | 10  | Check-in   | Check-in essentials: times, registration card, security deposit and house terms. See [Check-in essentials form](#check-in-essentials-form).                     | Yes      | Basics             |
 | 11  | Team       | Team: staff with temp passwords and a role. See [Team table](#team-table).                                                                                      | No       | Basics             |
 | 12  | Test drive | Practice mode. See [Test drive](06-test-drive.md).                                                                                                              | No       | All required Done  |
-| 13  | Review     | Readiness list and go live. See [Go live](03-go-live.md).                                                                                                       | –        | All required Done  |
+| 13  | Review     | Review: the readiness list, warnings and go live (or send for approval). See [Review page](#review-page).                                                       | –        | All required Done  |
 
 ```
                               1 Basics*
@@ -545,6 +545,36 @@ Not a table: three groups on one page.
 - At phone width each row stacks into a card.
 - Check: optional, never blocks. Done with at least one person besides the owner, or Skipped.
 
+## Review page
+
+```
+ Review
+ Almost there. Finish 1 required section to go live.
+ ┌──────────────────────────────────────────────────────────────────────────────┐
+ │ Property   ✓ Basics           Seaview Lodge · Malaysia · MYR       [Edit]    │
+ │ Finance    ✓ Taxes            Applies to rooms: SST, Tourism tax   [Edit]    │
+ │                               ⚠ Service charge is not applied to any charge  │
+ │                                                     [Fix in Charge items →]  │
+ │            – Companies        Skipped                              [Add]     │
+ │ Prices     ✗ Basic rate       Deluxe King has no price            [Finish →] │
+ │ Test drive ○ Test drive       Not started (optional)               [Start]   │
+ └──────────────────────────────────────────────────────────────────────────────┘
+ ℹ 2 staff and 1 company user get their sign-in details when you go live.
+ ⚠ Practice data will be cleared: 2 bookings, 2 folios, 1 payment.
+ Your first business day opens on the day you go live.
+                                                   [Go live]  or  [Send for approval]
+```
+
+- One row per section, grouped by phase, from `OnboardingProgress`: state, a one-line summary built on the server, and an action (**Edit**, **Finish →**, **Add**, **Start**, or **Fix in {section} →** for a warning).
+- States: ✓ Done, ✗ required and not done, ○ optional and not started, – skipped, ⚠ Needs attention, ⚑ flagged by support.
+- `GoLiveReadiness::checks()` returns one `GoLiveCheckData` per required section, and `isReady()` needs every one Done. Warnings are a separate list and never block: a tax applied to no charge, no tax on rooms, the deposit switch off while the terms mention a deposit, a more-rates follower missing a room type.
+- Info lines: the sign-in line and the practice data counts.
+- No opening date field. The day you go live is the first business day.
+- The button is disabled until ready (tooltip "Finish {sections} first"), hidden during view as, and reads **Send for approval** when approval is on. It opens an AlertDialog: "Go live today?" with the first business day, practice data counts, "Country, currency and time zone can't be changed after this." and the sign-in count.
+- After going live: the **You're live!** screen with **Share sign-in details** and **Open dashboard**. After sending: the waiting notice. Pending, sent back and approved states: see [Go live](03-go-live.md#approval).
+- Review can be opened before everything is Done and works as a to-do list.
+- At phone width rows stack: state and name, then summary and action.
+
 ## Section states
 
 | State           | Meaning                                                                           |
@@ -609,11 +639,11 @@ When a field is added to a settings form, decide in the same change whether the 
 
 ## The fence
 
-| Status          | `/p/{code}/onboarding/*`                                | Other `/p/{code}/*` routes                                                                                          |
-| --------------- | ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| Onboarding      | Owner and view as: open. Other staff: the waiting page. | Redirect to the current section. Practice routes are open in practice mode ([Test drive](06-test-drive.md#routes)). |
-| PendingApproval | Review and Go live only (waiting notice)                | Redirect to Go live                                                                                                 |
-| Live            | Redirect to the dashboard                               | Open                                                                                                                |
+| Status          | `/p/{code}/onboarding/*`                                            | Other `/p/{code}/*` routes                                                                                          |
+| --------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| Onboarding      | Owner and view as: open. Other staff: the waiting page.             | Redirect to the current section. Practice routes are open in practice mode ([Test drive](06-test-drive.md#routes)). |
+| PendingApproval | Review (waiting notice), Test drive, sections as read-only previews | Practice routes are open in practice mode. Everything else redirects to Review.                                     |
+| Live            | Redirect to the dashboard                                           | Open                                                                                                                |
 
 - The waiting page says "Your property is still being set up. Ask {Owner name}." Staff can be added early (Team) so their accounts are ready on day one.
 - After go-live, settings is the only place to edit setup data.
