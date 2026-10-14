@@ -19,6 +19,7 @@ use App\Services\NightAudit\CurrentBusinessDate;
 use App\Services\Property\PropertyToday;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
@@ -86,11 +87,11 @@ class ReservationDirectory
             return ['mode' => 'all', 'from' => null, 'to' => null];
         }
 
-        if (preg_match('/^(\d{4}-\d{2}-\d{2})?_(\d{4}-\d{2}-\d{2})?$/', $value, $match) !== 1 || ($match[1] === '' && ($match[2] ?? '') === '')) {
+        if (preg_match('/^(\d{4}-\d{2}-\d{2})?_(\d{4}-\d{2}-\d{2})?$/', $value, $match) !== 1 || (($match[1] ?? null) === '' && ($match[2] ?? '') === '')) {
             return $default;
         }
 
-        return ['mode' => 'custom', 'from' => $match[1] ?: null, 'to' => ($match[2] ?? '') ?: null];
+        return ['mode' => 'custom', 'from' => ($match[1] ?? '') ?: null, 'to' => ($match[2] ?? '') ?: null];
     }
 
     /**
@@ -246,7 +247,9 @@ class ReservationDirectory
     }
 
     /**
-     * @param  Builder<Reservation>  $query
+     * @template TModel of Model
+     *
+     * @param  Builder<TModel>  $query
      */
     private function applyStatus(Builder $query, mixed $value): void
     {
@@ -258,7 +261,9 @@ class ReservationDirectory
     }
 
     /**
-     * @param  Builder<Reservation>  $query
+     * @template TModel of Model
+     *
+     * @param  Builder<TModel>  $query
      */
     private function applySource(Builder $query, mixed $value): void
     {
@@ -273,7 +278,9 @@ class ReservationDirectory
      * Matches the reference, the external reference, and the name, email or phone of the booker or any unit guest.
      * A local phone number also matches the stored E.164 number.
      *
-     * @param  Builder<Reservation>  $query
+     * @template TModel of Model
+     *
+     * @param  Builder<TModel>  $query
      */
     private function applySearch(Builder $query, Property $property, mixed $value): void
     {

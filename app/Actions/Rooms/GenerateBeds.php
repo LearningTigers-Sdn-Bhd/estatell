@@ -38,7 +38,7 @@ class GenerateBeds
             $created = 0;
 
             foreach ($targets as $room) {
-                $roomPrefix = $prefix ?? $this->labels->letter($letterIndex[$room->id]);
+                $roomPrefix = $prefix ?? $this->labels->letter((int) $letterIndex[$room->id]);
                 $start = $this->labels->nextNumber($roomPrefix, $room->beds()->active()->pluck('label'));
                 $position = (int) $room->beds()->max('position');
 

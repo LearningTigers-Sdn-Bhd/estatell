@@ -2,6 +2,9 @@
 
 namespace App\Data\Rates;
 
+use App\Models\RoomType;
+use App\Services\Rates\RateQuote;
+use Brick\Money\Money;
 use Spatie\LaravelData\Data;
 
 /** The price preview of the Discounts tab: each room type by stay length, and one sample stay night by night. */
@@ -21,7 +24,7 @@ class StayDiscountPreviewData extends Data
 
     /**
      * @param  list<int>  $stayLengths
-     * @param  list<array<string, mixed>>  $rows  From `StayDiscountPreview::preview()`
+     * @param  list<array{roomType: RoomType, adults: int, children: int, unit: string, refusal: ?RateQuote, stays: array<int, RateQuote>, nightAmounts: array<int, list<Money>>, byNight: ?array{quote: RateQuote, unitAmounts: list<Money>}}>  $rows  From `StayDiscountPreview::preview()`
      */
     public static function fromPreview(string $arrival, int $nights, array $stayLengths, int $ignoredRules, array $rows): self
     {

@@ -275,9 +275,14 @@ class Impersonation
 
         $route = $this->matchRoute($to);
 
-        return $route !== null
-            && str_starts_with($route->uri(), 'p/{property')
-            && Str::upper((string) $route->parameter('property')) === $property->code
+        if ($route === null || ! str_starts_with($route->uri(), 'p/{property')) {
+            return false;
+        }
+
+        $propertyCode = $route->parameter('property');
+
+        return is_string($propertyCode)
+            && Str::upper($propertyCode) === $property->code
             && ($route->getName() === null || ! $this->isBlockedForProperty($property, $route->getName()));
     }
 

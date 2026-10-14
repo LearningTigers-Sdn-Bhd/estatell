@@ -228,6 +228,7 @@ class CheckOutSettlement
     /**
      * The completed security deposit payments of the unit's folios that still have money to give back, oldest first.
      *
+     * @param  Collection<int, Folio>  $folios
      * @return Collection<int, Payment>
      */
     public function heldDeposits(Collection $folios): Collection

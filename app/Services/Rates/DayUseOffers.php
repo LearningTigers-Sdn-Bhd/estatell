@@ -58,7 +58,7 @@ class DayUseOffers
         }
 
         if ($plan->day_use_from !== null && $plan->day_use_until !== null
-            && (self::minutes($startTime) < self::minutes($plan->day_use_from) || self::minutes(self::endsAt($startTime, $hours) ?? '23:59') > self::minutes($plan->day_use_until))) {
+            && (self::minutes($startTime) < self::minutes($plan->day_use_from) || self::minutes(self::endsAt($startTime, $hours)) > self::minutes($plan->day_use_until))) {
             return ReservationResult::REFUSAL_OUTSIDE_SOLD_BETWEEN;
         }
 

@@ -52,9 +52,9 @@ class RecordImpersonationEnd
 
         $owner->notify(new SupportAccessUsed(
             supportUserName: (string) $details['support_user_name'],
-            partnerName: $details['partner_name'],
+            partnerName: $details['partner_name'] === null ? null : (string) $details['partner_name'],
             reason: ImpersonationReason::from((string) $details['reason'])->label(),
-            note: $details['note'],
+            note: $details['note'] === null ? null : (string) $details['note'],
             startedAt: $startedAt,
             minutes: $minutes,
             moneyCorrections: $moneyCorrections,

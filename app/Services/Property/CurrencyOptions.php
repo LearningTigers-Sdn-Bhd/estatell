@@ -3,7 +3,7 @@
 namespace App\Services\Property;
 
 use Brick\Money\Currency;
-use Brick\Money\ISOCurrencyProvider;
+use Brick\Money\IsoCurrencyProvider;
 
 /**
  * The currencies a property can use: current ISO 4217 codes from brick/money, without the ones that need more than
@@ -17,9 +17,8 @@ class CurrencyOptions
     public static function all(): array
     {
         $currencies = array_filter(
-            ISOCurrencyProvider::getInstance()->getAvailableCurrencies(),
-            fn (Currency $currency): bool => $currency->getDefaultFractionDigits() >= 0
-                && $currency->getDefaultFractionDigits() <= 2
+            IsoCurrencyProvider::getInstance()->getAvailableCurrencies(),
+            fn (Currency $currency): bool => $currency->getDefaultFractionDigits() <= 2
                 && ! in_array($currency->getCurrencyCode(), self::FUND_AND_ACCOUNTING_CODES, true),
         );
 

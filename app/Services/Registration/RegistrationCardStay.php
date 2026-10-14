@@ -22,7 +22,7 @@ class RegistrationCardStay
     {
         $unit = $unitGuest->reservationUnit()->with(['reservation', 'roomType'])->firstOrFail();
         $nights = $unit->nights()->orderBy('date')->get();
-        $count = max($unit->arrival_date->diffInDays($unit->departure_date), 1);
+        $count = max((int) $unit->arrival_date->diffInDays($unit->departure_date), 1);
         $currency = $property->settings?->currency->getCurrencyCode() ?? 'MYR';
         $total = Money::of($nights->sum(fn (UnitNight $night): string => $night->amount) ?: '0', $currency);
 

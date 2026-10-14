@@ -107,7 +107,7 @@ class FolioVoucher
     {
         $timeZone = $property->settings->time_zone ?? config('app.timezone');
         $later = $scheduled->map(fn (FolioRowData $row): array => [
-            'date' => date('j M Y', strtotime($row->date)),
+            'date' => date('j M Y', (int) strtotime($row->date)),
             'description' => $row->description,
             'level' => $this->scheduledLevel($row, $scheduled),
             'amount' => (string) BigDecimal::of($row->amount)->toScale(2),
@@ -173,6 +173,6 @@ class FolioVoucher
         $arrival = $units->min('arrival_date');
         $departure = $units->max('departure_date');
 
-        return $arrival === null ? '' : date('j M Y', strtotime((string) $arrival)).' → '.date('j M Y', strtotime((string) $departure));
+        return $arrival === null ? '' : date('j M Y', (int) strtotime((string) $arrival)).' → '.date('j M Y', (int) strtotime((string) $departure));
     }
 }

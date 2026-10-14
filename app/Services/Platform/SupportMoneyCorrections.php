@@ -6,6 +6,7 @@ use App\Models\Property;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Spatie\Activitylog\Models\Activity;
+use UnhandledMatchError;
 
 /**
  * Reads the money corrections a support user made during one session, from the activity log: the entries the support
@@ -42,7 +43,7 @@ class SupportMoneyCorrections
             ->oldest('id')
             ->get()
             ->map(function (Activity $activity): array {
-                $referenceKey = self::EVENT_REFERENCES[$activity->event];
+                $referenceKey = self::EVENT_REFERENCES[$activity->event] ?? null;
                 $amount = $activity->properties->get('amount');
                 $reference = $referenceKey === null ? null : $activity->properties->get($referenceKey);
 
@@ -65,6 +66,7 @@ class SupportMoneyCorrections
             'ar_invoice.credit_note_issued' => __('Credit note issued'),
             'ar_allocation.reversed' => __('Allocation reversed'),
             'registration_card.voided' => __('Registration card voided'),
+            default => throw new UnhandledMatchError("Unhandled match case \"{$event}\""),
         };
     }
 }

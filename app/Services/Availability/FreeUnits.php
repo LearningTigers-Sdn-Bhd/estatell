@@ -125,7 +125,7 @@ class FreeUnits
             ->get(['unit_nights.room_id', 'unit_nights.bed_id', 'unit_nights.date']);
 
         foreach ($assigned as $night) {
-            $taken[$night->bed_id ?? $night->room_id][] = $night->date->toDateString();
+            $taken[(int) ($night->bed_id ?? $night->room_id)][] = $night->date->toDateString();
         }
 
         foreach ($this->takenByDayUse($roomType, $unitsByRoom, $stay, $exceptUnitId, $arrivalTime, $departureTime) as $roomId => $dates) {
@@ -177,7 +177,7 @@ class FreeUnits
             }
 
             if ($overlaps) {
-                $taken[$block->room_id][] = $night;
+                $taken[(int) $block->room_id][] = $night;
             }
         }
 

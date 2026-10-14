@@ -89,6 +89,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use RuntimeException;
+use UnhandledMatchError;
 
 /**
  * Seeds Kinabalu Hostel & Suites, a test bench with every single, group and dorm bed booking case. The first business
@@ -693,6 +694,7 @@ class BookingScenariosSeeder extends Seeder
             4 => $this->dayFour(),
             5 => $this->dayFive(),
             6 => $this->daySix(),
+            default => throw new UnhandledMatchError("Unhandled match case {$day}"),
         };
     }
 

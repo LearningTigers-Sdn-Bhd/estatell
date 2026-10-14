@@ -59,7 +59,7 @@ class ReadinessAdvice
             'change_price_required' => __('Correcting charged nights needs the Change price permission.'),
             'package_below_inclusions' => $remaining === null
                 ? __('The package price left cannot cover these nights\' inclusions. Change the price with Change price.')
-                : __('The package price left (:amount) cannot cover these nights\' inclusions. Change the price with Change price.', ['amount' => $remaining->getCurrency()->getCurrencyCode().' '.number_format((string) $remaining->getAmount(), 2)]),
+                : __('The package price left (:amount) cannot cover these nights\' inclusions. Change the price with Change price.', ['amount' => $remaining->getCurrency()->getCurrencyCode().' '.number_format($remaining->getAmount()->toFloat(), 2)]),
             'folio_not_open' => __('The folio was closed, so the night could not be charged.'),
             'folio_settled_to_city_ledger' => __('The folio was settled to the city ledger, so the charge could not be posted. Open a third-party folio for the company and route it there.'),
             'nationality_required' => __('The guest has no nationality, and a tax needs it.'),

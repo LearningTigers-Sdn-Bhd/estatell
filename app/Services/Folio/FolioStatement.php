@@ -260,7 +260,7 @@ class FolioStatement
         $purposes = ($can['recordPayment'] ?? false) && ($folio === null || $isOpen)
             ? $this->paymentPurposeChoices->for($reservation, $folio, $entry['unit'])
             : [];
-        $canSettle = ($can['settleCityLedger'] ?? false) && $isOpen && $folio?->payer_company_id !== null && BigDecimal::of($balance)->isPositive();
+        $canSettle = ($can['settleCityLedger'] ?? false) && $isOpen && $folio->payer_company_id !== null && BigDecimal::of($balance)->isPositive();
         $billedBy = $folio !== null && $user !== null ? $this->folioReopenRule->billingInvoice($folio) : null;
         $invoiceVoided = $folio?->invoice_number !== null && $billedBy === null && ArInvoice::query()->where('folio_id', $folio->id)->where('status', ArInvoiceStatus::Void)->exists();
         $canVoidAndReopen = $billedBy !== null && $user->can(PermissionEnum::CityLedgerInvoice->value) && $user->can(PermissionEnum::FolioReopen->value);

@@ -468,7 +468,7 @@ class UnitActionPreview
             ];
         }
 
-        return new CancelAllPreviewData($rows, $policy->free_until_days, (string) BigDecimal::of($paid ?: 0)->toScale(2), $request, null);
+        return new CancelAllPreviewData($rows, $policy->free_until_days, (string) BigDecimal::of((string) ($paid ?: 0))->toScale(2), $request, null);
     }
 
     /**

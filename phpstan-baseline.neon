@@ -13,18 +13,6 @@ parameters:
 			path: app/Actions/Catalogues/UpdateDiscount.php
 
 		-
-			message: '#^Parameter \$note of class App\\Notifications\\SupportAccessUsed constructor expects string\|null, int\|string\|null given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Actions/Platform/RecordImpersonationEnd.php
-
-		-
-			message: '#^Parameter \$partnerName of class App\\Notifications\\SupportAccessUsed constructor expects string\|null, int\|string\|null given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Actions/Platform/RecordImpersonationEnd.php
-
-		-
 			message: '#^Call to function is_int\(\) with int will always evaluate to true\.$#'
 			identifier: function.alreadyNarrowedType
 			count: 1
@@ -35,18 +23,6 @@ parameters:
 			identifier: function.alreadyNarrowedType
 			count: 1
 			path: app/Actions/Reservations/AddUnit.php
-
-		-
-			message: '#^Parameter \#1 \$roomIndex of method App\\Services\\Rooms\\BedLabelGenerator\:\:letter\(\) expects int, int\|string\|null given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Actions/Rooms/GenerateBeds.php
-
-		-
-			message: '#^Parameter \#1 \$callback of function array_map expects \(callable\(array\<string, mixed\>\)\: mixed\)\|null, Closure\(array\{roomType\: App\\Models\\RoomType, adults\: int, children\: int, unit\: string, refusal\: App\\Services\\Rates\\RateQuote\|null, stays\: array\<int, App\\Services\\Rates\\RateQuote\>, nightAmounts\: array\<int, list\<Brick\\Money\\Money\>\>, byNight\: array\{quote\: App\\Services\\Rates\\RateQuote, unitAmounts\: list\<Brick\\Money\\Money\>\}\|null\}\)\: App\\Data\\Rates\\StayDiscountPreviewRowData given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Data/Rates/StayDiscountPreviewData.php
 
 		-
 			message: '#^Parameter \#2 \$array of function implode expects array\<string\>, array\<int, array\|string\> given\.$#'
@@ -103,18 +79,6 @@ parameters:
 			path: app/Providers/AppServiceProvider.php
 
 		-
-			message: '#^Method App\\Services\\Availability\\FreeUnits\:\:takenByDayUse\(\) should return array\<int, list\<string\>\> but returns array\<''''\|int, non\-empty\-list\<string\>\>\.$#'
-			identifier: return.type
-			count: 1
-			path: app/Services/Availability/FreeUnits.php
-
-		-
-			message: '#^Method App\\Services\\Availability\\FreeUnits\:\:takenNights\(\) should return array\<int, list\<string\>\> but returns array\<''''\|int, list\<string\>\>\.$#'
-			identifier: return.type
-			count: 1
-			path: app/Services/Availability/FreeUnits.php
-
-		-
 			message: '#^Method App\\Services\\CityLedger\\CompanyBillTo\:\:lines\(\) should return list\<string\> but returns list\{0\?\: array\|string, 1\?\: array\|string, 2\?\: array\|string, 3\?\: array\|string, 4\?\: array\|string, 5\?\: array\|string, 6\?\: array\|string\}\.$#'
 			identifier: return.type
 			count: 1
@@ -133,28 +97,10 @@ parameters:
 			path: app/Services/Folio/FolioReopenRule.php
 
 		-
-			message: '#^Using nullsafe property access on non\-nullable type App\\Models\\Folio\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: app/Services/Folio/FolioStatement.php
-
-		-
-			message: '#^Parameter \#2 \$timestamp of function date expects int\|null, int\|false given\.$#'
-			identifier: argument.type
-			count: 3
-			path: app/Services/Folio/FolioVoucher.php
-
-		-
 			message: '#^Method App\\Services\\Folio\\MoveChargesPreview\:\:charges\(\) should return Illuminate\\Support\\Collection\<int, array\{lineId\: int, folioId\: int, unitId\: int\|null, isRoom\: bool, total\: string, data\: App\\Data\\Folio\\MoveChargeData\}\> but returns Illuminate\\Support\\Collection\<int, array\{lineId\: int, folioId\: int, unitId\: int\|null, isRoom\: bool, total\: non\-empty\-string, data\: App\\Data\\Folio\\MoveChargeData\}\>\.$#'
 			identifier: return.type
 			count: 1
 			path: app/Services/Folio/MoveChargesPreview.php
-
-		-
-			message: '#^Method App\\Services\\FrontDesk\\CheckOutSettlement\:\:heldDeposits\(\) has parameter \$folios with generic class Illuminate\\Support\\Collection but does not specify its types\: TKey, TValue$#'
-			identifier: missingType.generics
-			count: 1
-			path: app/Services/FrontDesk/CheckOutSettlement.php
 
 		-
 			message: '#^Method App\\Services\\Guests\\CountryOptions\:\:name\(\) should return string\|null but returns string\|false\.$#'
@@ -175,64 +121,10 @@ parameters:
 			path: app/Services/Guests/GuestDirectory.php
 
 		-
-			message: '#^Parameter \#1 \$num of function number_format expects float, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Services/NightAudit/ReadinessAdvice.php
-
-		-
-			message: '#^Cannot cast object\|string\|null to string\.$#'
-			identifier: cast.string
-			count: 1
-			path: app/Services/Platform/Impersonation.php
-
-		-
 			message: '#^Method App\\Services\\Platform\\Impersonation\:\:session\(\) should return array\{support_user_id\: int, user_id\: int, property_id\: int, reason\: string, note\: string\|null, started_at\: string, return_url\: string\}\|null but returns non\-empty\-array\|null\.$#'
 			identifier: return.type
 			count: 1
 			path: app/Services/Platform/Impersonation.php
-
-		-
-			message: '#^Parameter \#1 \$query of method App\\Services\\Platform\\PropertyDirectory\:\:partner\(\) expects Illuminate\\Database\\Eloquent\\Builder\<App\\Models\\Property\>, Illuminate\\Database\\Eloquent\\Builder\<Illuminate\\Database\\Eloquent\\Model\> given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Services/Platform/PropertyDirectory.php
-
-		-
-			message: '#^Parameter \#1 \$query of method App\\Services\\Platform\\PropertyDirectory\:\:search\(\) expects Illuminate\\Database\\Eloquent\\Builder\<App\\Models\\Property\>, Illuminate\\Database\\Eloquent\\Builder\<Illuminate\\Database\\Eloquent\\Model\> given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Services/Platform/PropertyDirectory.php
-
-		-
-			message: '#^Match expression does not handle remaining value\: string$#'
-			identifier: match.unhandled
-			count: 1
-			path: app/Services/Platform/SupportMoneyCorrections.php
-
-		-
-			message: '#^Offset string\|null might not exist on array\{''payment\.refunded''\: null, ''ar_payment\.voided''\: ''receipt_number'', ''ar_invoice\.voided''\: ''number'', ''ar_invoice\.credit_note_issued''\: ''number'', ''ar_allocation\.reversed''\: null, ''registration_card\.voided''\: null\}\.$#'
-			identifier: offsetAccess.notFound
-			count: 1
-			path: app/Services/Platform/SupportMoneyCorrections.php
-
-		-
-			message: '#^Class Brick\\Money\\IsoCurrencyProvider referenced with incorrect case\: Brick\\Money\\ISOCurrencyProvider\.$#'
-			identifier: class.nameCase
-			count: 2
-			path: app/Services/Property/CurrencyOptions.php
-
-		-
-			message: '#^Comparison operation "\>\=" between int\<0, max\> and 0 is always true\.$#'
-			identifier: greaterOrEqual.alwaysTrue
-			count: 1
-			path: app/Services/Property/CurrencyOptions.php
-
-		-
-			message: '#^Expression on left side of \?\? is not nullable\.$#'
-			identifier: nullCoalesce.expr
-			count: 1
-			path: app/Services/Rates/DayUseOffers.php
 
 		-
 			message: '#^Method App\\Services\\Rates\\Pricing\\NightlyPricing\:\:priceStay\(\) should return non\-empty\-list\<App\\Services\\Rates\\Pricing\\NightPrice\> but returns list\<App\\Services\\Rates\\Pricing\\NightPrice\>\.$#'
@@ -245,18 +137,6 @@ parameters:
 			identifier: return.type
 			count: 1
 			path: app/Services/Rates/Pricing/PackagePricing.php
-
-		-
-			message: '#^Type Illuminate\\Database\\Eloquent\\Collection\<int, App\\Models\\PackagePrice\> in generic type Illuminate\\Database\\Eloquent\\Collection\<string, Illuminate\\Database\\Eloquent\\Collection\<int, App\\Models\\PackagePrice\>\> in PHPDoc tag @param for parameter \$packagePrices is not subtype of template type TModel of Illuminate\\Database\\Eloquent\\Model of class Illuminate\\Database\\Eloquent\\Collection\.$#'
-			identifier: generics.notSubtype
-			count: 1
-			path: app/Services/Rates/RateCalendarService.php
-
-		-
-			message: '#^Type Illuminate\\Database\\Eloquent\\Collection\<int, App\\Models\\Rate\> in generic type Illuminate\\Database\\Eloquent\\Collection\<string, Illuminate\\Database\\Eloquent\\Collection\<int, App\\Models\\Rate\>\> in PHPDoc tag @param for parameter \$rates is not subtype of template type TModel of Illuminate\\Database\\Eloquent\\Model of class Illuminate\\Database\\Eloquent\\Collection\.$#'
-			identifier: generics.notSubtype
-			count: 1
-			path: app/Services/Rates/RateCalendarService.php
 
 		-
 			message: '#^Parameter \#1 \$nights of static method App\\Services\\Rates\\RateQuote\:\:quoted\(\) expects non\-empty\-list\<App\\Services\\Rates\\Pricing\\NightPrice\>, list\<App\\Services\\Rates\\Pricing\\NightPrice\> given\.$#'
@@ -275,12 +155,6 @@ parameters:
 			identifier: return.type
 			count: 1
 			path: app/Services/Registration/RegistrationCardSnapshot.php
-
-		-
-			message: '#^Parameter \#1 \$that of method Brick\\Money\\Money\:\:dividedBy\(\) expects Brick\\Math\\BigNumber\|int\|string, float\|int given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Services/Registration/RegistrationCardStay.php
 
 		-
 			message: '#^Method App\\Services\\Reports\\ReportPage\:\:sort\(\) should return array\{list\<TRow of App\\Data\\Reports\\ReportRow&Spatie\\LaravelData\\Data\>, string\} but returns array\{array\<int, App\\Data\\Reports\\ReportRow&Spatie\\LaravelData\\Data\>, string\}\.$#'
@@ -307,46 +181,10 @@ parameters:
 			path: app/Services/Reservations/ReservationActivityLog.php
 
 		-
-			message: '#^Offset 1 might not exist on list\{0\: non\-falsy\-string, 1\?\: string, 2\?\: non\-falsy\-string\}\.$#'
-			identifier: offsetAccess.notFound
-			count: 2
-			path: app/Services/Reservations/ReservationDirectory.php
-
-		-
-			message: '#^Parameter \#1 \$query of method App\\Services\\Reservations\\ReservationDirectory\:\:applySearch\(\) expects Illuminate\\Database\\Eloquent\\Builder\<App\\Models\\Reservation\>, Illuminate\\Database\\Eloquent\\Builder\<Illuminate\\Database\\Eloquent\\Model\> given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Services/Reservations/ReservationDirectory.php
-
-		-
-			message: '#^Parameter \#1 \$query of method App\\Services\\Reservations\\ReservationDirectory\:\:applySource\(\) expects Illuminate\\Database\\Eloquent\\Builder\<App\\Models\\Reservation\>, Illuminate\\Database\\Eloquent\\Builder\<Illuminate\\Database\\Eloquent\\Model\> given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Services/Reservations/ReservationDirectory.php
-
-		-
-			message: '#^Parameter \#1 \$query of method App\\Services\\Reservations\\ReservationDirectory\:\:applyStatus\(\) expects Illuminate\\Database\\Eloquent\\Builder\<App\\Models\\Reservation\>, Illuminate\\Database\\Eloquent\\Builder\<Illuminate\\Database\\Eloquent\\Model\> given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Services/Reservations/ReservationDirectory.php
-
-		-
 			message: '#^Parameter \$roles of class App\\Data\\Reservations\\ReservationGuestData constructor expects list\<string\>, list\{0\?\: non\-empty\-array\|non\-falsy\-string, 1\?\: non\-empty\-array\|non\-falsy\-string\} given\.$#'
 			identifier: argument.type
 			count: 1
 			path: app/Services/Reservations/ReservationGuestRows.php
-
-		-
-			message: '#^Parameter \#1 \$value of static method Brick\\Math\\BigNumber\:\:of\(\) expects Brick\\Math\\BigNumber\|int\|string, float\|int\|string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Services/Reservations/UnitActionPreview.php
-
-		-
-			message: '#^Match expression does not handle remaining values\: int\<min, \-1\>\|int\<7, max\>$#'
-			identifier: match.unhandled
-			count: 1
-			path: database/seeders/BookingScenariosSeeder.php
 
 		-
 			message: '#^Offset ''front_desk''\|''manager'' might not exist on non\-empty\-array\{owner\?\: App\\Models\\User, manager\?\: App\\Models\\User, front_desk\?\: App\\Models\\User\}\.$#'

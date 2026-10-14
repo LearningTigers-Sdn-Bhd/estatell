@@ -5,6 +5,7 @@ namespace App\Services\Platform;
 use App\Models\Property;
 use App\Services\Staff\PropertyOwners;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Str;
@@ -46,7 +47,7 @@ class PropertyDirectory
     /**
      * A partner id lists that partner's properties; `direct` lists the properties that came with no partner.
      *
-     * @param  Builder<Property>  $query
+     * @param  Builder<Model>  $query
      */
     private function partner(Builder $query, string $partner): void
     {
@@ -62,7 +63,7 @@ class PropertyDirectory
     /**
      * A property code (two letters and digits) matches the code exactly; anything else matches the name or city.
      *
-     * @param  Builder<Property>  $query
+     * @param  Builder<Model>  $query
      */
     private function search(Builder $query, string $search): void
     {

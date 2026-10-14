@@ -94,11 +94,11 @@ class RateCalendarService
     }
 
     /**
-     * @param  Collection<string, Collection<int, Rate>>  $rates  Keyed by `{plan id}-{room type id}`.
-     * @param  Collection<string, Collection<int, PackagePrice>>  $packagePrices  Keyed the same way.
+     * @param  \Illuminate\Support\Collection<string, Collection<int, Rate>>  $rates  Keyed by `{plan id}-{room type id}`.
+     * @param  \Illuminate\Support\Collection<string, Collection<int, PackagePrice>>  $packagePrices  Keyed the same way.
      * @return list<RateCalendarCellData>
      */
-    private function cells(RatePlan $plan, RoomType $roomType, Collection $rates, Collection $packagePrices, CarbonInterface $start, CarbonInterface $end, string $currency): array
+    private function cells(RatePlan $plan, RoomType $roomType, \Illuminate\Support\Collection $rates, \Illuminate\Support\Collection $packagePrices, CarbonInterface $start, CarbonInterface $end, string $currency): array
     {
         $own = $rates->get($plan->id.'-'.$roomType->id, new Collection);
 
