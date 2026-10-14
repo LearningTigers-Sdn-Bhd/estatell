@@ -89,7 +89,7 @@ Example, Full Board: 1 adult RM400, 2 adults RM600. Infant Free, Child 50%. 2 ad
 
 - `PackagePricing` splits the total with `brick/money` `allocate()` (`AllocationMode::FloorToFirst`), so cents always add up. Example with no inclusions: RM500 over 3 nights = 166.67 + 166.67 + 166.66.
 - Quotes are stored on `unit_nights` at booking. Later rate changes do not change existing bookings.
-- All money math uses `brick/money`. Columns are `decimal(12,2)`.
+- All money math uses `brick/money` (or `BigDecimal` for plain decimal sums). Columns are `decimal(12,2)`.
 
 ## Lessons from wastays
 

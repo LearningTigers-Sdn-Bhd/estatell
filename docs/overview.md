@@ -142,6 +142,7 @@ Composer:
 | `propaganistas/laravel-phone`           | 6.0     | None                                                                                                                             |
 | `spatie/period`                         | 2.4     | None                                                                                                                             |
 | `brick/money`                           | 0.15    | None                                                                                                                             |
+| `brick/math`                            | 1.0     | Direct use of `BigDecimal` for ledger sums. 1.0 rejects floats                                                                   |
 | `spatie/laravel-medialibrary`           | 11.23   | `media` table. Default disk is the private `local` disk. See [Media storage](01-platform/02-platform-settings.md#media-storage). |
 | `league/flysystem-aws-s3-v3`            | 3.35    | Needed by the `r2` disk (s3 driver)                                                                                              |
 | `spatie/laravel-query-builder`          | 7.3     | None                                                                                                                             |
