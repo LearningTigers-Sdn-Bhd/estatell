@@ -2,9 +2,9 @@
 
 namespace App\Services\Reservations;
 
-use App\Enums\Currency;
 use App\Services\Folio\DocumentLineGroups;
 use App\Services\Folio\DocumentPayment;
+use Brick\Money\Currency;
 use Carbon\CarbonImmutable;
 
 /**

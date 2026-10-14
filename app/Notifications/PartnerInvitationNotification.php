@@ -33,6 +33,7 @@ class PartnerInvitationNotification extends Notification implements ShouldQueue
         $invitation = $this->invitation->loadMissing('partner', 'inviter');
 
         return (new MailMessage)
+            ->markdown('notifications::email', ['mailTitle' => __('Bring properties to estatell.'), 'mailDetails' => [__('Partner') => $invitation->partner->name]])
             ->subject(__('Join :app as a partner', ['app' => config('app.name')]))
             ->line(__(':inviter invited you to bring properties to :app as :partner.', [
                 'inviter' => $invitation->inviter?->name ?? __('estatell support'),

@@ -301,7 +301,7 @@ test('a credit above the balance names the balance and the payments to reverse',
     $setup = invoicePagesSetup();
     $invoice = ArInvoice::factory()->create(['property_id' => $setup['property']->id, 'amount' => '300.00']);
     $url = invoiceUrl($setup, "/{$invoice->id}/credit-notes");
-    $currency = $setup['property']->settings->currency->value;
+    $currency = $setup['property']->settings->currency->getCurrencyCode();
 
     $this->actingAs($setup['user'])->post($url, ['amount' => '400.00', 'reason' => 'Too much'])
         ->assertSessionHasErrors(['amount' => "The credit cannot be more than the invoice balance ({$currency} 300.00)."]);

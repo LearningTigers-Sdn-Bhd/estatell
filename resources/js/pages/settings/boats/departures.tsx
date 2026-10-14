@@ -55,7 +55,7 @@ export default function BoatDeparturesPage({
     departures: Departure[];
     fares: Fare[];
     directions: Option[];
-    currency: App.Enums.Currency;
+    currency: App.Data.Property.CurrencyData;
 }) {
     const [sheet, setSheet] = useState<SheetState>({
         open: false,
@@ -67,7 +67,7 @@ export default function BoatDeparturesPage({
     const [turningOff, setTurningOff] = useState<Departure | null>(null);
     const money = new Intl.NumberFormat(undefined, {
         style: 'currency',
-        currency,
+        currency: currency.code,
     });
 
     const openAdd = (direction: string) =>

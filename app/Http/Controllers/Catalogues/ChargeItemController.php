@@ -8,6 +8,7 @@ use App\Actions\Catalogues\UpdateChargeItem;
 use App\Data\Catalogues\ChargeItemChildPriceData;
 use App\Data\Catalogues\ChargeItemData;
 use App\Data\Catalogues\ChargeItemTaxData;
+use App\Data\Property\CurrencyData;
 use App\Enums\AgeBandPricing;
 use App\Enums\ChargingUnit;
 use App\Enums\TransactionCategory;
@@ -46,7 +47,7 @@ class ChargeItemController extends Controller
                 ->map(fn (Tax $tax): ChargeItemTaxData => ChargeItemTaxData::fromModel($tax)),
             'categories' => TransactionCategory::chargeItemOptions(),
             'chargingUnits' => ChargingUnit::options(),
-            'currency' => $property->settings->currency,
+            'currency' => CurrencyData::forProperty($property),
         ]);
     }
 
@@ -79,7 +80,7 @@ class ChargeItemController extends Controller
                 ->map(fn (Tax $tax): ChargeItemTaxData => ChargeItemTaxData::fromModel($tax)),
             'categories' => TransactionCategory::chargeItemOptions(),
             'chargingUnits' => ChargingUnit::options(),
-            'currency' => $property->settings->currency,
+            'currency' => CurrencyData::forProperty($property),
         ]);
     }
 

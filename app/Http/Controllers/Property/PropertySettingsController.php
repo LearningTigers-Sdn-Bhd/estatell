@@ -8,7 +8,6 @@ use App\Data\Meals\MealPeriodData;
 use App\Data\Property\PropertyAgeGroupData;
 use App\Data\Property\PropertyProfileData;
 use App\Data\Property\PropertySettingsData;
-use App\Enums\Currency;
 use App\Enums\Locale;
 use App\Enums\MissedArrivalPolicy;
 use App\Enums\OverdueDeparturePolicy;
@@ -21,6 +20,7 @@ use App\Http\Requests\Property\UpdatePropertySettingsRequest;
 use App\Models\MealPeriod;
 use App\Models\Property;
 use App\Models\PropertyAgeGroup;
+use App\Services\Property\CurrencyOptions;
 use App\Services\Property\SettingsLock;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
@@ -55,7 +55,7 @@ class PropertySettingsController extends Controller
     public function edit(Property $property, SettingsLock $settingsLock): Response
     {
         return $this->renderTab($property, $settingsLock, 'general', [
-            'currencies' => Currency::options(),
+            'currencies' => CurrencyOptions::options(),
             'locales' => Locale::options(),
         ]);
     }

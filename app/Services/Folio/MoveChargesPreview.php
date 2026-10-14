@@ -13,6 +13,7 @@ use App\Data\Folio\MoveFolioData;
 use App\Data\Folio\MoveIncomingScheduleData;
 use App\Data\Folio\MovePreviewData;
 use App\Data\Folio\MoveScheduleData;
+use App\Data\Property\CurrencyData;
 use App\Enums\FolioStatus;
 use App\Enums\FolioType;
 use App\Enums\RoutingRuleSource;
@@ -158,7 +159,7 @@ class MoveChargesPreview
             reservationId: $reservation->id,
             reference: $reservation->reference,
             title: __('Move charges · :reference · :name', ['reference' => $reservation->reference, 'name' => $reservation->group_name ?? $reservation->booker->full_name]),
-            currency: $property->settings?->currency,
+            currency: CurrencyData::forProperty($property),
             folios: $state['openFolios']->map(fn (Folio $folio): MoveFolioData => new MoveFolioData(
                 $folio->id,
                 $state['labels'][$folio->id],
@@ -318,7 +319,7 @@ class MoveChargesPreview
         $unitLabels = $state['unitLabels'];
         /** @var Collection<int, array{lineId: int, folioId: int, unitId: int|null, isRoom: bool, total: string, data: MoveChargeData}> $charges */
         $charges = $state['charges'];
-        $currency = (string) $property->settings?->currency->value;
+        $currency = (string) $property->settings?->currency->getCurrencyCode();
         $money = fn (string $amount): string => trim($currency.' '.number_format((float) $amount, 2));
         $toLabel = $labels[$target->id];
 

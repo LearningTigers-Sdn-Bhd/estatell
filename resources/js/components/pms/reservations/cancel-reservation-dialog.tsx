@@ -27,7 +27,7 @@ type Props = {
     onOpenChange: (open: boolean) => void;
     reservation: App.Data.Reservations.ReservationData;
     canWaiveFees: boolean;
-    currency: App.Enums.Currency | null;
+    currency: App.Data.Property.CurrencyData | null;
 };
 
 const cents = (amount: string | null) => Math.round(Number(amount ?? 0) * 100);

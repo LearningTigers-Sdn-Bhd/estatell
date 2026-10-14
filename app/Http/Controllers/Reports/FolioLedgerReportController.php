@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Reports;
 
+use App\Data\Property\CurrencyData;
 use App\Data\Reports\FolioLedgerRow;
 use App\Enums\PageOrientation;
 use App\Enums\PermissionEnum;
@@ -49,7 +50,7 @@ class FolioLedgerReportController extends Controller
             'maxRangeDays' => $key->maxRangeDays(),
             'code' => $filters->code,
             'codeOptions' => $report->codeOptions($property),
-            'currency' => $property->settings?->currency,
+            'currency' => CurrencyData::forProperty($property),
         ]);
     }
 }

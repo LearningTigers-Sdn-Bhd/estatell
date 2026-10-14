@@ -2,9 +2,10 @@
 
 namespace App\Services\Property;
 
-use App\Enums\Currency;
 use Brick\Math\BigDecimal;
+use Brick\Math\BigInteger;
 use Brick\Math\RoundingMode;
+use Brick\Money\Currency;
 use NumberFormatter;
 
 /**
@@ -18,20 +19,26 @@ class AmountInWords
      */
     public function for(string $amount, Currency $currency): string
     {
-        $cents = BigDecimal::of($amount)->abs()->multipliedBy(100)->toScale(0, RoundingMode::HalfUp)->toBigInteger();
-        [$major, $minor] = $cents->quotientAndRemainder(100);
+        $decimals = $currency->getDefaultFractionDigits();
+        $scale = BigInteger::of(10)->power($decimals);
+        $units = BigDecimal::of($amount)->abs()->toScale($decimals, RoundingMode::HalfUp)->getUnscaledValue();
+        [$major, $minor] = $units->quotientAndRemainder($scale);
 
         $formatter = new NumberFormatter('en_GB', NumberFormatter::SPELLOUT);
         $formatter->setTextAttribute(NumberFormatter::DEFAULT_RULESET, '%spellout-numbering-verbose');
 
-        if ($major->isZero() && ! $minor->isZero()) {
-            return ucfirst($this->spell($formatter, (string) $minor)).' '.$currency->minorUnitWords().' only';
+        $minorUnit = CurrencyWords::minorUnit($currency);
+
+        if ($major->isZero() && ! $minor->isZero() && $minorUnit !== null) {
+            return ucfirst($this->spell($formatter, (string) $minor)).' '.$minorUnit.' only';
         }
 
-        $words = $currency->wordsName().' '.$this->spell($formatter, (string) $major);
+        $words = CurrencyWords::name($currency).' '.$this->spell($formatter, (string) $major);
 
         if (! $minor->isZero()) {
-            $words .= ' and '.$this->spell($formatter, (string) $minor).' '.$currency->minorUnitWords();
+            $words .= ' and '.($minorUnit !== null
+                ? $this->spell($formatter, (string) $minor).' '.$minorUnit
+                : str_pad((string) $minor, $decimals, '0', STR_PAD_LEFT).'/'.$scale);
         }
 
         return $words.' only';

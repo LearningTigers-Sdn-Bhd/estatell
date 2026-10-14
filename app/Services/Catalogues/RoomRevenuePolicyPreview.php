@@ -35,7 +35,7 @@ class RoomRevenuePolicyPreview
      */
     public function calculate(Property $property, RoomRevenuePolicy $policy, ?array $taxIds = null): RoomRevenuePolicyPreviewData
     {
-        $night = Money::of(self::SAMPLE_AMOUNT, $property->settings->currency->value);
+        $night = Money::of(self::SAMPLE_AMOUNT, $property->settings->currency->getCurrencyCode());
         $taxes = $property->taxes()->whereKey($taxIds ?? $this->roomRevenueTaxIds->forPolicy($property, $policy))->get();
 
         $lines = array_map(

@@ -59,7 +59,7 @@ class PaymentReceipt
             method: $payment->paymentMethod->name,
             reference: $payment->reference,
             purpose: $payment->purpose->label(),
-            currency: $property->settings?->currency->value ?? '',
+            currency: $property->settings?->currency->getCurrencyCode() ?? '',
             amountPaid: (string) $paid->toScale(2),
             surcharge: $surcharge,
             surchargeTax: $surchargeTax,

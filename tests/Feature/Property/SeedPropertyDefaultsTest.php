@@ -1,7 +1,6 @@
 <?php
 
 use App\Actions\Property\SeedPropertyDefaults;
-use App\Enums\Currency;
 use App\Enums\DefaultRoleEnum;
 use App\Enums\Locale;
 use App\Enums\MissedArrivalPolicy;
@@ -33,7 +32,7 @@ test('each property type receives the Malaysia defaults', function (PropertyType
         ->and($property->roomRevenuePolicies()->count())->toBe(4)
         ->and($property->mealPeriods()->count())->toBe(3)
         ->and($property->ageGroups()->count())->toBe(2)
-        ->and($settings->currency)->toBe(Currency::Myr)
+        ->and($settings->currency->getCurrencyCode())->toBe('MYR')
         ->and($settings->time_zone)->toBe('Asia/Kuala_Lumpur')
         ->and($settings->default_locale)->toBe(Locale::English)
         ->and($settings->check_in_time)->toBe('15:00:00')

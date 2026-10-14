@@ -46,6 +46,21 @@ Define every notification once, with its channels, defaults and recipients.
 
 In-app notifications use the framework `notifications` table. Its `data` column is json and is allowed.
 
+## Email layout
+
+All existing emails use the shared stationery layout in `resources/views/vendor/notifications/email.blade.php` and the published `laravel-mail` components.
+
+- The header uses a text-only **estatell** wordmark until the brand logo is supplied.
+- The layout uses an olive canvas, a white body, an emerald top rule and full-width action buttons.
+- Email CSS uses inline, email-safe colour fallbacks and system fonts. It does not depend on Tailwind, web fonts or CSS variables.
+- Property emails name the property in both the HTML and plain-text footer. Partner and platform account emails use estatell alone.
+- Invitations show the role or partner name. Owner setup shows the password and verification steps.
+- Night audit emails show the existing figures, revenue, payments and meals in tables. Exceptions appear first, followed by the action button. Failed audits separate the error from the recovery instructions.
+- Support access emails show session details, optional notes and money corrections. They have no action button.
+- Password reset and verification emails use the same layout. Their subjects, expiry rules and links stay unchanged.
+
+Preview all nine existing email types in the mailbox before signing off the visual review. Rendering tests cover HTML, plain text, footer scope, escaping and authentication links.
+
 ## Viewing mail in development
 
 `.env.example` sets `MAIL_MAILER=mailbox`. The dev-only package `redberry/mailbox-for-laravel` stores every outgoing message in `storage/app/mailbox/mailbox.sqlite` (not in Postgres). Read them at `/mailbox`.

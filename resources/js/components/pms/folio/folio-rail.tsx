@@ -26,7 +26,7 @@ export function FolioRail({
     reservationId: number;
     items: Item[];
     activeKey: string;
-    currency: App.Enums.Currency | null;
+    currency: App.Data.Property.CurrencyData | null;
 }) {
     return (
         <>

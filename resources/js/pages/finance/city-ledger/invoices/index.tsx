@@ -23,7 +23,7 @@ type Props = {
     sort: string;
     types: EnumOption[];
     statuses: EnumOption[];
-    currency: App.Enums.Currency | null;
+    currency: App.Data.Property.CurrencyData | null;
 };
 
 const column = dataTableColumns<Row>();

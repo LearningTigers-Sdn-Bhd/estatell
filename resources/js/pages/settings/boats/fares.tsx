@@ -44,13 +44,13 @@ export default function BoatFaresPage({
     taxes: Tax[];
     pricings: Option[];
     chargingUnits: Option[];
-    currency: App.Enums.Currency;
+    currency: App.Data.Property.CurrencyData;
 }) {
     const [sheet, setSheet] = useState<SheetState>({ open: false, fare: null });
     const [togglingIds, setTogglingIds] = useState<Set<number>>(new Set());
     const money = new Intl.NumberFormat(undefined, {
         style: 'currency',
-        currency,
+        currency: currency.code,
     });
 
     const openAdd = () => setSheet({ open: true, fare: null });

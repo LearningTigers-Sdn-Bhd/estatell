@@ -19,7 +19,7 @@ type Props = {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     invoice: App.Data.CityLedger.ArInvoiceData;
-    currency: App.Enums.Currency | null;
+    currency: App.Data.Property.CurrencyData | null;
     /** Called with the payment the user wants to reverse; the page swaps this Dialog for the Reverse one. */
     onReverse: (allocation: App.Data.CityLedger.ArAllocationRowData) => void;
 };

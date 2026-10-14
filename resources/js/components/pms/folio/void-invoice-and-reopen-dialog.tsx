@@ -31,7 +31,7 @@ function CreditNoteRow({
 }: {
     note: CreditNote;
     canVoid: boolean;
-    currency: App.Enums.Currency | null;
+    currency: App.Data.Property.CurrencyData | null;
 }) {
     const [confirming, setConfirming] = useState(false);
     const [processing, setProcessing] = useState(false);
@@ -124,7 +124,7 @@ export function VoidInvoiceAndReopenDialog({
     folioId: number;
     invoiceNumber: string;
     invoice: App.Data.CityLedger.ArInvoiceData | null | undefined;
-    currency: App.Enums.Currency | null;
+    currency: App.Data.Property.CurrencyData | null;
     open: boolean;
     onOpenChange: (open: boolean) => void;
     /** Called with the payment to reverse; the page swaps this Dialog for the Reverse one. */

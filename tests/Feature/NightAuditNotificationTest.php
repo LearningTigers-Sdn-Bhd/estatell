@@ -185,15 +185,16 @@ test('the message carries the figures, revenue, payments, meals and exceptions o
     $exception = NightAuditException::factory()->create(['night_audit_id' => $audit->id, 'reservation_unit_id' => $unit('checkedIn', '2026-10-12', '2026-10-14', 1)->id]);
 
     $mail = (new NightAuditExceptions($audit))->toMail($owner)->render()->toHtml();
+    $mailText = preg_replace('/\s+/', ' ', strip_tags($mail));
     $array = (new NightAuditExceptions($audit))->toArray($owner);
 
-    expect($mail)->toContain('Occupancy 62.50%', 'MYR 180.00', 'MYR 112.50')
+    expect($mailText)->toContain('Occupancy', '62.50%', 'MYR 180.00', 'MYR 112.50')
         ->toContain('3 arrivals', '1 no-shows', '9 guests in house')
-        ->toContain('Room revenue: MYR 900.00', 'Laundry: MYR 35.50')
+        ->toContain('Room revenue MYR 900.00', 'Laundry MYR 35.50')
         ->not->toContain('777.00')
-        ->toContain('Cash: MYR 350.00', 'Card: MYR 300.00', 'Refunds: MYR 20.00')
+        ->toContain('Cash MYR 350.00', 'Card MYR 300.00', 'Refunds MYR 20.00')
         ->not->toContain('999.00', '77.00', '66.00')
-        ->toContain('Meals to prepare on Oct 13, 2026', 'Breakfast: 6', 'Dinner: 4')
+        ->toContain('Meals to prepare on Oct 13, 2026', 'Breakfast 6', 'Dinner 4')
         ->toContain($exception->reservationUnit->reservation->reference, 'folio was closed')
         ->toContain(route('night-audit.show', $property->code))
         ->and(strpos($mail, 'Breakfast'))->toBeLessThan(strpos($mail, 'Dinner'))
@@ -206,9 +207,10 @@ test('a city ledger payment shows in the payments by method, merged with the fol
     ArPayment::factory()->create(['property_id' => $property->id, 'payment_method_id' => $bank->id, 'amount' => '500.00', 'received_on' => '2026-10-12']);
 
     $mail = (new NightAuditCompleted($audit))->toMail($owner)->render()->toHtml();
+    $mailText = preg_replace('/\s+/', ' ', strip_tags($mail));
     $summary = app(AuditResultSummary::class)->forAudit($audit);
 
-    expect($mail)->toContain('Payments by method', 'Bank transfer: MYR 500.00')
+    expect($mailText)->toContain('Payments by method', 'Bank transfer MYR 500.00')
         ->and($summary->payments)->toHaveCount(1)
         ->and($summary->payments[0]['count'])->toBe(1);
 });

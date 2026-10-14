@@ -281,7 +281,7 @@ export default function RatePlansIndex({
     packageUnits: EnumOption[];
     roomTypes: App.Data.Rates.NewRatePlanRoomTypeData[];
     derivations: EnumOption[];
-    currency: App.Enums.Currency;
+    currency: App.Data.Property.CurrencyData;
     companies: App.Data.CityLedger.CompanyOptionData[];
 }) {
     const [status, setStatus] = useState(initialStatus);

@@ -17,6 +17,7 @@ use App\Actions\Rates\SaveRatePlanStayDiscounts;
 use App\Actions\Rates\SaveRates;
 use App\Actions\Rates\SyncRatePlanRoomTypes;
 use App\Actions\Rates\UpdateRatePlan;
+use App\Data\Property\CurrencyData;
 use App\Data\Property\PropertyAgeGroupData;
 use App\Data\Property\WeekendNightsOptionData;
 use App\Data\Rates\NewRatePlanRoomTypeData;
@@ -102,7 +103,7 @@ class RatePlanController extends Controller
             'roomTypes' => $property->roomTypes()->active()->ordered()->get()
                 ->map(fn (RoomType $roomType): NewRatePlanRoomTypeData => NewRatePlanRoomTypeData::fromModel($roomType)),
             'derivations' => RateDerivation::options(),
-            'currency' => $property->settings->currency,
+            'currency' => CurrencyData::forProperty($property),
             'companies' => $request->user()->can(PermissionEnum::CompanyManage->value) ? $companyOptions->active($property) : [],
         ]);
     }
@@ -151,7 +152,7 @@ class RatePlanController extends Controller
 
         return response()->json(array_map(
             fn (array $row): RatePlanDerivationPreviewRowData => new RatePlanDerivationPreviewRowData($row['room_type_id'], $row['name'], $row['parent_amount'], $row['derived_amount']),
-            $derivedRatePreview->preview($ratePlan->load('roomTypes'), $ratePlan, $request->derivation(), $request->signedValue(), now($property->settings->time_zone)->startOfDay(), $property->settings->currency->value),
+            $derivedRatePreview->preview($ratePlan->load('roomTypes'), $ratePlan, $request->derivation(), $request->signedValue(), now($property->settings->time_zone)->startOfDay(), $property->settings->currency->getCurrencyCode()),
         ));
     }
 
@@ -162,7 +163,7 @@ class RatePlanController extends Controller
     {
         return Inertia::render('settings/rate-plans/edit', [
             'ratePlan' => RatePlanData::fromModel($ratePlan->load('roomTypes')),
-            'currency' => $property->settings->currency,
+            'currency' => CurrencyData::forProperty($property),
             'nightsLockedReason' => $ratePlan->pricing_basis === PricingBasis::Package ? $derivedRatePlans->nightsLockMessage($ratePlan) : null,
         ]);
     }
@@ -193,7 +194,7 @@ class RatePlanController extends Controller
                 ->sortBy('ageGroup.min_age')->values()
                 ->map(fn (RatePlanChildPrice $childPrice): RatePlanChildPriceData => RatePlanChildPriceData::fromModel($childPrice)),
             'ageBandPricings' => AgeBandPricing::options(),
-            'currency' => $property->settings->currency,
+            'currency' => CurrencyData::forProperty($property),
         ]);
     }
 
@@ -219,7 +220,7 @@ class RatePlanController extends Controller
             'chargingUnits' => ChargingUnit::options(),
             'startOptions' => InclusionStart::options(),
             'endOptions' => InclusionEnd::options(),
-            'currency' => $property->settings->currency,
+            'currency' => CurrencyData::forProperty($property),
         ]);
     }
 
@@ -241,7 +242,7 @@ class RatePlanController extends Controller
             'weekdayOptions' => Weekday::options(),
             'derivation' => RatePlanDerivationData::forPlan($ratePlan, $derivedRatePlans),
             'derivations' => RateDerivation::options(),
-            'currency' => $property->settings->currency,
+            'currency' => CurrencyData::forProperty($property),
         ]);
     }
 
@@ -266,7 +267,7 @@ class RatePlanController extends Controller
             'parentDiscounts' => $ratePlan->parent_rate_plan_id === null || $parentDiscounts->isEmpty()
                 ? null
                 : new RatePlanParentDiscountsData($ratePlan->parent->name),
-            'currency' => $property->settings->currency,
+            'currency' => CurrencyData::forProperty($property),
             'ageGroups' => $ratePlan->pricing_basis === PricingBasis::PerGuest
                 ? $property->ageGroups()->orderBy('min_age')->get()->map(PropertyAgeGroupData::fromModel(...))
                 : [],
@@ -321,7 +322,7 @@ class RatePlanController extends Controller
                     $pricedUntil[$roomType->id] ?? null,
                     $ratesEndingCheck->isEnding($pricedUntil[$roomType->id] ?? null, $today),
                 )),
-            'currency' => $property->settings->currency,
+            'currency' => CurrencyData::forProperty($property),
             'weekendNights' => $property->settings->weekend_nights,
             'weekendNightsOptions' => array_map(WeekendNightsOptionData::fromEnum(...), WeekendNights::cases()),
             'today' => $today->toDateString(),
@@ -432,7 +433,7 @@ class RatePlanController extends Controller
 
         return response()->json(array_map(
             fn (array $row): RatePlanDerivationPreviewRowData => new RatePlanDerivationPreviewRowData($row['room_type_id'], $row['name'], $row['parent_amount'], $row['derived_amount']),
-            $derivedRatePreview->preview($ratePlan, $parent, $request->derivation(), $request->signedValue(), now($property->settings->time_zone)->startOfDay(), $property->settings->currency->value),
+            $derivedRatePreview->preview($ratePlan, $parent, $request->derivation(), $request->signedValue(), now($property->settings->time_zone)->startOfDay(), $property->settings->currency->getCurrencyCode()),
         ));
     }
 

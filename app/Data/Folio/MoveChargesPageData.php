@@ -2,7 +2,7 @@
 
 namespace App\Data\Folio;
 
-use App\Enums\Currency;
+use App\Data\Property\CurrencyData;
 use Spatie\LaravelData\Data;
 
 /**
@@ -20,7 +20,7 @@ class MoveChargesPageData extends Data
         public int $reservationId,
         public string $reference,
         public string $title,
-        public ?Currency $currency,
+        public ?CurrencyData $currency,
         public array $folios,
         public int $targetId,
         public array $lineIds,

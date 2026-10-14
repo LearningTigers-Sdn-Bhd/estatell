@@ -20,7 +20,7 @@ export default function RatePlanDiscounts({
     discounts: App.Data.Rates.RatePlanStayDiscountData[];
     discountTypes: { value: string; label: string }[];
     parentDiscounts: App.Data.Rates.RatePlanParentDiscountsData | null;
-    currency: App.Enums.Currency;
+    currency: App.Data.Property.CurrencyData;
     ageGroups: App.Data.Property.PropertyAgeGroupData[];
     preview: App.Data.Rates.StayDiscountPreviewData;
 }) {

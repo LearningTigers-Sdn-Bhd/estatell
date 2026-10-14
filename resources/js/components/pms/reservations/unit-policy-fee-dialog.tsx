@@ -34,7 +34,7 @@ type Props = {
     unit: Unit;
     kind: 'cancel' | 'no-show';
     canWaiveFees: boolean;
-    currency: App.Enums.Currency | null;
+    currency: App.Data.Property.CurrencyData | null;
 };
 
 const TEXT = {

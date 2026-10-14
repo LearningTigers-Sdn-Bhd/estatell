@@ -28,7 +28,7 @@ type Props = {
     reservationId: number;
     units: Unit[];
     chargeItems?: ChargeItem[];
-    currency: App.Enums.Currency | null;
+    currency: App.Data.Property.CurrencyData | null;
 };
 
 function AddAddOnForm({

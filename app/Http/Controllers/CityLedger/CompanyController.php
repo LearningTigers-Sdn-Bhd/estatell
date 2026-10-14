@@ -9,6 +9,7 @@ use App\Actions\CityLedger\UpdateCompanyBilling;
 use App\Data\CityLedger\CompanyData;
 use App\Data\CityLedger\CompanyRowData;
 use App\Data\CityLedger\CreditExposureData;
+use App\Data\Property\CurrencyData;
 use App\Data\Rates\RatePlanData;
 use App\Enums\CompanyStatus;
 use App\Enums\CompanyType;
@@ -45,7 +46,7 @@ class CompanyController extends Controller
                 ->map(fn (Company $company): CompanyRowData => CompanyRowData::fromModel($company, $creditExposure->isOverLimit($figures[$company->id]))),
             'types' => CompanyType::options(),
             'statuses' => CompanyStatus::options(),
-            'currency' => $property->settings?->currency,
+            'currency' => CurrencyData::forProperty($property),
             'canManage' => $request->user()->can(PermissionEnum::CompanyManage->value),
         ]);
     }
@@ -161,7 +162,7 @@ class CompanyController extends Controller
         return Inertia::render('finance/city-ledger/companies/show', [
             'company' => CompanyData::fromModel($company, CreditExposureData::fromFigures($figures, $creditExposure->isOverLimit($figures))),
             'tab' => $tab,
-            'currency' => $property->settings?->currency,
+            'currency' => CurrencyData::forProperty($property),
             'canManage' => $request->user()->can(PermissionEnum::CompanyManage->value),
             ...$tabProps,
         ]);

@@ -26,7 +26,7 @@ export default function RatePlanPricing({
     derivation: App.Data.Rates.RatePlanDerivationData;
     derivations: { value: string; label: string }[];
     roomTypes: App.Data.Rates.RatePricingRoomTypeData[];
-    currency: App.Enums.Currency;
+    currency: App.Data.Property.CurrencyData;
     weekendNights: string;
     weekendNightsOptions: App.Data.Property.WeekendNightsOptionData[];
     today: string;

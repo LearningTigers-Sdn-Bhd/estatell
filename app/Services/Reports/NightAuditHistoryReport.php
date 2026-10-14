@@ -49,7 +49,7 @@ class NightAuditHistoryReport implements HasTotals, Report
             ->pluck('occupancy', 'business_date')
             ->mapWithKeys(fn (string $value, string $date): array => [substr($date, 0, 10) => $value]);
         $revenue = $this->revenue->roomRevenueBetween($property, CarbonImmutable::parse($filters->from), CarbonImmutable::parse($filters->to));
-        $zero = Money::zero($property->loadMissing('settings')->settings->currency->value);
+        $zero = Money::zero($property->loadMissing('settings')->settings->currency->getCurrencyCode());
         $timeZone = $property->settings->time_zone ?? config('app.timezone');
 
         return $audits

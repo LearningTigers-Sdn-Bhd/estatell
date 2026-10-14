@@ -33,7 +33,7 @@ import {
 } from '@/lib/date-presets';
 
 type Layout = App.Data.Reports.ReportLayoutData;
-type Currency = App.Enums.Currency | null;
+type Currency = App.Data.Property.CurrencyData | null;
 
 /** A cell renderer by column key. A column with no renderer shows its value, or a dash when it is empty. */
 export type ReportCells<TRow> = Record<

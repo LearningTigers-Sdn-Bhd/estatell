@@ -27,6 +27,19 @@ abstract class NightAuditResultNotification extends PropertyNotification
     {
         $summary = app(AuditResultSummary::class)->forAudit($this->audit);
         $mail = (new MailMessage)->subject($this->subject($summary));
+        $mail->markdown('notifications::email', [
+            'mailTitle' => match ($this->type) {
+                NotificationType::NightAuditFailed => __('Audit stopped'),
+                NotificationType::NightAuditExceptions => trans_choice(':count exception to review|:count exceptions to review', $summary->exceptions->count(), ['count' => $summary->exceptions->count()]),
+                default => __('Completed'),
+            },
+            'mailEyebrow' => __('Night audit').' · '.$summary->businessDate->toFormattedDateString(),
+            'propertyName' => $this->audit->property->name,
+            'auditSummary' => $summary,
+            'auditFailed' => $this->type === NotificationType::NightAuditFailed,
+            'auditExceptions' => $this->exceptionLines($summary),
+            'auditFigures' => $this->figures($summary),
+        ]);
 
         foreach ($this->lines($summary) as $line) {
             $mail->line($line);

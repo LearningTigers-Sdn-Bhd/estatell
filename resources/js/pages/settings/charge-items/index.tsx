@@ -162,14 +162,14 @@ function ChargeItemTable({
     chargeItems: ChargeItem[];
     taxes: Tax[];
     chargingUnits: Option[];
-    currency: App.Enums.Currency;
+    currency: App.Data.Property.CurrencyData;
     onMove?: (from: number, to: number) => void;
     onToggleActive: (chargeItem: ChargeItem, active: boolean) => void;
     togglingIds: Set<number>;
 }) {
     const money = new Intl.NumberFormat(undefined, {
         style: 'currency',
-        currency,
+        currency: currency.code,
     });
     const taxNames = new Map(taxes.map((tax) => [tax.id, tax.name]));
     const unitLabel = (value: string) =>
@@ -362,7 +362,7 @@ export default function ChargeItemsIndex({
     taxes: Tax[];
     categories: Option[];
     chargingUnits: Option[];
-    currency: App.Enums.Currency;
+    currency: App.Data.Property.CurrencyData;
 }) {
     const [creating, setCreating] = useState(false);
     const [togglingIds, setTogglingIds] = useState<Set<number>>(new Set());

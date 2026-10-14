@@ -27,7 +27,7 @@ type Props = {
     reservationId: number;
     unit: Unit;
     canWaiveFees: boolean;
-    currency: App.Enums.Currency | null;
+    currency: App.Data.Property.CurrencyData | null;
 };
 
 function hoursBetween(from: string, to: string): number {

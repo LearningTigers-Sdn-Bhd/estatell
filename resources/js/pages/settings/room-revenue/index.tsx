@@ -38,7 +38,7 @@ export default function RoomRevenue({
     taxes: Tax[];
     taxIds: number[];
     preview: Preview;
-    currency: App.Enums.Currency;
+    currency: App.Data.Property.CurrencyData;
     hasDayUse: boolean;
 }) {
     const http = useHttp<Selection, Preview>({ tax_ids: taxIds });
@@ -53,7 +53,7 @@ export default function RoomRevenue({
     const previewedKey = useRef(key);
     const money = new Intl.NumberFormat(undefined, {
         style: 'currency',
-        currency,
+        currency: currency.code,
     });
     const offTaxes = taxes.filter(
         (tax) => !tax.enabled && selected.includes(tax.id),

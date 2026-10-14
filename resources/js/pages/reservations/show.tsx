@@ -38,7 +38,7 @@ type Props = {
     units: App.Data.Reservations.ReservationUnitOptionData[];
     tab: Tab;
     autoAssignRooms: boolean;
-    currency: App.Enums.Currency | null;
+    currency: App.Data.Property.CurrencyData | null;
     canManage: boolean;
     canCheckIn: boolean;
     canCheckOutAll: boolean;

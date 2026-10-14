@@ -43,7 +43,7 @@ class OccupancyReport implements HasTotals, Report
         $lastWithFigures = $open === null ? $to : $open->min($to);
 
         $revenue = $this->revenue->roomRevenueBetween($property, $from, $lastWithFigures);
-        $zero = Money::zero($property->loadMissing('settings')->settings->currency->value);
+        $zero = Money::zero($property->loadMissing('settings')->settings->currency->getCurrencyCode());
 
         $rows = DailyStatistic::query()
             ->where('property_id', $property->id)

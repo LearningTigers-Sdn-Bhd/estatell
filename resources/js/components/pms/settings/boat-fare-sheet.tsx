@@ -35,7 +35,7 @@ type Props = {
     ageGroups: AgeGroup[];
     taxes: Tax[];
     pricings: Option[];
-    currency: App.Enums.Currency;
+    currency: App.Data.Property.CurrencyData;
 };
 
 type ChildPriceValues = {
@@ -214,7 +214,7 @@ function BoatFareForm({
                             Adult
                         </FieldLabel>
                         <InputGroup className="sm:max-w-60">
-                            <InputGroupAddon>{currency}</InputGroupAddon>
+                            <InputGroupAddon>{currency.code}</InputGroupAddon>
                             <InputGroupInput
                                 id="boat-fare-amount"
                                 placeholder="0.00"

@@ -33,7 +33,7 @@ class PaymentQuote
         }
 
         $property = $reservation->property;
-        $currency = $property->settings?->currency->value
+        $currency = $property->settings?->currency->getCurrencyCode()
             ?? throw new InvalidArgumentException('The property needs settings with a currency to quote a payment.');
         $paid = Money::of($amount, $currency);
         $surcharge = match ($method->surcharge_type) {

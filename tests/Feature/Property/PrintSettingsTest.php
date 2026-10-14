@@ -1,6 +1,5 @@
 <?php
 
-use App\Enums\Currency;
 use App\Enums\DefaultRoleEnum;
 use App\Enums\PdfFont;
 use App\Enums\PdfFontSize;
@@ -11,6 +10,7 @@ use App\Models\User;
 use App\Services\Property\PrintedPdf;
 use App\Services\Property\PrintProfile;
 use App\Services\Property\SampleDocument;
+use Brick\Money\Currency;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -450,7 +450,7 @@ test('the sample booking summary is a PDF that reads the document switches', fun
 
     $html = view('pdf.document-sample', [
         'print' => app(PrintProfile::class)->for($property->refresh()),
-        'currency' => Currency::Myr,
+        'currency' => Currency::of('MYR'),
         'groups' => app(SampleDocument::class)->groups($property->printSetting),
         'settings' => $property->printSetting,
     ])->render();
@@ -463,7 +463,7 @@ test('the sample booking summary is a PDF that reads the document switches', fun
     $property->printSetting->update(['show_cancellation_policy' => false, 'bank_details' => null, 'show_amount_in_words' => false]);
     $html = view('pdf.document-sample', [
         'print' => app(PrintProfile::class)->for($property->refresh()),
-        'currency' => Currency::Myr,
+        'currency' => Currency::of('MYR'),
         'groups' => app(SampleDocument::class)->groups($property->printSetting),
         'settings' => $property->printSetting,
     ])->render();

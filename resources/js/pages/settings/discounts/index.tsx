@@ -100,7 +100,7 @@ function DiscountForm({
     charges: Charge[];
     types: Option[];
     scopes: Option[];
-    currency: App.Enums.Currency;
+    currency: App.Data.Property.CurrencyData;
     onDone: () => void;
 }) {
     const form = useForm<FormData>(formValues(discount));
@@ -219,7 +219,9 @@ function DiscountForm({
                         </FieldLabel>
                         <InputGroup className="sm:max-w-60">
                             {form.data.type === 'fixed' && (
-                                <InputGroupAddon>{currency}</InputGroupAddon>
+                                <InputGroupAddon>
+                                    {currency.code}
+                                </InputGroupAddon>
                             )}
                             <InputGroupInput
                                 id="discount-value"
@@ -381,7 +383,7 @@ function DiscountTable({
     discounts: Discount[];
     charges: Charge[];
     scopes: Option[];
-    currency: App.Enums.Currency;
+    currency: App.Data.Property.CurrencyData;
     onEdit: (discount: Discount) => void;
     onMove: (from: number, to: number) => void;
     onToggleActive: (discount: Discount, active: boolean) => void;
@@ -389,7 +391,7 @@ function DiscountTable({
 }) {
     const money = new Intl.NumberFormat(undefined, {
         style: 'currency',
-        currency,
+        currency: currency.code,
     });
     const chargeNames = new Map(
         charges.map((charge) => [charge.id, charge.name]),
@@ -547,7 +549,7 @@ export default function DiscountsIndex({
     charges: Charge[];
     types: Option[];
     scopes: Option[];
-    currency: App.Enums.Currency;
+    currency: App.Data.Property.CurrencyData;
 }) {
     const [editing, setEditing] = useState<Discount | null | undefined>(
         undefined,

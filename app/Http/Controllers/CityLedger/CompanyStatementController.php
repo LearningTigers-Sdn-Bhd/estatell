@@ -28,7 +28,7 @@ class CompanyStatementController extends Controller
             'statement' => $statement,
             'company' => $company,
             'billToLines' => $billTo->lines($company),
-            'currency' => $property->settings?->currency->value ?? '',
+            'currency' => $property->settings?->currency->getCurrencyCode() ?? '',
         ])
             ->stream('statement-'.str($company->name)->slug().'-'.$statement->to.'.pdf');
     }

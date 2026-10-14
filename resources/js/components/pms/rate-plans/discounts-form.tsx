@@ -57,7 +57,7 @@ export function DiscountsForm({
     discounts: Discount[];
     types: Option[];
     parentDiscounts: App.Data.Rates.RatePlanParentDiscountsData | null;
-    currency: App.Enums.Currency;
+    currency: App.Data.Property.CurrencyData;
     ageGroups: App.Data.Property.PropertyAgeGroupData[];
     preview: App.Data.Rates.StayDiscountPreviewData;
 }) {
@@ -234,7 +234,7 @@ export function DiscountsForm({
                                         <InputGroup className="w-44">
                                             {row.discount_type === 'amount' && (
                                                 <InputGroupAddon>
-                                                    {currency}
+                                                    {currency.code}
                                                 </InputGroupAddon>
                                             )}
                                             <InputGroupInput

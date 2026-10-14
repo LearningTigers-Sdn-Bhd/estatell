@@ -156,7 +156,7 @@ export function AddOnsTab({
     units: Unit[];
     chargeItems?: App.Data.Reservations.ChargeItemOptionData[];
     canManage: boolean;
-    currency: App.Enums.Currency | null;
+    currency: App.Data.Property.CurrencyData | null;
 }) {
     const [adding, setAdding] = useState(false);
     const openUnits = units.filter((unit) => OPEN.includes(unit.status.value));

@@ -22,7 +22,7 @@ export function BalanceFigure({
     folioId: number;
     preview: Preview;
     showAfter: boolean;
-    currency: App.Enums.Currency | null;
+    currency: App.Data.Property.CurrencyData | null;
     label?: string;
 }) {
     const figure = preview.balances.find((one) => one.folioId === folioId);
@@ -149,7 +149,7 @@ export function MoveChargesFrom({
     previewCurrent: boolean;
     choices: ScheduleChoices;
     onChoice: (unitId: number, scope: 'room' | 'all' | undefined) => void;
-    currency: App.Enums.Currency | null;
+    currency: App.Data.Property.CurrencyData | null;
 }) {
     const schedules = previewCurrent ? preview.schedules : [];
     const sourceIds = sources.map((source) => source.id);

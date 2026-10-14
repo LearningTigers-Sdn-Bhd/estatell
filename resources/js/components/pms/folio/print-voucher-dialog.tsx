@@ -60,7 +60,7 @@ function VoucherForm({
     rows: Row[];
     options: VoucherOptions;
     initial: string[];
-    currency: App.Enums.Currency | null;
+    currency: App.Data.Property.CurrencyData | null;
 }) {
     const [selected, setSelected] = useState<Set<string>>(new Set(initial));
     const ids = rows.map((row) => row.key);
@@ -287,7 +287,7 @@ export function PrintVoucherDialog({
     rows: Row[];
     options: VoucherOptions;
     initial: string[];
-    currency: App.Enums.Currency | null;
+    currency: App.Data.Property.CurrencyData | null;
 }) {
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>

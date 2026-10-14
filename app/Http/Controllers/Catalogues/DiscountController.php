@@ -7,6 +7,7 @@ use App\Actions\Catalogues\ReorderDiscounts;
 use App\Actions\Catalogues\UpdateDiscount;
 use App\Data\Catalogues\DiscountChargeData;
 use App\Data\Catalogues\DiscountData;
+use App\Data\Property\CurrencyData;
 use App\Enums\DiscountScope;
 use App\Enums\DiscountType;
 use App\Enums\TransactionKind;
@@ -44,7 +45,7 @@ class DiscountController extends Controller
                 ->map(fn (TransactionCode $transactionCode): DiscountChargeData => DiscountChargeData::fromModel($transactionCode)),
             'types' => DiscountType::options(),
             'scopes' => DiscountScope::options(),
-            'currency' => $property->settings->currency,
+            'currency' => CurrencyData::forProperty($property),
         ]);
     }
 

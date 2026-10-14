@@ -42,7 +42,7 @@ class ReportPdf
             'group' => $filters->group?->label(),
             'groupCaption' => $filters->group?->caption(),
             'note' => $report->note($property, $filters),
-            'currency' => $property->loadMissing('settings')->settings?->currency->value ?? '',
+            'currency' => $property->loadMissing('settings')->settings?->currency->getCurrencyCode() ?? '',
             'columns' => $layout->visibleColumns(),
             'rows' => $rows,
             'sections' => $sections === null ? null : array_map(fn (ReportSection $section): array => [

@@ -93,7 +93,7 @@ class PostScheduledAddOns
                 return PostingResult::refused(PostingResult::REFUSAL_CHARGE_NOT_FOUND);
             }
 
-            $unitAmount = Money::of($addOn->unit_amount, $property->settings->currency->value);
+            $unitAmount = Money::of($addOn->unit_amount, $property->settings->currency->getCurrencyCode());
             $tax = $this->taxCalculator->calculate($property, $code, $unitAmount->multipliedBy($addOn->quantity), (string) $addOn->quantity, $this->unitNationality->for($unit));
 
             if (! $tax->isCalculated()) {

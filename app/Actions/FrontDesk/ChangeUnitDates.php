@@ -155,7 +155,7 @@ class ChangeUnitDates
                 }
             }
 
-            $currency = $locked->property->settings?->currency->value ?? 'MYR';
+            $currency = $locked->property->settings?->currency->getCurrencyCode() ?? 'MYR';
             $previousTotal = $this->total($locked, $currency);
             $fee = '0.00';
             $feeCharged = false;

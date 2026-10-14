@@ -35,7 +35,7 @@ class MasterPaymentsHeld
      */
     public function label(Reservation $reservation, string $amount): string
     {
-        $currency = $reservation->property()->with('settings')->first()?->settings?->currency->value;
+        $currency = $reservation->property()->with('settings')->first()?->settings?->currency->getCurrencyCode();
 
         return trim($currency.' '.number_format((float) $amount, 2));
     }

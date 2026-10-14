@@ -24,7 +24,7 @@ export default function RateCalendar({
     canManageInclusions,
 }: {
     calendar: App.Data.Rates.RateCalendarData;
-    currency: App.Enums.Currency;
+    currency: App.Data.Property.CurrencyData;
     today: string;
     weekendDays: number[];
     canManage: boolean;
@@ -99,7 +99,7 @@ export default function RateCalendar({
                             filters={filters}
                             canManage={canManage}
                             canManageInclusions={canManageInclusions}
-                            currency={currency}
+                            currency={currency.code}
                         />
                     </>
                 )}

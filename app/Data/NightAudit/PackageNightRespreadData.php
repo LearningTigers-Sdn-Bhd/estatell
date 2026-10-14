@@ -2,7 +2,7 @@
 
 namespace App\Data\NightAudit;
 
-use App\Enums\Currency;
+use App\Data\Property\CurrencyData;
 use App\Models\NightAuditException;
 use App\Models\UnitNight;
 use App\Services\NightAudit\PackageNightRespreadResult;
@@ -18,7 +18,7 @@ class PackageNightRespreadData extends Data
      */
     public function __construct(
         public string $title,
-        public Currency $currency,
+        public CurrencyData $currency,
         public string $total,
         public string $retryNight,
         public array $nights,
@@ -35,7 +35,7 @@ class PackageNightRespreadData extends Data
 
         return new self(
             title: __('Fix package price').' · '.($room === null ? $unit->roomType->name : __('Room :room', ['room' => $room])).' · '.$target->ratePlan->name,
-            currency: $unit->property->settings->currency,
+            currency: CurrencyData::fromCurrency($unit->property->settings->currency),
             total: (string) $spread->total->getAmount(),
             retryNight: $target->date->toDateString(),
             nights: array_map(fn (UnitNight $night, int $index): PackageNightAmountData => PackageNightAmountData::fromNight($night, $spread->amounts[$index], $spread->isCharged($night)), $spread->nights, array_keys($spread->nights)),

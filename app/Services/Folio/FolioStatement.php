@@ -326,7 +326,7 @@ class FolioStatement
             return null;
         }
 
-        $currency = $folio->loadMissing('property.settings')->property->settings?->currency->value;
+        $currency = $folio->loadMissing('property.settings')->property->settings?->currency->getCurrencyCode();
 
         return __(':company is over its credit limit by :amount. The invoice is still issued.', [
             'company' => $company->name,

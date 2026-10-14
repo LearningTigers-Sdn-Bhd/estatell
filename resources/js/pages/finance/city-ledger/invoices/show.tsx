@@ -106,7 +106,7 @@ export default function InvoiceShow({
     openCreditNote,
 }: {
     invoice: Invoice;
-    currency: App.Enums.Currency | null;
+    currency: App.Data.Property.CurrencyData | null;
     openCreditNote: boolean;
 }) {
     const canCorrectMoney = useCanCorrectMoney();

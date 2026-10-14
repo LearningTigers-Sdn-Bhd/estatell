@@ -6,10 +6,10 @@ use App\Data\Catalogues\ChargeItemChildPriceData;
 use App\Data\Catalogues\ChargeItemTaxData;
 use App\Enums\AgeBandPricing;
 use App\Enums\ChargingUnit;
-use App\Enums\Currency;
 use App\Models\ChargeItem;
 use App\Models\PropertyAgeGroup;
 use App\Models\Tax;
+use Brick\Money\Currency;
 use Illuminate\Support\Collection;
 use Spatie\LaravelData\Attributes\DataCollectionOf;
 use Spatie\LaravelData\Data;
@@ -94,7 +94,7 @@ class BoatFareRowData extends Data
         return match ($price->pricing) {
             AgeBandPricing::Free => __('Free'),
             AgeBandPricing::Percent => rtrim(rtrim(number_format((float) $price->value, 2, '.', ''), '0'), '.').'%',
-            AgeBandPricing::Fixed => $currency->value.' '.number_format((float) $price->value, 2),
+            AgeBandPricing::Fixed => $currency->getCurrencyCode().' '.number_format((float) $price->value, 2),
         };
     }
 }

@@ -23,7 +23,7 @@ type FormProps = {
     reservationId: number;
     folioId: number;
     row: Row;
-    currency: App.Enums.Currency | null;
+    currency: App.Data.Property.CurrencyData | null;
 };
 
 function RefundForm({
@@ -121,7 +121,7 @@ export function RefundPaymentDialog({
     reservationId: number;
     folioId: number;
     row: Row | null;
-    currency: App.Enums.Currency | null;
+    currency: App.Data.Property.CurrencyData | null;
     onClose: () => void;
 }) {
     const open = row !== null;

@@ -34,7 +34,7 @@ export default function RoomRevenueDayUse({
     taxes: Tax[];
     taxIds: number[];
     preview: Preview;
-    currency: App.Enums.Currency;
+    currency: App.Data.Property.CurrencyData;
 }) {
     const http = useHttp<Selection, Preview>({ tax_ids: taxIds });
     const guard = useUnsavedChanges(http.isDirty);
@@ -48,7 +48,7 @@ export default function RoomRevenueDayUse({
     const previewedKey = useRef(key);
     const money = new Intl.NumberFormat(undefined, {
         style: 'currency',
-        currency,
+        currency: currency.code,
     });
     const offTaxes = taxes.filter(
         (tax) => !tax.enabled && selected.includes(tax.id),

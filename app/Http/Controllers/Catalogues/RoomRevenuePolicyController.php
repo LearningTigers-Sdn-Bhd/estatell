@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Catalogues;
 use App\Actions\Catalogues\SaveRoomRevenuePolicy;
 use App\Data\Catalogues\ChargeItemTaxData;
 use App\Data\Catalogues\RoomRevenuePolicyData;
+use App\Data\Property\CurrencyData;
 use App\Enums\Locale;
 use App\Enums\PolicyChargeMode;
 use App\Enums\PolicyRateBasis;
@@ -42,7 +43,7 @@ class RoomRevenuePolicyController extends Controller
                 ->get()
                 ->map(fn (Tax $tax): ChargeItemTaxData => ChargeItemTaxData::fromModel($tax)),
             'preview' => $preview->calculate($property, $policy),
-            'currency' => $property->settings->currency,
+            'currency' => CurrencyData::forProperty($property),
             'chargeModes' => PolicyChargeMode::options(),
             'rateBases' => PolicyRateBasis::options(),
             'scopes' => $tab->scopeOptions(),

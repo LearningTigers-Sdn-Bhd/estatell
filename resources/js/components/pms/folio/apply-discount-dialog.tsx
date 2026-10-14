@@ -48,7 +48,7 @@ function QuoteReview({
     currency,
 }: {
     answer: Answer;
-    currency: App.Enums.Currency | null;
+    currency: App.Data.Property.CurrencyData | null;
 }) {
     const { quote, error } = answer;
 
@@ -108,7 +108,7 @@ type Props = {
     reservationId: number;
     folioId: number;
     discounts?: Discount[];
-    currency: App.Enums.Currency | null;
+    currency: App.Data.Property.CurrencyData | null;
 };
 
 function ApplyDiscountForm({

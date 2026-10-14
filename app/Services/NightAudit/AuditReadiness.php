@@ -231,7 +231,7 @@ class AuditReadiness
      */
     private function folioItems(AuditCheck $check, Property $property, Collection $folios, Closure $phrase, bool $credit = false): array
     {
-        $currency = $property->loadMissing('settings')->settings?->currency->value;
+        $currency = $property->loadMissing('settings')->settings?->currency->getCurrencyCode();
 
         return $folios->groupBy('reservation_id')->map(function (Collection $group) use ($check, $currency, $phrase, $credit): ReadinessItem {
             $first = $group->first();

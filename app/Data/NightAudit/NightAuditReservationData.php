@@ -3,9 +3,9 @@
 namespace App\Data\NightAudit;
 
 use App\Data\Payments\PaymentFormOptionsData;
+use App\Data\Property\CurrencyData;
 use App\Data\Reservations\ReservationData;
 use App\Data\Reservations\ReservationUnitData;
-use App\Enums\Currency;
 use App\Enums\PermissionEnum;
 use App\Models\Property;
 use App\Models\Reservation;
@@ -32,7 +32,7 @@ class NightAuditReservationData extends Data
         public ?PaymentFormOptionsData $paymentOptions,
         public bool $canWaiveFees,
         public bool $canAssignRoom,
-        public ?Currency $currency,
+        public ?CurrencyData $currency,
     ) {}
 
     public static function forReservation(Reservation $reservation, Property $property, User $user, ReservationOverview $overview, UnitActionMenu $actionMenu, ReservationFormOptions $options): self
@@ -53,7 +53,7 @@ class NightAuditReservationData extends Data
             paymentOptions: $user->can(PermissionEnum::PaymentRecord->value) ? $options->payments($property) : null,
             canWaiveFees: $user->can(PermissionEnum::FrontDeskWaiveFees->value),
             canAssignRoom: $user->can(PermissionEnum::ReservationsManage->value),
-            currency: $property->settings?->currency,
+            currency: CurrencyData::forProperty($property),
         );
     }
 }

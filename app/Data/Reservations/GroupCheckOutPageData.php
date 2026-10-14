@@ -2,7 +2,7 @@
 
 namespace App\Data\Reservations;
 
-use App\Enums\Currency;
+use App\Data\Property\CurrencyData;
 use Spatie\LaravelData\Data;
 
 /**
@@ -15,7 +15,7 @@ class GroupCheckOutPageData extends Data
         public int $reservationId,
         public string $reference,
         public string $title,
-        public ?Currency $currency,
+        public ?CurrencyData $currency,
         public GroupCheckOutPreviewData $preview,
         public string $cancelUrl,
     ) {}

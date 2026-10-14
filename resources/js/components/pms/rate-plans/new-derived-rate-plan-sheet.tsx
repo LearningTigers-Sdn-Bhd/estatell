@@ -58,7 +58,7 @@ export function NewDerivedRatePlanSheet({
     companies: Company[];
     derivations: { value: string; label: string }[];
     packageUnits: { value: string; label: string }[];
-    currency: App.Enums.Currency;
+    currency: App.Data.Property.CurrencyData;
     open: boolean;
     onOpenChange: (open: boolean) => void;
 }) {
@@ -97,7 +97,7 @@ export function NewDerivedRatePlanSheet({
     dataRef.current = data;
     const money = new Intl.NumberFormat(undefined, {
         style: 'currency',
-        currency,
+        currency: currency.code,
     });
     const errors = form.errors as Record<string, string | undefined>;
 
@@ -245,7 +245,7 @@ export function NewDerivedRatePlanSheet({
                                         label:
                                             option.value === 'percent'
                                                 ? `${option.label} (%)`
-                                                : `${option.label} (${currency})`,
+                                                : `${option.label} (${currency.code})`,
                                     }))}
                                     value={data.derivation}
                                     onValueChange={(value) =>

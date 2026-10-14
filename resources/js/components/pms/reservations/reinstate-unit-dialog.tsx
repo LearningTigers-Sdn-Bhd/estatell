@@ -17,7 +17,7 @@ type Props = {
     onOpenChange: (open: boolean) => void;
     reservationId: number;
     unit: Unit;
-    currency: App.Enums.Currency | null;
+    currency: App.Data.Property.CurrencyData | null;
 };
 
 function ReinstateUnitForm({

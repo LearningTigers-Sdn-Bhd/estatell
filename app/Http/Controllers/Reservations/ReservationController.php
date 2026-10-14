@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Reservations;
 
 use App\Data\CityLedger\ArInvoiceData;
 use App\Data\Folio\RoutingRulesData;
+use App\Data\Property\CurrencyData;
 use App\Data\Reservations\ReservationActivityData;
 use App\Data\Reservations\ReservationAddOnData;
 use App\Data\Reservations\ReservationListItemData;
@@ -93,7 +94,7 @@ class ReservationController extends Controller
             'sort' => $request->string('sort', 'arrival')->toString(),
             'sorts' => $this->sortOptions(),
             'sources' => ReservationSource::options(),
-            'currency' => $settings?->currency,
+            'currency' => $settings === null ? null : CurrencyData::fromCurrency($settings->currency),
             'hasReservations' => $property->reservations()->exists(),
             'canManage' => $request->user()->can(PermissionEnum::ReservationsManage->value),
         ]);
@@ -291,7 +292,7 @@ class ReservationController extends Controller
             'units' => $overview['units'],
             'tab' => $tab,
             'autoAssignRooms' => (bool) $property->settings?->auto_assign_rooms,
-            'currency' => $property->settings?->currency,
+            'currency' => CurrencyData::forProperty($property),
             'canViewGuest' => $canViewGuest,
             'canManage' => $user->can(PermissionEnum::ReservationsManage->value),
             'canCheckIn' => $user->can(PermissionEnum::FrontDeskCheckIn->value),

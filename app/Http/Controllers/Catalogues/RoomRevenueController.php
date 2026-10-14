@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Catalogues;
 use App\Actions\Catalogues\UpdateRoomRevenueTaxes;
 use App\Data\Catalogues\ChargeItemTaxData;
 use App\Data\Catalogues\RoomRevenuePreviewData;
+use App\Data\Property\CurrencyData;
 use App\Enums\SystemTransactionCode;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Catalogues\RoomRevenueTaxesRequest;
@@ -40,7 +41,7 @@ class RoomRevenueController extends Controller
                 ->map(fn (Tax $tax): ChargeItemTaxData => ChargeItemTaxData::fromModel($tax)),
             'taxIds' => $taxIds,
             'preview' => RoomRevenuePreviewData::fromCalculation($roomRevenuePreview->calculate($property, $taxIds)),
-            'currency' => $property->settings->currency,
+            'currency' => CurrencyData::forProperty($property),
             'hasDayUse' => $property->ratePlans()->dayUse()->exists(),
         ]);
     }

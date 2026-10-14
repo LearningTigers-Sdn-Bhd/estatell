@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Reports;
 
+use App\Data\Property\CurrencyData;
 use App\Data\Reports\PoliceReportRow;
 use App\Enums\PageOrientation;
 use App\Enums\PermissionEnum;
@@ -47,7 +48,7 @@ class PoliceReportController extends Controller
             'to' => $filters->to,
             'maxRangeDays' => $key->maxRangeDays(),
             'foreignOnly' => $filters->foreignOnly,
-            'currency' => $property->settings?->currency,
+            'currency' => CurrencyData::forProperty($property),
         ]);
     }
 }

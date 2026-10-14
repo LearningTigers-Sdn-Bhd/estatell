@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\CityLedger;
 
+use App\Data\Property\CurrencyData;
 use App\Http\Controllers\Controller;
 use App\Models\Property;
 use App\Services\CityLedger\AgingReport;
@@ -27,7 +28,7 @@ class AgingController extends Controller
         return Inertia::render('finance/city-ledger/aging/index', [
             'report' => $agingReport->build($property, $asAt),
             'today' => $directory->today($property),
-            'currency' => $property->settings?->currency,
+            'currency' => CurrencyData::forProperty($property),
         ]);
     }
 
@@ -56,7 +57,7 @@ class AgingController extends Controller
 
         return $printedPdf->make($property, 'pdf.ar-aging', [
             'report' => $report,
-            'currency' => $property->settings?->currency->value ?? '',
+            'currency' => $property->settings?->currency->getCurrencyCode() ?? '',
         ], 'landscape')
             ->stream('city-ledger-aging-'.$report->asAt.'.pdf');
     }

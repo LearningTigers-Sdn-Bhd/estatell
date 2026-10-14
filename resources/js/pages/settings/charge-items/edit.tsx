@@ -92,7 +92,7 @@ export default function ChargeItemEdit({
     taxes: Tax[];
     categories: Option[];
     chargingUnits: Option[];
-    currency: App.Enums.Currency;
+    currency: App.Data.Property.CurrencyData;
 }) {
     const form = useForm({
         name: chargeItem.name,
@@ -379,7 +379,7 @@ export default function ChargeItemEdit({
                                         </FieldLabel>
                                         <InputGroup className="sm:max-w-60">
                                             <InputGroupAddon>
-                                                {currency}
+                                                {currency.code}
                                             </InputGroupAddon>
                                             <InputGroupInput
                                                 id="charge-item-amount"

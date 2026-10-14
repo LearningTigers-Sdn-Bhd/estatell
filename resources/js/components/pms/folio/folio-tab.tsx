@@ -123,7 +123,7 @@ export function FolioTab({
     onToggleSummary: () => void;
     /** Opens Change price for the night of a posted room line. The page holds the Dialog. */
     onCorrectPrice?: (row: App.Data.Folio.FolioRowData) => void;
-    currency: App.Enums.Currency | null;
+    currency: App.Data.Property.CurrencyData | null;
 }) {
     const canCorrectMoney = useCanCorrectMoney();
     const [loadingCredit, setLoadingCredit] = useState(false);

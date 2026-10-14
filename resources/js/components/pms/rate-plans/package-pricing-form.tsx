@@ -59,7 +59,7 @@ export function PackagePricingForm({
     prices: Price[];
     weekdays: string[];
     weekdayOptions: WeekdayOption[];
-    currency: App.Enums.Currency;
+    currency: App.Data.Property.CurrencyData;
     /** A package that follows another has no prices of its own, so only its arrival days show. */
     following?: boolean;
 }) {
@@ -247,7 +247,7 @@ export function PackagePricingForm({
                                             <TableCell className="align-top">
                                                 <InputGroup className="w-44">
                                                     <InputGroupAddon>
-                                                        {currency}
+                                                        {currency.code}
                                                     </InputGroupAddon>
                                                     <InputGroupInput
                                                         aria-label="Package price"

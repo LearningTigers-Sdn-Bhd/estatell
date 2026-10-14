@@ -33,7 +33,7 @@ export function PricingSource({
     ratePlan: RatePlan;
     derivation: Derivation;
     derivations: { value: string; label: string }[];
-    currency: App.Enums.Currency;
+    currency: App.Data.Property.CurrencyData;
     hasOwnPrices: boolean;
     direct: ReactNode;
     /** Shown below the follow form while the plan follows another, for example a package's arrival days. */

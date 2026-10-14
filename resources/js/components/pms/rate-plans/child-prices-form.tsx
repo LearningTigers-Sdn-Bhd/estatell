@@ -25,7 +25,7 @@ export function ChildPricesForm({
     ratePlan: RatePlan;
     childPrices: ChildPrice[];
     pricings: Option[];
-    currency: App.Enums.Currency;
+    currency: App.Data.Property.CurrencyData;
 }) {
     const form = useForm<{ prices: Row[] }>({
         prices: childPrices.map((price) => ({

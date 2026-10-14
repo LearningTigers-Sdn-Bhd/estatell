@@ -3,7 +3,7 @@
 @php
     /** @var \App\Services\Property\PrintLayout $print */
     /** @var \App\Services\Folio\DocumentLineGroups $groups */
-    /** @var \App\Enums\Currency $currency */
+    /** @var \Brick\Money\Currency $currency */
     /** @var \App\Models\PrintSetting $settings */
     $strip = [
         __('Bill to') => 'Acme Travel Sdn Bhd',

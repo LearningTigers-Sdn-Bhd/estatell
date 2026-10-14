@@ -23,7 +23,7 @@ type Props = {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     types: EnumOption[];
-    currency: App.Enums.Currency | null;
+    currency: App.Data.Property.CurrencyData | null;
 };
 
 function AddCompanyForm({ open, onOpenChange, types, currency }: Props) {

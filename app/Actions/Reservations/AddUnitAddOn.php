@@ -82,7 +82,7 @@ class AddUnitAddOn
                 return AddOnResult::refused(AddOnResult::REFUSAL_AMOUNT_INVALID);
             }
 
-            $currency = $property->settings?->currency->value
+            $currency = $property->settings?->currency->getCurrencyCode()
                 ?? throw new InvalidArgumentException('The property needs settings with a currency to add an add-on.');
             $default = $item->default_amount === null ? null : Money::of($item->default_amount, $currency);
             $amount = $data->unitAmount === null ? null : Money::of($data->unitAmount, $currency);

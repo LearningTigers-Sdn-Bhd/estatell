@@ -95,7 +95,7 @@ class PostCharge
                 return PostingResult::refused(PostingResult::REFUSAL_AMOUNT_INVALID);
             }
 
-            $currency = $property->settings?->currency->value
+            $currency = $property->settings?->currency->getCurrencyCode()
                 ?? throw new InvalidArgumentException('The property needs settings with a currency to post a charge.');
             $unitAmount = Money::of($data->unitAmount, $currency);
 

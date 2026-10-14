@@ -2,7 +2,6 @@
 
 use App\Actions\Catalogues\SeedTaxes;
 use App\Actions\Catalogues\SeedTransactionCodes;
-use App\Enums\Currency;
 use App\Enums\DefaultRoleEnum;
 use App\Enums\SystemTransactionCode;
 use App\Enums\TaxRateType;
@@ -79,7 +78,7 @@ test('unsupported countries receive no tax presets', function () {
 test('the page loads the bounded catalogue with what each tax applies to', function () {
     $owner = User::factory()->owner()->create();
     $property = $owner->property;
-    PropertySetting::factory()->for($property)->create(['currency' => Currency::Myr]);
+    PropertySetting::factory()->for($property)->create(['currency' => 'MYR']);
     $roomCode = TransactionCode::factory()->for($property)->system(SystemTransactionCode::RoomRevenue)->create();
     $noShowCode = TransactionCode::factory()->for($property)->system(SystemTransactionCode::NoShowRevenue)->create();
     $parking = ChargeItem::factory()->for($property)->create(['name' => 'Parking']);
@@ -99,7 +98,7 @@ test('the page loads the bounded catalogue with what each tax applies to', funct
             ->where('taxes.1.appliesTo', [])
             ->missing('transactionCodes')
             ->where('rateTypes', TaxRateType::options())
-            ->where('currency', Currency::Myr->value)
+            ->where('currency.code', 'MYR')
             ->where('navigation.contexts.3.groups.3.items.0.title', 'Taxes')
             ->where('navigation.contexts.3.groups.3.items.0.active', true));
 });

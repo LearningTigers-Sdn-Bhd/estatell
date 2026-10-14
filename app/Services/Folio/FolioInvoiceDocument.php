@@ -2,7 +2,7 @@
 
 namespace App\Services\Folio;
 
-use App\Enums\Currency;
+use Brick\Money\Currency;
 use Carbon\CarbonImmutable;
 
 /**

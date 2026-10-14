@@ -17,7 +17,7 @@ function Figure({
 }: {
     label: string;
     amount: string;
-    currency: App.Enums.Currency | null;
+    currency: App.Data.Property.CurrencyData | null;
 }) {
     return (
         <div className="flex justify-between gap-4">
@@ -39,7 +39,7 @@ export function GroupCheckOutDone({
     canPrintReceipts,
 }: {
     done: Done;
-    currency: App.Enums.Currency | null;
+    currency: App.Data.Property.CurrencyData | null;
     reservationId: number;
     reservationUrl: string;
     canPrintReceipts: boolean;

@@ -78,7 +78,7 @@ function TaxForm({
 }: {
     tax: Tax | null;
     rateTypes: Option[];
-    currency: App.Enums.Currency;
+    currency: App.Data.Property.CurrencyData;
     onDone: () => void;
 }) {
     const form = useForm<FormData>(formValues(tax));
@@ -145,7 +145,7 @@ function TaxForm({
                     <FieldLabel htmlFor="tax-rate">Rate</FieldLabel>
                     <InputGroup>
                         {form.data.rate_type === 'flat' && (
-                            <InputGroupAddon>{currency}</InputGroupAddon>
+                            <InputGroupAddon>{currency.code}</InputGroupAddon>
                         )}
                         <InputGroupInput
                             id="tax-rate"
@@ -285,7 +285,7 @@ function TaxForm({
 
 function rateLabel(
     tax: Tax,
-    currency: App.Enums.Currency,
+    currency: App.Data.Property.CurrencyData,
     rateTypes: Option[],
 ): string {
     const value =
@@ -293,7 +293,7 @@ function rateLabel(
             ? `${Number(tax.rate).toFixed(2)}%`
             : new Intl.NumberFormat(undefined, {
                   style: 'currency',
-                  currency,
+                  currency: currency.code,
               }).format(Number(tax.rate));
     const type =
         rateTypes.find((option) => option.value === tax.rateType)?.label ??
@@ -309,7 +309,7 @@ export default function TaxesIndex({
 }: {
     taxes: Tax[];
     rateTypes: Option[];
-    currency: App.Enums.Currency;
+    currency: App.Data.Property.CurrencyData;
 }) {
     const [editing, setEditing] = useState<Tax | null | undefined>(undefined);
     const [togglingIds, setTogglingIds] = useState<Set<number>>(new Set());

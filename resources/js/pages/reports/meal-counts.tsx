@@ -18,7 +18,7 @@ type Props = {
     maxRangeDays: number | null;
     presets: App.Enums.ReportDatePreset[];
     hasMealPlans: boolean;
-    currency: App.Enums.Currency | null;
+    currency: App.Data.Property.CurrencyData | null;
 };
 
 export default function MealCountsReport({ hasMealPlans, ...props }: Props) {

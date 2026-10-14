@@ -67,7 +67,7 @@ class RefundPayment
                 return PaymentResult::refused(PaymentResult::REFUSAL_AMOUNT_INVALID);
             }
 
-            $currency = $property->settings?->currency->value
+            $currency = $property->settings?->currency->getCurrencyCode()
                 ?? throw new InvalidArgumentException('The property needs settings with a currency to refund a payment.');
             $refunded = Money::of((string) ($current->refunds()->sum('amount') ?: '0'), $currency);
             $left = Money::of($current->amount, $currency)->minus($refunded);

@@ -10,7 +10,6 @@ use App\Enums\AgeBandPricing;
 use App\Enums\BoatDirection;
 use App\Enums\BoatMode;
 use App\Enums\ChargingUnit;
-use App\Enums\Currency;
 use App\Enums\DefaultRoleEnum;
 use App\Enums\PolicyScope;
 use App\Enums\SystemTransactionCode;
@@ -57,7 +56,7 @@ function fareTripSetup(): array
 {
     $owner = User::factory()->owner()->create();
     $property = $owner->property;
-    PropertySetting::factory()->for($property)->create(['currency' => Currency::Myr]);
+    PropertySetting::factory()->for($property)->create(['currency' => 'MYR']);
     BusinessDate::factory()->for($property)->create(['date' => '2026-10-10']);
     Feature::for($property)->activate(Boats::class);
 

@@ -31,7 +31,7 @@ export function SettleCityLedgerDialog({
     onOpenChange: (open: boolean) => void;
     reservationId: number;
     folio: App.Data.Folio.FolioData;
-    currency: App.Enums.Currency | null;
+    currency: App.Data.Property.CurrencyData | null;
 }) {
     return (
         <AlertDialog open={open} onOpenChange={onOpenChange}>

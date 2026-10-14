@@ -1,6 +1,5 @@
 <?php
 
-use App\Enums\Currency;
 use App\Enums\TaxRateType;
 use App\Models\Property;
 use App\Models\PropertySetting;
@@ -22,7 +21,7 @@ function calculatorTax(Property $property, TransactionCode $sourceCode, array $a
 function taxCalculatorContext(): array
 {
     $property = Property::factory()->create();
-    PropertySetting::factory()->for($property)->create(['currency' => Currency::Myr]);
+    PropertySetting::factory()->for($property)->create(['currency' => 'MYR']);
     $sourceCode = TransactionCode::factory()->for($property)->create();
 
     return [$property, $sourceCode, app(TaxCalculator::class)];

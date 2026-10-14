@@ -44,7 +44,7 @@ export function BookingQuoteCell({
 }: {
     quote: Quote | null;
     loading: boolean;
-    currency: App.Enums.Currency | null;
+    currency: App.Data.Property.CurrencyData | null;
     overrideTotal: string;
     overrideReason: string;
     onOverrideChange: (patch: {

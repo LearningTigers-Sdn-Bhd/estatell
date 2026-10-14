@@ -46,7 +46,7 @@ class PackageNightRespread
             ->pluck('idempotency_key')->all();
         $charged = $nights->filter(fn (UnitNight $night): bool => in_array('night:'.$night->id, $keys, true));
         $unposted = $nights->reject(fn (UnitNight $night): bool => in_array('night:'.$night->id, $keys, true))->values()->all();
-        $currency = $unit->property->settings->currency->value;
+        $currency = $unit->property->settings->currency->getCurrencyCode();
         $total = Money::sum(...$nights->map(fn (UnitNight $night): Money => Money::of($night->amount, $currency))->all());
         $remaining = array_reduce($unposted, fn (Money $sum, UnitNight $night): Money => $sum->plus($night->amount), Money::zero($currency));
 

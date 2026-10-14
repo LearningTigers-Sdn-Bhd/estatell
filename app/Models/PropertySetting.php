@@ -2,12 +2,13 @@
 
 namespace App\Models;
 
-use App\Enums\Currency;
 use App\Enums\Locale;
 use App\Enums\MissedArrivalPolicy;
 use App\Enums\OverdueDeparturePolicy;
 use App\Enums\RegistrationCardScope;
 use App\Enums\WeekendNights;
+use App\Models\Casts\AsCurrency;
+use Brick\Money\Currency;
 use Database\Factories\PropertySettingFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -51,7 +52,7 @@ class PropertySetting extends Model
     protected function casts(): array
     {
         return [
-            'currency' => Currency::class,
+            'currency' => AsCurrency::class,
             'default_locale' => Locale::class,
             'arrival_grace_minutes' => 'integer',
             'auto_assign_rooms' => 'boolean',

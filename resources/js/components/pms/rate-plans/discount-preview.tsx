@@ -198,7 +198,7 @@ export function DiscountPreview({
     rules: Rule[];
     preview: Preview;
     ageGroups: AgeGroup[];
-    currency: App.Enums.Currency;
+    currency: App.Data.Property.CurrencyData;
 }) {
     const [arrival, setArrival] = useState(initialPreview.arrival);
     const [custom, setCustom] = useState(false);
@@ -231,7 +231,7 @@ export function DiscountPreview({
     payloadRef.current = payload;
     const money = new Intl.NumberFormat(undefined, {
         style: 'currency',
-        currency,
+        currency: currency.code,
     });
     const number = new Intl.NumberFormat(undefined, {
         minimumFractionDigits: 2,

@@ -28,6 +28,14 @@ class SupportAccessUsed extends PropertyNotification
     public function toMail(object $notifiable): MailMessage
     {
         $mail = (new MailMessage)
+            ->markdown('notifications::email', [
+                'mailTitle' => __('Support session at :property', ['property' => $notifiable->property->name]),
+                'propertyName' => $notifiable->property->name,
+                'supportWho' => $this->who(),
+                'mailDetails' => [__('Started') => $this->startedAt->toDayDateTimeString(), __('Duration') => __(':minutes min.', ['minutes' => $this->minutes]), __('Reason') => $this->reason],
+                'supportNote' => $this->note,
+                'supportCorrections' => array_map($this->moneyLine(...), $this->moneyCorrections),
+            ])
             ->subject($this->title())
             ->line($this->who())
             ->line(__('Started :time.', ['time' => $this->startedAt->toDayDateTimeString()]))

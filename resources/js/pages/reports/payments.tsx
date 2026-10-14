@@ -29,7 +29,7 @@ type Props = {
     staff: string;
     staffOptions: EnumOption[];
     refundsOnly: boolean;
-    currency: App.Enums.Currency | null;
+    currency: App.Data.Property.CurrencyData | null;
 };
 
 const cells: ReportCells<Row> = {

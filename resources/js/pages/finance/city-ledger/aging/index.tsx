@@ -69,7 +69,7 @@ export default function AgingIndex({
 }: {
     report: App.Data.CityLedger.AgingReportData;
     today: string;
-    currency: App.Enums.Currency | null;
+    currency: App.Data.Property.CurrencyData | null;
 }) {
     const query = { as_at: report.asAt };
     const load = (asAt: string) =>

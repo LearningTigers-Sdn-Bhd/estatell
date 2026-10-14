@@ -71,7 +71,7 @@ class NightPriceChangePreview
         }
 
         $property = $unit->property;
-        $currency = $property->settings->currency->value;
+        $currency = $property->settings->currency->getCurrencyCode();
         $newPrice = Money::of($price, $currency);
         $unit->loadMissing('discount', 'reservation');
         $changing = $nights->reject(fn (UnitNight $night): bool => $newPrice->isEqualTo($night->amount) && ! $this->hasDiscount($unit, $night))->values();

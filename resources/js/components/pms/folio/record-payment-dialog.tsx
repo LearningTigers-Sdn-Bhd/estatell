@@ -28,7 +28,7 @@ function QuoteLine({
 }: {
     label: string;
     amount: string;
-    currency: App.Enums.Currency | null;
+    currency: App.Data.Property.CurrencyData | null;
     strong?: boolean;
 }) {
     return (
@@ -49,7 +49,7 @@ type Props = {
     reservationId: number;
     folio: Folio;
     options?: Options;
-    currency: App.Enums.Currency | null;
+    currency: App.Data.Property.CurrencyData | null;
 };
 
 function RecordPaymentForm({

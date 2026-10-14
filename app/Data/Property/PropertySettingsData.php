@@ -2,7 +2,6 @@
 
 namespace App\Data\Property;
 
-use App\Enums\Currency;
 use App\Enums\Locale;
 use App\Enums\MissedArrivalPolicy;
 use App\Enums\OverdueDeparturePolicy;
@@ -14,7 +13,7 @@ use Spatie\LaravelData\Data;
 class PropertySettingsData extends Data
 {
     public function __construct(
-        public Currency $currency,
+        public CurrencyData $currency,
         public string $timeZone,
         public Locale $defaultLocale,
         public string $checkInTime,
@@ -38,7 +37,7 @@ class PropertySettingsData extends Data
     public static function fromModel(PropertySetting $settings, bool $currencyAndTimeZoneLocked): self
     {
         return new self(
-            currency: $settings->currency,
+            currency: CurrencyData::fromCurrency($settings->currency),
             timeZone: $settings->time_zone,
             defaultLocale: $settings->default_locale,
             checkInTime: substr($settings->check_in_time, 0, 5),

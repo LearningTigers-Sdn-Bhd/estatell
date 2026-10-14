@@ -29,7 +29,7 @@ type Props = {
     unit: Unit;
     canWaiveFees: boolean;
     canOverrideRestrictions: boolean;
-    currency: App.Enums.Currency | null;
+    currency: App.Data.Property.CurrencyData | null;
 };
 
 function nextDay(value: string): string {

@@ -41,7 +41,7 @@ class RateQuoteService
      */
     public function quoteDayUse(RoomType $roomType, RatePlan $plan, CarbonInterface $date, int $hours, bool $ignoreStopSell = false): DayUseQuote
     {
-        $currency = $plan->property->settings?->currency->value
+        $currency = $plan->property->settings?->currency->getCurrencyCode()
             ?? throw new InvalidArgumentException('The property needs settings with a currency to quote a day use.');
 
         try {
@@ -93,7 +93,7 @@ class RateQuoteService
             throw new QuoteRefused(RateQuote::REFUSAL_ROOM_TYPE_NOT_SOLD);
         }
 
-        $currency = $plan->property->settings?->currency->value
+        $currency = $plan->property->settings?->currency->getCurrencyCode()
             ?? throw new InvalidArgumentException('The property needs settings with a currency to quote a stay.');
 
         $pricingPlan->loadMissing('childPrices');

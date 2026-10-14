@@ -51,7 +51,7 @@ class ScheduledFolioRows
      */
     public function forReservation(Property $property, Reservation $reservation, array $unitLabels): array
     {
-        $currency = $property->settings?->currency->value;
+        $currency = $property->settings?->currency->getCurrencyCode();
         $codes = TransactionCode::query()
             ->where('property_id', $property->id)
             ->whereIn('system_key', [SystemTransactionCode::RoomRevenue->value, SystemTransactionCode::DayUseRevenue->value])

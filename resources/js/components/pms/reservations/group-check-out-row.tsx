@@ -88,7 +88,7 @@ export function GroupCheckOutTable({
     onChange: (unitId: number, patch: Partial<RowState>) => void;
     onTickAll: (unitIds: number[], ticked: boolean) => void;
     methods: Method[];
-    currency: App.Enums.Currency | null;
+    currency: App.Data.Property.CurrencyData | null;
     reservationId: number;
     onePaymentOn: boolean;
     errors: Record<string, string | undefined>;
@@ -178,7 +178,7 @@ function GroupCheckOutRow({
     state: RowState;
     onChange: (patch: Partial<RowState>) => void;
     methods: Method[];
-    currency: App.Enums.Currency | null;
+    currency: App.Data.Property.CurrencyData | null;
     reservationId: number;
     onePaymentOn: boolean;
     error?: string;

@@ -44,7 +44,7 @@ export function BoatFareTable({
 }: {
     fares: Fare[];
     money: Intl.NumberFormat;
-    currency: App.Enums.Currency;
+    currency: App.Data.Property.CurrencyData;
     chargingUnits: Option[];
     togglingIds: Set<number>;
     onToggleActive: (fare: Fare, active: boolean) => void;

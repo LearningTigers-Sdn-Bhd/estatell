@@ -71,7 +71,7 @@ export function ReservationActions({
     receiptPaymentIds: number[];
     canOverrideCredit: boolean;
     companies?: App.Data.CityLedger.CompanyOptionData[];
-    currency: App.Enums.Currency | null;
+    currency: App.Data.Property.CurrencyData | null;
     hasBoats: boolean;
     boatSetup?: App.Data.Boats.BoatSetupUnitData[];
     boatDepartures?: App.Data.Boats.BoatDepartureOptionData[];

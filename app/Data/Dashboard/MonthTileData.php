@@ -2,7 +2,7 @@
 
 namespace App\Data\Dashboard;
 
-use App\Enums\Currency;
+use App\Data\Property\CurrencyData;
 use Spatie\LaravelData\Data;
 
 /**
@@ -22,7 +22,7 @@ class MonthTileData extends Data
         public string $month,
         public string $from,
         public string $to,
-        public ?Currency $currency,
+        public ?CurrencyData $currency,
         public string $posted,
         public int $bookedNights,
         public string $bookedAmount,

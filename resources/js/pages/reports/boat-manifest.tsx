@@ -19,7 +19,7 @@ type Props = {
     from: string;
     to: string;
     maxRangeDays: number | null;
-    currency: App.Enums.Currency | null;
+    currency: App.Data.Property.CurrencyData | null;
     direction: string;
     directionOptions: EnumOption[];
     emptyTitle: string;

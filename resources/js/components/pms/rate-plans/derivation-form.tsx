@@ -45,7 +45,7 @@ export function DerivationForm({
     ratePlan: RatePlan;
     derivation: Derivation;
     derivations: { value: string; label: string }[];
-    currency: App.Enums.Currency;
+    currency: App.Data.Property.CurrencyData;
     hasOwnPrices: boolean;
 }) {
     const initial: Fields = {
@@ -67,7 +67,7 @@ export function DerivationForm({
     dataRef.current = data;
     const money = new Intl.NumberFormat(undefined, {
         style: 'currency',
-        currency,
+        currency: currency.code,
     });
     const isPercent = data.derivation === 'percent';
 
@@ -187,7 +187,7 @@ export function DerivationForm({
                                 label:
                                     option.value === 'percent'
                                         ? `${option.label} (%)`
-                                        : `${option.label} (${currency})`,
+                                        : `${option.label} (${currency.code})`,
                             }))}
                             value={data.derivation}
                             onValueChange={(value) =>

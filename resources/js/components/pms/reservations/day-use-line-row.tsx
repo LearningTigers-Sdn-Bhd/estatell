@@ -78,7 +78,7 @@ export function DayUseLineRow({
     date: string;
     /** The start of the block, `H:i`. */
     start: string;
-    currency: App.Enums.Currency | null;
+    currency: App.Data.Property.CurrencyData | null;
     errors: Errors;
     takenIds: Set<string>;
     canRemove: boolean;
@@ -112,7 +112,7 @@ export function DayUseLineRow({
     const money = (amount: string) =>
         new Intl.NumberFormat(undefined, {
             style: 'currency',
-            currency: currency ?? 'MYR',
+            currency: currency?.code ?? 'MYR',
         }).format(Number(amount));
     const error = (field: string) => errors[`lines.${index}.${field}`];
     const quoteErrors = quote ? Object.values(quote.errors) : [];

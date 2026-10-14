@@ -39,7 +39,7 @@ class PolicyChargeCalculator
      */
     public function calculate(RoomRevenuePolicy $policy, ReservationUnit $unit, ?CarbonInterface $newDeparture = null): PolicyCharge
     {
-        $currency = $unit->property()->firstOrFail()->settings->currency->value;
+        $currency = $unit->property()->firstOrFail()->settings->currency->getCurrencyCode();
         $zero = Money::zero($currency);
 
         if ($this->isInsideFreeWindow($policy, $unit)) {

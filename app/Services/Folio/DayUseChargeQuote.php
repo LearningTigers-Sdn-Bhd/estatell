@@ -34,7 +34,7 @@ class DayUseChargeQuote
      */
     public function quote(Property $property, Collection $propertyTaxes, ReservationUnit $unit, UnitDayUse $dayUse, TransactionCode $dayUseCode, ?string $nationality): NightQuote
     {
-        $currency = $property->settings->currency->value;
+        $currency = $property->settings->currency->getCurrencyCode();
         $gross = Money::of($dayUse->amount, $currency);
         $room = $gross;
         $inclusionLines = [];

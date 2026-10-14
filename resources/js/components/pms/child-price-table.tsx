@@ -44,7 +44,7 @@ export function ChildPriceTable({
     groups: ChildPriceGroup[];
     rows: ChildPriceRow[];
     pricings: Option[];
-    currency: App.Enums.Currency;
+    currency: App.Data.Property.CurrencyData;
     errors: Record<string, string | undefined>;
     /** The form key of the list, for example `prices`. Row errors are `${errorPrefix}.${index}.pricing`. */
     errorPrefix: string;
@@ -108,7 +108,7 @@ export function ChildPriceTable({
                                             <InputGroup className="sm:max-w-48">
                                                 {row.pricing === 'fixed' && (
                                                     <InputGroupAddon>
-                                                        {currency}
+                                                        {currency.code}
                                                     </InputGroupAddon>
                                                 )}
                                                 <InputGroupInput

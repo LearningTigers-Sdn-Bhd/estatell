@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Reports;
 
+use App\Data\Property\CurrencyData;
 use App\Data\Reports\RevenueRow;
 use App\Enums\PageOrientation;
 use App\Enums\PermissionEnum;
@@ -49,7 +50,7 @@ class RevenueReportController extends Controller
             'maxRangeDays' => $key->maxRangeDays(),
             'group' => $filters->group,
             'groupOptions' => ReportGroup::options($key->groups()),
-            'currency' => $property->settings?->currency,
+            'currency' => CurrencyData::forProperty($property),
         ]);
     }
 }

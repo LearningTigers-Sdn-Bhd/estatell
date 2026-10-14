@@ -164,7 +164,7 @@ test('the folio tab carries the over-limit warning for Settle, and none under th
     $setup = cityLedgerSetup();
     $setup['company']->update(['name' => 'Acme Sdn Bhd', 'credit_limit' => '500.00']);
     ArInvoice::factory()->create(['property_id' => $setup['property']->id, 'company_id' => $setup['company']->id, 'amount' => '500.00']);
-    $currency = PropertySetting::query()->where('property_id', $setup['property']->id)->sole()->currency->value;
+    $currency = PropertySetting::query()->where('property_id', $setup['property']->id)->sole()->currency->getCurrencyCode();
     $owner = User::factory()->withRole(DefaultRoleEnum::Owner)->create(['property_id' => $setup['property']->id]);
     $frontDesk = User::factory()->withRole(DefaultRoleEnum::FrontDesk)->create(['property_id' => $setup['property']->id]);
     $url = route('reservations.folio', ['property' => $setup['property']->code, 'reservation' => $setup['folio']->reservation_id, 'folio' => $setup['folio']->id]);

@@ -121,7 +121,7 @@ class FolioVoucher
             guestName: $guest->full_name,
             nationality: $this->countryOptions->name($guest->nationality_code),
             stay: $this->stay($reservation, $unitId),
-            currency: $property->settings?->currency->value ?? '',
+            currency: $property->settings?->currency->getCurrencyCode() ?? '',
             rows: [...$posted->all(), ...$later->all()],
             total: (string) $sum($posted->concat($later))->toScale(2),
             billedTo: $folio?->payerCompany?->name,

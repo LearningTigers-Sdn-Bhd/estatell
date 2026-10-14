@@ -22,7 +22,7 @@ type Props = {
     from: string;
     to: string;
     maxRangeDays: number | null;
-    currency: App.Enums.Currency | null;
+    currency: App.Data.Property.CurrencyData | null;
     group: App.Enums.ReportGroup;
     groupOptions: EnumOption[];
 };

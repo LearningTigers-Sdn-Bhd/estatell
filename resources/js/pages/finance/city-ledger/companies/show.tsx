@@ -183,7 +183,7 @@ function CreditFields({
     errors,
 }: {
     company: Company;
-    currency: App.Enums.Currency | null;
+    currency: App.Data.Property.CurrencyData | null;
     readOnly: boolean;
     errors: Record<string, string>;
 }) {
@@ -208,7 +208,7 @@ function CreditFields({
                 <SettingsInput
                     name="credit_limit"
                     placeholder="No limit"
-                    label={`Credit limit${currency ? ` (${currency})` : ''}`}
+                    label={`Credit limit${currency ? ` (${currency.code})` : ''}`}
                     value={company.creditLimit}
                     disabled={readOnly}
                     error={errors.credit_limit}
@@ -328,7 +328,7 @@ function CreditFigure({
 }: {
     label: string;
     amount: string;
-    currency: App.Enums.Currency | null;
+    currency: App.Data.Property.CurrencyData | null;
     danger?: boolean;
 }) {
     return (
@@ -428,7 +428,7 @@ export default function CompanyShow({
 }: {
     company: Company;
     tab: Tab;
-    currency: App.Enums.Currency | null;
+    currency: App.Data.Property.CurrencyData | null;
     canManage: boolean;
     types?: EnumOption[];
     countries?: EnumOption[];

@@ -100,7 +100,7 @@ class CheckOutSettlement
             return [];
         }
 
-        $currency = (string) $unit->property()->with('settings')->first()?->settings?->currency->value;
+        $currency = (string) $unit->property()->with('settings')->first()?->settings?->currency->getCurrencyCode();
         $names = $this->incomingScheduledCharges->unitNames(array_keys($others));
 
         return array_map(

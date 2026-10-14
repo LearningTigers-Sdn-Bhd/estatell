@@ -33,7 +33,7 @@ class DiscountQuote
      */
     public function quote(Folio $folio, Discount $discount, CarbonImmutable $businessDate, ?string $amount = null): DiscountQuoteData
     {
-        $currency = $folio->property->settings?->currency->value
+        $currency = $folio->property->settings?->currency->getCurrencyCode()
             ?? throw new InvalidArgumentException('The property needs settings with a currency to quote a discount.');
         $charges = $this->eligibleCharges($folio, $discount, $businessDate);
         $subtotal = $charges->reduce(fn (Money $sum, FolioLine $line): Money => $sum->plus($line->amount), Money::zero($currency));

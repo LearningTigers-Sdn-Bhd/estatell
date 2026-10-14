@@ -25,7 +25,7 @@ export default function RatePlanInclusions({
     chargingUnits: Option[];
     startOptions: Option[];
     endOptions: Option[];
-    currency: App.Enums.Currency;
+    currency: App.Data.Property.CurrencyData;
 }) {
     return (
         <>

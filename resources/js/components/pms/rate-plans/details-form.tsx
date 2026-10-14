@@ -33,7 +33,7 @@ function AmountField({
     id: string;
     label: string;
     description: string;
-    currency: App.Enums.Currency;
+    currency: App.Data.Property.CurrencyData;
     value: string;
     error?: string;
     onChange: (value: string) => void;
@@ -42,7 +42,7 @@ function AmountField({
         <Field data-invalid={!!error}>
             <FieldLabel htmlFor={id}>{label}</FieldLabel>
             <InputGroup className="sm:max-w-60">
-                <InputGroupAddon>{currency}</InputGroupAddon>
+                <InputGroupAddon>{currency.code}</InputGroupAddon>
                 <InputGroupInput
                     id={id}
                     type="number"
@@ -71,7 +71,7 @@ export function DetailsForm({
     nightsLockedReason = null,
 }: {
     ratePlan: RatePlan;
-    currency: App.Enums.Currency;
+    currency: App.Data.Property.CurrencyData;
     /** Why the nights of a package cannot change, or null when they can. */
     nightsLockedReason?: string | null;
 }) {

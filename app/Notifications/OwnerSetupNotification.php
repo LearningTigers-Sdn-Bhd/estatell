@@ -40,6 +40,7 @@ class OwnerSetupNotification extends Notification implements ShouldQueue
         $owner = $notifiable->loadMissing('property');
 
         return (new MailMessage)
+            ->markdown('notifications::email', ['mailTitle' => __(':property. Ready for your first step.', ['property' => $owner->property->name]), 'propertyName' => $owner->property->name, 'setupSteps' => [__('Set your password'), __('Verify your email address')]])
             ->subject(__('Set up your :app owner account', ['app' => config('app.name')]))
             ->greeting(__('Hello :name,', ['name' => $owner->name]))
             ->line(__('An administrator created :property for you.', ['property' => $owner->property->name]))

@@ -198,7 +198,7 @@ class MoveCharges
         $unitLabels = $this->preview->unitLabels($target->reservation);
         $label = fn (Folio $folio): string => $this->preview->folioLabel($folio, $unitLabels);
         $to = $label($target);
-        $currency = (string) $target->property->settings?->currency->value;
+        $currency = (string) $target->property->settings?->currency->getCurrencyCode();
         $parts = [];
 
         if ($count > 0) {

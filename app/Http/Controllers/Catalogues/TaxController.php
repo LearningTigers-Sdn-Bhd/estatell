@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Catalogues;
 use App\Actions\Catalogues\CreateTax;
 use App\Actions\Catalogues\UpdateTax;
 use App\Data\Catalogues\TaxData;
+use App\Data\Property\CurrencyData;
 use App\Enums\TaxRateType;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Catalogues\TaxRequest;
@@ -28,7 +29,7 @@ class TaxController extends Controller
         return Inertia::render('settings/taxes/index', [
             'taxes' => $taxes->map(fn (Tax $tax): TaxData => TaxData::fromModel($tax)),
             'rateTypes' => TaxRateType::options(),
-            'currency' => $property->settings->currency,
+            'currency' => CurrencyData::forProperty($property),
         ]);
     }
 

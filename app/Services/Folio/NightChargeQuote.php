@@ -52,7 +52,7 @@ class NightChargeQuote
      */
     public function quote(Property $property, Collection $propertyTaxes, ReservationUnit $unit, UnitNight $night, bool $firstNight, TransactionCode $roomCode, ?string $nationality, ?string $key = null): NightQuote
     {
-        $currency = $property->settings->currency->value;
+        $currency = $property->settings->currency->getCurrencyCode();
         $overridden = $night->override_amount !== null;
         $gross = $overridden ? Money::of($night->override_amount, $currency) : Money::of($night->base_amount, $currency)->plus($night->extra_amount)->plus($night->supplement_amount);
         $room = $gross;

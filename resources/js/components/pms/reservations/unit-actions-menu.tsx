@@ -49,7 +49,7 @@ type DialogProps = {
     canWaiveFees: boolean;
     canOverrideRestrictions: boolean;
     paymentOptions?: App.Data.Payments.PaymentFormOptionsData;
-    currency: App.Enums.Currency | null;
+    currency: App.Data.Property.CurrencyData | null;
 };
 
 /**

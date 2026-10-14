@@ -27,7 +27,7 @@ type Props = {
     title: string;
     description?: string | null;
     initialNightIds: number[];
-    currency: App.Enums.Currency | null;
+    currency: App.Data.Property.CurrencyData | null;
 };
 
 function Dates({ dates }: { dates: string[] }) {

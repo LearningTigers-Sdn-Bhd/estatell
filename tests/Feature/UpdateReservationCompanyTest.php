@@ -205,7 +205,7 @@ test('staff change the company and a refusal goes back as a field error', functi
     $master = Folio::query()->where('type', FolioType::Master)->sole();
     companyMoney($master, '1000.00');
     $other = Company::factory()->for($setup['property'])->create();
-    $currency = PropertySetting::factory()->for($setup['property'])->create()->refresh()->currency->value;
+    $currency = PropertySetting::factory()->for($setup['property'])->create()->refresh()->currency->getCurrencyCode();
 
     $this->put($url, ['company_id' => $other->id])->assertSessionHasErrors(['company_id' => 'Refund the '.$currency.' 1,000.00 payment on the Master folio first, then change the company.']);
 });

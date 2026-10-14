@@ -63,7 +63,7 @@ export function ReservationSummary({
     reservation: Reservation;
     money: Money;
     canViewCompany: boolean;
-    currency: App.Enums.Currency | null;
+    currency: App.Data.Property.CurrencyData | null;
 }) {
     const { booker } = reservation;
 

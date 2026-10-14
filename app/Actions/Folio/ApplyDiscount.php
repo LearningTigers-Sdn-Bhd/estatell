@@ -68,7 +68,7 @@ class ApplyDiscount
             }
 
             $date = $businessDate->toDateString();
-            $currency = $locked->property->settings->currency->value;
+            $currency = $locked->property->settings->currency->getCurrencyCode();
             $lines = $this->post($actor, $locked, $current, $quote, $date, $currency);
 
             if ($lines === []) {

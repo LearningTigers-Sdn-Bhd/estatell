@@ -228,7 +228,7 @@ test('closed and voided folios and payment lines are not offered', function () {
 test('charge room nights creates the unit and Room rule and the scheduled nights show on the target', function () {
     $setup = mcSetup();
     $body = mcBody($setup['master'], [], [$setup['units'][0]->id => 'room']);
-    $currency = $setup['property']->settings->currency->value;
+    $currency = $setup['property']->settings->currency->getCurrencyCode();
 
     $preview = mcPreview($setup, $body)->assertOk()->json();
     $first = collect($preview['schedules'])->firstWhere('unitId', $setup['units'][0]->id);

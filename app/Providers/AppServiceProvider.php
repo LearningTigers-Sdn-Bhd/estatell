@@ -10,9 +10,12 @@ use App\Services\Platform\Impersonation;
 use Carbon\CarbonImmutable;
 use Illuminate\Auth\Access\Response;
 use Illuminate\Auth\Events\Logout;
+use Illuminate\Auth\Notifications\ResetPassword;
+use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\Middleware\TrustProxies;
+use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Routing\Route as RoutingRoute;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Date;
@@ -49,6 +52,29 @@ class AppServiceProvider extends ServiceProvider
         $this->configureRouteBindings();
         $this->configureFeatures();
         $this->configureSupportSessions();
+        $this->configureMailBranding();
+    }
+
+    protected function configureMailBranding(): void
+    {
+        ResetPassword::toMailUsing(function (User $user, string $token): MailMessage {
+            return (new MailMessage)
+                ->subject(__('Reset your password'))
+                ->markdown('notifications::email', ['mailTitle' => __('Reset your password.'), 'propertyName' => $user->property?->name])
+                ->line(__('You are receiving this email because we received a password reset request for your account.'))
+                ->action(__('Reset Password'), url(route('password.reset', ['token' => $token, 'email' => $user->getEmailForPasswordReset()], false)))
+                ->line(__('This password reset link will expire in :count minutes.', ['count' => config('auth.passwords.'.config('auth.defaults.passwords').'.expire')]))
+                ->line(__('If you did not request a password reset, no further action is required.'));
+        });
+
+        VerifyEmail::toMailUsing(function (User $user, string $url): MailMessage {
+            return (new MailMessage)
+                ->subject(__('Verify your email address'))
+                ->markdown('notifications::email', ['mailTitle' => __('Confirm it’s your email.'), 'propertyName' => $user->property?->name])
+                ->line(__('Please click the button below to verify your email address.'))
+                ->action(__('Verify Email Address'), $url)
+                ->line(__('If you did not create an account, no further action is required.'));
+        });
     }
 
     /**

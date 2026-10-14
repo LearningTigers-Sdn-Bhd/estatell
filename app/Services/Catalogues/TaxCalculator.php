@@ -139,7 +139,7 @@ class TaxCalculator
             throw new InvalidArgumentException('Every tax must belong to the property.');
         }
 
-        if ($property->settings === null || $amount->getCurrency()->getCurrencyCode() !== $property->settings->currency->value) {
+        if ($property->settings === null || $amount->getCurrency()->getCurrencyCode() !== $property->settings->currency->getCurrencyCode()) {
             throw new InvalidArgumentException('The entered amount must use the property currency.');
         }
 

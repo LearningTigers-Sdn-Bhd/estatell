@@ -13,7 +13,7 @@ type FormProps = {
     open: boolean;
     onClose: () => void;
     allocation: Allocation;
-    currency: App.Enums.Currency | null;
+    currency: App.Data.Property.CurrencyData | null;
 };
 
 function ReverseForm({ open, onClose, allocation, currency }: FormProps) {
@@ -78,7 +78,7 @@ export function ReverseAllocationDialog({
 }: {
     allocation: Allocation | null;
     onClose: () => void;
-    currency: App.Enums.Currency | null;
+    currency: App.Data.Property.CurrencyData | null;
 }) {
     const open = allocation !== null;
     const kept = useRetainedValue(allocation);

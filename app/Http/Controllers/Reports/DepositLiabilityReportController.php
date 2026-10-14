@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Reports;
 
+use App\Data\Property\CurrencyData;
 use App\Data\Reports\DepositLiabilityRow;
 use App\Enums\PageOrientation;
 use App\Enums\PermissionEnum;
@@ -48,7 +49,7 @@ class DepositLiabilityReportController extends Controller
             'from' => $filters->from,
             'to' => $filters->to,
             'maxRangeDays' => $key->maxRangeDays(),
-            'currency' => $property->settings?->currency,
+            'currency' => CurrencyData::forProperty($property),
         ]);
     }
 }

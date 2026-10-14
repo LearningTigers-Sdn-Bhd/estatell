@@ -5,7 +5,6 @@ use App\Actions\Boats\SetBoatTrips;
 use App\Data\Boats\BoatTripData;
 use App\Enums\BoatDirection;
 use App\Enums\BoatMode;
-use App\Enums\Currency;
 use App\Enums\DefaultRoleEnum;
 use App\Enums\UnitStatus;
 use App\Features\Boats;
@@ -35,7 +34,7 @@ function bulkTripFixture(bool $featureOn = true): array
 {
     $owner = User::factory()->owner()->create();
     $property = $owner->property;
-    PropertySetting::factory()->for($property)->create(['currency' => Currency::Myr]);
+    PropertySetting::factory()->for($property)->create(['currency' => 'MYR']);
     BusinessDate::factory()->for($property)->create(['date' => '2026-10-10']);
 
     if ($featureOn) {

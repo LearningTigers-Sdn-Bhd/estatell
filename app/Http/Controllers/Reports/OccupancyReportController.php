@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Reports;
 
+use App\Data\Property\CurrencyData;
 use App\Data\Reports\OccupancyRow;
 use App\Enums\PageOrientation;
 use App\Enums\PermissionEnum;
@@ -46,7 +47,7 @@ class OccupancyReportController extends Controller
             'from' => $filters->from,
             'to' => $filters->to,
             'maxRangeDays' => $key->maxRangeDays(),
-            'currency' => $property->settings?->currency,
+            'currency' => CurrencyData::forProperty($property),
         ]);
     }
 }

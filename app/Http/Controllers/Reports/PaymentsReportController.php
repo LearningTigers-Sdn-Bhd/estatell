@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Reports;
 
+use App\Data\Property\CurrencyData;
 use App\Data\Reports\PaymentRow;
 use App\Enums\PageOrientation;
 use App\Enums\PermissionEnum;
@@ -54,7 +55,7 @@ class PaymentsReportController extends Controller
             'staff' => $filters->staff === null ? '' : (string) $filters->staff,
             'staffOptions' => $report->staffOptions($property, $filters),
             'refundsOnly' => $filters->refundsOnly,
-            'currency' => $property->settings?->currency,
+            'currency' => CurrencyData::forProperty($property),
         ]);
     }
 }

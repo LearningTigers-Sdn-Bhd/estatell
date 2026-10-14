@@ -63,7 +63,7 @@ export function ArPaymentsTab({
     payments: Payment[];
     openInvoices: App.Data.CityLedger.OpenArInvoiceData[];
     methods: App.Data.CityLedger.ArPaymentMethodOptionData[];
-    currency: App.Enums.Currency | null;
+    currency: App.Data.Property.CurrencyData | null;
     canRecordPayment: boolean;
 }) {
     const [recording, setRecording] = useState(false);

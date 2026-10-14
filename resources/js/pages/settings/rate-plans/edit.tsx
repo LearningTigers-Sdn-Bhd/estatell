@@ -13,7 +13,7 @@ export default function RatePlanEdit({
     nightsLockedReason,
 }: {
     ratePlan: RatePlan;
-    currency: App.Enums.Currency;
+    currency: App.Data.Property.CurrencyData;
     nightsLockedReason: string | null;
 }) {
     return (

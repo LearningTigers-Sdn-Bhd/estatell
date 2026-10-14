@@ -12,13 +12,16 @@ import {
 type Tax = App.Data.Catalogues.ChargeItemTaxData;
 
 /** A tax's name and rate, with "(inactive)" when it is disabled. */
-export function taxLabel(tax: Tax, currency: App.Enums.Currency): string {
+export function taxLabel(
+    tax: Tax,
+    currency: App.Data.Property.CurrencyData,
+): string {
     const rate =
         tax.rateType === 'percent'
             ? `${Number(tax.rate).toFixed(2)}%`
             : new Intl.NumberFormat(undefined, {
                   style: 'currency',
-                  currency,
+                  currency: currency.code,
               }).format(Number(tax.rate));
 
     return `${tax.name} · ${rate}${tax.enabled ? '' : ' (inactive)'}`;
@@ -35,7 +38,7 @@ export function ChargeItemTaxesField({
     error,
 }: {
     taxes: Tax[];
-    currency: App.Enums.Currency;
+    currency: App.Data.Property.CurrencyData;
     value: string[];
     onValueChange: (value: string[]) => void;
     error?: string;

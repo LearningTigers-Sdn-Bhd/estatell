@@ -31,7 +31,7 @@ type Props = {
     defaultDirection: string;
     directions: Option[];
     fares: Fare[];
-    currency: App.Enums.Currency;
+    currency: App.Data.Property.CurrencyData;
 };
 
 type FormData = {
@@ -90,7 +90,7 @@ function BoatDepartureForm({
     const { data, errors, setData } = form;
     const money = new Intl.NumberFormat(undefined, {
         style: 'currency',
-        currency,
+        currency: currency.code,
     });
     // Only the property-side time moves the upcoming trips: Arrives for Boat in, Leaves for Boat out.
     const movesBookings =

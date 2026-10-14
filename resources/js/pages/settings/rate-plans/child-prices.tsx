@@ -16,7 +16,7 @@ export default function RatePlanChildPrices({
     ratePlan: RatePlan;
     childPrices: App.Data.Rates.RatePlanChildPriceData[];
     ageBandPricings: { value: string; label: string }[];
-    currency: App.Enums.Currency;
+    currency: App.Data.Property.CurrencyData;
 }) {
     return (
         <>

@@ -43,7 +43,7 @@ type Props = {
     /** The reservation's company: a plan linked to companies shows only for one of them. */
     companyId: number | null;
     options?: Options;
-    currency: App.Enums.Currency | null;
+    currency: App.Data.Property.CurrencyData | null;
     /** A reservation is all overnight or all day use: a day use reservation adds day use lines. */
     stayType?: 'overnight' | 'day_use';
 };
@@ -139,7 +139,7 @@ function AddUnitForm({
     const money = (amount: string) =>
         new Intl.NumberFormat(undefined, {
             style: 'currency',
-            currency: currency ?? 'MYR',
+            currency: currency?.code ?? 'MYR',
         }).format(Number(amount));
     const ends = endsAt(offers, data.hours);
     const roomType = roomTypes.find(

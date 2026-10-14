@@ -32,7 +32,7 @@ class AuditResultSummary
         $audit->loadMissing('property.settings', 'businessDate');
         $property = $audit->property;
         $date = CarbonImmutable::parse($audit->businessDate->date->toDateString());
-        $currency = $property->settings->currency->value;
+        $currency = $property->settings->currency->getCurrencyCode();
 
         $revenue = DailyRevenue::query()
             ->with('transactionCode')

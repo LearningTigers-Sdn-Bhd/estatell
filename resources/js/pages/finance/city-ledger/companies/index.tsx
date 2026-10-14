@@ -39,7 +39,7 @@ export default function CompaniesIndex({
     companies: Company[];
     types: EnumOption[];
     statuses: EnumOption[];
-    currency: App.Enums.Currency | null;
+    currency: App.Data.Property.CurrencyData | null;
     canManage: boolean;
 }) {
     const [search, setSearch] = useState('');

@@ -7,6 +7,7 @@ use App\Actions\Boats\DeleteBoatDeparture;
 use App\Actions\Boats\UpdateBoatDeparture;
 use App\Data\Boats\BoatDepartureData;
 use App\Data\Boats\BoatFareData;
+use App\Data\Property\CurrencyData;
 use App\Enums\BoatDirection;
 use App\Enums\TransactionCategory;
 use App\Http\Controllers\Controller;
@@ -55,7 +56,7 @@ class BoatDepartureController extends Controller
                 ->map(fn (ChargeItem $chargeItem): BoatFareData => BoatFareData::fromModel($chargeItem))
                 ->all(),
             'directions' => BoatDirection::options(),
-            'currency' => $property->settings->currency,
+            'currency' => CurrencyData::forProperty($property),
         ]);
     }
 

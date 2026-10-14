@@ -55,7 +55,7 @@
 
     <table class="gap-8">
         <tr class="total">
-            <td class="num">{{ __('Balance :currency', ['currency' => $invoice->currency->value]) }}</td>
+            <td class="num">{{ __('Balance :currency', ['currency' => $invoice->currency->getCurrencyCode()]) }}</td>
             <td class="num" style="width: 22%;">{{ $money($invoice->balance) }}</td>
         </tr>
     </table>

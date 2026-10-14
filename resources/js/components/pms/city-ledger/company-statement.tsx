@@ -74,7 +74,7 @@ export function CompanyStatement({
 }: {
     companyId: number;
     statement: Statement;
-    currency: App.Enums.Currency | null;
+    currency: App.Data.Property.CurrencyData | null;
 }) {
     const [from, setFrom] = useState(data.from);
     const [to, setTo] = useState(data.to);

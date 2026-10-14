@@ -43,7 +43,7 @@ type Props = {
     sort: string;
     sorts: EnumOption[];
     sources: EnumOption[];
-    currency: App.Enums.Currency | null;
+    currency: App.Data.Property.CurrencyData | null;
     hasReservations: boolean;
     canManage: boolean;
 };

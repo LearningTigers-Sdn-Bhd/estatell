@@ -389,7 +389,7 @@ export type MonthTileData = {
 month: string,
 from: string,
 to: string,
-currency: App.Enums.Currency | null,
+currency: App.Data.Property.CurrencyData | null,
 posted: string,
 bookedNights: number,
 bookedAmount: string,
@@ -537,7 +537,7 @@ export type MoveChargesPageData = {
 reservationId: number,
 reference: string,
 title: string,
-currency: App.Enums.Currency | null,
+currency: App.Data.Property.CurrencyData | null,
 folios: App.Data.Folio.MoveFolioData[],
 targetId: number,
 lineIds: number[],
@@ -842,7 +842,7 @@ units: App.Data.Reservations.ReservationUnitData[],
 paymentOptions: App.Data.Payments.PaymentFormOptionsData | null,
 canWaiveFees: boolean,
 canAssignRoom: boolean,
-currency: App.Enums.Currency | null,
+currency: App.Data.Property.CurrencyData | null,
 };
 export type NightAuditSheetData = {
 date: string | null,
@@ -865,7 +865,7 @@ charged: boolean,
 };
 export type PackageNightRespreadData = {
 title: string,
-currency: App.Enums.Currency,
+currency: App.Data.Property.CurrencyData,
 total: string,
 retryNight: string,
 nights: App.Data.NightAudit.PackageNightAmountData[],
@@ -1069,6 +1069,11 @@ isOwner: boolean,
 };
 }
 namespace Property {
+export type CurrencyData = {
+code: string,
+name: string,
+decimals: number,
+};
 export type PrintSettingsData = {
 font: App.Enums.PdfFont,
 fontSize: App.Enums.PdfFontSize,
@@ -1125,7 +1130,7 @@ tin: string | null,
 logoUrl: string | null,
 };
 export type PropertySettingsData = {
-currency: App.Enums.Currency,
+currency: App.Data.Property.CurrencyData,
 timeZone: string,
 defaultLocale: App.Enums.Locale,
 checkInTime: string,
@@ -1921,7 +1926,7 @@ export type GroupCheckOutPageData = {
 reservationId: number,
 reference: string,
 title: string,
-currency: App.Enums.Currency | null,
+currency: App.Data.Property.CurrencyData | null,
 preview: App.Data.Reservations.GroupCheckOutPreviewData,
 cancelUrl: string,
 };
@@ -2501,7 +2506,6 @@ export type ColumnAlign = 'left' | 'center' | 'right';
 export type CompanyImportMode = 'simple' | 'detailed';
 export type CompanyStatus = 'active' | 'suspended';
 export type CompanyType = 'corporate' | 'travel_agent' | 'government';
-export type Currency = 'MYR';
 export type DefaultMealPeriod = 'breakfast' | 'lunch' | 'dinner';
 export type DefaultRoleEnum = 'owner' | 'manager' | 'front_desk' | 'housekeeping' | 'finance';
 export type DiscountScope = 'room_only' | 'all_charges' | 'selected';

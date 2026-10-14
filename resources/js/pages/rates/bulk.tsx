@@ -45,7 +45,7 @@ export default function RateBulkEdit({
     plans: Plan[];
     ratePlan: App.Data.Rates.RatePlanData | null;
     roomTypes: App.Data.Rates.RatePricingRoomTypeData[];
-    currency: App.Enums.Currency;
+    currency: App.Data.Property.CurrencyData;
     weekendNights: string;
     weekendNightsOptions: App.Data.Property.WeekendNightsOptionData[];
     today: string;

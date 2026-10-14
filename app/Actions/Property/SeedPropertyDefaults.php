@@ -13,7 +13,6 @@ use App\Actions\Rates\SeedRatePlans;
 use App\Actions\Registration\SeedRegistrationCardFields;
 use App\Actions\Registration\SeedRegistrationTerms;
 use App\Actions\Staff\SeedDefaultRoles;
-use App\Enums\Currency;
 use App\Enums\Locale;
 use App\Enums\MissedArrivalPolicy;
 use App\Enums\OverdueDeparturePolicy;
@@ -81,7 +80,7 @@ class SeedPropertyDefaults
             PropertyType::Resort,
             PropertyType::ServicedApartment,
             PropertyType::Homestay => [
-                'currency' => Currency::Myr,
+                'currency' => 'MYR',
                 'time_zone' => 'Asia/Kuala_Lumpur',
                 'default_locale' => Locale::English,
                 'check_in_time' => '15:00',

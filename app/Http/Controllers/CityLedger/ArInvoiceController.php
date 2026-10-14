@@ -5,6 +5,7 @@ namespace App\Http\Controllers\CityLedger;
 use App\Actions\CityLedger\IssueCreditNote;
 use App\Actions\CityLedger\VoidArInvoice;
 use App\Data\CityLedger\ArInvoiceRowData;
+use App\Data\Property\CurrencyData;
 use App\Enums\ArInvoiceStatus;
 use App\Enums\ArInvoiceType;
 use App\Enums\PermissionEnum;
@@ -42,7 +43,7 @@ class ArInvoiceController extends Controller
             'sort' => $request->string('sort')->toString(),
             'types' => ArInvoiceType::options(),
             'statuses' => ArInvoiceStatus::options(),
-            'currency' => $property->settings?->currency,
+            'currency' => CurrencyData::forProperty($property),
         ]);
     }
 
@@ -53,7 +54,7 @@ class ArInvoiceController extends Controller
         return Inertia::render('finance/city-ledger/invoices/show', [
             'invoice' => $data,
             'openCreditNote' => $data->canCreditNote && $request->boolean('credit'),
-            'currency' => $property->settings?->currency,
+            'currency' => CurrencyData::forProperty($property),
         ]);
     }
 
@@ -76,7 +77,7 @@ class ArInvoiceController extends Controller
         $result = $issueCreditNote($request->user(), $invoice, $request->string('amount')->toString(), $request->string('reason')->toString());
 
         if ($result->isRefused()) {
-            $currency = $property->settings?->currency->value ?? '';
+            $currency = $property->settings?->currency->getCurrencyCode() ?? '';
             $balance = trim($currency.' '.number_format((float) $arInvoiceBalance->forInvoice($invoice), 2));
             $receipts = $arInvoiceBalance->activeReceiptNumbers($invoice);
 

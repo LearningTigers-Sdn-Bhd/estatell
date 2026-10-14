@@ -21,7 +21,7 @@ class ArPaymentReceipt
             method: $payment->paymentMethod->name,
             reference: $payment->reference,
             notes: $payment->notes,
-            currency: $payment->property->settings?->currency->value ?? '',
+            currency: $payment->property->settings?->currency->getCurrencyCode() ?? '',
             total: (string) $payment->amount,
             receivedBy: $payment->receiver->name,
             isVoid: $payment->voided_at !== null,

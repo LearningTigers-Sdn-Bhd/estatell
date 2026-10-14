@@ -6,7 +6,6 @@ use App\Actions\Catalogues\SeedChargeItems;
 use App\Actions\Catalogues\SeedTransactionCodes;
 use App\Enums\AgeBandPricing;
 use App\Enums\ChargingUnit;
-use App\Enums\Currency;
 use App\Enums\DefaultRoleEnum;
 use App\Enums\SystemTransactionCode;
 use App\Enums\TransactionCategory;
@@ -67,7 +66,7 @@ function chargeItemPayloadFor(ChargeItem $chargeItem, array $overrides = []): ar
 test('the list loads the bounded catalogue in active order with its form data', function () {
     $owner = User::factory()->owner()->create();
     $property = $owner->property;
-    PropertySetting::factory()->for($property)->create(['currency' => Currency::Myr]);
+    PropertySetting::factory()->for($property)->create(['currency' => 'MYR']);
     $serviceTax = Tax::factory()->for($property)->create(['name' => 'Service tax', 'enabled' => true]);
     Tax::factory()->for($property)->create(['name' => 'Draft tax', 'enabled' => false]);
     $second = ChargeItem::factory()->for($property)->create(['name' => 'Second', 'position' => 2]);
@@ -90,7 +89,7 @@ test('the list loads the bounded catalogue in active order with its form data', 
             ->where('taxes', fn ($taxes) => collect($taxes)->pluck('name')->all() === ['Service tax', 'Draft tax'])
             ->where('categories', TransactionCategory::chargeItemOptions())
             ->where('chargingUnits', ChargingUnit::options())
-            ->where('currency', Currency::Myr->value));
+            ->where('currency.code', 'MYR'));
 });
 
 test('owners create charge items at the end with defaults and their own charge code, then land on the edit page', function () {
@@ -147,7 +146,7 @@ test('creating a charge item redirects to its edit page with a toast', function 
 test('the edit page loads the item with its form data', function () {
     $owner = User::factory()->owner()->create();
     $property = $owner->property;
-    PropertySetting::factory()->for($property)->create(['currency' => Currency::Myr]);
+    PropertySetting::factory()->for($property)->create(['currency' => 'MYR']);
     $tax = Tax::factory()->for($property)->create(['name' => 'Service tax']);
     $chargeItem = ChargeItem::factory()->for($property)->create(['name' => 'Breakfast', 'default_amount' => '25.00']);
     $tax->applicableTransactionCodes()->attach($chargeItem->transaction_code_id);
@@ -163,7 +162,7 @@ test('the edit page loads the item with its form data', function () {
             ->where('taxes', fn ($taxes) => collect($taxes)->pluck('name')->all() === ['Service tax'])
             ->where('categories', TransactionCategory::chargeItemOptions())
             ->where('chargingUnits', ChargingUnit::options())
-            ->where('currency', Currency::Myr->value));
+            ->where('currency.code', 'MYR'));
 });
 
 test('items priced when charging always allow the amount to be entered', function () {

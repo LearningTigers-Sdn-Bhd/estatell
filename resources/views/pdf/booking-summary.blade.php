@@ -69,7 +69,7 @@
         @if ($summary->balanceDue !== null)
         <table class="gap-8">
             <tr class="total">
-                <td class="num">{{ $credit ? __('Credit :currency', ['currency' => $summary->currency->value]) : __('Balance due :currency', ['currency' => $summary->currency->value]) }}</td>
+                <td class="num">{{ $credit ? __('Credit :currency', ['currency' => $summary->currency->getCurrencyCode()]) : __('Balance due :currency', ['currency' => $summary->currency->getCurrencyCode()]) }}</td>
                 <td class="num" style="width: 22%;">{{ $money(ltrim($summary->balanceDue, '-')) }}</td>
             </tr>
         </table>

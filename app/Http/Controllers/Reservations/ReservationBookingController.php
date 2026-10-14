@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Reservations;
 
 use App\Actions\Reservations\CreateBooking;
+use App\Data\Property\CurrencyData;
 use App\Enums\BillingMode;
 use App\Enums\BoatDirection;
 use App\Enums\Gender;
@@ -189,7 +190,7 @@ class ReservationBookingController extends Controller
             'hasBoats' => Feature::for($property)->active(Boats::class),
             'boatDepartures' => Feature::for($property)->active(Boats::class) ? $options->boatDepartures($property) : [],
             'autoAssignRooms' => (bool) $property->settings?->auto_assign_rooms,
-            'currency' => $property->settings?->currency,
+            'currency' => CurrencyData::forProperty($property),
             'canOverrideRestrictions' => $request->user()->can(PermissionEnum::RatesOverrideRestrictions->value),
             'canManageGuests' => $canManageGuests,
             'countries' => $canManageGuests ? app(CountryOptions::class)->options() : [],

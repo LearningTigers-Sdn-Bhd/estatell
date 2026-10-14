@@ -1,7 +1,6 @@
 <?php
 
 use App\Enums\ChargingUnit;
-use App\Enums\Currency;
 use App\Enums\DefaultRoleEnum;
 use App\Enums\TransactionCategory;
 use App\Features\Boats;
@@ -18,7 +17,7 @@ use Spatie\Activitylog\Models\Activity;
 
 function boatFareEnable(Property $property): void
 {
-    PropertySetting::factory()->for($property)->create(['currency' => Currency::Myr]);
+    PropertySetting::factory()->for($property)->create(['currency' => 'MYR']);
     Feature::for($property)->activate(Boats::class);
 }
 

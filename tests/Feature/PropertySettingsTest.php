@@ -1,7 +1,6 @@
 <?php
 
 use App\Actions\Onboarding\RegisterPropertyOwner;
-use App\Enums\Currency;
 use App\Enums\Locale;
 use App\Enums\PropertyType;
 use App\Enums\WeekendNights;
@@ -55,7 +54,7 @@ test('new owners see setup and saving basics creates defaults', function () {
     $settings = $property->refresh()->settings;
     expect($property->type)->toBe(PropertyType::Homestay)
         ->and($property->country_code)->toBe('MY')
-        ->and($settings->currency)->toBe(Currency::Myr)
+        ->and($settings->currency->getCurrencyCode())->toBe('MYR')
         ->and($settings->time_zone)->toBe('Asia/Kuala_Lumpur')
         ->and($settings->default_locale)->toBe(Locale::English)
         ->and($settings->check_in_time)->toBe('15:00:00')
@@ -142,7 +141,7 @@ test('invalid values and missing setup cannot update settings', function () {
     $settings = PropertySetting::factory()->for($property)->create();
 
     $this->put(route('settings.update', [$property->code, 'general']), generalInput([
-        'currency' => 'USD', 'time_zone' => 'Somewhere',
+        'currency' => 'KWD', 'time_zone' => 'Somewhere',
     ]))->assertSessionHasErrors(['currency', 'time_zone']);
     $this->put(route('settings.registration-card.update', $property->code), [
         'registration_card_scope' => 'primary_only', 'security_deposit_amount' => '1.999',
@@ -150,7 +149,7 @@ test('invalid values and missing setup cannot update settings', function () {
     $this->put(route('onboarding.basics.update', $property->code), basicsInput(['type' => 'invalid']))
         ->assertSessionHasErrors(['type']);
 
-    expect($settings->refresh()->currency)->toBe(Currency::Myr)
+    expect($settings->refresh()->currency->getCurrencyCode())->toBe('MYR')
         ->and($property->refresh()->type)->toBe(PropertyType::Hotel);
 });
 
@@ -180,7 +179,7 @@ test('currency and time zone are fixed after the property goes live', function (
     ]))->assertSessionHasNoErrors();
 
     expect($settings->refresh()->time_zone)->toBe('Asia/Kuala_Lumpur')
-        ->and($settings->currency)->toBe(Currency::Myr)
+        ->and($settings->currency->getCurrencyCode())->toBe('MYR')
         ->and($settings->default_locale)->toBe(Locale::Malay);
 });
 

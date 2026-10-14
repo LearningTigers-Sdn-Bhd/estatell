@@ -19,7 +19,7 @@ type Props = {
     to: string;
     maxRangeDays: number | null;
     foreignOnly: boolean;
-    currency: App.Enums.Currency | null;
+    currency: App.Data.Property.CurrencyData | null;
 };
 
 const cells: ReportCells<Row> = {

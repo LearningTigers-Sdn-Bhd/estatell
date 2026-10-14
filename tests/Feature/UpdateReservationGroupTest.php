@@ -115,7 +115,7 @@ test('a name-only edit and a fully refunded master do not block', function () {
 test('the group route shows the refusal on the billing mode field and saves otherwise', function () {
     $user = User::factory()->withRole(DefaultRoleEnum::Owner)->create();
     $reservation = Reservation::factory()->create(['property_id' => $user->property_id]);
-    $currency = PropertySetting::factory()->for($user->property)->create()->refresh()->currency->value;
+    $currency = PropertySetting::factory()->for($user->property)->create()->refresh()->currency->getCurrencyCode();
     $url = route('reservations.group.update', ['property' => $user->property->code, 'reservation' => $reservation->id]);
     $master = groupMaster($reservation);
     groupMoney($master, '1000.00');

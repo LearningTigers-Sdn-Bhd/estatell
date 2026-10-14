@@ -129,7 +129,7 @@ test('the header and summary carry the reservation figures from units that hold 
     $this->actingAs($user)->get(pageUrl($property, $reservation))->assertInertia(fn (Assert $page) => $page
         ->component('reservations/show')
         ->where('tab', 'units')
-        ->where('currency', 'MYR')
+        ->where('currency.code', 'MYR')
         ->where('reservation.reference', $reservation->reference)
         ->where('reservation.title', 'Tan trip')
         ->where('reservation.isGroup', true)

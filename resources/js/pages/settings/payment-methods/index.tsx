@@ -113,7 +113,7 @@ function PaymentMethodForm({
     types: TypeOption[];
     chargeItems: ChargeItem[];
     surchargeTypes: Option[];
-    currency: App.Enums.Currency;
+    currency: App.Data.Property.CurrencyData;
     onDone: () => void;
 }) {
     const form = useForm<FormData>(formValues(paymentMethod, types));
@@ -263,7 +263,7 @@ function PaymentMethodForm({
                             <InputGroup>
                                 {form.data.surcharge_type === 'fixed' && (
                                     <InputGroupAddon>
-                                        {currency}
+                                        {currency.code}
                                     </InputGroupAddon>
                                 )}
                                 <InputGroupInput
@@ -416,7 +416,7 @@ function PaymentMethodTable({
 }: {
     paymentMethods: PaymentMethod[];
     surchargeTypes: Option[];
-    currency: App.Enums.Currency;
+    currency: App.Data.Property.CurrencyData;
     onEdit: (paymentMethod: PaymentMethod) => void;
     onMove: (from: number, to: number) => void;
     onToggleActive: (paymentMethod: PaymentMethod, active: boolean) => void;
@@ -424,7 +424,7 @@ function PaymentMethodTable({
 }) {
     const money = new Intl.NumberFormat(undefined, {
         style: 'currency',
-        currency,
+        currency: currency.code,
     });
     const activeMethods = paymentMethods.filter(
         (paymentMethod) => paymentMethod.active,
@@ -584,7 +584,7 @@ export default function PaymentMethodsIndex({
     types: TypeOption[];
     chargeItems: ChargeItem[];
     surchargeTypes: Option[];
-    currency: App.Enums.Currency;
+    currency: App.Data.Property.CurrencyData;
 }) {
     const [editing, setEditing] = useState<PaymentMethod | null | undefined>(
         undefined,

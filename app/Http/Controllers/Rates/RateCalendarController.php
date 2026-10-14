@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Rates;
 
 use App\Actions\Rates\ExtendRates;
 use App\Actions\Rates\SaveRates;
+use App\Data\Property\CurrencyData;
 use App\Data\Property\WeekendNightsOptionData;
 use App\Data\Rates\RateBulkPlanData;
 use App\Data\Rates\RatePlanData;
@@ -38,8 +39,8 @@ class RateCalendarController extends Controller
         [$from, $to] = $request->range($today);
 
         return Inertia::render('rates/calendar', [
-            'calendar' => $rateCalendarService->forRange($property, $from, $to, $today, $property->settings->currency->value),
-            'currency' => $property->settings->currency,
+            'calendar' => $rateCalendarService->forRange($property, $from, $to, $today, $property->settings->currency->getCurrencyCode()),
+            'currency' => CurrencyData::forProperty($property),
             'today' => $today->toDateString(),
             'weekendDays' => $property->settings->weekend_nights->isoWeekdays(),
             'canManage' => $request->user()->can(PermissionEnum::RatesManage->value),
@@ -70,7 +71,7 @@ class RateCalendarController extends Controller
                     $pricedUntil[$roomType->id] ?? null,
                     $ratesEndingCheck->isEnding($pricedUntil[$roomType->id] ?? null, $today),
                 )),
-            'currency' => $property->settings->currency,
+            'currency' => CurrencyData::forProperty($property),
             'weekendNights' => $property->settings->weekend_nights,
             'weekendNightsOptions' => array_map(WeekendNightsOptionData::fromEnum(...), WeekendNights::cases()),
             'today' => $today->toDateString(),

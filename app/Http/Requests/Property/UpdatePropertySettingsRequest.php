@@ -2,13 +2,13 @@
 
 namespace App\Http\Requests\Property;
 
-use App\Enums\Currency;
 use App\Enums\Locale;
 use App\Enums\MissedArrivalPolicy;
 use App\Enums\OverdueDeparturePolicy;
 use App\Enums\WeekendNights;
 use App\Models\Property;
 use App\Services\Platform\Impersonation;
+use App\Services\Property\CurrencyOptions;
 use App\Services\Property\SettingsLock;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -52,7 +52,7 @@ class UpdatePropertySettingsRequest extends FormRequest
 
         return match ($this->route('section')) {
             'general' => [
-                'currency' => $locked ? ['exclude'] : ['required', Rule::enum(Currency::class)],
+                'currency' => $locked ? ['exclude'] : ['required', Rule::in(CurrencyOptions::codes())],
                 'time_zone' => $locked ? ['exclude'] : ['required', 'timezone'],
                 'default_locale' => ['required', Rule::enum(Locale::class)],
                 'check_in_time' => ['required', 'date_format:H:i'],

@@ -7,6 +7,7 @@ use App\Actions\Catalogues\ReorderPaymentMethods;
 use App\Actions\Catalogues\UpdatePaymentMethod;
 use App\Data\Catalogues\PaymentMethodData;
 use App\Data\Catalogues\SurchargeChargeItemData;
+use App\Data\Property\CurrencyData;
 use App\Enums\PaymentMethodType;
 use App\Enums\SurchargeType;
 use App\Http\Controllers\Controller;
@@ -48,7 +49,7 @@ class PaymentMethodController extends Controller
                 ->map(fn (ChargeItem $chargeItem): SurchargeChargeItemData => SurchargeChargeItemData::fromModel($chargeItem)),
             'types' => PaymentMethodType::addableOptions(),
             'surchargeTypes' => SurchargeType::options(),
-            'currency' => $property->settings->currency,
+            'currency' => CurrencyData::forProperty($property),
         ]);
     }
 

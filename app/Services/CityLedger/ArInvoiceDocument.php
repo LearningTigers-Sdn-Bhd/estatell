@@ -2,9 +2,9 @@
 
 namespace App\Services\CityLedger;
 
-use App\Enums\Currency;
 use App\Services\Folio\DocumentLineGroups;
 use App\Services\Folio\DocumentPayment;
+use Brick\Money\Currency;
 
 /**
  * Everything the AR invoice PDF shows, already formatted, so the Blade view does no lookups. Amounts are decimal
@@ -46,6 +46,6 @@ final readonly class ArInvoiceDocument
 
     public function currencyCode(): string
     {
-        return $this->currency?->value ?? '';
+        return $this->currency?->getCurrencyCode() ?? '';
     }
 }

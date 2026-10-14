@@ -236,7 +236,7 @@ export default function RoomRevenuePolicy({
     tab: Exclude<RoomRevenueTab, 'taxes'>;
     policy: Policy;
     preview: Preview;
-    currency: App.Enums.Currency;
+    currency: App.Data.Property.CurrencyData;
     chargeModes: EnumOption[];
     rateBases: EnumOption[];
     scopes: EnumOption[];
@@ -259,7 +259,7 @@ export default function RoomRevenuePolicy({
     const previewedKey = useRef(key);
     const money = new Intl.NumberFormat(undefined, {
         style: 'currency',
-        currency,
+        currency: currency.code,
     });
     const heading = titles[tab];
 

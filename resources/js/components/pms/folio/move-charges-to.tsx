@@ -36,7 +36,7 @@ export function MoveChargesTo({
     preview: Preview;
     /** True when the shown preview is for the latest choice of charges and rooms. */
     previewCurrent: boolean;
-    currency: App.Enums.Currency | null;
+    currency: App.Data.Property.CurrencyData | null;
     error?: string;
 }) {
     const forTarget = preview.targetId === target.id;

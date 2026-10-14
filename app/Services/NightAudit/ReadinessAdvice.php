@@ -90,7 +90,7 @@ class ReadinessAdvice
             return null;
         }
 
-        $currency = $property->settings->currency->value;
+        $currency = $property->settings->currency->getCurrencyCode();
         $total = Money::zero($currency);
 
         foreach (ReservationUnit::query()->whereKey($unitIds)->where('status', UnitStatus::Confirmed->value)->get() as $unit) {

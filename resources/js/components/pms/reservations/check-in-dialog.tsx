@@ -38,7 +38,7 @@ type Props = {
     paymentOptions?: Options;
     canAssignRoom: boolean;
     onAssignRoom: () => void;
-    currency: App.Enums.Currency | null;
+    currency: App.Data.Property.CurrencyData | null;
 };
 
 function AmountRow({
@@ -49,7 +49,7 @@ function AmountRow({
 }: {
     label: string;
     amount: string;
-    currency: App.Enums.Currency | null;
+    currency: App.Data.Property.CurrencyData | null;
     exempt?: boolean;
 }) {
     return (

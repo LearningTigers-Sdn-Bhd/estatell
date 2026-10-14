@@ -259,7 +259,7 @@ export default function PropertySettings({
                                     <SettingsSelect
                                         name="currency"
                                         label="Currency"
-                                        value={settings.currency}
+                                        value={settings.currency.code}
                                         options={currencies}
                                         disabled={
                                             settings.currencyAndTimeZoneLocked

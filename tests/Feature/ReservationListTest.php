@@ -130,7 +130,7 @@ test('the list sends one item with its stay, units, occupancy, total and source'
 
     $this->actingAs($user)->get(listUrl($property))->assertInertia(fn (Assert $page) => $page
         ->component('reservations/index')
-        ->where('currency', 'MYR')
+        ->where('currency.code', 'MYR')
         ->where('reservations.data.0.id', $reservation->id)
         ->where('reservations.data.0.title', 'Tan trip')
         ->where('reservations.data.0.isGroup', true)

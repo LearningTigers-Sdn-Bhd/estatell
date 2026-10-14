@@ -26,7 +26,7 @@ type Props = {
     reservationId: number;
     folio: Folio;
     chargeItems?: ChargeItem[];
-    currency: App.Enums.Currency | null;
+    currency: App.Data.Property.CurrencyData | null;
 };
 
 const NEW_FOLIO = 'new:';

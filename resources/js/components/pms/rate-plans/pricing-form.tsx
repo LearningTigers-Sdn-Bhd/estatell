@@ -114,7 +114,7 @@ export function PricingForm({
 }: {
     ratePlan: RatePlan;
     roomTypes: RoomType[];
-    currency: App.Enums.Currency;
+    currency: App.Data.Property.CurrencyData;
     weekendNights: string;
     weekendNightsOptions: WeekendOption[];
     today: string;
@@ -534,7 +534,9 @@ export function PricingForm({
                                                         >
                                                             <InputGroup className="w-36 min-w-32">
                                                                 <InputGroupAddon>
-                                                                    {currency}
+                                                                    {
+                                                                        currency.code
+                                                                    }
                                                                 </InputGroupAddon>
                                                                 <InputGroupInput
                                                                     aria-label={`${roomType.name} ${row.label} ${column.label}`}
@@ -657,7 +659,7 @@ function AutoFill({
     roomType: RoomType;
     basis: App.Enums.PricingBasis;
     rows: PricingRow[];
-    currency: App.Enums.Currency;
+    currency: App.Data.Property.CurrencyData;
     onApply: (fill: (rows: PricingRow[]) => PricingRow[]) => void;
 }) {
     if (basis === 'day_use') {
@@ -738,7 +740,7 @@ function RoomAutoFill({
     roomType: RoomType;
     basis: App.Enums.PricingBasis;
     rows: PricingRow[];
-    currency: App.Enums.Currency;
+    currency: App.Data.Property.CurrencyData;
     onApply: (fill: (rows: PricingRow[]) => PricingRow[]) => void;
 }) {
     const [open, setOpen] = useState(false);
@@ -783,7 +785,7 @@ function RoomAutoFill({
             <FieldLabel htmlFor={id}>{label}</FieldLabel>
             <InputGroup>
                 {unit === 'amount' && (
-                    <InputGroupAddon>{currency}</InputGroupAddon>
+                    <InputGroupAddon>{currency.code}</InputGroupAddon>
                 )}
                 <InputGroupInput
                     id={id}
@@ -891,7 +893,7 @@ function GuestAutoFill({
 }: {
     roomType: RoomType;
     rows: PricingRow[];
-    currency: App.Enums.Currency;
+    currency: App.Data.Property.CurrencyData;
     onApply: (fill: (rows: PricingRow[]) => PricingRow[]) => void;
 }) {
     const [open, setOpen] = useState(false);
@@ -906,7 +908,7 @@ function GuestAutoFill({
     ];
     const money = new Intl.NumberFormat(undefined, {
         style: 'currency',
-        currency,
+        currency: currency.code,
     });
 
     const apply = () => {
@@ -995,7 +997,7 @@ function GuestAutoFill({
                                 <InputGroup>
                                     {unit === 'amount' && (
                                         <InputGroupAddon>
-                                            {currency}
+                                            {currency.code}
                                         </InputGroupAddon>
                                     )}
                                     <InputGroupInput
@@ -1047,7 +1049,7 @@ function DayUseAutoFill({
 }: {
     roomType: RoomType;
     rows: PricingRow[];
-    currency: App.Enums.Currency;
+    currency: App.Data.Property.CurrencyData;
     onApply: (fill: (rows: PricingRow[]) => PricingRow[]) => void;
 }) {
     const hourRows = rows.filter((row) => row.hours !== null);
@@ -1088,7 +1090,7 @@ function DayUseAutoFill({
             <FieldLabel htmlFor={id}>{label}</FieldLabel>
             <InputGroup>
                 {(addon === 'currency' || unit === 'amount') && (
-                    <InputGroupAddon>{currency}</InputGroupAddon>
+                    <InputGroupAddon>{currency.code}</InputGroupAddon>
                 )}
                 <InputGroupInput
                     id={id}

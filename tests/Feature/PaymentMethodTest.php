@@ -3,7 +3,6 @@
 use App\Actions\Catalogues\ReorderPaymentMethods;
 use App\Actions\Catalogues\SeedPaymentMethods;
 use App\Actions\Catalogues\SeedTransactionCodes;
-use App\Enums\Currency;
 use App\Enums\DefaultRoleEnum;
 use App\Enums\PaymentMethodType;
 use App\Enums\SurchargeType;
@@ -96,7 +95,7 @@ test('unsupported countries receive no payment method presets', function () {
 test('the page loads the bounded catalogue and surcharge picker data', function () {
     $owner = User::factory()->owner()->create();
     $property = $owner->property;
-    PropertySetting::factory()->for($property)->create(['currency' => Currency::Myr]);
+    PropertySetting::factory()->for($property)->create(['currency' => 'MYR']);
     app(SeedTransactionCodes::class)($property, 'MY');
     app(SeedPaymentMethods::class)($property, 'MY');
     $activeChargeItem = ChargeItem::factory()->for($property)->create(['name' => 'Card fee']);
@@ -122,7 +121,7 @@ test('the page loads the bounded catalogue and surcharge picker data', function 
             ->where('paymentMethods.1.isSystem', true)
             ->where('types', PaymentMethodType::addableOptions())
             ->where('surchargeTypes', SurchargeType::options())
-            ->where('currency', Currency::Myr->value)
+            ->where('currency.code', 'MYR')
             ->where('navigation.contexts.3.groups.3.items.2.title', 'Payment methods')
             ->where('navigation.contexts.3.groups.3.items.2.active', true));
 });

@@ -3,7 +3,6 @@
 use App\Actions\Catalogues\SeedRoomRevenuePolicies;
 use App\Actions\Catalogues\SeedTaxes;
 use App\Actions\Catalogues\SeedTransactionCodes;
-use App\Enums\Currency;
 use App\Enums\DefaultRoleEnum;
 use App\Enums\PolicyChargeMode;
 use App\Enums\PolicyScope;
@@ -17,7 +16,7 @@ use Inertia\Testing\AssertableInertia as Assert;
 function policyProperty(User $owner): Property
 {
     $property = $owner->property;
-    PropertySetting::factory()->for($property)->create(['currency' => Currency::Myr]);
+    PropertySetting::factory()->for($property)->create(['currency' => 'MYR']);
     app(SeedTransactionCodes::class)($property, 'MY');
     app(SeedTaxes::class)($property, 'MY');
     app(SeedRoomRevenuePolicies::class)($property);

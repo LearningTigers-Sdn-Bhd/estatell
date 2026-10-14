@@ -42,7 +42,7 @@ export function BookingSummaryRail({
 }: {
     units: number;
     quotes: Quote[];
-    currency: App.Enums.Currency | null;
+    currency: App.Data.Property.CurrencyData | null;
     billingModes: EnumOption[];
     billingMode: string;
     onBillingModeChange: (value: string) => void;

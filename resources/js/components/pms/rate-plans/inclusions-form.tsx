@@ -61,7 +61,7 @@ export function InclusionsForm({
     chargingUnits: Option[];
     startOptions: Option[];
     endOptions: Option[];
-    currency: App.Enums.Currency;
+    currency: App.Data.Property.CurrencyData;
 }) {
     const form = useForm<{ inclusions: Row[] }>({
         inclusions: inclusions.map((inclusion) => ({
@@ -303,7 +303,7 @@ export function InclusionsForm({
                                     <TableCell className="align-top">
                                         <InputGroup className="w-36">
                                             <InputGroupAddon>
-                                                {currency}
+                                                {currency.code}
                                             </InputGroupAddon>
                                             <InputGroupInput
                                                 aria-label="Amount per unit"

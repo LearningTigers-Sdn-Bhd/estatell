@@ -103,7 +103,7 @@ function AddOnRow({
     chargeItems: ChargeItem[];
     arrival: string;
     departure: string;
-    currency: App.Enums.Currency | null;
+    currency: App.Data.Property.CurrencyData | null;
     error?: string;
     onChange: (patch: Partial<BookingAddOn>) => void;
     onMove: (toLine: number) => void;
@@ -269,7 +269,7 @@ export function BookingAddOnsSection({
     chargeItems: ChargeItem[];
     arrival: string;
     departure: string;
-    currency: App.Enums.Currency | null;
+    currency: App.Data.Property.CurrencyData | null;
     errors: Errors;
     onChange: (index: number, patch: Partial<BookingLine>) => void;
     onLinesChange: (lines: BookingLine[]) => void;

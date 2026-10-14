@@ -23,7 +23,7 @@ type Props = {
     reservationId: number;
     unit: Unit;
     kind: 'check-in' | 'check-out';
-    currency: App.Enums.Currency | null;
+    currency: App.Data.Property.CurrencyData | null;
 };
 
 const TEXT = {

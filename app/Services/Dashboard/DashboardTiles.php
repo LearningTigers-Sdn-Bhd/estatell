@@ -8,6 +8,7 @@ use App\Data\Dashboard\TonightNightData;
 use App\Data\Dashboard\TonightRoomTypeData;
 use App\Data\Dashboard\TonightTileData;
 use App\Data\Dashboard\UnitCountTileData;
+use App\Data\Property\CurrencyData;
 use App\Enums\SellUnit;
 use App\Enums\TransactionKind;
 use App\Enums\UnitStatus;
@@ -124,7 +125,7 @@ class DashboardTiles
 
         $posted = $this->revenue->between($property, $from, $date)
             ->reject(fn ($row): bool => in_array($row->transactionCodeId, $taxCodeIds, true))
-            ->reduce(fn (Money $sum, $row): Money => $sum->plus($row->amount), Money::zero($currency->value));
+            ->reduce(fn (Money $sum, $row): Money => $sum->plus($row->amount), Money::zero($currency->getCurrencyCode()));
 
         $booked = UnitNight::query()
             ->join('reservation_units', 'reservation_units.id', '=', 'unit_nights.reservation_unit_id')
@@ -138,7 +139,7 @@ class DashboardTiles
             month: $date->translatedFormat('F'),
             from: $from->toDateString(),
             to: $date->toDateString(),
-            currency: $currency,
+            currency: $currency === null ? null : CurrencyData::fromCurrency($currency),
             posted: (string) $posted->getAmount(),
             bookedNights: (int) $booked->getAttribute('nights'),
             bookedAmount: number_format((float) $booked->getAttribute('amount'), 2, '.', ''),

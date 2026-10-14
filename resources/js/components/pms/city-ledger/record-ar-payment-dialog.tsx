@@ -29,7 +29,7 @@ type Props = {
     onOpenChange: (open: boolean) => void;
     companyId: number;
     methods: Method[];
-    currency: App.Enums.Currency | null;
+    currency: App.Data.Property.CurrencyData | null;
 };
 
 function RecordForm({

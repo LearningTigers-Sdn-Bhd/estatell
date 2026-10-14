@@ -7,6 +7,7 @@ use App\Actions\Boats\UpdateBoatFare;
 use App\Data\Boats\BoatFareAgeGroupData;
 use App\Data\Boats\BoatFareRowData;
 use App\Data\Catalogues\ChargeItemTaxData;
+use App\Data\Property\CurrencyData;
 use App\Enums\AgeBandPricing;
 use App\Enums\ChargingUnit;
 use App\Enums\TransactionCategory;
@@ -54,7 +55,7 @@ class BoatFareController extends Controller
                 ->all(),
             'pricings' => AgeBandPricing::options(),
             'chargingUnits' => ChargingUnit::options(),
-            'currency' => $property->settings->currency,
+            'currency' => CurrencyData::forProperty($property),
         ]);
     }
 

@@ -31,7 +31,7 @@ export function ReservationList({
     empty,
 }: {
     reservations: Item[];
-    currency: App.Enums.Currency | null;
+    currency: App.Data.Property.CurrencyData | null;
     sort: string;
     onSortChange: (sort: string) => void;
     pagination: DataTablePagination;

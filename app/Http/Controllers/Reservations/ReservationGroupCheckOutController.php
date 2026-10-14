@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Reservations;
 
 use App\Actions\FrontDesk\CheckOutGroup;
+use App\Data\Property\CurrencyData;
 use App\Data\Reservations\GroupCheckOutDoneData;
 use App\Data\Reservations\GroupCheckOutPageData;
 use App\Enums\PermissionEnum;
@@ -55,7 +56,7 @@ class ReservationGroupCheckOutController extends Controller
                 $reservation->id,
                 $reservation->reference,
                 __('Check out · :reference · :name', ['reference' => $reservation->reference, 'name' => $payer]),
-                $property->settings?->currency,
+                CurrencyData::forProperty($property),
                 $rooms,
                 route('reservations.show', ['property' => $property, 'reservation' => $reservation]),
             ),

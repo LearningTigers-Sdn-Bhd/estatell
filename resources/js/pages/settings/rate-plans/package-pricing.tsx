@@ -25,7 +25,7 @@ export default function RatePlanPackagePricing({
     weekdayOptions: { value: string; label: string; shortLabel: string }[];
     derivation: App.Data.Rates.RatePlanDerivationData;
     derivations: { value: string; label: string }[];
-    currency: App.Enums.Currency;
+    currency: App.Data.Property.CurrencyData;
 }) {
     const form = (following: boolean) => (
         <PackagePricingForm

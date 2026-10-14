@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Reports;
 
+use App\Data\Property\CurrencyData;
 use App\Data\Reports\BoatManifestRow;
 use App\Enums\BoatDirection;
 use App\Enums\PageOrientation;
@@ -45,7 +46,7 @@ class BoatManifestReportController extends Controller
             'from' => $filters->from,
             'to' => $filters->to,
             'maxRangeDays' => $key->maxRangeDays(),
-            'currency' => $property->settings?->currency,
+            'currency' => CurrencyData::forProperty($property),
             'direction' => $filters->direction?->value ?? BoatDirection::In->value,
             'directionOptions' => BoatDirection::options(),
             'emptyTitle' => $hasDepartures

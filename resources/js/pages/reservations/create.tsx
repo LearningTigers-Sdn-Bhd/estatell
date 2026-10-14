@@ -124,7 +124,7 @@ type Props = {
     companies: App.Data.CityLedger.CompanyOptionData[];
     canOverrideCredit: boolean;
     autoAssignRooms: boolean;
-    currency: App.Enums.Currency | null;
+    currency: App.Data.Property.CurrencyData | null;
     canOverrideRestrictions: boolean;
     canManageGuests: boolean;
     /** Whether the property has an active Day use plan: it turns the Stay type switch on. */

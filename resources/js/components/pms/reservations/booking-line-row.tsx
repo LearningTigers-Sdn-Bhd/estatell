@@ -71,7 +71,7 @@ export function BookingLineRow({
     companyId: string;
     arrival: string;
     departure: string;
-    currency: App.Enums.Currency | null;
+    currency: App.Data.Property.CurrencyData | null;
     errors: Errors;
     emptyPickLabel: string;
     takenIds: Set<string>;

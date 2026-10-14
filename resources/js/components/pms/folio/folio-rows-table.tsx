@@ -127,7 +127,7 @@ export function FolioRowsTable({
     reservationId: number;
     folioId: number;
     rows: Row[];
-    currency: App.Enums.Currency | null;
+    currency: App.Data.Property.CurrencyData | null;
     onPrintVoucher: (row: Row) => void;
     onAction: (
         row: Row,

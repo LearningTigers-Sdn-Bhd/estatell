@@ -8,7 +8,6 @@ use App\Actions\Property\UpdatePrintSettings;
 use App\Data\Property\PrintSettingsData;
 use App\Data\Property\PrintTaxData;
 use App\Data\Property\PropertyProfileData;
-use App\Enums\Currency;
 use App\Enums\PdfFont;
 use App\Enums\PdfFontSize;
 use App\Http\Controllers\Controller;
@@ -19,6 +18,7 @@ use App\Models\Property;
 use App\Models\Tax;
 use App\Services\Property\PrintedPdf;
 use App\Services\Property\SampleDocument;
+use Brick\Money\Currency;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -109,14 +109,14 @@ class PrintSettingsController extends Controller
 
         if ($request->query('document') === 'booking-summary') {
             return $printedPdf->make($property, 'pdf.document-sample', [
-                'currency' => $property->settings?->currency ?? Currency::Myr,
+                'currency' => $property->settings?->currency ?? Currency::of('MYR'),
                 'groups' => $sampleDocument->groups($property->printSetting),
                 'settings' => $property->printSetting,
             ])->stream('sample-booking-summary.pdf');
         }
 
         return $printedPdf->make($property, 'pdf.print-sample', [
-            'currency' => $property->settings?->currency->value ?? '',
+            'currency' => $property->settings?->currency->getCurrencyCode() ?? '',
         ])->stream('sample.pdf');
     }
 

@@ -24,7 +24,7 @@ class RoomRevenuePreview
      */
     public function calculate(Property $property, array $taxIds): array
     {
-        $sampleAmount = Money::of(self::SAMPLE_AMOUNT, $property->settings->currency->value);
+        $sampleAmount = Money::of(self::SAMPLE_AMOUNT, $property->settings->currency->getCurrencyCode());
         $taxes = $property->taxes()->whereKey($taxIds)->get();
 
         return [

@@ -24,7 +24,7 @@ export function ChargeItemChildrenField({
     groups: ChildPriceGroup[];
     rows: ChildPriceRow[];
     pricings: Option[];
-    currency: App.Enums.Currency;
+    currency: App.Data.Property.CurrencyData;
     errors: Record<string, string | undefined>;
     /** An item priced when charging has no amount to take a percentage of. */
     enteredWhenCharging: boolean;

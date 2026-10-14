@@ -33,8 +33,8 @@ class TermsRenderer
             TermsPlaceholder::PropertyName->value => $property->name,
             TermsPlaceholder::CheckInTime->value => $settings === null ? '' : $this->time($settings->check_in_time),
             TermsPlaceholder::CheckOutTime->value => $settings === null ? '' : $this->time($settings->check_out_time),
-            TermsPlaceholder::SecurityDeposit->value => $settings === null ? '' : "{$settings->currency->value} {$settings->security_deposit_amount}",
-            TermsPlaceholder::TourismTaxRate->value => $settings === null ? '' : $this->tourismTax($property, $settings->currency->value),
+            TermsPlaceholder::SecurityDeposit->value => $settings === null ? '' : "{$settings->currency->getCurrencyCode()} {$settings->security_deposit_amount}",
+            TermsPlaceholder::TourismTaxRate->value => $settings === null ? '' : $this->tourismTax($property, $settings->currency->getCurrencyCode()),
         ];
     }
 

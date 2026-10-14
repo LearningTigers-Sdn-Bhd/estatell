@@ -635,7 +635,7 @@ class UnitActionPreview
 
     private function currency(ReservationUnit $unit): string
     {
-        return $unit->property()->firstOrFail()->settings->currency->value;
+        return $unit->property()->firstOrFail()->settings->currency->getCurrencyCode();
     }
 
     /**

@@ -46,7 +46,7 @@ type Props = {
     unit: Unit;
     paymentOptions?: Options;
     canWaiveFees: boolean;
-    currency: App.Enums.Currency | null;
+    currency: App.Data.Property.CurrencyData | null;
 };
 
 function SummaryRow({
@@ -57,7 +57,7 @@ function SummaryRow({
 }: {
     label: string;
     amount: number;
-    currency: App.Enums.Currency | null;
+    currency: App.Data.Property.CurrencyData | null;
     negative?: boolean;
 }) {
     return (

@@ -17,7 +17,7 @@ type FormProps = {
     companyId: number;
     payment: Payment;
     invoices: OpenInvoice[];
-    currency: App.Enums.Currency | null;
+    currency: App.Data.Property.CurrencyData | null;
 };
 
 function AllocateForm({
@@ -128,7 +128,7 @@ export function AllocateArPaymentDialog({
     onClose: () => void;
     companyId: number;
     invoices: OpenInvoice[];
-    currency: App.Enums.Currency | null;
+    currency: App.Data.Property.CurrencyData | null;
 }) {
     const open = payment !== null;
     const kept = useRetainedValue(payment);

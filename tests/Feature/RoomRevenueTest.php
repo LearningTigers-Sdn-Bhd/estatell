@@ -2,7 +2,6 @@
 
 use App\Actions\Catalogues\SeedTaxes;
 use App\Actions\Catalogues\SeedTransactionCodes;
-use App\Enums\Currency;
 use App\Enums\DefaultRoleEnum;
 use App\Enums\SystemTransactionCode;
 use App\Enums\TaxRateType;
@@ -16,7 +15,7 @@ use Spatie\Activitylog\Models\Activity;
 
 function seedRoomRevenueProperty(Property $property): void
 {
-    PropertySetting::factory()->for($property)->create(['currency' => Currency::Myr]);
+    PropertySetting::factory()->for($property)->create(['currency' => 'MYR']);
     app(SeedTransactionCodes::class)($property, 'MY');
     app(SeedTaxes::class)($property, 'MY');
 }
@@ -45,7 +44,7 @@ test('the page shows the room revenue taxes and a preview for local and foreign 
             ])
             ->where('preview.localTotal', '108.00')
             ->where('preview.foreignTotal', '118.00')
-            ->where('currency', Currency::Myr->value)
+            ->where('currency.code', 'MYR')
             ->where('navigation.contexts.3.groups.3.items.3.title', 'Room revenue')
             ->where('navigation.contexts.3.groups.3.items.3.active', true));
 

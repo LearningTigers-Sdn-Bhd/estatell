@@ -3,7 +3,6 @@
 use App\Actions\Catalogues\ReorderDiscounts;
 use App\Actions\Catalogues\SeedDiscounts;
 use App\Actions\Catalogues\SeedTransactionCodes;
-use App\Enums\Currency;
 use App\Enums\DefaultRoleEnum;
 use App\Enums\DiscountScope;
 use App\Enums\DiscountType;
@@ -63,7 +62,7 @@ function discountPayloadFor(Discount $discount, array $overrides = []): array
 test('the list loads the bounded catalogue in active order with charge codes to choose from', function () {
     $owner = User::factory()->owner()->create();
     $property = $owner->property;
-    PropertySetting::factory()->for($property)->create(['currency' => Currency::Myr]);
+    PropertySetting::factory()->for($property)->create(['currency' => 'MYR']);
     $laundry = ChargeItem::factory()->for($property)->create(['name' => 'Laundry']);
     TransactionCode::factory()->for($property)->create(['name' => 'Tax code', 'kind' => TransactionKind::Tax]);
     $second = Discount::factory()->for($property)->create(['name' => 'Second', 'position' => 2, 'scope' => DiscountScope::Selected]);
@@ -85,7 +84,7 @@ test('the list loads the bounded catalogue in active order with charge codes to 
             ->where('charges', fn ($charges) => collect($charges)->pluck('name')->all() === ['Laundry'])
             ->where('types', DiscountType::options())
             ->where('scopes', DiscountScope::options())
-            ->where('currency', Currency::Myr->value));
+            ->where('currency.code', 'MYR'));
 });
 
 test('owners create discounts at the end with their own discount code', function () {

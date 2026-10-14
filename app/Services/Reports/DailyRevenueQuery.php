@@ -139,6 +139,6 @@ class DailyRevenueQuery
 
     private function currency(Property $property): string
     {
-        return $property->loadMissing('settings')->settings->currency->value;
+        return $property->loadMissing('settings')->settings->currency->getCurrencyCode();
     }
 }
