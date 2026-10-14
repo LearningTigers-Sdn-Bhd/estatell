@@ -71,10 +71,10 @@ app.example.com/join/K7Q2MX
 
 ## Partner portal
 
-`/partner`, with `auth` and `can:partner`. Its own layout (`layouts/partner-layout.tsx`) and menu (`App\Navigation\PartnerNavigation`): **Properties** and **Account**.
+`/partner`, with `auth` and `can:partner`. Its own layout (`layouts/partner-layout.tsx`) and menu (`App\Navigation\PartnerNavigation`): **Properties** only. **Account** is in the user menu.
 
 ```
-┌ Andaman Stays ── Properties · Account ─────────────────────────────┐
+┌ Andaman Stays ── Properties ───────────────────────────────────────┐
 │ ┌ Your signup link ──────────────────────────────────────────────┐ │
 │ │ app.estatell.com/join/K7Q2MX   [Copy link] [Copy message]  [⋯] │ │
 │ │ Properties that register with this link appear here.           │ │
@@ -88,6 +88,7 @@ Empty list: "Share your signup link to add a property."
 ```
 
 - **New property** shows only when `can_create_properties` is on. It opens the same Sheet as admin and calls `CreatePropertyForOwner` with the partner, so the code gets the partner's prefix. When the switch is off, `POST /partner/properties` returns 403.
+- The list shows 25 per page, newest first.
 - A row click opens the partner property page. Step, percentage and [View as] come later with the onboarding board and view as.
 
 ### Property page
@@ -206,7 +207,7 @@ Row ⋯ → Copy signup link · Suspend
 ### Other admin rules
 
 - List columns: partner, prefix, user email, property count, **Can create properties**, status (with **Temp password · Nd** like staff), created.
-- **Can create properties** is a `Switch` on Active rows only, with an optimistic update that rolls back on failure. `SetPartnerCanCreateProperties` saves it (`support.2fa`) and logs `partner.create-properties-allowed` or `partner.create-properties-disallowed`. Setting the same value again does nothing. Invited and Suspended rows show no switch; suspending keeps the value.
+- **Can create properties** is a `Switch` on Active rows only, with an optimistic update that rolls back on failure. `SetPartnerCanCreateProperties` saves it (`support.2fa`, body `allowed` bool) and logs `partner.create-properties-allowed` or `partner.create-properties-disallowed`. Setting the same value again does nothing. Invited and Suspended rows show no switch; suspending keeps the value.
 - The Suspended tab has the same columns, with **Suspended** (the date) instead of status. Active rows have ⋯ → **Copy signup link** and **Suspend** with a confirm ("Suspend {name}? They can't sign in. Their properties keep running."). Suspended rows have ⋯ → **Reactivate** without a confirm. Only an Active partner can be suspended; an Invited one is revoked instead.
 - Admin properties list gets a **Partner** column and filter.
 - **Move to partner** on the admin property page: pick a partner or "Direct". `MovePropertyToPartner` changes `partner_id` only. The code stays. The old partner loses view as at once. Logged with the old and new partner.
