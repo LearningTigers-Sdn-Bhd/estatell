@@ -7,6 +7,7 @@ use App\Models\UnitNight;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use LogicException;
 
 /**
  * The Change price form and its preview: the ticked nights of the unit, one price per night and the reason. The
@@ -72,6 +73,12 @@ class ChangeNightPriceRequest extends FormRequest
 
     private function unit(): ReservationUnit
     {
-        return $this->route('unit');
+        $unit = $this->route('unit');
+
+        if (! $unit instanceof ReservationUnit) {
+            throw new LogicException('The unit route binding is missing.');
+        }
+
+        return $unit;
     }
 }

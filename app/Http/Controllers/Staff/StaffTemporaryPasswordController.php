@@ -35,7 +35,7 @@ class StaffTemporaryPasswordController extends Controller
             $request->user(),
             $request->validated('name'),
             $request->validated('email'),
-            Role::query()->findOrFail($request->validated('role_id')),
+            Role::query()->findOrFail($request->integer('role_id')),
         );
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __(':name was added.', ['name' => $user->name])]);

@@ -6,6 +6,7 @@ use App\Enums\PermissionEnum;
 use App\Models\Property;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Arr;
 use Illuminate\Validation\Rule;
 
 class UpdateRolePermissionsRequest extends FormRequest
@@ -40,7 +41,7 @@ class UpdateRolePermissionsRequest extends FormRequest
      */
     public function permissionsByRoleId(): array
     {
-        return collect($this->validated('roles'))
+        return collect(Arr::array($this->validated(), 'roles'))
             ->map(fn (array $names): array => array_map(fn (string $name): PermissionEnum => PermissionEnum::from($name), array_values($names)))
             ->all();
     }

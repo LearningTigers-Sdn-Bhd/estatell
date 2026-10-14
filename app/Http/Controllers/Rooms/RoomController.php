@@ -126,8 +126,8 @@ class RoomController extends Controller
         $result = $generateRooms(
             $property,
             $request->user(),
-            $property->roomTypes()->findOrFail($request->validated('room_type_id')),
-            $request->validated('room_group_id') ? $property->roomGroups()->findOrFail($request->validated('room_group_id')) : null,
+            $property->roomTypes()->findOrFail($request->integer('room_type_id')),
+            $request->validated('room_group_id') ? $property->roomGroups()->findOrFail($request->integer('room_group_id')) : null,
             $generator->generate($request->mode(), $request->generatorInput()),
         );
 

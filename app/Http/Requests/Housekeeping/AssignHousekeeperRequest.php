@@ -3,9 +3,11 @@
 namespace App\Http\Requests\Housekeeping;
 
 use App\Enums\PermissionEnum;
+use App\Models\Property;
 use App\Models\User;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use LogicException;
 
 class AssignHousekeeperRequest extends FormRequest
 {
@@ -44,8 +46,19 @@ class AssignHousekeeperRequest extends FormRequest
         }
 
         return User::query()
-            ->where('property_id', $this->route('property')->id)
+            ->where('property_id', $this->property()->id)
             ->whereNull('deactivated_at')
             ->find((int) $id);
+    }
+
+    private function property(): Property
+    {
+        $property = $this->route('property');
+
+        if (! $property instanceof Property) {
+            throw new LogicException('The property route binding is missing.');
+        }
+
+        return $property;
     }
 }

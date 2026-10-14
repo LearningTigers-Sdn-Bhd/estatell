@@ -9,6 +9,7 @@ use App\Services\Rates\StayDiscountPreview;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\Rule;
 
@@ -56,7 +57,7 @@ class RatePlanDiscountsPreviewRequest extends FormRequest
      */
     public function validRules(): Collection
     {
-        return collect($this->validated('discounts'))
+        return collect(Arr::array($this->validated(), 'discounts'))
             ->filter(fn (array $row): bool => $this->isValidRule($row))
             ->unique(fn (array $row): int => (int) $row['min_nights'])
             ->map(fn (array $row): RatePlanStayDiscount => new RatePlanStayDiscount([
@@ -103,7 +104,7 @@ class RatePlanDiscountsPreviewRequest extends FormRequest
      */
     public function childrenByAgeGroup(): array
     {
-        return collect($this->validated('children') ?? [])
+        return collect(Arr::array($this->validated(), 'children', []))
             ->mapWithKeys(fn (array $child): array => [(int) $child['age_group_id'] => (int) $child['count']])
             ->all();
     }

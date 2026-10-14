@@ -18,6 +18,7 @@ class EnsureEmailIsVerified extends BaseEnsureEmailIsVerified
      * Handle an incoming request.
      *
      * @param  Closure(Request): (Response)  $next
+     * @return Response|null
      */
     public function handle($request, Closure $next, $redirectToRoute = null): mixed
     {

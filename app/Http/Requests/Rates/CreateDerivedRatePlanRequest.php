@@ -11,6 +11,7 @@ use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use LogicException;
 
 class CreateDerivedRatePlanRequest extends FormRequest
 {
@@ -55,7 +56,7 @@ class CreateDerivedRatePlanRequest extends FormRequest
             'derivation' => [
                 'required', Rule::enum(RateDerivation::class),
                 function (string $attribute, mixed $value, Closure $fail): void {
-                    if ($this->route('ratePlan')->pricing_basis === PricingBasis::Package && $value !== RateDerivation::Percent->value) {
+                    if ($this->ratePlan()->pricing_basis === PricingBasis::Package && $value !== RateDerivation::Percent->value) {
                         $fail(__('A package can only follow by a percentage.'));
                     }
                 },
@@ -107,5 +108,16 @@ class CreateDerivedRatePlanRequest extends FormRequest
     public function companyIds(): array
     {
         return array_values(array_unique(array_map(intval(...), array_filter((array) $this->input('company_ids'), is_numeric(...)))));
+    }
+
+    private function ratePlan(): RatePlan
+    {
+        $ratePlan = $this->route('ratePlan');
+
+        if (! $ratePlan instanceof RatePlan) {
+            throw new LogicException('The rate plan route binding is missing.');
+        }
+
+        return $ratePlan;
     }
 }

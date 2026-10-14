@@ -34,6 +34,9 @@ class AttachGuestRequest extends FormRequest
         ];
     }
 
+    /**
+     * @return array<int, callable(Validator): void>
+     */
     public function after(): array
     {
         return [fn (Validator $validator) => $this->checkGuest($validator)];

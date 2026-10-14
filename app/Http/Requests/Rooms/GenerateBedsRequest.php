@@ -42,7 +42,7 @@ class GenerateBedsRequest extends FormRequest
                 Rule::exists(Room::class, 'id')
                     ->where('property_id', $property->id)
                     ->whereNull('archived_at')
-                    ->whereIn('room_type_id', fn ($query) => $query->select('id')->from('room_types')->where('sell_unit', SellUnit::Bed->value)),
+                    ->using(fn ($query) => $query->whereIn('room_type_id', fn ($types) => $types->select('id')->from('room_types')->where('sell_unit', SellUnit::Bed->value))),
             ],
         ];
     }

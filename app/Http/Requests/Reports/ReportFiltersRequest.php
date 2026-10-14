@@ -14,6 +14,7 @@ use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Validation\Rule;
+use LogicException;
 
 /**
  * The dates of a report page: `from` and `to` in the URL, both included. A missing date falls back to the other
@@ -96,7 +97,13 @@ class ReportFiltersRequest extends FormRequest
 
     public function property(): Property
     {
-        return $this->route('property');
+        $property = $this->route('property');
+
+        if (! $property instanceof Property) {
+            throw new LogicException('The property route binding is missing.');
+        }
+
+        return $property;
     }
 
     /**

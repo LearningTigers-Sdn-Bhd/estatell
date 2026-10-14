@@ -39,7 +39,7 @@ class BedRequest extends FormRequest
                     $taken = $room->beds()
                         ->active()
                         ->whereRaw('lower(label) = ?', [mb_strtolower((string) $value)])
-                        ->when($current instanceof Bed, fn ($query) => $query->whereKeyNot($current->id))
+                        ->when($current instanceof Bed ? $current->id : null, fn ($query, int $id) => $query->whereKeyNot($id))
                         ->exists();
 
                     if ($taken) {

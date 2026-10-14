@@ -12,6 +12,7 @@ use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
+use RuntimeException;
 use Symfony\Component\HttpFoundation\Response as HttpResponse;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -41,6 +42,11 @@ class AgingController extends Controller
 
         return response()->streamDownload(function () use ($report): void {
             $out = fopen('php://output', 'w');
+
+            if ($out === false) {
+                throw new RuntimeException('The CSV output stream could not be opened.');
+            }
+
             fputcsv($out, [__('Company'), __('Current'), '1-30', '31-60', '61-90', __('Over 90'), __('Credit'), __('Total')]);
 
             foreach ([...$report->rows, $report->totals] as $row) {

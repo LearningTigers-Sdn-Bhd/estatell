@@ -22,7 +22,7 @@ class StaffInvitationController extends Controller
             $property,
             $request->user(),
             $request->validated('email'),
-            Role::query()->findOrFail($request->validated('role_id')),
+            Role::query()->findOrFail($request->integer('role_id')),
         );
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Invitation sent to :email.', ['email' => $invitation->email])]);

@@ -51,7 +51,7 @@ class RoomTypeRequest extends FormRequest
                         ->where('property_id', $property->id)
                         ->active()
                         ->whereRaw('lower(name) = ?', [mb_strtolower((string) $value)])
-                        ->when($current instanceof RoomType, fn ($query) => $query->whereKeyNot($current->id))
+                        ->when($current instanceof RoomType ? $current->id : null, fn ($query, int $id) => $query->whereKeyNot($id))
                         ->exists();
 
                     if ($taken) {

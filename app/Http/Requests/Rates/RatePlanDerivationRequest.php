@@ -4,10 +4,12 @@ namespace App\Http\Requests\Rates;
 
 use App\Enums\PricingBasis;
 use App\Enums\RateDerivation;
+use App\Models\RatePlan;
 use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use LogicException;
 
 class RatePlanDerivationRequest extends FormRequest
 {
@@ -31,7 +33,7 @@ class RatePlanDerivationRequest extends FormRequest
             'derivation' => [
                 'required_with:parent_rate_plan_id', 'nullable', Rule::enum(RateDerivation::class),
                 function (string $attribute, mixed $value, Closure $fail): void {
-                    if ($value !== null && $this->route('ratePlan')->pricing_basis === PricingBasis::Package && $value !== RateDerivation::Percent->value) {
+                    if ($value !== null && $this->ratePlan()->pricing_basis === PricingBasis::Package && $value !== RateDerivation::Percent->value) {
                         $fail(__('A package can only follow by a percentage.'));
                     }
                 },
@@ -74,5 +76,16 @@ class RatePlanDerivationRequest extends FormRequest
         }
 
         return $this->validated('direction') === 'down' ? '-'.ltrim((string) $value, '-') : (string) $value;
+    }
+
+    private function ratePlan(): RatePlan
+    {
+        $ratePlan = $this->route('ratePlan');
+
+        if (! $ratePlan instanceof RatePlan) {
+            throw new LogicException('The rate plan route binding is missing.');
+        }
+
+        return $ratePlan;
     }
 }

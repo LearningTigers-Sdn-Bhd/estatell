@@ -5,8 +5,10 @@ namespace App\Http\Requests\Folio;
 use App\Enums\DiscountType;
 use App\Enums\PermissionEnum;
 use App\Models\Discount;
+use App\Models\Property;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use LogicException;
 
 class QuoteFolioDiscountRequest extends FormRequest
 {
@@ -18,7 +20,7 @@ class QuoteFolioDiscountRequest extends FormRequest
     public function authorize(): bool
     {
         $discount = Discount::query()
-            ->where('property_id', $this->route('property')->id)
+            ->where('property_id', $this->property()->id)
             ->active()
             ->find($this->integer('discount_id'));
 
@@ -65,5 +67,16 @@ class QuoteFolioDiscountRequest extends FormRequest
             DiscountType::Open => true,
             DiscountType::Fixed => $this->amount() !== null && bccomp($this->amount(), (string) $discount->value, 2) !== 0,
         };
+    }
+
+    private function property(): Property
+    {
+        $property = $this->route('property');
+
+        if (! $property instanceof Property) {
+            throw new LogicException('The property route binding is missing.');
+        }
+
+        return $property;
     }
 }

@@ -15,7 +15,7 @@ class StaffRoleController extends Controller
 {
     public function update(AssignStaffRoleRequest $request, Property $property, User $user, AssignStaffRole $assignStaffRole): RedirectResponse
     {
-        $role = Role::query()->findOrFail($request->validated('role_id'));
+        $role = Role::query()->findOrFail($request->integer('role_id'));
 
         Inertia::flash('toast', $assignStaffRole($request->user(), $user, $role)
             ? ['type' => 'success', 'message' => __(':name is now :role.', ['name' => $user->name, 'role' => $role->name])]

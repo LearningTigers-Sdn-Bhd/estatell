@@ -85,7 +85,7 @@ class HandleInertiaRequests extends Middleware
             supportUserName: $supportUser->name,
             partnerName: $supportUser->partner?->name,
             userName: $user->name,
-            userRole: $user->roles->first()?->name,
+            userRole: $user->getRoleNames()->first(),
             propertyName: $user->property->name,
             propertyCode: $user->property->code,
             minutesLeft: $impersonation->remainingMinutes(),
