@@ -26,7 +26,7 @@ The first release has only the Basics page. It uses the current staff layout. Ba
 | 4   | Finance    | Taxes, including which taxes apply to rooms (room revenue). See [Taxes table](#taxes-table).                                                                                                                                                                                                              | Yes      | Basics             |
 | 5   |            | Payment methods: turn seeded methods on or off, add more. See [Payment methods table](#payment-methods-table).                                                                                                                                                                                            | Yes      | Basics             |
 | 6   |            | Companies: city ledger companies and their portal users. See [Companies table](#companies-table).                                                                                                                                                                                                         | No       | Basics             |
-| 7   | Prices     | Basic rate: weekday and weekend price per room-sold room type. `SetBasePrices` fills 365 days of rates. It does not create a plan.                                                                                                                                                                        | Yes      | Room types + Taxes |
+| 7   | Prices     | Basic rate: weekday and weekend price per room-sold room type, priced by room or by guest, plus optional more rates. See [Basic rate table](#basic-rate-table).                                                                                                                                           | Yes      | Room types + Taxes |
 | 8   |            | Charge items                                                                                                                                                                                                                                                                                              | No       | Taxes              |
 | 9   |            | Discounts                                                                                                                                                                                                                                                                                                 | No       | Basic rate         |
 | 10  | Check-in   | Check-in essentials: check-in and check-out times, ID requirement, terms preset preview                                                                                                                                                                                                                   | Yes      | Basics             |
@@ -73,11 +73,11 @@ Room revenue is not a separate section. Its taxes are the **Applies to rooms** c
 - With no room types, the table starts with one empty row. Saved room types load as rows.
 - The last row cannot be removed: its remove button is disabled (`focusableWhenDisabled`, tooltip "At least one room type").
 - New rows default to 2 adults and 0 children.
-- Columns: name, max adults, max children. No sell unit: onboarding always creates `SellUnit::Room`. `base_occupancy` defaults to max adults (to verify against pricing). Description, smoking, pets and terms stay in settings.
+- Columns: name, max adults, max children. No sell unit: onboarding always creates `SellUnit::Room`. `base_occupancy` defaults to max adults, so Basic rate has no extra-adult charge. Description, smoking, pets and terms stay in settings. The hint under the table: "After you go live, you can add descriptions and room rules in Settings, under Room types."
 - One submit saves the table in one transaction: new rows create, changed rows update, removed rows delete, through the room type Actions used by settings. Errors show per row (`rows.{n}.name`). A small onboarding request takes `rows` and reuses the `RoomTypeRequest` rules per row.
 - Removing a saved room type that has rooms follows the settings rule (to verify).
 - At phone width each row stacks into a card.
-- Dorm beds (`SellUnit::Bed`) are not offered. A hostel sees "Selling dorm beds? Add them in Settings → Room types after setup." A bed-sold type made in settings shows read-only with "Sold by bed. Edit in settings." and counts toward Done. Basic rate leaves it out ("Price beds in Rates").
+- Dorm beds (`SellUnit::Bed`) are not offered. A hostel sees "Selling dorm beds? After you go live, you can add them in Settings, under Room types." A bed-sold type made in settings shows read-only with "Sold by bed. Edit in settings." and counts toward Done. Basic rate leaves it out ("After you go live, you can price beds in Settings, under Rate plans.").
 - Check: Done with at least one room type.
 
 ## Rooms table
@@ -126,7 +126,7 @@ Room revenue is not a separate section. Its taxes are the **Applies to rooms** c
 - The Group menu lists the names typed in the Groups table, before anything is saved. Rows refer to new groups by row key. The server maps keys to ids.
 - Group names follow `RoomGroupRequest` (unique, case-insensitive). Table order sets the group position, which `AutoAssignRooms` uses first.
 - The last group row cannot be removed while Use groups is on. Removing a group that a range uses clears that range's menu and shows an error until a group is picked.
-- Back to No groups: unsaved groups hide and are not sent. With saved groups the toggle is disabled, with the tooltip "Remove groups in Settings → Rooms".
+- Back to No groups: unsaved groups hide and are not sent. With saved groups the toggle is disabled, with the tooltip "After you go live, you can remove groups in Settings, under Rooms."
 
 **Save and check**
 
@@ -158,7 +158,8 @@ Room revenue is not a separate section. Its taxes are the **Applies to rooms** c
  │ Total        │     108.00  │       118.00  │
  └──────────────┴─────────────┴───────────────┘
  [ ] We don't charge tax
- ℹ No-show and cancellation charges are free for now. Set them after go-live.
+ ℹ No-show and cancellation charges are free for now. After you go live, you can
+   set them in Settings, under Room revenue.
 ```
 
 - Malaysia starts with the seeded SST and Tourism tax rows ("Your Malaysian taxes are ready. Turn on what you charge."). Other countries start with one empty row ("Add the taxes you charge guests.").
@@ -192,7 +193,8 @@ Room revenue is not a separate section. Its taxes are the **Applies to rooms** c
  ├────┴──────────────────────────┴──────────────────┴───────────────┴────┤
  │ [+ Add payment method]                                                │
  └───────────────────────────────────────────────────────────────────────┘
- Card fees (surcharges) and ordering: later in Settings → Payment methods.
+ After you go live, you can add card fees and change the order in Settings,
+ under Payment methods.
 ```
 
 - Rows: the seeded methods of the addable types (Cash, Card, Bank transfer, E-wallet) and City ledger. OTA collected is hidden (channels come after go-live).
@@ -220,7 +222,8 @@ Room revenue is not a separate section. Its taxes are the **Applies to rooms** c
  ├──────────────────────┴──────────────┴───────────────────────┴────────┴──────────────┴───────┴────┤
  │ [+ Add company]   [Import from file]                                                             │
  └──────────────────────────────────────────────────────────────────────────────────────────────────┘
- Empty credit limit = no limit. Negotiated rates: after go-live.
+ Empty credit limit = no limit. After you go live, you can give companies their
+ own rates in Settings, under Rate plans.
 ```
 
 - Optional. No rows to start: the empty state offers **Add company** and **Import from file** (the existing `BulkCreateCompanies` import and template).
@@ -239,6 +242,85 @@ Room revenue is not a separate section. Its taxes are the **Applies to rooms** c
 - The row shows **Temp password · Nd** with **Copy message**, as on the staff list. The page never receives temp passwords as props.
 - The portal opens only when the property is Live (`portal` middleware). Owners hand out the sign-in details after go-live.
 - Temp passwords expire after 14 days. Review lists portal users with **Export sign-in slips** (PDF), and expired ones with **Reset temp password**.
+
+## Basic rate table
+
+```
+ Weekend nights   [● Fri + Sat | Sat + Sun ]
+ Weekend price    [ Same every night | ● Different on weekends ]
+
+ ┌──────────────────────┬──────────────┬──────────────────┬──────────────────┐
+ │ Room type            │ Price by     │ Weekdays         │ Weekend          │
+ ├──────────────────────┼──────────────┼──────────────────┼──────────────────┤
+ │ Garden Chalet        │ [ Room   ▾ ] │ RM [ 180.00 ]    │ RM [ 220.00 ]    │
+ │                      │              │ guest pays 194.40│ guest pays 237.60│
+ │ Longhouse            │ [ Guest  ▾ ] │ RM [  85.00 ]    │ RM [  95.00 ]    │
+ │                      │              │ per adult        │ per adult        │
+ │                      │              │ 2 adults: 170.00 │ 2 adults: 190.00 │
+ └──────────────────────┴──────────────┴──────────────────┴──────────────────┘
+ This creates 2 rates: "Basic Rate / Room" (1 room type) and
+ "Basic Rate / Guest" (1 room type).
+
+ More rates (optional)
+ ┌───────────────────────┬────────────────────────────────┬────────────────────────┬────┐
+ │ Name                  │ Price                          │ Room types             │    │
+ ├───────────────────────┼────────────────────────────────┼────────────────────────┼────┤
+ │[ Room with breakfast] │[Follows Basic Rate / Room   ▾] │[ Garden Chalet      ▾] │ 🗑 │
+ │                       │ [More ▾] [30.00] [RM ▾]        │                        │    │
+ │[ Long stay          ] │[Own prices                  ▾] │[ All                ▾] │⌃🗑 │
+ │   (nested grid: Room type · Price by · Weekdays · Weekend)                     │    │
+ ├───────────────────────┴────────────────────────────────┴────────────────────────┴────┤
+ │ [+ Add rate]                                                                         │
+ └──────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+**Page settings**
+
+- **Weekend nights** is a `toggle-group` (`FriSat`, `SatSun`). It saves to `property_settings.weekend_nights`, because here it is the property default. Column headers follow it ("Fri, Sat").
+- **Weekend price**: **Same every night** hides the Weekend column and sends one amount for all 7 weekdays. Not stored. On return it is preselected when all saved weekdays match.
+
+**Basic rate rows**
+
+- One row per room-sold room type, in Room types order. No add or remove: room types come from section 2.
+- **Price by** per row: **Room** (default) or **Guest**. Guest prices are per adult per night (adult price × adults). Prices by adult count, Auto fill and the single supplement stay in Rates.
+- Amounts are required, more than 0, in the currency's decimals.
+- Under each price: "guest pays" for a Room row and "{base_occupancy} adults: …" for a Guest row. The server calculates both with the taxes that apply to rooms, for a local guest. The browser never calculates prices or tax.
+- With a Guest row, a note says: "Children on per-guest prices: infants (0–3) stay free, children (4–11) pay half. After you go live, you can change this in Settings, under Rate plans." This is the existing pre-fill for a new PerGuest plan.
+- Extra adults are not asked, because `base_occupancy` is max adults.
+
+**Plans behind the table**
+
+A rate plan has one pricing basis, so the rows map to one plan per basis used:
+
+| Rows use       | Plans                                   | Names                                    |
+| -------------- | --------------------------------------- | ---------------------------------------- |
+| Room only      | The seeded plan                         | Basic Rate                               |
+| Guest only     | The seeded plan, basis switched         | Basic Rate                               |
+| Room and Guest | The seeded plan and a new PerGuest plan | Basic Rate / Room and Basic Rate / Guest |
+
+- The note under the table says which rates will be created, before saving.
+- Switching the seeded plan's basis uses a new `ChangeRatePlanBasis`, allowed only before go-live. After go-live the basis is fixed, as today.
+- Switching a row with saved prices asks first (AlertDialog: "Switching Longhouse to per guest clears its prices.").
+- A plan left with no room types is archived.
+- Room types added later link to the seeded plan (Basic Rate / Room when mixed). To verify how `SeedRatePlans` finds that plan without a flag.
+
+**More rates**
+
+- Optional. Empty state: "Sell other prices, like a breakfast or non-refundable rate." **Add rate** in the `TableFooter`. Rows are disabled until Basic rate has prices.
+- **Price** menu: one "Follows {plan}" per Basic Rate plan ("Follows Basic rate" when there is one), or **Own prices**.
+- Follows: **More** or **Less**, an amount, **RM** or **%** (`CreateDerivedRatePlan`: direction, value, derivation). An amount is per unit of the parent basis ("per guest" on a Guest parent). An example column shows the result for the first room type's weekday price (server). Room types: only the parent's.
+- Own prices: `CreateRatePlan` and `SaveRates`, with a nested grid of the selected room types and the same **Price by** column. Mixed rows split the same way ("Long stay / Room", "Long stay / Guest").
+- **Room types** is a multi-select, All by default, select and deselect both ways, at least one ("Pick at least one room type"). Saved rows use `RatePlanRoomTypesRequest`. To verify whether `SaveRates` keeps a deselected room type's amounts for reselecting.
+- Saved rows: name, change and room types are editable (`SaveRatePlanDerivation`). Switching Own prices to Follows clears own amounts and asks first. 🗑 archives (`ArchiveRatePlan`).
+- When a follower's room type moves to the other basis, it drops off the follower and the row shows an error. Nothing moves silently.
+- A rate's name does not add breakfast to the bill. The hint: "After you go live, you can include meals in Settings, under Rate plans."
+- Not in onboarding: inclusions, restrictions, long-stay discounts, company rates, packages, day use, per bed.
+
+**Save and check**
+
+- One submit, one transaction: plan bases and names, room type links, `SaveRates` per own-price plan from today to today + 364 (property time zone), then the more rates. Re-saving replaces the amounts in that range. That is safe before go-live, because the rate calendar is behind the fence.
+- At phone width each row stacks into a card.
+- Check: every room-sold room type has prices for the next 30 days on its Basic Rate plan. More rates never block.
 
 ## Section states
 
@@ -278,6 +360,7 @@ Editing an earlier section never resets a later one. A later section only shows 
 - Its own onboarding layout, set with Inertia 3 `useLayoutProps`. No PMS sidebar and no ⌘K command palette.
 - The phase bar shows state by icon (check, lock, warning, number), never by colour alone, with the state word for assistive tech.
 - The footer is a flex sibling of the scroll area, so it never covers the last field.
+- Hints that point beyond onboarding say "After you go live, you can … in Settings, under {page}." (or "in Rates") in plain text, with no arrow paths. Settings is behind the fence until go-live. A hint that opens another onboarding section is a link instead, for example **Charge items →**.
 
 ## Forms
 

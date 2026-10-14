@@ -92,7 +92,7 @@ Plans fall into two families: room plans and bed plans. Package is the only basi
 - `rates`, `package_prices` and `channel_rate_plan_mappings` exist only for a linked plan and room type pair.
 - The first linked plan by `position` is preselected on the booking form and listed first on the public site.
 - A booking can move only to a room type that is linked to its plan (see [Room and bed assignment](../18-front-desk/02-room-and-bed-assignment.md)).
-- Property creation seeds one ordinary plan, "Basic Rate". New room types are linked to it when the sell unit fits (see [Seed property defaults](../02-property/03-seed-property-defaults.md)).
+- Property creation seeds one ordinary plan, "Basic Rate". New room types are linked to it when the sell unit fits (see [Seed property defaults](../02-property/03-seed-property-defaults.md)). Before go-live, onboarding can switch its basis to PerGuest or split it into "Basic Rate / Room" and "Basic Rate / Guest" ([Basic rate table](../17-onboarding/02-wizard-steps.md#basic-rate-table)). New room types then link to the seeded plan.
 - Child prices apply to PerGuest plans and to packages charged per guest (`PricingBasis::usesChildPrices()`). Such a plan has one row per [age group](../02-property/04-age-groups.md). PerRoom plans and packages charged per room use `extra_child_amount`.
 - A new PerGuest plan is pre-filled: the first group Free, every other group 50%.
 - `Percent` is a percent of the plan's **1-adult** price for that night, never the party's per-adult share.
