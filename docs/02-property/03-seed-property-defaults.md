@@ -32,13 +32,21 @@ A strategy class per country replaces the `$countryCode !== 'MY'` checks in the 
 
 ## Changing country
 
-| Stage                                                    | How                                                           | Confirm                                                       |
-| -------------------------------------------------------- | ------------------------------------------------------------- | ------------------------------------------------------------- |
-| Basics saved, every other onboarding section Not started | Edit country, currency or time zone on Basics                 | No. Only untouched presets change.                            |
-| Another section started, before go-live                  | Basics shows them read-only with **Change country**           | Yes. The dialog lists what is reset, with server-sent counts. |
-| Live                                                     | Not possible. Settings shows them read-only (`SettingsLock`). | –                                                             |
+| Stage                                                    | How                                                           | Confirm                                                           |
+| -------------------------------------------------------- | ------------------------------------------------------------- | ----------------------------------------------------------------- |
+| Basics saved, every other onboarding section Not started | Edit country, currency or time zone on Basics                 | No. Only untouched presets change.                                |
+| Another section started, before go-live                  | Basics shows them read-only with **Change country**           | Yes. An AlertDialog lists what is reset, with server-sent counts. |
+| Live                                                     | Not possible. Settings shows them read-only (`SettingsLock`). | –                                                                 |
 
 "Not started" comes from `OnboardingProgress`. There is no extra flag.
+
+**UI on Basics once setup has started:**
+
+1. Country, currency and time zone show read-only with **Change country**.
+2. **Change country** unlocks the three fields in place, with a warning Alert: "Changing country resets taxes, payment methods, prices and practice data. Room types, rooms and team stay." **Cancel** restores the saved values and locks them again.
+3. **Save & continue** opens an AlertDialog (no fields, destructive button **Change country**) titled "Change country to {country}?". It lists the server-sent counts of what resets. Type, name and address changes save in the same request.
+
+The fields stay on the page because Basics is their form, and an AlertDialog allows at most one field ([Form containers](../design-system/05-form-containers.md#choosing-the-container)).
 
 `ChangePropertyCountry` handles both cases in one transaction: it resets the country-bound data below and runs `SeedPropertyDefaults` with the new profile. Presets are matched by system key, so keys shared by both profiles stay.
 
