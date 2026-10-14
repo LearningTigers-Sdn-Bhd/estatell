@@ -560,8 +560,12 @@ Editing an earlier section never resets a later one. A later section only shows 
 ## Locks
 
 - The step controller sends `locked` and `blockedBy` props.
-- The page wraps its form in `<StepForm locked>`: a `<fieldset disabled>` and a banner "Finish {section} first" with a link. To verify: Base UI Select, Switch and Combobox follow a native `fieldset disabled`. If not, `StepForm` uses Base UI `Fieldset` with `disabled`.
+- Every section can be opened, locked or not. A locked section opens as a **preview**: the real form with the owner's data, all fields disabled, and the banner "Preview. Finish {section} first to fill this in." with a **Go to {section} →** link.
+- The page wraps its form in `<StepForm locked>`: a `<fieldset disabled>` and that banner. To verify: Base UI Select, Switch and Combobox follow a native `fieldset disabled`. If not, `StepForm` uses Base UI `Fieldset` with `disabled`.
 - The server enforces the lock too: a save while a prerequisite is not Done is rejected.
+- A preview's footer has **Back** and **Next** only (no Save, no Skip). Next opens the next section without saving.
+- Locked phase and step links keep the 🔒 icon. Hover or focus shows "Locked until {section} is done. Open to preview." Screen readers hear "{section}, locked, preview".
+- Test drive and Review can be previewed too. Review then works as a to-do list of what is missing.
 
 ## Layout
 
@@ -580,7 +584,12 @@ Editing an earlier section never resets a later one. A later section only shows 
 └──────────────────────────────────────────────────────────────────────┘
 ```
 
-- Its own onboarding layout, set with Inertia 3 `useLayoutProps`. No PMS sidebar and no ⌘K command palette.
+- Its own onboarding layout, set with Inertia 3 `useLayoutProps`. No PMS sidebar, no ⌘K command palette, no business date, no notifications bell, and no links to settings, rates or the dashboard. The phase bar and stepper do the sidebar's job, and the full width fits the section tables.
+- **Top bar**: logo, property name and code (not a link), progress ("Setup 6 of 9 required · ~18 min" from `OnboardingProgress` and `estimatedMinutes()`), a **Help** Popover (short guide and support contact, and a note when support access is on), and the user menu (account pages and **Log out**, no property switcher). The impersonation banner sits above the top bar during view as.
+- The content column is centred with a max width close to a settings page.
+- **Navigation**: the phase bar, the stepper and the phone section list link to every section. **Save & continue** saves and opens the next section in number order, even a locked one (as a preview). Leaving an edited section opens the dirty-form AlertDialog (**Cancel**, **Discard**, **Save**, see [Form containers](../design-system/05-form-containers.md)).
+- **Footer**: **Back**, **Skip** (optional sections only) and **Save & continue**. A preview has **Back** and **Next**.
+- **Phone width**: the top bar keeps the property name, Help and the user menu. The phase bar becomes one line ("Finance · 5 of 13") with a progress bar and **☰**, which opens a bottom Sheet listing every phase and section with its state. The footer shows **←** and the main button.
 - The phase bar shows state by icon (check, lock, warning, number), never by colour alone, with the state word for assistive tech.
 - The footer is a flex sibling of the scroll area, so it never covers the last field.
 - In an editable table the add button sits at the end (right) of the `TableFooter` (`justify-between`). A summary such as "Total: 10" goes at the start (left). With a second action, such as **Import from file**, the add button stays last. See [Form containers](../design-system/05-form-containers.md#editable-tables).
