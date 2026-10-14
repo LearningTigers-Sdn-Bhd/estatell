@@ -96,7 +96,7 @@ The legal details, on the Details page, **Business licence** tab (`/p/{code}/set
 - Up to 20 licences. Issuer up to 150 and number up to 50 characters, both required. `expires_on` is optional.
 - The empty table shows one row, "No licences yet.", and **Add licence** in the footer.
 - The tab shares the labels of the [country profile](03-seed-property-defaults.md#country-profiles). Basics shows the same fields later as its Business details group.
-- Printed documents read the registered name and the licences marked **Print** through [Printing settings](05-printing-settings.md) (next change).
+- Printed documents read the registered name and the licences marked **Print** through [Printing settings](05-printing-settings.md).
 
 ### Logo
 

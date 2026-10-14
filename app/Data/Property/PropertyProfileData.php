@@ -3,6 +3,7 @@
 namespace App\Data\Property;
 
 use App\Models\Property;
+use App\Models\PropertyLicence;
 use App\Services\Guests\CountryOptions;
 use App\Services\Property\CountryProfiles;
 use Spatie\LaravelData\Data;
@@ -12,8 +13,12 @@ use Spatie\LaravelData\Data;
  */
 class PropertyProfileData extends Data
 {
+    /**
+     * @param  list<string>  $printedLicences  The licences marked to print, as "{issuer} {number}".
+     */
     public function __construct(
         public string $name,
+        public ?string $legalName,
         public ?string $typeLabel,
         public ?string $countryName,
         public ?string $addressLine1,
@@ -28,6 +33,7 @@ class PropertyProfileData extends Data
         public ?string $tin,
         public string $tinLabel,
         public ?string $logoUrl,
+        public array $printedLicences,
     ) {}
 
     public static function fromModel(Property $property): self
@@ -37,6 +43,7 @@ class PropertyProfileData extends Data
 
         return new self(
             name: $property->name,
+            legalName: $property->legal_name,
             typeLabel: $property->type?->label(),
             countryName: app(CountryOptions::class)->name($property->country_code),
             addressLine1: $property->address_line1,
@@ -51,6 +58,9 @@ class PropertyProfileData extends Data
             tin: $property->tin,
             tinLabel: $profile->tinLabel(),
             logoUrl: $logo === null ? null : route('settings.logo', ['property' => $property->code, 'v' => $logo->id], absolute: false),
+            printedLicences: $property->licences()->ordered()->where('show_on_documents', true)->get()
+                ->map(fn (PropertyLicence $licence): string => $licence->issuer.' '.$licence->number)
+                ->all(),
         );
     }
 }

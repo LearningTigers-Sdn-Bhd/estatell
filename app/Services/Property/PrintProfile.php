@@ -19,19 +19,28 @@ class PrintProfile
 
     public function for(Property $property): PrintLayout
     {
-        $property->loadMissing(['printSetting.taxes', 'media']);
+        $property->loadMissing(['printSetting.taxes', 'media', 'licences']);
         $settings = $property->printSetting;
 
         return new PrintLayout(
             font: $settings->font,
             fontSize: $settings->font_size,
             propertyName: $property->name,
+            legalName: $this->legalName($property),
             logoDataUri: $settings->show_logo ? $this->logoDataUri($property) : null,
             addressLines: $settings->show_address ? $this->addressLines($property) : [],
             contactLines: $settings->show_contact ? $this->contactLines($property) : [],
             registrationLines: $this->registrationLines($property, $settings),
             footerText: $settings->footer_text,
         );
+    }
+
+    /**
+     * The registered name under the property name, when it is set and differs from it.
+     */
+    private function legalName(Property $property): ?string
+    {
+        return filled($property->legal_name) && $property->legal_name !== $property->name ? $property->legal_name : null;
     }
 
     /**
@@ -78,7 +87,7 @@ class PrintProfile
     }
 
     /**
-     * The registration number, the TIN and the picked tax numbers, each only when switched on and set. A picked tax
+     * The registration number, the TIN, the licences marked to print and the picked tax numbers, each only when switched on and set. A picked tax
      * whose number was removed later is skipped.
      *
      * @return list<string>
@@ -93,6 +102,10 @@ class PrintProfile
 
         if ($settings->show_tin && filled($property->tin)) {
             $lines[] = __('TIN :number', ['number' => $property->tin]);
+        }
+
+        foreach ($property->licences->where('show_on_documents', true)->sortBy([['position', 'asc'], ['id', 'asc']]) as $licence) {
+            $lines[] = $licence->issuer.' '.$licence->number;
         }
 
         $taxes = $settings->taxes

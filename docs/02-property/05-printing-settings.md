@@ -34,16 +34,16 @@ print_setting_taxes         the tax numbers the header shows
 - A 1:1 table with typed columns, like `property_settings`. New print options are new columns.
 - **The table stores switches, never values.** The header reads the values where they live:
 
-| Header line           | Read from                                                                            |
-| --------------------- | ------------------------------------------------------------------------------------ |
-| Logo                  | The `logo` media collection on Property                                              |
-| Address               | `properties.address_line1`, `address_line2`, `postal_code`, `city`, the country name |
-| Phone and email       | `properties.contact_phone`, `contact_email`, on one line with a `·`                  |
-| Registered name       | `properties.legal_name`, under the trading name, when set                            |
-| Business registration | `properties.registration_number`                                                     |
-| TIN                   | `properties.tin`                                                                     |
-| Tax numbers           | `taxes.registration_number` of each tax in `print_setting_taxes`                     |
-| Licences              | `property_licences` with `show_on_documents`, as "{issuer} {number}"                 |
+| Header line           | Read from                                                                                                |
+| --------------------- | -------------------------------------------------------------------------------------------------------- |
+| Logo                  | The `logo` media collection on Property                                                                  |
+| Address               | `properties.address_line1`, `address_line2`, `postal_code`, `city`, the country name                     |
+| Phone and email       | `properties.contact_phone`, `contact_email`, on one line with a `·`                                      |
+| Registered name       | `properties.legal_name`, under the trading name, when set and different from it                          |
+| Business registration | `properties.registration_number`                                                                         |
+| TIN                   | `properties.tin`                                                                                         |
+| Tax numbers           | `taxes.registration_number` of each tax in `print_setting_taxes`                                         |
+| Licences              | `property_licences` with `show_on_documents`, in `position` order, as "{issuer} {number}", after the TIN |
 
 - `SeedPropertyDefaults` creates the row with the defaults above and no tax rows. A back-fill migration creates it for existing properties, and `PropertyFactory` creates it in tests. Code that prints never checks for a missing row. The printing routes are a 404 before Basics, when the row does not exist yet.
 - `footer_text` and `bank_details` are trimmed. An empty text is stored as null (CHECK, like `taxes.registration_number`).

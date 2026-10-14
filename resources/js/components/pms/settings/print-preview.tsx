@@ -63,6 +63,7 @@ export function PrintPreview({
             ? `Registration no. ${profile.registrationNumber}`
             : null,
         settings.showTin && profile.tin ? `TIN ${profile.tin}` : null,
+        ...profile.printedLicences,
         ...taxes
             .filter(
                 (tax) =>
@@ -95,6 +96,12 @@ export function PrintPreview({
                         >
                             {profile.name}
                         </p>
+                        {profile.legalName &&
+                            profile.legalName !== profile.name && (
+                                <p className={size.small}>
+                                    {profile.legalName}
+                                </p>
+                            )}
                         {settings.showAddress &&
                             addressLines(profile).map((line) => (
                                 <p key={line} className={size.small}>

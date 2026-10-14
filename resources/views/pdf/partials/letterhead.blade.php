@@ -1,5 +1,5 @@
 {{--
-    The property letterhead: the logo, then the property name and the lines switched on in the printing settings.
+    The property letterhead: the logo, then the property name, the registered name and the lines switched on in the printing settings.
     Use it as a component so the document heading sits on the right:
     @component('pdf.partials.letterhead', ['print' => $print]) <div class="title">…</div> @endcomponent
 --}}
@@ -13,6 +13,9 @@
         @endif
         <td>
             <div class="heading">{{ $print->propertyName }}</div>
+            @if ($print->legalName !== null)
+                <div class="small">{{ $print->legalName }}</div>
+            @endif
             @foreach ($print->addressLines as $line)
                 <div class="small">{{ $line }}</div>
             @endforeach

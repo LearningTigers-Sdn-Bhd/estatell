@@ -190,6 +190,52 @@ test('the letterhead shows only the lines that are switched on and set', functio
         ->and($layout->registrationLines)->toBe(['TIN C1234567890', 'SST W10-1808-32000123']);
 });
 
+test('the letterhead shows the registered name and only the licences marked to print, in order', function () {
+    [, $property] = printingProperty();
+    $property->licences()->createMany([
+        ['issuer' => 'MOTAC', 'number' => 'M-2', 'position' => 1, 'show_on_documents' => true],
+        ['issuer' => 'Fire dept', 'number' => 'F-3', 'position' => 2, 'show_on_documents' => false],
+        ['issuer' => 'DBKK', 'number' => 'D-1', 'position' => 0, 'show_on_documents' => true],
+    ]);
+
+    $layout = app(PrintProfile::class)->for($property->refresh());
+
+    expect($layout->legalName)->toBeNull()
+        ->and($layout->registrationLines)->toBe(['Registration no. 202301012345', 'DBKK D-1', 'MOTAC M-2']);
+
+    $property->update(['legal_name' => 'Sandbay Resort Sdn Bhd']);
+    $layout = app(PrintProfile::class)->for($property->refresh());
+
+    expect($layout->legalName)->toBe('Sandbay Resort Sdn Bhd');
+
+    $property->update(['legal_name' => $property->name]);
+
+    expect(app(PrintProfile::class)->for($property->refresh())->legalName)->toBeNull();
+});
+
+test('the sample PDF letterhead prints the registered name and the licence lines', function () {
+    [$owner, $property] = printingProperty();
+    $property->update(['legal_name' => 'Sandbay Resort Sdn Bhd']);
+    $property->licences()->create(['issuer' => 'MOTAC', 'number' => 'M-2', 'position' => 0, 'show_on_documents' => true]);
+
+    $html = view('pdf.partials.letterhead', ['print' => app(PrintProfile::class)->for($property->refresh()), 'slot' => ''])->render();
+
+    expect($html)->toContain('Sandbay Resort Sdn Bhd')->toContain('MOTAC M-2');
+});
+
+test('the printing tabs send the registered name and the licence lines for the preview', function () {
+    [$owner, $property] = printingProperty();
+    $property->update(['legal_name' => 'Sandbay Resort Sdn Bhd']);
+    $property->licences()->create(['issuer' => 'MOTAC', 'number' => 'M-2', 'position' => 0, 'show_on_documents' => true]);
+    $property->licences()->create(['issuer' => 'Fire dept', 'number' => 'F-3', 'position' => 1, 'show_on_documents' => false]);
+
+    $this->actingAs($owner)
+        ->get(printSettingsUrl($property, 'printing/header'))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('profile.legalName', 'Sandbay Resort Sdn Bhd')
+            ->where('profile.printedLicences', ['MOTAC M-2']));
+});
+
 test('the letterhead embeds the logo when it is switched on', function () {
     [, $property] = printingProperty();
     $property->addMedia(UploadedFile::fake()->image('logo.png'))->toMediaCollection(Property::LOGO);

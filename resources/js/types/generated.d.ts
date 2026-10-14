@@ -1186,6 +1186,7 @@ showOnDocuments: boolean,
 };
 export type PropertyProfileData = {
 name: string,
+legalName: string | null,
 typeLabel: string | null,
 countryName: string | null,
 addressLine1: string | null,
@@ -1200,6 +1201,7 @@ registrationNumberLabel: string,
 tin: string | null,
 tinLabel: string,
 logoUrl: string | null,
+printedLicences: string[],
 };
 export type PropertySettingsData = {
 currency: App.Data.Property.CurrencyData,
