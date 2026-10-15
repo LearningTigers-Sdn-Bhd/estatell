@@ -538,28 +538,35 @@ Not a table: two groups on one page. The registration card group is the same com
 
 ```
  ┌──────────────────────┬────────────────────────┬────────────────┬──────────────────────────────┬────┐
- │ Name                 │ Email                  │ Role  ⓘ        │ Sign-in                      │    │
+ │ Name                 │ Email                  │ Role           │ Sign-in                      │    │
  ├──────────────────────┼────────────────────────┼────────────────┼──────────────────────────────┼────┤
  │ Nurul Hafizah (you)  │ nurul@seaview.my       │ Owner          │ Active                       │    │
- │[ Aina Rahman       ] │[ aina@seaview.my     ] │[Front desk  ▾] │ Ready after go-live          │    │
+ │ Aina Rahman          │ aina@seaview.my        │ Front desk     │ Ready after go-live          │    │
  │[                   ] │[                     ] │[Front desk  ▾] │ Created when you save        │ 🗑 │
  ├──────────────────────┴────────────────────────┴────────────────┴──────────────────────────────┴────┤
- │                                                                [Import from file]   [+ Add person] │
+ │                                                  [Template ▾] [Import from file]   [+ Add person] │
  └────────────────────────────────────────────────────────────────────────────────────────────────────┘
- After you go live, you can invite staff by email and make custom roles in
- Settings, under Staff and Roles.
+ ┌ Roles ─────────────────────────────────────────────────────────────────────────────────────────────┐
+ │ Manager       Runs the property: bookings, rates, rooms, staff, refunds and reports.               │
+ │ Front desk    Handles guests: bookings, check-in and out, payments and room status.                │
+ │ Housekeeping  Keeps rooms ready: sees and updates room status.                                     │
+ │ Finance       Handles money: payments, refunds, city ledger and reports.                           │
+ │ ℹ You can change what each role can do after you go live, in Settings.                             │
+ └────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-- Optional. Starts with the owner (read-only, "(you)") and one empty row.
-- Temp passwords only, no email invitations in onboarding. Each new row (name, email, role) is created on save by the bulk add Action (`BulkAddStaffRequest` rules: email required and unique against users and open invitations, errors per row).
-- **Role** offers Manager, Front desk, Housekeeping and Finance (not Owner). New rows default to Front desk. An ⓘ Popover lists one line per role, built on the server from the role's permissions. To verify that each default role has a short description.
+- Optional. Starts with the owner (read-only, "(you)") and one empty row. Saved staff show as read-only rows above the new rows.
+- Temp passwords only, no email invitations in onboarding. Each new row (name, email, role) is created on save by `SaveOnboardingTeam` through the bulk add Action `BulkCreateStaff`, all or nothing. `SaveTeamRequest` follows the `BulkAddStaffRequest` rules: email required and unique against users and open invitations, errors per row. A row with no name, email or role is dropped, and saving with no rows is valid.
+- **Role** offers Manager, Front desk, Housekeeping and Finance (not Owner), from `TeamRoles`. New rows default to Front desk.
+- The **Roles** card lists the same four roles with one line each (`DefaultRoleEnum::description()`, sent as `roles`) and the line "You can change what each role can do after you go live, in Settings." It has no permission lists.
 - **Sign-in** is read-only: "Created when you save" for new rows, "Ready after go-live" for saved rows. Before go-live there is no Copy, Reset or export, and the page never receives temp passwords as props.
 - Saved rows have no actions in onboarding. Removing someone is in settings after go-live. 🗑 only on unsaved rows.
-- **Import from file** opens the existing bulk add (grid or CSV/XLSX), then returns here.
+- **Import from file** reads a CSV or XLSX file (columns name, email, role) into new rows on this page, with a problem under any row whose role is unknown, as on Companies. Nothing is saved until the owner saves. **Template** downloads the empty file. The Settings bulk add is not used: the settings routes are behind the `live` fence.
 - Staff who sign in before go-live see the waiting page ([The fence](#the-fence)).
+- Adding staff does not lock the country (`SettingsLock::setupStarted` ignores this step).
 - At go-live every pending temp password is replaced, so the 14 days start then. The go-live screen shares the details (see [Go live](03-go-live.md#after-go-live)). Review shows one info line: "{n} staff and {n} company users get their sign-in details when you go live."
 - At phone width each row stacks into a card.
-- Check: optional, never blocks. Done with at least one person besides the owner, or Skipped.
+- Check: optional, never blocks. Done with at least one active staff user who is not an Owner, or Skipped.
 
 ## Channel manager table
 

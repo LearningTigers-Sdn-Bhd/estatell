@@ -1074,6 +1074,17 @@ requiredDone: number,
 requiredTotal: number,
 remainingMinutes: number,
 };
+export type OnboardingRoleData = {
+value: string,
+label: string,
+description: string,
+};
+export type OnboardingStaffData = {
+id: number,
+name: string,
+email: string,
+roleName: string,
+};
 export type OnboardingStepData = {
 value: string,
 label: string,

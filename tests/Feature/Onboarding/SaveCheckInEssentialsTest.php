@@ -52,7 +52,7 @@ test('the page sends the saved settings and the time menus', function () {
 });
 
 test('a save writes the times and card settings and goes to the next section', function () {
-    ($this->save)()->assertRedirect(route('onboarding.room-types.edit', $this->property->code));
+    ($this->save)()->assertRedirect(route('onboarding.team.edit', $this->property->code));
 
     $settings = $this->property->settings->fresh();
 

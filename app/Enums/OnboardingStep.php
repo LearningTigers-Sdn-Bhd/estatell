@@ -156,6 +156,7 @@ enum OnboardingStep: string
             self::ChargeItems => 'onboarding.charge-items.edit',
             self::Discounts => 'onboarding.discounts.edit',
             self::CheckInEssentials => 'onboarding.check-in-essentials.edit',
+            self::Team => 'onboarding.team.edit',
             self::Review => 'onboarding.go-live.show',
             default => null,
         };

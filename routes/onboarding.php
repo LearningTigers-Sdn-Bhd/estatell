@@ -14,6 +14,7 @@ use App\Http\Controllers\Onboarding\PropertyBasicsController;
 use App\Http\Controllers\Onboarding\RoomController;
 use App\Http\Controllers\Onboarding\RoomTypeController;
 use App\Http\Controllers\Onboarding\TaxController;
+use App\Http\Controllers\Onboarding\TeamController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('onboarding')->name('onboarding.')->group(function () {
@@ -55,6 +56,11 @@ Route::prefix('onboarding')->name('onboarding.')->group(function () {
 
     Route::get('check-in-essentials', [CheckInEssentialsController::class, 'edit'])->name('check-in-essentials.edit');
     Route::put('check-in-essentials', [CheckInEssentialsController::class, 'update'])->name('check-in-essentials.update');
+
+    Route::get('team', [TeamController::class, 'edit'])->name('team.edit');
+    Route::put('team', [TeamController::class, 'update'])->name('team.update');
+    Route::post('team/import', [TeamController::class, 'import'])->name('team.import');
+    Route::get('team/import-template.{format}', [TeamController::class, 'template'])->name('team.template');
 
     Route::post('skips/{step}', [OnboardingSkipController::class, 'store'])->name('skips.store');
     Route::delete('skips/{step}', [OnboardingSkipController::class, 'destroy'])->name('skips.destroy');

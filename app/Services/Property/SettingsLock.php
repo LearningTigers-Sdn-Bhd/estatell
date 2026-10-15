@@ -32,11 +32,11 @@ class SettingsLock
     /**
      * Whether any section other than Basics is past Not started. Payment methods, Discounts and Check-in essentials do
      * not count: the seeded methods, the active starter discount and the seeded times and terms make them Done before
-     * the owner opens them.
+     * the owner opens them. Team does not count either: staff do not depend on the country.
      */
     public function setupStarted(Property $property): bool
     {
-        $ignored = [OnboardingStep::Basics->value, OnboardingStep::PaymentMethods->value, OnboardingStep::Discounts->value, OnboardingStep::CheckInEssentials->value];
+        $ignored = [OnboardingStep::Basics->value, OnboardingStep::PaymentMethods->value, OnboardingStep::Discounts->value, OnboardingStep::CheckInEssentials->value, OnboardingStep::Team->value];
 
         foreach ($this->progress->states($property) as $step => $state) {
             if (! in_array($step, $ignored, true) && ! in_array($state, [StepState::NotStarted, StepState::Locked], true)) {

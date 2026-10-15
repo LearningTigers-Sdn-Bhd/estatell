@@ -25,6 +25,20 @@ enum DefaultRoleEnum: string
     }
 
     /**
+     * What the role mostly does, in a line the owner can read when choosing a role.
+     */
+    public function description(): string
+    {
+        return match ($this) {
+            self::Owner => __('Full access to everything.'),
+            self::Manager => __('Runs the property: bookings, rates, rooms, staff, refunds and reports.'),
+            self::FrontDesk => __('Handles guests: bookings, check-in and out, payments and room status.'),
+            self::Housekeeping => __('Keeps rooms ready: sees and updates room status.'),
+            self::Finance => __('Handles money: payments, refunds, city ledger and reports.'),
+        };
+    }
+
+    /**
      * @return list<PermissionEnum>
      */
     public function permissions(): array
