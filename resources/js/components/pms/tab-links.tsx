@@ -16,6 +16,8 @@ type Props = {
     tabs: TabLink[];
     activeTab: string;
     className?: string;
+    /** Extra classes for each tab, for example `min-w-0` to size tabs to their label. */
+    triggerClassName?: string;
     /** Keep long tab labels reachable on narrow screens. */
     scrollable?: boolean;
     /** `full` drops the 80% panel width, for a tab with a side-by-side preview. */
@@ -34,6 +36,7 @@ export function TabLinks({
     tabs,
     activeTab,
     className,
+    triggerClassName,
     scrollable = false,
     panelWidth = 'default',
     panelClassName,
@@ -45,7 +48,7 @@ export function TabLinks({
                 <TabsTrigger
                     key={tab.value}
                     value={tab.value}
-                    className="min-w-28 flex-none"
+                    className={cn('min-w-28 flex-none', triggerClassName)}
                     nativeButton={false}
                     render={
                         <Link

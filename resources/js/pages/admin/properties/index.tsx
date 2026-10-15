@@ -205,6 +205,7 @@ export default function PropertiesIndex({
                     activeTab={waitingTab ? 'waiting' : 'all'}
                     panelWidth="full"
                     className="gap-4"
+                    triggerClassName="min-w-0 px-0 mr-6"
                     tabs={[
                         {
                             value: 'all',
