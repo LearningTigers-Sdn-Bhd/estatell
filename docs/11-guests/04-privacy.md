@@ -35,7 +35,7 @@ The UI calls this **Archive**. Internal Action names, routes, permissions, `anon
 - Permission: `guests.anonymize`. Only the Owner role has it by default.
 - The guest page asks the staff member to type `Confirm` before **Archive guest** turns on. The check is case-sensitive and ignores surrounding spaces. The check is in the browser only. The dialog warns that personal data is permanently deleted and the action cannot be undone.
 - A data migration renames existing `Anonymized guest #<id>` placeholders and updates their name keys, only for guests with `anonymized_at` set. Other names, timestamps, financial records and issued-document snapshots stay unchanged.
-- Bulk archiving is not part of this flow yet.
+- The guest list also supports [bulk Archive](01-guest-profiles.md#bulk-selection-and-actions). It uses the same Action, refusals and per-guest audit entries. The server validates the typed `Confirm` for bulk requests.
 - The guest-page **Archive** button and the confirmation submit button use the destructive variant. Other header actions stay unchanged.
 
 An archived guest:

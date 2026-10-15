@@ -19,6 +19,8 @@ About 50 components, each built when the first page needs it. Before the reserva
 
 `FormActions` is built with the [booking form](../12-reservations/05-booking-form.md#implementation), the first full-page form.
 
+The optional `stackOnMobile` prop on `BulkActionBar` puts the count and Clear on the first row, with actions on the second row. The guest list uses it. The `disabled` prop locks Clear and Esc during a request and shows a spinner. AlertDialogs also prevent Esc from clearing the selection.
+
 ### Pagination
 
 `PaginationFooter` is shared by server-paginated tables and card lists. On desktop, the result count sits left and the controls sit right. On mobile, the controls use icons and the count sits centered below them.

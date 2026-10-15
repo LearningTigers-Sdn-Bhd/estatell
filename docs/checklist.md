@@ -160,6 +160,7 @@ Brief for every item: read `AGENTS.md`, `.ai/rules/index.md`, the matching rule 
 - [x] `style(catalogues): clarify room revenue policy settings` — wider policy editor with a compact live example, inherited tax names, relevant charge controls, the existing language dropdown and an unsaved-changes save row. Reset the editor between policy URLs and hide stale or failed preview amounts. No calculation or posting changes. Docs: [Policy tabs](06-catalogues/06-room-revenue.md#policy-tab).
     - The Example heading and description sit inside one card, with server-provided charge arithmetic and itemised local and foreign tax breakdowns. The 33 policy tests, TypeScript, lint/format checks and production build pass. Browser review is still open.
 - [x] `fix(guests): label anonymization as archive` — Archive actions, Archived notices and filter, `Archived User #id` placeholders and typed `Confirm` instead of the guest name. A narrow data migration renames existing placeholders. Internal names, permissions, privacy removal and refusals stay unchanged. Bulk archiving stays out of scope. Docs: [Privacy](11-guests/04-privacy.md#archive-a-guest).
+- [x] `feat(guests): add bulk selection and guest actions` — selections across pages (up to 100), the floating responsive bar with VIP and Blacklist menus and destructive Archive, shared blacklist reason, confirmations, property-scoped endpoints through the existing Actions, and changed/unchanged/skipped counts with refused guests kept selected. Docs: [Bulk selection](11-guests/01-guest-profiles.md#bulk-selection-and-actions).
 - [ ] `feat(ui): add the command palette` — ⌘K search across contexts; admin search by code, name, city, with "View as owner" and "View as owner and open" on a property result (`PropertyPolicy::viewAs`, same view-as page and POST). Review the view-as part closely. Docs: [Search patterns](design-system/07-search-patterns.md), [Impersonation](01-platform/04-impersonation.md#entry-points).
 - [ ] `style(ui): add the estatell favicon and app icons` — replace `favicon.ico`, `favicon.svg`, `icon.png` and `apple-touch-icon.png` in `public/`. Needs: the logo file from the user.
 - [x] `chore(ui): block search indexing` — `Disallow: /` in `robots.txt` and a `noindex` meta tag in `app.blade.php`.
@@ -213,6 +214,7 @@ Topics on hold. Each one needs a planning session and its docs before it gets co
 
 | Commit     | Subject                                                                  |
 | ---------- | ------------------------------------------------------------------------ |
+| `bb4895c`  | fix(guests): label anonymization as archive                              |
 | `74f7d24`  | style(property): tidy the profile settings layout                        |
 | `7d06bdb5` | feat(platform): split settings into tabs with selection cards            |
 | `071e4012` | style(ui): fix the staff shell and add the workspace row                 |

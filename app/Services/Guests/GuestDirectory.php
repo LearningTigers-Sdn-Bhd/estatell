@@ -34,6 +34,17 @@ class GuestDirectory
     public function __construct(private IdentityNumber $identityNumber) {}
 
     /**
+     * Resolve the entire selection before a bulk write. A missing or foreign ID refuses the whole request.
+     *
+     * @param  list<int>  $ids
+     * @return Collection<int, Guest>
+     */
+    public function selected(Property $property, array $ids): Collection
+    {
+        return Guest::query()->where('property_id', $property->id)->orderBy('id')->findOrFail($ids);
+    }
+
+    /**
      * @param  bool  $searchIdNumbers  Let the search also find an exact ID number. Only for staff who may view ID documents.
      * @return LengthAwarePaginator<int, Guest>
      */

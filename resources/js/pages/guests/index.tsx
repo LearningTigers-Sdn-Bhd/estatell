@@ -9,9 +9,11 @@ import { EnumSelect } from '@/components/pms/enum-select';
 import type { EnumOption } from '@/components/pms/enum-select';
 import { FilterBar } from '@/components/pms/filter-bar';
 import { GuestFlags } from '@/components/pms/guests/guest-flags';
+import { GuestBulkActions } from '@/components/pms/guests/guest-bulk-actions';
 import { PageHeader } from '@/components/pms/page-header';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { toast } from '@/components/ui/toast';
 import { index, show } from '@/routes/guests';
 
 type Row = App.Data.Guests.GuestRowData;
@@ -25,6 +27,8 @@ type Props = {
     tags: App.Data.Guests.TagData[];
     countries: EnumOption[];
     canManage: boolean;
+    bulkActions: EnumOption[];
+    maxBulkGuests: number;
 };
 
 const column = dataTableColumns<Row>();
@@ -89,8 +93,33 @@ export default function GuestsIndex({
     tags,
     countries,
     canManage,
+    bulkActions,
+    maxBulkGuests,
 }: Props) {
     const [adding, setAdding] = useState(false);
+    const [busy, setBusy] = useState(false);
+    const scope = JSON.stringify(filters);
+    const [selection, setSelection] = useState({
+        scope,
+        ids: new Set<string>(),
+    });
+    if (selection.scope !== scope) {
+        setSelection({ scope, ids: new Set<string>() });
+    }
+    const selected =
+        selection.scope === scope ? selection.ids : new Set<string>();
+    const canSelect = bulkActions.length > 0 && filters.status !== 'anonymized';
+
+    function select(ids: Set<string>) {
+        if (ids.size > maxBulkGuests) {
+            toast.add({
+                title: `Select up to ${maxBulkGuests} guests at a time.`,
+                type: 'error',
+            });
+            return;
+        }
+        setSelection({ scope, ids });
+    }
     const visit = useCallback(
         (changes: Partial<Filters & { sort: string }>) => {
             const next = { ...filters, sort, ...changes };
@@ -165,6 +194,18 @@ export default function GuestsIndex({
                     columns={columns}
                     data={guests.data}
                     getRowId={(row) => String(row.id)}
+                    selection={
+                        canSelect
+                            ? {
+                                  selected,
+                                  onChange: (next) => {
+                                      if (!busy) {
+                                          select(next);
+                                      }
+                                  },
+                              }
+                            : undefined
+                    }
                     sort={sort}
                     onSortChange={(next) => visit({ sort: next })}
                     onRowClick={(row) =>
@@ -209,6 +250,16 @@ export default function GuestsIndex({
                         )
                     }
                 />
+
+                {canSelect && (
+                    <GuestBulkActions
+                        key={scope}
+                        selected={selected}
+                        actions={bulkActions}
+                        onSelectionChange={select}
+                        onBusyChange={setBusy}
+                    />
+                )}
             </div>
 
             {canManage && (

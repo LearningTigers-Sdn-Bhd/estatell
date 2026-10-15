@@ -15,11 +15,13 @@ use App\Data\Guests\GuestOptionData;
 use App\Data\Guests\GuestRowData;
 use App\Data\Guests\TagData;
 use App\Enums\Gender;
+use App\Enums\GuestBulkAction;
 use App\Enums\IdentityDocumentType;
 use App\Enums\Locale;
 use App\Enums\PermissionEnum;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Guests\BlacklistGuestRequest;
+use App\Http\Requests\Guests\BulkUpdateGuestsRequest;
 use App\Http\Requests\Guests\GuestRequest;
 use App\Models\Guest;
 use App\Models\GuestIdentityDocument;
@@ -63,6 +65,11 @@ class GuestController extends Controller
             'tags' => $this->tags($property),
             'countries' => $canManage ? app(CountryOptions::class)->options() : [],
             'canManage' => $canManage,
+            'maxBulkGuests' => BulkUpdateGuestsRequest::MAX_GUESTS,
+            'bulkActions' => array_values(array_map(
+                fn (GuestBulkAction $action): array => ['value' => $action->value, 'label' => $action->label()],
+                array_filter(GuestBulkAction::cases(), fn (GuestBulkAction $action): bool => $request->user()->can($action->permission()->value)),
+            )),
         ]);
     }
 

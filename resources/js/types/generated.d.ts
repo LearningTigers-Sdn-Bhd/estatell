@@ -636,6 +636,11 @@ targets: App.Data.Folio.FolioOptionData[],
 };
 }
 namespace Guests {
+export type GuestBulkResultData = {
+changedIds: number[],
+unchangedIds: number[],
+skippedIds: number[],
+};
 export type GuestData = {
 id: number,
 fullName: string,
@@ -2758,6 +2763,7 @@ export type FolioRowTag = 'scheduled' | 'overridden' | 'reversed' | 'reversal' |
 export type FolioStatus = 'open' | 'closed' | 'voided';
 export type FolioType = 'master' | 'unit' | 'third_party';
 export type Gender = 'male' | 'female';
+export type GuestBulkAction = 'mark-vip' | 'unmark-vip' | 'blacklist' | 'unblacklist' | 'anonymize';
 export type GuestMatchReason = 'phone' | 'email' | 'id_number' | 'name_and_birth_date' | 'name';
 export type HousekeepingBulkAction = 'assign' | 'mark_clean' | 'mark_inspected' | 'set_priority' | 'clear_priority' | 'add_remark' | 'needs_maintenance';
 export type HousekeepingReason = 'departed' | 'stay_over';

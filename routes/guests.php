@@ -2,6 +2,7 @@
 
 use App\Enums\PermissionEnum;
 use App\Http\Controllers\Guests\GuestAnonymizeController;
+use App\Http\Controllers\Guests\GuestBulkController;
 use App\Http\Controllers\Guests\GuestController;
 use App\Http\Controllers\Guests\GuestIdentityDocumentController;
 use App\Http\Controllers\Guests\GuestMatchController;
@@ -16,6 +17,14 @@ Route::prefix('guests')->name('guests.')->group(function () {
     Route::get('search', [GuestController::class, 'search'])->middleware('can:'.PermissionEnum::GuestsView->value)->name('search');
 
     Route::post('matches', GuestMatchController::class)->middleware('can:'.PermissionEnum::GuestsView->value)->name('matches');
+
+    Route::prefix('bulk')->name('bulk.')->controller(GuestBulkController::class)->group(function () {
+        Route::post('mark-vip', 'markVip')->middleware('can:'.PermissionEnum::GuestsManage->value)->name('mark-vip');
+        Route::post('unmark-vip', 'unmarkVip')->middleware('can:'.PermissionEnum::GuestsManage->value)->name('unmark-vip');
+        Route::post('blacklist', 'blacklist')->middleware('can:'.PermissionEnum::GuestsBlacklist->value)->name('blacklist');
+        Route::post('unblacklist', 'unblacklist')->middleware('can:'.PermissionEnum::GuestsBlacklist->value)->name('unblacklist');
+        Route::post('anonymize', 'anonymize')->middleware('can:'.PermissionEnum::GuestsAnonymize->value)->name('anonymize');
+    });
 
     Route::middleware('can:'.PermissionEnum::GuestsManage->value)->group(function () {
         Route::post('/', [GuestController::class, 'store'])->name('store');

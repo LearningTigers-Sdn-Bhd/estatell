@@ -69,6 +69,35 @@ Routes under `/p/{code}/guests` (`guests.*`, route file `guests.php`). They are 
 - `GuestPicker` and `guests.search` come with the [reservation page](../12-reservations/06-reservation-page.md#guests-tab).
 - Left for later: a settings page for tags, `marketing_consent_at` (captured on the registration card).
 
+## Bulk selection and actions
+
+The guest list reuses `DataTable` selection and `BulkActionBar`. No new dependency is required.
+
+- Staff see checkboxes only when they can use at least one bulk action. The Archived filter has no selection controls.
+- The header checkbox selects or clears the current page (25 guests). Selections stay across pages and sorting, but clear after search or filter changes.
+- A selection holds up to 100 guests. There is no select-all-matching action.
+- The bar floats at the bottom, within the page content. On desktop it shows the count, **VIP**, **Blacklist**, destructive **Archive**, and Clear.
+- On mobile, the count and Clear occupy the first row. Actions occupy the second row. Both menus open upwards.
+- Clear or Esc removes the selection. Esc does not clear it while a menu or dialog is open. Clear and actions are disabled during a request.
+
+| Action                | Permission         | Confirmation                                                  |
+| --------------------- | ------------------ | ------------------------------------------------------------- |
+| Mark as VIP           | `guests.manage`    | None                                                          |
+| Unmark as VIP         | `guests.manage`    | None                                                          |
+| Blacklist             | `guests.blacklist` | Dialog with one required reason (up to 500 characters)        |
+| Remove from blacklist | `guests.blacklist` | AlertDialog warns that reasons are cleared                    |
+| Archive               | `guests.anonymize` | AlertDialog with the permanent-deletion warning and `Confirm` |
+
+Only permitted actions appear. Blacklist applies the same reason to each newly blacklisted guest. Existing blacklist reasons stay unchanged.
+
+The `guests.bulk.*` POST routes are `mark-vip`, `unmark-vip`, `blacklist`, `unblacklist` and `anonymize`. Each route checks its existing permission. Requests accept 1–100 distinct guest IDs. Archive also requires the case-sensitive text `Confirm`, ignoring surrounding spaces, on the server.
+
+`GuestDirectory::selected` resolves all IDs within the property before the Action runs. A missing or foreign ID makes the whole request return 404, with no writes.
+
+`BulkUpdateGuests` locks and handles each guest in its own transaction through the existing single-guest Actions. Archived and merged guests are skipped. Guests already in the requested state count as unchanged and produce no audit entry. Archive retains its in-house and open-balance refusals.
+
+The response flashes `GuestBulkResultData` (changed, unchanged and skipped IDs) and a count summary. The list reloads with its current filters, sorting and page. Changed and unchanged guests leave the selection. Refused guests stay selected for review.
+
 ## Permissions
 
 | Permission         | Guards                                          | Owner | Manager | Front desk | Finance | Housekeeping |

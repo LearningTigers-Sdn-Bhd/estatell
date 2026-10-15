@@ -88,6 +88,8 @@ After login, an Owner of a non-live property is redirected to `/p/{their code}/o
 
 ## Examples
 
+Guest bulk actions use `POST /p/{code}/guests/bulk/{operation}`: `mark-vip`, `unmark-vip`, `blacklist`, `unblacklist` and `anonymize` (`guests.bulk.*`). Each checks its existing guest permission and resolves the whole selection within the property before writes. See [Bulk selection](11-guests/01-guest-profiles.md#bulk-selection-and-actions).
+
 | URL                                                                | Name                                  | Page                                            |
 | ------------------------------------------------------------------ | ------------------------------------- | ----------------------------------------------- |
 | `GET /p/ES10142/front-desk/stay-view`                              | `front-desk.stay-view`                | `pages/front-desk/stay-view.tsx`                |
