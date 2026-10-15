@@ -12,6 +12,7 @@ use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\LogoutDeactivatedUsers;
 use App\Http\Middleware\RequireSupportTwoFactor;
+use App\Http\Middleware\TrackOnboardingActivity;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -40,6 +41,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'support.2fa' => RequireSupportTwoFactor::class,
             'boats' => EnsureBoatsIsActive::class,
             'live' => EnsurePropertyIsLive::class,
+            'onboarding.activity' => TrackOnboardingActivity::class,
             'onboarding.only' => EnsureOnboarding::class,
             'property.access' => EnsurePropertyAccess::class,
             'verified' => EnsureEmailIsVerified::class,
@@ -48,6 +50,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->appendToPriorityList(SubstituteBindings::class, EnsurePropertyAccess::class);
         $middleware->appendToPriorityList(EnsurePropertyAccess::class, EnsurePropertyIsLive::class);
         $middleware->appendToPriorityList(EnsurePropertyAccess::class, EnsureOnboarding::class);
+        $middleware->appendToPriorityList(EnsureOnboarding::class, TrackOnboardingActivity::class);
         $middleware->appendToPriorityList(EnsurePropertyAccess::class, EnsureBoatsIsActive::class);
 
         $middleware->web(append: [

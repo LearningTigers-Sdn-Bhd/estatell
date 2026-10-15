@@ -51,3 +51,5 @@ Schedule::command('horizon:snapshot')->everyFiveMinutes();
 Schedule::call(fn (): int => app(PurgeExpiredIdentityScans::class)())->name('purge-expired-identity-scans')->dailyAt('03:30')->onOneServer();
 
 Schedule::command('night-audit:dispatch-scheduled')->everyFiveMinutes()->withoutOverlapping()->onOneServer();
+
+Schedule::command('onboarding:send-reminders')->hourly()->withoutOverlapping()->onOneServer();

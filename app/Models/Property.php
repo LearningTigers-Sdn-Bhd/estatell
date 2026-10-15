@@ -41,6 +41,8 @@ use Spatie\MediaLibrary\InteractsWithMedia;
  * @property string|null $registration_number
  * @property string|null $tin
  * @property CarbonImmutable|null $onboarding_started_at
+ * @property CarbonImmutable|null $onboarding_last_activity_at
+ * @property int $onboarding_reminder_stage
  * @property CarbonImmutable|null $went_live_at
  * @property CarbonImmutable|null $suspended_at
  * @property PropertyStatus|null $suspended_from_status
@@ -95,6 +97,8 @@ class Property extends Model implements FeatureScopeSerializeable, HasMedia
             'type' => PropertyType::class,
             'status' => PropertyStatus::class,
             'onboarding_started_at' => 'datetime',
+            'onboarding_last_activity_at' => 'datetime',
+            'onboarding_reminder_stage' => 'integer',
             'went_live_at' => 'datetime',
             'suspended_at' => 'datetime',
             'suspended_from_status' => PropertyStatus::class,

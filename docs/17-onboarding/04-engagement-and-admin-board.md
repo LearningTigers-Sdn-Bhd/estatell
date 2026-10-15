@@ -18,14 +18,14 @@ Make owners finish onboarding, and let the platform see who is stuck.
 
 `OnboardingProgress` is derived and stores nothing, so "progress" needs a timestamp.
 
-| Part              | Design                                                                                                                                                                                        |
-| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Activity          | `properties.onboarding_last_activity_at`. One middleware sets it on every non-GET onboarding request (to verify against the route files). It also sets `onboarding_reminder_stage` back to 0. |
-| Schedule          | `onboarding:send-reminders`, hourly, `onOneServer`. It reads properties in `Onboarding`, using `onboarding_last_activity_at`, or `onboarding_started_at` when empty.                          |
-| Stages            | Stage 1 after 24 hours, stage 2 after 72 hours. Each stage is sent once, then `onboarding_reminder_stage` moves up. After stage 2 nothing more is sent until the owner makes progress again.  |
-| Skipped when      | A go-live request is pending (the platform is the one waiting), the property is suspended, or the owner turned the reminder off in their notification preferences.                            |
-| Notification      | `OnboardingReminder` (`NotificationType`, mail and in-app, opt-out for both). It goes to the property's Owner and names the next unfinished step with a link to it.                           |
-| Owner not started | An owner who never set a password gets the setup link through `SendOwnerSetupLink` instead of the plain link.                                                                                 |
+| Part              | Design                                                                                                                                                                                                                                                 |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Activity          | `properties.onboarding_last_activity_at`. One middleware sets it on every non-GET onboarding request (to verify against the route files). It also sets `onboarding_reminder_stage` back to 0.                                                          |
+| Schedule          | `onboarding:send-reminders`, hourly, `onOneServer`. It reads properties in `Onboarding`, using `onboarding_last_activity_at`, or `onboarding_started_at` when empty.                                                                                   |
+| Stages            | Stage 1 after 24 hours, stage 2 after 72 hours. Each stage is sent once, then `onboarding_reminder_stage` moves up. A property idle for more than 72 hours gets only stage 2. After stage 2 nothing more is sent until the owner makes progress again. |
+| Skipped when      | A go-live request is pending (the platform is the one waiting), the property is suspended, or the owner turned the reminder off in their notification preferences.                                                                                     |
+| Notification      | `OnboardingReminder` (`NotificationType`, mail and in-app, opt-out for both). It goes to the property's Owner and names the next unfinished step with a link to it.                                                                                    |
+| Owner not started | An owner who never set a password gets the setup link through `SendOwnerSetupLink` instead of the plain link.                                                                                                                                          |
 
 ## Admin board
 
