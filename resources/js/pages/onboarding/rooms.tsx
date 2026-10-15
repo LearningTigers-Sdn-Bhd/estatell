@@ -1,5 +1,5 @@
 import { Head, router, setLayoutProps, useForm } from '@inertiajs/react';
-import { Plus, Trash2, X } from 'lucide-react';
+import { Layers, Plus, Rows3, Trash2, X } from 'lucide-react';
 import { useRef, useState } from 'react';
 import RoomController from '@/actions/App/Http/Controllers/Onboarding/RoomController';
 import Heading from '@/components/heading';
@@ -248,9 +248,11 @@ export default function Rooms({
                         className="w-fit"
                     >
                         <ToggleGroupItem value="none">
+                            <Rows3 data-icon="inline-start" />
                             No groups
                         </ToggleGroupItem>
                         <ToggleGroupItem value="groups">
+                            <Layers data-icon="inline-start" />
                             Use groups
                         </ToggleGroupItem>
                     </ToggleGroup>
