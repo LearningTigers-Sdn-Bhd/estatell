@@ -16,6 +16,7 @@ enum OnboardingPhase: string
     case Team = 'team';
     case Channels = 'channels';
     case TestDrive = 'test_drive';
+    case Review = 'review';
 
     public function label(): string
     {
@@ -28,6 +29,7 @@ enum OnboardingPhase: string
             self::Team => __('Team'),
             self::Channels => __('Channels'),
             self::TestDrive => __('Test drive'),
+            self::Review => __('Review'),
         };
     }
 

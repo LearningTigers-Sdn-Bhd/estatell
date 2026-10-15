@@ -77,7 +77,8 @@ enum OnboardingStep: string
             self::CheckInEssentials => OnboardingPhase::CheckIn,
             self::Team => OnboardingPhase::Team,
             self::ChannelManager => OnboardingPhase::Channels,
-            self::TestDrive, self::Review => OnboardingPhase::TestDrive,
+            self::TestDrive => OnboardingPhase::TestDrive,
+            self::Review => OnboardingPhase::Review,
         };
     }
 

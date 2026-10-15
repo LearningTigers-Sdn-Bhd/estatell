@@ -110,7 +110,7 @@ test('a phase is done when all its steps are, locked when all are locked, and in
     $property = Property::factory()->onboarding()->create();
 
     expect(phaseValues($this->progress->phaseStates($property)))
-        ->toMatchArray(['property' => 'in_progress', 'rooms' => 'locked', 'finance' => 'locked', 'test_drive' => 'locked']);
+        ->toMatchArray(['property' => 'in_progress', 'rooms' => 'locked', 'finance' => 'locked', 'test_drive' => 'locked', 'review' => 'locked']);
 
     completeOnboardingBasics($property);
     OnboardingSkip::factory()->for($property)->create(['step' => OnboardingStep::Companies]);

@@ -58,7 +58,8 @@ test('every step belongs to exactly one phase, in phase order', function () {
 
     expect(array_merge(...$phases))->toHaveCount(14)
         ->and(OnboardingPhase::Finance->steps())->toBe([OnboardingStep::Taxes, OnboardingStep::PaymentMethods, OnboardingStep::Companies])
-        ->and(OnboardingPhase::TestDrive->steps())->toBe([OnboardingStep::TestDrive, OnboardingStep::Review]);
+        ->and(OnboardingPhase::TestDrive->steps())->toBe([OnboardingStep::TestDrive])
+        ->and(OnboardingPhase::Review->steps())->toBe([OnboardingStep::Review]);
 });
 
 test('only the basics step has a page today', function () {
