@@ -136,6 +136,7 @@ Brief for every item: read `AGENTS.md`, `.ai/rules/index.md`, the matching rule 
 - [x] `feat(ui): give account pages a separate sidebar` — UI sidetrack: a shared account shell for staff, admins and partners, server-built personal navigation, mobile drawer and Back to workspace. No area links, business dates or inner account menu. Existing forms and impersonation restrictions stay. Docs: [Account shell](design-system/09-app-shell.md#account-shell).
 - [x] `style(ui): adapt the user menu to sidebar placement` — UI sidetrack: full user row in admin and partner sidebar footers, upward dropdown and collapsed-avatar tooltip. Staff and account navbars keep the circular trigger. Account and Log out stay unchanged. Docs: [User menu variants](design-system/09-app-shell.md#user-menu-variants).
 - [x] `feat(ui): add a three-state theme shortcut` — UI sidetrack: one Light → Dark → System button beside the navbar avatar, or at the right of admin and partner breadcrumb headers, including mobile. Reuses the saved appearance setting. Docs: [Theme shortcut](design-system/09-app-shell.md#theme-shortcut).
+- [x] `chore(ui): remove the unused Laravel favicon` — remove the leftover `public/favicon.svg`. The active ICO, PNG and Apple touch icons already use the house artwork and stay unchanged.
 
 - [x] `feat(mail): add the branded email layout` — publish the `laravel-mail` views and theme them with the estatell logo, `DESIGN.md` colours and a footer with the property name. Covers the existing mail notifications and the Fortify reset and verify emails. Check each email at `/mailbox`. Docs: [Notification types](04-notifications/01-notification-types.md).
     - Implemented the approved stationery design. Sent local previews for all nine types, matched the supplied wordmark reference and centered the property footer after review. HTML and plain-text tests pass. External deliverability checks are separate.
@@ -200,6 +201,7 @@ Topics on hold. Each one needs a planning session and its docs before it gets co
 
 | Commit    | Subject                                                                  |
 | --------- | ------------------------------------------------------------------------ |
+| `3442f712` | feat(ui): add a three-state theme shortcut                               |
 | `75374363` | style(ui): adapt the user menu to sidebar placement                      |
 | `8422e75f` | feat(ui): give account pages a separate sidebar                          |
 | `66be4827` | feat(ui): improve pagination controls and page jump                      |
