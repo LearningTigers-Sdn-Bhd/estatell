@@ -5,15 +5,16 @@ use App\Enums\OnboardingStep;
 use App\Enums\StepState;
 use App\Enums\Tone;
 
-test('the wizard has fourteen steps and the required ones are the rows marked Yes', function () {
+test('the wizard has thirteen steps and the required ones are the rows marked Yes', function () {
     $required = array_values(array_map(
         fn (OnboardingStep $step): string => $step->value,
         array_filter(OnboardingStep::cases(), fn (OnboardingStep $step): bool => $step->isRequired()),
     ));
 
-    expect(OnboardingStep::cases())->toHaveCount(14)
+    expect(OnboardingStep::cases())->toHaveCount(13)
         ->and(OnboardingStep::Basics->number())->toBe(1)
-        ->and(OnboardingStep::Review->number())->toBe(14)
+        ->and(OnboardingStep::Review->number())->toBe(13)
+        ->and(OnboardingStep::tryFrom('test_drive'))->toBeNull()
         ->and($required)->toBe(['basics', 'check_in_essentials', 'room_types', 'rooms', 'taxes', 'payment_methods', 'basic_rate']);
 });
 
@@ -28,11 +29,11 @@ test('a step depends on steps earlier in the wizard', function (OnboardingStep $
     'discounts wait for basics' => [OnboardingStep::Discounts, [OnboardingStep::Basics]],
 ]);
 
-test('test drive and review wait for every required step', function (OnboardingStep $step) {
+test('review waits for every required step', function () {
     $required = array_values(array_filter(OnboardingStep::cases(), fn (OnboardingStep $candidate): bool => $candidate->isRequired()));
 
-    expect($step->dependsOn())->toBe($required);
-})->with([OnboardingStep::TestDrive, OnboardingStep::Review]);
+    expect(OnboardingStep::Review->dependsOn())->toBe($required);
+});
 
 test('every dependency comes earlier in the wizard, so the order is a valid order to calculate in', function () {
     foreach (OnboardingStep::cases() as $step) {
@@ -48,7 +49,7 @@ test('only Taxes and the optional steps can be skipped', function () {
         array_filter(OnboardingStep::cases(), fn (OnboardingStep $step): bool => $step->isSkippable()),
     ));
 
-    expect($skippable)->toBe(['team', 'taxes', 'companies', 'charge_items', 'discounts', 'channel_manager', 'test_drive', 'review'])
+    expect($skippable)->toBe(['team', 'taxes', 'companies', 'charge_items', 'discounts', 'channel_manager', 'review'])
         ->and(OnboardingStep::Basics->isSkippable())->toBeFalse()
         ->and(OnboardingStep::BasicRate->isSkippable())->toBeFalse();
 });
@@ -56,9 +57,8 @@ test('only Taxes and the optional steps can be skipped', function () {
 test('every step belongs to exactly one phase, in phase order', function () {
     $phases = array_map(fn (OnboardingPhase $phase): array => array_map(fn (OnboardingStep $step): string => $step->value, $phase->steps()), OnboardingPhase::cases());
 
-    expect(array_merge(...$phases))->toHaveCount(14)
+    expect(array_merge(...$phases))->toHaveCount(13)
         ->and(OnboardingPhase::Finance->steps())->toBe([OnboardingStep::Taxes, OnboardingStep::PaymentMethods, OnboardingStep::Companies])
-        ->and(OnboardingPhase::TestDrive->steps())->toBe([OnboardingStep::TestDrive])
         ->and(OnboardingPhase::Review->steps())->toBe([OnboardingStep::Review]);
 });
 

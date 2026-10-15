@@ -16,7 +16,6 @@ use App\Services\Onboarding\Checks\RoomTypesCheck;
 use App\Services\Onboarding\Checks\StepCheck;
 use App\Services\Onboarding\Checks\TaxesCheck;
 use App\Services\Onboarding\Checks\TeamCheck;
-use App\Services\Onboarding\Checks\TestDriveCheck;
 
 /**
  * The fourteen steps of the onboarding wizard, in number order. Case order is the wizard order, and every step's
@@ -36,7 +35,6 @@ enum OnboardingStep: string
     case ChargeItems = 'charge_items';
     case Discounts = 'discounts';
     case ChannelManager = 'channel_manager';
-    case TestDrive = 'test_drive';
     case Review = 'review';
 
     public function label(): string
@@ -54,7 +52,6 @@ enum OnboardingStep: string
             self::CheckInEssentials => __('Check-in essentials'),
             self::Team => __('Team'),
             self::ChannelManager => __('Channel manager'),
-            self::TestDrive => __('Test drive'),
             self::Review => __('Review'),
         };
     }
@@ -75,7 +72,6 @@ enum OnboardingStep: string
             self::Taxes, self::PaymentMethods, self::Companies => OnboardingPhase::Finance,
             self::BasicRate, self::ChargeItems, self::Discounts => OnboardingPhase::Prices,
             self::ChannelManager => OnboardingPhase::Channels,
-            self::TestDrive => OnboardingPhase::TestDrive,
             self::Review => OnboardingPhase::Review,
         };
     }
@@ -110,7 +106,7 @@ enum OnboardingStep: string
             self::Rooms => [self::RoomTypes],
             self::BasicRate => [self::RoomTypes, self::Taxes],
             self::ChargeItems => [self::Taxes],
-            self::TestDrive, self::Review => array_values(array_filter(
+            self::Review => array_values(array_filter(
                 self::cases(),
                 fn (self $step): bool => $step->isRequired(),
             )),
@@ -135,7 +131,6 @@ enum OnboardingStep: string
             self::CheckInEssentials => 2,
             self::Team => 2,
             self::ChannelManager => 2,
-            self::TestDrive => 5,
             self::Review => 1,
         };
     }
@@ -205,7 +200,6 @@ enum OnboardingStep: string
             self::CheckInEssentials => new CheckInEssentialsCheck,
             self::Team => new TeamCheck,
             self::ChannelManager => new ChannelManagerCheck,
-            self::TestDrive => new TestDriveCheck,
             self::Review => new ReviewCheck,
         };
     }

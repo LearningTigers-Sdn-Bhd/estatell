@@ -8,7 +8,7 @@ use App\Models\Property;
 use App\Models\User;
 use App\Services\Onboarding\GoLiveReadiness;
 use App\Services\Platform\PlatformSettings;
-use Carbon\CarbonInterface;
+use App\Services\Property\PropertyToday;
 use Illuminate\Support\Facades\DB;
 
 class GoLive
@@ -17,23 +17,27 @@ class GoLive
         private GoLiveReadiness $readiness,
         private OpenBusinessDate $openBusinessDate,
         private PlatformSettings $platformSettings,
+        private PropertyToday $propertyToday,
+        private RefreshPendingTemporaryPasswords $refreshPendingTemporaryPasswords,
     ) {}
 
     /**
-     * Open the first business date and switch the property from setup to operation.
+     * Open the first business date (today in the property time zone) and switch the property from setup to operation.
      *
-     * Returns the new status (Live, or PendingApproval when the platform asks for approval), or null when the
-     * property is not onboarding or a required step is not done. Document numbers need no start step: each
-     * sequence row is created on first use.
+     * Returns the new status (Live, or PendingApproval when the platform asks for approval), or null when the property
+     * is not onboarding or a required step is not done. Document numbers need no start step: each sequence row is
+     * created on first use. Going Live also refreshes the temp passwords of staff who have not signed in yet.
      */
-    public function __invoke(User $actor, Property $property, CarbonInterface $openingDate): ?PropertyStatus
+    public function __invoke(User $actor, Property $property): ?PropertyStatus
     {
-        return DB::transaction(function () use ($actor, $property, $openingDate): ?PropertyStatus {
+        return DB::transaction(function () use ($actor, $property): ?PropertyStatus {
             $property = Property::query()->lockForUpdate()->findOrFail($property->id);
 
             if ($property->status !== PropertyStatus::Onboarding || ! $this->readiness->isReady($property)) {
                 return null;
             }
+
+            $openingDate = $this->propertyToday->date($property);
 
             if (($this->openBusinessDate)($property, $openingDate, $actor) === null) {
                 return null;
@@ -47,6 +51,10 @@ class GoLive
                 'status' => $status,
                 'went_live_at' => $status === PropertyStatus::Live ? now() : null,
             ]);
+
+            if ($status === PropertyStatus::Live) {
+                ($this->refreshPendingTemporaryPasswords)($property, $actor);
+            }
 
             activity()
                 ->performedOn($property)

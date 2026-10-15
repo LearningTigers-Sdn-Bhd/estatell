@@ -31,7 +31,6 @@ test('a new property is in progress on basics, and every step after it is locked
         ->and($states['rooms'])->toBe(StepState::Locked)
         ->and($states['taxes'])->toBe(StepState::Locked)
         ->and($states['basic_rate'])->toBe(StepState::Locked)
-        ->and($states['test_drive'])->toBe(StepState::Locked)
         ->and($states['review'])->toBe(StepState::Locked);
 });
 
@@ -110,7 +109,7 @@ test('a phase is done when all its steps are, locked when all are locked, and in
     $property = Property::factory()->onboarding()->create();
 
     expect(phaseValues($this->progress->phaseStates($property)))
-        ->toMatchArray(['property' => 'in_progress', 'rooms' => 'locked', 'finance' => 'locked', 'test_drive' => 'locked', 'review' => 'locked']);
+        ->toMatchArray(['property' => 'in_progress', 'rooms' => 'locked', 'finance' => 'locked', 'review' => 'locked']);
 
     completeOnboardingBasics($property);
     OnboardingSkip::factory()->for($property)->create(['step' => OnboardingStep::Companies]);

@@ -13,7 +13,6 @@ enum OnboardingPhase: string
     case Finance = 'finance';
     case Prices = 'prices';
     case Channels = 'channels';
-    case TestDrive = 'test_drive';
     case Review = 'review';
 
     public function label(): string
@@ -24,7 +23,6 @@ enum OnboardingPhase: string
             self::Finance => __('Finance'),
             self::Prices => __('Prices'),
             self::Channels => __('Channels'),
-            self::TestDrive => __('Test drive'),
             self::Review => __('Review'),
         };
     }
