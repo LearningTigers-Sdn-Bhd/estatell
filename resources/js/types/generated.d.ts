@@ -1623,6 +1623,14 @@ isTemplate: boolean,
 };
 }
 namespace Reports {
+export type ActivityLogRowData = {
+id: number,
+description: string,
+event: string | null,
+subject: string | null,
+causerName: string,
+createdAt: string,
+};
 export type ArrivalRow = {
 key: number,
 reservation: string,

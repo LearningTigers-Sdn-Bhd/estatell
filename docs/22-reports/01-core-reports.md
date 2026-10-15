@@ -34,6 +34,18 @@ The reports a small property needs daily and monthly, with a shared frame: a dat
 - A company's debt after a folio is settled to the city ledger stays in City ledger aging: the settled folio is at 0 and is in neither Outstanding balance nor Deposit liability.
 - The **night audit packet** is one fixed PDF per closed date, built from the snapshot tables. It is not in the registry and has no layout or row selection. It uses the printing settings, in Portrait. It opens from the Night audit history report and from the Run Night Audit sheet. See [Built: Night audit history and packet](#built-night-audit-history-and-packet).
 
+## Activity log
+
+Reports → Audit → Activity log opens `GET /p/{code}/reports/activity-log` (`reports.activity-log`). It requires `reports.view` and property access.
+
+- The read-only page uses existing activity records, not the export registry. It has no layout editor or exports.
+- Entries belong to the property through `properties.property_id` or a direct Property subject. The staff member alone never establishes property ownership.
+- Columns show Time, Recorded by, Action, Record (type and internal ID), and Event. Times use the browser's time zone.
+- The default order is newest first, with an ID tie-breaker. The Time column can reverse the timestamp order.
+- Search matches action descriptions and event keys. Search, sort and pagination stay in the URL. The database returns 25 entries per page.
+- System actions show System. Missing staff accounts show Unknown user. Missing subjects keep their recorded type and ID.
+- Raw properties, audit diffs, credentials and identity numbers are not page props. The page does not track notification delivery.
+
 ## Registry
 
 - `ReportKey` (backed enum, the value is the URL slug, for example `folio-ledger`): `label()`, `category()`, `defaultOrientation()`, `maxRangeDays()` (null for a one-date report), `columns()` and `report()`.

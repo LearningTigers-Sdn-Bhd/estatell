@@ -150,7 +150,7 @@ Brief for every item: read `AGENTS.md`, `.ai/rules/index.md`, the matching rule 
 - [x] `style(auth): polish the sign-in pages` — login, forgot and reset password, two-factor challenge, set password, owner setup and verify email. Full-width `100dvh` shell, two horizontal and two vertical dashed lines inset 24px on mobile and 48px on desktop, content padding 40px and 80px, a subtle dot grid fading toward the form, consistent spacing and status notices, and scrollable content. No card border, shadow or authentication changes. Needs: app wordmark. Styling and layout only. Docs: [Authentication layout](design-system/04-page-archetypes.md#authentication-layout).
     - Automated checks pass, including 26 existing auth tests. The user will review the final spacing in the browser.
 - [x] `style(pdf): visual pass on printed documents` — fonts, spacing and header alignment in `resources/views/pdf`. Do not change any number, total, query or data passed to the views. Docs: [Accessibility, performance and PDFs](design-system/11-accessibility-performance-pdfs.md).
-- [ ] `feat(reports): add the activity log page` — the Audit item in the Reports sidebar, reading the existing activity log, scoped by property. Review closely. Docs: [App shell](design-system/09-app-shell.md).
+- [x] `feat(reports): add the activity log page` — Reports → Audit → Activity log reads existing property-scoped records. Read-only table, action/event search, timestamp sorting and server pagination. Uses `reports.view`; raw audit properties stay private. Docs: [Activity log](22-reports/01-core-reports.md#activity-log).
 - [ ] `feat(ui): add the command palette` — ⌘K search across contexts; admin search by code, name, city, with "View as owner" and "View as owner and open" on a property result (`PropertyPolicy::viewAs`, same view-as page and POST). Review the view-as part closely. Docs: [Search patterns](design-system/07-search-patterns.md), [Impersonation](01-platform/04-impersonation.md#entry-points).
 - [ ] `style(ui): add the estatell favicon and app icons` — replace `favicon.ico`, `favicon.svg`, `icon.png` and `apple-touch-icon.png` in `public/`. Needs: the logo file from the user.
 - [x] `chore(ui): block search indexing` — `Disallow: /` in `robots.txt` and a `noindex` meta tag in `app.blade.php`.
@@ -204,6 +204,7 @@ Topics on hold. Each one needs a planning session and its docs before it gets co
 
 | Commit     | Subject                                                                  |
 | ---------- | ------------------------------------------------------------------------ |
+| `7d06bdb5` | feat(platform): split settings into tabs with selection cards            |
 | `071e4012` | style(ui): fix the staff shell and add the workspace row                 |
 | `e0cbd31d` | style(ui): add the house icon to support sidebars                        |
 | `0a17a885` | chore(ui): remove the unused Laravel favicon                             |

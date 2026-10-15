@@ -11,7 +11,7 @@ use App\Models\Property;
 use App\Models\User;
 
 /**
- * Sidebar groups for the Reports context: one group per report category, one item per report.
+ * Sidebar groups for the Reports context: registered reports and the read-only activity log.
  * Without `reports.view` there are no items, so the context is dropped.
  */
 class ReportsNavigation
@@ -28,7 +28,7 @@ class ReportsNavigation
         $groups = array_map(
             fn (ReportCategory $category): NavGroupData => new NavGroupData(
                 label: $category->label(),
-                items: array_values(array_map(
+                items: [...array_values(array_map(
                     fn (ReportKey $key): NavItemData => new NavItemData(
                         title: $key->label(),
                         href: route('reports.'.$key->value, ['property' => $property->code], absolute: false),
@@ -36,7 +36,12 @@ class ReportsNavigation
                         active: request()->routeIs('reports.'.$key->value),
                     ),
                     array_filter(ReportKey::cases(), fn (ReportKey $key): bool => $key->listedInReportsMenu() && $key->isAvailable($property) && $key->category() === $category),
-                )),
+                )), ...($category === ReportCategory::Audit ? [new NavItemData(
+                    title: __('Activity log'),
+                    href: route('reports.activity-log', ['property' => $property->code], absolute: false),
+                    icon: 'activity',
+                    active: request()->routeIs('reports.activity-log'),
+                )] : [])],
             ),
             ReportCategory::cases(),
         );

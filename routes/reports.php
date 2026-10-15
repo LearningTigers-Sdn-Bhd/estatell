@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\PermissionEnum;
+use App\Http\Controllers\Reports\ActivityLogController;
 use App\Http\Controllers\Reports\ArrivalsReportController;
 use App\Http\Controllers\Reports\BoatManifestReportController;
 use App\Http\Controllers\Reports\DeparturesReportController;
@@ -23,6 +24,7 @@ use App\Http\Middleware\EnsureReportIsAvailable;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('reports')->name('reports.')->middleware(['can:'.PermissionEnum::ReportsView->value, EnsureReportIsAvailable::class])->group(function () {
+    Route::get('activity-log', ActivityLogController::class)->name('activity-log');
     Route::get('arrivals', ArrivalsReportController::class)->name('arrivals');
     Route::get('departures', DeparturesReportController::class)->name('departures');
     Route::get('in-house', InHouseReportController::class)->name('in-house');
