@@ -37,12 +37,12 @@ test('owners see every role as a column with its permissions', function () {
                 'isDefault' => true,
                 'isLocked' => true,
                 'staffCount' => 1,
-                'permissions' => ['city-ledger.allocate', 'city-ledger.credit-note', 'city-ledger.invoice', 'city-ledger.payment', 'company.credit-override', 'company.manage', 'company.view', 'folio.close', 'folio.discount', 'folio.discount-open', 'folio.post-charge', 'folio.print-voucher', 'folio.reopen', 'folio.reverse', 'folio.transfer', 'front-desk.check-in', 'front-desk.check-in-without-card', 'front-desk.check-out', 'front-desk.undo-check-in', 'front-desk.undo-check-out', 'front-desk.waive-fees', 'guests.anonymize', 'guests.blacklist', 'guests.manage', 'guests.merge', 'guests.view', 'guests.view-documents', 'housekeeping.inspect', 'housekeeping.update', 'housekeeping.view', 'night-audit.force', 'night-audit.receive-report', 'night-audit.run', 'notification.manage', 'payment.record', 'payment.refund', 'rates.manage', 'rates.override-restrictions', 'rates.view', 'registration-card.manage-terms', 'registration-card.send-link', 'registration-card.sign', 'registration-card.void', 'reports.view', 'reservations.change-price', 'reservations.manage', 'reservations.view', 'roles.manage', 'rooms.block', 'rooms.manage', 'rooms.view', 'settings.manage', 'staff.manage', 'staff.view'],
+                'permissions' => ['city-ledger.allocate', 'city-ledger.credit-note', 'city-ledger.invoice', 'city-ledger.payment', 'company.credit-override', 'company.manage', 'company.view', 'folio.close', 'folio.discount', 'folio.discount-open', 'folio.post-charge', 'folio.print-voucher', 'folio.reopen', 'folio.reverse', 'folio.transfer', 'front-desk.check-in', 'front-desk.check-in-without-card', 'front-desk.check-out', 'front-desk.undo-check-in', 'front-desk.undo-check-out', 'front-desk.waive-fees', 'guests.anonymize', 'guests.blacklist', 'guests.manage', 'guests.merge', 'guests.view', 'guests.view-documents', 'housekeeping.inspect', 'housekeeping.update', 'housekeeping.view', 'night-audit.force', 'night-audit.receive-report', 'night-audit.run', 'notification.manage', 'payment.record', 'payment.refund', 'rates.manage', 'rates.override-restrictions', 'rates.view', 'registration-card.manage-terms', 'registration-card.send-link', 'registration-card.sign', 'registration-card.void', 'reports.view', 'reservations.change-price', 'reservations.manage', 'reservations.view', 'roles.manage', 'rooms.block', 'rooms.manage', 'rooms.view', 'settings.manage', 'settings.ota-lists', 'staff.manage', 'staff.view'],
             ])
             ->where('roles.1.name', 'Manager')
             ->where('roles.1.staffCount', 0)
             ->where('roles.1.permissions', ['city-ledger.allocate', 'city-ledger.credit-note', 'city-ledger.invoice', 'city-ledger.payment', 'company.credit-override', 'company.manage', 'company.view', 'folio.close', 'folio.discount', 'folio.discount-open', 'folio.post-charge', 'folio.print-voucher', 'folio.reopen', 'folio.reverse', 'folio.transfer', 'front-desk.check-in', 'front-desk.check-in-without-card', 'front-desk.check-out', 'front-desk.undo-check-in', 'front-desk.undo-check-out', 'front-desk.waive-fees', 'guests.blacklist', 'guests.manage', 'guests.merge', 'guests.view', 'guests.view-documents', 'housekeeping.inspect', 'housekeeping.update', 'housekeeping.view', 'night-audit.force', 'night-audit.receive-report', 'night-audit.run', 'payment.record', 'payment.refund', 'rates.manage', 'rates.override-restrictions', 'rates.view', 'registration-card.manage-terms', 'registration-card.send-link', 'registration-card.sign', 'registration-card.void', 'reports.view', 'reservations.change-price', 'reservations.manage', 'reservations.view', 'rooms.block', 'rooms.manage', 'rooms.view', 'settings.manage', 'staff.manage', 'staff.view'])
-            ->has('permissions', 54)
+            ->has('permissions', 55)
             ->where('permissions.0', ['value' => 'settings.manage', 'label' => 'Manage property settings', 'group' => 'Property']));
 });
 
@@ -122,7 +122,7 @@ test('the owner column is skipped, and unknown permissions or other properties\'
     $this->put($update, ['roles' => [roleOf($other, DefaultRoleEnum::Manager)->id => []]])
         ->assertSessionHasErrors('roles');
 
-    expect($ownerRole->permissions()->count())->toBe(54)
+    expect($ownerRole->permissions()->count())->toBe(55)
         ->and(roleOf($other, DefaultRoleEnum::Manager)->permissions()->count())->toBe(51)
         ->and(Activity::query()->count())->toBe(0);
 });
