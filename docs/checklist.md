@@ -144,6 +144,7 @@ Brief for every item: read `AGENTS.md`, `.ai/rules/index.md`, the matching rule 
 - [x] `style(ui): fix the staff shell and add the workspace row` — fixed navbar and workspace-label/breadcrumb row, sidebar-aligned full-height divider, separate content and sidebar scrolling without viewport bounce, and stacked workspace/breadcrumbs on mobile. Other layouts stay unchanged. Docs: [Staff workspace row](design-system/09-app-shell.md#staff-workspace-row).
 - [x] `feat(platform): split settings into tabs with selection cards` — General, Channel manager and File storage use icon tab links with separate URLs and scoped saves. All choices use radio cards with icons and descriptions. Native dorm stays disabled pending verification; R2 stays disabled until configured. Tighter header-to-tab spacing. Docs: [Platform settings](01-platform/02-platform-settings.md#routes-and-page).
 - [x] `style(property): tidy the profile settings layout` — UI sidetrack: tighter logo spacing, Property, Address and Contact groups, postcode/city/state on one desktop row and phone/email on another. Fields stack on mobile. Existing saves and logo uploads stay unchanged. Docs: [Profile](02-property/01-properties.md#profile).
+- [x] `fix(property): guard unsaved changes on details tabs` — reuse the existing guard and Cancel, Discard or Save dialog on all seven Details tabs. Save is disabled until dirty; successful saves reset defaults. Logo uploads remain immediate. Docs: [Profile](02-property/01-properties.md#profile).
 
 - [x] `feat(mail): add the branded email layout` — publish the `laravel-mail` views and theme them with the estatell logo, `DESIGN.md` colours and a footer with the property name. Covers the existing mail notifications and the Fortify reset and verify emails. Check each email at `/mailbox`. Docs: [Notification types](04-notifications/01-notification-types.md).
     - Implemented the approved stationery design. Sent local previews for all nine types, matched the supplied wordmark reference and centered the property footer after review. HTML and plain-text tests pass. External deliverability checks are separate.
@@ -210,6 +211,7 @@ Topics on hold. Each one needs a planning session and its docs before it gets co
 
 | Commit     | Subject                                                                  |
 | ---------- | ------------------------------------------------------------------------ |
+| `74f7d24`  | style(property): tidy the profile settings layout                        |
 | `7d06bdb5` | feat(platform): split settings into tabs with selection cards            |
 | `071e4012` | style(ui): fix the staff shell and add the workspace row                 |
 | `e0cbd31d` | style(ui): add the house icon to support sidebars                        |

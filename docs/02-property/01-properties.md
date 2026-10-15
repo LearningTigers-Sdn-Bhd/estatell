@@ -78,6 +78,8 @@ The property's identity, edited on the Details page, **Profile** tab (`/p/{code}
 - `UpdatePropertyProfile` (`app/Actions/Property/`) saves the fields and logs `property.updated` with the changed fields. A save that changes nothing is not logged. It does not change `document_prefix`.
 - Printed documents read these values through [Printing settings](05-printing-settings.md). Empty values show "Not set" there with a link back to this tab.
 
+All seven Details tabs disable Save until a field changes. They reuse the shared unsaved-changes guard and dialog when leaving or switching tabs: Cancel, Discard or Save. Save leaves only after a successful response; validation errors keep the form open. Reloading or closing the browser tab shows the browser warning. A successful save clears the dirty state. Logo uploads remain separate and immediate.
+
 ### Business licence
 
 The legal details, on the Details page, **Business licence** tab (`/p/{code}/settings/business`, `settings.manage`). It is the second tab.

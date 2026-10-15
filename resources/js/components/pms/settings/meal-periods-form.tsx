@@ -1,6 +1,7 @@
 import { useForm } from '@inertiajs/react';
 import { Plus, Trash2 } from 'lucide-react';
 import { EmptyState } from '@/components/pms/empty-state';
+import { UnsavedChangesDialog } from '@/components/pms/unsaved-changes-dialog';
 import { Button } from '@/components/ui/button';
 import { FieldError } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
@@ -16,6 +17,7 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { update } from '@/routes/settings/meal-periods';
+import { useUnsavedChanges } from '@/hooks/use-unsaved-changes';
 
 type MealPeriod = App.Data.Meals.MealPeriodData;
 
@@ -48,6 +50,7 @@ export function MealPeriodsForm({
         meal_periods: toRows(mealPeriods),
     });
     const rows = form.data.meal_periods;
+    const guard = useUnsavedChanges(form.isDirty);
     const errors = form.errors as Record<string, string | undefined>;
     const canAdd = rows.length < maxPeriods;
 
@@ -76,9 +79,19 @@ export function MealPeriodsForm({
         form.clearErrors();
     };
 
+    const save = (onSaved?: () => void) => {
+        form.put(update.url(), {
+            preserveScroll: true,
+            onSuccess: () => {
+                form.setDefaults();
+                onSaved?.();
+            },
+        });
+    };
+
     const submit = (event: React.FormEvent) => {
         event.preventDefault();
-        form.put(update.url(), { preserveScroll: true });
+        save();
     };
 
     return (
@@ -264,6 +277,12 @@ export function MealPeriodsForm({
                     Save meal periods
                 </Button>
             </footer>
+            <UnsavedChangesDialog
+                guard={guard}
+                name="Meal periods"
+                saving={form.processing}
+                onSave={() => save(guard.proceed)}
+            />
         </form>
     );
 }

@@ -183,6 +183,8 @@ export default function PropertySettings({
                         <div className="flex flex-col gap-4">
                             <PropertyLogoField logoUrl={profile.logoUrl} />
                             <SettingsSection
+                                key={tab}
+                                guardUnsavedChanges
                                 form={PropertySettingsController.updateProfile.form()}
                                 title="Profile"
                                 description={`The name, address and contact details printed on receipts, invoices and reports. ${[profile.typeLabel, profile.countryName].filter(Boolean).join(' · ')}`}
@@ -278,6 +280,8 @@ export default function PropertySettings({
                     )}
                     {tab === 'general' && (
                         <SettingsSection
+                            key={tab}
+                            guardUnsavedChanges
                             form={form('general')}
                             title="General"
                             description="Currency, local time, arrivals, and room assignment."
@@ -351,6 +355,8 @@ export default function PropertySettings({
                     )}
                     {tab === 'operations' && (
                         <SettingsSection
+                            key={tab}
+                            guardUnsavedChanges
                             form={form('operations')}
                             title="Operations"
                             description="Night audit and reservation exception rules."
@@ -397,7 +403,11 @@ export default function PropertySettings({
                         </SettingsSection>
                     )}
                     {tab === 'age-groups' && (
-                        <AgeGroupsForm ageGroups={ageGroups} maxAge={maxAge} />
+                        <AgeGroupsForm
+                            key={JSON.stringify(ageGroups)}
+                            ageGroups={ageGroups}
+                            maxAge={maxAge}
+                        />
                     )}
                     {tab === 'meal-periods' && (
                         <MealPeriodsForm
@@ -413,6 +423,8 @@ export default function PropertySettings({
                             </p>
                         ) : (
                             <SettingsSection
+                                key={tab}
+                                guardUnsavedChanges
                                 form={form('support')}
                                 title="Support access"
                                 description="Control whether platform support may view this property when that feature is available."

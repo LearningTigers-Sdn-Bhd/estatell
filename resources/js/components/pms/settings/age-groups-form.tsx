@@ -1,6 +1,7 @@
 import { useForm } from '@inertiajs/react';
 import { Plus, Trash2 } from 'lucide-react';
 import { EmptyState } from '@/components/pms/empty-state';
+import { UnsavedChangesDialog } from '@/components/pms/unsaved-changes-dialog';
 import { Button } from '@/components/ui/button';
 import { FieldError } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
@@ -15,6 +16,7 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { update } from '@/routes/settings/age-groups';
+import { useUnsavedChanges } from '@/hooks/use-unsaved-changes';
 
 type AgeGroup = App.Data.Property.PropertyAgeGroupData;
 
@@ -36,6 +38,7 @@ export function AgeGroupsForm({
     maxAge: number;
 }) {
     const form = useForm<{ groups: Row[] }>({ groups: toRows(ageGroups) });
+    const guard = useUnsavedChanges(form.isDirty);
     const rows = form.data.groups;
     const errors = form.errors as Record<string, string | undefined>;
 
@@ -74,9 +77,19 @@ export function AgeGroupsForm({
         form.clearErrors();
     };
 
+    const save = (onSaved?: () => void) => {
+        form.put(update.url(), {
+            preserveScroll: true,
+            onSuccess: () => {
+                form.setDefaults();
+                onSaved?.();
+            },
+        });
+    };
+
     const submit = (event: React.FormEvent) => {
         event.preventDefault();
-        form.put(update.url(), { preserveScroll: true });
+        save();
     };
 
     return (
@@ -219,6 +232,12 @@ export function AgeGroupsForm({
                     Save age groups
                 </Button>
             </footer>
+            <UnsavedChangesDialog
+                guard={guard}
+                name="Age groups"
+                saving={form.processing}
+                onSave={() => save(guard.proceed)}
+            />
         </form>
     );
 }
