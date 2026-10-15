@@ -133,6 +133,7 @@ Low-risk items for OpenCode: presentation, copy and small features with a spec. 
 Brief for every item: read `AGENTS.md`, `.ai/rules/index.md`, the matching rule files and `DESIGN.md`. Do not add dependencies. One item is one commit on main. Run `npm run check`, `npx tsc --noEmit` and `npm run build`; run `vendor/bin/pint --format agent` and the narrow Pest tests when PHP changes.
 
 - [x] `feat(ui): improve pagination controls and page jump` — UI sidetrack: outlined First, Previous, Next and Last links, an Enter-to-jump page input, desktop count left and controls right, mobile icon controls with the count centered below. Filters, sorting and scroll position stay unchanged. Docs: [Pagination](design-system/06-pms-components-and-pickers.md#pagination).
+- [x] `feat(ui): give account pages a separate sidebar` — UI sidetrack: a shared account shell for staff, admins and partners, server-built personal navigation, mobile drawer and Back to workspace. No area links, business dates or inner account menu. Existing forms and impersonation restrictions stay. Docs: [Account shell](design-system/09-app-shell.md#account-shell).
 
 - [x] `feat(mail): add the branded email layout` — publish the `laravel-mail` views and theme them with the estatell logo, `DESIGN.md` colours and a footer with the property name. Covers the existing mail notifications and the Fortify reset and verify emails. Check each email at `/mailbox`. Docs: [Notification types](04-notifications/01-notification-types.md).
     - Implemented the approved stationery design. Sent local previews for all nine types, matched the supplied wordmark reference and centered the property footer after review. HTML and plain-text tests pass. External deliverability checks are separate.
@@ -197,6 +198,7 @@ Topics on hold. Each one needs a planning session and its docs before it gets co
 
 | Commit    | Subject                                                                  |
 | --------- | ------------------------------------------------------------------------ |
+| `66be4827` | feat(ui): improve pagination controls and page jump                      |
 | `a23cd3b` | chore(ui): block search indexing                                         |
 | `313e988` | style(ui): replace the app logo with the estatell wordmark               |
 | `974ef88` | feat(init): initializes the docs and repo configuration                  |

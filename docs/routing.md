@@ -137,6 +137,7 @@ import { stayView } from '@/routes/front-desk';
 ## Account vs settings (decided)
 
 - **Account** is about the signed-in person, has no property code, and lives in the user menu: `/account/profile`, `/account/security`, `/account/appearance`, `/account/notifications` (names under `account.*`). Code: `App\Http\Controllers\Account`, `pages/account/*`, `layouts/account/layout.tsx`, `routes/account.php`.
+- Account pages have their own [account shell](design-system/09-app-shell.md#account-shell), not the staff, admin or partner sidebar. **Back to workspace** uses `home.redirect` to return to the appropriate home.
 - **Settings** always means the property, under `/p/{code}/settings`, and appears in the sidebar.
 - Account also has `GET` and `PUT /account/set-password` (`account.set-password.edit` and `.update`, `auth` only) for users with a temp password, and `DELETE /account/sessions` (`account.sessions.destroy`, auth and verified) for **Log out other devices**.
 

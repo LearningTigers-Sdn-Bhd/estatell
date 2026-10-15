@@ -19,12 +19,14 @@ import {
     LayoutGrid,
     Moon,
     Percent,
+    Palette,
     Receipt,
     Settings,
     Ship,
     Shield,
     Tag,
     Users,
+    User,
     Utensils,
     Wallet,
 } from 'lucide-react';
@@ -59,6 +61,8 @@ const icons: Record<string, LucideIcon> = {
     users: Users,
     moon: Moon,
     shield: Shield,
+    user: User,
+    palette: Palette,
     tag: Tag,
     'spray-can': SprayCan,
 };

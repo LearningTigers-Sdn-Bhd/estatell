@@ -75,7 +75,7 @@ Plain items, one per area (Front desk, Finance, Reports, Settings), each with it
 
 Rules:
 
-- **Account is not a context.** It lives in the user menu.
+- **Account is not a staff context.** It lives in the user menu and opens its own account shell.
 - **The active context comes from the route name** (see [Routing](../routing.md#sidebar-contexts-decided)).
 - **New tab.** An area link opens that area's first page in a new browser tab, except the current area. There is no last-page memory.
 - **Permissions decide visibility.** An item shows only if the user has its permission. A context shows only if it has at least one visible item. With one context, the area links are hidden (for example a housekeeping user).
@@ -114,7 +114,7 @@ Front desk staff must always know which business date they are posting to. After
 - Navigation is defined once in PHP: `app/Navigation/`, one class per context (`FrontDeskNavigation`, `FinanceNavigation`, `ReportsNavigation`, `SettingsNavigation`) built from route names and `PermissionEnum`. Each class returns `NavGroupData` groups of `NavItemData` items.
 - `StaffNavigation` combines the classes, drops empty groups and contexts, and marks the active context. The `NavigationContext` enum holds each context's label, icon and route name patterns.
 - The server sets `active` on each item with `routeIs`, so an item stays active on its sub-pages (for example Details on every settings tab).
-- `HandleInertiaRequests` shares `navigation` (`StaffNavigationData`: `active` and `contexts`, already filtered by permission and features) and `businessDate`. `navigation` is null for admins and for suspended properties. On account pages staff get their own property's navigation with `active` null, and the sidebar shows the first context. Those pages have no permission team yet, so `HandleInertiaRequests` sets it to the staff user's property before building the navigation.
+- `HandleInertiaRequests` shares `navigation` (`StaffNavigationData`: `active` and `contexts`, already filtered by permission and features) and `businessDate`. `navigation` is null for admins and for suspended properties. On account pages, these props remain available but the account shell does not render them. Those pages have no permission team yet, so `HandleInertiaRequests` sets it to the staff user's property before building the navigation.
 - The frontend only renders: `AppNavbar` + `AppSidebar` + `AreaSwitcher` + `BusinessDateIndicator`. No navigation lists in React.
 
 ### Build status
@@ -129,7 +129,15 @@ Front desk staff must always know which business date they are posting to. After
 | ⌘K palette                  | Not built.                                                                                                                                          |
 
 - Labels are plain words. Section names match the table above.
-- Admin pages use `layouts/admin-layout.tsx` with `AdminSidebar`. Its items come from `App\Navigation\AdminNavigation`, shared as `adminNavigation` with admins only (null for staff). Account pages use the admin layout when this prop is present, so admins keep their sidebar there. Items marked `external` (Horizon) open in a new tab. The admin two-factor banner lives in this layout.
+- Admin pages use `layouts/admin-layout.tsx` with `AdminSidebar`. Its items come from `App\Navigation\AdminNavigation`, shared as `adminNavigation` with admins only (null for staff). Items marked `external` (Horizon) open in a new tab. The admin two-factor banner lives in this layout and remains available in the account shell.
+
+### Account shell
+
+- All account pages use `layouts/account/layout.tsx` on its own, for staff, admins and partners. They do not retain a workspace sidebar or a second menu inside the page.
+- The navbar shows the estatell wordmark, sidebar toggle and user menu. The account sidebar has Profile, Security, Appearance and Notifications (property staff only), with icons and the active page highlighted.
+- `App\Navigation\AccountNavigation` builds the items and active state on the server, shared as `accountNavigation` on account routes only. Security stays hidden during impersonation. The support-session banner stays visible.
+- The sidebar footer has **Back to workspace**. It opens the existing home redirect in the same tab, which chooses the staff, admin or partner home and respects onboarding redirects.
+- Account pages show no area links or business dates. Mobile uses the same account items in the sidebar drawer. The page forms and account URLs do not change.
 
 ## Other shell parts
 

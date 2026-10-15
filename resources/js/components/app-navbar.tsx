@@ -10,8 +10,13 @@ import { redirect as homeRedirect } from '@/routes/home';
  * Staff navbar: sidebar toggle, property identity and the user menu.
  * See docs/design-system/09-app-shell.md.
  */
-export function AppNavbar() {
-    const { property } = usePage().props;
+export function AppNavbar({
+    identity = 'property',
+}: {
+    identity?: 'property' | 'app';
+}) {
+    const { property: currentProperty } = usePage().props;
+    const property = identity === 'property' ? currentProperty : null;
     const getInitials = useInitials();
 
     return (

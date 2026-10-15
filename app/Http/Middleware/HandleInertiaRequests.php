@@ -9,6 +9,7 @@ use App\Data\Platform\ImpersonationData;
 use App\Data\Property\PropertySummaryData;
 use App\Enums\PropertyStatus;
 use App\Models\Property;
+use App\Navigation\AccountNavigation;
 use App\Navigation\AdminNavigation;
 use App\Navigation\PartnerNavigation;
 use App\Navigation\StaffNavigation;
@@ -60,6 +61,7 @@ class HandleInertiaRequests extends Middleware
             'businessDate' => fn () => $this->businessDate($request),
             'adminNavigation' => fn () => $request->user()?->is_admin ? app(AdminNavigation::class)->items() : null,
             'partnerNavigation' => fn () => $request->user()?->partner_id !== null ? app(PartnerNavigation::class)->items() : null,
+            'accountNavigation' => fn () => $request->user() !== null && $request->routeIs('account.*') ? app(AccountNavigation::class)->items($request) : null,
             'navigation' => fn () => $this->staffNavigation($request),
             'csrfToken' => fn () => csrf_token(),
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
