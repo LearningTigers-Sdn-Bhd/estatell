@@ -18,10 +18,8 @@ Switch a property from setup to operation in one clear moment.
 
 1. Checks the readiness list. Every required step must be Done.
 2. Creates the first `business_dates` row (Open) on the opening date: **today** in the property time zone. Only `ApproveGoLive` can pass an earlier date, which the admin sets for a property that asked to add past stays. The owner never picks a date.
-3. Starts document numbering.
-4. Enables notifications and the night audit. The night audit already runs only for Live properties (`DueAudits`). To verify: notifications need the same gate.
-5. Sets `status = Live` and `went_live_at`.
-6. Runs `RefreshPendingTemporaryPasswords`: every staff and company user of the property with `must_change_password` who has never signed in gets a new temp password that expires 14 days after go-live. No password values are logged. Company users who already have a password elsewhere are not touched.
+3. Sets `status = Live` and `went_live_at`. Document numbering needs no start step (`NextDocumentNumber` creates a sequence row on first use). The night audit already runs only for Live properties (`DueAudits`). No notification gate exists yet: notifications are not switched on at go-live.
+4. Runs `RefreshPendingTemporaryPasswords`: every staff and company user of the property with `must_change_password` who has never signed in gets a new temp password that expires 14 days after go-live. No password values are logged. Company users who already have a password elsewhere are not touched.
 
 Nothing operational happens at `RequestGoLive`: a pending property has no business date.
 
@@ -60,7 +58,7 @@ go_live_review_flags   go_live_review_id, step (OnboardingStep)
 
 ## Build order
 
-`GoLive` is built before the wizard, because the night audit needs an open business date. The first version creates the business date through `OpenBusinessDate`, starts document numbering and sets `Live`. The readiness check reads the wizard steps, so it starts empty and fills as each step lands in [Wizard steps](02-wizard-steps.md).
+`GoLive` was built before the wizard, because the night audit needs an open business date. It creates the business date through `OpenBusinessDate` and sets `Live`. `GoLiveReadiness` reads the required wizard steps in [Wizard steps](02-wizard-steps.md), and every section is now built.
 
 ## Build status
 
@@ -70,7 +68,9 @@ go_live_review_flags   go_live_review_id, step (OnboardingStep)
 | Opening date: today in the property time zone. The owner field is gone                                          | Built. To change: `ApproveGoLive` takes an earlier date.                                   |
 | `PendingApproval` when `require_go_live_approval` is on. The business date opens and `went_live_at` stays empty | Built. To change: `RequestGoLive` opens nothing; the go-live steps run at `ApproveGoLive`. |
 | `RefreshPendingTemporaryPasswords` at go-live                                                                   | Built for staff. Company users join when the company portal users are built.               |
-| Notifications switch-on, the You're live card, confetti, Recommended checklist                                  | Not built. The card, confetti and the checklist come in one commit.                        |
+| The You're live card, confetti, Recommended checklist                                                           | Built.                                                                                     |
+| Notifications switch-on at go-live                                                                              | Not built. No notification gate exists yet.                                                |
+| Go-live approval (`RequestGoLive`, `ApproveGoLive`, `RejectGoLive`, flags)                                      | Not built. Only the `PendingApproval` status and the setting exist.                        |
 
 Document numbering needs no start step. `NextDocumentNumber` creates a sequence row on first use.
 

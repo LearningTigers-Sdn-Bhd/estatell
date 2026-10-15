@@ -18,7 +18,7 @@ use App\Services\Onboarding\Checks\TaxesCheck;
 use App\Services\Onboarding\Checks\TeamCheck;
 
 /**
- * The fourteen steps of the onboarding wizard, in number order. Case order is the wizard order, and every step's
+ * The thirteen steps of the onboarding wizard, in number order. Case order is the wizard order, and every step's
  * dependencies come earlier in it. The table is in docs/17-onboarding/02-wizard-steps.md.
  */
 enum OnboardingStep: string

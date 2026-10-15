@@ -14,7 +14,7 @@ Get a property from sign-up to its first booking in about 15 minutes, without co
 6. Each section has its **own onboarding form** (guided copy, suggested defaults, one decision per screen). It saves through the **same Actions and Data classes** as settings.
 7. The owner stays inside onboarding until the property is Live (see [The fence](#the-fence)).
 
-The first release has two pages, Basics and Review (go live). Both use the onboarding layout. Basics offers any country. `SeedPropertyDefaults` seeds the [country profiles](../02-property/03-seed-property-defaults.md#country-profiles) for it.
+Every section and Review (go live) use the onboarding layout. Basics offers any country. `SeedPropertyDefaults` seeds the [country profiles](../02-property/03-seed-property-defaults.md#country-profiles) for it.
 
 ## Phases and sections
 
@@ -617,12 +617,12 @@ Not a table: two groups on one page. The registration card group is the same com
 
 - Layout: full width (`8xl`). One small card per phase in a two-column grid (one column on phone). Each card has a header row (phase icon and title) and a bordered list below it whose dividers touch the border. The Go live / Send for approval button is in the footer, on the right.
 - One row per section, grouped by phase, from `OnboardingProgress`: state, a one-line summary built on the server, and an action (**Edit**, **Finish →**, **Add**, or **Fix in {section} →** for a warning).
-- States: ✓ Done, ✗ required and not done, ○ optional and not started, – skipped, ⚠ Needs attention, ⚑ flagged by support.
-- `GoLiveReadiness::checks()` returns one `GoLiveCheckData` per required section, and `isReady()` needs every one Done. Warnings are a separate list and never block: a tax applied to no charge, no tax on rooms, a more-rates follower missing a room type.
-- Info line: how many staff and company users get their sign-in details.
+- States: ✓ Done, ✗ required and not done, ○ optional and not started, – skipped, ⚠ Needs attention, ⚑ flagged by support (not built until go-live approval).
+- `GoLiveReadiness::checks()` returns one `GoLiveCheckData` per required section, and `isReady()` needs every one Done. Warnings are a separate card above the phase cards and never block: a tax applied to no charge, no tax on rooms, a more-rates follower missing a room type.
+- Info line: how many staff get their sign-in details. Company users join when the company portal users are built.
 - No opening date field. The day you go live is the first business day.
 - The button is disabled until ready (tooltip "Finish {sections} first"), hidden during view as, and reads **Send for approval** when approval is on. It opens an AlertDialog: "Go live today?" with the first business day, "Country, currency and time zone can't be changed after this." and the sign-in count.
-- After going live: the **You're live!** screen with **Share sign-in details** and **Open dashboard**. After sending: the waiting notice. Pending, sent back and approved states: see [Go live](03-go-live.md#approval).
+- After going live: the dashboard shows the **You're live!** card with **Share sign-in details** (see [After go-live](03-go-live.md#after-go-live)). After sending: the waiting notice. Pending, sent back and approved states: see [Go live](03-go-live.md#approval).
 - Review can be opened before everything is Done and works as a to-do list.
 - There is no Test drive section. Owners try the product on the shared [demo properties](../01-platform/06-demo-properties.md), and the go-live approval setting is the check before go-live.
 - At phone width rows stack: state and name, then summary and action.
@@ -728,10 +728,9 @@ property_ota_credentials  id, property_id, ota_channel_id, channel_name (only fo
 
 ### Status
 
-- Built: Basics with country, currency, time zone, state list and the Business details group (`SavePropertyBasics`, `ChangePropertyCountry` while setup has not started, `SettingsLock::locksCountry`), the Room types section (`SaveOnboardingRoomTypes`, `RoomTypesCheck`), the enums, `OnboardingProgress`, the Basics check, the `onboarding_skips` table with the Skip and Unskip Actions and their routes (`POST` and `DELETE onboarding/skips/{step}`), the step save rule (`OnboardingStepRequest`), both middlewares, the waiting page, the onboarding layout and the shared progress.
-- Stubs: every other step's check (except Basics and Room types) returns NotStarted until its own commit replaces it.
-- Not yet: the Needs attention state (it needs a stored "was Done" marker, so no state is produced yet).
-- Go-live readiness is unchanged. It still returns no checks until the sections are built.
+- Built: every section (1 to 12), `OnboardingProgress`, all `StepCheck` classes, the `onboarding_skips` table with the Skip and Unskip Actions, the step save rule (`OnboardingStepRequest`), both middlewares, the waiting page, the onboarding layout, the shared progress, and Review with `GoLive`, `GoLiveReadiness` (one check per required section) and the warnings.
+- Stub: `ReviewCheck` always returns NotStarted. Review has no data of its own.
+- Not yet: the Needs attention state (it needs a stored "was Done" marker, so no state is produced yet), and go-live approval.
 
 ## Build order
 
