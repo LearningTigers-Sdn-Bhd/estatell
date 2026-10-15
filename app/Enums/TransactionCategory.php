@@ -77,12 +77,34 @@ enum TransactionCategory: string
         return [self::Room, ...self::chargeItemCases()];
     }
 
+    /**
+     * The categories a charge item takes in onboarding: the charge item categories without Transport, which boat fares own.
+     *
+     * @return list<self>
+     */
+    public static function onboardingChargeItemCases(): array
+    {
+        return array_values(array_filter(
+            self::chargeItemCases(),
+            fn (self $category): bool => $category !== self::Transport,
+        ));
+    }
+
     /** @return list<array{value: string, label: string}> */
     public static function chargeItemOptions(): array
     {
         return array_map(
             fn (self $category): array => ['value' => $category->value, 'label' => $category->label()],
             self::chargeItemCases(),
+        );
+    }
+
+    /** @return list<array{value: string, label: string}> */
+    public static function onboardingChargeItemOptions(): array
+    {
+        return array_map(
+            fn (self $category): array => ['value' => $category->value, 'label' => $category->label()],
+            self::onboardingChargeItemCases(),
         );
     }
 }

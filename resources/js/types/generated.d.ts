@@ -978,6 +978,18 @@ weekend: string | null,
 hasSavedPrices: boolean,
 baseOccupancy: number,
 };
+export type OnboardingChargeItemData = {
+id: number,
+name: string,
+code: string,
+category: App.Enums.TransactionCategory,
+isStarter: boolean,
+defaultAmount: string | null,
+chargingUnit: App.Enums.ChargingUnit,
+allowOverride: boolean,
+active: boolean,
+taxIds: number[],
+};
 export type OnboardingCompanyData = {
 id: number,
 name: string,

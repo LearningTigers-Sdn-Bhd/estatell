@@ -47,7 +47,7 @@ class TaxController extends Controller
             'countryName' => $countries->name($property->country_code),
             'isMalaysia' => mb_strtoupper((string) $property->country_code) === 'MY',
             'maxRows' => SaveTaxesRequest::MAX_ROWS,
-            'chargeItemsUrl' => $this->urlOf(OnboardingStep::ChargeItems, $property),
+            'chargeItemsUrl' => $this->urlOf(OnboardingStep::ChargeItems, $property, ['from' => 'taxes']),
             'locked' => $blockingStep !== null,
             'blockedBy' => $blockingStep === null ? null : [
                 'label' => $blockingStep->label(),
@@ -98,8 +98,11 @@ class TaxController extends Controller
         return back();
     }
 
-    private function urlOf(OnboardingStep $step, Property $property): ?string
+    /**
+     * @param  array<string, string>  $query
+     */
+    private function urlOf(OnboardingStep $step, Property $property, array $query = []): ?string
     {
-        return $step->routeName() === null ? null : route($step->routeName(), ['property' => $property->code], absolute: false);
+        return $step->routeName() === null ? null : route($step->routeName(), ['property' => $property->code, ...$query], absolute: false);
     }
 }

@@ -4,15 +4,23 @@ namespace App\Services\Onboarding\Checks;
 
 use App\Enums\StepState;
 use App\Models\Property;
+use Illuminate\Database\Eloquent\Builder;
 
 /**
- * Stub: the real check is not built yet, so this always returns NotStarted. A later commit replaces it with the rule in
- * docs/17-onboarding/02-wizard-steps.md.
+ * Done when at least one active charge item has a default amount or a tax. Optional, so it never blocks the wizard;
+ * "Skip" makes the step Done through OnboardingProgress.
  */
 class ChargeItemsCheck implements StepCheck
 {
     public function state(Property $property): StepState
     {
-        return StepState::NotStarted;
+        return $property->chargeItems()
+            ->active()
+            ->where(fn (Builder $query) => $query
+                ->whereNotNull('default_amount')
+                ->orWhereHas('transactionCode.applicableTaxes'))
+            ->exists()
+            ? StepState::Done
+            : StepState::NotStarted;
     }
 }
