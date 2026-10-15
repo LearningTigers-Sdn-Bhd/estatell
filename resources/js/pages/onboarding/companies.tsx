@@ -354,6 +354,10 @@ export default function Companies({
                         <Table>
                             <TableHeader className="max-md:hidden">
                                 <TableRow>
+                                    <TableHead className="w-10">
+                                        <span className="sr-only">Number</span>
+                                        <span aria-hidden>#</span>
+                                    </TableHead>
                                     <TableHead>Name</TableHead>
                                     <TableHead>Type</TableHead>
                                     <TableHead>Contact email</TableHead>
@@ -369,7 +373,7 @@ export default function Companies({
                                 {rows.length === 0 && (
                                     <TableRow className="hover:bg-transparent">
                                         <TableCell
-                                            colSpan={7}
+                                            colSpan={8}
                                             className="py-8 text-center text-sm whitespace-normal text-muted-foreground max-md:block"
                                         >
                                             No companies yet. Add one, or import
@@ -388,6 +392,17 @@ export default function Companies({
                                     return (
                                         <Fragment key={row.key}>
                                             <TableRow className="max-md:grid max-md:grid-cols-2 max-md:gap-3 max-md:p-3">
+                                                <TableCell className="align-top text-muted-foreground tabular-nums max-md:col-span-2 max-md:p-0 max-md:font-medium">
+                                                    <span className="md:hidden">
+                                                        Company {index + 1}
+                                                    </span>
+                                                    <span
+                                                        className="hidden pt-2 md:block"
+                                                        aria-hidden
+                                                    >
+                                                        {index + 1}
+                                                    </span>
+                                                </TableCell>
                                                 <TableCell className="align-top max-md:col-span-2 max-md:p-0">
                                                     <span className="mb-1 block text-xs text-muted-foreground md:hidden">
                                                         Name
@@ -704,8 +719,8 @@ export default function Companies({
                                             {expanded && (
                                                 <TableRow className="bg-muted/30 hover:bg-muted/30">
                                                     <TableCell
-                                                        colSpan={7}
-                                                        className="max-md:block"
+                                                        colSpan={8}
+                                                        className="max-md:block md:pl-12"
                                                     >
                                                         <div className="grid gap-3 md:grid-cols-4">
                                                             {(
@@ -798,7 +813,7 @@ export default function Companies({
                             </TableBody>
                             <TableFooter>
                                 <TableRow>
-                                    <TableCell colSpan={7}>{actions}</TableCell>
+                                    <TableCell colSpan={8}>{actions}</TableCell>
                                 </TableRow>
                             </TableFooter>
                         </Table>
