@@ -255,6 +255,10 @@ Setup started (another section is no longer Not started):
 - The example is a sample night of 100 in the property currency, or the cheapest Basic rate once prices exist. The server calculates it with `RoomRevenuePreview` for a local and a foreign guest, as on the settings Taxes tab. The browser never calculates tax.
 - **We don't charge tax** greys out the table and turns every tax off. It is stored as an `onboarding_skips` row for Taxes. Unticking it removes the row.
 - At phone width each row stacks into a card, with `[x] Applies to rooms` and ⌄ More options.
+- The save is `SaveOnboardingTaxes`, called through `SaveTaxesRequest` (`no_tax`, and `rows` with the tax fields and `applies_to_rooms`). It creates new rows through `CreateTax` and updates saved rows through `UpdateTax`. A saved tax keeps its short code when renamed. A new tax gets the code derived from its name (a number is added when the code or `TAX_{CODE}` is taken). Errors show per row (`rows.{n}.name`, `rows.{n}.rate`).
+- The example updates while the owner edits. The page posts the table to `onboarding.taxes.preview`, and `OnboardingTaxPreview` calculates the unsaved rows in memory through `RoomRevenuePreview`. Before Basics is saved the page opens as a locked preview with no example.
+- A saved custom row is removed with the trash button and a confirm popover (`onboarding.taxes.destroy`, through `DeleteOnboardingTax`). A tax that something already refers to is refused with "Turn it off instead". An unsaved row is removed in the browser.
+- **We don't charge tax** is sent with the table. The footer **Skip** button is not shown for Taxes. Unticking it removes the skip and leaves the taxes turned off.
 - Check: Done when at least one tax is enabled (anywhere), or **We don't charge tax** is ticked.
 - Review shows "Applies to rooms: {taxes}" (or "Room nights: no tax") as info, and warns with **Fix →** when an enabled tax applies to no charge at all. Neither blocks go-live.
 

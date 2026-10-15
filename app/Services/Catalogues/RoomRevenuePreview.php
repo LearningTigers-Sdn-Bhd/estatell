@@ -3,7 +3,9 @@
 namespace App\Services\Catalogues;
 
 use App\Models\Property;
+use App\Models\Tax;
 use Brick\Money\Money;
+use Illuminate\Support\Collection;
 
 class RoomRevenuePreview
 {
@@ -26,8 +28,18 @@ class RoomRevenuePreview
      */
     public function calculate(Property $property, array $taxIds): array
     {
+        return $this->calculateTaxes($property, $property->taxes()->whereKey($taxIds)->get());
+    }
+
+    /**
+     * The same sample night for taxes that are already loaded, or built in memory and never saved.
+     *
+     * @param  Collection<int, Tax>  $taxes
+     * @return array{sampleAmount: Money, localGuest: TaxCalculationResult, foreignGuest: TaxCalculationResult}
+     */
+    public function calculateTaxes(Property $property, Collection $taxes): array
+    {
         $sampleAmount = Money::of(self::SAMPLE_AMOUNT, $property->settings->currency->getCurrencyCode());
-        $taxes = $property->taxes()->whereKey($taxIds)->get();
 
         return [
             'sampleAmount' => $sampleAmount,

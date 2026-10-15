@@ -58,7 +58,7 @@ test('ranges create rooms with the prefix and move to the next step', function (
     ($this->save)(roomsPayload([
         roomRange($this->standard, '101', '103'),
         roomRange($this->deluxe, '1', '2', ['prefix' => 'G']),
-    ]))->assertSessionHasNoErrors()->assertRedirect(route('onboarding.go-live.show', $this->property->code));
+    ]))->assertSessionHasNoErrors()->assertRedirect(route('onboarding.taxes.edit', $this->property->code));
 
     expect($this->property->rooms()->orderBy('id')->pluck('number')->all())->toBe(['101', '102', '103', 'G1', 'G2'])
         ->and($this->property->rooms()->where('room_type_id', $this->deluxe->id)->count())->toBe(2)

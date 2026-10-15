@@ -17,7 +17,7 @@ test('onboarding pages share the progress of listed steps only', function () {
         ->get(route('onboarding.basics.edit', $this->property->code))
         ->assertInertia(fn (Assert $page) => $page
             ->component('onboarding/basics')
-            ->has('onboarding.phases', 3)
+            ->has('onboarding.phases', 4)
             ->where('onboarding.phases.0.value', 'property')
             ->where('onboarding.phases.0.state', 'in_progress')
             ->has('onboarding.phases.0.steps', 1)
@@ -26,10 +26,13 @@ test('onboarding pages share the progress of listed steps only', function () {
             ->where('onboarding.phases.0.steps.0.blockedBy', null)
             ->where('onboarding.phases.1.value', 'rooms')
             ->where('onboarding.phases.1.steps.0.value', 'room_types')
-            ->where('onboarding.phases.2.value', 'review')
+            ->where('onboarding.phases.2.value', 'finance')
             ->has('onboarding.phases.2.steps', 1)
-            ->where('onboarding.phases.2.steps.0.value', 'review')
-            ->where('onboarding.phases.2.steps.0.url', route('onboarding.go-live.show', $this->property->code, absolute: false))
+            ->where('onboarding.phases.2.steps.0.value', 'taxes')
+            ->where('onboarding.phases.3.value', 'review')
+            ->has('onboarding.phases.3.steps', 1)
+            ->where('onboarding.phases.3.steps.0.value', 'review')
+            ->where('onboarding.phases.3.steps.0.url', route('onboarding.go-live.show', $this->property->code, absolute: false))
             ->where('onboarding.requiredDone', 0)
             ->where('onboarding.requiredTotal', 7)
             ->where('onboarding.remainingMinutes', 13));
@@ -55,7 +58,8 @@ test('completed basics count as done in the progress', function () {
             ->where('onboarding.phases.0.state', 'done')
             ->where('onboarding.phases.0.steps.0.state', 'done')
             ->where('onboarding.phases.1.steps.0.state', 'not_started')
-            ->where('onboarding.phases.2.steps.0.state', 'locked'));
+            ->where('onboarding.phases.2.steps.0.state', 'not_started')
+            ->where('onboarding.phases.3.steps.0.state', 'locked'));
 });
 
 test('the progress is not shared on a normal PMS page', function () {
@@ -89,7 +93,8 @@ test('review opens go-live and is the last listed step', function () {
         ->and(OnboardingStep::Review->nextListed())->toBeNull()
         ->and(OnboardingStep::Basics->nextListed())->toBe(OnboardingStep::RoomTypes)
         ->and(OnboardingStep::RoomTypes->nextListed())->toBe(OnboardingStep::Rooms)
-        ->and(OnboardingStep::Rooms->nextListed())->toBe(OnboardingStep::Review)
+        ->and(OnboardingStep::Rooms->nextListed())->toBe(OnboardingStep::Taxes)
+        ->and(OnboardingStep::Taxes->nextListed())->toBe(OnboardingStep::Review)
         ->and(OnboardingStep::Companies->nextListed())->toBe(OnboardingStep::Review)
-        ->and(array_map(fn (OnboardingStep $step): OnboardingStep => $step, OnboardingStep::listed()))->toBe([OnboardingStep::Basics, OnboardingStep::RoomTypes, OnboardingStep::Rooms, OnboardingStep::Review]);
+        ->and(array_map(fn (OnboardingStep $step): OnboardingStep => $step, OnboardingStep::listed()))->toBe([OnboardingStep::Basics, OnboardingStep::RoomTypes, OnboardingStep::Rooms, OnboardingStep::Taxes, OnboardingStep::Review]);
 });

@@ -12,7 +12,7 @@ import { cn } from '@/lib/utils';
 import { Spinner } from '@/components/ui/spinner';
 
 /**
- * The fixed footer. A form step shows Back, Skip (optional steps only) and Save & continue, which submits the form
+ * The fixed footer. A form step shows Back, Skip (optional steps only; Taxes has its own "We don't charge tax" answer) and Save & continue, which submits the form
  * named by `formId`. A locked step is a preview with Back and Next only. A page can ask for Back only.
  */
 export function OnboardingFooter({
@@ -29,6 +29,7 @@ export function OnboardingFooter({
         editing &&
         current !== null &&
         current.isSkippable &&
+        current.value !== 'taxes' &&
         current.state !== 'done';
 
     return (

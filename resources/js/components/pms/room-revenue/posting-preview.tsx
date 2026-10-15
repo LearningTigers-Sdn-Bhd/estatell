@@ -20,6 +20,7 @@ export function PostingPreview({
     offTaxes,
     money,
     loading,
+    localLabel = 'Malaysian guest',
 }: {
     title: string;
     /** What the sample amount is, for example "A room night". */
@@ -30,6 +31,8 @@ export function PostingPreview({
     offTaxes: Tax[];
     money: Intl.NumberFormat;
     loading: boolean;
+    /** The heading of the local guest column. */
+    localLabel?: string;
 }) {
     const amount = (value: string | null) =>
         value === null ? '—' : money.format(Number(value));
@@ -64,7 +67,7 @@ export function PostingPreview({
                             <TableRow>
                                 <TableHead>Line</TableHead>
                                 <TableHead className="text-right">
-                                    Malaysian guest
+                                    {localLabel}
                                 </TableHead>
                                 <TableHead className="text-right">
                                     Foreign guest

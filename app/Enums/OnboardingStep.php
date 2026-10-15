@@ -151,6 +151,7 @@ enum OnboardingStep: string
             self::Basics => 'onboarding.basics.edit',
             self::RoomTypes => 'onboarding.room-types.edit',
             self::Rooms => 'onboarding.rooms.edit',
+            self::Taxes => 'onboarding.taxes.edit',
             self::Review => 'onboarding.go-live.show',
             default => null,
         };

@@ -986,6 +986,19 @@ url: string | null,
 blockedBy: string | null,
 blockedByUrl: string | null,
 };
+export type OnboardingTaxData = {
+id: number,
+name: string,
+rateType: App.Enums.TaxRateType,
+rate: string,
+isInclusive: boolean,
+foreignGuestsOnly: boolean,
+collectAtCheckIn: boolean,
+registrationNumber: string | null,
+enabled: boolean,
+isPreset: boolean,
+appliesToRooms: boolean,
+};
 export type OwnerSetupData = {
 name: string,
 email: string,

@@ -6,13 +6,15 @@ use App\Enums\StepState;
 use App\Models\Property;
 
 /**
- * Stub: the real check is not built yet, so this always returns NotStarted. A later commit replaces it with the rule in
- * docs/17-onboarding/02-wizard-steps.md.
+ * Done when at least one tax is enabled, anywhere. "We don't charge tax" is a skip row, which OnboardingProgress turns
+ * into Done before this check runs.
  */
 class TaxesCheck implements StepCheck
 {
     public function state(Property $property): StepState
     {
-        return StepState::NotStarted;
+        return $property->taxes()->where('enabled', true)->exists()
+            ? StepState::Done
+            : StepState::NotStarted;
     }
 }
