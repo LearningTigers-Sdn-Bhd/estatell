@@ -4,6 +4,7 @@ import { AppearanceToggle } from '@/components/appearance-toggle';
 import { NavUser } from '@/components/nav-user';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { useInitials } from '@/hooks/use-initials';
+import { cn } from '@/lib/utils';
 import { dashboard } from '@/routes';
 import { redirect as homeRedirect } from '@/routes/home';
 
@@ -13,15 +14,24 @@ import { redirect as homeRedirect } from '@/routes/home';
  */
 export function AppNavbar({
     identity = 'property',
+    surface = 'default',
 }: {
     identity?: 'property' | 'app';
+    surface?: 'default' | 'sidebar';
 }) {
     const { property: currentProperty } = usePage().props;
     const property = identity === 'property' ? currentProperty : null;
     const getInitials = useInitials();
 
     return (
-        <header className="z-30 flex h-14 shrink-0 items-center gap-2 border-b bg-background px-4">
+        <header
+            className={cn(
+                'z-30 flex h-14 shrink-0 items-center gap-2 border-b px-4',
+                surface === 'sidebar'
+                    ? 'border-sidebar-border bg-sidebar text-sidebar-foreground'
+                    : 'bg-background',
+            )}
+        >
             <SidebarTrigger className="-ml-1" />
             <Link
                 href={property ? dashboard() : homeRedirect()}

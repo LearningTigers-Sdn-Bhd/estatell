@@ -4,13 +4,15 @@ Part of the [design system](../design-system.md). Short contract: [DESIGN.md](..
 
 ## Shell layout
 
-A full-width navbar on top, the sidebar below it on the left, the page to the right. The staff areas are links in the sidebar footer, not a menu.
+The staff shell has three rows: the full-width navbar; the workspace label and breadcrumbs; then the sidebar and content. The staff areas stay as links in the sidebar footer, not a menu.
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────┐
 │ ☰  ▣ Pulau Inn · ID ES10142                                    👤  │  navbar
 ├────────────────┬─────────────────────────────────────────────────────────┤
-│ OVERVIEW       │ Breadcrumbs                                             │
+│ ▣ Front desk   │ Breadcrumbs                                             │
+├────────────────┼─────────────────────────────────────────────────────────┤
+│ OVERVIEW       │                                                         │
 │   Dashboard    │                                                         │
 │ RESERVATIONS   │                                                         │
 │   All reserv.  │  page                                                   │
@@ -37,7 +39,16 @@ A full-width navbar on top, the sidebar below it on the left, the page to the ri
 | Left  | Sidebar toggle, then the property icon (logo, or initials), name and "ID code". Clicking the identity opens the dashboard. |
 | Right | User menu (`NavUser`): the avatar only, no name. It opens the name, Account and Log out.                                   |
 
-Fixed at the top of the shell (it never scrolls), 3.5 rem high. Only the content area scrolls; the shell is `h-svh` and `SidebarInset` has `overflow-y-auto`. The breadcrumb bar is 2.5 rem high and scrolls with the page. On mobile the same navbar shows; the sidebar is an off-canvas sheet. Pages without a property (admin, account for admins) show the logo instead of the identity.
+The navbar is 3.5 rem high. In the staff shell, the navbar and workspace row stay outside the scrolling content. The shell is `h-svh`; the document cannot scroll or overscroll while that shell is mounted. Content and sidebar navigation scroll separately with `overscroll-none`, so reaching an edge does not move the navbar. Fixed grid pages keep their own internal scroll regions. Other layouts keep their existing scroll behavior.
+
+### Staff workspace row
+
+- `StaffWorkspaceHeader` shows the active server-provided context: Front desk, Finance, Reports or Settings. Its icon and label are display only, not a link or dropdown.
+- On desktop, the row is 2.5 rem high. The label column uses the sidebar width tokens and follows its collapsed state. The full-height divider aligns with the sidebar divider. Collapsed mode shows only the icon, with the workspace name available to assistive technology and in a title tooltip.
+- Breadcrumbs sit to the right and stay fixed with this row. The sidebar starts below both header rows.
+- On mobile, the workspace label sits above the breadcrumbs. The sidebar remains a drawer. The property identity stays in the navbar.
+- This three-row structure applies only to staff pages. Admin, partner and account layouts stay unchanged.
+- The staff navbar and workspace/breadcrumb row use the sidebar background, foreground and border tokens in both themes. Content keeps its own background.
 
 ### Theme shortcut
 
@@ -62,7 +73,7 @@ The icon shows the saved preference: sun, moon or monitor. Its accessible label 
 | r3  | `BusinessDateIndicator`        | Footer, the last row, always visible.                                                                                                        |
 
 - The starter kit sidebar, restyled by the preset. The bold menu accent fills the active item with emerald.
-- The sidebar sits below the navbar (`top-14`). r1 uses `SidebarContent` with `SidebarGroup` + `SidebarGroupLabel` + `SidebarMenu`; r2 and r3 use `SidebarFooter`.
+- The staff sidebar sits below the navbar and workspace row (`top-24`). r1 uses `SidebarContent` with `SidebarGroup` + `SidebarGroupLabel` + `SidebarMenu`; r2 and r3 use `SidebarFooter`.
 - The Dashboard sits in the Overview group. A group with an empty label would show no label.
 - Sub-views that would need nesting (for example Arrivals, In-house, Departures) are separate items under a group label, or tabs on the page. Never a collapsible submenu.
 

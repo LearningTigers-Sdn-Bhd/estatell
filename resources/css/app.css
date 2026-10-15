@@ -197,6 +197,12 @@
 }
 
 @layer components {
+    html:has([data-staff-shell]),
+    body:has([data-staff-shell]) {
+        overflow: hidden;
+        overscroll-behavior: none;
+    }
+
     .auth-edge-glow {
         background-image: radial-gradient(
             ellipse at center,

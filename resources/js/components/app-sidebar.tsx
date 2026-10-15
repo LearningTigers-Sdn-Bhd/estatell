@@ -10,7 +10,7 @@ import {
 import { toNavItem } from '@/lib/navigation';
 
 /**
- * Staff sidebar, below `AppNavbar`. It lists the groups and items of the active context from
+ * Staff sidebar, below the navbar and workspace header. It lists the groups and items of the active context from
  * `App\Navigation\StaffNavigation`. The footer shows the business date and the `AreaSwitcher`.
  * See docs/design-system/09-app-shell.md.
  */
@@ -26,9 +26,9 @@ export function AppSidebar() {
         <Sidebar
             collapsible="icon"
             variant="sidebar"
-            className="top-14 h-[calc(100svh-3.5rem)]"
+            className="top-24 bottom-0 h-auto"
         >
-            <SidebarContent>
+            <SidebarContent className="overscroll-none">
                 {current?.groups.map((group) => (
                     <NavMain
                         key={group.label}

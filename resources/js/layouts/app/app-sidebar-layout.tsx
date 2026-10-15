@@ -3,7 +3,7 @@ import { ImpersonationBanner } from '@/components/impersonation-banner';
 import { AppNavbar } from '@/components/app-navbar';
 import { AppShell } from '@/components/app-shell';
 import { AppSidebar } from '@/components/app-sidebar';
-import { AppSidebarHeader } from '@/components/app-sidebar-header';
+import { StaffWorkspaceHeader } from '@/components/staff-workspace-header';
 import { cn } from '@/lib/utils';
 import type { AppLayoutProps } from '@/types';
 
@@ -14,24 +14,24 @@ export default function AppSidebarLayout({
 }: AppLayoutProps) {
     return (
         <AppShell variant="sidebar">
-            <div className="flex h-svh w-full flex-col overflow-hidden">
-                <AppNavbar />
+            <div
+                data-staff-shell
+                className="flex h-svh w-full flex-col overflow-hidden overscroll-none"
+            >
+                <AppNavbar surface="sidebar" />
+                <StaffWorkspaceHeader breadcrumbs={breadcrumbs} />
                 <div className="flex min-h-0 flex-1">
                     <AppSidebar />
                     <AppContent
                         variant="sidebar"
                         className={cn(
-                            'min-h-0 min-w-0',
+                            'min-h-0 min-w-0 overscroll-none',
                             variant === 'fixed'
                                 ? 'overflow-hidden'
                                 : 'overflow-x-clip overflow-y-auto',
                         )}
                     >
                         <ImpersonationBanner />
-                        <AppSidebarHeader
-                            breadcrumbs={breadcrumbs}
-                            showTrigger={false}
-                        />
                         {children}
                     </AppContent>
                 </div>

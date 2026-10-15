@@ -138,6 +138,7 @@ Brief for every item: read `AGENTS.md`, `.ai/rules/index.md`, the matching rule 
 - [x] `feat(ui): add a three-state theme shortcut` — UI sidetrack: one Light → Dark → System button beside the navbar avatar, or at the right of admin and partner breadcrumb headers, including mobile. Reuses the saved appearance setting. Docs: [Theme shortcut](design-system/09-app-shell.md#theme-shortcut).
 - [x] `chore(ui): remove the unused Laravel favicon` — remove the leftover `public/favicon.svg`. The active ICO, PNG and Apple touch icons already use the house artwork and stay unchanged.
 - [x] `style(ui): add the house icon to support sidebars` — the admin and partner sidebar headers show the existing house icon beside the Estatell wordmark, or the icon alone when collapsed. Other layouts stay unchanged. Docs: [App wordmark](design-system/02-tokens-and-typography.md#app-wordmark).
+- [x] `style(ui): fix the staff shell and add the workspace row` — fixed navbar and workspace-label/breadcrumb row, sidebar-aligned full-height divider, separate content and sidebar scrolling without viewport bounce, and stacked workspace/breadcrumbs on mobile. Other layouts stay unchanged. Docs: [Staff workspace row](design-system/09-app-shell.md#staff-workspace-row).
 
 - [x] `feat(mail): add the branded email layout` — publish the `laravel-mail` views and theme them with the estatell logo, `DESIGN.md` colours and a footer with the property name. Covers the existing mail notifications and the Fortify reset and verify emails. Check each email at `/mailbox`. Docs: [Notification types](04-notifications/01-notification-types.md).
     - Implemented the approved stationery design. Sent local previews for all nine types, matched the supplied wordmark reference and centered the property footer after review. HTML and plain-text tests pass. External deliverability checks are separate.
@@ -202,6 +203,7 @@ Topics on hold. Each one needs a planning session and its docs before it gets co
 
 | Commit    | Subject                                                                  |
 | --------- | ------------------------------------------------------------------------ |
+| `e0cbd31d` | style(ui): add the house icon to support sidebars                        |
 | `0a17a885` | chore(ui): remove the unused Laravel favicon                             |
 | `3442f712` | feat(ui): add a three-state theme shortcut                               |
 | `75374363` | style(ui): adapt the user menu to sidebar placement                      |
