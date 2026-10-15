@@ -13,9 +13,10 @@ One place for platform admins to find any property and see its details. Admin ac
 | Show           | `GET /admin/properties/{code}`                                                            | `admin.properties.show`      | Detail    |
 | Staff tab      | `GET /admin/properties/{code}/staff`                                                      | `admin.properties.staff`     | Detail    |
 | Features tab   | `GET /admin/properties/{code}/features`                                                   | `admin.properties.features`  | Detail    |
+| OTA lists tab  | `GET /admin/properties/{code}/ota-lists`                                                  | `admin.properties.ota-lists` | Detail    |
 | Go-live review | `GET /admin/properties/{code}/go-live`, `POST …/go-live/approve`, `POST …/go-live/reject` | `admin.properties.go-live.*` | Detail    |
 
-- Read routes use `auth` and `can:admin`. Create, send setup email, suspend and reactivate routes also use `support.2fa`.
+- Read routes use `auth` and `can:admin`. Create, send setup email, suspend, reactivate, Reveal and Mark processed routes also use `support.2fa`.
 - `{property}` binds by code (see [Routing](../routing.md#property-code)).
 - The admin sidebar has a **Properties** item, with a count badge of go-live requests waiting for approval.
 
@@ -36,10 +37,10 @@ One place for platform admins to find any property and see its details. Admin ac
 
 - Header: name, status badge, back link to the list.
 - Each tab has its own URL, so a refresh keeps the open tab and a link can point at one tab. All tabs render `pages/admin/properties/show.tsx` with a `tab` prop, and the server sends only the open tab's data (`staff` or `features`). The summary, `staffCount` and the owner come on every tab.
-- Tabs: **Overview** (address, contact, registration and TIN), **Staff** (name with a Deactivated badge, email, role, verified, created and setup-email action) and **Features** (see [Feature flags](03-feature-flags.md#admin-ui)).
+- Tabs: **Overview** (address, contact, registration and TIN), **Staff** (name with a Deactivated badge, email, role, verified, created and setup-email action) **Features** (see [Feature flags](03-feature-flags.md#admin-ui)) and **OTA lists** (read only, see [Channel manager table](../17-onboarding/02-wizard-steps.md#channel-manager-table)).
 - Summary card: code, owner, status, type, created, live since, suspended (when set).
 - Admins with confirmed two-factor can suspend an active property or reactivate a suspended one from this page. Suspension asks for confirmation. Reactivation restores the status from before suspension.
-- `AdminPropertyData` holds the page data, with `AdminPropertyStaffData` rows.
+- `AdminPropertyData` holds the page data, with `AdminPropertyStaffData` rows and `AdminOtaListRowData` rows. The OTA list rows never hold a password. **Reveal** calls `POST …/ota-lists/{credential}/reveal` and gets `{ password }` as JSON. It logs `ota_credential.revealed` without the password. **Mark processed** calls `PUT …/ota-lists/{credential}/processed` and logs `ota_credential.processed` once.
 - The Staff tab sets the permission team to the property so each user's role loads. Admin routes have no team otherwise.
 - An unverified Owner row shows **Send setup email**. It sends a fresh seven-day link and records the admin action.
 

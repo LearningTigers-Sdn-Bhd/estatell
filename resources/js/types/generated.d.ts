@@ -1182,6 +1182,18 @@ export type AcceptPartnerInvitationData = {
 name: string,
 password: string,
 };
+export type AdminOtaListRowData = {
+id: number,
+channel: string,
+propertyCode: string,
+username: string,
+marketManagerName: string | null,
+marketManagerPhone: string | null,
+marketManagerEmail: string | null,
+status: App.Data.Shared.BadgeData,
+canMarkProcessed: boolean,
+updatedAt: string,
+};
 export type AdminPartnerInvitationRowData = {
 id: number,
 partnerName: string,

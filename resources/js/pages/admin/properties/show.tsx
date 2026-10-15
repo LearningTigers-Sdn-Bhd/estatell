@@ -1,11 +1,12 @@
 import { Form, Head, Link } from '@inertiajs/react';
-import { Info, ToggleRight, Users } from 'lucide-react';
+import { Info, Store, ToggleRight, Users } from 'lucide-react';
 import { useState } from 'react';
 import { DetailLayout } from '@/components/pms/detail-layout';
 import type { EnumOption } from '@/components/pms/enum-select';
 import { PageHeader } from '@/components/pms/page-header';
 import { MovePropertyPartner } from '@/components/pms/properties/move-property-partner';
 import { PropertyFeatures } from '@/components/pms/properties/property-features';
+import { PropertyOtaLists } from '@/components/pms/properties/property-ota-lists';
 import { PropertyOverview } from '@/components/pms/properties/property-overview';
 import { PropertyStaff } from '@/components/pms/properties/property-staff';
 import { PropertySummary } from '@/components/pms/properties/property-summary';
@@ -27,6 +28,7 @@ import { show as viewAs } from '@/routes/view-as';
 import {
     features as featuresTab,
     index,
+    otaLists as otaListsTab,
     reactivate,
     show,
     staff as staffTab,
@@ -36,19 +38,22 @@ import {
 type Property = App.Data.Platform.AdminPropertyData;
 type PropertyFeature = App.Data.Platform.PropertyFeatureData;
 type StaffMember = App.Data.Platform.AdminPropertyStaffData;
-type Tab = 'overview' | 'staff' | 'features';
+type OtaListRow = App.Data.Platform.AdminOtaListRowData;
+type Tab = 'overview' | 'staff' | 'features' | 'ota-lists';
 
 export default function PropertyShow({
     property,
     tab,
     staff = [],
     features = [],
+    otaLists = [],
     partnerOptions,
 }: {
     property: Property;
     tab: Tab;
     staff?: StaffMember[];
     features?: PropertyFeature[];
+    otaLists?: OtaListRow[];
     partnerOptions: EnumOption[];
 }) {
     const [suspendOpen, setSuspendOpen] = useState(false);
@@ -172,6 +177,12 @@ export default function PropertyShow({
                             icon: ToggleRight,
                             href: featuresTab(property.code),
                         },
+                        {
+                            value: 'ota-lists',
+                            label: 'OTA lists',
+                            icon: Store,
+                            href: otaListsTab(property.code),
+                        },
                     ]}
                     summary={
                         <PropertySummary property={property} showPartner />
@@ -187,6 +198,12 @@ export default function PropertyShow({
                         <PropertyFeatures
                             code={property.code}
                             features={features}
+                        />
+                    )}
+                    {tab === 'ota-lists' && (
+                        <PropertyOtaLists
+                            code={property.code}
+                            rows={otaLists}
                         />
                     )}
                 </DetailLayout>

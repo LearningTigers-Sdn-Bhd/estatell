@@ -17,6 +17,7 @@ use App\Models\User;
 use App\Services\Guests\CountryOptions;
 use App\Services\Platform\PartnerDirectory;
 use App\Services\Platform\PropertyDirectory;
+use App\Services\Platform\PropertyOtaLists;
 use App\Services\Staff\PropertyOwners;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -96,9 +97,19 @@ class PropertyController extends Controller
     }
 
     /**
+     * Property page, OTA lists tab. Passwords are never sent here; Reveal fetches one on demand.
+     */
+    public function otaLists(Property $property, PropertyOtaLists $propertyOtaLists): Response
+    {
+        return $this->renderTab($property, 'ota-lists', [
+            'otaLists' => $propertyOtaLists->forProperty($property),
+        ]);
+    }
+
+    /**
      * Each tab has its own URL, so the open tab survives a refresh. Only the open tab's data is sent.
      *
-     * @param  'overview'|'staff'|'features'  $tab
+     * @param  'overview'|'staff'|'features'|'ota-lists'  $tab
      * @param  array<string, mixed>  $tabProps
      */
     private function renderTab(Property $property, string $tab, array $tabProps = []): Response

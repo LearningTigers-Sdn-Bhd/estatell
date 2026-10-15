@@ -11,6 +11,7 @@ use App\Http\Controllers\Admin\PartnerTemporaryPasswordController;
 use App\Http\Controllers\Admin\PlatformSettingsController;
 use App\Http\Controllers\Admin\PropertyController;
 use App\Http\Controllers\Admin\PropertyFeatureController;
+use App\Http\Controllers\Admin\PropertyOtaListController;
 use App\Http\Controllers\Admin\PropertyPartnerController;
 use App\Http\Controllers\Admin\PropertyStatusController;
 use Illuminate\Support\Facades\Route;
@@ -23,6 +24,9 @@ Route::middleware(['auth', 'can:admin'])->prefix('admin')->name('admin.')->group
     Route::get('properties/{property:code}', [PropertyController::class, 'show'])->where(['property' => '[A-Za-z]{2}[0-9]{5,}'])->name('properties.show');
     Route::get('properties/{property:code}/staff', [PropertyController::class, 'staff'])->where(['property' => '[A-Za-z]{2}[0-9]{5,}'])->name('properties.staff');
     Route::get('properties/{property:code}/features', [PropertyController::class, 'features'])->where(['property' => '[A-Za-z]{2}[0-9]{5,}'])->name('properties.features');
+    Route::get('properties/{property:code}/ota-lists', [PropertyController::class, 'otaLists'])->where(['property' => '[A-Za-z]{2}[0-9]{5,}'])->name('properties.ota-lists');
+    Route::post('properties/{property:code}/ota-lists/{credential}/reveal', [PropertyOtaListController::class, 'reveal'])->where(['property' => '[A-Za-z]{2}[0-9]{5,}', 'credential' => '[0-9]+'])->middleware('support.2fa')->name('properties.ota-lists.reveal');
+    Route::put('properties/{property:code}/ota-lists/{credential}/processed', [PropertyOtaListController::class, 'markProcessed'])->where(['property' => '[A-Za-z]{2}[0-9]{5,}', 'credential' => '[0-9]+'])->middleware('support.2fa')->name('properties.ota-lists.processed');
     Route::put('properties/{property:code}/features/{feature}', [PropertyFeatureController::class, 'update'])->where(['property' => '[A-Za-z]{2}[0-9]{5,}'])->middleware('support.2fa')->name('properties.features.update');
     Route::post('properties/{property:code}/suspend', [PropertyStatusController::class, 'suspend'])->where(['property' => '[A-Za-z]{2}[0-9]{5,}'])->middleware('support.2fa')->name('properties.suspend');
     Route::post('properties/{property:code}/reactivate', [PropertyStatusController::class, 'reactivate'])->where(['property' => '[A-Za-z]{2}[0-9]{5,}'])->middleware('support.2fa')->name('properties.reactivate');
