@@ -7,10 +7,11 @@ import {
     Minus,
     TriangleAlert,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import GoLiveController from '@/actions/App/Http/Controllers/Onboarding/GoLiveController';
 import Heading from '@/components/heading';
 import {
+    phaseIcon,
     stateWord,
     type OnboardingLayoutProps,
 } from '@/components/pms/onboarding/onboarding-steps';
@@ -27,14 +28,10 @@ import {
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Spinner } from '@/components/ui/spinner';
-import {
-    Tooltip,
-    TooltipContent,
-    TooltipTrigger,
-} from '@/components/ui/tooltip';
 import { useIsImpersonating } from '@/hooks/use-is-impersonating';
 
 type Review = App.Data.Onboarding.GoLiveReviewData;
+type Phase = App.Data.Onboarding.GoLiveReviewPhaseData;
 type Row = App.Data.Onboarding.GoLiveReviewRowData;
 
 const FORM_ID = 'go-live-form';
@@ -51,25 +48,34 @@ export default function GoLive({
     const [confirming, setConfirming] = useState(false);
     const impersonating = useIsImpersonating();
     const requiredLeft = review.missing.length;
+    const missingSections = review.missing.join(', ');
+    const showAction = !awaitingApproval && !impersonating;
 
-    // The Review page is a to-do list and a preview: it has no form of its own on the layout's footer.
+    // The Review page is a to-do list and a preview: it has no form of its own. Go live sits in the footer.
     setLayoutProps<OnboardingLayoutProps>({
         step: 'review',
         footer: 'back',
         formId: null,
         processing: false,
+        width: '8xl',
     });
 
-    const goLiveButton = (
-        <Button
-            type="button"
-            disabled={!review.ready}
-            focusableWhenDisabled
-            onClick={() => setConfirming(true)}
-        >
-            {requiresApproval ? 'Send for approval' : 'Go live'}
-        </Button>
-    );
+    // The footer button carries a handler, so it is set in an effect that depends only on plain values. Setting it
+    // during render would write to the layout store on every render.
+    useEffect(() => {
+        setLayoutProps<OnboardingLayoutProps>({
+            primaryAction: showAction
+                ? {
+                      label: requiresApproval ? 'Send for approval' : 'Go live',
+                      disabled: !review.ready,
+                      tooltip: review.ready
+                          ? undefined
+                          : `Finish ${missingSections} first`,
+                      onClick: () => setConfirming(true),
+                  }
+                : null,
+        });
+    }, [showAction, requiresApproval, review.ready, missingSections]);
 
     return (
         <>
@@ -95,6 +101,7 @@ export default function GoLive({
                 ) : (
                     <Form
                         id={FORM_ID}
+                        className="flex flex-col gap-6"
                         {...GoLiveController.store.form()}
                         onFinish={() => setConfirming(false)}
                     >
@@ -145,32 +152,14 @@ export default function GoLive({
                                     </Card>
                                 )}
 
-                                {review.phases.map((phase) => (
-                                    <section
-                                        key={phase.value}
-                                        aria-labelledby={`phase-${phase.value}`}
-                                        className="flex flex-col gap-2"
-                                    >
-                                        <h2
-                                            id={`phase-${phase.value}`}
-                                            className="text-sm font-medium text-muted-foreground"
-                                        >
-                                            {phase.label}
-                                        </h2>
-                                        <Card>
-                                            <CardContent>
-                                                <ul className="divide-y">
-                                                    {phase.rows.map((row) => (
-                                                        <ReviewRow
-                                                            key={row.value}
-                                                            row={row}
-                                                        />
-                                                    ))}
-                                                </ul>
-                                            </CardContent>
-                                        </Card>
-                                    </section>
-                                ))}
+                                <div className="grid gap-4 md:grid-cols-2">
+                                    {review.phases.map((phase) => (
+                                        <PhaseCard
+                                            key={phase.value}
+                                            phase={phase}
+                                        />
+                                    ))}
+                                </div>
 
                                 <div className="flex flex-col gap-1 text-sm text-muted-foreground">
                                     <p>
@@ -183,23 +172,6 @@ export default function GoLive({
                                         you go live.
                                     </p>
                                 </div>
-
-                                {!impersonating && (
-                                    <div className="flex justify-end">
-                                        {review.ready ? (
-                                            goLiveButton
-                                        ) : (
-                                            <Tooltip>
-                                                <TooltipTrigger
-                                                    render={goLiveButton}
-                                                />
-                                                <TooltipContent>
-                                                    {`Finish ${review.missing.join(', ')} first`}
-                                                </TooltipContent>
-                                            </Tooltip>
-                                        )}
-                                    </div>
-                                )}
 
                                 <AlertDialog
                                     open={confirming}
@@ -249,17 +221,44 @@ export default function GoLive({
     );
 }
 
+function PhaseCard({ phase }: { phase: Phase }) {
+    const Icon = phaseIcon[phase.value];
+
+    return (
+        <Card size="sm" role="group" aria-labelledby={`phase-${phase.value}`}>
+            <div className="flex items-center gap-2 px-3">
+                {Icon && (
+                    <Icon
+                        aria-hidden
+                        className="size-4 shrink-0 text-muted-foreground"
+                    />
+                )}
+                <h2 id={`phase-${phase.value}`} className="font-medium">
+                    {phase.label}
+                </h2>
+            </div>
+            <div className="mx-3 rounded-lg border">
+                <ul className="divide-y">
+                    {phase.rows.map((row) => (
+                        <ReviewRow key={row.value} row={row} />
+                    ))}
+                </ul>
+            </div>
+        </Card>
+    );
+}
+
 function ReviewRow({ row }: { row: Row }) {
     const word = row.skipped ? 'Skipped' : (stateWord[row.state] ?? '');
 
     return (
-        <li className="flex flex-col gap-2 py-3 md:grid md:grid-cols-[minmax(0,11rem)_minmax(0,1fr)_auto] md:items-center md:gap-4">
+        <li className="flex flex-col gap-2 px-3 py-3 md:grid md:grid-cols-[minmax(0,11rem)_minmax(0,1fr)_auto] md:items-center md:gap-4">
             <div className="flex items-center gap-2">
                 <StateIcon row={row} />
                 <span className="font-medium">{row.label}</span>
                 <span className="sr-only">{word}</span>
             </div>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-pretty text-muted-foreground">
                 {row.summary !== '' && row.summary}
             </p>
             <Link

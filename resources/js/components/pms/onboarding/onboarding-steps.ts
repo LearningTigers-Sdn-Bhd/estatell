@@ -1,3 +1,6 @@
+import { BedDouble, Building2, Plug, Tag, Wallet } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
+
 export type OnboardingProgress = App.Data.Onboarding.OnboardingProgressData;
 export type OnboardingPhase = App.Data.Onboarding.OnboardingPhaseData;
 export type OnboardingStep = App.Data.Onboarding.OnboardingStepData;
@@ -14,6 +17,16 @@ export type OnboardingLayoutProps = {
     processing: boolean;
     /** The content column width. Omitted is the narrow default (45rem). */
     width?: OnboardingWidth;
+    /** A button the footer shows on the right in place of Save & continue, for a page with its own confirm step. */
+    primaryAction?: OnboardingPrimaryAction | null;
+};
+
+export type OnboardingPrimaryAction = {
+    label: string;
+    disabled: boolean;
+    /** Why the button is disabled. Shown in a tooltip. */
+    tooltip?: string;
+    onClick: () => void;
 };
 
 export type OnboardingWidth = '5xl' | '7xl' | '8xl';
@@ -67,6 +80,15 @@ export function neighbours(
         next: steps[index + 1] ?? null,
     };
 }
+
+/** The icon beside each phase title on the Review page, by phase value. */
+export const phaseIcon: Record<string, LucideIcon> = {
+    property: Building2,
+    rooms: BedDouble,
+    finance: Wallet,
+    prices: Tag,
+    channels: Plug,
+};
 
 /** The words a screen reader hears for a state. The icon is never the only signal. */
 export const stateWord: Record<string, string> = {

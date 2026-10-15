@@ -19,6 +19,7 @@ export default function OnboardingLayout({
     formId = null,
     processing = false,
     width,
+    primaryAction = null,
     children,
 }: Partial<OnboardingLayoutProps> & { children: React.ReactNode }) {
     const { onboarding } = usePage().props;
@@ -28,7 +29,7 @@ export default function OnboardingLayout({
     }
 
     return (
-        <div className="flex h-svh flex-col overflow-hidden bg-background text-foreground">
+        <div className="flex h-svh flex-col overflow-clip overscroll-none bg-background text-foreground">
             <ImpersonationBanner />
             <OnboardingTopBar progress={onboarding} />
             <OnboardingPhaseBar progress={onboarding} step={step} />
@@ -45,7 +46,14 @@ export default function OnboardingLayout({
             </main>
             <OnboardingFooter
                 progress={onboarding}
-                layout={{ step, footer, formId, processing, width }}
+                layout={{
+                    step,
+                    footer,
+                    formId,
+                    processing,
+                    width,
+                    primaryAction,
+                }}
             />
         </div>
     );

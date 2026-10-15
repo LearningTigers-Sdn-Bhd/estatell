@@ -10,10 +10,15 @@ import {
 import { Button, buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Spinner } from '@/components/ui/spinner';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 /**
  * The fixed footer. A form step shows Back on the left, and Skip (optional steps only; Taxes has its own "We don't charge tax" answer) with Save & continue on the right. Save submits the form
- * named by `formId`. A locked step is a preview with Back and Next only. A page can ask for Back only.
+ * named by `formId`. A locked step is a preview with Back and Next only. A page can ask for Back only, or add a `primaryAction` button on the right.
  */
 export function OnboardingFooter({
     progress,
@@ -67,6 +72,9 @@ export function OnboardingFooter({
                             Skip
                         </Button>
                     )}
+                    {layout.primaryAction && (
+                        <PrimaryAction action={layout.primaryAction} />
+                    )}
                     {editing && layout.formId !== null && (
                         <Button
                             type="submit"
@@ -91,5 +99,33 @@ export function OnboardingFooter({
                 )}
             </div>
         </footer>
+    );
+}
+
+function PrimaryAction({
+    action,
+}: {
+    action: NonNullable<OnboardingLayoutProps['primaryAction']>;
+}) {
+    const button = (
+        <Button
+            type="button"
+            disabled={action.disabled}
+            focusableWhenDisabled
+            onClick={action.onClick}
+        >
+            {action.label}
+        </Button>
+    );
+
+    if (!action.disabled || !action.tooltip) {
+        return button;
+    }
+
+    return (
+        <Tooltip>
+            <TooltipTrigger render={button} />
+            <TooltipContent>{action.tooltip}</TooltipContent>
+        </Tooltip>
     );
 }

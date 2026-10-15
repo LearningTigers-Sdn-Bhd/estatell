@@ -615,6 +615,7 @@ Not a table: two groups on one page. The registration card group is the same com
                                                    [Go live]  or  [Send for approval]
 ```
 
+- Layout: full width (`8xl`). One small card per phase in a two-column grid (one column on phone). Each card has a header row (phase icon and title) and a bordered list below it whose dividers touch the border. The Go live / Send for approval button is in the footer, on the right.
 - One row per section, grouped by phase, from `OnboardingProgress`: state, a one-line summary built on the server, and an action (**Edit**, **Finish →**, **Add**, or **Fix in {section} →** for a warning).
 - States: ✓ Done, ✗ required and not done, ○ optional and not started, – skipped, ⚠ Needs attention, ⚑ flagged by support.
 - `GoLiveReadiness::checks()` returns one `GoLiveCheckData` per required section, and `isReady()` needs every one Done. Warnings are a separate list and never block: a tax applied to no charge, no tax on rooms, a more-rates follower missing a room type.
