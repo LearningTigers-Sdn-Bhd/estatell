@@ -1,5 +1,5 @@
 import { Form, Head, Link } from '@inertiajs/react';
-import { TriangleAlert } from 'lucide-react';
+import { CircleCheck, TriangleAlert, Undo2 } from 'lucide-react';
 import { useState } from 'react';
 import { PageHeader } from '@/components/pms/page-header';
 import { ReviewPhaseCard } from '@/components/pms/onboarding/review-phase-card';
@@ -83,12 +83,14 @@ export default function PropertyGoLive({ goLive }: { goLive: GoLive }) {
                                 variant="outline"
                                 onClick={() => setSendingBack(true)}
                             >
+                                <Undo2 data-icon="inline-start" />
                                 Send back
                             </Button>
                             <Button
                                 type="button"
                                 onClick={() => setApproving(true)}
                             >
+                                <CircleCheck data-icon="inline-start" />
                                 Approve
                             </Button>
                         </>
@@ -191,8 +193,10 @@ export default function PropertyGoLive({ goLive }: { goLive: GoLive }) {
                                         disabled={processing || !review.ready}
                                         focusableWhenDisabled
                                     >
-                                        {processing && (
+                                        {processing ? (
                                             <Spinner data-icon="inline-start" />
+                                        ) : (
+                                            <CircleCheck data-icon="inline-start" />
                                         )}
                                         Approve
                                     </Button>
@@ -254,8 +258,10 @@ export default function PropertyGoLive({ goLive }: { goLive: GoLive }) {
                                         disabled={processing}
                                         focusableWhenDisabled
                                     >
-                                        {processing && (
+                                        {processing ? (
                                             <Spinner data-icon="inline-start" />
+                                        ) : (
+                                            <Undo2 data-icon="inline-start" />
                                         )}
                                         Send back
                                     </Button>
