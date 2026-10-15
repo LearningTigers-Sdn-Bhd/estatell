@@ -46,4 +46,8 @@ Route::middleware(['auth', 'can:admin'])->prefix('admin')->name('admin.')->group
     Route::delete('partners/invitations/{partnerInvitation}', [PartnerInvitationController::class, 'destroy'])->middleware('support.2fa')->name('partners.invitations.destroy');
     Route::get('settings', [PlatformSettingsController::class, 'edit'])->name('settings.edit');
     Route::put('settings', [PlatformSettingsController::class, 'update'])->middleware('support.2fa')->name('settings.update');
+    Route::get('settings/channels', [PlatformSettingsController::class, 'channels'])->name('settings.channels');
+    Route::put('settings/channels', [PlatformSettingsController::class, 'updateChannels'])->middleware('support.2fa')->name('settings.channels.update');
+    Route::get('settings/storage', [PlatformSettingsController::class, 'storage'])->name('settings.storage');
+    Route::put('settings/storage', [PlatformSettingsController::class, 'updateStorage'])->middleware('support.2fa')->name('settings.storage.update');
 });

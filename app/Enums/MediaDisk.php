@@ -46,12 +46,23 @@ enum MediaDisk: string
     }
 
     /**
-     * @return list<array{value: string, label: string, disabled: bool}>
+     * Description of where new uploads will be stored.
+     */
+    public function description(): string
+    {
+        return match ($this) {
+            self::Local => __('Store new uploads privately on this server.'),
+            self::R2 => __('Store new uploads in private Cloudflare R2 cloud storage.'),
+        };
+    }
+
+    /**
+     * @return list<array{value: string, label: string, description: string, disabled: bool}>
      */
     public static function options(): array
     {
         return array_map(
-            fn (self $disk): array => ['value' => $disk->value, 'label' => $disk->label(), 'disabled' => ! $disk->isConfigured()],
+            fn (self $disk): array => ['value' => $disk->value, 'label' => $disk->label(), 'description' => $disk->description(), 'disabled' => ! $disk->isConfigured()],
             self::cases(),
         );
     }

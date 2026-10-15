@@ -1123,9 +1123,9 @@ defaultDormStrategy: App.Enums.DormStrategy,
 mediaDisk: App.Enums.MediaDisk,
 };
 export type PlatformSettingsInputData = {
-requireGoLiveApproval: boolean,
-defaultDormStrategy: App.Enums.DormStrategy,
-mediaDisk: App.Enums.MediaDisk,
+requireGoLiveApproval: boolean | null,
+defaultDormStrategy: App.Enums.DormStrategy | null,
+mediaDisk: App.Enums.MediaDisk | null,
 };
 export type PropertyFeatureData = {
 feature: App.Enums.PlatformFeature,

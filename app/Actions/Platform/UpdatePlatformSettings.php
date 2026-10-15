@@ -19,11 +19,11 @@ class UpdatePlatformSettings
     {
         $settings = DB::transaction(function () use ($admin, $data): PlatformSetting {
             $settings = PlatformSetting::query()->lockForUpdate()->findOrFail(1);
-            $settings->fill([
+            $settings->fill(array_filter([
                 'require_go_live_approval' => $data->requireGoLiveApproval,
                 'default_dorm_strategy' => $data->defaultDormStrategy,
                 'media_disk' => $data->mediaDisk,
-            ]);
+            ], fn (mixed $value): bool => $value !== null));
 
             $changed = Arr::except($settings->getDirty(), ['updated_at']);
 

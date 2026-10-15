@@ -139,6 +139,7 @@ Brief for every item: read `AGENTS.md`, `.ai/rules/index.md`, the matching rule 
 - [x] `chore(ui): remove the unused Laravel favicon` — remove the leftover `public/favicon.svg`. The active ICO, PNG and Apple touch icons already use the house artwork and stay unchanged.
 - [x] `style(ui): add the house icon to support sidebars` — the admin and partner sidebar headers show the existing house icon beside the Estatell wordmark, or the icon alone when collapsed. Other layouts stay unchanged. Docs: [App wordmark](design-system/02-tokens-and-typography.md#app-wordmark).
 - [x] `style(ui): fix the staff shell and add the workspace row` — fixed navbar and workspace-label/breadcrumb row, sidebar-aligned full-height divider, separate content and sidebar scrolling without viewport bounce, and stacked workspace/breadcrumbs on mobile. Other layouts stay unchanged. Docs: [Staff workspace row](design-system/09-app-shell.md#staff-workspace-row).
+- [x] `feat(platform): split settings into tabs with selection cards` — General, Channel manager and File storage use icon tab links with separate URLs and scoped saves. All choices use radio cards with icons and descriptions. Native dorm stays disabled pending verification; R2 stays disabled until configured. Tighter header-to-tab spacing. Docs: [Platform settings](01-platform/02-platform-settings.md#routes-and-page).
 
 - [x] `feat(mail): add the branded email layout` — publish the `laravel-mail` views and theme them with the estatell logo, `DESIGN.md` colours and a footer with the property name. Covers the existing mail notifications and the Fortify reset and verify emails. Check each email at `/mailbox`. Docs: [Notification types](04-notifications/01-notification-types.md).
     - Implemented the approved stationery design. Sent local previews for all nine types, matched the supplied wordmark reference and centered the property footer after review. HTML and plain-text tests pass. External deliverability checks are separate.
@@ -201,210 +202,211 @@ Topics on hold. Each one needs a planning session and its docs before it gets co
 
 ### Commits
 
-| Commit    | Subject                                                                  |
-| --------- | ------------------------------------------------------------------------ |
+| Commit     | Subject                                                                  |
+| ---------- | ------------------------------------------------------------------------ |
+| `071e4012` | style(ui): fix the staff shell and add the workspace row                 |
 | `e0cbd31d` | style(ui): add the house icon to support sidebars                        |
 | `0a17a885` | chore(ui): remove the unused Laravel favicon                             |
 | `3442f712` | feat(ui): add a three-state theme shortcut                               |
 | `75374363` | style(ui): adapt the user menu to sidebar placement                      |
 | `8422e75f` | feat(ui): give account pages a separate sidebar                          |
 | `66be4827` | feat(ui): improve pagination controls and page jump                      |
-| `a23cd3b` | chore(ui): block search indexing                                         |
-| `313e988` | style(ui): replace the app logo with the estatell wordmark               |
-| `974ef88` | feat(init): initializes the docs and repo configuration                  |
-| `ec4f3db` | chore(ai): commit Boost guidelines and agent MCP config                  |
-| `7e9d13e` | ci(tests): add Postgres and Redis services                               |
-| `56c821b` | feat(deps): add approved Composer packages and R2 disk                   |
-| `f2766ea` | feat(types): generate TypeScript types from enums and data classes       |
-| `1be62c7` | feat(deps): add table, virtual, date, signature and confetti packages    |
-| `661ae06` | docs(setup): record package versions, media storage and deploy env       |
-| `f6d3751` | feat(ui): switch shadcn to Base UI with preset b3ZzDdiJy4                |
-| `91dfcde` | feat(auth): lower production minimum password length to 8                |
-| `d87fde1` | feat(platform): add users.is_admin, admin gate and admin seeder          |
-| `eb22aec` | feat(platform): redirect admins to /admin after login                    |
-| `66a6b8d` | feat(platform): add admin.2fa middleware and two-factor banner           |
-| `03993d1` | feat(platform): add admin layout and platform settings                   |
-| `9133cd9` | feat(property): add properties and link staff users to a property        |
-| `0eb10a4` | fix(platform): cache platform settings as raw attributes                 |
-| `25d0639` | feat(property): add property routes and access middleware                |
-| `8167eb1` | feat(platform): add admin property list and detail pages                 |
-| `52a336f` | fix(platform): keep the admin sidebar on account pages                   |
-| `252aab9` | feat(platform): add per-property feature flags with admin switches       |
-| `4f53837` | feat(platform): give property tabs their own URLs and icons              |
-| `e28f620` | fix(ui): pad select menus and let the filter search fill the row         |
-| `6383380` | feat(platform): suspend and reactivate properties from admin             |
-| `ef4ab1e` | feat(property): add property settings                                    |
-| `750ee76` | feat(ui): build staff sidebar contexts from PHP navigation               |
-| `7574bec` | feat(staff): add default roles and permission enum                       |
-| `d6f3393` | feat(staff): make the registering owner the Owner role                   |
-| `ccc3e9c` | feat(staff): invite staff and accept invitations                         |
-| `aa552df` | feat(staff): deactivate and reactivate staff                             |
-| `3c1bee4` | feat(staff): manage roles and assign them to staff                       |
-| `be237ae` | feat(staff): show roles as one permission matrix                         |
-| `a168d56` | feat(platform): show the owner on admin property pages                   |
-| `e010ed4` | feat(property): seed property defaults from type and country             |
-| `836b8a8` | feat(onboarding): let admins create a property for an owner              |
-| `e920679` | feat(notifications): add notification types and channels                 |
-| `25f0145` | feat(notifications): add property and user notification preferences      |
-| `6d787fe` | feat(rooms): add room types                                              |
-| `ac1db1c` | feat(rooms): add rooms, room groups and number generator                 |
-| `3cb75b7` | feat(rooms): add beds for dorm room types                                |
-| `c10cb2c` | feat(catalogues): add transaction codes                                  |
-| `0d586aa` | feat(catalogues): add charge items                                       |
-| `7e015a9` | feat(catalogues): add quick charge item availability toggle              |
-| `96ac9d4` | feat(catalogues): add taxes and tax calculator                           |
-| `5f6e17a` | feat(catalogues): add payment methods                                    |
-| `cc78e80` | feat(catalogues): own codes per charge item and add room revenue taxes   |
-| `fda168b` | feat(catalogues): add discounts                                          |
-| `d1e2d90` | feat(rooms): add room blocks and room statuses                           |
-| `9440d01` | feat(meals): add meal periods                                            |
-| `7eb53e8` | feat(meals): add meal entitlements                                       |
-| `3fb3f88` | feat(property): add age groups                                           |
-| `3cd50e5` | feat(settings): move age groups into settings tabs                       |
-| `b0a0989` | feat(rates): add rate plans                                              |
-| `f15004c` | feat(rates): add daily rates and restrictions                            |
-| `f562fb8` | feat(rates): add pricing strategies and rate quotes                      |
-| `3851160` | feat(rates): add long-stay discounts                                     |
-| `037b4c6` | feat(rates): preview long-stay discounts per room type                   |
-| `c12721b` | feat(rates): per-guest auto fill and per-person price hint               |
-| `855265d` | feat(rates): add derived rate plans                                      |
-| `a9499aa` | feat(rates): copy parent discounts onto a derived plan                   |
-| `15fd738` | feat(rates): save copied parent discounts at once                        |
-| `4f982f2` | feat(rates): add the read-only rate calendar                             |
-| `c87f55a` | fix(ui): fit the date grid to the window and stop bounce                 |
-| `8d5dcec` | feat(rates): choose the rate calendar date range                         |
-| `ae8dbdf` | fix(rates): polish the rate calendar toolbar and grid                    |
-| `dc55333` | feat(rates): collapse room type groups in the rate calendar              |
-| `a5135ef` | feat(rates): edit rates from the calendar                                |
-| `b99b3cf` | feat(rates): bulk edit rates and restrictions                            |
-| `9a098bb` | feat(packages): add inclusions                                           |
-| `1e841be` | feat(packages): add package prices                                       |
-| `8fd1dce` | feat(packages): add the package pricing strategy                         |
-| `9dcfa46` | feat(availability): add the availability service                         |
-| `e932e92` | feat(rates): show package prices and inclusions in the rate calendar     |
-| `bada335` | feat(rates): add availability, inclusions and tabs to the rate calendar  |
-| `5947b91` | feat(rates): redesign the rate plans list with filters and badges        |
-| `7ddb3b7` | feat(meals): move meal periods into the property details tabs            |
-| `0efcc0b` | feat(guests): add guest profiles                                         |
-| `b5bda3b` | fix(guests): use a searchable country picker in the guest form           |
-| `75dcd8e` | fix(guests): add a placeholder to every guest form field                 |
-| `fad6437` | feat(guests): pick and create guest tags in a combobox                   |
-| `37a2ca9` | feat(guests): add identity documents                                     |
-| `77ef278` | fix(guests): stay on the open tab after a note, VIP or blacklist change  |
-| `bc7d24a` | feat(guests): match and merge guests                                     |
-| `a8768df` | feat(guests): anonymize guests and purge expired ID scans                |
-| `962f86b` | feat(guests): rework guest pages with sheets, inline edit and icon flags |
-| `ccb116c` | feat(night-audit): add business dates and document numbers               |
-| `f1cef04` | docs(reservations): plan the booking form layout, rooms and guests       |
-| `907d4be` | fix(night-audit): show the audit state above the business date           |
-| `f609f48` | feat(reservations): add reservation, unit and status model               |
-| `a1ab0c8` | docs(reservations): re-scope group bookings to the creation backend      |
-| `48b3fa6` | docs(reservations): plan the reservations list and reservation page      |
-| `f840560` | docs(reservations): add status tabs, card view and room box rules        |
-| `e1af596` | docs(auth): plan session hardening and staff temp passwords              |
-| `81687e6` | feat(auth): end sessions when the password changes                       |
-| `a9a1ac7` | feat(staff): add staff with a temp password and force a new one          |
-| `c62ea70` | feat(staff): bulk add staff from a grid or CSV/XLSX file                 |
-| `3004870` | feat(staff): export temp passwords as CSV, XLSX or PDF                   |
-| `0b7b2c7` | docs(portal): rename agent portal to company portal                      |
-| `ef33875` | refactor(reservations): rename the Agent source to Portal                |
-| `be882e2` | docs(city-ledger): settle company rules, permissions and pages           |
-| `c28c685` | feat(city-ledger): add companies                                         |
-| `35f8d23` | docs(registration): plan the registration card page and field layout     |
-| `0fc898c` | feat(registration): add registration card fields                         |
-| `6e90572` | docs(front-desk): plan tax and deposit collection at check-in            |
-| `d836395` | feat(ui): add FormOverlay                                                |
-| `51c4a2a` | fix(reservations): attach a guest from a Dialog                          |
-| `1d07769` | docs(ui): plan the overlay migration in three commits                    |
-| `83676f1` | refactor(ui): move form overlay helpers to the components root           |
-| `86a313f` | refactor(city-ledger): move overlays onto FormOverlay                    |
-| `5814211` | refactor(folio): move overlays onto FormOverlay                          |
-| `3e33cd8` | feat(front-desk): cancel, no-show and reinstate units                    |
-| `e82a392` | fix(front-desk): release rooms on cancel and no-show                     |
-| `065e49f` | feat(front-desk): add unit actions to the reservation page               |
-| `753e731` | feat(front-desk): check in and check out from the reservation page       |
-| `fc33bf4` | feat(night-audit): run the night audit                                   |
-| `03ff0e7` | feat(night-audit): snapshot daily statistics                             |
-| `656d1ff` | feat(night-audit): notify the audit result                               |
-| `bb4377e` | docs(reports): plan printing settings and core reports                   |
-| `0e6cbc2` | docs(property): plan the profile tab and printing pages                  |
-| `4d68144` | feat(property): add printing settings and the logo                       |
-| `fb54dd7` | feat(property): add the profile tab and printing pages                   |
-| `0e870da` | feat(property): add PDF font styles                                      |
-| `9e308f0` | docs(reports): settle arrivals columns and report paging                 |
-| `90ad388` | feat(reports): add the report registry and the arrivals report           |
-| `c913465` | docs(reports): settle the layout prop, sort fallback and report PDF      |
-| `86a0a72` | feat(reports): add report layouts                                        |
-| `1057a47` | docs(reports): settle export sort, typed values and downloads            |
-| `a99280e` | feat(reports): export selected rows as PDF, CSV or Excel                 |
-| `7b38e32` | docs(printing): plan the line grouper and amount in words                |
-| `696ebf3` | feat(printing): add document switches                                    |
-| `2752595` | fix(printing): merge only nightly rows                                   |
-| `e9e5f21` | docs(printing): plan the Room column for ungrouped lines                 |
-| `20a520e` | fix(printing): show a room column on ungrouped lines                     |
-| `9eab5a1` | docs(reservations): plan how the booking summary builds its rows         |
-| `d874515` | feat(reservations): print a booking summary                              |
-| `d319aa0` | docs(reservations): plan no-shows on the booking summary                 |
-| `e77527d` | fix(reservations): show no-shows on the booking summary                  |
-| `e9bffe7` | docs(folio): plan the folio invoice rows, tax numbers and rooms          |
-| `cf28d4b` | feat(folio): print a folio invoice                                       |
-| `53b4cb8` | docs(city-ledger): plan the AR invoice lines and amount due              |
-| `f05023a` | feat(city-ledger): apply document switches to the AR invoice             |
-| `a9cc169` | docs(city-ledger): keep Amount due as the last AR invoice line           |
-| `5280756` | docs(city-ledger): plan the credit note flow back from a reversal        |
-| `ccf1036` | fix(city-ledger): explain how to credit a paid invoice                   |
-| `aa2e991` | docs(folio): plan links from a settled folio to its credit note          |
-| `6feaa1c` | fix(folio): link a settled folio to its invoice and credit note          |
-| `22ab7ab` | fix(folio): show the invoice links on a settled folio                    |
-| `aa036bb` | docs(folio): plan issuing a credit note from the folio page              |
-| `7b2daf1` | feat(folio): issue a credit note from the folio page                     |
-| `fac3c43` | docs(folio): plan the invoice dropdown and void and reopen               |
-| `d9cbbd8` | feat(folio): put the invoice actions in one dropdown                     |
-| `e9d6c4d` | fix(folio): name the credit note that blocks void and reopen             |
-| `37daf98` | docs(folio): plan posting a charge on the chosen folio                   |
-| `5b74b7b` | fix(folio): post a charge on the folio staff choose                      |
-| `f779c99` | docs(city-ledger): plan settling a folio again after a void              |
-| `8b27888` | fix(city-ledger): settle a folio again after void and reopen             |
-| `1bebb43` | docs(folio): plan clearing void blocks from the folio tab                |
-| `9df0a70` | fix(folio): clear void blocks from the folio tab                         |
-| `2d33e60` | docs(city-ledger): explain credit note versus void and reopen            |
-| `be0ebcb` | docs(checklist): move group check-out after the folio fixes              |
-| `35a7b23` | feat(reservations): add a guest after check-out                          |
-| `1f79ce3` | docs(folio): plan move charges in two commits                            |
-| `9a710ec` | feat(folio): move charges between folios on one page                     |
-| `54448ba` | feat(folio): add the move charges page                                   |
-| `d4d31ee` | docs(front-desk): count every unposted night before check-out            |
-| `832a1ab` | docs(front-desk): refund held payments when a group moves charges        |
-| `0bb4d76` | feat(front-desk): check out a group in one save                          |
-| `afe6704` | feat(front-desk): check out a group on one page                          |
-| `60fa865` | docs(front-desk): tidy the group check-out page design                   |
-| `30e2689` | fix(front-desk): tidy the group check-out page                           |
-| `65f40d2` | feat(front-desk): print the group check-out receipts                     |
-| `b9a4572` | docs(reservations): plan printing every receipt of a reservation         |
-| `f03d769` | feat(reservations): print every receipt of a reservation                 |
-| `9f07db0` | docs(reservations): settle the change night price build decisions        |
-| `1e374b2` | feat(reservations): change the price of booked nights                    |
-| `2b32138` | docs(reservations): settle the day use build decisions                   |
-| `d9c193e` | feat(rates): add day use rate plans                                      |
-| `3d9b137` | docs(reservations): split day use booking into backend and form          |
-| `f4fe501` | feat(reservations): book day use rooms and prices                        |
-| `c3ad864` | feat(reservations): add day use to the booking form                      |
-| `ce76a2d` | docs(reservations): settle the day use front desk build decisions        |
-| `15dafac` | feat(front-desk): check day use in and out                               |
-| `84593f5` | feat(front-desk): add day use to the unit menu                           |
-| `95542c2` | docs(reports): settle the day use reports build decisions                |
-| `c800e50` | feat(reports): show day use apart                                        |
-| `3e07588` | refactor(catalogues): edit charge items on their own page                |
-| `0b17555` | fix(catalogues): lay the charge item page out in two columns             |
-| `7747f2a` | fix(catalogues): give charge item taxes their own row                    |
-| `af7ad10` | feat(catalogues): price children on per-guest charge items               |
-| `6582cd4` | fix(front-desk): keep child price rows when a stay is extended           |
-| `d4536cc` | feat(reservations): add charge items to every new booking                |
-| `ad1b6d2` | fix(night-audit): fix the price of a stuck package night                 |
-| `f18d2ae` | feat(front-desk): cancel a whole reservation                             |
-| `15689a3` | fix(front-desk): hide early check-out for a unit that arrived today      |
-| `b86afbd` | docs(front-desk): plan undo check-in and undo check-out                  |
-| `f2a9eb4` | feat(front-desk): undo a check-in made today                             |
+| `a23cd3b`  | chore(ui): block search indexing                                         |
+| `313e988`  | style(ui): replace the app logo with the estatell wordmark               |
+| `974ef88`  | feat(init): initializes the docs and repo configuration                  |
+| `ec4f3db`  | chore(ai): commit Boost guidelines and agent MCP config                  |
+| `7e9d13e`  | ci(tests): add Postgres and Redis services                               |
+| `56c821b`  | feat(deps): add approved Composer packages and R2 disk                   |
+| `f2766ea`  | feat(types): generate TypeScript types from enums and data classes       |
+| `1be62c7`  | feat(deps): add table, virtual, date, signature and confetti packages    |
+| `661ae06`  | docs(setup): record package versions, media storage and deploy env       |
+| `f6d3751`  | feat(ui): switch shadcn to Base UI with preset b3ZzDdiJy4                |
+| `91dfcde`  | feat(auth): lower production minimum password length to 8                |
+| `d87fde1`  | feat(platform): add users.is_admin, admin gate and admin seeder          |
+| `eb22aec`  | feat(platform): redirect admins to /admin after login                    |
+| `66a6b8d`  | feat(platform): add admin.2fa middleware and two-factor banner           |
+| `03993d1`  | feat(platform): add admin layout and platform settings                   |
+| `9133cd9`  | feat(property): add properties and link staff users to a property        |
+| `0eb10a4`  | fix(platform): cache platform settings as raw attributes                 |
+| `25d0639`  | feat(property): add property routes and access middleware                |
+| `8167eb1`  | feat(platform): add admin property list and detail pages                 |
+| `52a336f`  | fix(platform): keep the admin sidebar on account pages                   |
+| `252aab9`  | feat(platform): add per-property feature flags with admin switches       |
+| `4f53837`  | feat(platform): give property tabs their own URLs and icons              |
+| `e28f620`  | fix(ui): pad select menus and let the filter search fill the row         |
+| `6383380`  | feat(platform): suspend and reactivate properties from admin             |
+| `ef4ab1e`  | feat(property): add property settings                                    |
+| `750ee76`  | feat(ui): build staff sidebar contexts from PHP navigation               |
+| `7574bec`  | feat(staff): add default roles and permission enum                       |
+| `d6f3393`  | feat(staff): make the registering owner the Owner role                   |
+| `ccc3e9c`  | feat(staff): invite staff and accept invitations                         |
+| `aa552df`  | feat(staff): deactivate and reactivate staff                             |
+| `3c1bee4`  | feat(staff): manage roles and assign them to staff                       |
+| `be237ae`  | feat(staff): show roles as one permission matrix                         |
+| `a168d56`  | feat(platform): show the owner on admin property pages                   |
+| `e010ed4`  | feat(property): seed property defaults from type and country             |
+| `836b8a8`  | feat(onboarding): let admins create a property for an owner              |
+| `e920679`  | feat(notifications): add notification types and channels                 |
+| `25f0145`  | feat(notifications): add property and user notification preferences      |
+| `6d787fe`  | feat(rooms): add room types                                              |
+| `ac1db1c`  | feat(rooms): add rooms, room groups and number generator                 |
+| `3cb75b7`  | feat(rooms): add beds for dorm room types                                |
+| `c10cb2c`  | feat(catalogues): add transaction codes                                  |
+| `0d586aa`  | feat(catalogues): add charge items                                       |
+| `7e015a9`  | feat(catalogues): add quick charge item availability toggle              |
+| `96ac9d4`  | feat(catalogues): add taxes and tax calculator                           |
+| `5f6e17a`  | feat(catalogues): add payment methods                                    |
+| `cc78e80`  | feat(catalogues): own codes per charge item and add room revenue taxes   |
+| `fda168b`  | feat(catalogues): add discounts                                          |
+| `d1e2d90`  | feat(rooms): add room blocks and room statuses                           |
+| `9440d01`  | feat(meals): add meal periods                                            |
+| `7eb53e8`  | feat(meals): add meal entitlements                                       |
+| `3fb3f88`  | feat(property): add age groups                                           |
+| `3cd50e5`  | feat(settings): move age groups into settings tabs                       |
+| `b0a0989`  | feat(rates): add rate plans                                              |
+| `f15004c`  | feat(rates): add daily rates and restrictions                            |
+| `f562fb8`  | feat(rates): add pricing strategies and rate quotes                      |
+| `3851160`  | feat(rates): add long-stay discounts                                     |
+| `037b4c6`  | feat(rates): preview long-stay discounts per room type                   |
+| `c12721b`  | feat(rates): per-guest auto fill and per-person price hint               |
+| `855265d`  | feat(rates): add derived rate plans                                      |
+| `a9499aa`  | feat(rates): copy parent discounts onto a derived plan                   |
+| `15fd738`  | feat(rates): save copied parent discounts at once                        |
+| `4f982f2`  | feat(rates): add the read-only rate calendar                             |
+| `c87f55a`  | fix(ui): fit the date grid to the window and stop bounce                 |
+| `8d5dcec`  | feat(rates): choose the rate calendar date range                         |
+| `ae8dbdf`  | fix(rates): polish the rate calendar toolbar and grid                    |
+| `dc55333`  | feat(rates): collapse room type groups in the rate calendar              |
+| `a5135ef`  | feat(rates): edit rates from the calendar                                |
+| `b99b3cf`  | feat(rates): bulk edit rates and restrictions                            |
+| `9a098bb`  | feat(packages): add inclusions                                           |
+| `1e841be`  | feat(packages): add package prices                                       |
+| `8fd1dce`  | feat(packages): add the package pricing strategy                         |
+| `9dcfa46`  | feat(availability): add the availability service                         |
+| `e932e92`  | feat(rates): show package prices and inclusions in the rate calendar     |
+| `bada335`  | feat(rates): add availability, inclusions and tabs to the rate calendar  |
+| `5947b91`  | feat(rates): redesign the rate plans list with filters and badges        |
+| `7ddb3b7`  | feat(meals): move meal periods into the property details tabs            |
+| `0efcc0b`  | feat(guests): add guest profiles                                         |
+| `b5bda3b`  | fix(guests): use a searchable country picker in the guest form           |
+| `75dcd8e`  | fix(guests): add a placeholder to every guest form field                 |
+| `fad6437`  | feat(guests): pick and create guest tags in a combobox                   |
+| `37a2ca9`  | feat(guests): add identity documents                                     |
+| `77ef278`  | fix(guests): stay on the open tab after a note, VIP or blacklist change  |
+| `bc7d24a`  | feat(guests): match and merge guests                                     |
+| `a8768df`  | feat(guests): anonymize guests and purge expired ID scans                |
+| `962f86b`  | feat(guests): rework guest pages with sheets, inline edit and icon flags |
+| `ccb116c`  | feat(night-audit): add business dates and document numbers               |
+| `f1cef04`  | docs(reservations): plan the booking form layout, rooms and guests       |
+| `907d4be`  | fix(night-audit): show the audit state above the business date           |
+| `f609f48`  | feat(reservations): add reservation, unit and status model               |
+| `a1ab0c8`  | docs(reservations): re-scope group bookings to the creation backend      |
+| `48b3fa6`  | docs(reservations): plan the reservations list and reservation page      |
+| `f840560`  | docs(reservations): add status tabs, card view and room box rules        |
+| `e1af596`  | docs(auth): plan session hardening and staff temp passwords              |
+| `81687e6`  | feat(auth): end sessions when the password changes                       |
+| `a9a1ac7`  | feat(staff): add staff with a temp password and force a new one          |
+| `c62ea70`  | feat(staff): bulk add staff from a grid or CSV/XLSX file                 |
+| `3004870`  | feat(staff): export temp passwords as CSV, XLSX or PDF                   |
+| `0b7b2c7`  | docs(portal): rename agent portal to company portal                      |
+| `ef33875`  | refactor(reservations): rename the Agent source to Portal                |
+| `be882e2`  | docs(city-ledger): settle company rules, permissions and pages           |
+| `c28c685`  | feat(city-ledger): add companies                                         |
+| `35f8d23`  | docs(registration): plan the registration card page and field layout     |
+| `0fc898c`  | feat(registration): add registration card fields                         |
+| `6e90572`  | docs(front-desk): plan tax and deposit collection at check-in            |
+| `d836395`  | feat(ui): add FormOverlay                                                |
+| `51c4a2a`  | fix(reservations): attach a guest from a Dialog                          |
+| `1d07769`  | docs(ui): plan the overlay migration in three commits                    |
+| `83676f1`  | refactor(ui): move form overlay helpers to the components root           |
+| `86a313f`  | refactor(city-ledger): move overlays onto FormOverlay                    |
+| `5814211`  | refactor(folio): move overlays onto FormOverlay                          |
+| `3e33cd8`  | feat(front-desk): cancel, no-show and reinstate units                    |
+| `e82a392`  | fix(front-desk): release rooms on cancel and no-show                     |
+| `065e49f`  | feat(front-desk): add unit actions to the reservation page               |
+| `753e731`  | feat(front-desk): check in and check out from the reservation page       |
+| `fc33bf4`  | feat(night-audit): run the night audit                                   |
+| `03ff0e7`  | feat(night-audit): snapshot daily statistics                             |
+| `656d1ff`  | feat(night-audit): notify the audit result                               |
+| `bb4377e`  | docs(reports): plan printing settings and core reports                   |
+| `0e6cbc2`  | docs(property): plan the profile tab and printing pages                  |
+| `4d68144`  | feat(property): add printing settings and the logo                       |
+| `fb54dd7`  | feat(property): add the profile tab and printing pages                   |
+| `0e870da`  | feat(property): add PDF font styles                                      |
+| `9e308f0`  | docs(reports): settle arrivals columns and report paging                 |
+| `90ad388`  | feat(reports): add the report registry and the arrivals report           |
+| `c913465`  | docs(reports): settle the layout prop, sort fallback and report PDF      |
+| `86a0a72`  | feat(reports): add report layouts                                        |
+| `1057a47`  | docs(reports): settle export sort, typed values and downloads            |
+| `a99280e`  | feat(reports): export selected rows as PDF, CSV or Excel                 |
+| `7b38e32`  | docs(printing): plan the line grouper and amount in words                |
+| `696ebf3`  | feat(printing): add document switches                                    |
+| `2752595`  | fix(printing): merge only nightly rows                                   |
+| `e9e5f21`  | docs(printing): plan the Room column for ungrouped lines                 |
+| `20a520e`  | fix(printing): show a room column on ungrouped lines                     |
+| `9eab5a1`  | docs(reservations): plan how the booking summary builds its rows         |
+| `d874515`  | feat(reservations): print a booking summary                              |
+| `d319aa0`  | docs(reservations): plan no-shows on the booking summary                 |
+| `e77527d`  | fix(reservations): show no-shows on the booking summary                  |
+| `e9bffe7`  | docs(folio): plan the folio invoice rows, tax numbers and rooms          |
+| `cf28d4b`  | feat(folio): print a folio invoice                                       |
+| `53b4cb8`  | docs(city-ledger): plan the AR invoice lines and amount due              |
+| `f05023a`  | feat(city-ledger): apply document switches to the AR invoice             |
+| `a9cc169`  | docs(city-ledger): keep Amount due as the last AR invoice line           |
+| `5280756`  | docs(city-ledger): plan the credit note flow back from a reversal        |
+| `ccf1036`  | fix(city-ledger): explain how to credit a paid invoice                   |
+| `aa2e991`  | docs(folio): plan links from a settled folio to its credit note          |
+| `6feaa1c`  | fix(folio): link a settled folio to its invoice and credit note          |
+| `22ab7ab`  | fix(folio): show the invoice links on a settled folio                    |
+| `aa036bb`  | docs(folio): plan issuing a credit note from the folio page              |
+| `7b2daf1`  | feat(folio): issue a credit note from the folio page                     |
+| `fac3c43`  | docs(folio): plan the invoice dropdown and void and reopen               |
+| `d9cbbd8`  | feat(folio): put the invoice actions in one dropdown                     |
+| `e9d6c4d`  | fix(folio): name the credit note that blocks void and reopen             |
+| `37daf98`  | docs(folio): plan posting a charge on the chosen folio                   |
+| `5b74b7b`  | fix(folio): post a charge on the folio staff choose                      |
+| `f779c99`  | docs(city-ledger): plan settling a folio again after a void              |
+| `8b27888`  | fix(city-ledger): settle a folio again after void and reopen             |
+| `1bebb43`  | docs(folio): plan clearing void blocks from the folio tab                |
+| `9df0a70`  | fix(folio): clear void blocks from the folio tab                         |
+| `2d33e60`  | docs(city-ledger): explain credit note versus void and reopen            |
+| `be0ebcb`  | docs(checklist): move group check-out after the folio fixes              |
+| `35a7b23`  | feat(reservations): add a guest after check-out                          |
+| `1f79ce3`  | docs(folio): plan move charges in two commits                            |
+| `9a710ec`  | feat(folio): move charges between folios on one page                     |
+| `54448ba`  | feat(folio): add the move charges page                                   |
+| `d4d31ee`  | docs(front-desk): count every unposted night before check-out            |
+| `832a1ab`  | docs(front-desk): refund held payments when a group moves charges        |
+| `0bb4d76`  | feat(front-desk): check out a group in one save                          |
+| `afe6704`  | feat(front-desk): check out a group on one page                          |
+| `60fa865`  | docs(front-desk): tidy the group check-out page design                   |
+| `30e2689`  | fix(front-desk): tidy the group check-out page                           |
+| `65f40d2`  | feat(front-desk): print the group check-out receipts                     |
+| `b9a4572`  | docs(reservations): plan printing every receipt of a reservation         |
+| `f03d769`  | feat(reservations): print every receipt of a reservation                 |
+| `9f07db0`  | docs(reservations): settle the change night price build decisions        |
+| `1e374b2`  | feat(reservations): change the price of booked nights                    |
+| `2b32138`  | docs(reservations): settle the day use build decisions                   |
+| `d9c193e`  | feat(rates): add day use rate plans                                      |
+| `3d9b137`  | docs(reservations): split day use booking into backend and form          |
+| `f4fe501`  | feat(reservations): book day use rooms and prices                        |
+| `c3ad864`  | feat(reservations): add day use to the booking form                      |
+| `ce76a2d`  | docs(reservations): settle the day use front desk build decisions        |
+| `15dafac`  | feat(front-desk): check day use in and out                               |
+| `84593f5`  | feat(front-desk): add day use to the unit menu                           |
+| `95542c2`  | docs(reports): settle the day use reports build decisions                |
+| `c800e50`  | feat(reports): show day use apart                                        |
+| `3e07588`  | refactor(catalogues): edit charge items on their own page                |
+| `0b17555`  | fix(catalogues): lay the charge item page out in two columns             |
+| `7747f2a`  | fix(catalogues): give charge item taxes their own row                    |
+| `af7ad10`  | feat(catalogues): price children on per-guest charge items               |
+| `6582cd4`  | fix(front-desk): keep child price rows when a stay is extended           |
+| `d4536cc`  | feat(reservations): add charge items to every new booking                |
+| `ad1b6d2`  | fix(night-audit): fix the price of a stuck package night                 |
+| `f18d2ae`  | feat(front-desk): cancel a whole reservation                             |
+| `15689a3`  | fix(front-desk): hide early check-out for a unit that arrived today      |
+| `b86afbd`  | docs(front-desk): plan undo check-in and undo check-out                  |
+| `f2a9eb4`  | feat(front-desk): undo a check-in made today                             |
 
 Smaller fixes and reverts are in `git log`.
 

@@ -20,22 +20,59 @@ class PlatformSettingsController extends Controller
      */
     public function edit(PlatformSettings $platformSettings): Response
     {
+        return $this->renderTab($platformSettings, 'general');
+    }
+
+    public function channels(PlatformSettings $platformSettings): Response
+    {
+        return $this->renderTab($platformSettings, 'channels');
+    }
+
+    public function storage(PlatformSettings $platformSettings): Response
+    {
+        return $this->renderTab($platformSettings, 'storage');
+    }
+
+    public function update(UpdatePlatformSettingsRequest $request, UpdatePlatformSettings $updatePlatformSettings): RedirectResponse
+    {
+        return $this->save($request, $updatePlatformSettings, 'admin.settings.edit');
+    }
+
+    public function updateChannels(UpdatePlatformSettingsRequest $request, UpdatePlatformSettings $updatePlatformSettings): RedirectResponse
+    {
+        return $this->save($request, $updatePlatformSettings, 'admin.settings.channels');
+    }
+
+    public function updateStorage(UpdatePlatformSettingsRequest $request, UpdatePlatformSettings $updatePlatformSettings): RedirectResponse
+    {
+        return $this->save($request, $updatePlatformSettings, 'admin.settings.storage');
+    }
+
+    private function renderTab(PlatformSettings $platformSettings, string $tab): Response
+    {
+        $field = match ($tab) {
+            'channels' => 'defaultDormStrategy',
+            'storage' => 'mediaDisk',
+            default => 'requireGoLiveApproval',
+        };
+
         return Inertia::render('admin/settings/edit', [
-            'settings' => PlatformSettingsData::fromModel($platformSettings->current()),
-            'dormStrategies' => DormStrategy::options(),
-            'mediaDisks' => MediaDisk::options(),
+            'activeTab' => $tab,
+            'settings' => PlatformSettingsData::fromModel($platformSettings->current())->only($field),
+            ...match ($tab) {
+                'channels' => ['dormStrategies' => DormStrategy::options()],
+                'storage' => ['mediaDisks' => MediaDisk::options()],
+                default => [],
+            },
         ]);
     }
 
-    /**
-     * Save the platform settings.
-     */
-    public function update(UpdatePlatformSettingsRequest $request, UpdatePlatformSettings $updatePlatformSettings): RedirectResponse
+    private function save(UpdatePlatformSettingsRequest $request, UpdatePlatformSettings $updatePlatformSettings, string $route): RedirectResponse
     {
         $updatePlatformSettings($request->user(), $request->toPlatformSettingsData());
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Platform settings saved.')]);
 
-        return to_route('admin.settings.edit');
+        return to_route($route);
     }
 }

@@ -1,173 +1,251 @@
 import { Form, Head } from '@inertiajs/react';
+import {
+    BedDouble,
+    BedSingle,
+    CircleCheck,
+    Cloud,
+    HardDrive,
+    Settings,
+    ShieldCheck,
+    Waypoints,
+} from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import PlatformSettingsController from '@/actions/App/Http/Controllers/Admin/PlatformSettingsController';
-import Heading from '@/components/heading';
+import { PageHeader } from '@/components/pms/page-header';
+import { TabLinks } from '@/components/pms/tab-links';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import {
     Field,
     FieldContent,
     FieldDescription,
     FieldError,
-    FieldGroup,
     FieldLabel,
     FieldLegend,
     FieldSet,
+    FieldTitle,
 } from '@/components/ui/field';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import {
-    Select,
-    SelectContent,
-    SelectGroup,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
 import { dashboard } from '@/routes/admin';
-import { edit } from '@/routes/admin/settings';
+import { channels, edit, storage } from '@/routes/admin/settings';
 
-type Option = { value: string; label: string; disabled?: boolean };
+type Option<T extends string> = {
+    value: T;
+    label: string;
+    description: string;
+    disabled: boolean;
+};
+type Tab = 'general' | 'channels' | 'storage';
+
+const dormIcons: Record<App.Enums.DormStrategy, LucideIcon> = {
+    bed_as_unit: BedSingle,
+    native_dorm: BedDouble,
+};
+const storageIcons: Record<App.Enums.MediaDisk, LucideIcon> = {
+    local: HardDrive,
+    r2: Cloud,
+};
 
 export default function PlatformSettings({
+    activeTab,
     settings,
-    dormStrategies,
-    mediaDisks,
+    dormStrategies = [],
+    mediaDisks = [],
 }: {
-    settings: App.Data.Platform.PlatformSettingsData;
-    dormStrategies: Option[];
-    mediaDisks: Option[];
+    activeTab: Tab;
+    settings: Partial<App.Data.Platform.PlatformSettingsData>;
+    dormStrategies?: Option<App.Enums.DormStrategy>[];
+    mediaDisks?: Option<App.Enums.MediaDisk>[];
 }) {
+    const sections = {
+        general: {
+            title: 'Go-live approval',
+            description:
+                'Choose how properties go live after completing setup. Turning approval off does not approve requests already waiting for review.',
+            name: 'require_go_live_approval',
+            value: settings.requireGoLiveApproval ? '1' : '0',
+            form: PlatformSettingsController.update.form(),
+            options: [
+                {
+                    value: '0',
+                    label: 'Automatic',
+                    description: 'Properties go live after completing setup.',
+                    icon: CircleCheck,
+                    disabled: false,
+                    disabledReason: '',
+                },
+                {
+                    value: '1',
+                    label: 'Admin approval',
+                    description:
+                        'Owners send their setup for review. Approve it or send it back from Properties, under Waiting for approval.',
+                    icon: ShieldCheck,
+                    disabled: false,
+                    disabledReason: '',
+                },
+            ],
+        },
+        channels: {
+            title: 'Default dorm strategy',
+            description:
+                'Used for new channel connections. Existing connections keep their current strategy.',
+            name: 'default_dorm_strategy',
+            value: settings.defaultDormStrategy,
+            form: PlatformSettingsController.updateChannels.form(),
+            options: dormStrategies.map((option) => ({
+                ...option,
+                icon: dormIcons[option.value],
+                disabledReason: 'Pending verification',
+            })),
+        },
+        storage: {
+            title: 'File storage',
+            description:
+                'Choose where new uploads go. Existing files stay where they are.',
+            name: 'media_disk',
+            value: settings.mediaDisk,
+            form: PlatformSettingsController.updateStorage.form(),
+            options: mediaDisks.map((option) => ({
+                ...option,
+                icon: storageIcons[option.value],
+                disabledReason: 'Not set up',
+            })),
+        },
+    };
+    const section = sections[activeTab];
+
     return (
         <>
             <Head title="Platform settings" />
 
-            <div className="flex flex-1 flex-col gap-6 p-4">
-                <Heading
+            <div className="flex flex-1 flex-col gap-4 p-4">
+                <PageHeader
                     title="Platform settings"
-                    description="Switches that apply to every property"
+                    description="Settings that apply to every property"
                 />
 
-                <Form
-                    {...PlatformSettingsController.update.form()}
-                    options={{ preserveScroll: true }}
-                    className="flex max-w-xl flex-col gap-8"
+                <TabLinks
+                    activeTab={activeTab}
+                    scrollable
+                    tabs={[
+                        {
+                            value: 'general',
+                            label: 'General',
+                            icon: Settings,
+                            href: edit(),
+                        },
+                        {
+                            value: 'channels',
+                            label: 'Channel manager',
+                            icon: Waypoints,
+                            href: channels(),
+                        },
+                        {
+                            value: 'storage',
+                            label: 'File storage',
+                            icon: HardDrive,
+                            href: storage(),
+                        },
+                    ]}
                 >
-                    {({ processing, errors }) => (
-                        <>
-                            <FieldSet>
-                                <FieldLegend>Go-live approval</FieldLegend>
-                                <Field orientation="horizontal">
-                                    <Checkbox
-                                        id="require_go_live_approval"
-                                        name="require_go_live_approval"
-                                        defaultChecked={
-                                            settings.requireGoLiveApproval
-                                        }
-                                    />
-                                    <FieldLabel htmlFor="require_go_live_approval">
-                                        Require admin approval before a property
-                                        goes live
-                                    </FieldLabel>
-                                </Field>
-                                <FieldError>
-                                    {errors.require_go_live_approval}
-                                </FieldError>
-                            </FieldSet>
-
-                            <FieldSet>
-                                <FieldLegend>Channel manager</FieldLegend>
-                                <Field>
-                                    <FieldLabel htmlFor="default_dorm_strategy">
-                                        Default dorm strategy
-                                    </FieldLabel>
-                                    <Select
-                                        name="default_dorm_strategy"
-                                        items={dormStrategies}
-                                        defaultValue={
-                                            settings.defaultDormStrategy
-                                        }
+                    <Form
+                        key={activeTab}
+                        {...section.form}
+                        options={{ preserveScroll: true }}
+                        className="flex max-w-xl flex-col gap-8"
+                    >
+                        {({ processing, errors }) => (
+                            <>
+                                <FieldSet>
+                                    <FieldLegend id={`${section.name}-label`}>
+                                        {section.title}
+                                    </FieldLegend>
+                                    <FieldDescription
+                                        id={`${section.name}-description`}
                                     >
-                                        <SelectTrigger
-                                            id="default_dorm_strategy"
-                                            className="w-64"
-                                        >
-                                            <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectGroup>
-                                                {dormStrategies.map(
-                                                    (option) => (
-                                                        <SelectItem
-                                                            key={option.value}
-                                                            value={option.value}
-                                                        >
-                                                            {option.label}
-                                                        </SelectItem>
-                                                    ),
-                                                )}
-                                            </SelectGroup>
-                                        </SelectContent>
-                                    </Select>
-                                    <FieldDescription>
-                                        Used for new channel connections.
+                                        {section.description}
                                     </FieldDescription>
-                                    <FieldError>
-                                        {errors.default_dorm_strategy}
-                                    </FieldError>
-                                </Field>
-                            </FieldSet>
-
-                            <FieldSet>
-                                <FieldLegend>File storage</FieldLegend>
-                                <FieldDescription>
-                                    New uploads go here. Existing files stay
-                                    where they are.
-                                </FieldDescription>
-                                <RadioGroup
-                                    name="media_disk"
-                                    defaultValue={settings.mediaDisk}
-                                >
-                                    <FieldGroup className="gap-3">
-                                        {mediaDisks.map((option) => (
-                                            <Field
+                                    <RadioGroup
+                                        name={section.name}
+                                        defaultValue={section.value}
+                                        aria-labelledby={`${section.name}-label`}
+                                        aria-describedby={`${section.name}-description${errors[section.name] ? ` ${section.name}-error` : ''}`}
+                                        aria-invalid={Boolean(
+                                            errors[section.name],
+                                        )}
+                                    >
+                                        {section.options.map((option) => (
+                                            <FieldLabel
                                                 key={option.value}
-                                                orientation="horizontal"
-                                                data-disabled={option.disabled}
+                                                htmlFor={`${section.name}-${option.value}`}
                                             >
-                                                <RadioGroupItem
-                                                    id={`media_disk_${option.value}`}
-                                                    value={option.value}
-                                                    disabled={option.disabled}
-                                                />
-                                                <FieldContent>
-                                                    <FieldLabel
-                                                        htmlFor={`media_disk_${option.value}`}
-                                                    >
-                                                        {option.label}
-                                                        {option.disabled &&
-                                                            ' (not set up)'}
-                                                    </FieldLabel>
-                                                </FieldContent>
-                                            </Field>
+                                                <Field
+                                                    orientation="horizontal"
+                                                    data-disabled={
+                                                        option.disabled
+                                                    }
+                                                    data-invalid={Boolean(
+                                                        errors[section.name],
+                                                    )}
+                                                >
+                                                    <option.icon
+                                                        aria-hidden
+                                                        className="mt-0.5 size-5 shrink-0"
+                                                    />
+                                                    <FieldContent className="min-w-0">
+                                                        <FieldTitle>
+                                                            {option.label}
+                                                        </FieldTitle>
+                                                        <FieldDescription
+                                                            id={`${section.name}-${option.value}-description`}
+                                                        >
+                                                            {option.description}
+                                                        </FieldDescription>
+                                                        {option.disabled && (
+                                                            <Badge variant="secondary">
+                                                                {
+                                                                    option.disabledReason
+                                                                }
+                                                            </Badge>
+                                                        )}
+                                                    </FieldContent>
+                                                    <RadioGroupItem
+                                                        id={`${section.name}-${option.value}`}
+                                                        value={option.value}
+                                                        disabled={
+                                                            option.disabled
+                                                        }
+                                                        aria-describedby={`${section.name}-${option.value}-description`}
+                                                        aria-invalid={Boolean(
+                                                            errors[
+                                                                section.name
+                                                            ],
+                                                        )}
+                                                    />
+                                                </Field>
+                                            </FieldLabel>
                                         ))}
-                                    </FieldGroup>
-                                </RadioGroup>
-                                <FieldError>{errors.media_disk}</FieldError>
-                            </FieldSet>
+                                    </RadioGroup>
+                                    <FieldError id={`${section.name}-error`}>
+                                        {errors[section.name]}
+                                    </FieldError>
+                                </FieldSet>
 
-                            <div>
-                                <Button
-                                    type="submit"
-                                    disabled={processing}
-                                    focusableWhenDisabled
-                                >
-                                    {processing && <Spinner />}
-                                    Save
-                                </Button>
-                            </div>
-                        </>
-                    )}
-                </Form>
+                                <div className="flex justify-end">
+                                    <Button
+                                        type="submit"
+                                        disabled={processing}
+                                        focusableWhenDisabled
+                                    >
+                                        {processing && <Spinner />}
+                                        Save changes
+                                    </Button>
+                                </div>
+                            </>
+                        )}
+                    </Form>
+                </TabLinks>
             </div>
         </>
     );

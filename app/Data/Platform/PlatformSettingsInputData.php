@@ -7,13 +7,13 @@ use App\Enums\MediaDisk;
 use Spatie\LaravelData\Data;
 
 /**
- * The platform-wide settings a platform admin saves. The strategy and the disk are the enums the settings row casts to.
+ * A section's platform settings. Null fields are omitted, not written over other sections.
  */
 class PlatformSettingsInputData extends Data
 {
     public function __construct(
-        public bool $requireGoLiveApproval,
-        public DormStrategy $defaultDormStrategy,
-        public MediaDisk $mediaDisk,
+        public ?bool $requireGoLiveApproval = null,
+        public ?DormStrategy $defaultDormStrategy = null,
+        public ?MediaDisk $mediaDisk = null,
     ) {}
 }

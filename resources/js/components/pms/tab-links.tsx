@@ -16,6 +16,8 @@ type Props = {
     tabs: TabLink[];
     activeTab: string;
     className?: string;
+    /** Keep long tab labels reachable on narrow screens. */
+    scrollable?: boolean;
     /** `full` drops the 80% panel width, for a tab with a side-by-side preview. */
     panelWidth?: 'default' | 'full';
     /** Extra classes for the tab panel, for example to make it a flex column that fills the page. */
@@ -32,33 +34,44 @@ export function TabLinks({
     tabs,
     activeTab,
     className,
+    scrollable = false,
     panelWidth = 'default',
     panelClassName,
     children,
 }: Props) {
+    const triggers = (
+        <TabsList variant="line">
+            {tabs.map((tab) => (
+                <TabsTrigger
+                    key={tab.value}
+                    value={tab.value}
+                    className="min-w-28 flex-none"
+                    nativeButton={false}
+                    render={
+                        <Link
+                            href={tab.href}
+                            preserveScroll
+                            preserveState
+                            prefetch
+                        />
+                    }
+                >
+                    <tab.icon aria-hidden />
+                    {tab.label}
+                </TabsTrigger>
+            ))}
+        </TabsList>
+    );
+
     return (
-        <Tabs value={activeTab} className={className}>
-            <TabsList variant="line">
-                {tabs.map((tab) => (
-                    <TabsTrigger
-                        key={tab.value}
-                        value={tab.value}
-                        className="min-w-28 flex-none"
-                        nativeButton={false}
-                        render={
-                            <Link
-                                href={tab.href}
-                                preserveScroll
-                                preserveState
-                                prefetch
-                            />
-                        }
-                    >
-                        <tab.icon aria-hidden />
-                        {tab.label}
-                    </TabsTrigger>
-                ))}
-            </TabsList>
+        <Tabs value={activeTab} className={cn('min-w-0', className)}>
+            {scrollable ? (
+                <div className="max-w-full overflow-x-auto pb-1.5">
+                    {triggers}
+                </div>
+            ) : (
+                triggers
+            )}
             <div
                 role="tabpanel"
                 className={cn(
