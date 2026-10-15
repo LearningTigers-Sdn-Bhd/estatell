@@ -56,12 +56,12 @@ test('anonymizing removes personal data and keeps the record', function () {
     $this->actingAs($owner)
         ->post(route('guests.anonymize.store', [$property->code, $guest]))
         ->assertRedirect(route('guests.show', [$property->code, $guest]))
-        ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Aisyah binti Rahman anonymized.']);
+        ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Aisyah binti Rahman archived.']);
 
     $guest->refresh();
 
-    expect($guest->full_name)->toBe("Anonymized guest #{$guest->id}")
-        ->and($guest->name_key)->toBe(app(GuestName::class)->key("Anonymized guest #{$guest->id}"))
+    expect($guest->full_name)->toBe("Archived User #{$guest->id}")
+        ->and($guest->name_key)->toBe("{$guest->id} archived user")
         ->and($guest->anonymized_at)->not->toBeNull()
         ->and($guest->property_id)->toBe($property->id)
         ->and($guest->is_vip)->toBeFalse()
@@ -109,7 +109,7 @@ test('refused anonymizing returns false and writes nothing', function () {
         ->and(Activity::query()->where('event', 'guest.anonymized')->count())->toBe(0);
 
     $this->actingAs($owner)->post(route('guests.anonymize.store', [$property->code, $done]))
-        ->assertInertiaFlash('toast', ['type' => 'error', 'message' => "{$done->full_name} cannot be anonymized."]);
+        ->assertInertiaFlash('toast', ['type' => 'error', 'message' => "{$done->full_name} cannot be archived."]);
 });
 
 test('an anonymized guest cannot be changed', function () {
@@ -143,7 +143,7 @@ test('the guest page shows the anonymized date and the list leaves the guest out
 
     $url = route('guests.index', $property->code);
 
-    $this->get($url)->assertInertia(fn (Assert $page) => $page->has('guests.data', 1)->where('guests.data.0.fullName', 'Active Guest')->where('guests.data.0.isAnonymized', false));
+    $this->get($url)->assertInertia(fn (Assert $page) => $page->has('guests.data', 1)->where('guests.data.0.fullName', 'Active Guest')->where('guests.data.0.isAnonymized', false)->where('statuses.2', ['value' => 'anonymized', 'label' => 'Archived']));
     $this->get("{$url}?filter[status]=anonymized")->assertInertia(fn (Assert $page) => $page->has('guests.data', 1)->where('guests.data.0.id', $guest->id)->where('guests.data.0.isAnonymized', true));
 });
 
@@ -174,7 +174,7 @@ test('an in-house guest cannot be anonymized and nothing is written', function (
 
     $this->actingAs($owner)
         ->post(route('guests.anonymize.store', [$property->code, $guest]))
-        ->assertInertiaFlash('toast', ['type' => 'error', 'message' => 'Aisyah binti Rahman cannot be anonymized.']);
+        ->assertInertiaFlash('toast', ['type' => 'error', 'message' => 'Aisyah binti Rahman cannot be archived.']);
 
     expect($guest->refresh()->anonymized_at)->toBeNull()
         ->and($guest->full_name)->toBe('Aisyah binti Rahman')
@@ -203,4 +203,40 @@ test('a booker who does not stay can be anonymized while the reservation is in h
 
     expect(app(AnonymizeGuest::class)($owner, $booker))->toBeTrue()
         ->and(app(AnonymizeGuest::class)($owner, $occupant))->toBeFalse();
+});
+
+test('the placeholder migration renames only anonymized placeholders and keeps their history', function () {
+    $property = User::factory()->owner()->create()->property;
+    $archived = Guest::factory()->for($property)->create(['anonymized_at' => '2026-10-01 10:00:00']);
+    $oldName = "Anonymized guest #{$archived->id}";
+    $archived->update(['full_name' => $oldName, 'name_key' => app(GuestName::class)->key($oldName)]);
+    $unchangedTimestamp = $archived->updated_at;
+    $active = Guest::factory()->for($property)->create(['full_name' => 'Anonymized guest #999']);
+    $custom = Guest::factory()->for($property)->create(['full_name' => 'Already private', 'anonymized_at' => now()]);
+    $reservation = Reservation::factory()->for($property)->create(['booker_guest_id' => $archived->id]);
+    $migration = require database_path('migrations/2026_10_15_072124_rename_anonymized_guest_placeholders.php');
+
+    $migration->up();
+    $migration->up();
+
+    $this->assertDatabaseHas('guests', [
+        'id' => $archived->id,
+        'full_name' => "Archived User #{$archived->id}",
+        'name_key' => "{$archived->id} archived user",
+        'anonymized_at' => '2026-10-01 10:00:00',
+        'updated_at' => $unchangedTimestamp,
+    ]);
+    $this->assertDatabaseHas('guests', ['id' => $active->id, 'full_name' => $active->full_name, 'name_key' => $active->name_key]);
+    $this->assertDatabaseHas('guests', ['id' => $custom->id, 'full_name' => $custom->full_name, 'name_key' => $custom->name_key]);
+    $this->assertDatabaseHas('reservations', ['id' => $reservation->id, 'booker_guest_id' => $archived->id]);
+    expect(Activity::query()->count())->toBe(0);
+
+    $migration->down();
+
+    $this->assertDatabaseHas('guests', [
+        'id' => $archived->id,
+        'full_name' => $oldName,
+        'name_key' => "{$archived->id} anonymized guest",
+        'anonymized_at' => '2026-10-01 10:00:00',
+    ]);
 });

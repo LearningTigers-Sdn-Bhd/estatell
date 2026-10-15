@@ -45,7 +45,7 @@ roles    spatie columns + property_id (NOT NULL, FK) + default_role (nullable)
 | `guests.blacklist`                 | Blacklist a guest, remove from the blacklist                                | ✓     | ✓       | –                                 |
 | `guests.view-documents`            | See, add, edit guest ID documents and scans                                 | ✓     | ✓       | Front desk                        |
 | `guests.merge`                     | Merge duplicate guests                                                      | ✓     | ✓       | –                                 |
-| `guests.anonymize`                 | Anonymize a guest (removes personal data)                                   | ✓     | –       | –                                 |
+| `guests.anonymize`                 | Archive a guest (permanently removes personal data)                         | ✓     | –       | –                                 |
 | `registration-card.manage-terms`   | Registration terms: publish, add documents, apply templates                 | ✓     | ✓       | –                                 |
 | `registration-card.sign`           | Prepare, complete and sign a registration card                              | ✓     | ✓       | Front desk                        |
 | `registration-card.send-link`      | Email a guest the link to sign remotely                                     | ✓     | ✓       | Front desk                        |

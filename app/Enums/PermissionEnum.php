@@ -82,7 +82,7 @@ enum PermissionEnum: string
             self::GuestsBlacklist => __('Blacklist guests'),
             self::GuestsViewDocuments => __('View and manage guest ID documents'),
             self::GuestsMerge => __('Merge duplicate guests'),
-            self::GuestsAnonymize => __('Anonymize guests'),
+            self::GuestsAnonymize => __('Archive guests'),
             self::ReservationsView => __('View reservations'),
             self::ReservationsManage => __('Manage reservations'),
             self::ReservationsChangePrice => __('Change the price of booked nights'),

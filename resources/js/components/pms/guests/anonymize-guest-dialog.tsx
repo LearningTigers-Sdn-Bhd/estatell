@@ -18,7 +18,7 @@ import { Spinner } from '@/components/ui/spinner';
 import { store } from '@/routes/guests/anonymize';
 
 /**
- * Confirms anonymizing a guest. The button stays disabled until the guest's name is typed, because this cannot be undone.
+ * Confirms archiving a guest. The button stays disabled until Confirm is typed, because this cannot be undone.
  */
 export function AnonymizeGuestDialog({
     guest,
@@ -27,7 +27,7 @@ export function AnonymizeGuestDialog({
 }) {
     const [open, setOpen] = useState(false);
     const [typed, setTyped] = useState('');
-    const confirmed = typed.trim() === guest.fullName;
+    const confirmed = typed.trim() === 'Confirm';
 
     return (
         <AlertDialog
@@ -38,21 +38,21 @@ export function AnonymizeGuestDialog({
             }}
         >
             <HeaderActionButton
-                label="Anonymize"
+                label="Archive"
                 icon={UserX}
-                iconClassName="text-destructive"
+                variant="destructive"
                 onClick={() => setOpen(true)}
             />
             <AlertDialogContent>
                 <AlertDialogHeader>
                     <AlertDialogTitle>
-                        Anonymize {guest.fullName}?
+                        Archive {guest.fullName}?
                     </AlertDialogTitle>
                     <AlertDialogDescription>
                         The name, contact details, address, notes, tags and ID
-                        documents with their scans are deleted. The record
-                        stays, so stays and payments keep their history. This
-                        cannot be undone.
+                        documents with their scans are permanently deleted. The
+                        record stays, so stays and payments keep their history.
+                        This cannot be undone.
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <Form
@@ -65,19 +65,19 @@ export function AnonymizeGuestDialog({
                         <>
                             <Field>
                                 <FieldLabel htmlFor="anonymize-confirm">
-                                    Type the guest&apos;s name to confirm
+                                    Type Confirm to continue
                                 </FieldLabel>
                                 <Input
                                     id="anonymize-confirm"
                                     value={typed}
                                     autoComplete="off"
-                                    placeholder={guest.fullName}
+                                    placeholder="Confirm"
                                     onChange={(event) =>
                                         setTyped(event.target.value)
                                     }
                                 />
                                 <FieldDescription>
-                                    Type {guest.fullName} exactly.
+                                    Type Confirm exactly.
                                 </FieldDescription>
                             </Field>
                             <AlertDialogFooter>
@@ -91,7 +91,7 @@ export function AnonymizeGuestDialog({
                                     {processing && (
                                         <Spinner data-icon="inline-start" />
                                     )}
-                                    Anonymize guest
+                                    Archive guest
                                 </Button>
                             </AlertDialogFooter>
                         </>

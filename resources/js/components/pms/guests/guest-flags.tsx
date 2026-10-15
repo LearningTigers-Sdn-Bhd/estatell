@@ -58,7 +58,7 @@ export function GuestFlags({
             {isAnonymized && (
                 <Flag
                     icon={EyeOff}
-                    label="Anonymized"
+                    label="Archived"
                     className="text-muted-foreground"
                 />
             )}

@@ -11,15 +11,17 @@ Meet Malaysian PDPA expectations for guest data.
 - Access to ID documents is permission-controlled and logged.
 - Marketing consent is an explicit opt-in (`marketing_consent_at`), captured on the registration card.
 - `property_settings.id_document_retention_days` sets how long scans are kept. Blank keeps them. A value is at least 1 day.
-- Anonymizing is a manual action, started by staff on request. Nothing is anonymized automatically.
+- Archiving is a manual action, started by staff on request. Nothing is archived automatically.
 
-## Anonymize a guest
+## Archive a guest
 
 `AnonymizeGuest` removes a guest's personal data and keeps the record, so financial history stays intact. It cannot be undone.
 
+The UI calls this **Archive**. Internal Action names, routes, permissions, `anonymized_at` and the `guest.anonymized` event stay unchanged. This is permanent data removal, not recoverable storage.
+
 | Removed or cleared                                                                                          | Kept                                                             |
 | ----------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
-| Name, replaced with `Anonymized guest #<id>`                                                                | The `guests` row, its id and its property                        |
+| Name, replaced with `Archived User #<id>`                                                                   | The `guests` row, its id and its property                        |
 | Email, phone, nationality, date of birth, gender, language, address and country                             | `created_at`                                                     |
 | VIP mark, blacklist and its reason, marketing consent                                                       | `anonymized_at`, now set                                         |
 | All notes, all tag links (the tags stay), all ID documents with their numbers, blind indexes and scan files | Reservations that point to the guest. Later: folios and payments |
@@ -27,17 +29,20 @@ Meet Malaysian PDPA expectations for guest data.
 
 - It returns `false` and writes nothing when the guest is already anonymized, was merged into another guest, or is in house. The controller shows an error toast.
 - **In house** means the guest is an occupant (`unit_guests`) of a reservation unit with status CheckedIn. `GuestInHouse` (module 12) answers it. A booker who does not stay is not in house.
-- **Known gap:** a guest with only upcoming Confirmed stays can still be anonymized. The stay keeps working, but the name on it becomes `Anonymized guest #id`. Review this when the front desk module (18) is built.
+- **Known gap:** a guest with only upcoming Confirmed stays can still be archived. The stay keeps working, but the name on it becomes `Archived User #id`. Review this when the front desk module (18) is built.
 - One `guest.anonymized` entry is logged: the counts of notes and documents removed. No personal values.
 - Modules that keep balances add their own refusal here, for example a guest with an open balance (folios, module 13). Reservations added the in-house refusal in module 12.
 - Permission: `guests.anonymize`. Only the Owner role has it by default.
-- The guest page asks the staff member to type the guest's name before the button turns on. The check is in the browser only.
+- The guest page asks the staff member to type `Confirm` before **Archive guest** turns on. The check is case-sensitive and ignores surrounding spaces. The check is in the browser only. The dialog warns that personal data is permanently deleted and the action cannot be undone.
+- A data migration renames existing `Anonymized guest #<id>` placeholders and updates their name keys, only for guests with `anonymized_at` set. Other names, timestamps, financial records and issued-document snapshots stay unchanged.
+- Bulk archiving is not part of this flow yet.
+- The guest-page **Archive** button and the confirmation submit button use the destructive variant. Other header actions stay unchanged.
 
-An anonymized guest:
+An archived guest:
 
-- Shows an Anonymized notice and badge on the guest page. The VIP, Blacklist, Merge and Anonymize buttons, the Add note card, the Details form and the Documents tab are hidden.
+- Shows an Archived notice and badge on the guest page. The VIP, Blacklist, Merge and Archive buttons, the Add note card, the Details form and the Documents tab are hidden.
 - Is refused by every write Action (`UpdateGuest`, `SetVip`, `BlacklistGuest`, `AddGuestNote`, `AddIdentityDocument`, `MergeGuests`). The Details tab shows read-only text for an anonymized guest, and the add-document request returns an error toast.
-- Is left out of the guest list unless the `Anonymized` status filter is chosen, and never matches in [duplicate matching](03-matching-and-merging.md).
+- Is left out of the guest list unless the `Archived` status filter is chosen, and never matches in [duplicate matching](03-matching-and-merging.md). The filter value stays `anonymized`.
 - Stays reachable by its URL, because later reservations and folios link to it.
 
 ## Purge expired ID scans

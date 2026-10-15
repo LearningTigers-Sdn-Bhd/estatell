@@ -30,7 +30,7 @@ class AnonymizeGuest
 
     /**
      * Remove the guest's personal data and keep the record, so financial history stays intact.
-     * The name becomes `Anonymized guest #id`. Notes, tag links and ID documents (numbers, blind indexes and
+     * The name becomes `Archived User #id`. Notes, tag links and ID documents (numbers, blind indexes and
      * scan files) are deleted, and the blacklist reason is removed from earlier activity log entries.
      *
      * Returns false when the guest is already anonymized, was merged into another guest, is in house
@@ -60,7 +60,7 @@ class AnonymizeGuest
             $guest->tags()->detach();
 
             $guest->forceFill(array_fill_keys(self::PERSONAL_FIELDS, null))->forceFill([
-                'full_name' => __('Anonymized guest #:id', ['id' => $guest->id]),
+                'full_name' => __('Archived User #:id', ['id' => $guest->id]),
                 'is_vip' => false,
                 'anonymized_at' => now(),
             ]);

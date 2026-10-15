@@ -190,9 +190,9 @@ export default function GuestShow({
 
                 {isAnonymized && (
                     <Alert>
-                        <AlertTitle>Anonymized</AlertTitle>
+                        <AlertTitle>Archived</AlertTitle>
                         <AlertDescription>
-                            This guest was anonymized on{' '}
+                            This guest was archived on{' '}
                             <DateText date={guest.anonymizedAt} />. Personal
                             data was removed. Financial history is kept.
                         </AlertDescription>

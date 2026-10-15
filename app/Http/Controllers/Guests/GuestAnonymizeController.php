@@ -17,8 +17,8 @@ class GuestAnonymizeController extends Controller
         $name = $guest->full_name;
 
         Inertia::flash('toast', $anonymizeGuest($request->user(), $guest)
-            ? ['type' => 'success', 'message' => __(':name anonymized.', ['name' => $name])]
-            : ['type' => 'error', 'message' => __(':name cannot be anonymized.', ['name' => $name])]);
+            ? ['type' => 'success', 'message' => __(':name archived.', ['name' => $name])]
+            : ['type' => 'error', 'message' => __(':name cannot be archived.', ['name' => $name])]);
 
         return to_route('guests.show', ['property' => $property, 'guest' => $guest]);
     }

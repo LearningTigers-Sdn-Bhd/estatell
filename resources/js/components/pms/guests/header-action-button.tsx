@@ -4,12 +4,13 @@ import { Spinner } from '@/components/ui/spinner';
 import { cn } from '@/lib/utils';
 
 /**
- * An outline button for the page header with a label. Only the icon carries the color.
+ * A labeled page-header button. Outline by default, with a destructive variant for irreversible actions.
  */
 export function HeaderActionButton({
     label,
     icon: Icon,
     iconClassName,
+    variant = 'outline',
     loading = false,
     type = 'button',
     disabled,
@@ -19,6 +20,7 @@ export function HeaderActionButton({
     icon: LucideIcon;
     /** Text color class for the icon, for example `text-destructive`. */
     iconClassName?: string;
+    variant?: 'outline' | 'destructive';
     loading?: boolean;
     type?: 'button' | 'submit';
     disabled?: boolean;
@@ -27,7 +29,7 @@ export function HeaderActionButton({
     return (
         <Button
             type={type}
-            variant="outline"
+            variant={variant}
             disabled={disabled}
             focusableWhenDisabled
             onClick={onClick}

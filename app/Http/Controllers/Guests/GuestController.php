@@ -58,7 +58,7 @@ class GuestController extends Controller
             'statuses' => [
                 ['value' => GuestDirectory::STATUS_VIP, 'label' => __('VIP')],
                 ['value' => GuestDirectory::STATUS_BLACKLISTED, 'label' => __('Blacklisted')],
-                ['value' => GuestDirectory::STATUS_ANONYMIZED, 'label' => __('Anonymized')],
+                ['value' => GuestDirectory::STATUS_ANONYMIZED, 'label' => __('Archived')],
             ],
             'tags' => $this->tags($property),
             'countries' => $canManage ? app(CountryOptions::class)->options() : [],
