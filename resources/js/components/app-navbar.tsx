@@ -1,5 +1,6 @@
 import { Link, usePage } from '@inertiajs/react';
 import AppLogo from '@/components/app-logo';
+import { AppearanceToggle } from '@/components/appearance-toggle';
 import { NavUser } from '@/components/nav-user';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { useInitials } from '@/hooks/use-initials';
@@ -45,7 +46,8 @@ export function AppNavbar({
                     <AppLogo />
                 )}
             </Link>
-            <div className="ml-auto">
+            <div className="ml-auto flex shrink-0 items-center gap-1">
+                <AppearanceToggle />
                 <NavUser />
             </div>
         </header>

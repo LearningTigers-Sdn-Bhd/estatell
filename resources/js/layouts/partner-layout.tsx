@@ -12,7 +12,10 @@ export default function PartnerLayout({
         <AppShell variant="sidebar">
             <PartnerSidebar />
             <AppContent variant="sidebar" className="min-w-0 overflow-x-clip">
-                <AppSidebarHeader breadcrumbs={breadcrumbs} />
+                <AppSidebarHeader
+                    breadcrumbs={breadcrumbs}
+                    showAppearanceToggle
+                />
                 {children}
             </AppContent>
         </AppShell>

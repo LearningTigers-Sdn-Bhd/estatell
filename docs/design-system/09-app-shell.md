@@ -39,6 +39,12 @@ A full-width navbar on top, the sidebar below it on the left, the page to the ri
 
 Fixed at the top of the shell (it never scrolls), 3.5 rem high. Only the content area scrolls; the shell is `h-svh` and `SidebarInset` has `overflow-y-auto`. The breadcrumb bar is 2.5 rem high and scrolls with the page. On mobile the same navbar shows; the sidebar is an off-canvas sheet. Pages without a property (admin, account for admins) show the logo instead of the identity.
 
+### Theme shortcut
+
+`AppearanceToggle` is one icon button that cycles **Light → Dark → System → Light**. Staff and account pages show it beside the navbar avatar. Admin and partner pages show it at the right end of the breadcrumb header. Mobile keeps the same placement.
+
+The icon shows the saved preference: sun, moon or monitor. Its accessible label and tooltip name the current preference and the next action. It uses `useAppearance`, so changes apply immediately and share the saved setting with Account → Appearance. System mode follows the device theme. No request or page reload is needed.
+
 ### User menu variants
 
 `NavUser` uses a placement variant, not a role check:

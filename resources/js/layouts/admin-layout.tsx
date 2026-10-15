@@ -13,7 +13,10 @@ export default function AdminLayout({
         <AppShell variant="sidebar">
             <AdminSidebar />
             <AppContent variant="sidebar" className="min-w-0 overflow-x-clip">
-                <AppSidebarHeader breadcrumbs={breadcrumbs} />
+                <AppSidebarHeader
+                    breadcrumbs={breadcrumbs}
+                    showAppearanceToggle
+                />
                 <AdminTwoFactorBanner />
                 {children}
             </AppContent>
