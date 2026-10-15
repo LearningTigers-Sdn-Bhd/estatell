@@ -25,6 +25,8 @@ use App\Services\Onboarding\Checks\TestDriveCheck;
 enum OnboardingStep: string
 {
     case Basics = 'basics';
+    case CheckInEssentials = 'check_in_essentials';
+    case Team = 'team';
     case RoomTypes = 'room_types';
     case Rooms = 'rooms';
     case Taxes = 'taxes';
@@ -33,8 +35,6 @@ enum OnboardingStep: string
     case BasicRate = 'basic_rate';
     case ChargeItems = 'charge_items';
     case Discounts = 'discounts';
-    case CheckInEssentials = 'check_in_essentials';
-    case Team = 'team';
     case ChannelManager = 'channel_manager';
     case TestDrive = 'test_drive';
     case Review = 'review';
@@ -70,12 +70,10 @@ enum OnboardingStep: string
     public function phase(): OnboardingPhase
     {
         return match ($this) {
-            self::Basics => OnboardingPhase::Property,
+            self::Basics, self::CheckInEssentials, self::Team => OnboardingPhase::Property,
             self::RoomTypes, self::Rooms => OnboardingPhase::Rooms,
             self::Taxes, self::PaymentMethods, self::Companies => OnboardingPhase::Finance,
             self::BasicRate, self::ChargeItems, self::Discounts => OnboardingPhase::Prices,
-            self::CheckInEssentials => OnboardingPhase::CheckIn,
-            self::Team => OnboardingPhase::Team,
             self::ChannelManager => OnboardingPhase::Channels,
             self::TestDrive => OnboardingPhase::TestDrive,
             self::Review => OnboardingPhase::Review,
@@ -157,6 +155,7 @@ enum OnboardingStep: string
             self::BasicRate => 'onboarding.basic-rate.edit',
             self::ChargeItems => 'onboarding.charge-items.edit',
             self::Discounts => 'onboarding.discounts.edit',
+            self::CheckInEssentials => 'onboarding.check-in-essentials.edit',
             self::Review => 'onboarding.go-live.show',
             default => null,
         };

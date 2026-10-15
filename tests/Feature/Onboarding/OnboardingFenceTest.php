@@ -25,7 +25,7 @@ test('a fenced page sends the owner to the current step once basics is done', fu
 
     $this->actingAs($this->owner)
         ->get(route('settings.edit', $this->property->code))
-        ->assertRedirect(route('onboarding.room-types.edit', $this->property->code));
+        ->assertRedirect(route('onboarding.check-in-essentials.edit', $this->property->code));
 });
 
 test('the owner can open the onboarding pages', function () {

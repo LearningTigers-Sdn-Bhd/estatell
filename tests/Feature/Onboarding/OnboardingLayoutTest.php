@@ -20,10 +20,11 @@ test('onboarding pages share the progress of listed steps only', function () {
             ->has('onboarding.phases', 5)
             ->where('onboarding.phases.0.value', 'property')
             ->where('onboarding.phases.0.state', 'in_progress')
-            ->has('onboarding.phases.0.steps', 1)
+            ->has('onboarding.phases.0.steps', 2)
             ->where('onboarding.phases.0.steps.0.value', 'basics')
             ->where('onboarding.phases.0.steps.0.url', route('onboarding.basics.edit', $this->property->code, absolute: false))
             ->where('onboarding.phases.0.steps.0.blockedBy', null)
+            ->where('onboarding.phases.0.steps.1.value', 'check_in_essentials')
             ->where('onboarding.phases.1.value', 'rooms')
             ->where('onboarding.phases.1.steps.0.value', 'room_types')
             ->where('onboarding.phases.2.value', 'finance')
@@ -62,8 +63,9 @@ test('completed basics count as done in the progress', function () {
         ->assertInertia(fn (Assert $page) => $page
             ->component('onboarding/go-live')
             ->where('onboarding.requiredDone', 1)
-            ->where('onboarding.phases.0.state', 'done')
+            ->where('onboarding.phases.0.state', 'in_progress')
             ->where('onboarding.phases.0.steps.0.state', 'done')
+            ->where('onboarding.phases.0.steps.1.state', 'not_started')
             ->where('onboarding.phases.1.steps.0.state', 'not_started')
             ->where('onboarding.phases.2.steps.0.state', 'not_started')
             ->where('onboarding.phases.2.steps.1.state', 'not_started')
@@ -90,17 +92,18 @@ test('the progress is not shared on the waiting page, which uses the auth layout
         ->assertInertia(fn (Assert $page) => $page->missing('onboarding'));
 });
 
-test('saving basics opens the next listed step, which is room types', function () {
+test('saving basics opens the next listed step, which is check-in essentials', function () {
     $this->actingAs($this->owner)
         ->put(route('onboarding.basics.update', $this->property->code), basicsInput())
-        ->assertRedirect(route('onboarding.room-types.edit', $this->property->code))
+        ->assertRedirect(route('onboarding.check-in-essentials.edit', $this->property->code))
         ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Property basics saved.']);
 });
 
 test('review opens go-live and is the last listed step', function () {
     expect(OnboardingStep::Review->routeName())->toBe('onboarding.go-live.show')
         ->and(OnboardingStep::Review->nextListed())->toBeNull()
-        ->and(OnboardingStep::Basics->nextListed())->toBe(OnboardingStep::RoomTypes)
+        ->and(OnboardingStep::Basics->nextListed())->toBe(OnboardingStep::CheckInEssentials)
+        ->and(OnboardingStep::CheckInEssentials->nextListed())->toBe(OnboardingStep::RoomTypes)
         ->and(OnboardingStep::RoomTypes->nextListed())->toBe(OnboardingStep::Rooms)
         ->and(OnboardingStep::Rooms->nextListed())->toBe(OnboardingStep::Taxes)
         ->and(OnboardingStep::Taxes->nextListed())->toBe(OnboardingStep::PaymentMethods)
@@ -109,5 +112,5 @@ test('review opens go-live and is the last listed step', function () {
         ->and(OnboardingStep::BasicRate->nextListed())->toBe(OnboardingStep::ChargeItems)
         ->and(OnboardingStep::ChargeItems->nextListed())->toBe(OnboardingStep::Discounts)
         ->and(OnboardingStep::Discounts->nextListed())->toBe(OnboardingStep::Review)
-        ->and(array_map(fn (OnboardingStep $step): OnboardingStep => $step, OnboardingStep::listed()))->toBe([OnboardingStep::Basics, OnboardingStep::RoomTypes, OnboardingStep::Rooms, OnboardingStep::Taxes, OnboardingStep::PaymentMethods, OnboardingStep::Companies, OnboardingStep::BasicRate, OnboardingStep::ChargeItems, OnboardingStep::Discounts, OnboardingStep::Review]);
+        ->and(array_map(fn (OnboardingStep $step): OnboardingStep => $step, OnboardingStep::listed()))->toBe([OnboardingStep::Basics, OnboardingStep::CheckInEssentials, OnboardingStep::RoomTypes, OnboardingStep::Rooms, OnboardingStep::Taxes, OnboardingStep::PaymentMethods, OnboardingStep::Companies, OnboardingStep::BasicRate, OnboardingStep::ChargeItems, OnboardingStep::Discounts, OnboardingStep::Review]);
 });

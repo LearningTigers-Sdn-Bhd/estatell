@@ -87,10 +87,10 @@ test('the current step is the first unlocked required step that is not done', fu
     expect($this->progress->currentStep($property))->toBe(OnboardingStep::Basics);
 
     completeOnboardingBasics($property);
-    expect($this->progress->currentStep($property))->toBe(OnboardingStep::RoomTypes);
+    expect($this->progress->currentStep($property))->toBe(OnboardingStep::CheckInEssentials);
 
     OnboardingSkip::factory()->for($property)->create(['step' => OnboardingStep::Taxes]);
-    expect($this->progress->currentStep($property))->toBe(OnboardingStep::RoomTypes);
+    expect($this->progress->currentStep($property))->toBe(OnboardingStep::CheckInEssentials);
 });
 
 test('required counts and remaining minutes move as steps are done', function () {
@@ -116,7 +116,7 @@ test('a phase is done when all its steps are, locked when all are locked, and in
     OnboardingSkip::factory()->for($property)->create(['step' => OnboardingStep::Companies]);
 
     expect(phaseValues($this->progress->phaseStates($property)))
-        ->toMatchArray(['property' => 'done', 'rooms' => 'not_started', 'finance' => 'in_progress']);
+        ->toMatchArray(['property' => 'in_progress', 'rooms' => 'not_started', 'finance' => 'in_progress']);
 });
 
 test('a dependency that is not done blocks a step and is named', function () {

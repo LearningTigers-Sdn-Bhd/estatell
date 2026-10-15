@@ -12,8 +12,6 @@ enum OnboardingPhase: string
     case Rooms = 'rooms';
     case Finance = 'finance';
     case Prices = 'prices';
-    case CheckIn = 'check_in';
-    case Team = 'team';
     case Channels = 'channels';
     case TestDrive = 'test_drive';
     case Review = 'review';
@@ -25,8 +23,6 @@ enum OnboardingPhase: string
             self::Rooms => __('Rooms'),
             self::Finance => __('Finance'),
             self::Prices => __('Prices'),
-            self::CheckIn => __('Check-in'),
-            self::Team => __('Team'),
             self::Channels => __('Channels'),
             self::TestDrive => __('Test drive'),
             self::Review => __('Review'),

@@ -6,7 +6,7 @@ Get a property from sign-up to its first booking in about 15 minutes, without co
 
 ## Principles
 
-1. Ask in the owner's order: place, rooms, money, prices, check-in, team.
+1. Ask in the owner's order: place (with check-in and team), rooms, money, prices.
 2. Confirm smart defaults instead of building from scratch.
 3. Write to the real tables through the real Actions. No draft tables.
 4. Progress is calculated from real data. No stored section states.
@@ -21,33 +21,31 @@ The first release has two pages, Basics and Review (go live). Both use the onboa
 | #   | Phase      | Section                                                                                                                                                         | Required | Locked until       |
 | --- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ------------------ |
 | 1   | Property   | Basics: property type, name, country, address, and currency and time zone outside Malaysia. See [Basics form](#basics-form).                                    | Yes      | –                  |
-| 2   | Rooms      | Room types: an editable table, sold by room only. See [Room types table](#room-types-table).                                                                    | Yes      | Basics             |
-| 3   |            | Rooms: number ranges per room type, optional room groups. See [Rooms table](#rooms-table).                                                                      | Yes      | Room types         |
-| 4   | Finance    | Taxes, including which taxes apply to rooms (room revenue). See [Taxes table](#taxes-table).                                                                    | Yes      | Basics             |
-| 5   |            | Payment methods: turn seeded methods on or off, add more. See [Payment methods table](#payment-methods-table).                                                  | Yes      | Basics             |
-| 6   |            | Companies: city ledger companies and their portal users. See [Companies table](#companies-table).                                                               | No       | Basics             |
-| 7   | Prices     | Basic rate: weekday and weekend price per room-sold room type, priced by room or by guest, plus optional more rates. See [Basic rate table](#basic-rate-table). | Yes      | Room types + Taxes |
-| 8   |            | Charge items: starter items and extras with price, unit and taxes. See [Charge items table](#charge-items-table).                                               | No       | Taxes              |
-| 9   |            | Discounts: the starter discount and more, with type, value and what they apply to. See [Discounts table](#discounts-table).                                     | No       | Basics             |
-| 10  | Check-in   | Check-in essentials: times, registration card, security deposit and house terms. See [Check-in essentials form](#check-in-essentials-form).                     | Yes      | Basics             |
-| 11  | Team       | Team: staff with temp passwords and a role. See [Team table](#team-table).                                                                                      | No       | Basics             |
+| 2   |            | Check-in essentials: times, registration card and security deposit. See [Check-in essentials form](#check-in-essentials-form).                                  | Yes      | Basics             |
+| 3   |            | Team: staff with temp passwords and a role. See [Team table](#team-table).                                                                                      | No       | Basics             |
+| 4   | Rooms      | Room types: an editable table, sold by room only. See [Room types table](#room-types-table).                                                                    | Yes      | Basics             |
+| 5   |            | Rooms: number ranges per room type, optional room groups. See [Rooms table](#rooms-table).                                                                      | Yes      | Room types         |
+| 6   | Finance    | Taxes, including which taxes apply to rooms (room revenue). See [Taxes table](#taxes-table).                                                                    | Yes      | Basics             |
+| 7   |            | Payment methods: turn seeded methods on or off, add more. See [Payment methods table](#payment-methods-table).                                                  | Yes      | Basics             |
+| 8   |            | Companies: city ledger companies and their portal users. See [Companies table](#companies-table).                                                               | No       | Basics             |
+| 9   | Prices     | Basic rate: weekday and weekend price per room-sold room type, priced by room or by guest, plus optional more rates. See [Basic rate table](#basic-rate-table). | Yes      | Room types + Taxes |
+| 10  |            | Charge items: starter items and extras with price, unit and taxes. See [Charge items table](#charge-items-table).                                               | No       | Taxes              |
+| 11  |            | Discounts: the starter discount and more, with type, value and what they apply to. See [Discounts table](#discounts-table).                                     | No       | Basics             |
 | 12  | Channels   | Channel manager: OTA logins the estatell team connects after approval. See [Channel manager table](#channel-manager-table).                                     | No       | Basics             |
 | 13  | Test drive | Practice mode. See [Test drive](06-test-drive.md).                                                                                                              | No       | All required Done  |
 | 14  | Review     | Review: the readiness list, warnings and go live (or send for approval). See [Review page](#review-page).                                                       | –        | All required Done  |
 
 ```
-                              1 Basics*
-   ┌─────────┬─────────┬──────────┼───────────┬────────────┬───────────┐
-   ▼         ▼         ▼          ▼           ▼            ▼           ▼
- 2 Room    4 Taxes*  5 Payment  6 Companies  9 Discounts  10 Check-in  11 Team
-   types*  │     │     methods*   (opt)        (opt)        essentials*  (opt)
-   │   │   │     ▼
-   ▼   │   │   8 Charge items (opt)
- 3 Rooms*  │
-       ▼   ▼
-     7 Basic rate*
+ 1 Basics* ──┬──▶ 2 Check-in essentials*
+             ├──▶ 3 Team (opt)
+             ├──▶ 4 Room types* ──▶ 5 Rooms*
+             ├──▶ 6 Taxes* ──▶ 10 Charge items (opt)
+             ├──▶ 7 Payment methods*
+             ├──▶ 8 Companies (opt)
+             ├──▶ 11 Discounts (opt)
+             └──▶ 12 Channel manager (opt)
 
-   Basics* ──▶ 12 Channel manager (opt)
+ 4 Room types* + 6 Taxes* ──▶ 9 Basic rate*
 
  all * Done ──▶ 13 Test drive (opt) ──▶ 14 Review / Go live
 ```
@@ -501,52 +499,40 @@ A rate plan has one pricing basis, so the rows map to one plan per basis used:
 
 ```
  Times
-   Check-in from   [ 15:00 ▾ ]        Check-out by   [ 11:00 ▾ ]
+   Check-in from   [ 3:00 PM ▾ ]        Check-out by   [ 11:00 AM ▾ ]
 
  Registration card
-   Who fills in a card    [● Main guest only | Every adult ]
-   [x] Guests must sign the card before check-in
-   Keep ID photos for  ⓘ  [ 365 ] days      (empty = keep them)
-   Collect a security deposit   [● on ]
-   Amount                       RM [ 100.00 ]
+   Who completes a card          [ Primary guest only ] [ Every adult ]
+   Require card before check-in  [switch]
+   ID document retention (days)  [ e.g. 90 ]
+   Security deposit              [ Do not collect ] [ Collect a deposit ]
+   Deposit amount                RM [ e.g. 100.00 ]       (Collect only)
 
- House terms              Template [ Homestay ▾ ]   Language [ English ▾ ]
- ┌──────────────────────────────────────┬───────────────────────────┐
- │ Editor (after Edit terms)            │ Preview                   │
- │ 2. A security deposit of             │ 2. A security deposit of  │
- │    {security_deposit} is collected…  │    RM 100.00 is collected…│
- └──────────────────────────────────────┴───────────────────────────┘
- Templates are a starting point, not legal advice.
+ House terms are set after go-live, in Settings under Registration card.
 ```
 
-Not a table: three groups on one page.
+Not a table: two groups on one page. The registration card group is the same component as Settings, Registration card, General (`RegistrationCardGeneralFields`), so the two read and look the same.
 
 **Times**
 
-- Check-in and check-out time menus in 30-minute steps (`H:i`). They save through the property settings Action, general section, with only these two fields. Arrival grace and auto-assign rooms stay in settings.
+- Check-in and check-out time menus in 30-minute steps (`H:i`). A saved time that is not on a 30-minute step is added to the menu. They save through the property settings Action, with the card fields. Arrival grace and auto-assign rooms stay in settings.
 
 **Registration card**
 
-- **Who fills in a card**: a `toggle-group` for `registration_card_scope` (Main guest only = PrimaryOnly, Every adult = EveryAdult).
-- **Guests must sign the card before check-in**: `card_required_for_check_in`.
-- **Keep ID photos for** {n} days: `id_document_retention_days`, 1 to 3650, empty keeps them. An ⓘ button opens a Popover (works on tap and keyboard): "Photos of a guest's IC or passport, taken at check-in. After this many days they are deleted automatically. The ID number stays on the guest record, so you can still search for it. A shorter time keeps less personal data." This matches `PurgeExpiredIdentityScans`, which deletes scan files only.
-- **Collect a security deposit**: a switch, not stored. It is on when `security_deposit_amount` is more than 0. On shows **Amount** (required, more than 0, currency decimals, prefilled with the saved amount). Off hides it and saves 0, so no deposit is asked at check-in. Off then on again shows the last amount typed on the page.
-- When the switch is off and the terms text uses `{security_deposit}`, a hint says: "Your house terms mention a deposit. Edit them if you don't collect one."
+- **Who completes a card**: choice cards for `registration_card_scope` (Primary guest only, Every adult).
+- **Require card before check-in**: `card_required_for_check_in`.
+- **ID document retention (days)**: `id_document_retention_days`, 1 to 3650, empty keeps the photos.
+- **Security deposit**: choice cards, not stored. **Collect a deposit** shows **Deposit amount** (required, more than 0, two decimals). **Do not collect** saves 0, so no deposit is asked at check-in. The mode is Collect when `security_deposit_amount` is more than 0.
 
 **House terms**
 
-- The property's default terms document (seeded by `SeedRegistrationTerms` from the property type's preset), in the selected language. Language lists the property locales (English and Bahasa Malaysia for Malaysia, English elsewhere).
-- Default view: a read-only preview with placeholders filled by the server, and **Edit terms**.
-- **Edit terms** opens the settings editor and preview (markdown editor and the in-app renderer, no new package) side by side. At phone width they become **Edit** and **Preview** tabs. **Discard changes** restores the published text. Empty text is refused: "House terms can't be empty."
-- **Save & continue** publishes a new version (`PublishRegistrationTerms`) only for languages whose text changed. With only one language edited, a line says: "Bahasa Malaysia still uses the template text."
-- **Template**: choosing another preset opens an AlertDialog ("This replaces your house terms with the Resort template. Your edits stay in version history.") and saves it with `ApplyTermsPreset` as a new version when confirmed.
-- Version history, extra documents and card fields stay in settings: "After you go live, you can see past versions and add terms per room type in Settings, under Registration card."
-- Needs `registration-card.manage-terms` (the Owner has it).
+- Not edited in onboarding. `SeedRegistrationTerms` seeds the default terms document from the property type's preset. The owner changes it after go-live in Settings, under Registration card, Terms.
 
 **Save and check**
 
-- One submit, one transaction: one onboarding request validates both groups and calls the property settings and registration card settings Actions, then publishes changed terms.
-- Check: required. Done when check-in and check-out times are set and a published terms document exists. Both are seeded, so it shows Done before the owner opens it. **Next** still visits it, and Review lists "Check-in 15:00 · Check-out 11:00 · Deposit RM 100.00".
+- One submit saves the times and card settings through `UpdatePropertySettings` in one transaction.
+- Check: required. Done when check-in and check-out times are set and a published terms document exists. Both are seeded, so it shows Done once Basics has seeded the defaults. **Next** still visits it.
+- Review lists "Check-in 15:00 · Check-out 11:00 · Deposit RM 100.00".
 
 ## Team table
 
@@ -660,7 +646,7 @@ Editing an earlier section never resets a later one. A later section only shows 
 ┌──────────────────────────────────────────────────────────────────────┐
 │ estatell · Seaview Lodge                               [user menu ▾] │
 ├──────────────────────────────────────────────────────────────────────┤
-│ ✓ Property ❯ ✓ Rooms ❯ ● Finance ❯ 🔒 Prices ❯ Check-in ❯ Team ❯ …   │ phase bar
+│ ✓ Property ❯ ✓ Rooms ❯ ● Finance ❯ 🔒 Prices ❯ Channels ❯ …   │ phase bar
 ├──────────────────────────────────────────────────────────────────────┤
 │ ✓ 1. Taxes   2. Payment methods   3. Companies                       │ section tabs
 ├──────────────────────────────────────────────────────────────────────┤
@@ -743,7 +729,7 @@ The commits are listed in [Checklist: 17 Onboarding](../checklist.md#17-onboardi
 
 1. Property foundations: brick/money currencies, country profiles, registered name and licences.
 2. The onboarding layout and fence, then the Basics country and business details.
-3. Sections: Room types and Rooms, Taxes, Payment methods and Companies, Basic rate, Charge items and Discounts, Check-in essentials, Team, Channel manager.
+3. Sections: Room types and Rooms, Taxes, Payment methods and Companies, Basic rate, Charge items and Discounts, Check-in essentials, Team, Channel manager. The wizard shows Check-in essentials and Team in the Property phase, after Basics.
 4. Review and go live, then [Test drive](06-test-drive.md), then Change country after setup started.
 
 ## Lessons from wastays

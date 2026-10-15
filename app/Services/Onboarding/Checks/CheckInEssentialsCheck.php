@@ -6,13 +6,24 @@ use App\Enums\StepState;
 use App\Models\Property;
 
 /**
- * Stub: the real check is not built yet, so this always returns NotStarted. A later commit replaces it with the rule in
- * docs/17-onboarding/02-wizard-steps.md.
+ * Done when the check-in and check-out times are set and the default terms document has a published version. Both are
+ * seeded, so a new property shows Done before the owner opens the section.
  */
 class CheckInEssentialsCheck implements StepCheck
 {
     public function state(Property $property): StepState
     {
-        return StepState::NotStarted;
+        $settings = $property->settings;
+
+        if ($settings === null || blank($settings->check_in_time) || blank($settings->check_out_time)) {
+            return StepState::NotStarted;
+        }
+
+        $published = $property->termsDocuments()
+            ->where('is_default', true)
+            ->whereHas('versions')
+            ->exists();
+
+        return $published ? StepState::Done : StepState::NotStarted;
     }
 }

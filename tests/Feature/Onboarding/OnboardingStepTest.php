@@ -14,7 +14,7 @@ test('the wizard has fourteen steps and the required ones are the rows marked Ye
     expect(OnboardingStep::cases())->toHaveCount(14)
         ->and(OnboardingStep::Basics->number())->toBe(1)
         ->and(OnboardingStep::Review->number())->toBe(14)
-        ->and($required)->toBe(['basics', 'room_types', 'rooms', 'taxes', 'payment_methods', 'basic_rate', 'check_in_essentials']);
+        ->and($required)->toBe(['basics', 'check_in_essentials', 'room_types', 'rooms', 'taxes', 'payment_methods', 'basic_rate']);
 });
 
 test('a step depends on steps earlier in the wizard', function (OnboardingStep $step, array $dependencies) {
@@ -48,7 +48,7 @@ test('only Taxes and the optional steps can be skipped', function () {
         array_filter(OnboardingStep::cases(), fn (OnboardingStep $step): bool => $step->isSkippable()),
     ));
 
-    expect($skippable)->toBe(['taxes', 'companies', 'charge_items', 'discounts', 'team', 'channel_manager', 'test_drive', 'review'])
+    expect($skippable)->toBe(['team', 'taxes', 'companies', 'charge_items', 'discounts', 'channel_manager', 'test_drive', 'review'])
         ->and(OnboardingStep::Basics->isSkippable())->toBeFalse()
         ->and(OnboardingStep::BasicRate->isSkippable())->toBeFalse();
 });
