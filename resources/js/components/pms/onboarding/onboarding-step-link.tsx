@@ -39,6 +39,11 @@ export function OnboardingStepLink({
                     <OnboardingStateIcon
                         state={step.state}
                         number={step.number}
+                        className={
+                            variant === 'segment' && current
+                                ? 'text-primary-foreground'
+                                : undefined
+                        }
                     />
                 )
             ) : (
