@@ -3,6 +3,7 @@ import { OnboardingHelp } from '@/components/pms/onboarding/onboarding-help';
 import type { OnboardingProgress } from '@/components/pms/onboarding/onboarding-steps';
 import AppLogo from '@/components/app-logo';
 import { NavUser } from '@/components/nav-user';
+import { CommandPalette } from '@/components/pms/command-palette';
 
 /**
  * The top bar of the wizard: logo, property name and code (not a link), progress, Help and the user menu. There is no
@@ -35,6 +36,7 @@ export function OnboardingTopBar({
                     ` · ~${progress.remainingMinutes} min`}
             </p>
             <OnboardingHelp />
+            <CommandPalette />
             <NavUser />
         </header>
     );

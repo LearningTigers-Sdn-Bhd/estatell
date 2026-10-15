@@ -2,6 +2,7 @@ import { Link, usePage } from '@inertiajs/react';
 import AppLogo from '@/components/app-logo';
 import { AppearanceToggle } from '@/components/appearance-toggle';
 import { NavUser } from '@/components/nav-user';
+import { CommandPalette } from '@/components/pms/command-palette';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { useInitials } from '@/hooks/use-initials';
 import { cn } from '@/lib/utils';
@@ -36,7 +37,7 @@ export function AppNavbar({
             <Link
                 href={property ? dashboard() : homeRedirect()}
                 prefetch
-                className="flex min-w-0 items-center gap-2 rounded-md p-1 outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
+                className="flex min-w-0 shrink-0 items-center gap-2 rounded-md p-1 outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
             >
                 {property ? (
                     <>
@@ -56,7 +57,12 @@ export function AppNavbar({
                     <AppLogo />
                 )}
             </Link>
-            <div className="ml-auto flex shrink-0 items-center gap-1">
+            <div className="flex min-w-0 flex-1 justify-center px-2">
+                <div className="w-auto sm:w-full sm:max-w-md">
+                    <CommandPalette />
+                </div>
+            </div>
+            <div className="flex shrink-0 items-center gap-1">
                 <AppearanceToggle />
                 <NavUser />
             </div>

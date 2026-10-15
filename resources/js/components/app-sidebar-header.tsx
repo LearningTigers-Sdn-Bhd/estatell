@@ -1,5 +1,6 @@
 import { Breadcrumbs } from '@/components/breadcrumbs';
 import { AppearanceToggle } from '@/components/appearance-toggle';
+import { CommandPalette } from '@/components/pms/command-palette';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { cn } from '@/lib/utils';
 import type { BreadcrumbItem as BreadcrumbItemType } from '@/types';
@@ -27,7 +28,8 @@ export function AppSidebarHeader({
                 <Breadcrumbs breadcrumbs={breadcrumbs} />
             </div>
             {showAppearanceToggle && (
-                <div className="ml-auto shrink-0">
+                <div className="ml-auto flex shrink-0 items-center gap-1">
+                    <CommandPalette />
                     <AppearanceToggle />
                 </div>
             )}

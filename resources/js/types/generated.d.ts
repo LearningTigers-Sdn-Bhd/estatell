@@ -814,6 +814,16 @@ active: boolean,
 };
 }
 namespace Navigation {
+export type CommandResultData = {
+id: string,
+group: string,
+label: string,
+description: string,
+href: string,
+icon: string,
+status: App.Data.Shared.BadgeData | null,
+actions: App.Data.Navigation.NavItemData[],
+};
 export type NavContextData = {
 key: App.Enums.NavigationContext,
 label: string,

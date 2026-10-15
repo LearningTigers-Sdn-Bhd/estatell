@@ -27,7 +27,7 @@ Two roles can view as:
 | Admin ⌘K             | Type a property code, name, city, or a reservation reference                                         | "View as owner" / "View as owner and open"                            |
 | **Pasted staff URL** | Any `/p/{code}/…` URL opened by a support user who may view it                                       | Intercepted, redirected to the view-as page with `to` set to that URL |
 
-Admin ⌘K is parked. It comes with the command palette commit. There is no copy-link entry point: a support user shares a staff URL, and the pasted staff URL entry point handles it, so no reason travels in a link.
+There is no copy-link entry point: a support user shares a staff URL, and the pasted staff URL entry point handles it, so no reason travels in a link. The palette never starts a session. Every result leads to the view-as page and the same POST.
 
 ## Flow
 

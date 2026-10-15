@@ -2,20 +2,21 @@
 
 Part of the [design system](../design-system.md). Short contract: [DESIGN.md](../../DESIGN.md).
 
-|          | Combobox                                                                                         | Command palette (⌘K)                          |
-| -------- | ------------------------------------------------------------------------------------------------ | --------------------------------------------- |
-| Where    | Inside a form field                                                                              | Global overlay, from any page                 |
-| Result   | Sets a form value (`name` + `items`)                                                             | Navigates, or runs an Action                  |
-| Scope    | One entity type                                                                                  | Guests, reservations, rooms, actions, pages   |
-| Built on | Base UI Combobox                                                                                 | `Command` in a `Dialog`                       |
-| Data     | Bounded lists filtered in the browser; unbounded lists from a `useHttp` search, cached per query | One grouped search endpoint, cached per query |
+|          | Combobox                                                                                         | Command palette (⌘K)                                                                |
+| -------- | ------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------- |
+| Where    | Inside a form field                                                                              | Global overlay, from any page                                                       |
+| Result   | Sets a form value (`name` + `items`)                                                             | Navigates to a page or the view-as confirmation page                                |
+| Scope    | One entity type                                                                                  | Guests, reservations, rooms, pages; properties and references for support           |
+| Built on | Base UI Combobox                                                                                 | `Command` in a `Dialog`                                                             |
+| Data     | Bounded lists filtered in the browser; unbounded lists from a `useHttp` search, cached per query | Pages filtered in the browser; records from `GET /command-search`, cached per query |
 
 Rules:
 
 - Results are grouped and keyboard hints are always visible.
 - Items show labels, never raw values.
-- Pressing `Tab` on a palette result shows that item's actions. Each action calls an existing Action.
+- Pressing `Tab` on a palette result shows that item's navigation actions in the same palette. The palette never starts impersonation or writes domain data.
 - Items and actions the user has no permission for are hidden.
+- Record search starts at 2 characters with a 250 ms debounce, stops at 5 per group, and ignores stale responses. The cache is small, short-lived and cleared on context changes.
 - The guest autocomplete field shows the `GuestMatcher` duplicate warning with "Use existing" and "Create new anyway". `GuestPicker` picks existing guests only and shows no warning.
 
 `GuestPicker` and the `guests.search` route are built with the [reservation page](../12-reservations/06-reservation-page.md#guests-tab), where it picks existing guests only.

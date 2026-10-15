@@ -2,11 +2,13 @@
 
 namespace App\Http\Middleware;
 
+use App\Data\Navigation\NavItemData;
 use App\Data\Navigation\StaffNavigationData;
 use App\Data\NightAudit\BusinessDateData;
 use App\Data\Onboarding\OnboardingProgressData;
 use App\Data\Platform\ImpersonationData;
 use App\Data\Property\PropertySummaryData;
+use App\Enums\PermissionEnum;
 use App\Enums\PropertyStatus;
 use App\Models\Property;
 use App\Navigation\AccountNavigation;
@@ -63,6 +65,7 @@ class HandleInertiaRequests extends Middleware
             'partnerNavigation' => fn () => $request->user()?->partner_id !== null ? app(PartnerNavigation::class)->items() : null,
             'accountNavigation' => fn () => $request->user() !== null && $request->routeIs('account.*') ? app(AccountNavigation::class)->items($request) : null,
             'navigation' => fn () => $this->staffNavigation($request),
+            'commandShortcuts' => fn () => $this->commandShortcuts($request),
             'csrfToken' => fn () => csrf_token(),
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
             ...($this->isOnboardingPage($request) ? ['onboarding' => fn () => $this->onboardingProgress($request)] : []),
@@ -179,5 +182,22 @@ class HandleInertiaRequests extends Middleware
         }
 
         return $property instanceof Property ? $property : null;
+    }
+
+    /** @return list<NavItemData> */
+    private function commandShortcuts(Request $request): array
+    {
+        $user = $request->user();
+        $property = $user?->property;
+
+        if ($property === null || $property->status !== PropertyStatus::Live) {
+            return [];
+        }
+
+        setPermissionsTeamId($property->id);
+
+        return $user->can(PermissionEnum::ReservationsManage->value) ? [
+            new NavItemData(__('New booking'), route('reservations.new', ['property' => $property->code], absolute: false), 'calendar-check'),
+        ] : [];
     }
 }

@@ -128,6 +128,7 @@ Guest bulk actions use `POST /p/{code}/guests/bulk/{operation}`: `mark-vip`, `un
 | `GET /admin/partners/bulk`                                         | `admin.partners.bulk.create`          | `pages/admin/partners/bulk.tsx`                 |
 | `GET /partner-invitations/{token}`                                 | `partner-invitations.show`            | `pages/partner-invitations/accept.tsx`          |
 | `GET /view-as/ES10142`                                             | `view-as.show`                        | `pages/view-as/show.tsx`                        |
+| `GET /command-search?q=ah`                                         | `command-search`                      | – (JSON, grouped palette results)               |
 | `GET /partner`                                                     | `partner.properties.index`            | `pages/partner/properties/index.tsx`            |
 | `GET /join/K7Q2MX`                                                 | `join`                                | Redirects to `/register`                        |
 | `GET /g/cards/5821?expires=…&signature=…`                          | `guest.cards.show`                    | `pages/guest/cards/show.tsx`                    |
