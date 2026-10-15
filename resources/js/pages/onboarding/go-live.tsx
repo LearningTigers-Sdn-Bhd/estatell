@@ -5,6 +5,8 @@ import {
     Circle,
     Lock,
     Minus,
+    Rocket,
+    Send,
     TriangleAlert,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -67,6 +69,7 @@ export default function GoLive({
             primaryAction: showAction
                 ? {
                       label: requiresApproval ? 'Send for approval' : 'Go live',
+                      icon: requiresApproval ? Send : Rocket,
                       disabled: !review.ready,
                       tooltip: review.ready
                           ? undefined

@@ -38,7 +38,7 @@ export function OnboardingFooter({
         current.state !== 'done';
 
     return (
-        <footer className="shrink-0 border-t bg-background px-4 py-3">
+        <footer className="shrink-0 border-t bg-background px-4 py-4">
             <div
                 className={cn(
                     'mx-auto flex w-full items-center justify-between gap-3',
@@ -49,7 +49,10 @@ export function OnboardingFooter({
                     {previous?.url && (
                         <Link
                             href={previous.url}
-                            className={buttonVariants({ variant: 'outline' })}
+                            className={buttonVariants({
+                                variant: 'outline',
+                                size: 'lg',
+                            })}
                             aria-label={`Back to ${previous.label}`}
                         >
                             <ArrowLeft data-icon="inline-start" />
@@ -63,6 +66,7 @@ export function OnboardingFooter({
                         <Button
                             type="button"
                             variant="outline"
+                            size="lg"
                             disabled={layout.processing}
                             focusableWhenDisabled
                             onClick={() =>
@@ -78,6 +82,7 @@ export function OnboardingFooter({
                     {editing && layout.formId !== null && (
                         <Button
                             type="submit"
+                            size="lg"
                             form={layout.formId}
                             disabled={layout.processing}
                             focusableWhenDisabled
@@ -92,7 +97,10 @@ export function OnboardingFooter({
                 </div>
 
                 {preview && next?.url && (
-                    <Link href={next.url} className={buttonVariants()}>
+                    <Link
+                        href={next.url}
+                        className={buttonVariants({ size: 'lg' })}
+                    >
                         Next
                         <ArrowRight data-icon="inline-end" />
                     </Link>
@@ -107,13 +115,16 @@ function PrimaryAction({
 }: {
     action: NonNullable<OnboardingLayoutProps['primaryAction']>;
 }) {
+    const Icon = action.icon;
     const button = (
         <Button
             type="button"
+            size="lg"
             disabled={action.disabled}
             focusableWhenDisabled
             onClick={action.onClick}
         >
+            {Icon && <Icon data-icon="inline-start" />}
             {action.label}
         </Button>
     );

@@ -23,6 +23,7 @@ export type OnboardingLayoutProps = {
 
 export type OnboardingPrimaryAction = {
     label: string;
+    icon?: LucideIcon;
     disabled: boolean;
     /** Why the button is disabled. Shown in a tooltip. */
     tooltip?: string;
