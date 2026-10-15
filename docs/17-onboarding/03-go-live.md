@@ -17,12 +17,11 @@ Switch a property from setup to operation in one clear moment.
 **Go-live steps** (`GoLive`, one transaction):
 
 1. Checks the readiness list. Every required step must be Done.
-2. Runs `ClearPracticeData` (see [Test drive](06-test-drive.md#clear-practice-data)). It deletes practice reservations, folios, payments, registration cards, document sequences and the practice business date.
-3. Creates the first real `business_dates` row (Open) on the opening date: **today** in the property time zone. Only `ApproveGoLive` can pass an earlier date, which the admin sets for a property that asked to add past stays. The owner never picks a date.
-4. Starts document numbering.
-5. Enables notifications and the night audit.
-6. Sets `status = Live` and `went_live_at`.
-7. Runs `RefreshPendingTemporaryPasswords`: every staff and company user of the property with `must_change_password` who has never signed in gets a new temp password that expires 14 days after go-live. No password values are logged. Company users who already have a password elsewhere are not touched.
+2. Creates the first `business_dates` row (Open) on the opening date: **today** in the property time zone. Only `ApproveGoLive` can pass an earlier date, which the admin sets for a property that asked to add past stays. The owner never picks a date.
+3. Starts document numbering.
+4. Enables notifications and the night audit. The night audit already runs only for Live properties (`DueAudits`). To verify: notifications need the same gate.
+5. Sets `status = Live` and `went_live_at`.
+6. Runs `RefreshPendingTemporaryPasswords`: every staff and company user of the property with `must_change_password` who has never signed in gets a new temp password that expires 14 days after go-live. No password values are logged. Company users who already have a password elsewhere are not touched.
 
 Nothing operational happens at `RequestGoLive`: a pending property has no business date.
 
@@ -47,8 +46,8 @@ go_live_review_flags   go_live_review_id, step (OnboardingStep)
 
 ### Owner side
 
-- **Waiting for approval** banner on Review: sent date, "We usually review within 1 working day. We'll email you when you're live.", **Start test drive →** and **Withdraw to make changes** (AlertDialog, then `WithdrawGoLiveRequest`).
-- While pending, every section opens as a read-only preview ("Waiting for approval. Withdraw to make changes."). Test drive stays open.
+- **Waiting for approval** banner on Review: sent date, "We usually review within 1 working day. We'll email you when you're live.", and **Withdraw to make changes** (AlertDialog, then `WithdrawGoLiveRequest`).
+- While pending, every section opens as a read-only preview ("Waiting for approval. Withdraw to make changes.").
 - **Sent back**: Review shows the admin's note ("Not approved yet. Reviewed by estatell support on {date}."). Flagged sections show ⚑ "Flagged by support" in the phase bar, the stepper and Review, with **Fix →**, until the next submit. Flags do not lock anything.
 - **Approved**: the email "{property} is live" links to the **You're live!** screen, shown once on the next visit.
 
@@ -56,7 +55,7 @@ go_live_review_flags   go_live_review_id, step (OnboardingStep)
 
 - The admin sidebar **Properties** item shows a count badge of pending requests. The properties list gets a **Waiting for approval** status tab (property, partner, sent, warnings count, **Review**). The admin property page shows a **Waiting for approval** banner with **Review**. The onboarding board gets the same tab when it is built.
 - Review page `GET /admin/properties/{code}/go-live` (admin layout): who sent it and when, **View as**, and the Review rows read-only with more detail (registration numbers, licences, tax rates and registration numbers, prices). Each row has a tick to flag it for the owner. Warnings show as on the owner side.
-- **Approve** opens an AlertDialog: opening date (today by default, or earlier, with "Only change this if the owner asked to add stays from before today."), and what happens (business date, practice data counts, sign-in details count, owner emailed).
+- **Approve** opens an AlertDialog: opening date (today by default, or earlier, with "Only change this if the owner asked to add stays from before today."), and what happens (business date, sign-in details count, owner emailed).
 - **Send back** opens an AlertDialog with a required note and the flagged sections.
 
 ## Build order
@@ -65,12 +64,12 @@ go_live_review_flags   go_live_review_id, step (OnboardingStep)
 
 ## Build status
 
-| Part                                                                                                            | Status                                                                                                       |
-| --------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| `GoLive`, `GoLiveReadiness` (empty list), `EnsurePropertyIsLive`, the Go live page and a link on Basics         | Built.                                                                                                       |
-| Opening date: today or earlier in the property time zone, so a stay month can be back-filled                    | Built. To change: the owner field goes; `GoLive` uses today, and only `ApproveGoLive` takes an earlier date. |
-| `PendingApproval` when `require_go_live_approval` is on. The business date opens and `went_live_at` stays empty | Built. To change: `RequestGoLive` opens nothing; the go-live steps run at `ApproveGoLive`.                   |
-| `ClearPracticeData`, notifications and night audit switch-on, confetti, Recommended checklist                   | Not built. They come with the wizard steps, Test drive and the later night audit items.                      |
+| Part                                                                                                            | Status                                                                                                                                 |
+| --------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `GoLive`, `GoLiveReadiness` (empty list), `EnsurePropertyIsLive`, the Go live page and a link on Basics         | Built.                                                                                                                                 |
+| Opening date: today or earlier in the property time zone, so a stay month can be back-filled                    | Built. To change: the owner field goes; `GoLive` uses today, and only `ApproveGoLive` takes an earlier date.                           |
+| `PendingApproval` when `require_go_live_approval` is on. The business date opens and `went_live_at` stays empty | Built. To change: `RequestGoLive` opens nothing; the go-live steps run at `ApproveGoLive`.                                             |
+| The readiness list, notifications switch-on, confetti, Recommended checklist                                    | Not built. They come with Review and go live. `GoLiveReadiness` still returns no checks, so any onboarding property can go live today. |
 
 Document numbering needs no start step. `NextDocumentNumber` creates a sequence row on first use.
 
@@ -97,4 +96,4 @@ Document numbering needs no start step. `NextDocumentNumber` creates a sequence 
 
 ## Lessons from wastays
 
-The lifecycle was setup, pending_review, ready_to_launch, live, with a training mode and a training reset job. Practice mode keeps the idea with one shared `ClearPracticeData` and a guard test.
+The lifecycle was setup, pending_review, ready_to_launch, live, with a training mode and a training reset job. estatell has no practice mode. Owners try the product on the shared [demo properties](../01-platform/06-demo-properties.md), and the approval setting is the check before go-live.

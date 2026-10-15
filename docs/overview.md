@@ -112,7 +112,7 @@ These are lessons from wastays. Each one caused real maintenance cost.
 - **Accounting before rooms in onboarding.** Ask in the owner's order: property, rooms, prices, payments, check-in.
 - **Blocking checks that need a person at 2 AM.** Resolve by policy and fix problems during the day.
 - **Strict step chains with invalidation.** Calculate progress from data instead.
-- **Review and training modes that need resets.** Allow practice data before go-live and clear it at go-live.
+- **Review and training modes that need resets.** No practice mode. Owners try the product on shared demo properties that the platform rebuilds.
 
 ## jsonb allowlist
 
@@ -222,29 +222,29 @@ Modules are numbered in build order. Each folder in `docs/` holds one module. Ea
 
 The build plan, as one commit per item, is in [checklist.md](checklist.md).
 
-| #   | Module                               | Summary                                                                          |
-| --- | ------------------------------------ | -------------------------------------------------------------------------------- |
-| 01  | [Platform](01-platform/)             | Platform admins, platform settings, feature flags, impersonation                 |
-| 02  | [Property](02-property/)             | Properties, settings, defaults seeding, age groups, printing settings            |
-| 03  | [Staff](03-staff/)                   | Staff invitations, roles and permissions                                         |
-| 04  | [Notifications](04-notifications/)   | Notification types and opt-out                                                   |
-| 05  | [Rooms](05-rooms/)                   | Room types, rooms, beds, groups, blocks                                          |
-| 06  | [Catalogues](06-catalogues/)         | Transaction codes, charge items, taxes, payment methods, discounts, room revenue |
-| 07  | [Meals](07-meals/)                   | Meal periods and entitlements                                                    |
-| 08  | [Rates](08-rates/)                   | Rate plans, daily rates, pricing strategies, derived plans, long-stay discounts  |
-| 09  | [Packages](09-packages/)             | Inclusions and package prices                                                    |
-| 10  | [Availability](10-availability/)     | Availability calculation                                                         |
-| 11  | [Guests](11-guests/)                 | Guest CRM, identity documents, privacy                                           |
-| 12  | [Reservations](12-reservations/)     | Shape, groups, beds, add-ons, booking form, reservation page, booking summary    |
-| 13  | [Folio](13-folio/)                   | Folios, ledger lines, routing, posting, folio invoice                            |
-| 14  | [Payments](14-payments/)             | Payments and refunds                                                             |
-| 15  | [City ledger](15-city-ledger/)       | Companies, invoices, payments received, statements, aging                        |
-| 16  | [Registration](16-registration/)     | Registration cards and terms                                                     |
-| 17  | [Onboarding](17-onboarding/)         | Account creation, partners, wizard, go-live, test drive                          |
-| 18  | [Front desk](18-front-desk/)         | Check-in, check-out, assignment, dashboard, group check-out                      |
-| 19  | [Housekeeping](19-housekeeping/)     | Room status board, printed work sheet and property column layout                 |
-| 20  | [Night audit](20-night-audit/)       | Business dates, readiness, audit run                                             |
-| 21  | [Channels](21-channels/)             | Channex connection, mapping, sync                                                |
-| 22  | [Reports](22-reports/)               | Core reports, column layouts, row export (PDF, CSV, Excel)                       |
-| 23  | [Company portal](23-company-portal/) | Company users book and view their own stays across linked properties             |
-| 24  | [Boats](24-boats/)                   | Boat departures, fares, trips per room and the boat manifest (feature flag)      |
+| #   | Module                               | Summary                                                                           |
+| --- | ------------------------------------ | --------------------------------------------------------------------------------- |
+| 01  | [Platform](01-platform/)             | Platform admins, platform settings, feature flags, impersonation, demo properties |
+| 02  | [Property](02-property/)             | Properties, settings, defaults seeding, age groups, printing settings             |
+| 03  | [Staff](03-staff/)                   | Staff invitations, roles and permissions                                          |
+| 04  | [Notifications](04-notifications/)   | Notification types and opt-out                                                    |
+| 05  | [Rooms](05-rooms/)                   | Room types, rooms, beds, groups, blocks                                           |
+| 06  | [Catalogues](06-catalogues/)         | Transaction codes, charge items, taxes, payment methods, discounts, room revenue  |
+| 07  | [Meals](07-meals/)                   | Meal periods and entitlements                                                     |
+| 08  | [Rates](08-rates/)                   | Rate plans, daily rates, pricing strategies, derived plans, long-stay discounts   |
+| 09  | [Packages](09-packages/)             | Inclusions and package prices                                                     |
+| 10  | [Availability](10-availability/)     | Availability calculation                                                          |
+| 11  | [Guests](11-guests/)                 | Guest CRM, identity documents, privacy                                            |
+| 12  | [Reservations](12-reservations/)     | Shape, groups, beds, add-ons, booking form, reservation page, booking summary     |
+| 13  | [Folio](13-folio/)                   | Folios, ledger lines, routing, posting, folio invoice                             |
+| 14  | [Payments](14-payments/)             | Payments and refunds                                                              |
+| 15  | [City ledger](15-city-ledger/)       | Companies, invoices, payments received, statements, aging                         |
+| 16  | [Registration](16-registration/)     | Registration cards and terms                                                      |
+| 17  | [Onboarding](17-onboarding/)         | Account creation, partners, wizard, go-live and approval                          |
+| 18  | [Front desk](18-front-desk/)         | Check-in, check-out, assignment, dashboard, group check-out                       |
+| 19  | [Housekeeping](19-housekeeping/)     | Room status board, printed work sheet and property column layout                  |
+| 20  | [Night audit](20-night-audit/)       | Business dates, readiness, audit run                                              |
+| 21  | [Channels](21-channels/)             | Channex connection, mapping, sync                                                 |
+| 22  | [Reports](22-reports/)               | Core reports, column layouts, row export (PDF, CSV, Excel)                        |
+| 23  | [Company portal](23-company-portal/) | Company users book and view their own stays across linked properties              |
+| 24  | [Boats](24-boats/)                   | Boat departures, fares, trips per room and the boat manifest (feature flag)       |

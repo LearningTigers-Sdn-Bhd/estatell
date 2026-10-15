@@ -32,6 +32,7 @@ One place for platform admins to find any property and see its details. Admin ac
 - **Create property** opens a Sheet. The admin enters the property name and type, owner name and email, then chooses a seven-day emailed setup link or an initial password. With an initial password, the admin can also mark the email as verified after confirming that the owner controls the address. The action creates an Onboarding property in Malaysia, seeds its defaults and assigns the Owner role. Success opens the new property detail page.
 
 - A **Waiting for approval** status tab lists pending go-live requests (property, partner, sent, warnings, **Review**). See [Go live](../17-onboarding/03-go-live.md#admin-side).
+- Demo properties are left out of the other tabs. A **Demo** tab lists them with **Rebuild** and the demo logins. See [Demo properties](06-demo-properties.md).
 
 ## Show
 

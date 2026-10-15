@@ -18,22 +18,21 @@ The first release has two pages, Basics and Review (go live). Both use the onboa
 
 ## Phases and sections
 
-| #   | Phase      | Section                                                                                                                                                         | Required | Locked until       |
-| --- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ------------------ |
-| 1   | Property   | Basics: property type, name, country, address, and currency and time zone outside Malaysia. See [Basics form](#basics-form).                                    | Yes      | –                  |
-| 2   |            | Check-in essentials: times, registration card and security deposit. See [Check-in essentials form](#check-in-essentials-form).                                  | Yes      | Basics             |
-| 3   |            | Team: staff with temp passwords and a role. See [Team table](#team-table).                                                                                      | No       | Basics             |
-| 4   | Rooms      | Room types: an editable table, sold by room only. See [Room types table](#room-types-table).                                                                    | Yes      | Basics             |
-| 5   |            | Rooms: number ranges per room type, optional room groups. See [Rooms table](#rooms-table).                                                                      | Yes      | Room types         |
-| 6   | Finance    | Taxes, including which taxes apply to rooms (room revenue). See [Taxes table](#taxes-table).                                                                    | Yes      | Basics             |
-| 7   |            | Payment methods: turn seeded methods on or off, add more. See [Payment methods table](#payment-methods-table).                                                  | Yes      | Basics             |
-| 8   |            | Companies: city ledger companies and their portal users. See [Companies table](#companies-table).                                                               | No       | Basics             |
-| 9   | Prices     | Basic rate: weekday and weekend price per room-sold room type, priced by room or by guest, plus optional more rates. See [Basic rate table](#basic-rate-table). | Yes      | Room types + Taxes |
-| 10  |            | Charge items: starter items and extras with price, unit and taxes. See [Charge items table](#charge-items-table).                                               | No       | Taxes              |
-| 11  |            | Discounts: the starter discount and more, with type, value and what they apply to. See [Discounts table](#discounts-table).                                     | No       | Basics             |
-| 12  | Channels   | Channel manager: OTA lists the estatell team connects after approval. See [Channel manager table](#channel-manager-table).                                      | No       | Basics             |
-| 13  | Test drive | Practice mode. See [Test drive](06-test-drive.md).                                                                                                              | No       | All required Done  |
-| 14  | Review     | Review: the readiness list, warnings and go live (or send for approval). See [Review page](#review-page).                                                       | –        | All required Done  |
+| #   | Phase    | Section                                                                                                                                                         | Required | Locked until       |
+| --- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ------------------ |
+| 1   | Property | Basics: property type, name, country, address, and currency and time zone outside Malaysia. See [Basics form](#basics-form).                                    | Yes      | –                  |
+| 2   |          | Check-in essentials: times, registration card and security deposit. See [Check-in essentials form](#check-in-essentials-form).                                  | Yes      | Basics             |
+| 3   |          | Team: staff with temp passwords and a role. See [Team table](#team-table).                                                                                      | No       | Basics             |
+| 4   | Rooms    | Room types: an editable table, sold by room only. See [Room types table](#room-types-table).                                                                    | Yes      | Basics             |
+| 5   |          | Rooms: number ranges per room type, optional room groups. See [Rooms table](#rooms-table).                                                                      | Yes      | Room types         |
+| 6   | Finance  | Taxes, including which taxes apply to rooms (room revenue). See [Taxes table](#taxes-table).                                                                    | Yes      | Basics             |
+| 7   |          | Payment methods: turn seeded methods on or off, add more. See [Payment methods table](#payment-methods-table).                                                  | Yes      | Basics             |
+| 8   |          | Companies: city ledger companies and their portal users. See [Companies table](#companies-table).                                                               | No       | Basics             |
+| 9   | Prices   | Basic rate: weekday and weekend price per room-sold room type, priced by room or by guest, plus optional more rates. See [Basic rate table](#basic-rate-table). | Yes      | Room types + Taxes |
+| 10  |          | Charge items: starter items and extras with price, unit and taxes. See [Charge items table](#charge-items-table).                                               | No       | Taxes              |
+| 11  |          | Discounts: the starter discount and more, with type, value and what they apply to. See [Discounts table](#discounts-table).                                     | No       | Basics             |
+| 12  | Channels | Channel manager: OTA lists the estatell team connects after approval. See [Channel manager table](#channel-manager-table).                                      | No       | Basics             |
+| 13  | Review   | Review: the readiness list, warnings and go live (or send for approval). See [Review page](#review-page).                                                       | –        | All required Done  |
 
 ```
  1 Basics* ──┬──▶ 2 Check-in essentials*
@@ -47,7 +46,7 @@ The first release has two pages, Basics and Review (go live). Both use the onboa
 
  4 Room types* + 6 Taxes* ──▶ 9 Basic rate*
 
- all * Done ──▶ 13 Test drive (opt) ──▶ 14 Review / Go live
+ all * Done ──▶ 13 Review / Go live
 ```
 
 Room revenue is not a separate section. Its taxes are the **Applies to rooms** column in Taxes. The no-show, cancellation, early departure and late check-out policies stay Free (seeded) and are on the Recommended checklist after go-live.
@@ -194,7 +193,7 @@ Setup started (another section is no longer Not started):
 - Limits follow `GenerateRoomsRequest`. A number already in use, or repeated across rows, shows an error on the row and its preview chip, and nothing saves.
 - A fully empty row is ignored on save, not an error.
 - **Add range** in the `TableFooter`. A row can be removed once rooms exist. Before that the last row stays.
-- Returning: saved rooms show as chips (under group headings when grouped) with × to delete, with a confirm popover. Blocked when a practice booking uses the room ("Reset practice first"). One empty range row is added for more rooms.
+- Returning: saved rooms show as chips (under group headings when grouped) with × to delete, with a confirm popover. One empty range row is added for more rooms.
 - Bed-sold room types are not in the room type menu.
 
 **Room groups**
@@ -211,7 +210,7 @@ Setup started (another section is no longer Not started):
 - One submit, one transaction: create the groups, then `GenerateRooms` (range mode) per row with its `room_group_id`.
 - At phone width each row stacks into a card, with the Group menu on its own line.
 - The save is `SaveOnboardingRooms`, called through `SaveRoomsRequest` (`use_groups`, `groups` with a row `key`, `id` and `name`, `ranges` with room type, `group_key`, prefix, from and to). Errors show per row (`ranges.{n}.from`, `groups.{n}.name`). A number that is taken (by a saved room or by another row) shows on the row. If a number is taken between the check and the save, the Action rolls back and the page shows an error toast.
-- Saved groups stay in the Groups table as read-only rows and cannot be removed here, so a property that has groups always uses groups. A saved room is removed with × and a confirm popover (`onboarding.rooms.destroy`, through `ArchiveRoom`). The "Reset practice first" block comes with [Test drive](06-test-drive.md).
+- Saved groups stay in the Groups table as read-only rows and cannot be removed here, so a property that has groups always uses groups. A saved room is removed with × and a confirm popover (`onboarding.rooms.destroy`, through `ArchiveRoom`).
 - Check: Done when every room-sold room type has at least one active room. In progress when some have rooms and some do not. Not started when none do, or when there is no room-sold room type.
 
 ## Taxes table
@@ -610,22 +609,21 @@ Not a table: two groups on one page. The registration card group is the same com
  │                                                     [Fix in Charge items →]  │
  │            – Companies        Skipped                              [Add]     │
  │ Prices     ✗ Basic rate       Deluxe King has no price            [Finish →] │
- │ Test drive ○ Test drive       Not started (optional)               [Start]   │
  └──────────────────────────────────────────────────────────────────────────────┘
  ℹ 2 staff and 1 company user get their sign-in details when you go live.
- ⚠ Practice data will be cleared: 2 bookings, 2 folios, 1 payment.
  Your first business day opens on the day you go live.
                                                    [Go live]  or  [Send for approval]
 ```
 
-- One row per section, grouped by phase, from `OnboardingProgress`: state, a one-line summary built on the server, and an action (**Edit**, **Finish →**, **Add**, **Start**, or **Fix in {section} →** for a warning).
+- One row per section, grouped by phase, from `OnboardingProgress`: state, a one-line summary built on the server, and an action (**Edit**, **Finish →**, **Add**, or **Fix in {section} →** for a warning).
 - States: ✓ Done, ✗ required and not done, ○ optional and not started, – skipped, ⚠ Needs attention, ⚑ flagged by support.
 - `GoLiveReadiness::checks()` returns one `GoLiveCheckData` per required section, and `isReady()` needs every one Done. Warnings are a separate list and never block: a tax applied to no charge, no tax on rooms, the deposit switch off while the terms mention a deposit, a more-rates follower missing a room type.
-- Info lines: the sign-in line and the practice data counts.
+- Info line: how many staff and company users get their sign-in details.
 - No opening date field. The day you go live is the first business day.
-- The button is disabled until ready (tooltip "Finish {sections} first"), hidden during view as, and reads **Send for approval** when approval is on. It opens an AlertDialog: "Go live today?" with the first business day, practice data counts, "Country, currency and time zone can't be changed after this." and the sign-in count.
+- The button is disabled until ready (tooltip "Finish {sections} first"), hidden during view as, and reads **Send for approval** when approval is on. It opens an AlertDialog: "Go live today?" with the first business day, "Country, currency and time zone can't be changed after this." and the sign-in count.
 - After going live: the **You're live!** screen with **Share sign-in details** and **Open dashboard**. After sending: the waiting notice. Pending, sent back and approved states: see [Go live](03-go-live.md#approval).
 - Review can be opened before everything is Done and works as a to-do list.
+- There is no Test drive section. Owners try the product on the shared [demo properties](../01-platform/06-demo-properties.md), and the go-live approval setting is the check before go-live.
 - At phone width rows stack: state and name, then summary and action.
 
 ## Section states
@@ -648,7 +646,7 @@ Editing an earlier section never resets a later one. A later section only shows 
 - The server enforces the lock too: a save while a prerequisite is not Done is rejected.
 - A preview's footer has **Back** and **Next** only (no Save, no Skip). Next opens the next section without saving.
 - Locked phase and step links keep the 🔒 icon. Hover or focus shows "Locked until {section} is done. Open to preview." Screen readers hear "{section}, locked, preview".
-- Test drive and Review can be previewed too. Review then works as a to-do list of what is missing.
+- Review can be previewed too. Review then works as a to-do list of what is missing.
 
 ## Layout
 
@@ -693,11 +691,11 @@ When a field is added to a settings form, decide in the same change whether the 
 
 ## The fence
 
-| Status          | `/p/{code}/onboarding/*`                                            | Other `/p/{code}/*` routes                                                                                          |
-| --------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| Onboarding      | Owner and view as: open. Other staff: the waiting page.             | Redirect to the current section. Practice routes are open in practice mode ([Test drive](06-test-drive.md#routes)). |
-| PendingApproval | Review (waiting notice), Test drive, sections as read-only previews | Practice routes are open in practice mode. Everything else redirects to Review.                                     |
-| Live            | Redirect to the dashboard                                           | Open                                                                                                                |
+| Status          | `/p/{code}/onboarding/*`                                | Other `/p/{code}/*` routes       |
+| --------------- | ------------------------------------------------------- | -------------------------------- |
+| Onboarding      | Owner and view as: open. Other staff: the waiting page. | Redirect to the current section. |
+| PendingApproval | Review (waiting notice), sections as read-only previews | Redirect to Review.              |
+| Live            | Redirect to the dashboard                               | Open                             |
 
 - The waiting page says "Your property is still being set up. Ask {Owner name}." Staff can be added early (Team) so their accounts are ready on day one.
 - After go-live, settings is the only place to edit setup data.
@@ -724,14 +722,14 @@ property_ota_credentials  id, property_id, ota_channel_id, channel_name (only fo
 
 ## Middleware
 
-- `live` (`EnsurePropertyIsLive`) wraps every PMS route file, including the dashboard, settings, staff and rates. It redirects to the current section until the property is Live, with the practice exception.
+- `live` (`EnsurePropertyIsLive`) wraps every PMS route file, including the dashboard, settings, staff and rates. It redirects to the current section until the property is Live.
 - `onboarding.only` (`EnsureOnboarding`) wraps `onboarding.php`. It redirects Live properties to the dashboard and other staff to the waiting page.
 
 ### Status
 
 - Built: Basics with country, currency, time zone, state list and the Business details group (`SavePropertyBasics`, `ChangePropertyCountry` while setup has not started, `SettingsLock::locksCountry`), the Room types section (`SaveOnboardingRoomTypes`, `RoomTypesCheck`), the enums, `OnboardingProgress`, the Basics check, the `onboarding_skips` table with the Skip and Unskip Actions and their routes (`POST` and `DELETE onboarding/skips/{step}`), the step save rule (`OnboardingStepRequest`), both middlewares, the waiting page, the onboarding layout and the shared progress.
 - Stubs: every other step's check (except Basics and Room types) returns NotStarted until its own commit replaces it.
-- Not yet: the practice exception, and the Needs attention state (it needs a stored "was Done" marker, so no state is produced yet).
+- Not yet: the Needs attention state (it needs a stored "was Done" marker, so no state is produced yet).
 - Go-live readiness is unchanged. It still returns no checks until the sections are built.
 
 ## Build order
@@ -741,7 +739,7 @@ The commits are listed in [Checklist: 17 Onboarding](../checklist.md#17-onboardi
 1. Property foundations: brick/money currencies, country profiles, registered name and licences.
 2. The onboarding layout and fence, then the Basics country and business details.
 3. Sections: Room types and Rooms, Taxes, Payment methods and Companies, Basic rate, Charge items and Discounts, Check-in essentials, Team, Channel manager. The wizard shows Check-in essentials and Team in the Property phase, after Basics.
-4. Review and go live, then [Test drive](06-test-drive.md), then Change country after setup started.
+4. Review and go live, then go-live approval, then Change country after setup started. There is no Test drive (see [Demo properties](../01-platform/06-demo-properties.md)).
 
 ## Lessons from wastays
 

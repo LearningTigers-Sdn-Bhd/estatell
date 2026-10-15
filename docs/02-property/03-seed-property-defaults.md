@@ -46,7 +46,7 @@ A strategy class per country replaces the `$countryCode !== 'MY'` checks in the 
 **UI on Basics once setup has started:**
 
 1. Country, currency and time zone show read-only with **Change country**.
-2. **Change country** unlocks the three fields in place, with a warning Alert: "Changing country resets taxes, payment methods, prices and practice data. Room types, rooms and team stay." **Cancel** restores the saved values and locks them again.
+2. **Change country** unlocks the three fields in place, with a warning Alert: "Changing country resets taxes, payment methods and prices. Room types, rooms and team stay." **Cancel** restores the saved values and locks them again.
 3. **Save & continue** opens an AlertDialog (no fields, destructive button **Change country**) titled "Change country to {country}?". It lists the server-sent counts of what resets. Type, name and address changes save in the same request.
 
 The fields stay on the page because Basics is their form, and an AlertDialog allows at most one field ([Form containers](../design-system/05-form-containers.md#choosing-the-container)).
@@ -60,7 +60,7 @@ The fields stay on the page because Basics is their form, and an AlertDialog all
 | Rate plans (the plans themselves)                      | Rates: prices are cleared, so Basic rate becomes Not started                      |
 | Roles, staff, invitations                              | Payment methods, charge items, discounts (fixed amounts are in the old currency)  |
 | Check-in and check-out times, registration card fields | Security deposit amount, terms (room types lose a link to a reset terms document) |
-| Age groups and meal periods the owner edited           | Untouched age groups and meal periods, practice data (`ClearPracticeData`)        |
+| Age groups and meal periods the owner edited           | Untouched age groups and meal periods                                             |
 
 Guard test: after `ChangePropertyCountry` from Malaysia to another country, no Malaysian preset key, tax link or old-currency amount is left for the property.
 

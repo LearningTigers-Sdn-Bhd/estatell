@@ -66,7 +66,7 @@ Everything that creates a property or lets support in, for admins and partners. 
 
 ### 17 Onboarding
 
-Build in this order. Each item is one commit. Docs: [Wizard steps](17-onboarding/02-wizard-steps.md), [Go live](17-onboarding/03-go-live.md), [Test drive](17-onboarding/06-test-drive.md), [Seed property defaults](02-property/03-seed-property-defaults.md).
+Build in this order. Each item is one commit. Docs: [Wizard steps](17-onboarding/02-wizard-steps.md), [Go live](17-onboarding/03-go-live.md), [Demo properties](01-platform/06-demo-properties.md), [Seed property defaults](02-property/03-seed-property-defaults.md).
 
 **Foundations (property module)**
 
@@ -102,11 +102,12 @@ Build in this order. Each item is one commit. Docs: [Wizard steps](17-onboarding
 
 **Go live**
 
-- [ ] `feat(onboarding): fill the review page and go live` — Review rows from every check, warnings with **Fix →**, info lines; `GoLive` with today as the opening date (the owner field removed); `RefreshPendingTemporaryPasswords`; the **You're live!** screen with **Share sign-in details**; the dashboard Recommended checklist. Needs: every section. Docs: [Review page](17-onboarding/02-wizard-steps.md#review-page), [Go live](17-onboarding/03-go-live.md).
+- [ ] `feat(onboarding): fill the review page and go live` — `GoLiveReadiness` from every required check (it returns none today, so any onboarding property can go live), Review rows from every check, warnings with **Fix →**, the sign-in info line; remove `TestDrive` from `OnboardingStep` (Review becomes 13) with `TestDriveCheck`; `GoLive` with today as the opening date (the owner field removed); `RefreshPendingTemporaryPasswords`; the **You're live!** screen with **Share sign-in details**; the dashboard Recommended checklist. Needs: every section. Docs: [Review page](17-onboarding/02-wizard-steps.md#review-page), [Go live](17-onboarding/03-go-live.md).
 - [ ] `feat(onboarding): add go-live approval` — `go_live_reviews`, `go_live_review_flags`, `GoLiveDecision`; `RequestGoLive` (opens nothing), `ApproveGoLive` (runs `GoLive`, admin opening date), `RejectGoLive` (note, flags), `WithdrawGoLiveRequest`; the waiting, sent-back and flag states for the owner; the admin **Waiting for approval** tab, sidebar badge, property banner and review page; `GoLiveRequested`, `GoLiveApproved`, `GoLiveRejected`; the platform setting help line. Needs: review page and go live. Docs: [Approval](17-onboarding/03-go-live.md#approval).
-- [ ] `feat(onboarding): add test drive` — practice business date, the practice route exception (also while pending), banner, coach marks, Reset practice, `ClearPracticeData` (also in `GoLive`), the guard test. Needs: go-live approval. Docs: [Test drive](17-onboarding/06-test-drive.md).
-- [ ] `feat(onboarding): let owners change country after setup started` — **Change country** on Basics, the in-place fields and warning, the AlertDialog with counts, `ChangePropertyCountry` resetting country-bound data (room types, rooms and team kept), the guard test. Needs: test drive, Basics country. Docs: [Changing country](02-property/03-seed-property-defaults.md#changing-country).
+- [ ] `feat(platform): add the demo properties` — `properties.is_demo`, `BuildDemoProperty` through the real Actions (Pearlside View Resort and Boreno Hotel, 14 days of history with `RunNightAudit`, fixed names, no boats), `RebuildDemoProperty` as a queued job with the nightly schedule, the guards (no outgoing email or SMS, no channel connection, `DueAudits` skips demos, hidden from admin and partner lists), the demo banner, and the admin **Demo** tab with **Rebuild**. Tests: build counts, a rebuild leaves no extra rows, no notifications, not in `DueAudits`. Needs: go-live approval. Docs: [Demo properties](01-platform/06-demo-properties.md).
+- [ ] `feat(platform): add the demo logins` — `users.is_demo` (account security read-only, no real property), one login per partner plus one direct, Owner on both demo properties, admin **Add login**, **Copy**, **Reset** and **Off** on the Demo tab, the partner **Demo access** card. To verify first: how the password stays readable. Tests: account lock, a partner sees only its own login, a turned-off login can't sign in. Needs: the demo properties. Docs: [Demo properties](01-platform/06-demo-properties.md#logins).
 - [ ] `feat(onboarding): add reminders and the admin onboarding board` — also the partner's own board on their Properties page. Docs: [Engagement and admin board](17-onboarding/04-engagement-and-admin-board.md).
+- [ ] `feat(onboarding): let owners change country after setup started` — **Change country** on Basics, the in-place fields and warning, the AlertDialog with counts, `ChangePropertyCountry` resetting country-bound data (room types, rooms and team kept), the guard test. Needs: go-live approval, Basics country. Docs: [Changing country](02-property/03-seed-property-defaults.md#changing-country).
 
 ### 18 Front desk
 

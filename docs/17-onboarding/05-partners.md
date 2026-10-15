@@ -90,6 +90,7 @@ Empty list: "Share your signup link to add a property."
 - **New property** shows only when `can_create_properties` is on. It opens the same Sheet as admin and calls `CreatePropertyForOwner` with the partner, so the code gets the partner's prefix. When the switch is off, `POST /partner/properties` returns 403.
 - The list shows 25 per page, newest first.
 - A row click opens the partner property page. Each row has a **View as** button (see [Impersonation](../01-platform/04-impersonation.md)). Step and percentage come later with the onboarding board.
+- A **Demo access** card shows the partner's own demo login with **Copy login**, for prospects to try Pearlside View Resort and Boreno Hotel. The partner can't change it. See [Demo properties](../01-platform/06-demo-properties.md#logins).
 
 ### Property page
 
