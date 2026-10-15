@@ -19,13 +19,6 @@
 
 @section('title', $title)
 
-@push('head')
-    <style>
-        thead { display: table-header-group; }
-        tr { page-break-inside: avoid; }
-    </style>
-@endpush
-
 @section('content')
     @component('pdf.partials.letterhead', ['print' => $print])
         <div class="title">{{ $title }}</div>

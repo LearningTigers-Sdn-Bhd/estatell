@@ -139,7 +139,7 @@ Brief for every item: read `AGENTS.md`, `.ai/rules/index.md`, the matching rule 
     - Implemented the shared text wordmark with semantic theme colors. `npm run check`, `npx tsc --noEmit` and `npm run build` pass. Browser review is still open.
 - [x] `style(auth): polish the sign-in pages` — login, forgot and reset password, two-factor challenge, set password, owner setup and verify email. Full-width `100dvh` shell, two horizontal and two vertical dashed lines inset 24px on mobile and 48px on desktop, content padding 40px and 80px, a subtle dot grid fading toward the form, consistent spacing and status notices, and scrollable content. No card border, shadow or authentication changes. Needs: app wordmark. Styling and layout only. Docs: [Authentication layout](design-system/04-page-archetypes.md#authentication-layout).
     - Automated checks pass, including 26 existing auth tests. The user will review the final spacing in the browser.
-- [ ] `style(pdf): visual pass on printed documents` — fonts, spacing and header alignment in `resources/views/pdf`. Do not change any number, total, query or data passed to the views. Docs: [Accessibility, performance and PDFs](design-system/11-accessibility-performance-pdfs.md).
+- [x] `style(pdf): visual pass on printed documents` — fonts, spacing and header alignment in `resources/views/pdf`. Do not change any number, total, query or data passed to the views. Docs: [Accessibility, performance and PDFs](design-system/11-accessibility-performance-pdfs.md).
 - [ ] `feat(reports): add the activity log page` — the Audit item in the Reports sidebar, reading the existing activity log, scoped by property. Review closely. Docs: [App shell](design-system/09-app-shell.md).
 - [ ] `feat(ui): add the command palette` — ⌘K search across contexts; admin search by code, name, city, with "View as owner" and "View as owner and open" on a property result (`PropertyPolicy::viewAs`, same view-as page and POST). Review the view-as part closely. Docs: [Search patterns](design-system/07-search-patterns.md), [Impersonation](01-platform/04-impersonation.md#entry-points).
 - [ ] `style(ui): add the estatell favicon and app icons` — replace `favicon.ico`, `favicon.svg`, `icon.png` and `apple-touch-icon.png` in `public/`. Needs: the logo file from the user.
@@ -194,6 +194,7 @@ Topics on hold. Each one needs a planning session and its docs before it gets co
 
 | Commit    | Subject                                                                  |
 | --------- | ------------------------------------------------------------------------ |
+| `a23cd3b` | chore(ui): block search indexing                                         |
 | `313e988` | style(ui): replace the app logo with the estatell wordmark               |
 | `974ef88` | feat(init): initializes the docs and repo configuration                  |
 | `ec4f3db` | chore(ai): commit Boost guidelines and agent MCP config                  |

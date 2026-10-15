@@ -17,7 +17,7 @@
     @endcomponent
 
     @if ($cells > 0)
-        <table class="gap-16">
+        <table class="gap-16 info-strip">
             <tr>
                 @foreach ($invoice->strip as $cell)
                     <td style="width: {{ 100 / $cells }}%;">
@@ -44,8 +44,8 @@
         <table>
             @foreach ($invoice->payments as $payment)
                 <tr class="rule">
-                    <td class="muted" style="width: 14%;">{{ $payment->date->format('j M') }}</td>
-                    <td style="width: 16%;">{{ $payment->receiptNumber }}</td>
+                    <td class="muted nowrap" style="width: 14%;">{{ $payment->date->format('j M') }}</td>
+                    <td class="nowrap" style="width: 16%;">{{ $payment->receiptNumber }}</td>
                     <td>{{ $payment->text }}</td>
                     <td class="num">{{ bccomp($payment->amount, '0', 2) < 0 ? '('.$money(ltrim($payment->amount, '-')).')' : $money($payment->amount) }}</td>
                 </tr>

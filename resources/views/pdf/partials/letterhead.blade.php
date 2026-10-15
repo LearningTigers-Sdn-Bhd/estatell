@@ -11,7 +11,7 @@
         @if ($print->logoDataUri !== null)
             <td class="logo"><img src="{{ $print->logoDataUri }}" alt=""></td>
         @endif
-        <td>
+        <td class="property-details">
             <div class="heading">{{ $print->propertyName }}</div>
             @if ($print->legalName !== null)
                 <div class="small">{{ $print->legalName }}</div>
@@ -27,7 +27,7 @@
             @endforeach
         </td>
         @if (trim($slot) !== '')
-            <td class="num">{{ $slot }}</td>
+            <td class="document-heading">{{ $slot }}</td>
         @endif
     </tr>
 </table>

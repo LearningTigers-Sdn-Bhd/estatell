@@ -54,7 +54,7 @@
         </table>
     @else
         @if ($cells > 0)
-            <table class="gap-24">
+            <table class="gap-16 info-strip">
                 <tr>
                     @foreach ($document->strip as $cell)
                         <td style="width: {{ 100 / $cells }}%;">
@@ -79,8 +79,8 @@
             <table>
                 @foreach ($document->payments as $payment)
                     <tr class="rule">
-                        <td class="muted" style="width: 14%;">{{ $payment->date->format('j M') }}</td>
-                        <td style="width: 16%;">{{ $payment->receiptNumber }}</td>
+                        <td class="muted nowrap" style="width: 14%;">{{ $payment->date->format('j M') }}</td>
+                        <td class="nowrap" style="width: 16%;">{{ $payment->receiptNumber }}</td>
                         <td>{{ $payment->text }}</td>
                         <td class="num">{{ bccomp($payment->amount, '0', 2) < 0 ? '('.$plain(ltrim($payment->amount, '-')).')' : $plain($payment->amount) }}</td>
                     </tr>

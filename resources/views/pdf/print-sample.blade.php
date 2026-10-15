@@ -22,25 +22,29 @@
     @endcomponent
 
     <table class="gap-24">
-        <tr class="rule">
-            <th>{{ __('Reservation') }}</th>
-            <th>{{ __('Guest') }}</th>
-            <th>{{ __('Room type') }}</th>
-            <th class="num">{{ __('Nights') }}</th>
-            <th class="num">{{ __('Amount') }}</th>
-        </tr>
-        @foreach ($rows as [$reference, $guest, $roomType, $nights, $amount])
+        <thead>
             <tr class="rule">
-                <td>{{ $reference }}</td>
-                <td>{{ $guest }}</td>
-                <td>{{ $roomType }}</td>
-                <td class="num">{{ $nights }}</td>
-                <td class="num">{{ $amount }}</td>
+                <th>{{ __('Reservation') }}</th>
+                <th>{{ __('Guest') }}</th>
+                <th>{{ __('Room type') }}</th>
+                <th class="num">{{ __('Nights') }}</th>
+                <th class="num">{{ __('Amount') }}</th>
             </tr>
-        @endforeach
-        <tr class="total">
-            <td colspan="4">{{ __('Total') }}</td>
-            <td class="num">1,900.00</td>
-        </tr>
+        </thead>
+        <tbody>
+            @foreach ($rows as [$reference, $guest, $roomType, $nights, $amount])
+                <tr class="rule">
+                    <td>{{ $reference }}</td>
+                    <td>{{ $guest }}</td>
+                    <td>{{ $roomType }}</td>
+                    <td class="num">{{ $nights }}</td>
+                    <td class="num">{{ $amount }}</td>
+                </tr>
+            @endforeach
+            <tr class="total">
+                <td colspan="4">{{ __('Total') }}</td>
+                <td class="num">1,900.00</td>
+            </tr>
+        </tbody>
     </table>
 @endsection

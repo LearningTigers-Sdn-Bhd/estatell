@@ -30,30 +30,34 @@
     </table>
 
     <table class="gap-24">
-        <tr class="rule">
-            <th>{{ __('Date') }}</th>
-            <th>{{ __('Document') }}</th>
-            <th>{{ __('Details') }}</th>
-            <th class="num">{{ __('Amount') }}</th>
-            <th class="num">{{ __('Balance') }}</th>
-        </tr>
-        <tr class="rule">
-            <td colspan="4">{{ __('Opening balance') }}</td>
-            <td class="num">{{ $money($statement->openingBalance) }}</td>
-        </tr>
-        @foreach ($statement->lines as $line)
+        <thead>
             <tr class="rule">
-                <td>{{ $date($line->date) }}</td>
-                <td>{{ $line->kindLabel }} {{ $line->number }}</td>
-                <td class="small">{{ $line->description }}</td>
-                <td class="num">{{ $money($line->amount) }}</td>
-                <td class="num">{{ $money($line->balance) }}</td>
+                <th>{{ __('Date') }}</th>
+                <th>{{ __('Document') }}</th>
+                <th>{{ __('Details') }}</th>
+                <th class="num">{{ __('Amount') }}</th>
+                <th class="num">{{ __('Balance') }}</th>
             </tr>
-        @endforeach
-        <tr class="total">
-            <td colspan="4">{{ __('Closing balance') }}</td>
-            <td class="num">{{ $money($statement->closingBalance) }}</td>
-        </tr>
+        </thead>
+        <tbody>
+            <tr class="rule">
+                <td colspan="4">{{ __('Opening balance') }}</td>
+                <td class="num">{{ $money($statement->openingBalance) }}</td>
+            </tr>
+            @foreach ($statement->lines as $line)
+                <tr class="rule">
+                    <td class="nowrap">{{ $date($line->date) }}</td>
+                    <td>{{ $line->kindLabel }} {{ $line->number }}</td>
+                    <td class="small">{{ $line->description }}</td>
+                    <td class="num">{{ $money($line->amount) }}</td>
+                    <td class="num">{{ $money($line->balance) }}</td>
+                </tr>
+            @endforeach
+            <tr class="total">
+                <td colspan="4">{{ __('Closing balance') }}</td>
+                <td class="num">{{ $money($statement->closingBalance) }}</td>
+            </tr>
+        </tbody>
     </table>
 
     <table class="gap-24">

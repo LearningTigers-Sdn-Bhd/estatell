@@ -22,7 +22,7 @@
         <div class="small muted">{{ __('Not a tax invoice') }}</div>
     @endcomponent
 
-    <table class="gap-16">
+    <table class="gap-16 info-strip">
         <tr>
             @foreach (array_filter($strip, filled(...)) as $label => $value)
                 <td>

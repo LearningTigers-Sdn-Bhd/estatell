@@ -17,37 +17,41 @@
     @endcomponent
 
     <table class="gap-24">
-        <tr class="rule">
-            <th>{{ __('Company') }}</th>
-            <th class="num">{{ __('Current') }}</th>
-            <th class="num">1-30</th>
-            <th class="num">31-60</th>
-            <th class="num">61-90</th>
-            <th class="num">{{ __('Over 90') }}</th>
-            <th class="num">{{ __('Credit') }}</th>
-            <th class="num">{{ __('Total') }}</th>
-        </tr>
-        @foreach ($report->rows as $row)
+        <thead>
             <tr class="rule">
-                <td>{{ $row->companyName }}</td>
-                <td class="num">{{ $money($row->current) }}</td>
-                <td class="num">{{ $money($row->days1to30) }}</td>
-                <td class="num">{{ $money($row->days31to60) }}</td>
-                <td class="num">{{ $money($row->days61to90) }}</td>
-                <td class="num">{{ $money($row->over90) }}</td>
-                <td class="num">{{ $money($row->credit) }}</td>
-                <td class="num">{{ $money($row->total) }}</td>
+                <th>{{ __('Company') }}</th>
+                <th class="num">{{ __('Current') }}</th>
+                <th class="num">1-30</th>
+                <th class="num">31-60</th>
+                <th class="num">61-90</th>
+                <th class="num">{{ __('Over 90') }}</th>
+                <th class="num">{{ __('Credit') }}</th>
+                <th class="num">{{ __('Total') }}</th>
             </tr>
-        @endforeach
-        <tr class="total">
-            <td>{{ __('Total') }}</td>
-            <td class="num">{{ $money($report->totals->current) }}</td>
-            <td class="num">{{ $money($report->totals->days1to30) }}</td>
-            <td class="num">{{ $money($report->totals->days31to60) }}</td>
-            <td class="num">{{ $money($report->totals->days61to90) }}</td>
-            <td class="num">{{ $money($report->totals->over90) }}</td>
-            <td class="num">{{ $money($report->totals->credit) }}</td>
-            <td class="num">{{ $money($report->totals->total) }}</td>
-        </tr>
+        </thead>
+        <tbody>
+            @foreach ($report->rows as $row)
+                <tr class="rule">
+                    <td>{{ $row->companyName }}</td>
+                    <td class="num">{{ $money($row->current) }}</td>
+                    <td class="num">{{ $money($row->days1to30) }}</td>
+                    <td class="num">{{ $money($row->days31to60) }}</td>
+                    <td class="num">{{ $money($row->days61to90) }}</td>
+                    <td class="num">{{ $money($row->over90) }}</td>
+                    <td class="num">{{ $money($row->credit) }}</td>
+                    <td class="num">{{ $money($row->total) }}</td>
+                </tr>
+            @endforeach
+            <tr class="total">
+                <td>{{ __('Total') }}</td>
+                <td class="num">{{ $money($report->totals->current) }}</td>
+                <td class="num">{{ $money($report->totals->days1to30) }}</td>
+                <td class="num">{{ $money($report->totals->days31to60) }}</td>
+                <td class="num">{{ $money($report->totals->days61to90) }}</td>
+                <td class="num">{{ $money($report->totals->over90) }}</td>
+                <td class="num">{{ $money($report->totals->credit) }}</td>
+                <td class="num">{{ $money($report->totals->total) }}</td>
+            </tr>
+        </tbody>
     </table>
 @endsection

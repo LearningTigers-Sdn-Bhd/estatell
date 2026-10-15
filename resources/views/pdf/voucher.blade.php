@@ -33,19 +33,23 @@
             </table>
 
             <table class="gap-24">
-                <tr class="rule">
-                    <th>{{ __('Date') }}</th>
-                    <th>{{ __('Description') }}</th>
-                    <th class="num">{{ __('Amount') }}</th>
-                </tr>
-                @foreach ($voucher->rows as $row)
+                <thead>
                     <tr class="rule">
-                        <td>{{ $row['level'] === 0 ? $row['date'] : '' }}</td>
-                        <td @if ($row['level'] > 0) style="padding-left: {{ $row['level'] * 12 }}pt;" @endif>{{ $row['description'] }}</td>
-                        <td class="num">{{ $money($row['amount']) }}</td>
+                        <th>{{ __('Date') }}</th>
+                        <th>{{ __('Description') }}</th>
+                        <th class="num">{{ __('Amount') }}</th>
                     </tr>
-                @endforeach
-                <tr class="total"><td colspan="2">{{ __('Total') }}</td><td class="num">{{ $money($voucher->total) }}</td></tr>
+                </thead>
+                <tbody>
+                    @foreach ($voucher->rows as $row)
+                        <tr class="rule">
+                            <td class="nowrap">{{ $row['level'] === 0 ? $row['date'] : '' }}</td>
+                            <td @if ($row['level'] > 0) style="padding-left: {{ $row['level'] * 12 }}pt;" @endif>{{ $row['description'] }}</td>
+                            <td class="num">{{ $money($row['amount']) }}</td>
+                        </tr>
+                    @endforeach
+                    <tr class="total"><td colspan="2">{{ __('Total') }}</td><td class="num">{{ $money($voucher->total) }}</td></tr>
+                </tbody>
             </table>
 
             <table class="gap-24">

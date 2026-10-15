@@ -19,12 +19,14 @@
 @endphp
 <table class="gap-16">
     @if ($room)
-        <tr class="rule">
-            <th>{{ __('Date') }}</th>
-            <th>{{ __('Room') }}</th>
-            <th>{{ __('Description') }}</th>
-            <th class="num">{{ __('Amount') }}</th>
-        </tr>
+        <thead>
+            <tr class="rule">
+                <th>{{ __('Date') }}</th>
+                <th>{{ __('Room') }}</th>
+                <th>{{ __('Description') }}</th>
+                <th class="num">{{ __('Amount') }}</th>
+            </tr>
+        </thead>
     @endif
     @foreach ($groups->groups as $group)
         @if ($group->heading !== null)
@@ -34,7 +36,7 @@
         @endif
         @foreach ($group->rows as $row)
             <tr class="rule">
-                <td class="muted" style="width: 18%;">{{ $dates($row) }}</td>
+                <td class="muted nowrap" style="width: 22%;">{{ $dates($row) }}</td>
                 @if ($room)
                     <td style="width: 10%;">{{ $row->room }}</td>
                 @endif

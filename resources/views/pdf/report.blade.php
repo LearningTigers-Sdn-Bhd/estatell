@@ -35,15 +35,10 @@
 
 @push('head')
     <style>
-        .data td, .data th { padding-right: 4pt; }
-        .data td:last-child, .data th:last-child { padding-right: 0; }
-        .nowrap { white-space: nowrap; }
         .center { text-align: center; }
         @if ($isWide)
             .data { font-size: {{ ($print?->fontSize->points() ?? 9.0) - 1 }}pt; }
         @endif
-        thead { display: table-header-group; }
-        tr { page-break-inside: avoid; }
     </style>
 @endpush
 
