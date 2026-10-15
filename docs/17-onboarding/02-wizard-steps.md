@@ -274,7 +274,8 @@ Setup started (another section is no longer Not started):
  │[●] │[ Bank transfer         ] │ Bank transfer    │     [x]       │    │
  │[●] │[ E-wallet              ] │ E-wallet         │     [x]       │    │
  │[○] │[ City ledger           ] │ City ledger      │      –        │    │
- │    │  ℹ Bill stays to companies. Add them in the next section.    │    │
+ │    │  ℹ City ledger turns on automatically when you add a        │    │
+ │    │    company with Direct bill.                                 │    │
  │[●] │[ DuitNow QR            ] │[ E-wallet     ▾] │     [x]       │ 🗑 │
  ├────┴──────────────────────────┴──────────────────┴───────────────┴────┤
  │                                                [+ Add payment method] │

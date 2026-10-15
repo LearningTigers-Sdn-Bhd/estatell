@@ -1,4 +1,4 @@
-import { Link } from '@inertiajs/react';
+import { Link, router } from '@inertiajs/react';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { store as skip } from '@/routes/onboarding/skips';
 import {
@@ -55,14 +55,17 @@ export function OnboardingFooter({
 
                 <div className="flex items-center gap-2">
                     {canSkip && current !== null && (
-                        <Link
-                            href={skip.url({ step: current.value })}
-                            method="post"
-                            as="button"
-                            className={buttonVariants({ variant: 'outline' })}
+                        <Button
+                            type="button"
+                            variant="outline"
+                            disabled={layout.processing}
+                            focusableWhenDisabled
+                            onClick={() =>
+                                router.post(skip.url({ step: current.value }))
+                            }
                         >
                             Skip
-                        </Link>
+                        </Button>
                     )}
                     {editing && layout.formId !== null && (
                         <Button

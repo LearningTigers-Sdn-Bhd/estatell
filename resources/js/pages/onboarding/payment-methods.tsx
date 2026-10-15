@@ -211,9 +211,9 @@ export default function PaymentMethods({
                                             </FieldError>
                                             {!row.is_editable && (
                                                 <p className="mt-1 text-xs text-muted-foreground">
-                                                    Bills stay with companies.
-                                                    Add them in the next
-                                                    section.
+                                                    City ledger turns on
+                                                    automatically when you add a
+                                                    company with Direct bill.
                                                 </p>
                                             )}
                                         </TableCell>
