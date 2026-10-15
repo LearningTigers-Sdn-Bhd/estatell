@@ -342,8 +342,8 @@ Setup started (another section is no longer Not started):
 ## Basic rate table
 
 ```
- Weekend nights   [● Fri + Sat | Sat + Sun ]
- Weekend price    [ Same every night | ● Different on weekends ]
+ Sell format      [ Every night | ● Weekdays + Weekends ]
+ Weekend nights   [● Fri + Sat | Sat + Sun ]      (only with Weekdays + Weekends)
 
  ┌──────────────────────┬──────────────┬──────────────────┬──────────────────┐
  │ Room type            │ Price by     │ Weekdays         │ Weekend          │
@@ -372,8 +372,8 @@ Setup started (another section is no longer Not started):
 
 **Page settings**
 
-- **Weekend nights** is a `toggle-group` (`FriSat`, `SatSun`). It saves to `property_settings.weekend_nights`, because here it is the property default. Column headers follow it ("Fri, Sat").
-- **Weekend price**: **Same every night** hides the Weekend column and sends one amount for all 7 weekdays. Not stored. On return it is preselected when all saved weekdays match.
+- **Weekend nights** is a `toggle-group` (`FriSat`, `SatSun`), shown only when Sell format is **Weekdays + Weekends**. It saves to `property_settings.weekend_nights`, because here it is the property default. Column headers follow it ("Fri, Sat").
+- **Sell format**: **Every night** hides the Weekend nights field and the Weekend column and sends one amount for all 7 weekdays. Not stored. On return it is preselected when all saved weekdays match.
 
 **Basic rate rows**
 
@@ -420,7 +420,7 @@ A rate plan has one pricing basis, so the rows map to one plan per basis used:
 - The save is `SaveOnboardingBasicRate`, called through `SaveBasicRateRequest` (`weekend_nights`, `same_every_night`, and one row per room-sold room type with `price_by` `per_room` or `per_guest`, `weekday` and `weekend`). It writes `weekend_nights` through `UpdatePropertySettings`, then reuses an existing Basic Rate plan of each basis, switches a leftover plan with `ChangeRatePlanBasis`, or creates one with `CreateRatePlan`. Links are set in two passes (add, then remove) so a room type that moves is never without a plan, and a plan left empty is archived. A refused step rolls everything back and shows an error toast.
 - `ChangeRatePlanBasis` runs only while the property is onboarding, on a plan that follows no plan and has no followers. It deletes the plan's rates, and moves the child prices: a plan entering Per guest gets the starter ones, a plan leaving it loses them.
 - Prices are saved from today to today + 364 days in the property time zone. A Guest row saves the per-adult price as the rate amount, with no occupancy prices, so the price is the adult price times the adults.
-- The page reads the table back from the first 7 days of saved rates (`BasicRateRows`). **Same every night** starts selected when every saved row has one amount on all 7 nights.
+- The page reads the table back from the first 7 days of saved rates (`BasicRateRows`). **Every night** starts selected when every saved row has one amount on all 7 nights.
 - The guest pays lines come from `OnboardingBasicRatePreview` (`onboarding.basic-rate.preview`): the room taxes for a local guest, and base occupancy times the price on a Guest row. A blank or half-typed price shows no line.
 - `BasicRateCheck`: Done when every room-sold room type has 30 days of prices on its Basic Rate plan, In progress when some do, Not started when none do.
 - **More rates** save in the same submit and the same transaction, as `more_rates` rows (`SaveBasicRateRequest`, at most 20). Each row has the saved `plan_ids` (empty for a new row), a name, and `mode` `follows` or `own`. Follows rows send `parent_basis` (`per_room` or `per_guest`, the Basic Rate plan of that basis), `direction` (`up` or `down`), `unit` (`amount` or `percent`), `amount` and `room_type_ids`. Own rows send `prices`, the same room type lines as the Basic rate table.

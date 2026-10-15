@@ -280,30 +280,7 @@ export default function BasicRate({
             >
                 <div className="flex flex-wrap gap-x-8 gap-y-4">
                     <Field className="w-auto">
-                        <FieldLabel>Weekend nights</FieldLabel>
-                        <ToggleGroup
-                            variant="outline"
-                            spacing={0}
-                            value={[nights]}
-                            onValueChange={(value) =>
-                                value[0] &&
-                                http.setData('weekend_nights', value[0])
-                            }
-                            aria-label="Weekend nights"
-                        >
-                            {weekendNightsOptions.map((option) => (
-                                <ToggleGroupItem
-                                    key={option.value}
-                                    value={option.value}
-                                >
-                                    {option.label}
-                                </ToggleGroupItem>
-                            ))}
-                        </ToggleGroup>
-                        <FieldError>{errors.weekend_nights}</FieldError>
-                    </Field>
-                    <Field className="w-auto">
-                        <FieldLabel>Weekend price</FieldLabel>
+                        <FieldLabel>Sell format</FieldLabel>
                         <ToggleGroup
                             variant="outline"
                             spacing={0}
@@ -311,16 +288,41 @@ export default function BasicRate({
                             onValueChange={(value) =>
                                 value[0] && chooseSame(value[0] === 'same')
                             }
-                            aria-label="Weekend price"
+                            aria-label="Sell format"
                         >
                             <ToggleGroupItem value="same">
-                                Same every night
+                                Every night
                             </ToggleGroupItem>
                             <ToggleGroupItem value="different">
-                                Different on weekends
+                                Weekdays + Weekends
                             </ToggleGroupItem>
                         </ToggleGroup>
                     </Field>
+                    {!same && (
+                        <Field className="w-auto">
+                            <FieldLabel>Weekend nights</FieldLabel>
+                            <ToggleGroup
+                                variant="outline"
+                                spacing={0}
+                                value={[nights]}
+                                onValueChange={(value) =>
+                                    value[0] &&
+                                    http.setData('weekend_nights', value[0])
+                                }
+                                aria-label="Weekend nights"
+                            >
+                                {weekendNightsOptions.map((option) => (
+                                    <ToggleGroupItem
+                                        key={option.value}
+                                        value={option.value}
+                                    >
+                                        {option.label}
+                                    </ToggleGroupItem>
+                                ))}
+                            </ToggleGroup>
+                            <FieldError>{errors.weekend_nights}</FieldError>
+                        </Field>
+                    )}
                 </div>
 
                 <div className="overflow-hidden rounded-lg border">
