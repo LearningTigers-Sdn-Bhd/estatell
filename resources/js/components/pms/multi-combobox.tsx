@@ -29,6 +29,7 @@ export function MultiCombobox({
     emptyLabel = 'No matching charge codes.',
     invalid,
     disabled,
+    maxChips,
 }: {
     id: string;
     name: string;
@@ -39,6 +40,8 @@ export function MultiCombobox({
     emptyLabel?: string;
     invalid?: boolean;
     disabled?: boolean;
+    /** Show only this many chips, then a "+N" badge for the rest, so a narrow cell stays on one line. */
+    maxChips?: number;
 }) {
     const anchor = useComboboxAnchor();
     const selected = items.filter((item) => value.includes(item.value));
@@ -61,7 +64,10 @@ export function MultiCombobox({
             <ComboboxValue>
                 {(selectedItems: MultiComboboxOption[]) => (
                     <ComboboxChips ref={anchor} aria-invalid={invalid}>
-                        {selectedItems.map((item) => (
+                        {(maxChips === undefined
+                            ? selectedItems
+                            : selectedItems.slice(0, maxChips)
+                        ).map((item) => (
                             <ComboboxChip
                                 key={item.value}
                                 aria-label={item.label}
@@ -69,6 +75,18 @@ export function MultiCombobox({
                                 {item.label}
                             </ComboboxChip>
                         ))}
+                        {maxChips !== undefined &&
+                            selectedItems.length > maxChips && (
+                                <span
+                                    className="flex h-[calc(--spacing(5.25))] items-center rounded-sm bg-muted px-1.5 text-xs font-medium text-muted-foreground"
+                                    title={selectedItems
+                                        .slice(maxChips)
+                                        .map((item) => item.label)
+                                        .join(', ')}
+                                >
+                                    +{selectedItems.length - maxChips}
+                                </span>
+                            )}
                         <ComboboxChipsInput
                             id={id}
                             placeholder={

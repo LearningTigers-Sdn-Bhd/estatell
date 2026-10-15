@@ -15,6 +15,11 @@ import { Button } from '@/components/ui/button';
 import { FieldError } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import {
+    InputGroup,
+    InputGroupAddon,
+    InputGroupInput,
+} from '@/components/ui/input-group';
+import {
     Select,
     SelectContent,
     SelectGroup,
@@ -69,6 +74,8 @@ type Example = {
 };
 
 const MAX_ROWS = 20;
+const addonTrigger =
+    'h-6 w-auto border-0 bg-transparent px-1.5 shadow-none focus-visible:ring-0 dark:bg-transparent dark:hover:bg-transparent';
 
 /**
  * The optional More rates table of the Basic rate step: rates that follow a Basic Rate plan (more or less, by an amount or
@@ -375,50 +382,58 @@ export function MoreRatesTable({
                                         </FieldError>
                                         {rate.mode === 'follows' && (
                                             <div className="mt-2 flex flex-col gap-1">
-                                                <div className="flex gap-2">
-                                                    <Select
-                                                        items={changeOptions}
-                                                        value={rate.direction}
-                                                        disabled={!ready}
-                                                        onValueChange={(
-                                                            value,
-                                                        ) =>
-                                                            setRate(index, {
-                                                                direction:
-                                                                    value as string,
-                                                            })
-                                                        }
-                                                    >
-                                                        <SelectTrigger
-                                                            aria-label={`More or less for rate ${index + 1}`}
-                                                            className="w-24"
+                                                <InputGroup>
+                                                    <InputGroupAddon align="inline-start">
+                                                        <Select
+                                                            items={
+                                                                changeOptions
+                                                            }
+                                                            value={
+                                                                rate.direction
+                                                            }
+                                                            disabled={!ready}
+                                                            onValueChange={(
+                                                                value,
+                                                            ) =>
+                                                                setRate(index, {
+                                                                    direction:
+                                                                        value as string,
+                                                                })
+                                                            }
                                                         >
-                                                            <SelectValue />
-                                                        </SelectTrigger>
-                                                        <SelectContent>
-                                                            <SelectGroup>
-                                                                {changeOptions.map(
-                                                                    (
-                                                                        option,
-                                                                    ) => (
-                                                                        <SelectItem
-                                                                            key={
-                                                                                option.value
-                                                                            }
-                                                                            value={
-                                                                                option.value
-                                                                            }
-                                                                        >
-                                                                            {
-                                                                                option.label
-                                                                            }
-                                                                        </SelectItem>
-                                                                    ),
-                                                                )}
-                                                            </SelectGroup>
-                                                        </SelectContent>
-                                                    </Select>
-                                                    <Input
+                                                            <SelectTrigger
+                                                                aria-label={`More or less for rate ${index + 1}`}
+                                                                className={
+                                                                    addonTrigger
+                                                                }
+                                                            >
+                                                                <SelectValue />
+                                                            </SelectTrigger>
+                                                            <SelectContent>
+                                                                <SelectGroup>
+                                                                    {changeOptions.map(
+                                                                        (
+                                                                            option,
+                                                                        ) => (
+                                                                            <SelectItem
+                                                                                key={
+                                                                                    option.value
+                                                                                }
+                                                                                value={
+                                                                                    option.value
+                                                                                }
+                                                                            >
+                                                                                {
+                                                                                    option.label
+                                                                                }
+                                                                            </SelectItem>
+                                                                        ),
+                                                                    )}
+                                                                </SelectGroup>
+                                                            </SelectContent>
+                                                        </Select>
+                                                    </InputGroupAddon>
+                                                    <InputGroupInput
                                                         aria-label={`Amount for rate ${index + 1}`}
                                                         inputMode="decimal"
                                                         autoComplete="off"
@@ -444,48 +459,52 @@ export function MoreRatesTable({
                                                             })
                                                         }
                                                     />
-                                                    <Select
-                                                        items={unitOptions}
-                                                        value={rate.unit}
-                                                        disabled={!ready}
-                                                        onValueChange={(
-                                                            value,
-                                                        ) =>
-                                                            setRate(index, {
-                                                                unit: value as string,
-                                                            })
-                                                        }
-                                                    >
-                                                        <SelectTrigger
-                                                            aria-label={`Unit for rate ${index + 1}`}
-                                                            className="w-24"
+                                                    <InputGroupAddon align="inline-end">
+                                                        <Select
+                                                            items={unitOptions}
+                                                            value={rate.unit}
+                                                            disabled={!ready}
+                                                            onValueChange={(
+                                                                value,
+                                                            ) =>
+                                                                setRate(index, {
+                                                                    unit: value as string,
+                                                                })
+                                                            }
                                                         >
-                                                            <SelectValue />
-                                                        </SelectTrigger>
-                                                        <SelectContent>
-                                                            <SelectGroup>
-                                                                {unitOptions.map(
-                                                                    (
-                                                                        option,
-                                                                    ) => (
-                                                                        <SelectItem
-                                                                            key={
-                                                                                option.value
-                                                                            }
-                                                                            value={
-                                                                                option.value
-                                                                            }
-                                                                        >
-                                                                            {
-                                                                                option.label
-                                                                            }
-                                                                        </SelectItem>
-                                                                    ),
-                                                                )}
-                                                            </SelectGroup>
-                                                        </SelectContent>
-                                                    </Select>
-                                                </div>
+                                                            <SelectTrigger
+                                                                aria-label={`Unit for rate ${index + 1}`}
+                                                                className={
+                                                                    addonTrigger
+                                                                }
+                                                            >
+                                                                <SelectValue />
+                                                            </SelectTrigger>
+                                                            <SelectContent>
+                                                                <SelectGroup>
+                                                                    {unitOptions.map(
+                                                                        (
+                                                                            option,
+                                                                        ) => (
+                                                                            <SelectItem
+                                                                                key={
+                                                                                    option.value
+                                                                                }
+                                                                                value={
+                                                                                    option.value
+                                                                                }
+                                                                            >
+                                                                                {
+                                                                                    option.label
+                                                                                }
+                                                                            </SelectItem>
+                                                                        ),
+                                                                    )}
+                                                                </SelectGroup>
+                                                            </SelectContent>
+                                                        </Select>
+                                                    </InputGroupAddon>
+                                                </InputGroup>
                                                 <FieldError>
                                                     {fieldError('amount')}
                                                 </FieldError>
@@ -537,6 +556,7 @@ export function MoreRatesTable({
                                             placeholder="Pick room types"
                                             emptyLabel="No matching room types."
                                             disabled={!ready}
+                                            maxChips={2}
                                             invalid={
                                                 !!fieldError('room_type_ids') ||
                                                 !!fieldError('prices')
