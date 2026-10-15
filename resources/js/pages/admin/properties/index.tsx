@@ -206,6 +206,7 @@ export default function PropertiesIndex({
                     panelWidth="full"
                     className="gap-4"
                     triggerClassName="min-w-0 px-0 mr-6"
+                    panelClassName="flex flex-col gap-4"
                     tabs={[
                         {
                             value: 'all',
