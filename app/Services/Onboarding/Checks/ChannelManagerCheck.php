@@ -6,13 +6,13 @@ use App\Enums\StepState;
 use App\Models\Property;
 
 /**
- * Stub: the real check is not built yet, so this always returns NotStarted. A later commit replaces it with the rule in
- * docs/17-onboarding/02-wizard-steps.md.
+ * Done when the property has at least one OTA list row. The step is optional: a skip is turned into Done by
+ * OnboardingProgress before this check runs, and a missing OTA list never blocks go-live.
  */
 class ChannelManagerCheck implements StepCheck
 {
     public function state(Property $property): StepState
     {
-        return StepState::NotStarted;
+        return $property->otaCredentials()->exists() ? StepState::Done : StepState::NotStarted;
     }
 }

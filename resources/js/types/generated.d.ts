@@ -1063,6 +1063,34 @@ key: string,
 parentAmount: string | null,
 result: string | null,
 };
+export type OnboardingOtaChannelData = {
+id: number,
+name: string,
+isOther: boolean,
+};
+export type OnboardingOtaCredentialData = {
+id: number | null,
+otaChannelId: number,
+channelName: string | null,
+propertyCode: string,
+username: string,
+password: string | null,
+marketManagerName: string | null,
+marketManagerPhone: string | null,
+marketManagerEmail: string | null,
+};
+export type OnboardingOtaCredentialRowData = {
+id: number,
+otaChannelId: number,
+channelLabel: string,
+channelName: string | null,
+propertyCode: string,
+username: string,
+hasPassword: boolean,
+marketManagerName: string | null,
+marketManagerPhone: string | null,
+marketManagerEmail: string | null,
+};
 export type OnboardingPaymentMethodData = {
 id: number,
 name: string,
@@ -2826,6 +2854,7 @@ export type NotificationChannel = 'mail' | 'database';
 export type NotificationType = 'night_audit_completed' | 'night_audit_exceptions' | 'night_audit_failed' | 'registration_card_link' | 'onboarding_reminder' | 'dorm_strategy_changed' | 'support_access_used';
 export type OnboardingPhase = 'property' | 'rooms' | 'finance' | 'prices' | 'channels' | 'test_drive' | 'review';
 export type OnboardingStep = 'basics' | 'check_in_essentials' | 'team' | 'room_types' | 'rooms' | 'taxes' | 'payment_methods' | 'companies' | 'basic_rate' | 'charge_items' | 'discounts' | 'channel_manager' | 'test_drive' | 'review';
+export type OtaCredentialStatus = 'pending' | 'processed';
 export type OverdueDeparturePolicy = 'extend_one_night' | 'block';
 export type OwnerSetupMethod = 'email_link' | 'initial_password';
 export type PackageUnit = 'per_guest' | 'per_room';

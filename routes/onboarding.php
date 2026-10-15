@@ -2,6 +2,7 @@
 
 use App\Enums\PermissionEnum;
 use App\Http\Controllers\Onboarding\BasicRateController;
+use App\Http\Controllers\Onboarding\ChannelManagerController;
 use App\Http\Controllers\Onboarding\ChargeItemController;
 use App\Http\Controllers\Onboarding\CheckInEssentialsController;
 use App\Http\Controllers\Onboarding\CompanyController;
@@ -61,6 +62,9 @@ Route::prefix('onboarding')->name('onboarding.')->group(function () {
     Route::put('team', [TeamController::class, 'update'])->name('team.update');
     Route::post('team/import', [TeamController::class, 'import'])->name('team.import');
     Route::get('team/import-template.{format}', [TeamController::class, 'template'])->name('team.template');
+
+    Route::get('channel-manager', [ChannelManagerController::class, 'edit'])->name('channel-manager.edit');
+    Route::put('channel-manager', [ChannelManagerController::class, 'update'])->name('channel-manager.update');
 
     Route::post('skips/{step}', [OnboardingSkipController::class, 'store'])->name('skips.store');
     Route::delete('skips/{step}', [OnboardingSkipController::class, 'destroy'])->name('skips.destroy');

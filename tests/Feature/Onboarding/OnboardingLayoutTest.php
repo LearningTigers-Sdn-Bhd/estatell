@@ -17,7 +17,7 @@ test('onboarding pages share the progress of listed steps only', function () {
         ->get(route('onboarding.basics.edit', $this->property->code))
         ->assertInertia(fn (Assert $page) => $page
             ->component('onboarding/basics')
-            ->has('onboarding.phases', 5)
+            ->has('onboarding.phases', 6)
             ->where('onboarding.phases.0.value', 'property')
             ->where('onboarding.phases.0.state', 'in_progress')
             ->has('onboarding.phases.0.steps', 3)
@@ -38,10 +38,14 @@ test('onboarding pages share the progress of listed steps only', function () {
             ->where('onboarding.phases.3.steps.0.value', 'basic_rate')
             ->where('onboarding.phases.3.steps.1.value', 'charge_items')
             ->where('onboarding.phases.3.steps.2.value', 'discounts')
-            ->where('onboarding.phases.4.value', 'review')
+            ->where('onboarding.phases.4.value', 'channels')
             ->has('onboarding.phases.4.steps', 1)
-            ->where('onboarding.phases.4.steps.0.value', 'review')
-            ->where('onboarding.phases.4.steps.0.url', route('onboarding.go-live.show', $this->property->code, absolute: false))
+            ->where('onboarding.phases.4.steps.0.value', 'channel_manager')
+            ->where('onboarding.phases.4.steps.0.url', route('onboarding.channel-manager.edit', $this->property->code, absolute: false))
+            ->where('onboarding.phases.5.value', 'review')
+            ->has('onboarding.phases.5.steps', 1)
+            ->where('onboarding.phases.5.steps.0.value', 'review')
+            ->where('onboarding.phases.5.steps.0.url', route('onboarding.go-live.show', $this->property->code, absolute: false))
             ->where('onboarding.requiredDone', 0)
             ->where('onboarding.requiredTotal', 7)
             ->where('onboarding.remainingMinutes', 13));
@@ -113,6 +117,7 @@ test('review opens go-live and is the last listed step', function () {
         ->and(OnboardingStep::Companies->nextListed())->toBe(OnboardingStep::BasicRate)
         ->and(OnboardingStep::BasicRate->nextListed())->toBe(OnboardingStep::ChargeItems)
         ->and(OnboardingStep::ChargeItems->nextListed())->toBe(OnboardingStep::Discounts)
-        ->and(OnboardingStep::Discounts->nextListed())->toBe(OnboardingStep::Review)
-        ->and(array_map(fn (OnboardingStep $step): OnboardingStep => $step, OnboardingStep::listed()))->toBe([OnboardingStep::Basics, OnboardingStep::CheckInEssentials, OnboardingStep::Team, OnboardingStep::RoomTypes, OnboardingStep::Rooms, OnboardingStep::Taxes, OnboardingStep::PaymentMethods, OnboardingStep::Companies, OnboardingStep::BasicRate, OnboardingStep::ChargeItems, OnboardingStep::Discounts, OnboardingStep::Review]);
+        ->and(OnboardingStep::Discounts->nextListed())->toBe(OnboardingStep::ChannelManager)
+        ->and(OnboardingStep::ChannelManager->nextListed())->toBe(OnboardingStep::Review)
+        ->and(array_map(fn (OnboardingStep $step): OnboardingStep => $step, OnboardingStep::listed()))->toBe([OnboardingStep::Basics, OnboardingStep::CheckInEssentials, OnboardingStep::Team, OnboardingStep::RoomTypes, OnboardingStep::Rooms, OnboardingStep::Taxes, OnboardingStep::PaymentMethods, OnboardingStep::Companies, OnboardingStep::BasicRate, OnboardingStep::ChargeItems, OnboardingStep::Discounts, OnboardingStep::ChannelManager, OnboardingStep::Review]);
 });

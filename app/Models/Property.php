@@ -268,6 +268,14 @@ class Property extends Model implements FeatureScopeSerializeable, HasMedia
     }
 
     /**
+     * @return HasMany<PropertyOtaCredential, $this>
+     */
+    public function otaCredentials(): HasMany
+    {
+        return $this->hasMany(PropertyOtaCredential::class);
+    }
+
+    /**
      * The property's AR invoices and credit notes, also the scope of the `{invoice}` route parameter.
      *
      * @return HasMany<ArInvoice, $this>
