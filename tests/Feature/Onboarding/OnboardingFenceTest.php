@@ -20,12 +20,12 @@ test('the owner of an onboarding property is sent from the dashboard to the firs
         ->assertRedirect(route('onboarding.basics.edit', $this->property->code));
 });
 
-test('the next step falls back to basics while it has no page', function () {
+test('a fenced page sends the owner to the current step once basics is done', function () {
     completeOnboardingBasics($this->property);
 
     $this->actingAs($this->owner)
         ->get(route('settings.edit', $this->property->code))
-        ->assertRedirect(route('onboarding.basics.edit', $this->property->code));
+        ->assertRedirect(route('onboarding.room-types.edit', $this->property->code));
 });
 
 test('the owner can open the onboarding pages', function () {

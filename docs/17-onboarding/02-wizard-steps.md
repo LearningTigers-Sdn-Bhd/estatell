@@ -154,11 +154,11 @@ Setup started (another section is no longer Not started):
 - The last row cannot be removed: its remove button is disabled (`focusableWhenDisabled`, tooltip "At least one room type").
 - New rows default to 2 adults and 0 children.
 - Columns: name, max adults, max children. No sell unit: onboarding always creates `SellUnit::Room`. `base_occupancy` defaults to max adults, so Basic rate has no extra-adult charge. Description, smoking, pets and terms stay in settings. The hint under the table: "After you go live, you can add descriptions and room rules in Settings, under Room types."
-- One submit saves the table in one transaction: new rows create, changed rows update, removed rows delete, through the room type Actions used by settings. Errors show per row (`rows.{n}.name`). A small onboarding request takes `rows` and reuses the `RoomTypeRequest` rules per row.
-- Removing a saved room type that has rooms follows the settings rule (to verify).
+- One submit saves the table in one transaction (`SaveOnboardingRoomTypes`): new rows create, changed rows update, removed rows are archived together with their rooms (a deleted row frees its name, and its rooms free their numbers), through the room type Actions used by settings. The table order sets the display order. Errors show per row (`rows.{n}.name`). `SaveRoomTypesRequest` takes `rows` (1 to 50) and uses the bounds of `RoomTypeRequest` per row. A name must differ from the other rows, from bed-sold types and from the saved name of another kept row, so two rows cannot swap names in one save.
+- Updating a saved row also sets `base_occupancy` to the new max adults.
 - At phone width each row stacks into a card.
 - Dorm beds (`SellUnit::Bed`) are not offered. A hostel sees "Selling dorm beds? After you go live, you can add them in Settings, under Room types." A bed-sold type made in settings shows read-only with "Sold by bed. Edit in settings." and counts toward Done. Basic rate leaves it out ("After you go live, you can price beds in Settings, under Rate plans.").
-- Check: Done with at least one room type.
+- Check: Done with at least one active room type (sold by room or by bed), otherwise Not started. There is no In progress state.
 
 ## Rooms table
 
@@ -705,8 +705,8 @@ property_ota_credentials  id, property_id, channel (OtaChannel), property_code, 
 
 ### Status
 
-- Built: Basics with country, currency, time zone, state list and the Business details group (`SavePropertyBasics`, `ChangePropertyCountry` while setup has not started, `SettingsLock::locksCountry`), the enums, `OnboardingProgress`, the Basics check, the `onboarding_skips` table with the Skip and Unskip Actions and their routes (`POST` and `DELETE onboarding/skips/{step}`), the step save rule (`OnboardingStepRequest`), both middlewares, the waiting page, the onboarding layout and the shared progress.
-- Stubs: every other step's check returns NotStarted until its own commit replaces it.
+- Built: Basics with country, currency, time zone, state list and the Business details group (`SavePropertyBasics`, `ChangePropertyCountry` while setup has not started, `SettingsLock::locksCountry`), the Room types section (`SaveOnboardingRoomTypes`, `RoomTypesCheck`), the enums, `OnboardingProgress`, the Basics check, the `onboarding_skips` table with the Skip and Unskip Actions and their routes (`POST` and `DELETE onboarding/skips/{step}`), the step save rule (`OnboardingStepRequest`), both middlewares, the waiting page, the onboarding layout and the shared progress.
+- Stubs: every other step's check (except Basics and Room types) returns NotStarted until its own commit replaces it.
 - Not yet: the practice exception, and the Needs attention state (it needs a stored "was Done" marker, so no state is produced yet).
 - Go-live readiness is unchanged. It still returns no checks until the sections are built.
 

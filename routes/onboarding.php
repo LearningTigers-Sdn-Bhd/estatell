@@ -5,6 +5,7 @@ use App\Http\Controllers\Onboarding\GoLiveController;
 use App\Http\Controllers\Onboarding\OnboardingSkipController;
 use App\Http\Controllers\Onboarding\OnboardingWaitingController;
 use App\Http\Controllers\Onboarding\PropertyBasicsController;
+use App\Http\Controllers\Onboarding\RoomTypeController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('onboarding')->name('onboarding.')->group(function () {
@@ -12,6 +13,9 @@ Route::prefix('onboarding')->name('onboarding.')->group(function () {
 
     Route::get('basics', [PropertyBasicsController::class, 'edit'])->name('basics.edit');
     Route::put('basics', [PropertyBasicsController::class, 'update'])->name('basics.update');
+
+    Route::get('room-types', [RoomTypeController::class, 'edit'])->name('room-types.edit');
+    Route::put('room-types', [RoomTypeController::class, 'update'])->name('room-types.update');
 
     Route::post('skips/{step}', [OnboardingSkipController::class, 'store'])->name('skips.store');
     Route::delete('skips/{step}', [OnboardingSkipController::class, 'destroy'])->name('skips.destroy');

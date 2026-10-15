@@ -35,7 +35,7 @@ test('new owners are sent to setup, and saving basics creates defaults', functio
         ->assertRedirect(route('onboarding.basics.edit', $property->code));
 
     $this->put(route('onboarding.basics.update', $property->code), basicsInput())
-        ->assertRedirect(route('onboarding.go-live.show', $property->code))
+        ->assertRedirect(route('onboarding.room-types.edit', $property->code))
         ->assertSessionHasNoErrors();
 
     $settings = $property->refresh()->settings;
