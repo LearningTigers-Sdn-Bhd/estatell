@@ -19,6 +19,14 @@ class SaveOtaListsRequest extends FormRequest
         return true;
     }
 
+    /**
+     * A saved row keeps its channel, so the channel is locked on Settings.
+     */
+    protected function locksSavedChannels(): bool
+    {
+        return true;
+    }
+
     public function withValidator(Validator $validator): void
     {
         $this->checkOtaListRows($validator);

@@ -211,3 +211,32 @@ test('the page sends the status and never a password', function () {
             ->missing('savedRows.0.password'))
         ->assertDontSee('agoda-secret');
 });
+
+test('a saved row cannot change its channel', function () {
+    $saved = PropertyOtaCredential::factory()->for($this->property)->create(['ota_channel_id' => $this->agoda->id]);
+
+    ($this->save)([($this->row)(['id' => $saved->id, 'ota_channel_id' => (string) $this->booking->id, 'password' => ''])])
+        ->assertSessionHasErrors(['rows.0.ota_channel_id']);
+
+    expect($saved->refresh()->ota_channel_id)->toBe($this->agoda->id);
+});
+
+test('a saved Other row cannot change its channel name', function () {
+    $saved = PropertyOtaCredential::factory()->for($this->property)->create(['ota_channel_id' => $this->other->id, 'channel_name' => 'Traveloka']);
+
+    ($this->save)([($this->row)([
+        'id' => $saved->id,
+        'ota_channel_id' => (string) $this->other->id,
+        'channel_name' => 'Trip.com',
+        'password' => '',
+    ])])->assertSessionHasErrors(['rows.0.channel_name']);
+
+    expect($saved->refresh()->channel_name)->toBe('Traveloka');
+
+    ($this->save)([($this->row)([
+        'id' => $saved->id,
+        'ota_channel_id' => (string) $this->other->id,
+        'channel_name' => 'traveloka',
+        'password' => '',
+    ])])->assertSessionHasNoErrors();
+});

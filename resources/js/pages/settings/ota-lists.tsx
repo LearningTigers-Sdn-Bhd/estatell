@@ -92,8 +92,9 @@ export default function OtaListsSettings({
                             Only the estatell team reads these. Passwords are
                             stored encrypted and are never shown again here. A
                             new password sends the channel back to Pending until
-                            the team connects it again. Changes take effect when
-                            you save.
+                            the team connects it again. A saved row keeps its
+                            channel: remove the row and add a new one to change
+                            it.
                         </AlertDescription>
                     </Alert>
 
@@ -103,6 +104,7 @@ export default function OtaListsSettings({
                         maxRows={maxRows}
                         errors={errors}
                         showStatus
+                        lockSavedChannels
                         onRowsChange={(next) => form.setData('rows', next)}
                         onRemoveRow={(index) => {
                             if (rows[index]?.status?.value === 'processed') {

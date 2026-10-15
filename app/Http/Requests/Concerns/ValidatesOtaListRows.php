@@ -73,6 +73,10 @@ trait ValidatesOtaListRows
                 }
 
                 $isOther = $this->isOther($row);
+
+                if ($this->locksSavedChannels() && $row['id'] !== null) {
+                    $this->checkSavedChannelUnchanged($afterValidator, $index, $row, $isOther);
+                }
                 $key = $isOther ? 'other:'.Str::lower($row['channel_name']) : 'channel:'.($row['ota_channel_id'] ?? '');
 
                 if (isset($seenChannels[$key])) {
@@ -85,6 +89,47 @@ trait ValidatesOtaListRows
                 $seenChannels[$key] = true;
             }
         });
+    }
+
+    /**
+     * Whether a saved row may keep its channel only. Settings sets this, so a channel changes by removing the row and
+     * adding a new one, which asks for the disconnect warning. Onboarding keeps the channel editable.
+     */
+    protected function locksSavedChannels(): bool
+    {
+        return false;
+    }
+
+    /**
+     * A saved row's channel and channel name must match the saved row. A changed value gets an error on the row.
+     *
+     * @param  array<string, mixed>  $row
+     */
+    private function checkSavedChannelUnchanged(Validator $afterValidator, int|string $index, array $row, bool $isOther): void
+    {
+        $property = $this->route('property');
+
+        if (! $property instanceof Property) {
+            return;
+        }
+
+        $saved = $property->otaCredentials()->whereKey($row['id'])->first();
+
+        if ($saved === null) {
+            return;
+        }
+
+        if ((string) $saved->ota_channel_id !== (string) ($row['ota_channel_id'] ?? '')) {
+            $afterValidator->errors()->add("rows.$index.ota_channel_id", __('The channel of a saved row can\'t change. Remove the row and add a new one.'));
+
+            return;
+        }
+
+        $submittedName = $isOther ? (string) $row['channel_name'] : '';
+
+        if (Str::lower((string) $saved->channel_name) !== Str::lower($submittedName)) {
+            $afterValidator->errors()->add("rows.$index.channel_name", __('The channel name of a saved row can\'t change. Remove the row and add a new one.'));
+        }
     }
 
     /**

@@ -128,6 +128,7 @@ export function OtaListsTable({
     maxRows,
     errors,
     showStatus = false,
+    lockSavedChannels = false,
     onRowsChange,
     onRemoveRow,
 }: {
@@ -137,6 +138,8 @@ export function OtaListsTable({
     errors: Record<string, string | undefined>;
     /** Settings shows the saved status. Onboarding does not. */
     showStatus?: boolean;
+    /** Settings locks the channel of a saved row. Remove the row and add a new one to change it. */
+    lockSavedChannels?: boolean;
     onRowsChange: (rows: OtaListRow[]) => void;
     onRemoveRow: (index: number) => void;
 }) {
@@ -203,45 +206,56 @@ export function OtaListsTable({
                                     <span className="mb-1 block text-xs text-muted-foreground md:hidden">
                                         Channel
                                     </span>
-                                    <Select
-                                        items={channelItems}
-                                        value={row.ota_channel_id}
-                                        onValueChange={(value) =>
-                                            setRow(index, {
-                                                ota_channel_id: value as string,
-                                            })
-                                        }
-                                    >
-                                        <SelectTrigger
-                                            aria-label={`Channel of row ${index + 1}`}
-                                            className="w-full"
-                                            aria-invalid={
-                                                !!fieldError(
-                                                    'ota_channel_id',
-                                                ) || !!fieldError('id')
+                                    {lockSavedChannels && row.on_file ? (
+                                        <span className="block pt-1.5 max-md:pt-0">
+                                            {label}
+                                        </span>
+                                    ) : (
+                                        <Select
+                                            items={channelItems}
+                                            value={row.ota_channel_id}
+                                            onValueChange={(value) =>
+                                                setRow(index, {
+                                                    ota_channel_id:
+                                                        value as string,
+                                                })
                                             }
                                         >
-                                            <SelectValue>
-                                                {label ?? (
-                                                    <span className="text-muted-foreground">
-                                                        Choose a channel
-                                                    </span>
-                                                )}
-                                            </SelectValue>
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectGroup>
-                                                {channelItems.map((item) => (
-                                                    <SelectItem
-                                                        key={item.value}
-                                                        value={item.value}
-                                                    >
-                                                        {item.label}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectGroup>
-                                        </SelectContent>
-                                    </Select>
+                                            <SelectTrigger
+                                                aria-label={`Channel of row ${index + 1}`}
+                                                className="w-full"
+                                                aria-invalid={
+                                                    !!fieldError(
+                                                        'ota_channel_id',
+                                                    ) || !!fieldError('id')
+                                                }
+                                            >
+                                                <SelectValue>
+                                                    {label ?? (
+                                                        <span className="text-muted-foreground">
+                                                            Choose a channel
+                                                        </span>
+                                                    )}
+                                                </SelectValue>
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectGroup>
+                                                    {channelItems.map(
+                                                        (item) => (
+                                                            <SelectItem
+                                                                key={item.value}
+                                                                value={
+                                                                    item.value
+                                                                }
+                                                            >
+                                                                {item.label}
+                                                            </SelectItem>
+                                                        ),
+                                                    )}
+                                                </SelectGroup>
+                                            </SelectContent>
+                                        </Select>
+                                    )}
                                     <FieldError>
                                         {fieldError('ota_channel_id') ??
                                             fieldError('id')}
@@ -256,6 +270,10 @@ export function OtaListsTable({
                                                 placeholder="e.g. Traveloka"
                                                 maxLength={80}
                                                 value={row.channel_name}
+                                                readOnly={
+                                                    lockSavedChannels &&
+                                                    row.on_file
+                                                }
                                                 onChange={(event) =>
                                                     setRow(index, {
                                                         channel_name:
