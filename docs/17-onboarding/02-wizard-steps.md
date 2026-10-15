@@ -49,11 +49,11 @@ The first release has two pages, Basics and Review (go live). Both use the onboa
  all * Done ──▶ 13 Review / Go live
 ```
 
-Room revenue is not a separate section. Its taxes are the **Applies to rooms** column in Taxes. The no-show, cancellation, early departure and late check-out policies stay Free (seeded) and are on the Recommended checklist after go-live.
+Room revenue is not a separate section. Its taxes are the **Applies to rooms** column in Taxes. The no-show, cancellation, early departure and late check-out policies stay Free (seeded). **No-show and cancellation charges** is on the [Recommended checklist](03-go-live.md#recommended-checklist) after go-live.
 
 - **Next** follows the numbers. The phase bar lets the owner jump to any unlocked section.
 - Optional sections show **Skip** in the footer.
-- Not in onboarding: photos, packages and meals, and the live channel connection (mappings, rates and availability sync). They are in the Recommended checklist after go-live. Only the OTA lists are collected in onboarding.
+- Not in onboarding: photos, packages and meals, and the live channel connection (mappings, rates and availability sync). Only the OTA lists are collected in onboarding. The channel connection joins the [Recommended checklist](03-go-live.md#recommended-checklist) when it is built.
 
 ## Basics form
 
@@ -285,7 +285,7 @@ Setup started (another section is no longer Not started):
 - **On** is `active`. Methods are never deleted, so a saved method is turned off instead. 🗑 only on unsaved rows.
 - **Name** is editable (renames its transaction code, existing rule). **Type** is read-only for saved methods and a menu of the addable types for new rows. **Ask for ref. no.** is `requires_reference`, starting from the type default. City ledger shows "–".
 - A new method's transaction code is derived from the name (DuitNow QR → `DUITNOW_QR`, at most 20 characters, a number added when taken) and editable in settings.
-- Surcharges are hidden. Every method saves as `None`, because a fee needs a charge item (section 8). "Add a card fee" is on the Recommended checklist.
+- Surcharges are hidden. Every method saves as `None`, because a fee needs a charge item (section 8). **Payment surcharges** is on the [Recommended checklist](03-go-live.md#recommended-checklist).
 - Order is table order. New rows go last.
 - One submit, one transaction, through the payment method Actions used by settings.
 - Check: Done when at least one addable method is active. The seeded methods start active, so this shows Done before the owner opens it. **Next** still visits it, and Review lists the active methods.

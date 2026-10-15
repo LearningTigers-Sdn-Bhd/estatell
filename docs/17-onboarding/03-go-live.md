@@ -70,7 +70,7 @@ go_live_review_flags   go_live_review_id, step (OnboardingStep)
 | Opening date: today in the property time zone. The owner field is gone                                          | Built. To change: `ApproveGoLive` takes an earlier date.                                   |
 | `PendingApproval` when `require_go_live_approval` is on. The business date opens and `went_live_at` stays empty | Built. To change: `RequestGoLive` opens nothing; the go-live steps run at `ApproveGoLive`. |
 | `RefreshPendingTemporaryPasswords` at go-live                                                                   | Built for staff. Company users join when the company portal users are built.               |
-| Notifications switch-on, confetti, Recommended checklist                                                        | Not built. Confetti and the Recommended checklist come with the You're live screen.        |
+| Notifications switch-on, the You're live card, confetti, Recommended checklist                                  | Not built. The card, confetti and the checklist come in one commit.                        |
 
 Document numbering needs no start step. `NextDocumentNumber` creates a sequence row on first use.
 
@@ -78,22 +78,62 @@ Document numbering needs no start step. `NextDocumentNumber` creates a sequence 
 
 ## After go-live
 
-- The go-live screen shows **Share sign-in details**:
+Going live redirects to the dashboard with a `wentLive` flash. There is no separate go-live page: onboarding URLs redirect a Live property to the dashboard, and a property approved by an admin reaches the same cards on the owner's next visit.
+
+### You're live card
 
 ```
- ┌─ You're live! ───────────────────────────────────────────────────┐
- │ Share sign-in details                                            │
- │   Team (3)            [Copy messages]  [Export slips ▾ PDF·CSV]  │
- │   Company users (2)   [Copy messages]  [Export slips ▾ PDF·CSV]  │
- │ Passwords expire on 29 Oct. You can reset them in Settings.      │
- └──────────────────────────────────────────────────────────────────┘
+ ┌─ You're live! ─────────────────────────────────────────────────────────────────────┐
+ │ Seaview Lodge is open. Your first business day is Fri 16 Oct.                      │
+ │                                                                                    │
+ │ Share sign-in details                                                              │
+ │   Team (3)    Not shared yet        [Copy messages]  [Export slips ▾ PDF · CSV]    │
+ │   Passwords expire on Fri 30 Oct. You can reset them in Settings, under Staff.     │
+ └────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-- It reuses the temp password copy and export (`TemporaryPasswordMessage`, `TemporaryPasswordFile`). The Recommended checklist keeps "Share sign-in details with {n} staff and {n} company users" until each pending user's details were copied or exported. After that the Staff page and the company Portal users tab work as today.
+- Shown at the top of the dashboard to users with `staff.manage` while a pending staff user has no shared time. Pending means the user still has `must_change_password` and is not deactivated (`PendingSignInUsers`).
+- **Copy messages** and **Export slips** call the existing staff temp-password routes (`settings.staff.temp-passwords.message`, `.export`), which use `TemporaryPasswordMessage` and `TemporaryPasswordFile`.
+- `users.temporary_password_shared_at` (nullable timestamp) is set for each user in a copy or an export, and cleared when a temp password is set again (reset, or the refresh at go-live). This applies everywhere, not only on this card.
+- After sharing, the row reads "✓ Team (3) Shared 16 Oct" with **Copy again**. The card is gone on the next visit once every pending user has a shared time.
+- With no pending staff, the card shows only the first line, once (on the `wentLive` flash).
+- A short celebration (`canvas-confetti`) runs once, on the `wentLive` flash, never on later loads.
+- Company users join this card with [Company portal](../23-company-portal/01-company-portal.md).
+- At phone width the rows stack and the buttons go full width.
 
-- A short celebration (`canvas-confetti`).
-- Onboarding URLs redirect to the dashboard. Setup data is edited in settings.
-- The dashboard shows the **Recommended checklist**: no-show and cancellation charges (Room revenue policy tabs), a card fee (payment surcharges), room groups, photos, packages and meals, discounts, negotiated company rates, custom roles, notification preferences, and the channel manager connection when its feature is active (OTA lists given in onboarding are already on file).
+### Recommended checklist
+
+```
+ ┌─ Recommended next ─────────────────────────────────────── 1 of 6 done ─┐
+ │ ○ Property logo                            [Add →]                     │
+ │   No logo on invoices and receipts                                     │
+ │ ○ No-show and cancellation charges         [Set up →]   [Not needed]   │
+ │   All policies are Free                                                │
+ │ ○ Missed arrivals and overdue departures   [Review →]   [Not needed]   │
+ │   Using the defaults                                                   │
+ │ ○ Skipped sections                         [Open →]     [Not needed]   │
+ │   Charge items, Discounts                                              │
+ │ ○ Payment surcharges                       [Set up →]   [Not needed]   │
+ │   No surcharge on any payment method                                   │
+ │ ✓ Room groups                                                          │
+ │   Sea view, Garden                                                     │
+ └────────────────────────────────────────────────────────────────────────┘
+```
+
+| Item                                   | Done when                                                                                            | Opens                        | Not needed       |
+| -------------------------------------- | ---------------------------------------------------------------------------------------------------- | ---------------------------- | ---------------- |
+| Property logo                          | The property has a logo (`Property::LOGO` media)                                                     | Settings → Logo              | No               |
+| No-show and cancellation charges       | A room revenue policy has a charge mode other than Free                                              | Settings → Room revenue      | Yes              |
+| Missed arrivals and overdue departures | Only by Not needed: the defaults are valid, the owner confirms them                                  | Settings → Operations        | Yes              |
+| Skipped sections                       | One line per skipped optional section (`onboarding_skips`); a line is done when the section has data | That section's settings page | Yes, per section |
+| Payment surcharges                     | A payment method has a surcharge other than None                                                     | Settings → Payment methods   | Yes              |
+| Room groups                            | The property has a room group                                                                        | Settings → Room groups       | Yes              |
+
+- A read-only Service builds the items from the property's data. Each item has a key, a label, a one-line summary, a done flag and a URL.
+- **Not needed** stores a row in `recommended_item_dismissals (property_id, item, dismissed_by, dismissed_at)`, unique on `(property_id, item)`. A skipped section uses the item key `skipped:{step}`.
+- Shown on the dashboard to users with `settings.manage` while any item is open. The card is gone when every item is done or dismissed. There is no hide for the whole card.
+- On desktop the order is fixed. At phone width open items come first.
+- Not on the list: photos (no feature yet), meal periods and packages, discounts (an onboarding section), custom roles, notification preferences, and company rates (later, with company users). The channel connection joins the list when it is built ([Channel connections](../21-channels/01-connections-and-feature-gate.md)).
 
 ## Lessons from wastays
 

@@ -9,7 +9,7 @@ Let properties connect to Agoda, Booking.com and other OTAs through Channex, whe
 - Pennant feature `ChannelManager`, off by default (see [Feature flags](../01-platform/03-feature-flags.md)).
 - Channel routes use `EnsureFeaturesAreActive::using(ChannelManager::class)`.
 - When off, the dashboard shows a "Connect Agoda / Booking.com" card. It records a request on the admin board.
-- When on, it appears in the Recommended checklist after go-live.
+- When on and the connection is built, it joins the [Recommended checklist](../17-onboarding/03-go-live.md#recommended-checklist) after go-live.
 
 ## Data model
 
